@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react'
 import Layout from '@/components/Layout'
 
 import '@interchain-ui/react/styles'
+import MembersRules from '@/components/MembersRules'
 
 const signerOptions: SignerOptions = {
   signingStargate: () => {
@@ -88,6 +89,7 @@ const App = ({ Component, pageProps }: AppProps) => {
           }}
         >
           <Layout>
+            <MembersRules />
             <Component {...pageProps} />
           </Layout>
         </ChainProvider>

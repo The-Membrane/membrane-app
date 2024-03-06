@@ -1,5 +1,5 @@
 import useWallet from '@/hooks/useWallet'
-import { getRewards, getStaked } from '@/services/governance'
+import { getRewards, getStaked } from '@/services/staking'
 import { useQuery } from '@tanstack/react-query'
 
 const useStaked = () => {

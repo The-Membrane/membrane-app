@@ -19,7 +19,7 @@ const navItems: NavItems[] = [
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
-  { label: 'Governance', href: '/governance', ItemIcon: StakeIcon },
+  { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
 ]
 
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {

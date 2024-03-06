@@ -16,9 +16,9 @@ const featurs = [
     ctaLabel: 'Bid',
   },
   {
-    label: 'Governance',
+    label: 'Staking',
     FeatureIcon: StakeIcon,
-    href: '/governance',
+    href: '/stake',
     ctaLabel: 'Stake',
   },
   {

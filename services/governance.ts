@@ -1,42 +1,45 @@
 import contracts from '@/config/contracts.json'
-import { Addr } from '@/contracts/generated/positions/Positions.types'
+import { GovernanceQueryClient } from '@/contracts/codegen/governance/Governance.client'
 import getCosmWasmClient from '@/helpers/comswasmClient'
-import { StakingClient, StakingQueryClient } from '@/contracts/generated/staking/Staking.client'
-import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { coin } from '@cosmjs/amino'
 
-export const stakingClient = async () => {
+export const getGovernanceClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
-  return new StakingQueryClient(cosmWasmClient, contracts.staking)
+  return new GovernanceQueryClient(cosmWasmClient, contracts.governance)
 }
 
-export const getSigningStakingClient = (signingClient: SigningCosmWasmClient, address: Addr) => {
-  return new StakingClient(signingClient, address, contracts.staking)
-}
+// export const getSigningStakingClient = (signingClient: SigningCosmWasmClient, address: Addr) => {
+//   return new StakingClient(signingClient, address, contracts.staking)
+// }
 
-export type StakingParams = {
-  signingClient: SigningCosmWasmClient
-  address: Addr
-  denom: string
-  amount: string
-}
+// export type StakingParams = {
+//   signingClient: SigningCosmWasmClient
+//   address: Addr
+//   denom: string
+//   amount: string
+// }
 
-export const stake = async ({ signingClient, address, denom, amount }: StakingParams) => {
-  const client = getSigningStakingClient(signingClient, address)
-  const funds = [coin(amount, denom)]
+export const getProposals = async () => {
+  const client = await getGovernanceClient()
 
-  return client.stake({}, 'auto', undefined, funds)
-}
+  const start = 0
+  const limit = 30
 
-export const getStaked = async (address: Addr) => {
-  const client = await stakingClient()
-  return client.userStake({
-    staker: address,
-  })
-}
-export const getRewards = async (address: Addr) => {
-  const client = await stakingClient()
-  return client.userRewards({
-    user: address,
-  })
+  const activeProposals = client.activeProposals({ start, limit }).then((res) => res.proposal_list)
+  const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
+
+  const statusOrder: Record<string, number> = {
+    active: 0,
+    pending: 1,
+    rejected: 2,
+    executed: 3,
+  }
+
+  return Promise.all([activeProposals, pendingProposals])
+    .then(([active, pending]) => [...active, ...pending])
+    .then((proposals) =>
+      proposals.sort((a, b) => {
+        return statusOrder[a.status] - statusOrder[b.status]
+      }),
+    )
 }

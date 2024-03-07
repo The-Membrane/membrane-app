@@ -46,26 +46,6 @@ const useMint = () => {
     ],
     amount: '1',
   })
-
-  // const simulate = useSimulate({
-  //   msgs,
-  //   amount: '1',
-  //   queryKey: [
-  //     String(mintState?.mint) || '0',
-  //     String(mintState?.repay) || '0',
-  //     summary?.map((s: any) => String(s.value)) || '0',
-  //   ],
-  // })
-
-  // const tx = useTransaction({
-  //   msgs,
-  //   fee: simulate.data?.[0] || [],
-  // })
-
-  // return {
-  //   simulate,
-  //   tx,
-  // }
 }
 
 export default useMint

@@ -1,0 +1,107 @@
+import usePagination, { Pagination as PaginationType } from '@/hooks/usePagination'
+import { Box, HStack, Skeleton, Stack, Text } from '@chakra-ui/react'
+import { Dispatch, SetStateAction, useState } from 'react'
+import { Badge } from './Badge'
+import { FilterButtons } from './FilterButtons'
+import { Pagination } from './Pagination'
+import ProposalDetails from './ProposalDetails'
+import useProposals from './hooks/useProposals'
+import { Search } from './Search'
+import { ProposalResponse } from '@/contracts/codegen/governance/Governance.types'
+
+export type Filter = {
+  status: string
+}
+
+type TopBarProps = {
+  setFilter: Dispatch<SetStateAction<Filter>>
+  setSearch: Dispatch<SetStateAction<string>>
+}
+
+const TopBar = ({ setFilter, setSearch }: TopBarProps) => (
+  <HStack w="100%" justifyContent="space-between">
+    <FilterButtons setFilter={setFilter} />
+    <Search search="" setSearch={setSearch} />
+  </HStack>
+)
+
+const Loading = () => (
+  <Stack w="600px">
+    <Skeleton h="50px" borderRadius="md" />
+    <Skeleton h="50px" borderRadius="md" />
+    <Skeleton h="50px" borderRadius="md" />
+  </Stack>
+)
+
+const NoProposals = ({ show }: { show: boolean }) => {
+  if (!show) return null
+  return (
+    <Box p="3" bg="whiteAlpha.200" borderRadius="lg" textAlign="center">
+      <Text fontSize="md" color="gray.300">
+        No active proposals
+      </Text>
+    </Box>
+  )
+}
+
+const Proposals = ({ proposals = [] }: { proposals: ProposalResponse[] }) => {
+  if (proposals?.length === 0) return null
+  return (
+    <Stack>
+      {proposals?.map((proposal) => (
+        <HStack
+          key={proposal.proposal_id}
+          px="4"
+          py="1"
+          bg="whiteAlpha.200"
+          borderRadius="lg"
+          gap="4"
+        >
+          <Badge status={proposal?.status} />
+          <Stack gap="0" m="none" p="none" flexGrow={1}>
+            <Text noOfLines={1}>{proposal.title}</Text>
+            <Text color="gray" fontSize="sm" noOfLines={1}>
+              {proposal.description}
+            </Text>
+          </Stack>
+          <ProposalDetails proposal={proposal} />
+        </HStack>
+      ))}
+    </Stack>
+  )
+}
+
+type PaginationProps = {
+  pagination: Omit<PaginationType<ProposalResponse>, 'paginatedData'>
+}
+
+const PaginationBar = ({ pagination }: PaginationProps) => {
+  if (pagination.totalPages <= 1) return null
+  return (
+    <HStack w="100%" justifyContent="flex-end">
+      <Pagination {...pagination} />
+    </HStack>
+  )
+}
+
+const ProposalsTable = () => {
+  const [filters, setFilters] = useState<Filter>({ status: 'active' })
+  const [search, setSearch] = useState<string>('')
+  const { data = [], isLoading } = useProposals()
+  const { paginatedData, ...pagination } = usePagination(data, 10, filters, search)
+
+  if (isLoading) {
+    return <Loading />
+  }
+
+  return (
+    <Stack w="600px" gap="5">
+      <TopBar setFilter={setFilters} setSearch={setSearch} />
+      <NoProposals show={paginatedData.length === 0} />
+      <Proposals proposals={paginatedData} />
+      <PaginationBar pagination={pagination} />
+    </Stack>
+  )
+}
+
+export default ProposalsTable

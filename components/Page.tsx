@@ -12,7 +12,7 @@ const backgroundImageConfig: Record<string, string> = {
   '/': '/images/backgrounds/home_bg.svg',
   '/mint': '/images/backgrounds/mint_bg.svg',
   '/lockdrop': '/images/backgrounds/default_bg.svg',
-  '/stake': '/images/backgrounds/default_bg.svg',
+  '/stake': '/images/backgrounds/defau_bg.svg',
   '/bid': '/images/backgrounds/bid_bg.svg',
 }
 

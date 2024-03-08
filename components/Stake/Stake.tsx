@@ -7,11 +7,11 @@ import Governance from '@/components/Governance'
 
 const Stake = () => {
   return (
-    <HStack alignItems="flex-start" gap="10" w="full">
+    <HStack gap="10" w="full" alignItems="flex-start">
       <Governance />
       <Stack w="full">
         <Text variant="title">Governance</Text>
-        <SimpleGrid columns={1} gap="5" h="265px">
+        <SimpleGrid columns={1} gap="5">
           <Staking />
           <Unstake />
           <Claim />

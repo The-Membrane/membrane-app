@@ -11,10 +11,12 @@ const Header = (props: Props) => {
 
   return (
     <HStack
+      as="header"
       px="10"
       py="5"
       position="fixed"
       w="full"
+      h="70px"
       backdropFilter="blur(10px)"
       zIndex="100"
       // maxW="1280px"

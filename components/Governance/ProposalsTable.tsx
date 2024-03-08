@@ -16,20 +16,21 @@ export type Filter = {
 type TopBarProps = {
   setFilter: Dispatch<SetStateAction<Filter>>
   setSearch: Dispatch<SetStateAction<string>>
+  search: string
 }
 
-const TopBar = ({ setFilter, setSearch }: TopBarProps) => (
+const TopBar = ({ setFilter, setSearch, search }: TopBarProps) => (
   <HStack w="100%" justifyContent="space-between">
     <FilterButtons setFilter={setFilter} />
-    <Search search="" setSearch={setSearch} />
+    <Search search={search} setSearch={setSearch} />
   </HStack>
 )
 
 const Loading = () => (
-  <Stack w="full">
-    <Skeleton h="50px" borderRadius="md" />
-    <Skeleton h="50px" borderRadius="md" />
-    <Skeleton h="50px" borderRadius="md" />
+  <Stack w="636px">
+    <Skeleton w="full" h="50px" borderRadius="md" />
+    <Skeleton w="full" h="50px" borderRadius="md" />
+    <Skeleton w="full" h="50px" borderRadius="md" />
   </Stack>
 )
 
@@ -96,7 +97,7 @@ const ProposalsTable = () => {
 
   return (
     <Stack w="full" gap="5">
-      <TopBar setFilter={setFilters} setSearch={setSearch} />
+      <TopBar setFilter={setFilters} search={search} setSearch={setSearch} />
       <NoProposals show={paginatedData.length === 0} />
       <Proposals proposals={paginatedData} />
       <PaginationBar pagination={pagination} />

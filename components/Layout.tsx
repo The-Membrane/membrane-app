@@ -1,4 +1,4 @@
-import { Center, Grid, GridItem, HStack, Stack, Text } from '@chakra-ui/react'
+import { Box, Center, Grid, GridItem, HStack, Stack, Text } from '@chakra-ui/react'
 import { Fragment, PropsWithChildren } from 'react'
 import Logo from './Logo'
 import { isMobile } from 'react-device-detect'
@@ -22,16 +22,24 @@ const Layout = ({ children }: Props) => {
     <Fragment>
       <Mobile />
 
-      <HStack w="100vw" display={['none', 'flex']}>
-        <Stack flexGrow={1} flexBasis="240px" h="100vh" alignItems="flex-end" overflow="auto">
+      <HStack w="100vw" h="100vh" display={['none', 'flex']}>
+        <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
           <SideNav />
         </Stack>
-        <Stack flexGrow={1} flexBasis="1200px" h="100vh" overflow="auto">
+        <Stack
+          h="full"
+          flexGrow={1}
+          flexBasis="1200px"
+          overflow="auto"
+          alignItems="self-start"
+          // pb="10"
+        >
           <Header />
-          <Stack as="main" p="10" maxW="1200px" w="full" mt="70px" pb="10">
+          <Stack as="main" p="10" maxW="1200px" w="full" mt="70px" flex={1}>
             <RPCStatus />
             {children}
           </Stack>
+          {/* <Box h="10" w="full" /> */}
         </Stack>
       </HStack>
     </Fragment>

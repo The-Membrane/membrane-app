@@ -57,7 +57,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 
 const SideNav = () => {
   return (
-    <Stack w={[0, '250px', '300px']} h="100vh" p="6" bg="whiteAlpha.100">
+    <Stack as="aside" w={[0, '250px', '300px']} h="100vh" p="6" bg="whiteAlpha.100">
       <Stack as="ul" gap="2">
         <Logo />
         <Box h="10" />

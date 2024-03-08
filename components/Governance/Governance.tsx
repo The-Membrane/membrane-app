@@ -4,12 +4,7 @@ import { Box, Button, HStack, Stack, Text } from '@chakra-ui/react'
 import ProposalsTable from './ProposalsTable'
 import SubmitProposal from './SubmitProposal'
 
-type Props = {}
-
-const Governance = (props: Props) => {
-  const { data } = useProposals()
-
-  console.log({ data })
+const Governance = () => {
   return (
     <Stack w="full">
       <HStack justifyContent="space-between" w="full">

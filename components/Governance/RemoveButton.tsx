@@ -27,7 +27,7 @@ const RemoveButton = ({ show, proposalId }: Props) => {
       isLoading={removeProposal.isPending}
       onClick={() => removeProposal.mutate()}
     >
-      Execute
+      Remove
     </TxButton>
   )
 }

@@ -39,7 +39,7 @@ const LockChart = () => {
   const { data: distribution } = useRanking()
 
   return (
-    <Card>
+    <Card maxW="600px">
       <Text variant="title" fontSize="24px">
         Vesting
       </Text>

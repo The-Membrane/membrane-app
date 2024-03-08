@@ -9,7 +9,7 @@ const Stake = () => {
   return (
     <HStack alignItems="flex-start" gap="10" w="full">
       <Governance />
-      <Stack w="50%">
+      <Stack w="full">
         <Text variant="title">Governance</Text>
         <SimpleGrid columns={1} gap="5" h="265px">
           <Staking />

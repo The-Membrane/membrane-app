@@ -10,7 +10,15 @@ const Header = (props: Props) => {
   const pageName = router.pathname.split('/')?.[1]
 
   return (
-    <HStack px="10" py="5">
+    <HStack
+      px="10"
+      py="5"
+      position="fixed"
+      w="full"
+      backdropFilter="blur(10px)"
+      zIndex="100"
+      // maxW="1280px"
+    >
       <Heading size="md" textTransform="capitalize">
         {pageName}
       </Heading>

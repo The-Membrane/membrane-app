@@ -11,6 +11,20 @@ const global = {
     width: '100vw',
     height: '100vh',
   },
+  /* Make the scrollbar track transparent */
+  '::-webkit-scrollbar': {
+    width: '6px' /* Adjust the width as needed */,
+    backgroundColor: 'transparent' /* Transparent background */,
+  },
+  /* Style the scrollbar thumb (slider) */
+  '::-webkit-scrollbar-thumb': {
+    backgroundColor: 'whiteAlpha.300' /* color for the thumb */,
+    borderRadius: '3px' /* Rounded corners for the thumb */,
+  },
+  /* Style the scrollbar track on hover (optional) */
+  '::-webkit-scrollbar-track:hover': {
+    backgroundColor: 'rgba(0, 0, 0, 0.1)' /* Semi-transparent background on hover */,
+  },
 }
 
 const config = {

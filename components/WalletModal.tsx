@@ -135,7 +135,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
   return (
     <Modal isOpen={isOpen} onClose={onCloseModal}>
       <ModalOverlay backdropFilter="blur(50px)" />
-      <Card as={ModalContent} bg="whiteAlpha.100">
+      <Card as={ModalContent} bg="#141628">
         <ModalHeader w="full">
           <HStack justifyContent="space-between" w="full" alignItems="flex-end">
             <Text variant="title" w="150px">

@@ -5,7 +5,7 @@ import Risk from './Risk'
 
 const Bid = () => {
   return (
-    <Stack pb="10">
+    <Stack pb="10" gap="5">
       <Risk />
       <PlaceBid />
       <MyBid />

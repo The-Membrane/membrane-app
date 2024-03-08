@@ -1,5 +1,5 @@
-import { Center, HStack, Stack, Text } from '@chakra-ui/react'
-import { PropsWithChildren } from 'react'
+import { Center, Grid, GridItem, HStack, Stack, Text } from '@chakra-ui/react'
+import { Fragment, PropsWithChildren } from 'react'
 import Logo from './Logo'
 import { isMobile } from 'react-device-detect'
 import SideNav from './SideNav'
@@ -18,18 +18,23 @@ const Mobile = () => (
 )
 
 const Layout = ({ children }: Props) => {
-  if (isMobile) return <Mobile />
   return (
-    <HStack w="100vw" h="100vh" gap="0">
-      <SideNav />
-      <Stack ml="300px" h="full" w="full">
-        <Header />
-        <RPCStatus />
-        <Stack p="10" h="full" as="main" overflowY="auto" alignItems="flex-start">
-          {children}
+    <Fragment>
+      <Mobile />
+
+      <HStack w="100vw" display={['none', 'flex']}>
+        <Stack flexGrow={1} flexBasis="240px" h="100vh" alignItems="flex-end" overflow="auto">
+          <SideNav />
         </Stack>
-      </Stack>
-    </HStack>
+        <Stack flexGrow={1} flexBasis="1200px" h="100vh" overflow="auto">
+          <Header />
+          <Stack as="main" p="10" maxW="1200px" w="full" mt="70px" pb="10">
+            <RPCStatus />
+            {children}
+          </Stack>
+        </Stack>
+      </HStack>
+    </Fragment>
   )
 }
 

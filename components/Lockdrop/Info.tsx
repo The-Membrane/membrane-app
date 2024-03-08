@@ -3,7 +3,7 @@ import { Card, Heading, Link, Stack, Text } from '@chakra-ui/react'
 
 const Info = () => {
   return (
-    <Card gap="5">
+    <Card gap="5" maxW="600px">
       <Text variant="title" fontSize="24px">
         Lockdrop
       </Text>

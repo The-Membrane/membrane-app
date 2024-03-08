@@ -1,12 +1,7 @@
 import Lockdrop from '@/components/Lockdrop'
-import Page from '@/components/Page'
 
 const LockdropPage = () => {
-  return (
-    <Page>
-      <Lockdrop />
-    </Page>
-  )
+  return <Lockdrop />
 }
 
 export default LockdropPage

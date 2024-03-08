@@ -91,7 +91,7 @@ const SubmitProposal = (props: Props) => {
         Submit Proposal
       </Button>
 
-      <Modal isOpen={isOpen} onClose={onModalClose} size="xl">
+      <Modal isOpen={isOpen} onClose={onModalClose} size="xl" closeOnOverlayClick={false}>
         <ModalOverlay />
         <ModalContent>
           <form onSubmit={handleSubmit(onSubmit)} noValidate>

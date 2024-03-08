@@ -27,6 +27,8 @@ const RadioCard = (props: CardProps) => {
         cursor="pointer"
         borderLeftRadius={isFirst ? 'md' : 'none'}
         borderRightRadius={isLast ? 'md' : 'none'}
+        borderRight={isLast ? 'none' : '1px'}
+        borderColor="whiteAlpha.200"
         boxShadow="md"
         bg="whiteAlpha.300"
         color="whiteAlpha.700"
@@ -46,10 +48,10 @@ const RadioCard = (props: CardProps) => {
 }
 
 export const FilterButtons = ({ setFilter }: FilterButtonsProps) => {
-  const options = ['active', 'pending', 'rejected', 'executed']
+  const options = ['active', 'pending', 'completed', 'executed']
 
   const { getRootProps, getRadioProps } = useRadioGroup({
-    name: 'framework',
+    name: 'filter',
     defaultValue: 'active',
     onChange: (value) => setFilter({ status: value }),
   })

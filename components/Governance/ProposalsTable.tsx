@@ -7,7 +7,7 @@ import { Pagination } from './Pagination'
 import ProposalDetails from './ProposalDetails'
 import useProposals from './hooks/useProposals'
 import { Search } from './Search'
-import { ProposalResponse } from '@/contracts/codegen/governance/Governance.types'
+import { ProposalResponse } from '@/services/governance'
 
 export type Filter = {
   status: string
@@ -57,7 +57,7 @@ const Proposals = ({ proposals = [] }: { proposals: ProposalResponse[] }) => {
           borderRadius="lg"
           gap="4"
         >
-          <Badge status={proposal?.status} />
+          <Badge badge={proposal?.badge} />
           <Stack gap="0" m="none" p="none" flexGrow={1}>
             <Text noOfLines={1}>{proposal.title}</Text>
             <Text color="gray" fontSize="sm" noOfLines={1}>

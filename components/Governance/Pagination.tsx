@@ -1,5 +1,5 @@
-import { ProposalResponse } from '@/contracts/codegen/governance/Governance.types'
 import { Pagination as PaginationType } from '@/hooks/usePagination'
+import { ProposalResponse } from '@/services/governance'
 import { HStack, IconButton, Text } from '@chakra-ui/react'
 import {
   MdKeyboardArrowLeft,

@@ -7,9 +7,9 @@ import Governance from '@/components/Governance'
 
 const Stake = () => {
   return (
-    <HStack alignItems="flex-start" gap="10">
+    <HStack alignItems="flex-start" gap="10" w="full">
       <Governance />
-      {/* <Stack>
+      <Stack w="50%">
         <Text variant="title">Governance</Text>
         <SimpleGrid columns={1} gap="5" h="265px">
           <Staking />
@@ -17,7 +17,7 @@ const Stake = () => {
           <Claim />
           <TokenAllocation />
         </SimpleGrid>
-      </Stack> */}
+      </Stack>
     </HStack>
   )
 }

@@ -87,7 +87,7 @@ const SubmitProposal = (props: Props) => {
 
   return (
     <>
-      <Button onClick={onOpen} w="fit-content" size="sm" fontSize="xs">
+      <Button onClick={onOpen} w="fit-content" size="sm" fontSize="sm">
         Submit Proposal
       </Button>
 

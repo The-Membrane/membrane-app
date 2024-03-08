@@ -26,7 +26,7 @@ const TopBar = ({ setFilter, setSearch }: TopBarProps) => (
 )
 
 const Loading = () => (
-  <Stack w="600px">
+  <Stack w="full">
     <Skeleton h="50px" borderRadius="md" />
     <Skeleton h="50px" borderRadius="md" />
     <Skeleton h="50px" borderRadius="md" />
@@ -95,7 +95,7 @@ const ProposalsTable = () => {
   }
 
   return (
-    <Stack w="600px" gap="5">
+    <Stack w="full" gap="5">
       <TopBar setFilter={setFilters} setSearch={setSearch} />
       <NoProposals show={paginatedData.length === 0} />
       <Proposals proposals={paginatedData} />

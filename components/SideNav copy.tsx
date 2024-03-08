@@ -29,11 +29,10 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 
   const hoverStyles = {
     borderRadius: '8px',
-    bg: 'primary.200',
-    // border: '1px solid #C445F0',
-    // background: '#290A34',
-    // boxShadow: '0px 0px 16px 0px rgba(196, 69, 240, 0.32)',
-    // color: '#C445F0',
+    border: '1px solid #C445F0',
+    background: '#290A34',
+    boxShadow: '0px 0px 16px 0px rgba(196, 69, 240, 0.32)',
+    color: '#C445F0',
   }
 
   return (
@@ -47,7 +46,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
       {...(isActive && hoverStyles)}
       p={label === 'Home' ? '5px' : '0'}
     >
-      <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />
+      <ItemIcon color={isActive || isHovered ? '#C445F0' : 'white'} />
       <Text fontSize="lg" fontWeight="400">
         {label}
       </Text>
@@ -57,7 +56,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 
 const SideNav = () => {
   return (
-    <Stack w="300px" h="100vh" p="6" bg="whiteAlpha.100" position="fixed">
+    <Card w="300px" minW="240px" h="90vh" position="fixed">
       <Stack as="ul" gap="2">
         <Logo />
         <Box h="10" />
@@ -66,7 +65,7 @@ const SideNav = () => {
         ))}
         <WallectConnect />
       </Stack>
-    </Stack>
+    </Card>
   )
 }
 

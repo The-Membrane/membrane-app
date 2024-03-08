@@ -39,7 +39,7 @@ const RadioCard = (props: CardProps) => {
         px={3}
         py={1}
         textTransform="capitalize"
-        fontSize="xs"
+        fontSize="sm"
       >
         {props.children}
       </Box>

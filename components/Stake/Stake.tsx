@@ -1,9 +1,6 @@
-import { HStack, SimpleGrid, Stack, Text } from '@chakra-ui/react'
-import Claim from './Claim'
-import Staking from './Staking'
-import TokenAllocation from './TokenAllocation'
-import Unstake from './Unstake'
 import Governance from '@/components/Governance'
+import { HStack, Stack, Text } from '@chakra-ui/react'
+import ManageStake from './ManageStake'
 
 const Stake = () => {
   return (
@@ -11,12 +8,7 @@ const Stake = () => {
       <Governance />
       <Stack w="full">
         <Text variant="title">Governance</Text>
-        <SimpleGrid columns={1} gap="5">
-          <Staking />
-          <Unstake />
-          <Claim />
-          <TokenAllocation />
-        </SimpleGrid>
+        <ManageStake />
       </Stack>
     </HStack>
   )

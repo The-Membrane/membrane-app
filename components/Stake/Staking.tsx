@@ -1,49 +1,73 @@
-import { TxButton } from '@/components/TxButton'
 import TxError from '@/components/TxError'
+import { shiftDigits } from '@/helpers/math'
+import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { Stack, Text, Card } from '@chakra-ui/react'
-import React, { ChangeEvent, useState } from 'react'
-import Balance from './Balance'
-import useStake from './hooks/useStake'
-import { StakeInput } from './StakeInput'
+import { HStack, Stack, Text } from '@chakra-ui/react'
+import { useEffect, useMemo, useState } from 'react'
+import ConfirmModal from '../ConfirmModal'
+import { SliderWithState } from '../Mint/SliderWithState'
+import { Summary } from './Summary'
+import useStakeing from './hooks/useStake'
+import useStakeState from './hooks/useStakeState'
+import useStaked from './hooks/useStaked'
 
-const Stake = () => {
+const Stakeing = () => {
   const mbrnAsset = useAssetBySymbol('MBRN')
   const mbrnBalance = useBalanceByAsset(mbrnAsset)
-  const [stakeAmount, setStakeAmount] = useState('')
-  const stake = useStake({ amount: stakeAmount })
+  const [stakeAmount, setStakeAmount] = useState(0)
+  const stake = useStakeing({ amount: stakeAmount.toString() })
+  const { data: staked } = useStaked()
+  const { stakeState, setStakeState } = useStakeState()
 
-  const onInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setStakeAmount(e.target.value)
+  const stakedBalance = useMemo(() => {
+    if (!staked || !mbrnAsset) return 0
+
+    return shiftDigits(staked?.staked.total_staked, -mbrnAsset?.decimal).toNumber()
+  }, [staked, mbrnAsset])
+
+  useEffect(() => {
+    if (staked) {
+      setStakeAmount(stakedBalance)
+    }
+  }, [stakedBalance])
+
+  const onInputChange = (value: number) => {
+    setStakeAmount(value)
+
+    const diff = num(value).minus(stakedBalance).toString()
+
+    setStakeState({
+      asset: mbrnAsset,
+      amount: num(diff).abs().toString(),
+      txType: num(diff).isGreaterThanOrEqualTo(0) ? 'Stake' : 'Unstake',
+    })
   }
 
-  return (
-    <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
-      <Text variant="title" fontSize="24px">
-        Stake
-      </Text>
+  const totalBalance = useMemo(() => {
+    return num(mbrnBalance).plus(stakedBalance).toString()
+  }, [mbrnBalance, stakedBalance])
 
+  return (
+    <Stack gap="10" pt="5">
       <Stack>
-        <StakeInput label="MBRN" value={stakeAmount} onChange={onInputChange} />
-        <Balance
-          label="In wallet"
-          value={mbrnBalance}
-          onMaxClick={() => setStakeAmount(mbrnBalance)}
+        <HStack justifyContent="space-between">
+          <Text>Stake</Text>
+          <Text>{stakeAmount} MBRN</Text>
+        </HStack>
+        <SliderWithState
+          value={Number(stakeAmount)}
+          onChange={onInputChange}
+          max={Number(totalBalance)}
         />
       </Stack>
-
-      <TxButton
-        maxW="200px"
-        isLoading={stake.simulate.isLoading || stake.tx.isPending}
-        isDisabled={stake.simulate.isError || Number(stakeAmount) <= 0}
-        onClick={() => stake.tx.mutate()}
-      >
-        Stake
-      </TxButton>
+      <ConfirmModal label={stakeState.txType || 'Stake'} action={stake}>
+        <Summary />
+        <TxError action={stake} />
+      </ConfirmModal>
       <TxError action={stake} />
-    </Card>
+    </Stack>
   )
 }
 
-export default Stake
+export default Stakeing

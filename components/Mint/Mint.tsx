@@ -1,5 +1,6 @@
 import {
   Card,
+  HStack,
   Stack,
   Tab,
   TabIndicator,
@@ -13,6 +14,7 @@ import BeakerScale from './BeakerScale'
 import CurrentPositions from './CurrentPositions'
 import TakeAction from './TakeAction'
 import useMintState from './hooks/useMintState'
+import Beaker from './Beaker'
 
 const CustomeTab = ({ label }: { label: string }) => (
   <Tab zIndex={1} _selected={{ color: 'white' }}>
@@ -58,10 +60,11 @@ const MintTabsCard = () => {
 
 const Mint = () => {
   return (
-    <Stack w="full" justifyContent="center">
+    <HStack>
       <MintTabsCard />
+      <Beaker />
       {/* <BeakerScale /> */}
-    </Stack>
+    </HStack>
   )
 }
 

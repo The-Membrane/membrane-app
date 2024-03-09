@@ -157,9 +157,9 @@ const ProposalDetails = ({ proposal }: Props) => {
         {buttonLabel}
       </Button>
 
-      <Modal isOpen={isOpen} onClose={onClose} size="2xl" closeOnOverlayClick={false}>
+      <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent maxW="800px">
           <ModalHeader>
             <Text variant="title">Proposal Details</Text>
             <HStack>

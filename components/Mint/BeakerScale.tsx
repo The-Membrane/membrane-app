@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import React, { Fragment, useMemo } from 'react'
 import useMintState from './hooks/useMintState'
 
-const BeakerLiquid = () => {
+export const BeakerLiquid = () => {
   const { mintState } = useMintState()
 
   const percent = useMemo(() => {
@@ -19,13 +19,15 @@ const BeakerLiquid = () => {
     <motion.div
       style={{
         position: 'absolute',
-        left: 770,
-        top: 710,
+        // bottom: -17,
+        top: 690,
+        left: 251,
         maxHeight: percent,
-        transform: 'scale(0.85) rotate(180deg)',
+        transform: 'scale(1.36) rotate(180deg)',
         height: percent,
         overflow: 'hidden',
         transformOrigin: 'top',
+        // zIndex: 2,
       }}
       initial={{ height: 0 }}
       animate={{ height: percent }}
@@ -37,14 +39,17 @@ const BeakerLiquid = () => {
 }
 
 const BeakerScale = () => {
-  return (
-    <Fragment>
-      <Box position="absolute" left="889px" top="391px" zIndex={2} transform="scale(0.85)">
-        <Image src="/images/beaker_lines.svg" />
-      </Box>
-      <BeakerLiquid />
-    </Fragment>
-  )
+  return <BeakerLiquid />
 }
+// const BeakerScale = () => {
+//   return (
+//     <Fragment>
+//       <Box position="absolute" left="889px" top="391px" zIndex={2} transform="scale(0.85)">
+//         <Image src="/images/beaker_lines.svg" />
+//       </Box>
+//       <BeakerLiquid />
+//     </Fragment>
+//   )
+// }
 
 export default BeakerScale

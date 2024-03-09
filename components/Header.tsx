@@ -14,11 +14,11 @@ const Header = (props: Props) => {
       as="header"
       px="10"
       py="5"
-      position="fixed"
+      // position="fixed"
       w="full"
       h="70px"
-      backdropFilter="blur(10px)"
-      zIndex="100"
+      // backdropFilter="blur(10px)"
+      // zIndex="100"
       // maxW="1280px"
     >
       <Heading size="md" textTransform="capitalize">

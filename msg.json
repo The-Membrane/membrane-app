@@ -1,0 +1,21 @@
+[
+  {
+    "@type": "/osmosis.poolmanager.v1beta1.MsgSwapExactAmountIn",
+    "sender": "osmo1v8uw3ddp7a4txp7d97jwlr8sf5zn0nj67andrs",
+    "routes": [
+      {
+        "pool_id": "1263",
+        "token_out_denom": "uosmo"
+      },
+      {
+        "pool_id": "1226",
+        "token_out_denom": "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt"
+      }
+    ],
+    "token_in": {
+      "denom": "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
+      "amount": "10000000"
+    },
+    "token_out_min_amount": "9988331"
+  }
+]

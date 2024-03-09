@@ -1,10 +1,9 @@
-import { Box, Center, Grid, GridItem, HStack, Stack, Text } from '@chakra-ui/react'
+import { Box, Center, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { Fragment, PropsWithChildren } from 'react'
-import Logo from './Logo'
-import { isMobile } from 'react-device-detect'
-import SideNav from './SideNav'
-import RPCStatus from './RPCStatus'
 import Header from './Header'
+import Logo from './Logo'
+import RPCStatus from './RPCStatus'
+import SideNav from './SideNav'
 
 type Props = PropsWithChildren & {}
 
@@ -17,29 +16,28 @@ const Mobile = () => (
   </Center>
 )
 
+const HexagonBackground = () => (
+  <Box position="absolute" top="0" right="0" zIndex="1" display={['none', 'block']}>
+    <Image src="/images/backgrounds/right.svg" alt="Hexagon" />
+  </Box>
+)
+
 const Layout = ({ children }: Props) => {
   return (
     <Fragment>
       <Mobile />
 
       <HStack w="100vw" h="100vh" display={['none', 'flex']}>
+        <HexagonBackground />
         <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
           <SideNav />
         </Stack>
-        <Stack
-          h="full"
-          flexGrow={1}
-          flexBasis="1200px"
-          overflow="auto"
-          alignItems="self-start"
-          // pb="10"
-        >
+        <Stack h="full" flexGrow={1} flexBasis="1200px" overflow="auto" alignItems="self-start">
           <Header />
-          <Stack as="main" p="10" maxW="1200px" w="full" mt="70px" flex={1}>
+          <Stack as="main" p="10" maxW="1200px" w="full" flex={1}>
             <RPCStatus />
             {children}
           </Stack>
-          {/* <Box h="10" w="full" /> */}
         </Stack>
       </HStack>
     </Fragment>

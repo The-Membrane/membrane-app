@@ -6,7 +6,8 @@ import contracts from '@/config/contracts.json'
 import { Asset } from '@/contracts/codegen/positions/Positions.types'
 import { Coin, coin } from '@cosmjs/stargate'
 import { shiftDigits } from './math'
-import { getAssetBySymbol } from './chain'
+import { useAssetBySymbol } from "@/hooks/useAssets";
+import { useBalanceByAsset } from '@/hooks/useBalance'
 
 const getDeposited = (deposited = 0, newDeposit: string) => {
   const diff = num(newDeposit).minus(deposited).dp(6).toNumber()
@@ -192,12 +193,14 @@ export const getDepostAndWithdrawMsgs = ({
 type GetMintAndRepayMsgs = {
   mintAmount?: string | number
   repayAmount?: string | number
+  debtAmount: number
   address: string
   positionId: string
 }
 export const getMintAndRepayMsgs = ({
   address,
   positionId,
+  debtAmount,
   mintAmount = '0',
   repayAmount = '0',
 }: GetMintAndRepayMsgs) => {
@@ -213,7 +216,16 @@ export const getMintAndRepayMsgs = ({
   }
 
   if (num(repayAmount).isGreaterThan(0)) {
-    const cdt = getAssetBySymbol('CDT')
+    const cdt = useAssetBySymbol('CDT')
+
+    //if repaying all of debt, use all of the CDT balance
+    if (num(repayAmount).isGreaterThanOrEqualTo(debtAmount)) {
+      //get the CDT balance
+      const walletCDT = useBalanceByAsset(cdt)
+      //set repay amount to the CDT balance
+      repayAmount = walletCDT
+      //Excess is sent back to the user
+    }
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
     const funds = [coin(microAmount, cdt?.base!)]
     const repayMsg = messageComposer.repay({ positionId }, funds)

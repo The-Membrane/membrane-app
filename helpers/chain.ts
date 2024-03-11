@@ -8,7 +8,20 @@ export type Asset = RegistryAsset & {
 }
 
 const defaultChain = 'osmosis'
-const supportedAssets = ['OSMO', 'ATOM', 'TIA', 'CDT', 'MBRN', 'stOSMO', 'stATOM', 'USDT', 'USDC']
+//chain-registry symbols
+const supportedAssets = ['OSMO', 'ATOM', 'TIA', 'CDT', 'MBRN', 'stOSMO', 'stATOM', 'USDT', 'USDC', 'USDC.axl']
+export interface exported_supportedAssets {
+  OSMO: undefined,
+  ATOM: undefined,
+  TIA: undefined,
+  CDT: undefined,
+  MBRN: undefined,
+  stOSMO: undefined,
+  stATOM: undefined,
+  USDT: undefined,
+  USDC: undefined,
+  "USDC.axl": undefined,
+}
 
 export const getAssetLogo = (asset: RegistryAsset) => {
   return asset?.logo_URIs?.svg || asset?.logo_URIs?.png || asset?.logo_URIs?.jpeg

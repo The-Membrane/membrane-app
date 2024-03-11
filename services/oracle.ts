@@ -44,8 +44,8 @@ export const parsePrice = (prices: PriceResponse[]): Price[] => {
 }
 
 export const getPriceByDenom = (denom: string) => {
-    const prices = queryClient.getQueryData(['oraclePrice']) as any[]
-    return prices?.find((price) => price.denom === denom)
+  const prices = queryClient.getQueryData(['oraclePrice']) as any[]
+  return prices?.find((price) => price.denom === denom)
 }
 
 
@@ -53,7 +53,7 @@ export const getPriceByDenom = (denom: string) => {
 export const getOraclePrices = async () => {
   const assetInfos = getAssetsInfo()
   const oracleTimeLimit = 10
-  const twapTimeframe = 0
+  const twapTimeframe = 60
 
   const client = await oracleClient()
   const params = {

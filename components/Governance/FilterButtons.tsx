@@ -4,12 +4,14 @@ import { Filter } from './ProposalsTable'
 
 export type FilterButtonsProps = {
   setFilter: Dispatch<SetStateAction<Filter>>
+  isSearch: boolean
 }
 
 type CardProps = UseRadioProps & {
   isFirst: boolean
   isLast: boolean
   children: React.ReactNode
+  isSearch: boolean
 }
 
 const RadioCard = (props: CardProps) => {
@@ -33,8 +35,8 @@ const RadioCard = (props: CardProps) => {
         bg="whiteAlpha.300"
         color="whiteAlpha.700"
         _checked={{
-          bg: 'primary.200',
-          color: 'white',
+          bg: !props?.isSearch && 'primary.200',
+          color: !props?.isSearch && 'white',
         }}
         px={3}
         py={1}
@@ -47,7 +49,7 @@ const RadioCard = (props: CardProps) => {
   )
 }
 
-export const FilterButtons = ({ setFilter }: FilterButtonsProps) => {
+export const FilterButtons = ({ setFilter, isSearch }: FilterButtonsProps) => {
   const options = ['active', 'pending', 'completed', 'executed']
 
   const { getRootProps, getRadioProps } = useRadioGroup({
@@ -64,7 +66,7 @@ export const FilterButtons = ({ setFilter }: FilterButtonsProps) => {
         const isFirst = value === options[0]
         const isLast = value === options[options.length - 1]
         return (
-          <RadioCard key={value} {...radio} isFirst={isFirst} isLast={isLast}>
+          <RadioCard key={value} {...radio} isFirst={isFirst} isLast={isLast} isSearch={isSearch}>
             {value}
           </RadioCard>
         )

@@ -70,7 +70,7 @@ const SubmitProposal = (props: Props) => {
     }
   }, [filesContent?.[0]?.content])
 
-  function onSubmit(values) {
+  const onSubmit = (values: unknown) => {
     return new Promise((resolve) => {
       setTimeout(() => {
         alert(JSON.stringify(values, null, 2))
@@ -87,7 +87,7 @@ const SubmitProposal = (props: Props) => {
 
   return (
     <>
-      <Button onClick={onOpen} w="fit-content" size="sm" fontSize="sm">
+      <Button onClick={onOpen} w="fit-content" size="sm" fontSize="sm" px="5">
         Submit Proposal
       </Button>
 

@@ -16,6 +16,7 @@ import {
   SimpleGrid,
   Stack,
   Text,
+  calc,
   useDisclosure,
 } from '@chakra-ui/react'
 import { Badge } from './Badge'
@@ -28,6 +29,7 @@ import ExecuteButton from './ExecuteButton'
 import RemoveButton from './RemoveButton'
 import useWallet from '@/hooks/useWallet'
 import ActionButtons from './ActionButtons'
+import useProposalById from './hooks/useProposalById'
 
 type Props = {
   proposal: ProposalResponse
@@ -133,15 +135,83 @@ const ProposalDescription = ({ description }: { description: string }) => {
 
 const votes = ['for', 'against', 'amend', 'remove', 'align']
 
+const Voted = ({ proposalDetails }) => {
+  if (!proposalDetails?.voted) return null
+
+  const { votedAlign, votedAmend, votedFor, votedAgainst, votedRemove } = proposalDetails
+
+  let vote = null
+
+  if (votedAlign) vote = 'align'
+  if (votedAmend) vote = 'amend'
+  if (votedFor) vote = 'for'
+  if (votedAgainst) vote = 'against'
+  if (votedRemove) vote = 'remove'
+
+  return (
+    <HStack>
+      <Text>You have already voted for</Text>
+      <Text color="primary.200" textTransform="capitalize">
+        {vote}
+      </Text>
+    </HStack>
+  )
+}
+
+const Quorum = ({ requiredQuorum = 0, quorum = 0 }) => {
+  // const requiredQuorum = 33
+  // const quorum = 70
+
+  const is100 = quorum === 100
+
+  const width = quorum > requiredQuorum ? quorum - requiredQuorum : 0
+
+  return (
+    <HStack>
+      <Text>Quorum:</Text>
+      <Box
+        position="relative"
+        w="full"
+        h="2"
+        bg="whiteAlpha.200"
+        borderRadius="md"
+        color="whiteAlpha.700"
+      >
+        <Box
+          bg="primary.200"
+          h="full"
+          w={width + '%'}
+          ml={requiredQuorum + '%'}
+          // borderRightRadius={is100 ? 'md' : 'none'}
+          borderRightRadius="md"
+          color="whiteAlpha.900"
+          textAlign="center"
+          maxW={'calc(100% - ' + requiredQuorum + '%)'}
+        />
+        <Stack position="absolute" ml={requiredQuorum + '%'} gap="0">
+          <Box bg="white" w="2px" h="3" mt="-11px" />
+          <Text fontSize="xs" ml="-30px">
+            Pass threshold
+          </Text>
+        </Stack>
+      </Box>
+    </HStack>
+  )
+}
+
 const ProposalDetails = ({ proposal }: Props) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [vote, setVote] = useState<ProposalVoteOption | null>()
   const { address } = useWallet()
   const buttonLabel = proposal?.status === 'active' ? 'Vote' : 'View'
+  const { data: proposalDetails } = useProposalById(Number(proposal.proposal_id))
+
+  console.log({ proposalDetails })
 
   const isExecuteAllowed = proposal?.badge === 'passed'
   const isRemoveAllowed = proposal?.submitter === address
-  const isVoteAllowed = proposal?.status === 'active' || proposal?.status === 'pending'
+  const isVoteAllowed =
+    (proposal?.status === 'active' || proposal?.status === 'pending') && !proposalDetails?.voted
   const isPending = proposal?.status === 'pending'
 
   return (
@@ -210,6 +280,7 @@ const ProposalDetails = ({ proposal }: Props) => {
                       <Fragment>
                         {votes.map((v) => (
                           <PowerAction
+                            key={v}
                             label={v}
                             power={proposal.ratio?.[v + 'Ratio']}
                             isSelected={vote === v}
@@ -221,6 +292,8 @@ const ProposalDetails = ({ proposal }: Props) => {
                   </SimpleGrid>
                 </Stack>
               )}
+              <Quorum requiredQuorum={proposal?.requiredQuorum} quorum={proposalDetails?.quorum} />
+              <Voted proposalDetails={proposalDetails} />
             </Stack>
           </ModalBody>
           {(isVoteAllowed || isRemoveAllowed || isExecuteAllowed) && (

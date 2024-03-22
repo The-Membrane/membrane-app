@@ -16,6 +16,7 @@ import WalletModal from '@/components/WalletModal'
 import { aminoTypes, registry, rpcUrl } from '@/config/defaults'
 import { useEffect, useState } from 'react'
 import Layout from '@/components/Layout'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 import '@interchain-ui/react/styles'
 import MembersRules from '@/components/MembersRules'
@@ -94,6 +95,7 @@ const App = ({ Component, pageProps }: AppProps) => {
           </Layout>
         </ChainProvider>
       </ChakraProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   )
 }

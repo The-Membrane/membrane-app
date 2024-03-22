@@ -21,7 +21,7 @@ type TopBarProps = {
 
 const TopBar = ({ setFilter, setSearch, search }: TopBarProps) => (
   <HStack w="100%" justifyContent="space-between">
-    <FilterButtons setFilter={setFilter} />
+    <FilterButtons setFilter={setFilter} isSearch={!!search} />
     <Search search={search} setSearch={setSearch} />
   </HStack>
 )
@@ -45,6 +45,28 @@ const NoProposals = ({ show }: { show: boolean }) => {
   )
 }
 
+const EndsIn = ({ days, hours, minutes }: { days: number; hours: number; minutes: number }) => {
+  if (!days && !hours && !minutes) return null
+  if (days === 0 && hours === 0)
+    return (
+      <Text color="gray" fontSize="sm">
+        Ends in: {minutes} {minutes === 1 ? 'minute' : 'minutes'}
+      </Text>
+    )
+  else if (days === 0)
+    return (
+      <Text color="gray" fontSize="sm">
+        Ends in: {hours} {hours === 1 ? 'hour' : 'hours'}
+      </Text>
+    )
+  else
+    return (
+      <Text color="gray" fontSize="sm">
+        Ends in: {days} {days === 1 ? 'day' : 'days'}
+      </Text>
+    )
+}
+
 const Proposals = ({ proposals = [] }: { proposals: ProposalResponse[] }) => {
   if (proposals?.length === 0) return null
   return (
@@ -52,8 +74,8 @@ const Proposals = ({ proposals = [] }: { proposals: ProposalResponse[] }) => {
       {proposals?.map((proposal) => (
         <HStack
           key={proposal.proposal_id}
-          px="5"
-          py="2"
+          px="4"
+          py="3"
           bg="whiteAlpha.200"
           borderRadius="lg"
           gap="4"
@@ -62,7 +84,7 @@ const Proposals = ({ proposals = [] }: { proposals: ProposalResponse[] }) => {
           <Stack gap="0" m="none" p="none" flexGrow={1}>
             <Text noOfLines={1}>{proposal.title}</Text>
             <Text color="gray" fontSize="sm" noOfLines={1}>
-              days remaining: {proposal.end_block}
+              <EndsIn {...proposal?.daysLeft} />
             </Text>
           </Stack>
           <ProposalDetails proposal={proposal} />

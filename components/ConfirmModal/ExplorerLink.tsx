@@ -35,7 +35,7 @@ export const ExplorerLink = ({ txHash }: { txHash: string | undefined }) => {
       <Text fontWeight="bold" fontSize="xs" color="white">
         Transaction hash
       </Text>
-      <Link isExternal href={txLink} style={{ margin: 'unset' }} fontSize="xs" color="primary.500">
+      <Link isExternal href={txLink} style={{ margin: 'unset' }} fontSize="xs" color="primary.200">
         {[first4, last4].join('...')}
       </Link>
     </HStack>

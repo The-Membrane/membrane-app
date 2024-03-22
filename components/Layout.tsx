@@ -17,7 +17,7 @@ const Mobile = () => (
 )
 
 const HexagonBackground = () => (
-  <Box position="absolute" top="0" right="0" zIndex="1" display={['none', 'block']}>
+  <Box position="absolute" top="0" right="0" zIndex={0} display={['none', 'block']}>
     <Image src="/images/backgrounds/right.svg" alt="Hexagon" />
   </Box>
 )
@@ -34,7 +34,7 @@ const Layout = ({ children }: Props) => {
         </Stack>
         <Stack h="full" flexGrow={1} flexBasis="1200px" overflow="auto" alignItems="self-start">
           <Header />
-          <Stack as="main" p="10" maxW="1200px" w="full" flex={1}>
+          <Stack as="main" p="10" maxW="1200px" w="full" flex={1} mt="70px">
             <RPCStatus />
             {children}
           </Stack>

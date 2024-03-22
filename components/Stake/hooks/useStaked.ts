@@ -10,11 +10,17 @@ const useStaked = () => {
     queryFn: async () => {
       if (!address) return null
 
-      const staked = await getStaked(address)
+      const { staked, unstaking } = await getStaked(address)
       const rewards = await getRewards(address)
+
+      console.log({
+        staked,
+        rewards,
+      })
 
       return {
         staked,
+        unstaking,
         rewards,
       }
     },

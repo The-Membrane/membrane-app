@@ -1,6 +1,4 @@
-import React from 'react'
-import useProposals from './hooks/useProposals'
-import { Box, Button, HStack, Stack, Text } from '@chakra-ui/react'
+import { HStack, Stack, Text } from '@chakra-ui/react'
 import ProposalsTable from './ProposalsTable'
 import SubmitProposal from './SubmitProposal'
 

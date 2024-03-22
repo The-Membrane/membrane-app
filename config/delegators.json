@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Frontend Host",
+    "address": "osmo1d9ryqp7yfmr92vkk2yal96824pewf2g5wx0h2r",
+    "socials": ["@Cyph3rpunk1", "cyph3rpunk"]
+  },
+  {
+    "name": "RoboMcGobo",
+    "address": "osmo1nktatq53eah8efefsry33yg3zkhrrzwq3k6wg7",
+    "socials": ["@RoboMcGobo", "robomcgobo"]
+  },
+  {
+    "name": "Johnny Wyles",
+    "address": "osmo1dplx2zw3mjk5lam6fnv5q2yxldcshs3wl3s8ph",
+    "socials": ["@JohnnyWyles87", "johnnywyles"]
+  },
+  {
+    "name": "Macks Wolfard",
+    "address": "osmo1ckgwfferpjy6usm3nvyjknat5d6frrhypl6kku",
+    "socials": ["@MacksWolf", "mackswolf"]
+  },
+  {
+    "name": "Nostradamus",
+    "address": "osmo1xp0qs6pkay2jssu58p8eap0epdhwx5mqlhs4v7",
+    "socials": ["@nostradamus411", "nostradamus.nosnode"]
+  },
+  {
+    "name": "Banana DAO",
+    "address": "osmo1uvnk984yhpw48jfu5srvsrqdt03kkvlcjqx8x5",
+    "socials": ["@thebananadao", "arcmosis"]
+  },
+  {
+    "name": "Trix",
+    "address": "osmo13gu58hzw3e9aqpj25h67m7snwcjuccd7v4p55w",
+    "socials": ["@brane_trix", "tri.xxx"]
+  }
+]

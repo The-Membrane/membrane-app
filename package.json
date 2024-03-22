@@ -37,6 +37,7 @@
     "bignumber.js": "^9.1.2",
     "chain-registry": "^1.28.0",
     "cosmwasm": "^1.1.1",
+    "dayjs": "^1.11.10",
     "framer-motion": "^11.0.3",
     "next": "14.1.0",
     "osmojs": "^16.9.0",
@@ -54,6 +55,7 @@
   "devDependencies": {
     "@chain-registry/types": "^0.18.0",
     "@cosmwasm/ts-codegen": "^0.35.7",
+    "@tanstack/react-query-devtools": "^5.28.4",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

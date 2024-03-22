@@ -6,6 +6,7 @@ import {
 import {
   Addr,
   Config,
+  Proposal,
   ProposalResponse as ProposalResponseType,
   ProposalStatus,
 } from '@/contracts/codegen/governance/Governance.types'
@@ -13,6 +14,7 @@ import getCosmWasmClient from '@/helpers/comswasmClient'
 import { num } from '@/helpers/num'
 import { coin } from '@cosmjs/amino'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
+import dayjs from 'dayjs'
 
 export const getGovernanceClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -174,12 +176,37 @@ export const calculateProposalResult = (proposal: ProposalResponseType, config: 
   }
 }
 
+const getDaysLeft = (proposal: any) => {
+  const VOTING_PERIOD_IN_DAYS = 7
+  const EXPEDITED_VOTING_PERIOD_IN_DAYS = 3
+  const SECONDS_PER_DAY = 86400
+  const SECONDS_PER_HOUR = 3600
+  const SECONDS_PER_MINUTE = 60
+
+  const votingPeriodInSeconds =
+    proposal.end_block - proposal.start_time === 259200
+      ? EXPEDITED_VOTING_PERIOD_IN_DAYS * SECONDS_PER_DAY
+      : VOTING_PERIOD_IN_DAYS * SECONDS_PER_DAY
+
+  const secondsRemaining = Math.max(
+    votingPeriodInSeconds - (dayjs().unix() - proposal.start_time),
+    0,
+  )
+
+  const days = Math.floor(secondsRemaining / SECONDS_PER_DAY)
+  const hours = Math.floor((secondsRemaining % SECONDS_PER_DAY) / SECONDS_PER_HOUR)
+  const minutes = Math.floor((secondsRemaining % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE)
+
+  return { days, hours, minutes }
+}
+
 const parseProposal = (proposals: ProposalResponseType[]) => {
   const activeProposals = proposals
     .filter(({ status }) => status === 'active')
     .map((proposal) => ({
       ...proposal,
       badge: 'active',
+      daysLeft: getDaysLeft(proposal),
     }))
 
   const completedBadge: Record<string, string> = {
@@ -226,6 +253,8 @@ export const getConfig = async () => {
 export const getProposals = async () => {
   const client = await getGovernanceClient()
   const config = await getConfig()
+  // const requiredQuorum = parseFloat(config.proposal_required_quorum)
+  const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
   const start = 0
   const limit = 30
@@ -253,5 +282,74 @@ export const getProposals = async () => {
     ...proposal,
     result: calculateProposalResult(proposal, config),
     ratio: calcuateRatio(proposal),
+    requiredQuorum,
   }))
+}
+
+const checkIfVoted = (proposal: Proposal, address?: Addr) => {
+  if (!address)
+    return {
+      votedAgents: false,
+      votedFor: false,
+      votedAmend: false,
+      votedRemove: false,
+      votedAlign: false,
+      voted: false,
+    }
+  let voted = false
+  const votedAgents = proposal.against_voters?.includes(address)
+  const votedFor = proposal.for_voters?.includes(address)
+  const votedAmend = proposal.amendment_voters?.includes(address)
+  const votedRemove = proposal.removal_voters?.includes(address)
+  const votedAlign = proposal.aligned_voters?.includes(address)
+  if (votedAgents || votedFor || votedAmend || votedRemove || votedAlign) {
+    voted = true
+  }
+  return {
+    votedAgents,
+    votedFor,
+    votedAmend,
+    votedRemove,
+    votedAlign,
+    voted,
+  }
+}
+
+const getTotalVotingPower = async (proposal: Proposal) => {
+  const client = await getGovernanceClient()
+
+  return client.totalVotingPower({
+    proposalId: Number(proposal.proposal_id),
+  })
+}
+
+const getQuorum = async (proposal: Proposal) => {
+  const { against_power, for_power, aligned_power, amendment_power, removal_power } = proposal
+
+  const totalVotingPower = await getTotalVotingPower(proposal)
+
+  console.log({ totalVotingPower })
+
+  const power = num(against_power)
+    .plus(for_power)
+    .plus(aligned_power)
+    .plus(amendment_power)
+    .plus(removal_power)
+
+  return power.div(totalVotingPower).dp(2).toNumber()
+
+  // var quorum = (parseInt(proposal.against_power) + parseInt(proposal.for_power) + aligned_power + parseInt(proposal.amendment_power) + parseInt(proposal.removal_power)) / totalVotingPower;
+}
+
+export const getProposal = async (proposalId: number, address?: Addr) => {
+  const client = await getGovernanceClient()
+  const proposal = await client.proposal({ proposalId })
+  const quorum = await getQuorum(proposal)
+  const vote = checkIfVoted(proposal, address)
+
+  return {
+    ...proposal,
+    ...vote,
+    quorum,
+  }
 }

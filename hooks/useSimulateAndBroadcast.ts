@@ -12,9 +12,15 @@ type Props = {
   queryKey: string[]
   enabled?: boolean
   amount?: string
+  onSuccess?: () => void
 }
 
-const useSimulateAndBroadcast = ({ msgs, queryKey, amount }: Props): SimulateAndBroadcast => {
+const useSimulateAndBroadcast = ({
+  msgs,
+  queryKey,
+  amount,
+  onSuccess,
+}: Props): SimulateAndBroadcast => {
   const simulate = useSimulate({
     msgs,
     amount,
@@ -26,6 +32,7 @@ const useSimulateAndBroadcast = ({ msgs, queryKey, amount }: Props): SimulateAnd
   const tx = useTransaction({
     msgs,
     fee,
+    onSuccess,
   })
 
   return {

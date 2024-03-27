@@ -14,10 +14,6 @@ const useUpdateDelegation = () => {
 
   const amount = delegations.reduce((acc, delegation) => acc + delegation.newAmount, 0)
 
-  console.log({
-    amount,
-  })
-
   const { data: updateDelegationMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[]>({
     queryKey: ['msg', 'update delegation', address, amount.toString()],
     queryFn: async () => {
@@ -28,10 +24,6 @@ const useUpdateDelegation = () => {
       return msgs
     },
     enabled: !!address && !!delegations && Math.abs(amount) > 0,
-  })
-
-  console.log({
-    msgs: decodeMsgs(updateDelegationMsgs),
   })
 
   const onSuccess = () => {

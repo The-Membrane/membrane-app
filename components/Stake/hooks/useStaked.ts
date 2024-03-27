@@ -13,11 +13,6 @@ const useStaked = () => {
       const { staked, unstaking } = await getStaked(address)
       const rewards = await getRewards(address)
 
-      console.log({
-        staked,
-        rewards,
-      })
-
       return {
         staked,
         unstaking,

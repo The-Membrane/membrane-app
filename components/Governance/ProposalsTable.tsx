@@ -72,20 +72,11 @@ const Proposals = ({ proposals = [] }: { proposals: ProposalResponse[] }) => {
   return (
     <Stack>
       {proposals?.map((proposal) => (
-        <HStack
-          key={proposal.proposal_id}
-          px="4"
-          py="3"
-          bg="whiteAlpha.200"
-          borderRadius="lg"
-          gap="4"
-        >
+        <HStack key={proposal.proposal_id} px="4" py="3" bg="#191a2d" borderRadius="lg" gap="4">
           <Badge badge={proposal?.badge} />
           <Stack gap="0" m="none" p="none" flexGrow={1}>
             <Text noOfLines={1}>{proposal.title}</Text>
-            <Text color="gray" fontSize="sm" noOfLines={1}>
-              <EndsIn {...proposal?.daysLeft} />
-            </Text>
+            <EndsIn {...proposal?.daysLeft} />
           </Stack>
           <ProposalDetails proposal={proposal} />
         </HStack>

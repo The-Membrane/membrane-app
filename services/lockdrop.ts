@@ -79,8 +79,6 @@ export const getUserInfo = async (address: Addr) => {
     user: address,
   })
 
-  console.log({ userInfo })
-
   const updateData = userInfo?.deposits?.map((data) => {
     return {
       deposit: shiftDigits(data.deposit, -osmos?.decimal!).toNumber(),

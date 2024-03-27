@@ -25,7 +25,6 @@ const useMint = () => {
     queryFn: () => {
       if (!address || !positionId) return
       const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, positionId })
-      console.log({ depositAndWithdraw })
       const mintAndRepay = getMintAndRepayMsgs({
         address,
         positionId,

@@ -35,11 +35,6 @@ const ClaimAndRestake = (props: Props) => {
   const { rewards = [] } = data || {}
   const claim = useClaim()
 
-  console.log({
-    claim,
-    rewards,
-  })
-
   const claimable = useMemo(() => {
     // sum of all claimable rewards
     const rewardsAmount = rewards.reduce((acc, reward) => {

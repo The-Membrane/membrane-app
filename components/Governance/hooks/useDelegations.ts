@@ -5,10 +5,6 @@ import { useQuery } from '@tanstack/react-query'
 const useDelegations = () => {
   const { address } = useWallet()
 
-  console.log({
-    address,
-  })
-
   return useQuery({
     queryKey: ['delegations', address],
     queryFn: async () => {

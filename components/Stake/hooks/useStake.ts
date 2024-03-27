@@ -10,6 +10,7 @@ import { coin } from '@cosmjs/amino'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useStakeState from './useStakeState'
+import { queryClient } from '@/pages/_app'
 
 type UseStake = {
   amount: string
@@ -42,10 +43,17 @@ const useStakeing = ({}: UseStake) => {
     enabled: !!address && !!mbrnAsset && !!contracts.staking && Number(amount) > 0,
   })
 
+  console.log({
+    amount,
+  })
+
   return useSimulateAndBroadcast({
     msgs: stakeMsgs,
     amount: amount,
     queryKey: [mbrnAsset?.base!],
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staked'] })
+    },
   })
 }
 

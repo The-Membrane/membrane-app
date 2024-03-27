@@ -328,8 +328,6 @@ const getQuorum = async (proposal: Proposal) => {
 
   const totalVotingPower = await getTotalVotingPower(proposal)
 
-  console.log({ totalVotingPower })
-
   const power = num(against_power)
     .plus(for_power)
     .plus(aligned_power)

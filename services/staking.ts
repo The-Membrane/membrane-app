@@ -69,10 +69,6 @@ export const getRewards = async (address: Addr) => {
   })
   const mbrn = getAssetBySymbol('MBRN')
 
-  console.log({
-    rewards,
-  })
-
   const claimable = parseClaimable(rewards.claimables)
   return [
     {

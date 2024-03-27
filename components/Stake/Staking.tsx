@@ -25,10 +25,8 @@ const Stakeing = () => {
   const stakedBalance = useMemo(() => {
     if (!staked || !mbrnAsset) return 0
 
-    return shiftDigits(staked?.staked, -mbrnAsset?.decimal).toNumber()
+    return shiftDigits(staked, -mbrnAsset?.decimal).toNumber()
   }, [staked, mbrnAsset])
-
-  console.log({ stakedBalance, staked })
 
   useEffect(() => {
     if (staked) {

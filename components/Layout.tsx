@@ -27,12 +27,19 @@ const Layout = ({ children }: Props) => {
     <Fragment>
       <Mobile />
 
-      <HStack w="100vw" h="100vh" display={['none', 'flex']}>
+      <HStack w="100vw" h="100vh" display={['none', 'flex']} position="relative">
         <HexagonBackground />
         <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
           <SideNav />
         </Stack>
-        <Stack h="full" flexGrow={1} flexBasis="1200px" overflow="auto" alignItems="self-start">
+        <Stack
+          h="full"
+          flexGrow={1}
+          flexBasis="1200px"
+          overflow="auto"
+          alignItems="self-start"
+          zIndex={1}
+        >
           <Header />
           <Stack as="main" p="10" maxW="1200px" w="full" flex={1} mt="70px">
             <RPCStatus />

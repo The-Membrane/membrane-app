@@ -5,26 +5,64 @@ import React from 'react'
 import useStaked from './hooks/useStaked'
 import { TxButton } from '../TxButton'
 import dayjs from 'dayjs'
+import useClaimUnstake from './hooks/useClaimUnstake'
 
 type Props = {}
 
-const DaysLeft = ({ unstakeStartDate }) => {
+const getTimeLeft = (unstakeStartDate) => {
   const unstakingDate = dayjs.unix(unstakeStartDate).add(4, 'day')
   const daysLeft = unstakingDate.diff(dayjs(), 'day')
   const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
   const minutesLeft = unstakingDate.diff(dayjs(), 'minute')
 
-  if (daysLeft <= 0 && hoursLeft <= 0) {
-    return <Text> claim in {minutesLeft} minutes</Text>
+  return {
+    daysLeft,
+    hoursLeft,
+    minutesLeft,
+  }
+}
+
+const DaysLeft = ({ unstakeStartDate }) => {
+  // const unstakingDate = dayjs.unix(unstakeStartDate).add(4, 'day')
+  // const daysLeft = unstakingDate.diff(dayjs(), 'day')
+  // const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
+  // const minutesLeft = unstakingDate.diff(dayjs(), 'minute')
+  const { daysLeft, hoursLeft, minutesLeft } = getTimeLeft(unstakeStartDate)
+
+  if (minutesLeft <= 0) {
+    return null
+  } else if (daysLeft <= 0 && hoursLeft <= 0) {
+    return <Text w="full"> claim in {minutesLeft} minutes</Text>
   } else if (daysLeft <= 0 && hoursLeft > 0) {
-    return <Text>claim in {hoursLeft} hours</Text>
+    return <Text w="full">claim in {hoursLeft} hours</Text>
   } else {
     return (
-      <Text>
+      <Text w="full">
         claim in {daysLeft + 1} {daysLeft === 1 ? 'day' : 'days'}
       </Text>
     )
   }
+}
+
+const ClaimButton = ({ unstakeStartDate }) => {
+  const { minutesLeft } = getTimeLeft(unstakeStartDate)
+  const claim = useClaimUnstake()
+
+  const isReadyToClaim = minutesLeft <= 0
+
+  return (
+    <TxButton
+      w="fit-content"
+      variant="ghost"
+      size="sm"
+      px="2"
+      isLoading={claim.isPending}
+      isDisabled={!isReadyToClaim}
+      onClick={() => claim.mutate()}
+    >
+      Claim
+    </TxButton>
+  )
 }
 
 const Unstaking = (props: Props) => {
@@ -38,14 +76,12 @@ const Unstaking = (props: Props) => {
         <Image src={mbrn?.logo} w="40px" h="40px" />
         <Text>{mbrn?.symbol}</Text>
       </HStack>
-      {unstaking?.map((unstake) => (
-        <HStack justifyContent="space-between">
-          <Text>{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
+      {unstaking?.map((unstake, index) => (
+        <HStack key={'unstake' + index} justifyContent="space-between">
+          <Text w="full">{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
           <DaysLeft unstakeStartDate={unstake?.unstake_start_time} />
 
-          <TxButton w="fit-content" variant="ghost" size="sm" px="2">
-            Claim
-          </TxButton>
+          <ClaimButton unstakeStartDate={unstake?.unstake_start_time} />
         </HStack>
       ))}
     </Stack>

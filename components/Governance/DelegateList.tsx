@@ -23,26 +23,46 @@ import ConfirmModal from '../ConfirmModal'
 import TxError from '../TxError'
 import { Summary } from './Summary'
 import useStaked from '../Stake/hooks/useStaked'
+import { GrPowerReset } from 'react-icons/gr'
 
 type Props = {}
 
 type ValidatorProps = {
   delegator: any
   mbrnBalance: string
+  isDisabled?: boolean
 }
 
-const Validator = ({ delegator, mbrnBalance }: ValidatorProps) => {
+const Validator = ({ delegator, mbrnBalance, isDisabled }: ValidatorProps) => {
   const { name, amount, socials, address } = delegator
   const { delegateState, setDelegateState } = useDelegateState()
   const { delegations = [] } = delegateState || {}
   const existingDelegation = delegations?.find((delegation) => delegation.address === address)
   const { data: staked } = useStaked()
 
-  const totalBalance = useMemo(() => {
-    if (!staked) return amount
-    const stakedAmount = shiftDigits(staked?.staked.total_staked, -6)
+  const { data: userDelegation = [] } = useDelegations()
 
-    return num(amount).plus(stakedAmount).toNumber()
+  const stakedAmount = shiftDigits(staked?.staked || 0, -6)
+  const totalDelegation = userDelegation.reduce(
+    (acc, delegator) => num(acc).plus(delegator.amount).toNumber(),
+    0,
+  )
+
+  const remaining = num(stakedAmount).minus(totalDelegation).toNumber()
+  const max = num(amount).plus(remaining).toNumber()
+
+  console.log({
+    max,
+    remaining,
+    totalDelegation,
+    stakedAmount,
+  })
+
+  const totalBalance = useMemo(() => {
+    // if (!staked) return amount
+    // const stakedAmount = shiftDigits(staked?.staked.total_staked, -6)
+
+    return num(amount).plus(10).toNumber()
   }, [staked, amount])
 
   const onChange = (value: number) => {
@@ -92,8 +112,9 @@ const Validator = ({ delegator, mbrnBalance }: ValidatorProps) => {
           .plus(existingDelegation?.newAmount || 0)
           .toNumber()}
         min={0}
-        max={totalBalance}
+        max={max}
         onChange={onChange}
+        isDisabled={isDisabled}
       >
         <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
           <SliderFilledTrack bg="#C445F0" />
@@ -109,22 +130,42 @@ const DelegateList = (props: Props) => {
   const mbrn = useAssetBySymbol('MBRN')
   const mbrnBalance = useBalanceByAsset(mbrn)
   const updateDelegation = useUpdateDelegation()
+  const { delegateState, setDelegateState } = useDelegateState()
+  const { delegations = [] } = delegateState || {}
+  // const { data: staked } = useStaked()
+  // const stakedAmount = shiftDigits(staked?.staked || 0, -6)
+
+  // const totalDelegation = data.reduce(
+  //   (acc, delegator) => num(acc).plus(delegator.amount).toNumber(),
+  //   stakedAmount,
+  // )
   // const { setDelegateState } = useDelegateState()
 
   // useEffect(() => {
   //   setDelegateState({ remainingBalance: mbrnBalance })
   // }, [mbrnBalance])
 
+  const activeSlider = delegations?.[0]
+
   const { paginatedData, nextPage, previousPage, currentPage, totalPages } = usePagination<any>(
     data,
     4,
   )
 
+  const onRest = () => {
+    setDelegateState({ delegations: [] })
+  }
+
   return (
     <Stack w="full">
       <Stack minH="230px">
         {paginatedData.map((delegator) => (
-          <Validator key={delegator?.name} delegator={delegator} mbrnBalance={mbrnBalance} />
+          <Validator
+            key={delegator?.name}
+            delegator={delegator}
+            mbrnBalance={mbrnBalance}
+            isDisabled={activeSlider ? activeSlider?.address !== delegator?.address : false}
+          />
         ))}
       </Stack>
 
@@ -178,10 +219,17 @@ const DelegateList = (props: Props) => {
         </Slider>
       </Stack>
 
-      <ConfirmModal label={'Update delegation'} action={updateDelegation}>
-        <Summary />
-        <TxError action={updateDelegation} />
-      </ConfirmModal>
+      {/* <Text>total: {totalDelegation}</Text> */}
+
+      <HStack mt="5">
+        <Button variant="ghost" leftIcon={<GrPowerReset />} onClick={onRest}>
+          Reset
+        </Button>
+        <ConfirmModal label={'Update delegation'} action={updateDelegation}>
+          <Summary />
+          <TxError action={updateDelegation} />
+        </ConfirmModal>
+      </HStack>
     </Stack>
   )
 }

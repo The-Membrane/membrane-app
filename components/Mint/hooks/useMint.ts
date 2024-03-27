@@ -5,15 +5,13 @@ import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useMintState from './useMintState'
-import useVaultSummary from './useVaultSummary'
 
 const useMint = () => {
   const { mintState } = useMintState()
   const { summary = [] } = mintState
-  const { debtAmount } = useVaultSummary();
   const { address } = useWallet()
   const { data: basketPositions } = useBasketPositions()
-  const positionId = basketPositions?.[0]?.positions?.[mintState.index]?.position_id
+  const positionId = basketPositions?.[0]?.positions?.[0]?.position_id
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: [
@@ -33,7 +31,6 @@ const useMint = () => {
         positionId,
         mintAmount: mintState?.mint,
         repayAmount: mintState?.repay,
-        debtAmount: debtAmount,
       })
       return [...depositAndWithdraw, ...mintAndRepay] as MsgExecuteContractEncodeObject[]
     },
@@ -47,7 +44,7 @@ const useMint = () => {
       String(mintState?.repay) || '0',
       ...summary?.map((s: any) => String(s.amount)),
     ],
-    amount: '1', //hardcoded for now
+    amount: '1',
   })
 
   // const simulate = useSimulate({

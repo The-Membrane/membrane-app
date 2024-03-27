@@ -12,7 +12,6 @@ export type Summary = AssetWithBalance & {
 
 type MintState = {
   assets: AssetWithBalance[]
-  index: number
   ltvSlider?: number
   isTakeAction?: boolean
   totalUsdValue?: number
@@ -30,7 +29,6 @@ type Store = {
 
 const initialState: MintState = {
   assets: [],
-  index: 0,
   ltvSlider: 0,
 }
 

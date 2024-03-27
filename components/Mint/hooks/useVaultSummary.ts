@@ -27,7 +27,6 @@ const useVaultSummary = () => {
     basket,
     collateralInterest,
     prices,
-    mintState?.index,
     mintState?.totalUsdValue,
     mintState?.summary,
     mintState?.mint,

@@ -23,10 +23,6 @@ const getTimeLeft = (unstakeStartDate) => {
 }
 
 const DaysLeft = ({ unstakeStartDate }) => {
-  // const unstakingDate = dayjs.unix(unstakeStartDate).add(4, 'day')
-  // const daysLeft = unstakingDate.diff(dayjs(), 'day')
-  // const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
-  // const minutesLeft = unstakingDate.diff(dayjs(), 'minute')
   const { daysLeft, hoursLeft, minutesLeft } = getTimeLeft(unstakeStartDate)
 
   if (minutesLeft <= 0) {

@@ -14,9 +14,9 @@ import useStaked from './hooks/useStaked'
 import { GrPowerReset } from 'react-icons/gr'
 
 const Stakeing = () => {
+  const [stakeAmount, setStakeAmount] = useState(0)
   const mbrnAsset = useAssetBySymbol('MBRN')
   const mbrnBalance = useBalanceByAsset(mbrnAsset)
-  const [stakeAmount, setStakeAmount] = useState(0)
   const stake = useStakeing({ amount: stakeAmount.toString() })
   const { data } = useStaked()
   const { staked } = data || {}
@@ -32,7 +32,7 @@ const Stakeing = () => {
     if (staked) {
       setStakeAmount(stakedBalance)
     }
-  }, [stakedBalance])
+  }, [stakedBalance, staked])
 
   const onInputChange = (value: number) => {
     setStakeAmount(value)
@@ -62,21 +62,25 @@ const Stakeing = () => {
           <Text>Stake</Text>
           <Text>{stakeAmount} MBRN</Text>
         </HStack>
+
         <SliderWithState
           value={Number(stakeAmount)}
           onChange={onInputChange}
           max={Number(totalBalance)}
         />
       </Stack>
+
       <HStack>
         <Button variant="outline" leftIcon={<GrPowerReset />} onClick={onRest}>
           Reset
         </Button>
+
         <ConfirmModal label={stakeState.txType || 'Stake'} action={stake}>
           <Summary />
           <TxError action={stake} />
         </ConfirmModal>
       </HStack>
+
       <TxError action={stake} />
     </Stack>
   )

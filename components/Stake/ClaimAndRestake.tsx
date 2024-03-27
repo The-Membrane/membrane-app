@@ -1,13 +1,10 @@
-import { Button, HStack, Image, Stack, Text } from '@chakra-ui/react'
-import ConfirmModal from '../ConfirmModal'
-import { Summary } from './Summary'
-import useStaked from './hooks/useStaked'
-import { shiftDigits } from '@/helpers/math'
-import useRestake from './hooks/useRestake'
 import { TxButton } from '@/components/TxButton'
-import useClaim from './hooks/useClaim'
-import { useMemo } from 'react'
+import { shiftDigits } from '@/helpers/math'
 import { isGreaterThanZero, num } from '@/helpers/num'
+import { HStack, Image, Stack, Text } from '@chakra-ui/react'
+import { useMemo } from 'react'
+import useClaim from './hooks/useClaim'
+import useStaked from './hooks/useStaked'
 
 type Props = {}
 
@@ -36,7 +33,6 @@ const ClaimAndRestake = (props: Props) => {
   const claim = useClaim()
 
   const claimable = useMemo(() => {
-    // sum of all claimable rewards
     const rewardsAmount = rewards.reduce((acc, reward) => {
       return acc.plus(reward?.amount)
     }, num(0))

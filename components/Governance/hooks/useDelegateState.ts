@@ -4,7 +4,6 @@ import { devtools } from 'zustand/middleware'
 
 type DelegateState = {
   delegator?: any
-  remainingBalance: string | number
   amount?: string | number
   txType?: 'Stake' | 'Unstake'
   delegations?: any[]
@@ -16,9 +15,7 @@ type Store = {
   reset: () => void
 }
 
-const initialState: DelegateState = {
-  remainingBalance: 0,
-}
+const initialState: DelegateState = {}
 
 // @ts-ignore
 const store = (set) => ({

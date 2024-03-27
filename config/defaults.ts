@@ -28,4 +28,5 @@ const aminoConverters = {
 export const registry = new Registry(protoRegistry)
 export const aminoTypes = new AminoTypes(aminoConverters)
 
-export const rpcUrl = 'https://rpc.osmosis.zone/'
+// export const rpcUrl = 'https://rpc.osmosis.zone/'
+export const rpcUrl = 'https://rpc.margined.io'

@@ -33,6 +33,7 @@ const ConfrimDetails = ({ children, action }: Props) => {
 
       <ModalFooter justifyContent="center">
         <TxButton
+          maxW="200px"
           isLoading={action?.simulate.isLoading || action?.tx.isPending}
           isDisabled={action?.simulate.isError || !action?.simulate.data}
           onClick={() => action?.tx.mutate()}

@@ -56,9 +56,9 @@ const InstalledWallet = ({ wallet, onConnect }: WalletProps) => {
       cursor="pointer"
       justifyContent="start"
       borderRadius="12px"
-      border="2px solid rgba(250, 129, 253, 0.37)"
-      background="#05071B"
-      boxShadow="0px 0px 24px 0px rgba(250, 129, 253, 0.32)"
+      border="1px solid rgba(250, 129, 253, 0.37)"
+      // background="#05071B"
+      // boxShadow="0px 0px 24px 0px rgba(250, 129, 253, 0.32)"
     >
       <Image
         src={wallet?.walletInfo?.logo}
@@ -89,9 +89,9 @@ const InstallWallet = ({ wallet }: { wallet: any }) => {
       justifyContent="start"
       _hover={{ textDecoration: 'none' }}
       borderRadius="12px"
-      border="2px solid rgba(250, 129, 253, 0.37)"
-      background="#05071B"
-      boxShadow="0px 0px 24px 0px rgba(250, 129, 253, 0.32)"
+      border="1px solid rgba(250, 129, 253, 0.37)"
+      // background="#05071B"
+      // boxShadow="0px 0px 24px 0px rgba(250, 129, 253, 0.32)"
     >
       <Image
         src={wallet?.walletInfo?.logo}
@@ -135,7 +135,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
   return (
     <Modal isOpen={isOpen} onClose={onCloseModal}>
       <ModalOverlay backdropFilter="blur(50px)" />
-      <Card as={ModalContent}>
+      <Card as={ModalContent} bg="#141628">
         <ModalHeader w="full">
           <HStack justifyContent="space-between" w="full" alignItems="flex-end">
             <Text variant="title" w="150px">

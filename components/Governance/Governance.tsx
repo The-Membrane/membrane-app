@@ -1,18 +1,15 @@
-import { SimpleGrid, Stack } from '@chakra-ui/react'
-import Claim from './Claim'
-import Stake from './Stake'
-import TokenAllocation from './TokenAllocation'
-import Unstake from './Unstake'
+import { HStack, Stack, Text } from '@chakra-ui/react'
+import ProposalsTable from './ProposalsTable'
+import SubmitProposal from './SubmitProposal'
 
 const Governance = () => {
   return (
-    <Stack>
-      <SimpleGrid columns={2} gap="5" h="265px">
-        <Stake />
-        <Unstake />
-        <Claim />
-        <TokenAllocation />
-      </SimpleGrid>
+    <Stack w="full">
+      <HStack justifyContent="space-between" w="full">
+        <Text variant="title">Proposals</Text>
+        <SubmitProposal />
+      </HStack>
+      <ProposalsTable />
     </Stack>
   )
 }

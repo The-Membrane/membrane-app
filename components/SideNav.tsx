@@ -19,7 +19,7 @@ const navItems: NavItems[] = [
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
-  { label: 'Governance', href: '/governance', ItemIcon: StakeIcon },
+  { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
 ]
 
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {
@@ -29,10 +29,11 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 
   const hoverStyles = {
     borderRadius: '8px',
-    border: '1px solid #C445F0',
-    background: '#290A34',
-    boxShadow: '0px 0px 16px 0px rgba(196, 69, 240, 0.32)',
-    color: '#C445F0',
+    bg: 'primary.200',
+    // border: '1px solid #C445F0',
+    // background: '#290A34',
+    // boxShadow: '0px 0px 16px 0px rgba(196, 69, 240, 0.32)',
+    // color: '#C445F0',
   }
 
   return (
@@ -46,7 +47,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
       {...(isActive && hoverStyles)}
       p={label === 'Home' ? '5px' : '0'}
     >
-      <ItemIcon color={isActive || isHovered ? '#C445F0' : 'white'} />
+      <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />
       <Text fontSize="lg" fontWeight="400">
         {label}
       </Text>
@@ -56,7 +57,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 
 const SideNav = () => {
   return (
-    <Card w="300px" minW="240px" h="90vh" position="fixed">
+    <Stack as="aside" w={[0, '256px']} h="100vh" p="6" bg="whiteAlpha.100">
       <Stack as="ul" gap="2">
         <Logo />
         <Box h="10" />
@@ -65,7 +66,7 @@ const SideNav = () => {
         ))}
         <WallectConnect />
       </Stack>
-    </Card>
+    </Stack>
   )
 }
 

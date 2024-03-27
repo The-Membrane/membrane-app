@@ -14,7 +14,7 @@ export const Button: ComponentStyleConfig = {
       color: 'white',
       borderColor: 'primary.200',
       border: 'none',
-      boxShadow: '0px 0px 16px 0px rgba(0, 163, 249, 0.32)',
+      // boxShadow: '0px 0px 16px 0px rgba(0, 163, 249, 0.32)',
       fontSize: 'md',
     },
     link: {

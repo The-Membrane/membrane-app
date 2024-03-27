@@ -17,7 +17,7 @@ const TxError = ({ action }: Props) => {
   }, [error])
 
   return (
-    <Text fontSize="sm" color="red.500" mt="2">
+    <Text fontSize="sm" color="red.500">
       {errorMessage}
     </Text>
   )

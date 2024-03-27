@@ -5,13 +5,11 @@ import LoackdropPane from './LockdropPane'
 
 const Lockdrop = () => {
   return (
-    <HStack gap="5" justifyContent="space-around" alignItems="flex-start">
-      <Stack w="full" gap="5" maxW="600px">
-        <Info />
-        <LockChart />
-        <LoackdropPane />
-      </Stack>
-    </HStack>
+    <Stack gap="5">
+      <Info />
+      <LockChart />
+      <LoackdropPane />
+    </Stack>
   )
 }
 

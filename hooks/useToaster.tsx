@@ -49,7 +49,7 @@ const defaultSettings: UseToastOptions = {
     margin: 5,
     bg: '#05071B',
     borderRadius: 'md',
-    boxShadow: '0px 0px 24px 0px rgba(250, 129, 253, 0.32)',
+    // boxShadow: '0px 0px 24px 0px rgba(250, 129, 253, 0.32)',
     backdropFilter: 'blur(6px)',
   },
 }

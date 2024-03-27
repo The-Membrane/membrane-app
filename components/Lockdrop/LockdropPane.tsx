@@ -80,7 +80,7 @@ const LoackdropPane = (props: Props) => {
   const { data: userInfo, isLoading } = useUserInfo()
 
   return (
-    <Card>
+    <Card maxW="600px">
       <Text variant="title" fontSize="24px">
         Lock your OSMO
       </Text>

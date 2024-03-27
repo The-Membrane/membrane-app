@@ -8,8 +8,8 @@ import { RxExit } from 'react-icons/rx'
 const hoverStyles = {
   borderRadius: '8px',
   border: '1px solid #C445F0',
-  background: '#290A34',
-  boxShadow: '0px 0px 16px 0px rgba(196, 69, 240, 0.32)',
+  // background: '#290A34',
+  // boxShadow: '0px 0px 16px 0px rgba(196, 69, 240, 0.32)',
   color: '#C445F0',
 }
 

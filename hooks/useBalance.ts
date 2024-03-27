@@ -16,17 +16,18 @@ export const useBalance = () => {
       const client = await getRpcClient()
       if (!address) return null
 
-      return client.cosmos.bank.v1beta1.allBalances({
-        address,
-        pagination: {
-          key: new Uint8Array(),
-          offset: BigInt(0),
-          limit: BigInt(1000),
-          countTotal: false,
-          reverse: false,
-        },
-      })
-      .then((res) => res.balances)
+      return client.cosmos.bank.v1beta1
+        .allBalances({
+          address,
+          pagination: {
+            key: new Uint8Array(),
+            offset: BigInt(0),
+            limit: BigInt(1000),
+            countTotal: false,
+            reverse: false,
+          },
+        })
+        .then((res) => res.balances)
     },
     enabled: !!getRpcClient && !!address,
   })

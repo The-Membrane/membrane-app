@@ -4,6 +4,8 @@ import Header from './Header'
 import Logo from './Logo'
 import RPCStatus from './RPCStatus'
 import SideNav from './SideNav'
+import MembersRules from './MembersRules'
+import useMembersRulesState from './MembersRules/useRules'
 
 type Props = PropsWithChildren & {}
 
@@ -23,6 +25,10 @@ const HexagonBackground = () => (
 )
 
 const Layout = ({ children }: Props) => {
+  const { show } = useMembersRulesState()
+
+  if (show) return <MembersRules />
+
   return (
     <Fragment>
       <Mobile />

@@ -20,10 +20,10 @@ export const BeakerLiquid = () => {
       style={{
         position: 'absolute',
         // bottom: -17,
-        top: 690,
-        left: 251,
+        top: 505,
+        left: 117,
         maxHeight: percent,
-        transform: 'scale(1.36) rotate(180deg)',
+        transform: 'scale(1.17) rotate(180deg)',
         height: percent,
         overflow: 'hidden',
         transformOrigin: 'top',

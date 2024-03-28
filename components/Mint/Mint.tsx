@@ -29,7 +29,7 @@ const MintTabsCard = () => {
     setMintState({ isTakeAction: index === 1 })
   }
   return (
-    <Card w="500px" gap="12" h="max-content" px="2">
+    <Card minW="400px" gap="12" h="max-content" px="2">
       <VStack w="full" gap="5">
         <Text variant="title" fontSize="24px">
           Mint
@@ -60,7 +60,7 @@ const MintTabsCard = () => {
 
 const Mint = () => {
   return (
-    <HStack>
+    <HStack alignItems="flex-start">
       <MintTabsCard />
       <Beaker />
       {/* <BeakerScale /> */}

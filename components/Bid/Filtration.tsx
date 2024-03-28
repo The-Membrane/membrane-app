@@ -5,8 +5,14 @@ type Props = {}
 
 const Filtration = (props: Props) => {
   return (
-    <Box position="fixed" right="32" zIndex={100} top="3">
-      <Image src="/images/flitration.svg" alt="beaker" />
+    <Box zIndex={100}>
+      <Image
+        src="/images/flitration.svg"
+        alt="beaker"
+        width="644px"
+        objectFit="contain"
+        objectPosition="-200px"
+      />
     </Box>
   )
 }

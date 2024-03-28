@@ -270,7 +270,7 @@ export const getProposals = async () => {
   }
 
   const allProposals = await Promise.all([activeProposals, pendingProposals])
-    .then(([active, pending]) => [...active, ...pending, ...mockProposal])
+    .then(([active, pending]) => [...active, ...pending])
     .then(parseProposal)
     .then((proposals) =>
       proposals.sort((a, b) => {

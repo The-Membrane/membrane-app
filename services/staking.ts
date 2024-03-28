@@ -6,7 +6,7 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { coin } from '@cosmjs/amino'
 import { LiqAsset } from '@/contracts/codegen/staking/Staking.types'
 import { getAssetByDenom, getAssetBySymbol } from '@/helpers/chain'
-import delegators from '@/config/delegators.json'
+import delegates from '@/config/delegates.json'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
@@ -32,6 +32,11 @@ export const stake = async ({ signingClient, address, denom, amount }: StakingPa
   const funds = [coin(amount, denom)]
 
   return client.stake({}, 'auto', undefined, funds)
+}
+
+export const getConfig = async () => {
+  const client = await stakingClient()
+  return client.config()
 }
 
 export const getStaked = async (address: Addr) => {
@@ -82,13 +87,14 @@ export const getRewards = async (address: Addr) => {
 export const getUserDelegations = async (address: Addr) => {
   // 'osmo1d9ryqp7yfmr92vkk2yal96824pewf2g5wx0h2r'
   const client = await stakingClient()
+  const config = await getConfig()
   try {
-    const [userDelegation] = await client.delegations({
+    const [userDelegation, ...other] = await client.delegations({
       user: address,
     })
     const { delegation_info } = userDelegation
 
-    const delegations = delegators
+    const delegations = delegates
       .map((delegator) => {
         const delegation = delegation_info?.delegated_to?.find(
           (d) => d.delegate === delegator.address,
@@ -96,9 +102,12 @@ export const getUserDelegations = async (address: Addr) => {
         const amount = shiftDigits(delegation?.amount || '0', -6)
           .dp(0)
           .toString()
+        const commission = delegation_info?.commission
         return {
           ...delegator,
           ...delegation,
+          commission,
+          maxCommission: config.max_commission_rate,
           amount,
         }
       })
@@ -106,10 +115,10 @@ export const getUserDelegations = async (address: Addr) => {
 
     return delegations
   } catch (error) {
-    return delegators.map((delegator) => {
+    return delegates.map((delegate) => {
       const amount = '0'
       return {
-        ...delegator,
+        ...delegate,
         amount,
       }
     })
@@ -121,10 +130,11 @@ export const buildUpdateDelegationMsg = async (address: Addr, delegations: any[]
   const msgs = delegations.map((d) => {
     return messageComposer.updateDelegations({
       delegate: num(d.newAmount).isGreaterThan(0) ? true : false,
-      fluid: d.fluidity,
-      governatorAddr: d.address,
+      fluid: d?.fluidity,
+      governatorAddr: d?.address,
       mbrnAmount: shiftDigits(Math.abs(d.newAmount), 6).toString(),
-      votingPowerDelegation: d.voting_power_delegation,
+      votingPowerDelegation: d?.voting_power_delegation,
+      commission: d?.newCommission?.toString(),
     })
   })
   return msgs

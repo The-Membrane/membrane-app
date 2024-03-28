@@ -43,10 +43,6 @@ const useStakeing = ({}: UseStake) => {
     enabled: !!address && !!mbrnAsset && !!contracts.staking && Number(amount) > 0,
   })
 
-  console.log({
-    amount,
-  })
-
   return useSimulateAndBroadcast({
     msgs: stakeMsgs,
     amount: amount,

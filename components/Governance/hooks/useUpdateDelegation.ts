@@ -13,9 +13,10 @@ const useUpdateDelegation = () => {
   const { address } = useWallet()
 
   const amount = delegations.reduce((acc, delegation) => acc + delegation.newAmount, 0)
+  const commission = delegations.map((d) => d?.newCommission?.toString()).join(',')
 
   const { data: updateDelegationMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[]>({
-    queryKey: ['msg', 'update delegation', address, amount.toString()],
+    queryKey: ['msg', 'update delegation', address, amount.toString(), commission],
     queryFn: async () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
 
@@ -23,7 +24,8 @@ const useUpdateDelegation = () => {
 
       return msgs
     },
-    enabled: !!address && !!delegations && Math.abs(amount) > 0,
+    // enabled: !!address && !!delegations && Math.abs(amount) > 0,
+    enabled: !!address && !!delegations,
   })
 
   const onSuccess = () => {

@@ -21,6 +21,7 @@ import Validator from './Validator'
 import useDelegateState from './hooks/useDelegateState'
 import useDelegations from './hooks/useDelegations'
 import useUpdateDelegation from './hooks/useUpdateDelegation'
+import UpdateCommision from './UpdateCommision'
 
 type DelegateProps = {
   validator: any
@@ -175,22 +176,7 @@ const DelegateList = () => {
         my="5"
       />
 
-      {/* TODO: commision config  */}
-      <Stack w="full">
-        <HStack w="full" justifyContent="space-between">
-          <Text variant="value" textTransform="none">
-            Your commision as delegation
-          </Text>
-          <Text variant="value">10</Text>
-        </HStack>
-
-        <Slider aria-label="slider-ex-4" defaultValue={30}>
-          <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
-            <SliderFilledTrack bg="#C445F0" />
-          </SliderTrack>
-          <SliderThumb boxSize={6} bg="#C445F0" cursor="grab" border="2px solid #E2D8DA" />
-        </Slider>
-      </Stack>
+      <UpdateCommision />
 
       <HStack mt="5">
         <Button variant="ghost" leftIcon={<GrPowerReset />} onClick={onRest}>

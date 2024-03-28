@@ -19,6 +19,7 @@ import {
 } from '@chakra-ui/react'
 import { FaXTwitter, FaDiscord } from 'react-icons/fa6'
 import useDelegator from './hooks/useDelegator'
+import { num } from '@/helpers/num'
 
 type Delegator = {
   name: string
@@ -83,7 +84,7 @@ const Delegator = ({ name, socials, address }: Delegator) => {
               >
                 <Text color="whiteAlpha.600">Commision</Text>
                 <Skeleton isLoaded={!isLoading} minW="50px" textAlign="right">
-                  <Text>{commission}%</Text>
+                  <Text>{num(commission).times(100).toNumber()}%</Text>
                 </Skeleton>
               </HStack>
             </Stack>

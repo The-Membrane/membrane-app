@@ -7,25 +7,17 @@ import { decodeMsgs } from '@/helpers/decodeMsg'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { queryClient } from '@/pages/_app'
 
-const useUpdateDelegation = () => {
-  const { delegateState } = useDelegateState()
-  const { delegations = [] } = delegateState
+const useSubmitProposal = () => {
   const { address } = useWallet()
 
-  const amount = delegations.reduce((acc, delegation) => acc + delegation.newAmount, 0)
-  const commission = delegations.map((d) => d?.newCommission?.toString()).join(',')
-
   const { data: updateDelegationMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[]>({
-    queryKey: ['msg', 'update delegation', address, amount.toString(), commission],
+    queryKey: ['msg', 'submit proposal', address],
     queryFn: async () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
 
-      const msgs = buildUpdateDelegationMsg(address, delegations!)
-
-      return msgs
+      return []
     },
-    // enabled: !!address && !!delegations && Math.abs(amount) > 0,
-    enabled: !!address && !!delegations,
+    enabled: !!address,
   })
 
   const onSuccess = () => {
@@ -34,10 +26,9 @@ const useUpdateDelegation = () => {
 
   return useSimulateAndBroadcast({
     msgs: updateDelegationMsgs,
-    amount: Math.abs(amount).toString(),
     queryKey: [],
     onSuccess,
   })
 }
 
-export default useUpdateDelegation
+export default useSubmitProposal

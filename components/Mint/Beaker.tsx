@@ -6,9 +6,16 @@ type Props = {}
 
 const Beaker = (props: Props) => {
   return (
-    <Box position="relative">
-      <Box position="fixed" right="32" zIndex={1} top="3">
-        <Image src="/images/beaker.svg" alt="beaker" />
+    <Box w="full">
+      <Box w="full" position="relative">
+        <Image
+          src="/images/beaker.svg"
+          alt="beaker"
+          objectFit="contain"
+          objectPosition="-70px -80px"
+          w="600px"
+          minW="600px"
+        />
         <BeakerLiquid />
       </Box>
     </Box>

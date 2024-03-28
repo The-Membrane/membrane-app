@@ -8,10 +8,17 @@ type Props = {
 }
 
 const SelectFile = ({ openFilePicker }: { openFilePicker: () => void }) => {
+  const onClick = () => {
+    console.log({
+      openFilePicker,
+    })
+    openFilePicker()
+  }
+
   return (
     <Button
       type="button"
-      onClick={openFilePicker}
+      onClick={onClick}
       bg="whiteAlpha.300"
       color="blck"
       boxShadow="none"

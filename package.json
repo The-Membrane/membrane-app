@@ -36,6 +36,7 @@
     "@tanstack/react-table": "^8.13.2",
     "bignumber.js": "^9.1.2",
     "chain-registry": "^1.28.0",
+    "chakra-react-select": "^4.7.6",
     "cosmwasm": "^1.1.1",
     "dayjs": "^1.11.10",
     "framer-motion": "^11.0.3",

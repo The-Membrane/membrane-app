@@ -9,9 +9,11 @@ const Filtration = (props: Props) => {
       <Image
         src="/images/flitration.svg"
         alt="beaker"
-        width="644px"
+        w="660px"
+        minW="660px"
         objectFit="contain"
-        objectPosition="-200px"
+        objectPosition="-150px 50px"
+        transform="scale(1.15)"
       />
     </Box>
   )

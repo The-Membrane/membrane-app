@@ -19,11 +19,9 @@ const MyBidItem = ({ label }: MyBidItemProps) => {
       <Text variant="lable" w="full">
         {label}
       </Text>
-      <Text variant="lable" w="full">
-        10%
-      </Text>
+      <Text variant="lable">10%</Text>
 
-      <Slider aria-label="slider-ex-4" defaultValue={30}>
+      <Slider w="full" aria-label="slider-ex-4" defaultValue={30}>
         <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
           <SliderFilledTrack bg="#C445F0" />
         </SliderTrack>
@@ -35,15 +33,16 @@ const MyBidItem = ({ label }: MyBidItemProps) => {
 
 const MyBid = () => {
   return (
-    <Card w="470px" p="8" alignItems="center" gap={5}>
+    <Card p="8" alignItems="center" gap={5}>
       <Text variant="title" fontSize="24px">
         My Bid
       </Text>
+
       {[10, 20, 30].map((i) => (
         <MyBidItem key={i} label={`${i} COT`} />
       ))}
 
-      <Button>Confrim Bid</Button>
+      <Button mt="4">Confrim Bid</Button>
     </Card>
   )
 }

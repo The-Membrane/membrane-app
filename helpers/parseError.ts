@@ -11,6 +11,12 @@ export const parseError = (error: Error) => {
     { regex: /is below minimum/i, message: 'Minimum 100 CDT to mint' },
     { regex: /invalid coin/i, message: 'Invalid coins provided' },
     { regex: /tx already exists in cache/i, message: 'Transaction already exists in cache' },
+    { regex: /You don't have any voting power!/i, message: "You don't have any voting power!" },
+    { regex: /Bid amount too small, minimum is 5000000/i, message: 'Minimum bid amount is 5 CDT' },
+    {
+      regex: /Extension context invalidated/i,
+      message: 'Make sure your wallet is unlocked and refresh the page',
+    },
     {
       regex: /account sequence mismatch/i,
       message: 'Account sequence mismatch, previous tx is still pending try back in some time.',

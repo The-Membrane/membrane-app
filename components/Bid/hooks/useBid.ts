@@ -1,0 +1,53 @@
+import { getDepostAndWithdrawMsgs, getMintAndRepayMsgs } from '@/helpers/mint'
+import { useBasketPositions } from '@/hooks/useCDP'
+import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
+import useWallet from '@/hooks/useWallet'
+import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import { useQuery } from '@tanstack/react-query'
+// import useMintState from './useMintState'
+import { buildBidMsg } from '@/services/liquidation'
+import useBidState from './useBidState'
+import { decodeMsgs } from '@/helpers/decodeMsg'
+import { useAssetBySymbol } from '@/hooks/useAssets'
+import { shiftDigits } from '@/helpers/math'
+import { coin } from '@cosmjs/stargate'
+
+const useBid = () => {
+  const { bidState, setBidState } = useBidState()
+  const cdtAsset = useAssetBySymbol('CDT')
+
+  const selectedAsset = bidState?.selectedAsset
+  const { premium, cdt } = bidState?.placeBid
+
+  // const { summary = [] } = mintState
+  const { address } = useWallet()
+  // const { data: basketPositions } = useBasketPositions()
+  // const positionId = basketPositions?.[0]?.positions?.[0]?.position_id
+
+  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+    queryKey: ['bid', address, selectedAsset?.base, premium, cdt],
+    queryFn: () => {
+      if (!address || !selectedAsset) return
+
+      const microAmount = shiftDigits(cdt, 6).dp(0).toString()
+      const funds = [coin(microAmount, cdtAsset?.base!)]
+
+      const msg = buildBidMsg({
+        address,
+        asset: selectedAsset,
+        liqPremium: premium,
+        funds,
+      })
+      return [msg] as MsgExecuteContractEncodeObject[]
+    },
+    enabled: !!address || !!selectedAsset || !!premium || !!cdt,
+  })
+
+  return useSimulateAndBroadcast({
+    msgs,
+    queryKey: [],
+    amount: cdt.toString(),
+  })
+}
+
+export default useBid

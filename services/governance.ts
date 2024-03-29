@@ -352,3 +352,12 @@ export const getProposal = async (proposalId: number, address?: Addr) => {
     quorum,
   }
 }
+
+export const getUserVotingPower = async (address: Addr, proposalId: number) => {
+  const client = await getGovernanceClient()
+  return client.userVotingPower({
+    user: address,
+    proposalId,
+    vesting: false,
+  })
+}

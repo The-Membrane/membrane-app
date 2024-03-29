@@ -7,25 +7,11 @@ import getCosmWasmClient from '@/helpers/comswasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
-// const mockData = [
-//   {
-//     deposit: 5000000,
-//     lock_up_duration: 12,
-//   },
-//   {
-//     deposit: 3000000,
-//     lock_up_duration: 6,
-//   },
-//   {
-//     deposit: 2000000,
-//     lock_up_duration: 9,
-//   },
-// ]
-
 export const lockdropClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
   return new LaunchQueryClient(cosmWasmClient, contracts.lockdrop)
 }
+
 export const getSigningLockdropClient = (signingClient: SigningCosmWasmClient, address: Addr) => {
   return new LaunchClient(signingClient, address, contracts.staking)
 }

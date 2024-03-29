@@ -35,7 +35,7 @@
     "@tanstack/react-query": "^5.20.1",
     "@tanstack/react-table": "^8.13.2",
     "bignumber.js": "^9.1.2",
-    "chain-registry": "^1.28.0",
+    "chain-registry": "^1.33.13",
     "chakra-react-select": "^4.7.6",
     "cosmwasm": "^1.1.1",
     "dayjs": "^1.11.10",
@@ -54,7 +54,7 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
-    "@chain-registry/types": "^0.18.0",
+    "@chain-registry/types": "^0.18.9",
     "@cosmwasm/ts-codegen": "^0.35.7",
     "@tanstack/react-query-devtools": "^5.28.4",
     "@types/node": "^20",

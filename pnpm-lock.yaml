@@ -75,8 +75,8 @@ dependencies:
     specifier: ^9.1.2
     version: 9.1.2
   chain-registry:
-    specifier: ^1.28.0
-    version: 1.28.1
+    specifier: ^1.33.13
+    version: 1.33.13
   chakra-react-select:
     specifier: ^4.7.6
     version: 4.7.6(@chakra-ui/form-control@2.2.0)(@chakra-ui/icon@3.2.0)(@chakra-ui/layout@2.3.1)(@chakra-ui/media-query@3.3.0)(@chakra-ui/menu@2.2.1)(@chakra-ui/spinner@2.1.0)(@chakra-ui/system@2.6.2)(@emotion/react@11.11.3)(@types/react@18.2.58)(react-dom@18.2.0)(react@18.2.0)
@@ -128,8 +128,8 @@ dependencies:
 
 devDependencies:
   '@chain-registry/types':
-    specifier: ^0.18.0
-    version: 0.18.0
+    specifier: ^0.18.9
+    version: 0.18.9
   '@cosmwasm/ts-codegen':
     specifier: ^0.35.7
     version: 0.35.7
@@ -1420,7 +1420,7 @@ packages:
     resolution: {integrity: sha512-Nt25fi5yuo+W26jaMHauWP4on7p8EZuOB7oBgpvl3XSje8EIJtLMnQChKzd/6+J/8fkr1vpp1lFwaIkInh9K2Q==}
     dependencies:
       '@babel/runtime': 7.23.9
-      '@chain-registry/types': 0.18.0
+      '@chain-registry/types': 0.18.9
       '@chain-registry/utils': 1.18.0
       bfs-path: 1.0.2
       cross-fetch: 3.1.8
@@ -1441,7 +1441,7 @@ packages:
     resolution: {integrity: sha512-MVzWaxi0luEBefDaDrnBs1aNbaz1gcnFBqBQCe2Vikm26Kk9O5Yw/B2c6hp4mVN09aJPBK/HzOMSgMEySpSwEw==}
     dependencies:
       '@babel/runtime': 7.23.9
-      '@chain-registry/types': 0.18.0
+      '@chain-registry/types': 0.18.9
       '@chain-registry/utils': 1.18.0
       '@cosmostation/extension-client': 0.1.15
     dev: false
@@ -1468,8 +1468,8 @@ packages:
       '@babel/runtime': 7.23.9
     dev: false
 
-  /@chain-registry/types@0.18.0:
-    resolution: {integrity: sha512-jRFOKOMIAcA5Qp5cXEiAPyXs13WbSP19kvcb8qm5vaRwXvHMufPd/ZxLC80yq/LB62FeZeaVYfsjorLf3M6tTw==}
+  /@chain-registry/types@0.18.9:
+    resolution: {integrity: sha512-iAL33MdWg96mT/ZRvLAyk0cZdpZHGxJJCpIFHUOtqSHeI95zErFq8UtwlYfaLgE8zK+XdU3xolEzhUlZor/4aQ==}
     dependencies:
       '@babel/runtime': 7.23.9
 
@@ -1477,7 +1477,7 @@ packages:
     resolution: {integrity: sha512-FAPyP1FN1jr88GfiBWnppe5S1ddgbK9TfwkyKuNSKHlk9Q+fhdC4nPM552bEz76AuFyfv7SFHg3kDuQSgYYZBw==}
     dependencies:
       '@babel/runtime': 7.23.9
-      '@chain-registry/types': 0.18.0
+      '@chain-registry/types': 0.18.9
       bignumber.js: 9.1.1
       sha.js: 2.4.11
     dev: false
@@ -7851,11 +7851,11 @@ packages:
     engines: {node: '>= 0.8.0'}
     dev: true
 
-  /chain-registry@1.28.1:
-    resolution: {integrity: sha512-WYFhulujAss5llO75CAoLVbMs+EmiYH6N/+XAtV2xBCI0V8eI2yBxHI93w9YsagizE8Ew9wCuNZk8QdAXPNHtg==}
+  /chain-registry@1.33.13:
+    resolution: {integrity: sha512-i9qVHXrOVNW7rknKq2kMVil3P5hcl9YzU+Oc1k4SpaN1PWTGWr04u54TKkeP/306viiYcRVFOoKIWrhWZoeFDg==}
     dependencies:
       '@babel/runtime': 7.23.9
-      '@chain-registry/types': 0.18.0
+      '@chain-registry/types': 0.18.9
     dev: false
 
   /chakra-react-select@4.7.6(@chakra-ui/form-control@2.2.0)(@chakra-ui/icon@3.2.0)(@chakra-ui/layout@2.3.1)(@chakra-ui/media-query@3.3.0)(@chakra-ui/menu@2.2.1)(@chakra-ui/spinner@2.1.0)(@chakra-ui/system@2.6.2)(@emotion/react@11.11.3)(@types/react@18.2.58)(react-dom@18.2.0)(react@18.2.0):

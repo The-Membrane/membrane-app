@@ -4,7 +4,6 @@ import { Card } from './card'
 import { Input } from './input'
 import { Modal } from './modal'
 import { Alert } from './alert'
-import { Tabs } from './tabs'
 
 export const components = {
   Button,
@@ -13,5 +12,4 @@ export const components = {
   Input,
   Modal,
   Alert,
-  Tabs,
 }

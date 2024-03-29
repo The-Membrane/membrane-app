@@ -1,14 +1,15 @@
 import React from 'react'
 import RiskChart from './RiskChart'
 import { Card, Text } from '@chakra-ui/react'
-import Select from './Select'
+
+import SelectAsset from './SelectAsset'
 
 const Risk = () => {
   return (
     <Card p="8" alignItems="center" gap={5}>
       <Text variant="title">Liquidation TVL For</Text>
 
-      <Select />
+      <SelectAsset />
 
       <RiskChart />
     </Card>

@@ -3,7 +3,7 @@ import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { Button, HStack, Stack, Text } from '@chakra-ui/react'
+import { Button, HStack, Link, Stack, Text } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import ConfirmModal from '../ConfirmModal'
 import { SliderWithState } from '../Mint/SliderWithState'
@@ -53,6 +53,25 @@ const Stakeing = () => {
   const onRest = () => {
     setStakeAmount(stakedBalance)
     setStakeState({})
+  }
+
+  if (num(totalBalance).isLessThanOrEqualTo(0)) {
+    return (
+      <Stack gap="2" mt="5">
+        <Text fontSize="sm" color="gray">
+          You currently don't have any MBRN in your account. You can acquire MBRN tokens through
+          Osmosis DEX.
+        </Text>
+        <Link
+          alignSelf="flex-end"
+          color="primary.200"
+          href="https://app.osmosis.zone/?from=OSMO&to=MBRN"
+          isExternal
+        >
+          Buy MBRN
+        </Link>
+      </Stack>
+    )
   }
 
   return (

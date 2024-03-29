@@ -40,6 +40,15 @@ const ClaimAndRestake = (props: Props) => {
     return shiftDigits(rewardsAmount.toNumber(), -6).toString()
   }, [rewards])
 
+  if (!rewards.length)
+    return (
+      <HStack justifyContent="center" mt="5">
+        <Text fontSize="sm" color="gray">
+          You have no claimable rewards
+        </Text>
+      </HStack>
+    )
+
   return (
     <Stack gap="10" pt="5">
       <Stack>

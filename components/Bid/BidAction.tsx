@@ -9,6 +9,7 @@ const CustomTab = ({ children }: PropsWithChildren) => (
   <Tab
     color="white"
     fontWeight="normal"
+    border="1px solid white"
     _selected={{ fontWeight: 'normal', color: 'white', bg: 'primary.200', border: 'none' }}
   >
     {children}
@@ -23,10 +24,10 @@ const BidAction = (props: Props) => {
         <CustomTab>My Bid</CustomTab>
       </TabList>
       <TabPanels>
-        <TabPanel>
+        <TabPanel px="0">
           <PlaceBid />
         </TabPanel>
-        <TabPanel>
+        <TabPanel px="0">
           <MyBid />
         </TabPanel>
       </TabPanels>

@@ -11,8 +11,6 @@ const Bid = () => {
       <Stack gap="5" minW="500px">
         <Risk />
         <BidAction />
-        {/* <PlaceBid />
-        <MyBid /> */}
       </Stack>
       <Filtration />
     </HStack>

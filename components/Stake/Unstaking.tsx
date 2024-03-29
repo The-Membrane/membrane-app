@@ -64,7 +64,16 @@ const ClaimButton = ({ unstakeStartDate }) => {
 const Unstaking = (props: Props) => {
   const mbrn = useAssetBySymbol('MBRN')
   const { data } = useStaked()
-  const { unstaking } = data || {}
+  const { unstaking = [] } = data || {}
+
+  if (!unstaking?.length)
+    return (
+      <HStack justifyContent="center" mt="5">
+        <Text fontSize="sm" color="gray">
+          You have no unstaking assets
+        </Text>
+      </HStack>
+    )
 
   return (
     <Stack pt="5" gap="0">

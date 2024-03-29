@@ -8,13 +8,11 @@ import {
   chakraComponents,
 } from 'chakra-react-select'
 
-type Props = {}
-
-const options = [
-  { value: '1', label: 'Option 1' },
-  { value: '2', label: 'Option 2' },
-  { value: '3', label: 'Option 3' },
-]
+// const options = [
+//   { value: '1', label: 'Option 1' },
+//   { value: '2', label: 'Option 2' },
+//   { value: '3', label: 'Option 3' },
+// ]
 
 const chakraStyles: ChakraStylesConfig = {
   singleValue: (provided, state) => ({
@@ -57,27 +55,36 @@ const chakraStyles: ChakraStylesConfig = {
   menuList: (provided, state) => ({
     ...provided,
     padding: 0,
-    // bg: '#191919',
-    // border: '2px solid #3A3A3A',
     minW: 'full',
     borderRadius: 16,
     width: 'max-content',
     minWidth: '200px',
     ml: '-50px',
   }),
+  menu: (provided, state) => ({
+    ...provided,
+  }),
 }
 
-const Select = (props: Props) => {
+type Props = {
+  options: OptionProps<any>[]
+  onChange?: (value: any) => void
+  value?: any
+}
+
+const Select = ({ options, onChange, value }: Props) => {
+  if (!options) return null
   return (
     <ChakraSelect
       isSearchable={false}
       variant="unstyled"
       chakraStyles={chakraStyles}
-      // defaultValue={defaultValue}
+      defaultValue={options?.[0]}
+      value={value}
       options={options}
-      // onChange={onChange}
+      onChange={onChange}
       // components={{
-      //   Option: CustomOption,
+      //   // Option: CustomOption,
       //   SingleValue: CustomSelectValue,
       // }}
     />

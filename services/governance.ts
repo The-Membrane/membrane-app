@@ -3,6 +3,7 @@ import {
   GovernanceClient,
   GovernanceQueryClient,
 } from '@/contracts/codegen/governance/Governance.client'
+import { GovernanceMsgComposer } from '@/contracts/codegen/governance/Governance.message-composer'
 import {
   Addr,
   Config,

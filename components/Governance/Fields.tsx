@@ -8,7 +8,9 @@ type FieldProps = {
 export const LinkField = ({ register, errors }: FieldProps) => {
   return (
     <FormControl isInvalid={!!errors?.link}>
-      <FormLabel htmlFor="link">Link</FormLabel>
+      <FormLabel htmlFor="link" color="gray">
+        Link
+      </FormLabel>
       <Input
         type="url"
         id="link"
@@ -31,7 +33,9 @@ export const LinkField = ({ register, errors }: FieldProps) => {
 export const TitleField = ({ register, errors }: FieldProps) => {
   return (
     <FormControl isInvalid={!!errors?.title}>
-      <FormLabel htmlFor="title">Title</FormLabel>
+      <FormLabel htmlFor="title" color="gray">
+        Title
+      </FormLabel>
       <Input
         id="title"
         placeholder="title"
@@ -49,7 +53,9 @@ export const TitleField = ({ register, errors }: FieldProps) => {
 export const DescriptionField = ({ register, errors }: FieldProps) => {
   return (
     <FormControl isInvalid={!!errors?.description}>
-      <FormLabel htmlFor="description">Description</FormLabel>
+      <FormLabel htmlFor="description" color="gray">
+        Description
+      </FormLabel>
       <Textarea
         id="description"
         placeholder="description"

@@ -16,6 +16,9 @@ import { useForm } from 'react-hook-form'
 import { useFilePicker } from 'use-file-picker'
 import { DescriptionField, LinkField, TitleField } from './Fields'
 import FilePicker from './FilePicker'
+import useSubmitProposal from './hooks/useSubmitProposal'
+import { TxButton } from '../TxButton'
+import TxError from '@/components/TxError'
 
 type Props = {}
 
@@ -33,6 +36,7 @@ const SubmitProposal = (props: Props) => {
     reset,
     setValue,
     setError,
+    getValues,
   } = useForm({
     defaultValues: {
       title: '',
@@ -40,6 +44,13 @@ const SubmitProposal = (props: Props) => {
       link: '',
       msgs: {},
     },
+  })
+
+  const values = getValues()
+
+  const submitProposal = useSubmitProposal({
+    values,
+    enabled: isValid,
   })
 
   // register msgs field
@@ -70,13 +81,8 @@ const SubmitProposal = (props: Props) => {
     }
   }, [filesContent?.[0]?.content])
 
-  const onSubmit = (values: unknown) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        alert(JSON.stringify(values, null, 2))
-        resolve(true)
-      }, 3000)
-    })
+  const onSubmit = () => {
+    submitProposal?.tx.mutate()
   }
 
   const onModalClose = () => {
@@ -114,17 +120,17 @@ const SubmitProposal = (props: Props) => {
               </Stack>
             </ModalBody>
 
-            <ModalFooter>
-              <Button
+            <ModalFooter as={Stack}>
+              <TxButton
+                maxW="200px"
                 type="submit"
-                w="fit-content"
-                fontSize="sm"
-                px="10"
-                isDisabled={isSubmitting || !isValid}
-                isLoading={isSubmitting}
+                isLoading={submitProposal?.simulate.isLoading || submitProposal?.tx.isPending}
+                isDisabled={submitProposal?.simulate.isError || !submitProposal?.simulate.data}
+                // onClick={() => submitProposal?.tx.mutate()}
               >
-                Submit
-              </Button>
+                Submit Proposal
+              </TxButton>
+              <TxError action={submitProposal} />
             </ModalFooter>
           </form>
         </ModalContent>

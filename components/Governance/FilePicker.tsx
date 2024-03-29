@@ -8,17 +8,10 @@ type Props = {
 }
 
 const SelectFile = ({ openFilePicker }: { openFilePicker: () => void }) => {
-  const onClick = () => {
-    console.log({
-      openFilePicker,
-    })
-    openFilePicker()
-  }
-
   return (
     <Button
       type="button"
-      onClick={onClick}
+      onClick={openFilePicker}
       bg="whiteAlpha.300"
       color="blck"
       boxShadow="none"
@@ -61,7 +54,9 @@ const SelectedFile = ({
 const FilePicker = ({ filesContent, openFilePicker, errors }: Props) => {
   return (
     <FormControl isInvalid={!!errors?.msgs}>
-      <FormLabel htmlFor="msgs">Msgs</FormLabel>
+      <FormLabel htmlFor="msgs" color="gray">
+        Messages
+      </FormLabel>
 
       {filesContent.length > 0 ? (
         <SelectedFile filesContent={filesContent} openFilePicker={openFilePicker} />

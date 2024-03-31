@@ -1,7 +1,8 @@
-import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@chakra-ui/react'
+import { Tabs, TabList, Tab, TabPanels, TabPanel, HStack } from '@chakra-ui/react'
 import React, { PropsWithChildren } from 'react'
 import PlaceBid from './PlaceBid'
 import MyBid from './MyBid'
+import ClaimLiqudation from './ClaimLiqudation'
 
 type Props = {}
 
@@ -19,10 +20,13 @@ const CustomTab = ({ children }: PropsWithChildren) => (
 const BidAction = (props: Props) => {
   return (
     <Tabs variant="soft-rounded" size="sm" colorScheme="primary">
-      <TabList gap="2">
-        <CustomTab>Place Bid</CustomTab>
-        <CustomTab>My Bid</CustomTab>
-      </TabList>
+      <HStack w="full">
+        <TabList gap="2" w="full">
+          <CustomTab>Place Bid</CustomTab>
+          <CustomTab>My Bid</CustomTab>
+        </TabList>
+        <ClaimLiqudation />
+      </HStack>
       <TabPanels>
         <TabPanel px="0">
           <PlaceBid />

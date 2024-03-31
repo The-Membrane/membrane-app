@@ -24,7 +24,7 @@ const useSimulate = ({ msgs, amount, enabled = true, queryKey = [] }: Simulate) 
   const simulate = useQuery<[StdFee, number] | undefined, Error>({
     queryKey: ['simulate', amount, address, chain.chain_id, ...queryKey],
     queryFn: async () => {
-      if (!isWalletConnected || Number(amount) <= 0 || !address || !msgs) return undefined
+      if (!isWalletConnected || !address || !msgs) return undefined
 
       const signingClient = await getSigningStargateClient()
       setErrorMessage(null)

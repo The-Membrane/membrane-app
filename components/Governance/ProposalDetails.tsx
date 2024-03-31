@@ -173,9 +173,10 @@ const Quorum = ({ requiredQuorum = 0, quorum = 0 }) => {
         position="relative"
         w="full"
         h="2"
-        bg="whiteAlpha.200"
+        // bg="whiteAlpha.200"
         borderRadius="md"
         color="whiteAlpha.700"
+        bgGradient={`linear(to-r, red.400 0%, red.200 ${requiredQuorum}%, whiteAlpha.200 ${requiredQuorum + 1}%, whiteAlpha.200 100%)`}
       >
         <Box
           bg="primary.200"

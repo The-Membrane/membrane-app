@@ -8,12 +8,6 @@ import {
   chakraComponents,
 } from 'chakra-react-select'
 
-// const options = [
-//   { value: '1', label: 'Option 1' },
-//   { value: '2', label: 'Option 2' },
-//   { value: '3', label: 'Option 3' },
-// ]
-
 const chakraStyles: ChakraStylesConfig = {
   singleValue: (provided, state) => ({
     ...provided,
@@ -60,9 +54,6 @@ const chakraStyles: ChakraStylesConfig = {
     width: 'max-content',
     minWidth: '200px',
     ml: '-50px',
-  }),
-  menu: (provided, state) => ({
-    ...provided,
   }),
 }
 

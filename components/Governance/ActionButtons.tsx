@@ -26,6 +26,9 @@ const ActionButtons = ({
 }: Props) => {
   const { isWalletConnected } = useWallet()
 
+  const { days, hours, minutes } = proposal?.daysLeft || {}
+  const isEnded = !days && !hours && !minutes
+
   if (!isWalletConnected) {
     return <ConnectButton w="200px" />
   }
@@ -34,7 +37,12 @@ const ActionButtons = ({
     <Fragment>
       <RemoveButton show={isRemoveAllowed} proposalId={proposal.proposal_id} />
       <ExecuteButton show={isExecuteAllowed} proposalId={proposal.proposal_id} />
-      <VoteButton show={isVoteAllowed || isPending} vote={vote} proposalId={proposal.proposal_id} />
+      <VoteButton
+        show={isVoteAllowed || isPending}
+        vote={vote}
+        proposalId={proposal.proposal_id}
+        isEnded={isEnded}
+      />
     </Fragment>
   )
 }

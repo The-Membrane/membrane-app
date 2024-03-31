@@ -14,6 +14,10 @@ export const parseError = (error: Error) => {
     { regex: /You don't have any voting power!/i, message: "You don't have any voting power!" },
     { regex: /Bid amount too small, minimum is 5000000/i, message: 'Minimum bid amount is 5 CDT' },
     {
+      regex: /Invalid withdrawal, can't leave less than the minimum bid/i,
+      message: 'Minimum bid amount is 5 CDT',
+    },
+    {
       regex: /Extension context invalidated/i,
       message: 'Make sure your wallet is unlocked and refresh the page',
     },

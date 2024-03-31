@@ -8,6 +8,7 @@ type BidState = {
     cdt: number
     premium: number
   }
+  updateBids?: any[]
 }
 
 type Store = {

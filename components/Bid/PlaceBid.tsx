@@ -34,9 +34,15 @@ const BidInput = ({ label }: BidInputProps) => {
 const PlaceBid = () => {
   const { bidState, setBidState } = useBidState()
 
-  const bid = useBid()
+  const txSuccess = () => {
+    setBidState({ placeBid: { cdt: 0, premium: 0 } })
+  }
 
-  const { data: queue, ...other } = useQueue(bidState?.selectedAsset)
+  const bid = useBid({
+    txSuccess,
+  })
+
+  const { data: queue } = useQueue(bidState?.selectedAsset)
 
   const cdt = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdt)

@@ -279,6 +279,10 @@ export const getProposals = async () => {
       }),
     )
 
+  console.log({
+    allProposals,
+  })
+
   return allProposals.map((proposal) => ({
     ...proposal,
     result: calculateProposalResult(proposal, config),

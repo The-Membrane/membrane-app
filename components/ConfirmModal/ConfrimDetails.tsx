@@ -18,7 +18,7 @@ const ConfrimDetails = ({ children, action }: Props) => {
   if (action?.tx?.isPending) return null
 
   return (
-    <ModalContent>
+    <ModalContent display={action?.tx?.isSuccess ? 'none' : 'flex'}>
       <ModalHeader>
         <Text variant="title" fontSize="24px">
           Confirm transaction

@@ -76,6 +76,7 @@ const useUpdateBid = ({ txSuccess }) => {
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['user bids'] })
+    queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
     txSuccess?.()
   }
 

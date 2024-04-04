@@ -3,13 +3,15 @@ import DelegateList from './DelegateList'
 import BecomeDelegate from './BecomeDelegate'
 import useWallet from '@/hooks/useWallet'
 import useDelegations from './hooks/useDelegations'
+import useStaked from '../Stake/hooks/useStaked'
+import { num } from '@/helpers/num'
 
 const Delegate = () => {
   const { isWalletConnected } = useWallet()
-
   const { isLoading } = useDelegations()
+  const { data: staked } = useStaked()
 
-  if (!isWalletConnected) return null
+  if (!isWalletConnected || num(staked?.staked).isZero()) return null
 
   if (isLoading)
     return (

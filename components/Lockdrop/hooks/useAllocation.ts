@@ -12,6 +12,7 @@ const useAllocation = () => {
 
       const allocations = await getAllocation(address)
       const unlocked = await getUnlocked(address)
+
       return {
         ...allocations,
         unlocked: unlocked.unlocked_amount,

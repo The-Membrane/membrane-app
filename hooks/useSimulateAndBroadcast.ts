@@ -9,7 +9,7 @@ type SimulateAndBroadcast = {
 
 type Props = {
   msgs?: MsgExecuteContractEncodeObject[]
-  queryKey: string[]
+  queryKey?: string[]
   enabled?: boolean
   amount?: string
   onSuccess?: () => void

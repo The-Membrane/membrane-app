@@ -1,0 +1,24 @@
+[
+  {
+    "description": "Osmo - USDC.axl Pool",
+    "base": "gamm/pool/678",
+    "symbol": "OSMO/USDC.axl LP",
+    "logos": [
+      "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/osmo.svg",
+      "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/usdc.axl.svg"
+    ],
+    "decimal": 18,
+    "isLP": true
+  },
+  {
+    "description": "Atom - Osmo Pool",
+    "base": "gamm/pool/1",
+    "symbol": "ATOM/OSMO LP",
+    "logos": [
+      "https://raw.githubusercontent.com/cosmos/chain-registry/master/cosmoshub/images/atom.svg",
+      "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/osmo.svg"
+    ],
+    "decimal": 18,
+    "isLP": true
+  }
+]

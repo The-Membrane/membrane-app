@@ -10,9 +10,19 @@ type SummaryItemProps = Partial<AssetWithBalance> & {
   showBadge?: boolean
   badge?: string
   logo?: string
+  logos?: string[]
+  isLP?: boolean
 }
 
-const SummaryItem = ({ label, amount = 0, badge, showBadge = true, logo }: SummaryItemProps) => (
+const SummaryItem = ({
+  label,
+  amount = 0,
+  badge,
+  showBadge = true,
+  logo,
+  logos,
+  isLP,
+}: SummaryItemProps) => (
   <HStack
     key={label}
     justifyContent="space-between"
@@ -23,7 +33,14 @@ const SummaryItem = ({ label, amount = 0, badge, showBadge = true, logo }: Summa
   >
     <HStack>
       <HStack>
-        <Image src={logo} w="20px" h="20px" />
+        {isLP ? (
+          <HStack>
+            <Image src={logos?.[0]} w="24px" h="24px" />
+            <Image src={logos?.[1]} w="24px" h="24px" ml="-16px" />
+          </HStack>
+        ) : (
+          <Image src={logo} w="24px" h="24px" />
+        )}
         <Text variant="value" textTransform="unset">
           {label}
         </Text>
@@ -58,6 +75,8 @@ export const Summary = () => {
             label={asset?.label}
             amount={asset?.amount}
             logo={asset?.logo}
+            logos={asset?.logos}
+            isLP={asset?.isLP}
             badge={badge}
           />
         )

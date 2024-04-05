@@ -123,3 +123,11 @@ export const getUserBids = async (address: Addr, denom?: string) => {
     user: address,
   })
 }
+
+export const getUserClaims = async (address: Addr) => {
+  const client = await liquidationClient()
+
+  return client.userClaims({
+    user: address,
+  })
+}

@@ -1,6 +1,7 @@
 import { Box, Image, Stack } from '@chakra-ui/react'
 import React, { Fragment } from 'react'
 import { BeakerLiquid } from './BeakerScale'
+import Health from './Health'
 
 type Props = {}
 
@@ -17,6 +18,7 @@ const Beaker = (props: Props) => {
           minW="600px"
         />
         <BeakerLiquid />
+        <Health />
       </Box>
     </Box>
   )

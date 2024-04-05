@@ -1,21 +1,30 @@
-import { Button } from '@chakra-ui/react'
-import React from 'react'
+import ConfirmModal from '@/components/ConfirmModal'
+import TxError from '@/components/TxError'
+import { ClaimSummary } from './ClaimSummary'
+import useCheckClaims from './hooks/useCheckClaims'
+import useClaimLiquidation from './hooks/useClaimLiquidation'
 
-type Props = {}
+const ClaimLiqudation = () => {
+  const { data: claims } = useCheckClaims()
+  const claimLiqudation = useClaimLiquidation(claims)
 
-const ClaimLiqudation = (props: Props) => {
   return (
-    <Button
-      borderRadius="24px"
-      justifySelf="end"
-      w="220px"
-      px="3"
-      size="sm"
-      fontWeight="normal"
-      mr="1"
+    <ConfirmModal
+      label="Claim Liqudation"
+      buttonProps={{
+        borderRadius: '24px',
+        justifySelf: 'end',
+        w: '220px',
+        px: '4',
+        size: 'sm',
+        fontWeight: 'normal',
+        mr: '1',
+      }}
+      action={claimLiqudation}
     >
-      Claim Liqudation
-    </Button>
+      <ClaimSummary claims={claims} />
+      <TxError action={claimLiqudation} />
+    </ConfirmModal>
   )
 }
 

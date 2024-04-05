@@ -19,10 +19,6 @@ const VoteButton = ({ show, vote, proposalId, isEnded = false }: Props) => {
     vote,
   })
 
-  console.log({
-    castVote,
-  })
-
   const { data: votingPower, isLoading } = useVotingPower(Number(proposalId))
 
   if (!show || isLoading) return null

@@ -44,10 +44,6 @@ const useBid = ({ txSuccess }) => {
     enabled: !!address && !!selectedAsset && !!premium && !!cdt,
   })
 
-  console.log({
-    msgs: decodeMsgs(msgs),
-  })
-
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
     queryClient.invalidateQueries({ queryKey: ['user bids'] })

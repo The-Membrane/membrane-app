@@ -44,11 +44,6 @@ const useUpdateBid = ({ txSuccess }) => {
 
       let msg = null
 
-      console.log({
-        amountDiff,
-        originalAmount,
-      })
-
       // if (newAmount === 0) {
       msg = buildRetractBidMsg({
         address,
@@ -67,11 +62,6 @@ const useUpdateBid = ({ txSuccess }) => {
       return [msg] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address && !!selectedAsset && isUpdated && newAmount < originalAmount,
-  })
-
-  console.log({
-    msg: decodeMsgs(msgs),
-    isUpdated,
   })
 
   const onSuccess = () => {

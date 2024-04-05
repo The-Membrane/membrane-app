@@ -27,10 +27,10 @@ export const getAssetsInfo = () => {
 }
 
 export type Price = {
-  price: string;
-  symbol: string;
-  denom: string;
-  isNative: boolean;
+  price: string
+  symbol: string
+  denom: string
+  isNative: boolean
 }
 
 export const parsePrice = (prices: PriceResponse[]): Price[] => {
@@ -44,11 +44,9 @@ export const parsePrice = (prices: PriceResponse[]): Price[] => {
 }
 
 export const getPriceByDenom = (denom: string) => {
-    const prices = queryClient.getQueryData(['oraclePrice']) as any[]
-    return prices?.find((price) => price.denom === denom)
+  const prices = queryClient.getQueryData(['oraclePrice']) as any[]
+  return prices?.find((price) => price.denom === denom)
 }
-
-
 
 export const getOraclePrices = async () => {
   const assetInfos = getAssetsInfo()

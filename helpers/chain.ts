@@ -1,6 +1,7 @@
 import { assets as registryAssets } from 'chain-registry'
 import { Asset as RegistryAsset } from '@chain-registry/types'
 import { getExponentByDenom } from '@chain-registry/utils'
+import lpAssets from '@/config/lpAssets.json'
 
 export type Asset = RegistryAsset & {
   decimal: number
@@ -35,14 +36,18 @@ const assetWithLogo = (asset: RegistryAsset) => ({
 export const getChainAssets = () => {
   const chainAssets = registryAssets.find((asset) => asset.chain_name === defaultChain)
 
-  return chainAssets?.assets?.map(assetWithLogo)
+  const assetsWtihLogo = chainAssets?.assets?.map(assetWithLogo) || []
+
+  return [...assetsWtihLogo, ...lpAssets]
 }
 export const getAssets = () => {
   const chainAssets = registryAssets.find((asset) => asset.chain_name === defaultChain)
   const supportedChainAssets = chainAssets?.assets.filter((asset) =>
     supportedAssets.includes(asset.symbol),
   )
-  return supportedChainAssets?.map(assetWithLogo)
+  const assetsWtihLogo = supportedChainAssets?.map(assetWithLogo) || []
+
+  return [...assetsWtihLogo, ...lpAssets]
 }
 
 export const getAssetBySymbol = (symbol: string) => {

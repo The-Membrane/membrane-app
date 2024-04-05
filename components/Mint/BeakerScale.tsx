@@ -3,15 +3,20 @@ import { Box, Image } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import React, { Fragment, useMemo } from 'react'
 import useMintState from './hooks/useMintState'
+import useVaultSummary from './hooks/useVaultSummary'
 
 export const BeakerLiquid = () => {
   const { mintState } = useMintState()
 
+  const { ltv, borrowLTV } = useVaultSummary()
+
+  const health = num(1).minus(num(ltv).dividedBy(borrowLTV)).times(100).dp(0).toNumber()
+
   const percent = useMemo(() => {
     const ltvSlider = mintState?.ltvSlider || 0
     const value = num(ltvSlider).isLessThan(5) ? num(ltvSlider).times(2.6) : num(ltvSlider)
-    return num(value).times(336).div(100).toNumber()
-  }, [mintState.ltvSlider])
+    return num(health).times(336).div(100).toNumber()
+  }, [mintState.ltvSlider, health])
 
   if (!num(percent).isGreaterThan(0)) return null
 

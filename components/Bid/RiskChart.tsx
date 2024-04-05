@@ -65,10 +65,6 @@ const RiskChart = () => {
       .slice(0, 10)
   }, [liqudation])
 
-  console.log({
-    liqudation,
-  })
-
   if (isLoading) {
     return (
       <Box w="420px" h="180px" display="flex" justifyContent="center" alignItems="center">

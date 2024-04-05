@@ -38,10 +38,7 @@ const PlaceBid = () => {
     setBidState({ placeBid: { cdt: 0, premium: 0 } })
   }
 
-  const bid = useBid({
-    txSuccess,
-  })
-
+  const bid = useBid({ txSuccess })
   const { data: queue } = useQueue(bidState?.selectedAsset)
 
   const cdt = useAssetBySymbol('CDT')

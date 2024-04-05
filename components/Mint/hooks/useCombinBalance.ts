@@ -33,7 +33,7 @@ const useCombinBalance = () => {
     return basketAssets?.map((asset) => {
       const position = positions.find((p) => p.denom === asset.asset.base)
       const balance = balances?.find((b) => b.denom === asset.asset.base) || { amount: '0' }
-      const balanceInMicro = shiftDigits(balance.amount, -asset.asset.decimal).toNumber()
+      const balanceInMicro = shiftDigits(balance.amount, -asset.asset.decimal || -18).toNumber()
       const combinBalance = num(balanceInMicro || 0)
         .plus(position?.amount || 0)
         .toNumber()

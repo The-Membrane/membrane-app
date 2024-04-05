@@ -1,5 +1,5 @@
 import { Action } from '@/types/tx'
-import { Button, Modal, ModalOverlay, useDisclosure } from '@chakra-ui/react'
+import { Button, ButtonProps, Modal, ModalOverlay, useDisclosure } from '@chakra-ui/react'
 import { PropsWithChildren } from 'react'
 import ConfrimDetails from './ConfrimDetails'
 import { LoadingContent } from './LoadingContent'
@@ -9,9 +9,16 @@ type Props = PropsWithChildren & {
   label: string
   action?: Action
   isDisabled?: boolean
+  buttonProps?: ButtonProps
 }
 
-const ConfirmModal = ({ children, label = 'Open', action, isDisabled = false }: Props) => {
+const ConfirmModal = ({
+  children,
+  label = 'Open',
+  action,
+  isDisabled = false,
+  buttonProps,
+}: Props) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   const onModalClose = () => {
@@ -24,6 +31,7 @@ const ConfirmModal = ({ children, label = 'Open', action, isDisabled = false }: 
         isLoading={action?.simulate.isLoading || action?.tx.isPending}
         isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
         onClick={onOpen}
+        {...buttonProps}
       >
         {label}
       </Button>

@@ -82,7 +82,7 @@ const MyBidItem = ({ bid }: MyBidItemProps) => {
 
 const MyBid = () => {
   const { data: bids = [] } = useUserBids()
-  const { bidState, setBidState } = useBidState()
+  const { setBidState } = useBidState()
 
   const txSuccess = () => {
     setBidState({ placeBid: { cdt: 0, premium: 0 }, updateBids: [] })

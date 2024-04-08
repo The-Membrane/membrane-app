@@ -1,10 +1,11 @@
 import { CheckIcon } from '@chakra-ui/icons'
-import { Text } from '@chakra-ui/react'
+import { HStack, Text } from '@chakra-ui/react'
 import React from 'react'
 import useCastVote from './hooks/useCastVote'
 import { ProposalVoteOption } from '@/contracts/codegen/governance/Governance.types'
 import { TxButton } from '@/components/TxButton'
 import useVotingPower from './hooks/useVotingPower'
+import EndProposalButton from './EndProposalButton'
 
 type Props = {
   show: boolean
@@ -23,7 +24,13 @@ const VoteButton = ({ show, vote, proposalId, isEnded = false }: Props) => {
 
   if (!show || isLoading) return null
 
-  if (isEnded) return <Text color="gray">Voting period has ended</Text>
+  if (isEnded)
+    return (
+      <HStack>
+        <Text color="gray">Voting period has ended</Text>
+        <EndProposalButton proposalId={proposalId} />
+      </HStack>
+    )
 
   if (Number(votingPower) === 0)
     return <Text color="gray">You have no voting power for this proposal</Text>

@@ -6,6 +6,8 @@ import VoteButton from './VoteButton'
 import { ProposalVoteOption } from '@/contracts/codegen/governance/Governance.types'
 import useWallet from '@/hooks/useWallet'
 import { ConnectButton } from '@/components/WallectConnect'
+import { HStack } from '@chakra-ui/react'
+import EndProposalButton from './EndProposalButton'
 
 type Props = {
   proposal: ProposalResponse
@@ -36,6 +38,7 @@ const ActionButtons = ({
   return (
     <Fragment>
       <RemoveButton show={isRemoveAllowed} proposalId={proposal.proposal_id} />
+      <EndProposalButton show={isEnded} proposalId={proposal.proposal_id} />
       <ExecuteButton show={isExecuteAllowed} proposalId={proposal.proposal_id} />
       <VoteButton
         show={isVoteAllowed || isPending}

@@ -4,13 +4,16 @@ import { TxButton } from '@/components/TxButton'
 import useEndProposal from './hooks/useEndProposal'
 
 type Props = {
+  show: boolean
   proposalId: string
 }
 
-const EndProposalButton = ({ proposalId }: Props) => {
+const EndProposalButton = ({ show, proposalId }: Props) => {
   const endProposal = useEndProposal({
     proposalId: Number(proposalId),
   })
+
+  if (!show) return null
 
   return (
     <TxButton

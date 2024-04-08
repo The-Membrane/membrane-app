@@ -24,13 +24,7 @@ const VoteButton = ({ show, vote, proposalId, isEnded = false }: Props) => {
 
   if (!show || isLoading) return null
 
-  if (isEnded)
-    return (
-      <HStack>
-        <Text color="gray">Voting period has ended</Text>
-        <EndProposalButton proposalId={proposalId} />
-      </HStack>
-    )
+  if (isEnded) return <Text color="gray">Voting period has ended</Text>
 
   if (Number(votingPower) === 0)
     return <Text color="gray">You have no voting power for this proposal</Text>

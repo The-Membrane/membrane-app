@@ -15,12 +15,12 @@ export const useCurrentPosition = () => {
     },
     {
       label: 'LTV',
-      value: `${summary.ltv}%`,
+      value: `${summary.ltv.toFixed(0)}%`,
       textColor: isValueChanged ? 'primary.200' : 'white',
     },
     {
       label: 'COST',
-      value: `${summary.cost?.toFixed(4)}%`,
+      value: `${summary.cost?.toFixed(4)}% / year`,
     },
     {
       label: 'LIQ. VALUE',
@@ -28,16 +28,16 @@ export const useCurrentPosition = () => {
     },
     {
       label: 'BORROWABLE LTV',
-      value: `${summary?.borrowLTV}%`,
+      value: `${summary?.borrowLTV.toFixed(0)}%`,
       textColor: isValueChanged ? 'primary.200' : 'white',
     },
     {
       label: 'LIQUIDATION LTV',
-      value: `${summary.liqudationLTV?.toFixed(2)}%`,
+      value: `${summary.liqudationLTV?.toFixed(0)}%`,
       textColor: isValueChanged ? 'primary.200' : 'white',
     },
     {
-      label: 'TVL',
+      label: 'YOUR COLLATERAL VALUE',
       value: `$${summary?.tvl?.toFixed(2)}`,
       textColor: isValueChanged ? 'primary.200' : 'white',
     },

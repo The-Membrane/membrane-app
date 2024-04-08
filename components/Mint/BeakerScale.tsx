@@ -8,9 +8,9 @@ import useVaultSummary from './hooks/useVaultSummary'
 export const BeakerLiquid = () => {
   const { mintState } = useMintState()
 
-  const { ltv, borrowLTV } = useVaultSummary()
+  const { ltv, liqudationLTV } = useVaultSummary()
 
-  const health = num(1).minus(num(ltv).dividedBy(borrowLTV)).times(100).dp(0).toNumber()
+  const health = num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
 
   const percent = useMemo(() => {
     const ltvSlider = mintState?.ltvSlider || 0

@@ -32,7 +32,7 @@ export const StatsCard = () => {
 
   const tvl = useMemo(() => {
     return getProjectTVL({ basket, prices })
-  }, [basket])
+  }, [basket, prices])
 
   return (
     <Stack mt="auto" gap="3">

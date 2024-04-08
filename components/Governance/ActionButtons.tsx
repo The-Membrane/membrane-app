@@ -38,7 +38,7 @@ const ActionButtons = ({
   return (
     <Fragment>
       <RemoveButton show={isRemoveAllowed} proposalId={proposal.proposal_id} />
-      <EndProposalButton show={isEnded} proposalId={proposal.proposal_id} />
+      <EndProposalButton show={isEnded && !isExecuteAllowed} proposalId={proposal.proposal_id} />
       <ExecuteButton show={isExecuteAllowed} proposalId={proposal.proposal_id} />
       <VoteButton
         show={isVoteAllowed || isPending}

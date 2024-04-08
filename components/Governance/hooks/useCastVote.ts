@@ -1,6 +1,7 @@
 import { ProposalVoteOption } from '@/contracts/codegen/governance/Governance.types'
 import useExecute from '@/hooks/useExecute'
 import useWallet from '@/hooks/useWallet'
+import { queryClient } from '@/pages/_app'
 import { getSigningGovernanceClient } from '@/services/governance'
 
 type CastVoteParams = {
@@ -20,6 +21,11 @@ const useCastVote = ({ proposalId, vote }: CastVoteParams) => {
         proposalId,
         vote,
       })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal'] })
+      queryClient.invalidateQueries({ queryKey: ['user voting power'] })
+      queryClient.invalidateQueries({ queryKey: ['proposals'] })
     },
   })
 }

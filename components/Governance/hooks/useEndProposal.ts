@@ -1,6 +1,7 @@
 import { ProposalVoteOption } from '@/contracts/codegen/governance/Governance.types'
 import useExecute from '@/hooks/useExecute'
 import useWallet from '@/hooks/useWallet'
+import { queryClient } from '@/pages/_app'
 import { getSigningGovernanceClient } from '@/services/governance'
 
 type Props = {
@@ -16,6 +17,11 @@ const useEndProposal = ({ proposalId }: Props) => {
       const signingClient = await getSigningCosmWasmClient()
       const client = getSigningGovernanceClient(signingClient, address)
       return client.endProposal({ proposalId })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal'] })
+      queryClient.invalidateQueries({ queryKey: ['user voting power'] })
+      queryClient.invalidateQueries({ queryKey: ['proposals'] })
     },
   })
 }

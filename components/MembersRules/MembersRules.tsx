@@ -1,6 +1,7 @@
 import {
   Button,
   Center,
+  Icon,
   IconButton,
   ListItem,
   Modal,
@@ -13,6 +14,7 @@ import {
 } from '@chakra-ui/react'
 import { FaCircle } from 'react-icons/fa'
 import useMembersRulesState from './useRules'
+import { useState } from 'react'
 
 const rules = [
   'Sovereign individuals only',
@@ -24,6 +26,7 @@ const rules = [
 const RulesModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { show, setShow } = useMembersRulesState()
+  const [hovered, setHovered] = useState(false)
 
   const handleAgree = () => {
     setShow(false)
@@ -35,15 +38,28 @@ const RulesModal = () => {
       {/* <Button onClick={onOpen} w="5" h="5" borderRadius="full" /> */}
 
       <IconButton
-        w="fit-content"
-        h="fit-content"
-        minW="0"
+        // w="fit-content"
+        // h="fit-content"
+        // minW="0"
         isRound={true}
         variant="solid"
         aria-label="Done"
         fontSize="20px"
         onClick={onOpen}
-        icon={<FaCircle color="red" />}
+        position="absolute"
+        top="518px"
+        right="335px"
+        border="none"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        w="36px"
+        h="36px"
+        bg="transparent"
+        shadow={hovered ? '0 0 5px 0 #cdff44, 0 0 1px 0 #cdf744, 0 0 1px 0 #cdf044' : 'none'}
+        _hover={{
+          bg: 'transparent',
+          shadow: '0 0 10px 0 #cdff44, 0 0 1px 0 #cdf744, 0 0 1px 0 #cdf044',
+        }}
       />
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
@@ -90,12 +106,13 @@ const MembersRules = () => {
   if (!show) return null
   return (
     <Center
-      w="100vw"
-      h="100vh"
+      w="1440px"
+      h="1080px"
+      margin="auto"
       bg="#111015"
-      position="absolute"
+      position="relative"
       zIndex={1}
-      bgImg={`url("/images/rules_bg.jpg")`}
+      bgImg={`url("/images/backgrounds/rules_bg.svg")`}
       bgSize="contain"
       bgRepeat="no-repeat"
       bgPosition="center"

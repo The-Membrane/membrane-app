@@ -26,7 +26,6 @@ const rules = [
 const RulesModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { show, setShow } = useMembersRulesState()
-  const [hovered, setHovered] = useState(false)
 
   const handleAgree = () => {
     setShow(false)
@@ -35,12 +34,7 @@ const RulesModal = () => {
 
   return (
     <>
-      {/* <Button onClick={onOpen} w="5" h="5" borderRadius="full" /> */}
-
       <IconButton
-        // w="fit-content"
-        // h="fit-content"
-        // minW="0"
         isRound={true}
         variant="solid"
         aria-label="Done"
@@ -50,15 +44,16 @@ const RulesModal = () => {
         top="518px"
         right="335px"
         border="none"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         w="36px"
         h="36px"
-        bg="transparent"
-        shadow={hovered ? '0 0 5px 0 #cdff44, 0 0 1px 0 #cdf744, 0 0 1px 0 #cdf044' : 'none'}
+        bg="#C3BFAF"
+        shadow="0 0 10px 5px #C3BFAF, 0 0 1px 0 #C3BFAF, 0 0 1px 0 #C3BFAF"
+        transform="scale(0.8)"
         _hover={{
-          bg: 'transparent',
-          shadow: '0 0 10px 0 #cdff44, 0 0 1px 0 #cdf744, 0 0 1px 0 #cdf044',
+          bg: '#C3BFAF',
+          boxShadow: '0 0 10px 15px #C3BFAF, 0 0 1px 0 #C3BFAF, 0 0 1px 0 #C3BFAF',
+          transform: 'scale(0.7)',
+          transition: 'all 0.3s',
         }}
       />
 

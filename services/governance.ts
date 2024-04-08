@@ -150,6 +150,7 @@ export type ProposalResponse = ProposalResponseType & {
 
 export const calcuateRatio = (proposal: ProposalResponse, config: Config) => {
   const { for_power, amendment_power, removal_power, against_power, aligned_power } = proposal
+
   const totalVotes = num(for_power).plus(against_power).plus(amendment_power).plus(removal_power)
   const forRatio = num(for_power).isZero()
     ? 0
@@ -355,9 +356,10 @@ const getQuorum = async (proposal: Proposal) => {
     .plus(amendment_power)
     .plus(removal_power)
 
-  return power.div(totalVotingPower).dp(2).toNumber()
+  const multiplier = num(100).div(totalVotingPower)
 
-  // var quorum = (parseInt(proposal.against_power) + parseInt(proposal.for_power) + aligned_power + parseInt(proposal.amendment_power) + parseInt(proposal.removal_power)) / totalVotingPower;
+  const q = power.div(totalVotingPower).dp(2).toNumber()
+  return num(q).isLessThan(1) ? num(q).times(100).toNumber() : q
 }
 
 export const getProposal = async (proposalId: number, address?: Addr) => {

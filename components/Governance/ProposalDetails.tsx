@@ -35,6 +35,7 @@ import RemoveButton from './RemoveButton'
 import useWallet from '@/hooks/useWallet'
 import ActionButtons from './ActionButtons'
 import useProposalById from './hooks/useProposalById'
+import { num } from '@/helpers/num'
 
 type Props = {
   proposal: ProposalResponse
@@ -168,8 +169,6 @@ const Voted = ({ proposalDetails }) => {
 }
 
 const Quorum = ({ requiredQuorum = 0, quorum = 0, isRejected }) => {
-  const isQuromMet = quorum >= requiredQuorum
-
   return (
     <HStack>
       <Text color="whiteAlpha.700">Quorum:</Text>
@@ -208,7 +207,7 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
 
   return (
     <>
-      <Button onClick={onOpen} variant="unstyled" fontWeight="normal">
+      <Button onClick={onOpen} variant="unstyled" fontWeight="normal" mb="3">
         {children}
       </Button>
 
@@ -245,7 +244,7 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
                   <Power label="For" power={proposal?.ratio.forRatio} />
                   <Power label="Against" power={proposal?.ratio.againstRatio} />
                   <Power label="Align" power={proposal?.ratio.againstRatio} />
-                  <Power label="Amend" power={proposal?.ratio.alignRatio} />
+                  <Power label="Amend" power={proposal?.ratio.amendRatio} />
                   <Power label="Remove" power={proposal?.ratio.removeRatio} />
                 </HStack>
               )}

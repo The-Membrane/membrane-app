@@ -10,11 +10,13 @@ const SelectAsset = (props: Props) => {
   const assets = useCollateralAssets()
   const { bidState, setBidState } = useBidState()
 
-  const assetsWithOptions = assets?.map((asset) => ({
-    ...asset,
-    value: asset?.symbol,
-    label: asset?.symbol,
-  }))
+  const assetsWithOptions = assets
+    ?.filter((asset) => !asset?.isLP)
+    ?.map((asset) => ({
+      ...asset,
+      value: asset?.symbol,
+      label: asset?.symbol,
+    }))
 
   useEffect(() => {
     if (!bidState?.selectedAsset && assetsWithOptions?.[0]) {

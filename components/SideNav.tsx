@@ -1,9 +1,10 @@
-import { Box, Card, HStack, Stack, Text } from '@chakra-ui/react'
+import { Box, HStack, Stack, Text } from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { useState } from 'react'
 import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon } from './Icons'
 import Logo from './Logo'
+import { StatsCard } from './StatsCard'
 import WallectConnect from './WallectConnect'
 
 type NavItems = {
@@ -30,10 +31,6 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
   const hoverStyles = {
     borderRadius: '8px',
     bg: 'primary.200',
-    // border: '1px solid #C445F0',
-    // background: '#290A34',
-    // boxShadow: '0px 0px 16px 0px rgba(196, 69, 240, 0.32)',
-    // color: '#C445F0',
   }
 
   return (
@@ -66,6 +63,8 @@ const SideNav = () => {
         ))}
         <WallectConnect />
       </Stack>
+
+      <StatsCard />
     </Stack>
   )
 }

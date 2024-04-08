@@ -92,6 +92,9 @@ dependencies:
   next:
     specifier: 14.1.0
     version: 14.1.0(@babel/core@7.18.10)(react-dom@18.2.0)(react@18.2.0)
+  numeral:
+    specifier: ^2.0.6
+    version: 2.0.6
   osmojs:
     specifier: ^16.9.0
     version: 16.9.0
@@ -10803,6 +10806,10 @@ packages:
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     dependencies:
       path-key: 4.0.0
+    dev: false
+
+  /numeral@2.0.6:
+    resolution: {integrity: sha512-qaKRmtYPZ5qdw4jWJD6bxEf1FJEqllJrwxCLIm0sQU/A7v2/czigzOb+C2uSiFsa9lBUzeH7M1oK+Q+OLxL3kA==}
     dev: false
 
   /object-assign@2.1.1:

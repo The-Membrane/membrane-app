@@ -140,18 +140,38 @@ export type ProposalResponse = ProposalResponseType & {
   ratio: Ratio
 }
 
-export const calcuateRatio = (proposal: ProposalResponse) => {
+// const totalVotes = Math.max(
+//   parseInt(proposal.for_power) +
+//     parseInt(proposal.against_power) +
+//     parseInt(proposal.amendment_power) +
+//     parseInt(proposal.removal_power),
+//   1
+// );
+
+export const calcuateRatio = (proposal: ProposalResponse, config: Config) => {
   const { for_power, amendment_power, removal_power, against_power, aligned_power } = proposal
-  const totalVotes = num(for_power)
-    .plus(amendment_power)
-    .plus(removal_power)
-    .plus(against_power)
-    .plus(aligned_power)
-  const forRatio = num(for_power).div(totalVotes).times(100).dp(2).toNumber()
-  const againstRatio = num(against_power).div(totalVotes).times(100).dp(2).toNumber()
-  const amendRatio = num(amendment_power).div(totalVotes).times(100).dp(2).toNumber()
-  const alignRatio = num(aligned_power).div(totalVotes).times(100).dp(2).toNumber()
-  const removeRatio = num(removal_power).div(totalVotes).times(100).dp(2).toNumber()
+  const totalVotes = num(for_power).plus(against_power).plus(amendment_power).plus(removal_power)
+  const forRatio = num(for_power).isZero()
+    ? 0
+    : num(for_power).div(totalVotes).times(100).dp(2).toNumber()
+  const againstRatio = num(against_power).isZero()
+    ? 0
+    : num(against_power).div(totalVotes).times(100).dp(2).toNumber()
+  const amendRatio = num(amendment_power).isZero()
+    ? 0
+    : num(amendment_power).div(totalVotes).times(100).dp(2).toNumber()
+  const removeRatio = num(removal_power).isZero()
+    ? 0
+    : num(removal_power).div(totalVotes).times(100).dp(2).toNumber()
+
+  const alignRatio = num(totalVotes).isZero()
+    ? 0
+    : num(aligned_power)
+        .minus(config.proposal_required_stake)
+        .plus(num(config.proposal_required_stake).sqrt())
+        .dividedBy(totalVotes)
+        .dp(2)
+        .toNumber()
   return { forRatio, againstRatio, amendRatio, removeRatio, alignRatio }
 }
 
@@ -282,7 +302,7 @@ export const getProposals = async () => {
   return allProposals.map((proposal) => ({
     ...proposal,
     result: calculateProposalResult(proposal, config),
-    ratio: calcuateRatio(proposal),
+    ratio: calcuateRatio(proposal, config),
     requiredQuorum,
   }))
 }

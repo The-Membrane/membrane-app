@@ -370,3 +370,19 @@ export const calculateVaultSummary = ({
     mintAmount,
   }
 }
+
+export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }) => {
+  if (!basket || !prices) return 0
+  const positions = basket?.collateral_types.map((asset) => {
+    const denom = asset.asset?.info.native_token?.denom
+    const amount = shiftDigits(asset.asset.amount, -6).toNumber()
+    const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
+
+    const usdValue = num(amount).times(assetPrice).toNumber()
+    return usdValue
+  })
+
+  return positions.reduce((acc, position) => {
+    return acc + position
+  }, 0)
+}

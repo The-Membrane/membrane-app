@@ -14,6 +14,11 @@ import {
   ModalHeader,
   ModalOverlay,
   SimpleGrid,
+  Slider,
+  SliderFilledTrack,
+  SliderMark,
+  SliderThumb,
+  SliderTrack,
   Stack,
   Text,
   calc,
@@ -22,7 +27,7 @@ import {
 import { Badge } from './Badge'
 import { ProposalResponse } from '@/services/governance'
 import { CheckIcon, DeleteIcon } from '@chakra-ui/icons'
-import { Fragment, useState } from 'react'
+import { Fragment, PropsWithChildren, useState } from 'react'
 import { ProposalVoteOption } from '@/contracts/codegen/governance/Governance.types'
 import VoteButton from './VoteButton'
 import ExecuteButton from './ExecuteButton'
@@ -39,7 +44,9 @@ const CreatedBy = ({ submitter }: { submitter: string }) => {
   const url = `https://www.mintscan.io/osmosis/address/${submitter}`
   return (
     <HStack>
-      <Text fontSize="sm">Created by:</Text>
+      <Text fontSize="sm" color="whiteAlpha.700">
+        Created by:
+      </Text>
       <Link isExternal href={url} color="primary.200">
         {truncate(submitter, 'osmo')}
       </Link>
@@ -59,7 +66,9 @@ const ProposalBadge = ({ badge }: { badge: string }) => {
 const ProposalLink = ({ link }: { link?: string | null }) => {
   return (
     <HStack>
-      <Text fontSize="sm">Link:</Text>
+      <Text fontSize="sm" color="whiteAlpha.700">
+        Link:
+      </Text>
       <Link isExternal href={link} color="primary.200">
         proposal discussion
       </Link>
@@ -158,54 +167,38 @@ const Voted = ({ proposalDetails }) => {
   )
 }
 
-const Quorum = ({ requiredQuorum = 0, quorum = 0 }) => {
-  // const requiredQuorum = 33
-  // const quorum = 70
-
-  const is100 = quorum === 100
-
-  const width = quorum > requiredQuorum ? quorum - requiredQuorum : 0
+const Quorum = ({ requiredQuorum = 0, quorum = 0, isRejected }) => {
+  const isQuromMet = quorum >= requiredQuorum
 
   return (
     <HStack>
-      <Text>Quorum:</Text>
-      <Box
-        position="relative"
-        w="full"
-        h="2"
-        // bg="whiteAlpha.200"
-        borderRadius="md"
-        color="whiteAlpha.700"
-        bgGradient={`linear(to-r, red.400 0%, red.200 ${requiredQuorum}%, whiteAlpha.200 ${requiredQuorum + 1}%, whiteAlpha.200 100%)`}
+      <Text color="whiteAlpha.700">Quorum:</Text>
+
+      <Slider
+        defaultValue={requiredQuorum}
+        isReadOnly
+        cursor="default"
+        min={0}
+        max={100}
+        value={quorum}
       >
-        <Box
-          bg="primary.200"
-          h="full"
-          w={width + '%'}
-          ml={requiredQuorum + '%'}
-          // borderRightRadius={is100 ? 'md' : 'none'}
-          borderRightRadius="md"
-          color="whiteAlpha.900"
-          textAlign="center"
-          maxW={'calc(100% - ' + requiredQuorum + '%)'}
-        />
-        <Stack position="absolute" ml={requiredQuorum + '%'} gap="0">
-          <Box bg="white" w="2px" h="3" mt="-11px" />
-          <Text fontSize="xs" ml="-30px">
-            Pass threshold
-          </Text>
-        </Stack>
-      </Box>
+        <SliderTrack h="1.5">
+          <SliderFilledTrack bg={isRejected ? 'red.400' : 'blue.400'} />
+        </SliderTrack>
+        <SliderMark value={requiredQuorum}>
+          <Box bg="white" w="0.5" h="4" mt="-2" />
+        </SliderMark>
+      </Slider>
     </HStack>
   )
 }
 
-const ProposalDetails = ({ proposal }: Props) => {
+const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [vote, setVote] = useState<ProposalVoteOption | null>()
   const { address } = useWallet()
   const buttonLabel = proposal?.status === 'active' ? 'Vote' : 'View'
-  const { data: proposalDetails } = useProposalById(Number(proposal.proposal_id))
+  const { data: proposalDetails } = useProposalById(Number(proposal?.proposal_id))
 
   const isExecuteAllowed = proposal?.badge === 'passed'
   const isRemoveAllowed = proposal?.submitter === address
@@ -215,15 +208,8 @@ const ProposalDetails = ({ proposal }: Props) => {
 
   return (
     <>
-      <Button
-        onClick={onOpen}
-        variant="link"
-        minW="fit-content"
-        w="fit-content"
-        size="sm"
-        fontSize="sm"
-      >
-        {buttonLabel}
+      <Button onClick={onOpen} variant="unstyled" fontWeight="normal">
+        {children}
       </Button>
 
       <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
@@ -232,35 +218,35 @@ const ProposalDetails = ({ proposal }: Props) => {
           <ModalHeader>
             <Text variant="title">Proposal Details</Text>
             <HStack>
-              <Badge badge={proposal.badge} py="0" />
-              <Text fontSize="small" color="whiteAlpha.600">
-                {proposal.title}
-              </Text>
-              <Text fontSize="small" color="whiteAlpha.600">
-                {isPending ? 'this proposal is pending' : null}
+              <Badge badge={proposal?.badge} py="0" />
+              <Text fontSize="md" color="whiteAlpha.700">
+                {proposal?.title}
               </Text>
             </HStack>
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody pb="5">
             <Stack gap="5">
-              <ProposalDescription description={proposal.description} />
+              <ProposalDescription description={proposal?.description} />
 
               <Stack gap="0">
-                <ProposalLink link={proposal.link} />
-                <HStack justifyContent="space-between">
-                  <CreatedBy submitter={proposal.submitter} />
-                  {/* <ProposalBadge badge={proposal.badge} /> */}
+                <HStack>
+                  <Text fontSize="sm" color="whiteAlpha.700">
+                    Proposal ID: {proposal?.badge}
+                  </Text>
+                  <Text>{proposal.proposal_id}</Text>
                 </HStack>
+                <ProposalLink link={proposal?.link} />
+                <CreatedBy submitter={proposal?.submitter} />
               </Stack>
 
               {!isVoteAllowed && (
                 <HStack justifyContent="space-between">
-                  <Power label="For" power={proposal.ratio.forRatio} />
-                  <Power label="Against" power={proposal.ratio.againstRatio} />
-                  <Power label="Align" power={proposal.ratio.againstRatio} />
-                  <Power label="Amend" power={proposal.ratio.alignRatio} />
-                  <Power label="Remove" power={proposal.ratio.removeRatio} />
+                  <Power label="For" power={proposal?.ratio.forRatio} />
+                  <Power label="Against" power={proposal?.ratio.againstRatio} />
+                  <Power label="Align" power={proposal?.ratio.againstRatio} />
+                  <Power label="Amend" power={proposal?.ratio.alignRatio} />
+                  <Power label="Remove" power={proposal?.ratio.removeRatio} />
                 </HStack>
               )}
 
@@ -291,7 +277,11 @@ const ProposalDetails = ({ proposal }: Props) => {
                   </SimpleGrid>
                 </Stack>
               )}
-              <Quorum requiredQuorum={proposal?.requiredQuorum} quorum={proposalDetails?.quorum} />
+              <Quorum
+                requiredQuorum={proposal?.requiredQuorum}
+                quorum={proposalDetails?.quorum}
+                isRejected={proposal?.badge === 'rejected'}
+              />
               <Voted proposalDetails={proposalDetails} />
             </Stack>
           </ModalBody>

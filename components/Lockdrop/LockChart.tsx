@@ -48,7 +48,7 @@ const LockChart = () => {
       <HStack w="full" alignSelf="center">
         <Stack w="full" gap="0">
           <Text variant="label" fontSize="xl">
-            {incentives?.amount} MBRN
+            {(incentives?.amount / 1000000).toFixed(2)} MBRN
           </Text>
           <Text fontSize="xs" color="gray">
             Rank: {distribution?.userRanking} / {distribution?.totalRanking}

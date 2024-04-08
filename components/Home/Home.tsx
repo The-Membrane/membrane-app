@@ -10,7 +10,7 @@ const featurs = [
     ctaLabel: 'Mint',
   },
   {
-    label: 'Liquications',
+    label: 'Liquidations',
     FeatureIcon: BidIcon,
     href: '/bid',
     ctaLabel: 'Bid',

@@ -11,12 +11,12 @@ type Props = {
 }
 
 const ActionButtons = ({ onRest }: Props) => {
-  const mint = useMint()
+  const {mint, repayAmount} = useMint()
   const { mintState } = useMintState()
 
   return (
     <HStack mt="5" gap="4">
-      <ConfirmModal label="Open" action={mint} isDisabled={mintState?.overdraft}>
+      <ConfirmModal label={repayAmount < 0 ? "Mint" : "Repay"} action={mint} isDisabled={mintState?.overdraft}>
         <Summary />
         <TxError action={mint} />
       </ConfirmModal>

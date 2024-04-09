@@ -25,7 +25,7 @@ const BidAction = (props: Props) => {
         <TabList gap="2" w="full">
           <CustomTab>Place Bid</CustomTab>
           <CustomTab>My Bid</CustomTab>
-          <CustomTab>Stability Pool</CustomTab>
+          <CustomTab>Omni-Asset Pool</CustomTab>
         </TabList>
         <ClaimLiqudation />
       </HStack>

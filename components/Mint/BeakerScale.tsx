@@ -8,7 +8,7 @@ import useVaultSummary from './hooks/useVaultSummary'
 export const BeakerLiquid = () => {
   const { mintState } = useMintState()
 
-  const { ltv, liqudationLTV } = useVaultSummary()
+  const { ltv, liqudationLTV, borrowLTV } = useVaultSummary()
 
   const health = num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
 
@@ -20,13 +20,17 @@ export const BeakerLiquid = () => {
 
   if (!num(percent).isGreaterThan(0)) return null
 
+  var color = 'blue'
+  if (health <= (1 - (borrowLTV / liqudationLTV)) * 100 && health > 10) color = 'sewage'
+  if (health <= 10) color = 'red'
+
   return (
     <motion.div
       style={{
         position: 'absolute',
         // bottom: -17,
-        top: 505,
-        left: 117,
+        top: 485,
+        left: 125,
         maxHeight: percent,
         transform: 'scale(1.17) rotate(180deg)',
         height: percent,
@@ -38,7 +42,7 @@ export const BeakerLiquid = () => {
       animate={{ height: percent }}
       transition={{ type: 'spring', stiffness: 1000 }}
     >
-      <Image src="/images/beaker_liquid.svg" transform="rotate(180deg)" />
+      <Image src={`/images/beaker_liquid_${color}.svg`} transform="rotate(180deg)" />
     </motion.div>
   )
 }

@@ -1,5 +1,5 @@
 import { TxButton } from '@/components/TxButton'
-import { isGreaterThanZero } from '@/helpers/num'
+import { isGreaterThanZero, num } from '@/helpers/num'
 import { Card, HStack, Stack, Text } from '@chakra-ui/react'
 import { Cell, Label, Pie, PieChart } from 'recharts'
 import useClaim from './hooks/useClaim'
@@ -39,6 +39,7 @@ const LockChart = () => {
   const { data: distribution } = useRanking()
 
   const { totalRanking, userRanking } = distribution || {}
+  const inCentivesAmount = isNaN(Number(incentives?.amount || 0)) ? 0 : incentives?.amount
 
   return (
     <Card maxW="600px">
@@ -50,7 +51,7 @@ const LockChart = () => {
       <HStack w="full" alignSelf="center">
         <Stack w="full" gap="0">
           <Text variant="label" fontSize="xl">
-            {(incentives?.amount / 1000000).toFixed(2)} MBRN
+            {num(inCentivesAmount).dp(6).toString()} MBRN
           </Text>
           <Text fontSize="xs" color="gray">
             Rank: {userRanking} / {totalRanking}

@@ -1,28 +1,35 @@
+import contracts from '@/config/contracts.json'
 import { VestingMsgComposer } from '@/contracts/codegen/vesting/Vesting.message-composer'
-import useExecute from '@/hooks/useExecute'
+import { decodeMsgs } from '@/helpers/decodeMsg'
+import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
-import { getSigningVestingClient } from '@/services/vesting'
-import contracts from '@/config/contracts.json'
+import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import { useQuery } from '@tanstack/react-query'
 
 const useClaimFees = () => {
-  const { address, getSigningCosmWasmClient } = useWallet()
+  const { address } = useWallet()
 
-  return useExecute({
-    onSubmit: async () => {
-      if (!address) return Promise.reject('No address found')
-      const signingClient = await getSigningCosmWasmClient()
-      const client = getSigningVestingClient(signingClient, address)
-      return client.claimFeesforRecipient()
+  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+    queryKey: ['allocation claim fees', 'msgs', address],
+    queryFn: () => {
+      if (!address) return
+      const messageComposer = new VestingMsgComposer(address, contracts.vesting)
 
-      // const messageComposer = new VestingMsgComposer(address, contracts.vesting)
-
-      // const claimFeeMsg = messageComposer.claimFeesforContract()
-      // const claimReceipientMsg = messageComposer.claimFeesforRecipient()
+      const claimFeeMsg = messageComposer.claimFeesforContract()
+      const claimReceipientMsg = messageComposer.claimFeesforRecipient()
+      return [claimFeeMsg, claimReceipientMsg] as MsgExecuteContractEncodeObject[]
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allocatiions'] })
-    },
+    enabled: !!address,
+  })
+
+  const onSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['allocatiions'] })
+  }
+
+  return useSimulateAndBroadcast({
+    msgs,
+    onSuccess,
   })
 }
 

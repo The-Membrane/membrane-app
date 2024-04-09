@@ -119,7 +119,7 @@ const MyBid = () => {
         </Button>
 
         {/* <Button>Confrim Bid</Button> */}
-        <ConfirmModal label="Confirm Bid" action={updateBid}>
+        <ConfirmModal label="Update Bid" action={updateBid}>
           <UpdateBidSummary />
           <TxError action={updateBid} />
         </ConfirmModal>

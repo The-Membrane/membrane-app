@@ -13,9 +13,9 @@ const Info = () => {
           Info
         </Heading>
         <Text fontSize="sm" color="gray.400">
-          There is 10M MBRN up for grabs in this 7 day event. Deposit * Lock Time = Shares (Lock
-          MAX: 365 DAYS). Locks boost your “shares” and the full 10M is split & STAKED (4 day
-          unstaking) in accordance to the ratio of said shares. MBRN claims unlock daily.
+          There was 10M MBRN up for grabs in this 7 day event. Deposit * Lock Time = Shares (Lock
+          MAX: 365 DAYS). Locks boosted participants' “shares” and the full 10M was split & STAKED (4 day
+          unstaking) in accordance to the ratio of said shares. MBRN claims unlock daily for a year post-launch.
           <Link
             fontSize="sm"
             color="primary.200"

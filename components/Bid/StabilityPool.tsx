@@ -166,9 +166,9 @@ const StabilityPool = () => {
     return (
       <Card p="8" alignItems="center" gap={5}>
         <Text variant="title" fontSize="24px">
-          Stability Pool
+          Omni-Asset Pool
         </Text>
-        <Text color="gray">You don't have any deposits in the stability pool.</Text>
+        <Text color="gray">You don't have any deposits in the omni-asset pool.</Text>
       </Card>
     )
   }
@@ -176,7 +176,7 @@ const StabilityPool = () => {
   return (
     <Card p="8" alignItems="center" gap={5}>
       <Text variant="title" fontSize="24px">
-        Stability Pool
+        Omni-Asset Pool
       </Text>
 
       <Stack py="5" w="full" gap="5">

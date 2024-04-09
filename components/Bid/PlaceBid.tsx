@@ -113,7 +113,7 @@ const PlaceBid = () => {
               Single Asset Pool
             </Text>
             <Text fontSize="16px" fontWeight="700">
-              0-{maxPremium*100}%
+              0-{maxPremium}%
             </Text>
           </HStack>
           <Text fontSize="14px">

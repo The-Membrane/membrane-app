@@ -50,7 +50,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         ) : (
           <HStack justifyContent="space-between">
             <Text fontSize="xs" color="whiteAlpha.600">
-              Primium
+              Premium
             </Text>
             <Text fontSize="xs" color="whiteAlpha.800">
               {label}%

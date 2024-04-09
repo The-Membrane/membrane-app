@@ -13,7 +13,7 @@ export const lockdropClient = async () => {
 }
 
 export const getSigningLockdropClient = (signingClient: SigningCosmWasmClient, address: Addr) => {
-  return new LaunchClient(signingClient, address, contracts.staking)
+  return new LaunchClient(signingClient, address, contracts.lockdrop)
 }
 
 const checkIfUserParticipated = (message: string) => {

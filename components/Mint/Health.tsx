@@ -9,9 +9,11 @@ type Props = {}
 const Health = (props: Props) => {
   const { ltv, liqudationLTV } = useVaultSummary()
 
-  const health = num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
+  var health = num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
+  if (health < 0) health = 0
+
   return (
-    <Box position="absolute" bottom="227px" left="110px">
+    <Box position="absolute" bottom="214px" left="110px">
       <Text fontSize="20px" fontWeight="bold" color="black">
         Health : {health}%
       </Text>

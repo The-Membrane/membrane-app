@@ -28,6 +28,11 @@ const incentivesResponse = (amount: string, hasParticipated: boolean) => {
   }
 }
 
+export const getLockdrop = async () => {
+  const client = await lockdropClient()
+  return client.lockdrop()
+}
+
 export const getIncentiveDistribution = async () => {
   const client = await lockdropClient()
   return client.incentiveDistribution()
@@ -83,6 +88,7 @@ export const getUserInfo = async (address: Addr) => {
   })
 
   return {
+    total_tickets: userInfo.total_tickets,
     totalLocked,
     lockups: [...updateData, ...emptyData],
   }

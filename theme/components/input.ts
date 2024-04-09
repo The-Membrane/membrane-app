@@ -8,7 +8,7 @@ export const Input: ComponentStyleConfig = {
       boxShadow: '0px 6px 24px 0px rgba(26, 26, 26, 0.04)',
       px: 6,
       py: 2,
-      h: 12,
+      // h: 12,
       fontSize: 'lg',
       w: 'full',
       textAlign: 'right',

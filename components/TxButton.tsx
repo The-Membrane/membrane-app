@@ -15,7 +15,7 @@ export const TxButton: FC<PropsWithChildren<ConnectionButtonProps & ButtonProps>
   const { isWalletConnected } = useWallet()
 
   if (!isWalletConnected) {
-    return <ConnectButton {...buttonProps} />
+    return <ConnectButton {...buttonProps} isDisabled={false} />
   }
 
   return (

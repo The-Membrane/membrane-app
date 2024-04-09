@@ -3,6 +3,7 @@ import React, { PropsWithChildren } from 'react'
 import PlaceBid from './PlaceBid'
 import MyBid from './MyBid'
 import ClaimLiqudation from './ClaimLiqudation'
+import StabilityPool from './StabilityPool'
 
 type Props = {}
 
@@ -24,6 +25,7 @@ const BidAction = (props: Props) => {
         <TabList gap="2" w="full">
           <CustomTab>Place Bid</CustomTab>
           <CustomTab>My Bid</CustomTab>
+          <CustomTab>Stability Pool</CustomTab>
         </TabList>
         <ClaimLiqudation />
       </HStack>
@@ -33,6 +35,9 @@ const BidAction = (props: Props) => {
         </TabPanel>
         <TabPanel px="0">
           <MyBid />
+        </TabPanel>
+        <TabPanel px="0">
+          <StabilityPool />
         </TabPanel>
       </TabPanels>
     </Tabs>

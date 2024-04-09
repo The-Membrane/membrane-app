@@ -38,6 +38,8 @@ const LockChart = () => {
   const { data: incentives } = useIncentives()
   const { data: distribution } = useRanking()
 
+  const { totalRanking, userRanking } = distribution || {}
+
   return (
     <Card maxW="600px">
       <Text variant="title" fontSize="24px">
@@ -51,7 +53,7 @@ const LockChart = () => {
             {incentives?.amount} MBRN
           </Text>
           <Text fontSize="xs" color="gray">
-            Rank: {distribution?.userRanking} / {distribution?.totalRanking}
+            Rank: {userRanking} / {totalRanking}
           </Text>
         </Stack>
 

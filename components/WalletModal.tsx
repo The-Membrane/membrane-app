@@ -142,7 +142,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
               Select Wallet
             </Text>
             <Stack>
-              <HStack justifyContent="space-evenly">
+              {/* <HStack justifyContent="space-evenly">
                 <Image src="/images/wallet-connect-logo.svg" alt="wallet" boxSize="5" />
                 <Switch
                   id="email-alerts"
@@ -150,7 +150,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
                   onChange={(e) => setIsWalletConnect(e.target.checked)}
                 />
               </HStack>
-              <Text fontSize="10px">Mobile wallet</Text>
+              <Text fontSize="10px">Mobile wallet</Text> */}
             </Stack>
           </HStack>
         </ModalHeader>

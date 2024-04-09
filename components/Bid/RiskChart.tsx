@@ -67,8 +67,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 const RiskChart = () => {
   const { bidState } = useBidState()
   const { data: liqudation, isLoading } = useLiquidation(bidState?.selectedAsset)
-  const { data: stablityPoolAmount = 0 } = useStabilityAssetPool()
+  const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { data: capitalAheadAmount = 0 } = useCapitalAheadOfDeposit()
+
+  const stabilityPoolAmount = stabilityPoolAssets?.credit_asset.amount || 0
 
   const data = useMemo(() => {
     const chartData = liqudation
@@ -83,7 +85,7 @@ const RiskChart = () => {
     chartData?.push({
       capitalAheadAmount,
       premium: 10,
-      tvl: shiftDigits(stablityPoolAmount, -6).toNumber(),
+      tvl: shiftDigits(stabilityPoolAmount, -6).toNumber(),
     })
 
     return chartData

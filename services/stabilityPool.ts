@@ -11,23 +11,27 @@ import getCosmWasmClient from '@/helpers/comswasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
-import { StabilityPoolQueryClient } from '@/contracts/codegen/stability_pool/StabilityPool.client'
+import {
+  StabilityPoolClient,
+  StabilityPoolQueryClient,
+} from '@/contracts/codegen/stability_pool/StabilityPool.client'
+import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
 export const stabiityPoolClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
   return new StabilityPoolQueryClient(cosmWasmClient, contracts.stabilityPool)
 }
 
+export const getSigningStabiityPoolClient = (
+  signingClient: SigningCosmWasmClient,
+  address: Addr,
+) => {
+  return new StabilityPoolClient(signingClient, address, contracts.stabilityPool)
+}
+
 export const getAssetPool = async (address: Addr) => {
   const stabilityPool = await stabiityPoolClient()
-  return stabilityPool
-    .assetPool({ user: address })
-    .then((res) => {
-      return res?.credit_asset.amount
-    })
-    .catch(() => {
-      return '0'
-    })
+  return stabilityPool.assetPool({ user: address })
 }
 export const getCapitalAheadOfDeposit = async (address: Addr) => {
   const stabilityPool = await stabiityPoolClient()

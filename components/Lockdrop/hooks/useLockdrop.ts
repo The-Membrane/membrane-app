@@ -37,13 +37,10 @@ export const useRanking = () => {
   const { address } = useWallet()
 
   return useQuery({
-    queryKey: ['user ranking'],
+    queryKey: ['user ranking', address],
     queryFn: async () => {
-      if (!address) return
-
       const distribution = await getIncentiveDistribution()
       return getRanking(distribution, address)
     },
-    enabled: !!address,
   })
 }

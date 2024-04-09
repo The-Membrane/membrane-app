@@ -33,7 +33,7 @@ export const getIncentiveDistribution = async () => {
   return client.incentiveDistribution()
 }
 
-export const getRanking = async (distribution: UserRatio[], address: Addr) => {
+export const getRanking = async (distribution: UserRatio[], address?: Addr) => {
   distribution.sort((a, b) => Number(b.ratio) - Number(a.ratio))
   const totalRanking = distribution.length
   const userRanking = distribution.findIndex((i) => i.user === address)

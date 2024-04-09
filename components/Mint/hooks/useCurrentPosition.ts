@@ -10,21 +10,21 @@ export const useCurrentPosition = () => {
 
   return [
     {
+      label: 'YOUR COLLATERAL VALUE',
+      value: `$${summary?.tvl?.toFixed(2)}`,
+      textColor: isValueChanged ? 'primary.200' : 'white',
+    },
+    {
+      label: 'LIQUIDATION VALUE',
+      value: `$${summary.liquidValue?.toFixed(2)}`,
+    },
+    {
       label: 'DEBT',
       value: `${summary.debtAmount?.toFixed(0)} CDT`,
     },
     {
-      label: 'LTV',
-      value: `${summary.ltv.toFixed(0)}%`,
-      textColor: isValueChanged ? 'primary.200' : 'white',
-    },
-    {
       label: 'COST',
       value: `${summary.cost?.toFixed(4)}% / year`,
-    },
-    {
-      label: 'LIQ. VALUE',
-      value: `$${summary.liquidValue?.toFixed(2)}`,
     },
     {
       label: 'BORROWABLE LTV',
@@ -32,13 +32,13 @@ export const useCurrentPosition = () => {
       textColor: isValueChanged ? 'primary.200' : 'white',
     },
     {
-      label: 'LIQUIDATION LTV',
-      value: `${summary.liqudationLTV?.toFixed(0)}%`,
+      label: 'LTV',
+      value: `${summary.ltv.toFixed(0)}%`,
       textColor: isValueChanged ? 'primary.200' : 'white',
     },
     {
-      label: 'YOUR COLLATERAL VALUE',
-      value: `$${summary?.tvl?.toFixed(2)}`,
+      label: 'LIQUIDATION LTV',
+      value: `${summary.liqudationLTV?.toFixed(0)}%`,
       textColor: isValueChanged ? 'primary.200' : 'white',
     },
   ]

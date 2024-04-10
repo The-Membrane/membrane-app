@@ -1,4 +1,5 @@
 FROM node:18-alpine AS builder
+RUN npm install -g pnpm
 ENV NODE_ENV production
 
 # Add a work directory

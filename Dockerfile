@@ -7,13 +7,13 @@ WORKDIR /app
 # Cache and Install dependencies
 COPY package.json .
 COPY pnpm-lock.yaml .
-RUN npm i
+RUN pnpm i
 
 # Copy app files
 COPY . .
 
 # Build the app
-RUN npm run build
+RUN pnpm run build
 
 # Expose port
 EXPOSE 3000

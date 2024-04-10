@@ -7,7 +7,7 @@ WORKDIR /app
 # Cache and Install dependencies
 COPY package.json .
 COPY pnpm-lock.yaml .
-RUN pnpm i
+RUN npm i
 
 # Copy app files
 COPY . .

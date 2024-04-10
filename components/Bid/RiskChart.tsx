@@ -18,6 +18,7 @@ import useBidState from './hooks/useBidState'
 import { shiftDigits } from '@/helpers/math'
 import useStabilityAssetPool from './hooks/useStabilityAssetPool'
 import useCapitalAheadOfDeposit from './hooks/useCapitalAheadOfDeposit'
+import useWallet from '@/hooks/useWallet'
 
 const CustomTooltip = ({ active, payload, label }) => {
   const { tvl, premium, capitalAheadAmount } = payload[0]?.payload || {}
@@ -65,10 +66,20 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 const RiskChart = () => {
+  const { address } = useWallet()
   const { bidState } = useBidState()
   const { data: liqudation, isLoading } = useLiquidation(bidState?.selectedAsset)
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { data: capitalAheadAmount = 0 } = useCapitalAheadOfDeposit()
+
+  //Save the indices of the LQ Slots that users are deposited in
+  var userBidIndices = liqudation?.map((slot) => {
+    if (slot.bids.find((bid) => bid.user == address as string) != undefined) {
+      return parseInt(slot.liq_premium) * 10
+    } else {
+      return -1
+    }
+  })
 
   const stabilityPoolAmount = stabilityPoolAssets?.credit_asset.amount || 0
 
@@ -120,6 +131,11 @@ const RiskChart = () => {
               <stop offset="0%" stopColor="#e9f339" />
               <stop offset="100%" stopColor="#00F1EF" />
             </linearGradient>
+
+            <linearGradient id="userTVL" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#e9f339" />
+              <stop offset="100%" stopColor="#C445F0" />
+            </linearGradient>
           </defs>
 
           <Bar
@@ -131,7 +147,7 @@ const RiskChart = () => {
             {data?.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={index === 10 ? 'url(#goldTVL)' : 'url(#colorTVL)'}
+                fill={index === 10 ? 'url(#goldTVL)' : userBidIndices?.includes(index) ? 'url(#userTVL)' : 'url(#colorTVL)'}
               />
             ))}
           </Bar>

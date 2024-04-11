@@ -21,6 +21,11 @@ const ConfirmModal = ({
 }: Props) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
 
+  const onModalOpen = () => {
+    onOpen()
+    action?.simulate.refetch()
+  }
+
   const onModalClose = () => {
     onClose()
     action?.tx.reset()
@@ -29,8 +34,9 @@ const ConfirmModal = ({
     <>
       <Button
         isLoading={action?.simulate.isLoading || action?.tx.isPending}
-        isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
-        onClick={onOpen}
+        // isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
+        isDisabled={isDisabled}
+        onClick={onModalOpen}
         {...buttonProps}
       >
         {label}

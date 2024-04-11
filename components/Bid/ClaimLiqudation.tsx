@@ -3,10 +3,13 @@ import TxError from '@/components/TxError'
 import { ClaimSummary } from './ClaimSummary'
 import useCheckClaims from './hooks/useCheckClaims'
 import useClaimLiquidation from './hooks/useClaimLiquidation'
+import { num } from '@/helpers/num'
 
 const ClaimLiqudation = () => {
   const { data: claims } = useCheckClaims()
   const claimLiqudation = useClaimLiquidation(claims)
+
+  const isClaimDisabled = claims?.filter((claim) => num(claim.pending_liquidated_collateral).gt(0))
 
   return (
     <ConfirmModal
@@ -21,9 +24,9 @@ const ClaimLiqudation = () => {
         mr: '1',
       }}
       action={claimLiqudation}
+      isDisabled={!isClaimDisabled?.length}
     >
       <ClaimSummary claims={claims} />
-      <TxError action={claimLiqudation} />
     </ConfirmModal>
   )
 }

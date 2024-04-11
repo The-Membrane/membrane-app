@@ -7,7 +7,6 @@ const useWithdrawStabilityPool = (amount: string) => {
 
   return useExecute({
     onSubmit: async () => {
-      console.log({ amount })
       if (!address) return Promise.reject('No address found')
       const signingClient = await getSigningCosmWasmClient()
       const client = getSigningStabiityPoolClient(signingClient, address)

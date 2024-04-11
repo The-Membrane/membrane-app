@@ -42,6 +42,7 @@ const TakeAction = () => {
       ltv: initialLTV,
       borrowLTV: initialBorrowLTV,
       setMintState,
+      newDebtAmount: 0,
     })
   }
 
@@ -61,7 +62,7 @@ const TakeAction = () => {
       <LTVWithSlider label="Mintable LTV" value={sliderValue} />
       <ActionButtons onRest={onRest} />
       <OverDraftMessage show={mintState.overdraft} />
-      <TxError action={mint} />
+      {/* <TxError mt="3" action={mint} /> */}
     </TabPanel>
   )
 }

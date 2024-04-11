@@ -2,6 +2,16 @@ import { num } from '@/helpers/num'
 import useMintState from './useMintState'
 import useVaultSummary from './useVaultSummary'
 
+const getDebtAmount = (summary) => {
+  const { debtAmount, newDebtAmount } = summary
+
+  if (num(newDebtAmount).isGreaterThan(0)) {
+    return newDebtAmount
+  }
+
+  return debtAmount
+}
+
 export const useCurrentPosition = () => {
   const summary = useVaultSummary()
   const { mintState } = useMintState()
@@ -20,7 +30,8 @@ export const useCurrentPosition = () => {
     },
     {
       label: 'DEBT',
-      value: `${summary.debtAmount?.toFixed(0)} CDT`,
+      value: `${getDebtAmount(summary)} CDT`,
+      textColor: isValueChanged ? 'primary.200' : 'white',
     },
     {
       label: 'COST',
@@ -29,7 +40,7 @@ export const useCurrentPosition = () => {
     {
       label: 'BORROWABLE LTV',
       value: `${summary?.borrowLTV.toFixed(0)}%`,
-      textColor: isValueChanged ? 'primary.200' : 'white',
+      textColor: summary?.newDebtAmount ? 'primary.200' : 'white',
     },
     {
       label: 'LTV',

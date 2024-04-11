@@ -14,9 +14,10 @@ export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100 }: Sli
       aria-label="slider-ex-4"
       defaultValue={0}
       min={min}
-      max={max}
+      max={max === 0 ? 1 : max}
       value={value}
       onChange={onChange}
+      isDisabled={max === 0}
     >
       <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
         <SliderFilledTrack bg="#C445F0" />

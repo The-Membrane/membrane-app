@@ -39,15 +39,13 @@ const useCombinBalance = () => {
         .toNumber()
       const price = prices?.find((p) => p.denom === asset.asset.base)?.price || 0
       const walletsdValue = num(balanceInMicro).times(price).toNumber()
-      const depositUsdValue = num(position?.usdValue || 0)
-        .dp(2)
-        .toNumber()
-      const combinUsdValue = num(combinBalance).times(price).dp(2).toNumber()
+      const depositUsdValue = num(position?.usdValue || 0).toNumber()
+      const combinUsdValue = num(combinBalance).times(price).toNumber()
       return {
         ...asset.asset,
         walletBalance: Number(balanceInMicro),
         walletsdValue,
-        deposited: position?.amount,
+        deposited: position?.amount || 0,
         depositUsdValue,
         combinBalance,
         combinUsdValue,

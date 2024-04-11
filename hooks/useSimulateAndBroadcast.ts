@@ -25,6 +25,7 @@ const useSimulateAndBroadcast = ({
     msgs,
     amount,
     queryKey,
+    enabled: false,
   })
 
   const [fee] = simulate.data || []

@@ -21,7 +21,7 @@ export const BeakerLiquid = () => {
   if (!num(percent).isGreaterThan(0)) return null
 
   var color = 'blue'
-  if (health <= (1 - (borrowLTV / liqudationLTV)) * 100 && health > 10) color = 'sewage'
+  if (health <= (1 - (borrowLTV / liqudationLTV)) * 100 && health > 10 && health < 100) color = 'sewage'
   if (health <= 10) color = 'red'
 
   return (

@@ -8,8 +8,8 @@ const LiveAuction = () => {
     // useIPFS()
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
-            <MediaRenderer
-                src="ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png"
+            <Image
+                src="https://ipfs-gw.stargaze-apis.com/ipfs/bafybeib4p32yqheuhnounizgizaho66g2ypk6gocg7xzxais5tuyz42gym/1.png"
                 alt="Current Auctioned NFT Image"
             // width="80%"
             // height="80%"

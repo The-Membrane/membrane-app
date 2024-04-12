@@ -8,8 +8,10 @@ const LiveAuction = () => {
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             <MediaRenderer
-                src="ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm"
+                src="ipfs://bafybeidbhxcjrblz7li2htreyamdpr65ugl5abtfphpnm2xkvnr3a5phhi"
                 alt="Current Auctioned NFT Image"
+            // width="80%"
+            // height="80%"
             />
         </Card>
     )

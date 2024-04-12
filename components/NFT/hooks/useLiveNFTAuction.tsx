@@ -5,7 +5,7 @@ import IPFS from 'ipfs-http-client';
 const useIPFS = () => {
     //   const { address } = useWallet() //example fn
     //   const { ipfsLink } = getLiveAuction()
-    const ipfsLink = "ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm"
+    const ipfsLink = "https://ipfs.io/ipfs/bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm"
 
     return useQuery({
         queryKey: ['IPFS', ipfsLink],

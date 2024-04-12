@@ -64,6 +64,8 @@ const PlaceBid = () => {
     setBidState({ ...bidState, placeBid })
   }
 
+  const isDisabled = !bidState?.placeBid?.cdt || !bidState?.placeBid?.premium
+
   return (
     <Card p="8" alignItems="center" gap={5}>
       <Text variant="title" fontSize="24px">
@@ -101,7 +103,7 @@ const PlaceBid = () => {
             value={bidState?.placeBid?.premium}
             onChange={onPremiumChange}
             min={0}
-            max={Number(maxPremium)}
+            max={Number(maxPremium || 0)}
           />
         </Stack>
       </HStack>
@@ -141,11 +143,9 @@ const PlaceBid = () => {
         </Stack>
       </Stack>
 
-      <ConfirmModal label="Place Bid" action={bid}>
+      <ConfirmModal label="Place Bid" action={bid} isDisabled={isDisabled}>
         <Summary />
-        <TxError action={bid} />
       </ConfirmModal>
-      <TxError action={bid} />
     </Card>
   )
 }

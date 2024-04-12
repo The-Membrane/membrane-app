@@ -53,7 +53,7 @@ const ClaimAndRestake = (props: Props) => {
     <Stack gap="10" pt="5">
       <Stack>
         {rewards.map((reward, index) => (
-          <HStack justifyContent="space-between" key={reward?.asset?.base}>
+          <HStack justifyContent="space-between" key={`${reward?.asset?.base}-${index}`}>
             <HStack>
               <Image
                 src={reward?.asset?.logo}

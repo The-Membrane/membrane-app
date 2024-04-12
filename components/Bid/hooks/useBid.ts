@@ -13,20 +13,19 @@ import { shiftDigits } from '@/helpers/math'
 import { coin } from '@cosmjs/stargate'
 import { queryClient } from '@/pages/_app'
 
-const useBid = ({ txSuccess }) => {
-  const { bidState, setBidState } = useBidState()
-  const cdtAsset = useAssetBySymbol('CDT')
+type Props = {
+  txSuccess?: () => void
+}
 
+const useBid = ({ txSuccess }: Props) => {
+  const { bidState } = useBidState()
+  const cdtAsset = useAssetBySymbol('CDT')
   const selectedAsset = bidState?.selectedAsset
   const { premium, cdt } = bidState?.placeBid
-
-  // const { summary = [] } = mintState
   const { address } = useWallet()
-  // const { data: basketPositions } = useBasketPositions()
-  // const positionId = basketPositions?.[0]?.positions?.[0]?.position_id
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['bid', address, selectedAsset?.base, premium, cdt],
+    queryKey: ['bid', 'msgs', address, selectedAsset?.base, premium, cdt],
     queryFn: () => {
       if (!address || !selectedAsset) return
 

@@ -13,6 +13,7 @@ type Props = {
 const ActionButtons = ({ onRest }: Props) => {
   const mint = useMint()
   const { mintState } = useMintState()
+  const { summary } = mintState
 
   return (
     <HStack mt="5" gap="4">
@@ -21,7 +22,7 @@ const ActionButtons = ({ onRest }: Props) => {
           mintState.repay ?? 0 > 0 ? 'Repay' : mintState.mint ?? 0 > 0 ? 'Mint' : 'Update Assets'
         }
         action={mint}
-        isDisabled={mintState?.overdraft}
+        isDisabled={mintState?.overdraft || summary?.length === 0}
       >
         <Summary />
         {/* <TxError action={mint} /> */}

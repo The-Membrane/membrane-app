@@ -12,7 +12,7 @@ const useMint = () => {
   const { mintState } = useMintState()
   const { summary = [] } = mintState
   const { address } = useWallet()
-  const { data: basketPositions } = useBasketPositions()
+  const { data: basketPositions, ...basketErrors } = useBasketPositions()
   const positionId = basketPositions?.[0]?.positions?.[0]?.position_id
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
@@ -25,7 +25,7 @@ const useMint = () => {
       mintState?.repay,
     ],
     queryFn: () => {
-      if (!address || !positionId) return
+      if (!address) return
       const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, positionId })
       const mintAndRepay = getMintAndRepayMsgs({
         address,
@@ -35,7 +35,7 @@ const useMint = () => {
       })
       return [...depositAndWithdraw, ...mintAndRepay] as MsgExecuteContractEncodeObject[]
     },
-    enabled: !!address && !!positionId && !mintState.overdraft,
+    enabled: !!address && !mintState.overdraft,
   })
 
   const onSuccess = () => {

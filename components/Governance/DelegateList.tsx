@@ -150,6 +150,8 @@ const DelegateList = () => {
     setDelegateState({ delegations: [] })
   }
 
+  const isDisabled = delegateState?.delegations?.some((delegation) => delegation.newAmount === 0)
+
   return (
     <Stack w="full">
       <Stack minH="230px">
@@ -182,9 +184,8 @@ const DelegateList = () => {
         <Button variant="ghost" leftIcon={<GrPowerReset />} onClick={onRest}>
           Reset
         </Button>
-        <ConfirmModal label={'Update delegation'} action={updateDelegation}>
+        <ConfirmModal label={'Update delegation'} action={updateDelegation} isDisabled={isDisabled}>
           <Summary />
-          <TxError action={updateDelegation} />
         </ConfirmModal>
       </HStack>
     </Stack>

@@ -71,7 +71,7 @@ export const Summary = () => {
         const badge = num(asset.amount).isGreaterThan(0) ? 'Deposit' : 'Withdraw'
         return (
           <SummaryItem
-            key={asset?.label}
+            key={asset?.label + asset?.amount}
             label={asset?.label}
             amount={asset?.amount}
             logo={asset?.logo}

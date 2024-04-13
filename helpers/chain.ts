@@ -6,6 +6,7 @@ import lpAssets from '@/config/lpAssets.json'
 export type Asset = RegistryAsset & {
   decimal: number
   logo: string
+  isLP: boolean
 }
 
 const defaultChain = 'osmosis'
@@ -18,6 +19,7 @@ const assetWithLogo = (asset: RegistryAsset) => ({
   ...asset,
   logo: getAssetLogo(asset),
   decimal: getExponentByDenom(registryAssets, asset.base, defaultChain),
+  isLP: false,
 })
 
 export const getChainAssets = () => {

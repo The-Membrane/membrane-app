@@ -1,35 +1,12 @@
-import { Button, Card, FormControl, FormLabel, HStack, Input, Stack, Text } from '@chakra-ui/react'
-import { SliderWithState } from '../Mint/SliderWithState'
-import useQueue from './hooks/useQueue'
-import useBidState from './hooks/useBidState'
+import ConfirmModal from '@/components/ConfirmModal'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { shiftDigits } from '@/helpers/math'
-import ConfirmModal from '@/components/ConfirmModal'
+import { Card, HStack, Stack, Text } from '@chakra-ui/react'
+import { SliderWithState } from '../Mint/SliderWithState'
 import Summary from './Summary'
-import TxError from '@/components/TxError'
 import useBid from './hooks/useBid'
-
-type BidInputProps = {
-  label: string
-}
-
-const BidInput = ({ label }: BidInputProps) => {
-  return (
-    <FormControl
-      display="flex"
-      justifyContent="space-between"
-      gap={2}
-      w="310px"
-      alignItems="center"
-    >
-      <Input type="number" placeholder="0.00" />
-      <FormLabel fontSize="24px" fontWeight="700" w="full">
-        {label}{' '}
-      </FormLabel>
-    </FormControl>
-  )
-}
+import useBidState from './hooks/useBidState'
+import useQueue from './hooks/useQueue'
 
 const PlaceBid = () => {
   const { bidState, setBidState } = useBidState()

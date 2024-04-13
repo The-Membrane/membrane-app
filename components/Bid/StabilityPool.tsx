@@ -93,7 +93,6 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   }
 
   if (!isEnded && deposit.unstake_time) {
-    // return <CountDown timeString={timeString} amount={amount} />
     return (
       <HStack alignItems="flex-start" gap="5">
         <Box bg="blackAlpha.500" borderRadius="md" px="4" py="1" h="full">
@@ -130,36 +129,9 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   )
 }
 
-// const mockDeposits: Deposit[] = [
-//   {
-//     amount: '1000000000',
-//     deposit_time: 1626844800,
-//     last_accrued: 1626844800,
-//     unstake_time: 1712759367,
-//     // unstake_time: null,
-//     user: 'osmo1qz4g5s8j3x4z7x7z6y7x7z6y7x7z6y7x7z6y',
-//   },
-//   {
-//     amount: '1000000000',
-//     deposit_time: 1626844800,
-//     last_accrued: 1626844800,
-//     // unstake_time: 1712759367,
-//     unstake_time: null,
-//     user: 'osmo1qz4g5s8j3x4z7x7z6y7x7z6y7x7z6y7x7z6y',
-//   },
-//   {
-//     amount: '1000000000',
-//     deposit_time: 1626844800,
-//     last_accrued: 1626844800,
-//     unstake_time: 1712586567,
-//     user: 'osmo1qz4g5s8j3x4z7x7z6y7x7z6y7x7z6y7x7z6y',
-//   },
-// ]
-
 const StabilityPool = () => {
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { deposits = [] } = stabilityPoolAssets || {}
-  // const deposits = mockDeposits
 
   if (deposits.length === 0) {
     return (

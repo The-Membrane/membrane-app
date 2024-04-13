@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react'
 import Select from '@/components/Select'
-import useAssets from '@/hooks/useAssets'
+import { useEffect } from 'react'
 import useBidState from './hooks/useBidState'
 import useCollateralAssets from './hooks/useCollateralAssets'
 

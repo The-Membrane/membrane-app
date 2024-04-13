@@ -1,24 +1,13 @@
-import { Box, HStack, Spinner, Stack, Text } from '@chakra-ui/react'
-import {
-  Bar,
-  BarChart,
-  Cell,
-  Label,
-  Legend,
-  Rectangle,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
-import useLiquidation from './hooks/useLiquidation'
-import { useMemo } from 'react'
-import { num } from '@/helpers/num'
-import useBidState from './hooks/useBidState'
 import { shiftDigits } from '@/helpers/math'
-import useStabilityAssetPool from './hooks/useStabilityAssetPool'
-import useCapitalAheadOfDeposit from './hooks/useCapitalAheadOfDeposit'
+import { num } from '@/helpers/num'
 import useWallet from '@/hooks/useWallet'
+import { Box, HStack, Spinner, Stack, Text } from '@chakra-ui/react'
+import { useMemo } from 'react'
+import { Bar, BarChart, Cell, Rectangle, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
+import useBidState from './hooks/useBidState'
+import useCapitalAheadOfDeposit from './hooks/useCapitalAheadOfDeposit'
+import useLiquidation from './hooks/useLiquidation'
+import useStabilityAssetPool from './hooks/useStabilityAssetPool'
 
 const CustomTooltip = ({ active, payload, label }) => {
   const { tvl, premium, capitalAheadAmount } = payload[0]?.payload || {}
@@ -74,7 +63,7 @@ const RiskChart = () => {
 
   //Save the indices of the LQ Slots that users are deposited in
   var userBidIndices = liqudation?.map((slot) => {
-    if (slot.bids.find((bid) => bid.user == address as string) != undefined) {
+    if (slot.bids.find((bid) => bid.user == (address as string)) != undefined) {
       return parseInt(slot.liq_premium) * 10
     } else {
       return -1
@@ -147,7 +136,13 @@ const RiskChart = () => {
             {data?.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={index === 10 ? 'url(#goldTVL)' : userBidIndices?.includes(index) ? 'url(#userTVL)' : 'url(#colorTVL)'}
+                fill={
+                  index === 10
+                    ? 'url(#goldTVL)'
+                    : userBidIndices?.includes(index)
+                      ? 'url(#userTVL)'
+                      : 'url(#colorTVL)'
+                }
               />
             ))}
           </Bar>

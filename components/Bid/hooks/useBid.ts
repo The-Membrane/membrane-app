@@ -1,17 +1,13 @@
-import { getDepostAndWithdrawMsgs, getMintAndRepayMsgs } from '@/helpers/mint'
-import { useBasketPositions } from '@/hooks/useCDP'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
-// import useMintState from './useMintState'
-import { buildBidMsg } from '@/services/liquidation'
-import useBidState from './useBidState'
-import { decodeMsgs } from '@/helpers/decodeMsg'
-import { useAssetBySymbol } from '@/hooks/useAssets'
 import { shiftDigits } from '@/helpers/math'
-import { coin } from '@cosmjs/stargate'
+import { useAssetBySymbol } from '@/hooks/useAssets'
 import { queryClient } from '@/pages/_app'
+import { buildBidMsg } from '@/services/liquidation'
+import { coin } from '@cosmjs/stargate'
+import useBidState from './useBidState'
 
 type Props = {
   txSuccess?: () => void

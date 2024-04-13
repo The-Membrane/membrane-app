@@ -1,12 +1,4 @@
-import { Box, HStack, Image, Stack, Text } from '@chakra-ui/react'
-import {
-  ChakraStylesConfig,
-  GroupBase,
-  OptionProps,
-  Select as ChakraSelect,
-  SingleValue,
-  chakraComponents,
-} from 'chakra-react-select'
+import { Select as ChakraSelect, ChakraStylesConfig, OptionProps } from 'chakra-react-select'
 
 const chakraStyles: ChakraStylesConfig = {
   singleValue: (provided, state) => ({
@@ -74,10 +66,6 @@ const Select = ({ options, onChange, value }: Props) => {
       value={value}
       options={options}
       onChange={onChange}
-      // components={{
-      //   // Option: CustomOption,
-      //   SingleValue: CustomSelectValue,
-      // }}
     />
   )
 }

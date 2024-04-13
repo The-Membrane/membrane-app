@@ -36,8 +36,6 @@ const SummaryItem = ({
       </HStack>
     </Stack>
 
-    {/* 5 CDT BID on ATOM at 5% premium */}
-
     <HStack
       key={label}
       justifyContent="space-between"

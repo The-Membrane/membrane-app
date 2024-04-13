@@ -241,21 +241,6 @@ export const getMaxLTV = (
   return maxBorrowLTV.toNumber()
 }
 
-// export const getMaxLTV = (
-//   tvl: number,
-//   positions: Positions[],
-//   basketAssets: BasketAsset[] = [],
-// ) => {
-//   const positionsWithRatio = getAssetRatio(tvl, positions)
-
-//   const maxLTV = positionsWithRatio.reduce((acc, position) => {
-//     const ltv = basketAssets.find((asset) => asset?.asset?.base === position.denom)?.maxLTV || 0
-//     return acc.plus(num(position.ratio).times(100).times(ltv))
-//   }, num(0))
-
-//   return maxLTV.toNumber()
-// }
-
 export const getLiqudationLTV = (
   tvl: number,
   positions: Positions[],

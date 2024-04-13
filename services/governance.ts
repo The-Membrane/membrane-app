@@ -3,7 +3,6 @@ import {
   GovernanceClient,
   GovernanceQueryClient,
 } from '@/contracts/codegen/governance/Governance.client'
-import { GovernanceMsgComposer } from '@/contracts/codegen/governance/Governance.message-composer'
 import {
   Addr,
   Config,
@@ -13,7 +12,6 @@ import {
 } from '@/contracts/codegen/governance/Governance.types'
 import getCosmWasmClient from '@/helpers/comswasmClient'
 import { num } from '@/helpers/num'
-import { coin } from '@cosmjs/amino'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import dayjs from 'dayjs'
 
@@ -25,105 +23,6 @@ export const getGovernanceClient = async () => {
 export const getSigningGovernanceClient = (signingClient: SigningCosmWasmClient, address: Addr) => {
   return new GovernanceClient(signingClient, address, contracts.governance)
 }
-
-const mockProposal = [
-  {
-    proposal_id: '9945',
-    submitter: 'osmo1988s5h45qwkaqch8km4ceagw2e08vdw28mwk4n',
-    status: 'active',
-    aligned_power: '786875',
-    for_power: '4289864',
-    against_power: '0',
-    amendment_power: '0',
-    removal_power: '0',
-    start_block: 13590102,
-    start_time: 1706905814,
-    end_block: 13633302,
-    delayed_end_block: 13633303,
-    expiration_block: 13834903,
-    title: 'Add Axelar ETH to the Oracle',
-    description: 'Add ETHaxl to the oracle',
-    messages: [
-      {
-        order: '1',
-        msg: {
-          wasm: {
-            execute: {
-              contract_addr: 'osmo16sgcpe0hcs42qk5vumk06jzmstkpka9gjda9tfdelwn65ksu3l7s7d4ggs',
-              msg: 'ewogICJhZGRfYXNzZXQiOiB7CiAgICAiYXNzZXRfaW5mbyI6IHsKICAgICAgIm5hdGl2ZV90b2tlbiI6IHsKICAgICAgICAiZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiCiAgICAgIH0KICAgIH0sCiAgICAib3JhY2xlX2luZm8iOiB7CiAgICAgICJiYXNrZXRfaWQiOiAiMSIsCiAgICAgICJkZWNpbWFscyI6IDE4LAogICAgICAibHBfcG9vbF9pbmZvIjogbnVsbCwKICAgICAgInBvb2xzX2Zvcl9vc21vX3R3YXAiOiBbCiAgICAgICAgewogICAgICAgICAgImJhc2VfYXNzZXRfZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiLAogICAgICAgICAgInBvb2xfaWQiOiA3MDQsCiAgICAgICAgICAicXVvdGVfYXNzZXRfZGVub20iOiAidW9zbW8iCiAgICAgICAgfQogICAgICBdLAogICAgICAiaXNfdXNkX3BhciI6IGZhbHNlCiAgICB9CiAgfQp9',
-              funds: [],
-            },
-          },
-        },
-      },
-    ],
-    link: 'https://discord.com/channels/1060217330258432010/1194692158549151764',
-  },
-  {
-    proposal_id: '29495',
-    submitter: 'osmo1988s5h45qwkaqch8km4ceagw2e08vdw28mwk4n',
-    status: 'passed',
-    aligned_power: '786875',
-    for_power: '4289864',
-    against_power: '0',
-    amendment_power: '0',
-    removal_power: '0',
-    start_block: 13590102,
-    start_time: 1706905814,
-    end_block: 13633302,
-    delayed_end_block: 13633303,
-    expiration_block: 13834903,
-    title: 'Add Axelar ETH to the Oracle',
-    description: 'Add ETHaxl to the oracle',
-    messages: [
-      {
-        order: '1',
-        msg: {
-          wasm: {
-            execute: {
-              contract_addr: 'osmo16sgcpe0hcs42qk5vumk06jzmstkpka9gjda9tfdelwn65ksu3l7s7d4ggs',
-              msg: 'ewogICJhZGRfYXNzZXQiOiB7CiAgICAiYXNzZXRfaW5mbyI6IHsKICAgICAgIm5hdGl2ZV90b2tlbiI6IHsKICAgICAgICAiZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiCiAgICAgIH0KICAgIH0sCiAgICAib3JhY2xlX2luZm8iOiB7CiAgICAgICJiYXNrZXRfaWQiOiAiMSIsCiAgICAgICJkZWNpbWFscyI6IDE4LAogICAgICAibHBfcG9vbF9pbmZvIjogbnVsbCwKICAgICAgInBvb2xzX2Zvcl9vc21vX3R3YXAiOiBbCiAgICAgICAgewogICAgICAgICAgImJhc2VfYXNzZXRfZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiLAogICAgICAgICAgInBvb2xfaWQiOiA3MDQsCiAgICAgICAgICAicXVvdGVfYXNzZXRfZGVub20iOiAidW9zbW8iCiAgICAgICAgfQogICAgICBdLAogICAgICAiaXNfdXNkX3BhciI6IGZhbHNlCiAgICB9CiAgfQp9',
-              funds: [],
-            },
-          },
-        },
-      },
-    ],
-    link: 'https://discord.com/channels/1060217330258432010/1194692158549151764',
-  },
-  {
-    proposal_id: '294895',
-    submitter: 'osmo1feygna5jhurw8m53ze9z2deqrwm36tksxj8r3g',
-    status: 'pending',
-    aligned_power: '786875',
-    for_power: '4289864',
-    against_power: '0',
-    amendment_power: '0',
-    removal_power: '0',
-    start_block: 13590102,
-    start_time: 1706905814,
-    end_block: 13633302,
-    delayed_end_block: 13633303,
-    expiration_block: 13834903,
-    title: 'Add Axelar ETH to the Oracle',
-    description: 'Add ETHaxl to the oracle',
-    messages: [
-      {
-        order: '1',
-        msg: {
-          wasm: {
-            execute: {
-              contract_addr: 'osmo16sgcpe0hcs42qk5vumk06jzmstkpka9gjda9tfdelwn65ksu3l7s7d4ggs',
-              msg: 'ewogICJhZGRfYXNzZXQiOiB7CiAgICAiYXNzZXRfaW5mbyI6IHsKICAgICAgIm5hdGl2ZV90b2tlbiI6IHsKICAgICAgICAiZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiCiAgICAgIH0KICAgIH0sCiAgICAib3JhY2xlX2luZm8iOiB7CiAgICAgICJiYXNrZXRfaWQiOiAiMSIsCiAgICAgICJkZWNpbWFscyI6IDE4LAogICAgICAibHBfcG9vbF9pbmZvIjogbnVsbCwKICAgICAgInBvb2xzX2Zvcl9vc21vX3R3YXAiOiBbCiAgICAgICAgewogICAgICAgICAgImJhc2VfYXNzZXRfZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiLAogICAgICAgICAgInBvb2xfaWQiOiA3MDQsCiAgICAgICAgICAicXVvdGVfYXNzZXRfZGVub20iOiAidW9zbW8iCiAgICAgICAgfQogICAgICBdLAogICAgICAiaXNfdXNkX3BhciI6IGZhbHNlCiAgICB9CiAgfQp9',
-              funds: [],
-            },
-          },
-        },
-      },
-    ],
-    link: 'https://discord.com/channels/1060217330258432010/1194692158549151764',
-  },
-]
 
 type Ratio = {
   forRatio: number
@@ -139,14 +38,6 @@ export type ProposalResponse = ProposalResponseType & {
   result: string
   ratio: Ratio
 }
-
-// const totalVotes = Math.max(
-//   parseInt(proposal.for_power) +
-//     parseInt(proposal.against_power) +
-//     parseInt(proposal.amendment_power) +
-//     parseInt(proposal.removal_power),
-//   1
-// );
 
 export const calcuateRatio = (proposal: ProposalResponse, config: Config) => {
   const { for_power, amendment_power, removal_power, against_power, aligned_power } = proposal

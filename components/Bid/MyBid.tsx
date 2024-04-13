@@ -94,7 +94,7 @@ const MyBid = () => {
     })
   }
 
-  const isDisabled = bidState?.updateBids?.length === 0
+  const isDisabled = !bidState?.updateBids?.length
 
   if (bids.length === 0) {
     return (

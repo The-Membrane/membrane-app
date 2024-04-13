@@ -150,7 +150,7 @@ const DelegateList = () => {
     setDelegateState({ delegations: [] })
   }
 
-  const isDisabled = delegateState?.delegations?.some((delegation) => delegation.newAmount === 0)
+  const isDisabled = !delegateState?.delegations?.length
 
   return (
     <Stack w="full">

@@ -2,6 +2,7 @@ import contracts from '@/config/contracts.json'
 import { GovernanceMsgComposer } from '@/contracts/codegen/governance/Governance.message-composer'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
+import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 
@@ -37,7 +38,7 @@ const useSubmitProposal = ({ values, enabled }: Props) => {
   })
 
   const onSuccess = () => {
-    // queryClient.invalidateQueries({ queryKey: ['delegations'] })
+    queryClient.invalidateQueries({ queryKey: ['proposals'] })
   }
 
   return useSimulateAndBroadcast({

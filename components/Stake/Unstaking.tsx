@@ -9,7 +9,7 @@ import useClaimUnstake from './hooks/useClaimUnstake'
 
 type Props = {}
 
-const getTimeLeft = (unstakeStartDate) => {
+const getTimeLeft = (unstakeStartDate: number) => {
   const unstakingDate = dayjs.unix(unstakeStartDate).add(4, 'day')
   const daysLeft = unstakingDate.diff(dayjs(), 'day')
   const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
@@ -22,7 +22,7 @@ const getTimeLeft = (unstakeStartDate) => {
   }
 }
 
-const DaysLeft = ({ unstakeStartDate }) => {
+const DaysLeft = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
   const { daysLeft, hoursLeft, minutesLeft } = getTimeLeft(unstakeStartDate)
 
   if (minutesLeft <= 0) {
@@ -40,7 +40,7 @@ const DaysLeft = ({ unstakeStartDate }) => {
   }
 }
 
-const ClaimButton = ({ unstakeStartDate }) => {
+const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
   const { minutesLeft } = getTimeLeft(unstakeStartDate)
   const claim = useClaimUnstake()
 
@@ -81,7 +81,7 @@ const Unstaking = (props: Props) => {
         <Image src={mbrn?.logo} w="40px" h="40px" />
         <Text>{mbrn?.symbol}</Text>
       </HStack>
-      {unstaking?.map((unstake, index) => (
+      {unstaking?.map((unstake: any, index: number) => (
         <HStack key={'unstake' + index} justifyContent="space-between">
           <Text w="full">{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
           <DaysLeft unstakeStartDate={unstake?.unstake_start_time} />

@@ -1,9 +1,6 @@
-import { Box, Image, Stack } from '@chakra-ui/react'
-import React, { Fragment } from 'react'
+import { Box, Image } from '@chakra-ui/react'
 
-type Props = {}
-
-const Filtration = (props: Props) => {
+const Filtration = () => {
   return (
     <Box zIndex={100}>
       <Image

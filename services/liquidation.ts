@@ -1,17 +1,14 @@
 import contracts from '@/config/contracts.json'
-import { LaunchClient, LaunchQueryClient } from '@/contracts/codegen/launch/Launch.client'
-import { AssetInfo, UserRatio } from '@/contracts/codegen/launch/Launch.types'
 import {
-  LiquidationQueueQueryClient,
   LiquidationQueueClient,
+  LiquidationQueueQueryClient,
 } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.client'
 import { LiquidationQueueMsgComposer } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.message-composer'
 import { Addr } from '@/contracts/generated/positions/Positions.types'
-import { Asset, getAssetBySymbol } from '@/helpers/chain'
+import { Asset } from '@/helpers/chain'
 import getCosmWasmClient from '@/helpers/comswasmClient'
-import { shiftDigits } from '@/helpers/math'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
-import { Coin, coin } from '@cosmjs/stargate'
+import { Coin } from '@cosmjs/stargate'
 
 export const liquidationClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()

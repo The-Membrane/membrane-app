@@ -5,8 +5,6 @@ import MyBid from './MyBid'
 import ClaimLiqudation from './ClaimLiqudation'
 import StabilityPool from './StabilityPool'
 
-type Props = {}
-
 const CustomTab = ({ children }: PropsWithChildren) => (
   <Tab
     color="white"
@@ -18,7 +16,7 @@ const CustomTab = ({ children }: PropsWithChildren) => (
   </Tab>
 )
 
-const BidAction = (props: Props) => {
+const BidAction = () => {
   return (
     <Tabs variant="soft-rounded" size="sm" colorScheme="primary">
       <HStack w="full">

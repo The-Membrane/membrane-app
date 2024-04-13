@@ -1,4 +1,3 @@
-import TxError from '@/components/TxError'
 import { setInitialMintState } from '@/helpers/mint'
 import { num } from '@/helpers/num'
 import { Divider, TabPanel, Text } from '@chakra-ui/react'
@@ -62,7 +61,6 @@ const TakeAction = () => {
       <LTVWithSlider label="Mintable LTV" value={sliderValue} />
       <ActionButtons onRest={onRest} />
       <OverDraftMessage show={mintState.overdraft} />
-      {/* <TxError mt="3" action={mint} /> */}
     </TabPanel>
   )
 }

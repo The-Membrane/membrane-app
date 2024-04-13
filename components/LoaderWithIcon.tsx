@@ -2,9 +2,7 @@ import useWallet from '@/hooks/useWallet'
 import { Box, Spinner, Image } from '@chakra-ui/react'
 import React from 'react'
 
-type Props = {}
-
-const LoaderWithIcon = (props: Props) => {
+const LoaderWithIcon = () => {
   const { wallet } = useWallet()
 
   return (

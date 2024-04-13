@@ -1,9 +1,8 @@
 import ConfirmModal from '@/components/ConfirmModal'
-import TxError from '@/components/TxError'
+import { num } from '@/helpers/num'
 import { ClaimSummary } from './ClaimSummary'
 import useCheckClaims from './hooks/useCheckClaims'
 import useClaimLiquidation from './hooks/useClaimLiquidation'
-import { num } from '@/helpers/num'
 
 const ClaimLiqudation = () => {
   const { data: claims } = useCheckClaims()

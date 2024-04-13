@@ -1,7 +1,6 @@
 import {
   Card,
   HStack,
-  Stack,
   Tab,
   TabIndicator,
   TabList,
@@ -10,11 +9,10 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import BeakerScale from './BeakerScale'
+import Beaker from './Beaker'
 import CurrentPositions from './CurrentPositions'
 import TakeAction from './TakeAction'
 import useMintState from './hooks/useMintState'
-import Beaker from './Beaker'
 
 const CustomeTab = ({ label }: { label: string }) => (
   <Tab zIndex={1} _selected={{ color: 'white' }}>

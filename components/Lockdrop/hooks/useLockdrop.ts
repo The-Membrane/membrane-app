@@ -7,19 +7,18 @@ import {
   lockdropClient,
 } from '@/services/lockdrop'
 import { useQuery } from '@tanstack/react-query'
-import useWallet from '../../../hooks/useWallet'
-
+import useWallet from '@/hooks/useWallet'
 
 export const useLockdropClient = () => {
   return useQuery({
-    queryKey: 'lockdrop client',
+    queryKey: ['lockdrop client'],
     queryFn: lockdropClient,
   })
 }
 
 export const useLockdrop = () => {
   return useQuery({
-    queryKey: 'lockdrop',
+    queryKey: ['lockdrop'],
     queryFn: getLockdrop,
   })
 }

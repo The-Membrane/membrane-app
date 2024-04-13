@@ -2,9 +2,7 @@ import { HStack, Heading } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import React from 'react'
 
-type Props = {}
-
-const Header = (props: Props) => {
+const Header = () => {
   const router = useRouter()
 
   const pageName = router.pathname.split('/')?.[1]

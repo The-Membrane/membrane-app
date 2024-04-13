@@ -1,9 +1,7 @@
 import { HStack, Stack } from '@chakra-ui/react'
-import MyBid from './MyBid'
-import PlaceBid from './PlaceBid'
-import Risk from './Risk'
-import Filtration from './Filtration'
 import BidAction from './BidAction'
+import Filtration from './Filtration'
+import Risk from './Risk'
 
 const Bid = () => {
   return (

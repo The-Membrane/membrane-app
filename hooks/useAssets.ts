@@ -1,4 +1,4 @@
-import { Asset, getAssets } from '@/helpers/chain'
+import { Asset, getChainAssets } from '@/helpers/chain'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 
@@ -6,7 +6,7 @@ const useAssets = () => {
   const { data: assets } = useQuery({
     queryKey: ['assets'],
     queryFn: async () => {
-      return getAssets()
+      return getChainAssets()
     },
   })
 

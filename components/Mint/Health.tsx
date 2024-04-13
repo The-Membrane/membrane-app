@@ -1,8 +1,7 @@
-import { Box, Text } from '@chakra-ui/react'
-import React, { useMemo } from 'react'
-import { useCurrentPosition } from './hooks/useCurrentPosition'
-import useVaultSummary from './hooks/useVaultSummary'
 import { num } from '@/helpers/num'
+import { Box, Text } from '@chakra-ui/react'
+import { useMemo } from 'react'
+import useVaultSummary from './hooks/useVaultSummary'
 
 type Props = {}
 

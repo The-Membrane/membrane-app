@@ -2,14 +2,10 @@ import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
-// import useMintState from './useMintState'
 import { shiftDigits } from '@/helpers/math'
-import { useAssetBySymbol } from '@/hooks/useAssets'
 import { queryClient } from '@/pages/_app'
 import { buildRetractBidMsg } from '@/services/liquidation'
-import { coin } from '@cosmjs/stargate'
 import useBidState from './useBidState'
-import { decodeMsgs } from '@/helpers/decodeMsg'
 
 type Props = {
   txSuccess?: () => void

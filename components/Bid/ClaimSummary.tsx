@@ -1,13 +1,9 @@
+import { ClaimsResponse } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.types'
+import { getAssetByDenom } from '@/helpers/chain'
+import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
-import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Asset } from '@chain-registry/types'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
-import useStakeState from './hooks/useStakeState'
-import { getAssetByDenom, getAssetLogo } from '@/helpers/chain'
-import { ClaimsResponse } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.types'
-import { shiftDigits } from '@/helpers/math'
-// import { AssetWithBalance } from './hooks/useCombinBalance'
-// import useMintState from './hooks/useMintState'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -66,12 +62,6 @@ type Props = {
 }
 
 export const ClaimSummary = ({ claims = [] }: Props) => {
-  // const { stakeState } = useStakeState()
-  // const { asset, amount } = stakeState
-  // const logo = getAssetLogo(asset!)
-
-  // const txType = num(amount).isGreaterThan(0) ? 'Stake' : 'Unstake'
-
   return (
     <Stack h="max-content" overflow="auto" w="full">
       {claims

@@ -219,16 +219,42 @@ export const getMaxLTV = (
   tvl: number,
   positions: Positions[],
   basketAssets: BasketAsset[] = [],
+  summary: any[] = [],
 ) => {
-  const positionsWithRatio = getAssetRatio(tvl, positions)
+  const newPositions = summary.map((position) => ({
+    denom: position.base,
+    usdValue: position.amountValue,
+  })) as Positions[]
+  const filterPositions = positions.filter((position) => {
+    return !newPositions.find((newPosition) => newPosition.denom === position.denom)
+  })
+  const positionsWithRatio = getAssetRatio(tvl, [...filterPositions, ...newPositions])
 
-  const maxLTV = positionsWithRatio.reduce((acc, position) => {
-    const ltv = basketAssets.find((asset) => asset?.asset?.base === position.denom)?.maxLTV || 0
-    return acc.plus(num(position.ratio).times(100).times(ltv))
+  const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => {
+    const ltv =
+      basketAssets.find((asset) => asset?.asset?.base === position.denom)?.maxBorrowLTV || 0
+    const assetValue = num(position.ratio).times(tvl)
+
+    return acc.plus(assetValue.times(ltv))
   }, num(0))
 
-  return maxLTV.toNumber()
+  return maxBorrowLTV.toNumber()
 }
+
+// export const getMaxLTV = (
+//   tvl: number,
+//   positions: Positions[],
+//   basketAssets: BasketAsset[] = [],
+// ) => {
+//   const positionsWithRatio = getAssetRatio(tvl, positions)
+
+//   const maxLTV = positionsWithRatio.reduce((acc, position) => {
+//     const ltv = basketAssets.find((asset) => asset?.asset?.base === position.denom)?.maxLTV || 0
+//     return acc.plus(num(position.ratio).times(100).times(ltv))
+//   }, num(0))
+
+//   return maxLTV.toNumber()
+// }
 
 export const getLiqudationLTV = (
   tvl: number,
@@ -255,6 +281,7 @@ export type MaxMint = {
   debtAmount: number
   positions: Positions[]
   basketAssets: BasketAsset[]
+  summary?: any[]
 }
 export const getMintAmount = ({
   tvl,
@@ -262,8 +289,9 @@ export const getMintAmount = ({
   debtAmount,
   positions,
   basketAssets,
+  summary = [],
 }: MaxMint) => {
-  const ltv = getBorrowLTV(tvl, positions, basketAssets)
+  const ltv = getBorrowLTV(tvl, positions, basketAssets, summary)
 
   const creditPriceAdjusted = Math.max(creditPrice, 1)
   return num(tvl)
@@ -282,6 +310,7 @@ type VaultSummary = {
   summary?: any[]
   mint?: number
   repay?: number
+  newDebtAmount?: number
 }
 
 const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
@@ -311,6 +340,7 @@ export const calculateVaultSummary = ({
   summary = [],
   mint = 0,
   repay = 0,
+  newDebtAmount = 0,
 }: VaultSummary) => {
   if (!basket || !collateralInterest || !basketPositions || !prices) {
     return {
@@ -337,8 +367,9 @@ export const calculateVaultSummary = ({
   const initialLTV = getLTV(initialTVL, debtAmount)
   const creditPrice = Number(basket?.credit_price.price) || 1
   const liqudationLTV = getLiqudationLTV(tvl, positions, basketAssets)
-  const borrowLTV = getBorrowLTV(tvl, positions, basketAssets)
+  const borrowLTV = getBorrowLTV(tvl, positions, basketAssets, summary)
   const initialBorrowLTV = getBorrowLTV(initialTVL, initialPositions, basketAssets)
+  const maxLTV = getMaxLTV(tvl, positions, basketAssets, summary)
 
   const mintAmount = getMintAmount({
     tvl,
@@ -346,6 +377,7 @@ export const calculateVaultSummary = ({
     debtAmount,
     positions,
     basketAssets,
+    summary,
   })
 
   const liquidValue = getLiquidValue({
@@ -357,11 +389,13 @@ export const calculateVaultSummary = ({
   })
 
   return {
+    newDebtAmount,
     debtAmount,
     cost,
     tvl,
     ltv,
     borrowLTV,
+    maxLTV,
     liquidValue,
     liqudationLTV,
     initialLTV,

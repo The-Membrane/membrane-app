@@ -98,7 +98,7 @@ export const setInitialMintState = ({
 
   const assetsWithValuesGreaterThanZero = combinBalance
     ?.filter((asset) => {
-      return num(asset.combinUsdValue || 0).isGreaterThan(0)
+      return num(asset.combinUsdValue || 0).isGreaterThan(1)
     })
     .map((asset) => ({
       ...asset,
@@ -117,6 +117,7 @@ export const setInitialMintState = ({
     summary: [],
     totalUsdValue: 0,
     overdraft: false,
+    newDebtAmount: 0,
   })
 }
 

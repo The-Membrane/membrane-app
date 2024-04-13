@@ -21,6 +21,7 @@ const useVaultSummary = () => {
       summary: mintState?.summary,
       mint: mintState?.mint,
       repay: mintState?.repay,
+      newDebtAmount: mintState?.newDebtAmount,
     })
   }, [
     basketPositions,
@@ -31,6 +32,7 @@ const useVaultSummary = () => {
     mintState?.summary,
     mintState?.mint,
     mintState?.repay,
+    mintState?.newDebtAmount,
   ])
 }
 

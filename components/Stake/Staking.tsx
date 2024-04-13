@@ -52,8 +52,13 @@ const Stakeing = () => {
 
   const onRest = () => {
     setStakeAmount(stakedBalance)
-    setStakeState({})
+    setStakeState({
+      amount: '0',
+      txType: undefined,
+    })
   }
+
+  const isDisabled = num(stakeState.amount).isLessThanOrEqualTo(0)
 
   if (num(totalBalance).isLessThanOrEqualTo(0)) {
     return (
@@ -94,13 +99,10 @@ const Stakeing = () => {
           Reset
         </Button>
 
-        <ConfirmModal label={stakeState.txType || 'Stake'} action={stake}>
+        <ConfirmModal label={stakeState.txType || 'Stake'} action={stake} isDisabled={isDisabled}>
           <Summary />
-          <TxError action={stake} />
         </ConfirmModal>
       </HStack>
-
-      <TxError action={stake} />
     </Stack>
   )
 }

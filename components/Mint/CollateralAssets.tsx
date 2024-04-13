@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
   return combinBalance
     ?.filter((asset) => {
-      return num(asset.combinUsdValue || 0).isGreaterThan(0)
+      return num(asset.combinUsdValue || 0).isGreaterThan(1)
     })
     .map((asset) => ({
       ...asset,
@@ -25,7 +25,6 @@ const CollateralAssets = () => {
 
   useEffect(() => {
     const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance)
-
     setMintState({ assets: assetsWithValuesGreaterThanZero })
   }, [combinBalance])
 

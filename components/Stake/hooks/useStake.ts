@@ -12,9 +12,7 @@ import { useQuery } from '@tanstack/react-query'
 import useStakeState from './useStakeState'
 import { queryClient } from '@/pages/_app'
 
-type UseStake = {
-  amount: string
-}
+type UseStake = {}
 
 const useStakeing = ({}: UseStake) => {
   const { address } = useWallet()
@@ -23,7 +21,7 @@ const useStakeing = ({}: UseStake) => {
   const { amount, txType } = stakeState
 
   const { data: stakeMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[]>({
-    queryKey: ['msg', address, mbrnAsset?.base, contracts.staking, amount, txType],
+    queryKey: ['staking', 'msg', address, mbrnAsset?.base, contracts.staking, amount, txType],
     queryFn: async () => {
       if (!address || !mbrnAsset) return [] as MsgExecuteContractEncodeObject[]
 

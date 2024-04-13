@@ -7,5 +7,6 @@ export const useOraclePrice = () => {
     queryFn: async () => {
       return getOraclePrices()
     },
+    refetchInterval: 1000 * 60 * 10, // refetch every 10 minutes
   })
 }

@@ -11,6 +11,7 @@ export const parseError = (error: Error) => {
     { regex: /is below minimum/i, message: 'Minimum 100 CDT to mint' },
     { regex: /invalid coin/i, message: 'Invalid coins provided' },
     { regex: /tx already exists in cache/i, message: 'Transaction already exists in cache' },
+    { regex: /Makes position insolvent/i, message: 'Amount exceeds the maximum LTV' },
     { regex: /You don't have any voting power!/i, message: "You don't have any voting power!" },
     { regex: /Bid amount too small, minimum is 5000000/i, message: 'Minimum bid amount is 5 CDT' },
     {

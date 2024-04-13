@@ -22,7 +22,6 @@ import useWithdrawStabilityPool from './hooks/useWithdrawStabilityPool'
 
 const UnstakeButton = ({ amount }: { amount: string }) => {
   const withdraw = useWithdrawStabilityPool(amount)
-  console.log({ withdraw })
   return (
     <TxButton
       w="150px"

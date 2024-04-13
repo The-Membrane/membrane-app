@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react'
-import { Text } from '@chakra-ui/react'
+import { Text, TextProps } from '@chakra-ui/react'
 import { parseError } from '@/helpers/parseError'
 import { Action } from '@/types/tx'
 
-type Props = {
+type Props = TextProps & {
   action: Action
 }
 
-const TxError = ({ action }: Props) => {
+const TxError = ({ action, ...textProps }: Props) => {
   const { isError, error } = action?.simulate || {}
   if (!isError) return null
 
@@ -17,7 +17,7 @@ const TxError = ({ action }: Props) => {
   }, [error])
 
   return (
-    <Text fontSize="sm" color="red.500">
+    <Text fontSize="sm" color="red.500" {...textProps}>
       {errorMessage}
     </Text>
   )

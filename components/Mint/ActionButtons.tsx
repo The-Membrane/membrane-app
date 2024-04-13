@@ -22,10 +22,9 @@ const ActionButtons = ({ onRest }: Props) => {
           mintState.repay ?? 0 > 0 ? 'Repay' : mintState.mint ?? 0 > 0 ? 'Mint' : 'Update Assets'
         }
         action={mint}
-        isDisabled={mintState?.overdraft || summary?.length === 0}
+        isDisabled={mintState?.overdraft || !summary?.length}
       >
         <Summary />
-        {/* <TxError action={mint} /> */}
       </ConfirmModal>
       <Button variant="ghost" leftIcon={<GrPowerReset />} onClick={onRest}>
         Reset

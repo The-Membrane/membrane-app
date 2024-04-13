@@ -1,17 +1,16 @@
-import TxError from '@/components/TxError'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { Button, HStack, Link, Stack, Text } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
+import { GrPowerReset } from 'react-icons/gr'
 import ConfirmModal from '../ConfirmModal'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { Summary } from './Summary'
 import useStakeing from './hooks/useStake'
 import useStakeState from './hooks/useStakeState'
 import useStaked from './hooks/useStaked'
-import { GrPowerReset } from 'react-icons/gr'
 
 const Stakeing = () => {
   const [stakeAmount, setStakeAmount] = useState(0)

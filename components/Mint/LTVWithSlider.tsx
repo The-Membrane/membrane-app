@@ -1,9 +1,9 @@
 import { num } from '@/helpers/num'
 import { HStack, Stack, Text } from '@chakra-ui/react'
+import { useMemo } from 'react'
 import { SliderWithState } from './SliderWithState'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
-import { useEffect, useMemo } from 'react'
 
 export type LTVWithSliderProps = {
   label: string

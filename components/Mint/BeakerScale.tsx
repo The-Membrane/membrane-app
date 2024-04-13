@@ -1,7 +1,7 @@
 import { num } from '@/helpers/num'
-import { Box, Image } from '@chakra-ui/react'
+import { Image } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import React, { Fragment, useMemo } from 'react'
+import { useMemo } from 'react'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 
@@ -21,7 +21,8 @@ export const BeakerLiquid = () => {
   if (!num(percent).isGreaterThan(0)) return null
 
   var color = 'blue'
-  if (health <= (1 - (borrowLTV / liqudationLTV)) * 100 && health > 10 && health < 100) color = 'sewage'
+  if (health <= (1 - borrowLTV / liqudationLTV) * 100 && health > 10 && health < 100)
+    color = 'sewage'
   if (health <= 10) color = 'red'
 
   return (
@@ -47,18 +48,4 @@ export const BeakerLiquid = () => {
   )
 }
 
-const BeakerScale = () => {
-  return <BeakerLiquid />
-}
-// const BeakerScale = () => {
-//   return (
-//     <Fragment>
-//       <Box position="absolute" left="889px" top="391px" zIndex={2} transform="scale(0.85)">
-//         <Image src="/images/beaker_lines.svg" />
-//       </Box>
-//       <BeakerLiquid />
-//     </Fragment>
-//   )
-// }
-
-export default BeakerScale
+export default BeakerLiquid

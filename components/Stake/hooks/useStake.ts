@@ -2,15 +2,13 @@ import contracts from '@/config/contracts.json'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import useSimulate from '@/hooks/useSimulate'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import useTransaction from '@/hooks/useTransaction'
 import useWallet from '@/hooks/useWallet'
+import { queryClient } from '@/pages/_app'
 import { coin } from '@cosmjs/amino'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useStakeState from './useStakeState'
-import { queryClient } from '@/pages/_app'
 
 type UseStake = {}
 

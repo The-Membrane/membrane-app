@@ -241,13 +241,18 @@ const getQuorum = async (proposal: Proposal) => {
 
   const totalVotingPower = await getTotalVotingPower(proposal)
 
+  var standardized_align_power =  num(aligned_power)
+        .minus(config.proposal_required_stake)
+        .plus(num(config.proposal_required_stake).sqrt())
+        
+  
   const power = num(against_power)
     .plus(for_power)
-    .plus(aligned_power)
+    .plus(standardized_align_power)
     .plus(amendment_power)
     .plus(removal_power)
 
-  const multiplier = num(100).div(totalVotingPower)
+  // const multiplier = num(100).div(totalVotingPower)
 
   const q = power.div(totalVotingPower).dp(2).toNumber()
   return num(q).isLessThan(1) ? num(q).times(100).toNumber() : q

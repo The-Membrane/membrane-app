@@ -237,6 +237,7 @@ const getTotalVotingPower = async (proposal: Proposal) => {
 }
 
 const getQuorum = async (proposal: Proposal) => {
+  const config = await getConfig()
   const { against_power, for_power, aligned_power, amendment_power, removal_power } = proposal
 
   const totalVotingPower = await getTotalVotingPower(proposal)

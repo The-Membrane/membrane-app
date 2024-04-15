@@ -93,7 +93,7 @@ const LockChart = () => {
       <HStack w="full" alignSelf="center">
         <Stack w="full" gap="0">
           <Text variant="label" fontSize="xl">
-            {num(inCentivesAmount).dp(6).toString()} MBRN
+            {num(inCentivesAmount).dp(-6).toString()} MBRN
           </Text>
           <Text fontSize="xs" color="gray">
             Rank: {userRanking} / {totalRanking}

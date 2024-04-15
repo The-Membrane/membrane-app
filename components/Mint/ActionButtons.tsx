@@ -22,7 +22,7 @@ const ActionButtons = ({ onRest }: Props) => {
           mintState.repay ?? 0 > 0 ? 'Repay' : mintState.mint ?? 0 > 0 ? 'Mint' : 'Update Assets'
         }
         action={mint}
-        isDisabled={mintState?.overdraft || (!summary?.length && (!mintState?.mint || !mintState?.repay))}
+        isDisabled={mintState?.overdraft || (!summary?.length && (!mintState?.mint && !mintState?.repay))}
       >
         <Summary />
       </ConfirmModal>

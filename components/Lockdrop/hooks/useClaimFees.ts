@@ -23,7 +23,7 @@ const useClaimFees = () => {
   })
 
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['allocatiions'] })
+    queryClient.invalidateQueries({ queryKey: ['allocations'] })
   }
 
   return useSimulateAndBroadcast({

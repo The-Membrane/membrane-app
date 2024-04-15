@@ -4,6 +4,8 @@ import { useMemo } from 'react'
 import { SliderWithState } from './SliderWithState'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
+import { useBalanceByAsset } from '@/hooks/useBalance'
+import { useAssetBySymbol } from '@/hooks/useAssets'
 
 export type LTVWithSliderProps = {
   label: string
@@ -13,6 +15,8 @@ export type LTVWithSliderProps = {
 export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
   const { setMintState } = useMintState()
   const { maxLTV = 0, debtAmount } = useVaultSummary()
+  const CDT = useAssetBySymbol('CDT')
+  const walletCDT = useBalanceByAsset(CDT)
 
   const max = useMemo(() => {
     if (isNaN(maxLTV)) return 0
@@ -24,12 +28,13 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     const newValue = num(value).dp(2).toNumber()
     const diff = num(debtAmount).minus(newValue).abs().toNumber()
     let mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0
-    const repay = num(newValue).isLessThan(debtAmount) ? diff : 0
+    var repay = num(newValue).isLessThan(debtAmount) ? diff : 0
     const ltvSlider = num(newValue).times(100).dividedBy(maxLTV).dp(2).toNumber()
 
-    // if (mint > max) {
-    //   mint = max
-    // }
+    console.log(repay, walletCDT)
+    if (repay > parseInt(walletCDT)) {
+      repay = parseInt(walletCDT)
+    }
 
     setMintState({ mint, repay, ltvSlider, newDebtAmount: newValue })
   }

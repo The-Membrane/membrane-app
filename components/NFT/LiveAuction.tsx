@@ -4,6 +4,9 @@ import useIPFS from "./hooks/useLiveNFTAuction";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
 //ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm
+
+
+//I have to remove anything before the hash (find // and remove starting infront) & then add "https://ipfs-gw.stargaze-apis.com/ipfs/" to the link
 const LiveAuction = () => {
     // useIPFS()
     return (

@@ -31,5 +31,6 @@ export const parseError = (error: Error) => {
   const errorMessage = error?.message || ''
 
   const matchedError = customErrors.find(({ regex }) => regex.test(errorMessage))
-  return matchedError ? matchedError.message : errorMessage //'Something went wrong, please try again'
+  if !matchedError return console.log(errorMessage)
+  return matchedError ? matchedError.message : 'Something went wrong, please try again'
 }

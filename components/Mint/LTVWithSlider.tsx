@@ -6,6 +6,7 @@ import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useAssetBySymbol } from '@/hooks/useAssets'
+import { getSummary } from '@/helpers/mint'
 
 export type LTVWithSliderProps = {
   label: string
@@ -31,12 +32,13 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     var repay = num(newValue).isLessThan(debtAmount) ? diff : 0
     const ltvSlider = num(newValue).times(100).dividedBy(maxLTV).dp(2).toNumber()
 
-    console.log(repay, walletCDT)
     if (repay > parseFloat(walletCDT)) {
       repay = parseFloat(walletCDT)
     }
+    
+    const { summary, totalUsdValue } = getSummary([])
 
-    setMintState({ mint, repay, ltvSlider, newDebtAmount: newValue })
+    setMintState({ mint, repay, ltvSlider, summary, totalUsdValue, newDebtAmount: newValue })
   }
 
   return (

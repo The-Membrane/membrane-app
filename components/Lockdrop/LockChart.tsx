@@ -1,5 +1,5 @@
 import { TxButton } from '@/components/TxButton'
-import { isGreaterThanZero, num } from '@/helpers/num'
+import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
 import { Card, HStack, Stack, Text } from '@chakra-ui/react'
 import { Cell, Label, Pie, PieChart } from 'recharts'
 import useClaim from './hooks/useClaim'
@@ -93,7 +93,7 @@ const LockChart = () => {
       <HStack w="full" alignSelf="center">
         <Stack w="full" gap="0">
           <Text variant="label" fontSize="xl">
-            {num(inCentivesAmount).dp(-6).toString()} MBRN
+          {parseFloat(shiftDigits(((inCentivesAmount??0) as string), -6)).toFixed(2)} MBRN
           </Text>
           <Text fontSize="xs" color="gray">
             Rank: {userRanking} / {totalRanking}

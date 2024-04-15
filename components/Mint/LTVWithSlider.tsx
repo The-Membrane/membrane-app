@@ -32,8 +32,8 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     const ltvSlider = num(newValue).times(100).dividedBy(maxLTV).dp(2).toNumber()
 
     console.log(repay, walletCDT)
-    if (repay > parseInt(walletCDT)) {
-      repay = parseInt(walletCDT)
+    if (repay > parseFloat(walletCDT)) {
+      repay = parseFloat(walletCDT)
     }
 
     setMintState({ mint, repay, ltvSlider, newDebtAmount: newValue })

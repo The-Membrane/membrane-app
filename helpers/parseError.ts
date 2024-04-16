@@ -26,11 +26,16 @@ export const parseError = (error: Error) => {
       regex: /account sequence mismatch/i,
       message: 'Account sequence mismatch, previous tx is still pending try back in some time.',
     },
+    {
+      regex: /unexpected end to json input/i,
+      message: 'Success despite error', 
+    },
   ]
 
   const errorMessage = error?.message || ''
 
   const matchedError = customErrors.find(({ regex }) => regex.test(errorMessage))
   if (!matchedError) console.log(errorMessage)
+  
   return matchedError ? matchedError.message : errorMessage//'Something went wrong, please try again'
 }

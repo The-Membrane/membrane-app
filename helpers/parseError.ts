@@ -27,7 +27,7 @@ export const parseError = (error: Error) => {
       message: 'Account sequence mismatch, previous tx is still pending try back in some time.',
     },
     {
-      regex: /Unexpected end to json input/i,
+      regex: /Unexpected end of JSON input/i,
       message: 'Success despite error', 
     },
   ]

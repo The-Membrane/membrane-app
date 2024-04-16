@@ -1,9 +1,9 @@
 import { num } from '@/helpers/num'
-import { Stack } from '@chakra-ui/react'
+import { Stack, Checkbox } from '@chakra-ui/react'
 import { AssetWithSlider } from './AssetWithSlider'
 import useMintState from './hooks/useMintState'
 import useCombinBalance, { AssetWithBalance } from './hooks/useCombinBalance'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
   return combinBalance
@@ -19,6 +19,7 @@ const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
 }
 
 const CollateralAssets = () => {
+  const [toggle, setToggle] = useState<boolean>(false)
   const { mintState, setMintState } = useMintState()
   const combinBalance = useCombinBalance()
   const { assets } = mintState
@@ -27,6 +28,15 @@ const CollateralAssets = () => {
     const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance)
     setMintState({ assets: assetsWithValuesGreaterThanZero })
   }, [combinBalance])
+
+  useEffect(() => {
+    if (toggle) {
+      setMintState({ assets: combinBalance })
+    } else {
+      const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance)
+      setMintState({ assets: assetsWithValuesGreaterThanZero })
+    }
+  }, [toggle])
 
   return (
     <Stack
@@ -48,6 +58,9 @@ const CollateralAssets = () => {
         },
       }}
     >
+    <Checkbox onChange={()=>setToggle(!toggle)}>
+      Show All Assets
+    </Checkbox>
       {assets?.map((asset) => {
         return <AssetWithSlider key={asset?.base} asset={asset} label={asset?.symbol} />
       })}

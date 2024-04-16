@@ -23,11 +23,11 @@ type Props = {
 
 export const TxDetails = ({ action, onClose }: Props) => {
   const osmo = useAssetBySymbol('OSMO')
+  const { stakeState, setStakeState } = useStakeState()
 
   if (!action?.tx?.isSuccess) return null 
   // Reload stake queries if the transaction is related to staking
   else if (action?.tx?.data.events.find((e) => e.attributes.find((a) => a.value === contracts.staking))) {
-    const { stakeState, setStakeState } = useStakeState()
     setStakeState({transacted: !stakeState.transacted})
   }
 

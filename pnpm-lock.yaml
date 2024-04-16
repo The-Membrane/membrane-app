@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@chain-registry/osmosis':
+    specifier: ^1.42.1
+    version: 1.42.1
   '@chain-registry/utils':
     specifier: ^1.18.0
     version: 1.18.0
@@ -1459,6 +1462,12 @@ packages:
       semver: 7.6.0
     dev: false
 
+  /@chain-registry/osmosis@1.42.1:
+    resolution: {integrity: sha512-fgPJ2BMqUipu8lmYivmqdK7a0oWgT5MOXmH45x6nzqUoB150EBLZxZajNh4+bBPpS9rRmXl7+8S6a0QE2DgOtw==}
+    dependencies:
+      '@chain-registry/types': 0.25.1
+    dev: false
+
   /@chain-registry/types@0.17.0:
     resolution: {integrity: sha512-lavACU4oDxioUy8lZOFZN0Vrr2qR+Dg2yEh/mkrPfOldcioavREXJou0elDyyXwq4pGLC5YQ+IISCtQ4Du0bdw==}
     dependencies:
@@ -1475,6 +1484,10 @@ packages:
     resolution: {integrity: sha512-iAL33MdWg96mT/ZRvLAyk0cZdpZHGxJJCpIFHUOtqSHeI95zErFq8UtwlYfaLgE8zK+XdU3xolEzhUlZor/4aQ==}
     dependencies:
       '@babel/runtime': 7.23.9
+
+  /@chain-registry/types@0.25.1:
+    resolution: {integrity: sha512-AbsJ2peoi9EjmdScFCLMqNhthJpLQUlEg3aiqSEonoqbKs6y1AuHqice2BuGBFGiAGQuAwUZR8HQDN46cIII3A==}
+    dev: false
 
   /@chain-registry/utils@1.18.0:
     resolution: {integrity: sha512-FAPyP1FN1jr88GfiBWnppe5S1ddgbK9TfwkyKuNSKHlk9Q+fhdC4nPM552bEz76AuFyfv7SFHg3kDuQSgYYZBw==}

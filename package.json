@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@chain-registry/utils": "^1.18.0",
+    "@chain-registry/osmosis": "^1.42.1",
     "@chakra-ui/anatomy": "^2.2.2",
     "@chakra-ui/icons": "^2.1.1",
     "@chakra-ui/react": "^2.8.2",

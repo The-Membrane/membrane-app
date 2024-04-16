@@ -29,11 +29,17 @@ const CollateralAssets = () => {
     setMintState({ assets: assetsWithValuesGreaterThanZero })
   }, [combinBalance])
 
-  useEffect(() => {
+  useEffect(() => {    
+    const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance)
+    
     if (toggle) {
-      setMintState({ assets: combinBalance })
+      //Replace assets in combinBalance that are in assetsWithValuesGreaterThanZero
+      const combinedAssets = combinBalance.map((asset) => {
+        const assetWithValuesGreaterThanZero = assetsWithValuesGreaterThanZero.find((a) => a.base === asset.base)
+        return assetWithValuesGreaterThanZero || asset
+      })
+      setMintState({ assets: combinedAssets })
     } else {
-      const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance)
       setMintState({ assets: assetsWithValuesGreaterThanZero })
     }
   }, [toggle])

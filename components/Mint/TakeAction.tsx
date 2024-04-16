@@ -58,7 +58,7 @@ const TakeAction = () => {
         mx="3"
       />
 
-      <LTVWithSlider label="Mintable LTV" value={sliderValue} />
+      <LTVWithSlider label="Your Debt" value={sliderValue} />
       <ActionButtons onRest={onRest} />
       <OverDraftMessage show={mintState.overdraft} />
     </TabPanel>

@@ -13,7 +13,7 @@ export type LTVWithSliderProps = {
 }
 
 export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
-  const { setMintState } = useMintState()
+  const { setMintState, mintState } = useMintState()
   const { maxLTV = 0, debtAmount } = useVaultSummary()
   const CDT = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(CDT)
@@ -42,7 +42,7 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     <Stack gap="0" px="3">
       <HStack justifyContent="space-between">
         <Text variant="lable" textTransform="unset">
-          {label} (${max})
+          {label} { (mintState?.mint??0) > 0 ? "(+$"+(mintState?.mint??0)+")" : (mintState?.repay??0) > 0 ? "(-$"+(mintState?.repay??0)+")" : "(max: $"+max+")"}
         </Text>
         <HStack>
           <Text variant="value">${value}</Text>

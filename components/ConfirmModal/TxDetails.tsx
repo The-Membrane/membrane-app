@@ -13,6 +13,8 @@ import {
 } from '@chakra-ui/react'
 import { ExplorerLink } from './ExplorerLink'
 import { LineItem } from './LineItem'
+import contracts from '@/config/contracts.json'
+import useStakeState from '../Stake/hooks/useStakeState'
 
 type Props = {
   action?: Action
@@ -22,7 +24,12 @@ type Props = {
 export const TxDetails = ({ action, onClose }: Props) => {
   const osmo = useAssetBySymbol('OSMO')
 
-  if (!action?.tx?.isSuccess) return null
+  if (!action?.tx?.isSuccess) return null 
+  // Reload stake queries if the transaction is related to staking
+  else if (action?.tx?.data.events.find((e) => e.attributes.find((a) => a.value === contracts.staking))) {
+    const { setStakeState } = useStakeState()
+    setStakeState({transacted: true})
+  }
 
   const { gasUsed, transactionHash, code } = action.tx.data
 

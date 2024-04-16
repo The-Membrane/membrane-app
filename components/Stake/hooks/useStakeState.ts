@@ -6,6 +6,7 @@ type StakeState = {
   asset: Asset | null
   amount: string
   txType?: 'Stake' | 'Unstake'
+  transacted: boolean //On successful txs we'll requery
 }
 
 type Store = {
@@ -17,6 +18,7 @@ type Store = {
 const initialState: StakeState = {
   asset: null,
   amount: '0',
+  transacted: false,
 }
 
 // @ts-ignore

@@ -5,13 +5,15 @@ import { useMemo } from 'react'
 import { useRpcClient } from './useRpcClient'
 import useWallet from './useWallet'
 import { Asset } from '@/helpers/chain'
+import useStakeState from '@/components/Stake/hooks/useStakeState'
 
 export const useBalance = () => {
   const { address, chain } = useWallet()
   const { getRpcClient } = useRpcClient(chain.chain_name)
+  const { stakeState } = useStakeState()
 
   return useQuery<QueryAllBalancesResponse['balances'] | null>({
-    queryKey: ['balances', address, chain.chain_id],
+    queryKey: ['balances', address, chain.chain_id, stakeState.transacted],
     queryFn: async () => {
       const client = await getRpcClient()
       if (!address) return null

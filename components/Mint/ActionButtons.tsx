@@ -19,7 +19,7 @@ const ActionButtons = ({ onRest }: Props) => {
     <HStack mt="5" gap="4">
       <ConfirmModal
         label={
-          mintState.repay ?? 0 > 0 ? 'Repay' : mintState.mint ?? 0 > 0 ? 'Mint' : 'Update Assets'
+          mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Mint' : 'Update Assets'
         }
         action={mint}
         isDisabled={mintState?.overdraft || (!summary?.length && (!mintState?.mint && !mintState?.repay))}

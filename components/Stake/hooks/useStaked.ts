@@ -5,7 +5,7 @@ import useStakeState from './useStakeState'
 
 const useStaked = () => {
   const { address } = useWallet()
-  const { stakeState, setStakeState } = useStakeState()
+  const { stakeState } = useStakeState()
 
   return useQuery({
     queryKey: ['staked', address, stakeState.transacted],
@@ -15,8 +15,7 @@ const useStaked = () => {
       const { staked, unstaking } = await getStaked(address)
       const rewards = await getRewards(address)
 
-      //Reset transacted state
-      setStakeState({ transacted: false })
+      console.log("loaded stake state")
 
       return {
         staked,

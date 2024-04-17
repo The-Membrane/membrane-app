@@ -18,11 +18,17 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
   const CDT = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(CDT)
 
-  const max = useMemo(() => {
+  const maxMint = useMemo(() => {
     if (isNaN(maxLTV)) return 0
-    // if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return 0
+    if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return 0
     return num(maxLTV).minus(debtAmount).dp(0).toNumber()
   }, [maxLTV])
+
+  const maxSlider = useMemo(() => {
+    if (isNaN(maxLTV)) return 0
+    if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return debtAmount
+    return num(maxLTV).dp(0).toNumber()
+  }, [maxLTV]) 
 
   const onChange = (value: number) => {
     const newValue = num(value).dp(2).toNumber()
@@ -44,13 +50,13 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     <Stack gap="0" px="3">
       <HStack justifyContent="space-between">
         <Text variant="lable" textTransform="unset">
-          {label} { (mintState?.mint??0) > 0.1 ? "(+$"+(mintState?.mint??0).toFixed(2)+")" : (mintState?.repay??0) > 0.1 ? "(-$"+(mintState?.repay??0).toFixed(2)+")" : "(mintable: $"+max+")"}
+          {label} { (mintState?.mint??0) > 0.1 ? "(+$"+(mintState?.mint??0).toFixed(2)+")" : (mintState?.repay??0) > 0.1 ? "(-$"+(mintState?.repay??0).toFixed(2)+")" : "(mintable: $"+maxMint+")"}
         </Text>
         <HStack>
           <Text variant="value">${value}</Text>
         </HStack>
       </HStack>
-      <SliderWithState value={value} onChange={onChange} min={0} max={max} walletCDT={parseFloat(walletCDT)}/>
+      <SliderWithState value={value} onChange={onChange} min={0} max={maxSlider} walletCDT={parseFloat(walletCDT)}/>
     </Stack>
   )
 }

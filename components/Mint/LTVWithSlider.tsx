@@ -20,7 +20,7 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
 
   const max = useMemo(() => {
     if (isNaN(maxLTV)) return 0
-    if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return 0
+    // if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return 0
     return num(maxLTV).minus(debtAmount).dp(0).toNumber()
   }, [maxLTV])
 

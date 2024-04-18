@@ -8,7 +8,6 @@ import useBidState from './hooks/useBidState'
 import useCapitalAheadOfDeposit from './hooks/useCapitalAheadOfDeposit'
 import useLiquidation from './hooks/useLiquidation'
 import useStabilityAssetPool from './hooks/useStabilityAssetPool'
-import { onPremiumChange } from './PlaceBid'
 
 const CustomTooltip = ({ active, payload, label }) => {
   const { tvl, premium, capitalAheadAmount } = payload[0]?.payload || {}
@@ -53,6 +52,17 @@ const CustomTooltip = ({ active, payload, label }) => {
   }
 
   return null
+}
+
+const onPremiumChange = (value: number) => {  
+  const { bidState, setBidState } = useBidState()
+  
+  const existingBid = bidState?.placeBid || {}
+  const placeBid = {
+    ...existingBid,
+    premium: value,
+  }
+  setBidState({ ...bidState, placeBid })
 }
 
 // Custom Tick component

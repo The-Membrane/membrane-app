@@ -54,6 +54,12 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null
 }
 
+// Custom Tick component
+const CustomTick = ({ x, y, payload }) => {
+  // Check if this tick needs restyling
+  const isSpecialTick = payload.value === 10;
+
+  
 const onPremiumChange = (value: number) => {  
   const { bidState, setBidState } = useBidState()
   
@@ -64,11 +70,6 @@ const onPremiumChange = (value: number) => {
   }
   setBidState({ ...bidState, placeBid })
 }
-
-// Custom Tick component
-const CustomTick = ({ x, y, payload }) => {
-  // Check if this tick needs restyling
-  const isSpecialTick = payload.value === 10;
 
   return (
     <g transform={`translate(${x},${y})`}>

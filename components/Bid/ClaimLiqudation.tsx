@@ -14,6 +14,7 @@ const ClaimLiqudation = () => {
 
   var claim_coins: Coin[] = claimstoCoins(claims)
   if (SP_claims) {
+    console.log(SP_claims.claims)
     claim_coins = claim_coins.concat(SP_claims.claims)
   }
 

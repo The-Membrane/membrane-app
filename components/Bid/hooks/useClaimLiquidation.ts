@@ -32,9 +32,9 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
           })
         })
 
-      if (sp_claims && sp_claims.claims.length > 0) {        
+      if (sp_claims && sp_claims.claims.length > 0) {
         const spMessageComposer = new StabilityPoolMsgComposer(address, contracts.stabilityPool)
-        msgs.concat(
+        msgs = msgs.concat(
           spMessageComposer.claimRewards()
         )
       }

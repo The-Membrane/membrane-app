@@ -54,6 +54,21 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null
 }
 
+// Custom Tick component
+const CustomTick = ({ x, y, payload }) => {
+  // Check if this tick needs restyling
+  const isSpecialTick = payload.value === 10 || payload.value === '10';
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {/* Restyle the tick based on the condition */}
+      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16}>
+        {payload.value}
+      </text>
+    </g>
+  );
+};
+
 const RiskChart = () => {
   const { address } = useWallet()
   const { bidState } = useBidState()
@@ -150,12 +165,7 @@ const RiskChart = () => {
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'none' }} />
           <XAxis
             dataKey="premium"
-            tick={(e) => {
-              const { payload: { value } } = e;
-              const color = value === 10 ? "#e9f339" : "#FFF";
-              e["fill"] = color;
-              return <Text {...e}>{value}</Text>;
-            }}
+            tick={<CustomTick />}
             tickMargin={10}
             axisLine={{ stroke: '#FFF' }}
             tickLine={false}

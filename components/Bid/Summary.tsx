@@ -26,13 +26,14 @@ const SummaryItem = ({
   <Stack gap="10">
     <Stack alignSelf="center">
       <Text variant="value" textTransform="unset" fontSize="md">
-        Bidding on
+        Bidding on {premium === 10 ? 'All Assets' : null}
       </Text>
       <HStack>
-        {premium !== 10 ? <Image src={selectedAsset?.logo} w="30px" h="30px" /> : null}
+        {premium !== 10 ? <><Image src={selectedAsset?.logo} w="30px" h="30px" /> 
         <Text variant="value" textTransform="unset">
-          {premium === 10 ? "All Assets" : selectedAsset?.symbol}
-        </Text>
+          {selectedAsset?.symbol}
+        </Text></>
+        : null}
       </HStack>
     </Stack>
 

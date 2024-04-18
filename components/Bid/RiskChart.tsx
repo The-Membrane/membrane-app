@@ -150,7 +150,12 @@ const RiskChart = () => {
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'none' }} />
           <XAxis
             dataKey="premium"
-            tick={{ fill: '#FFF' }}
+            tick={(e) => {
+              const { payload: { value } } = e;
+              const color = value === 10 ? "#e9f339" : "#FFF";
+              e["fill"] = color;
+              return <Text {...e}>{value}</Text>;
+            }}
             tickMargin={10}
             axisLine={{ stroke: '#FFF' }}
             tickLine={false}

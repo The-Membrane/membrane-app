@@ -29,7 +29,7 @@ const SummaryItem = ({
         Bidding on
       </Text>
       <HStack>
-        <Image src={selectedAsset?.logo} w="30px" h="30px" />
+        {premium !== 10 ? <Image src={selectedAsset?.logo} w="30px" h="30px" /> : null}
         <Text variant="value" textTransform="unset">
           {premium === 10 ? "All Assets" : selectedAsset?.symbol}
         </Text>

@@ -36,10 +36,13 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
       if (sp_claims && sp_claims.claims.length > 0) {
         console.log("made it to sp")      
         const spMessageComposer = new StabilityPoolMsgComposer(address, contracts.stabilityPool)
+        console.log(
+          spMessageComposer.claimRewards())
         msgs.concat(
           spMessageComposer.claimRewards()
         )
       }
+      console.log(msgs)
 
       return msgs as MsgExecuteContractEncodeObject[]
     },

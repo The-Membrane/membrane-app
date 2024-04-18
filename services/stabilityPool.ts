@@ -31,6 +31,11 @@ export const buildStabilityPooldepositMsg = ({ address, funds = [] }: BidMsg) =>
   return messageComposer.deposit({ }, funds)
 }
 
+export const getUserClaims = async (address: Addr) => {
+  const stabilityPool = await stabiityPoolClient()
+  return stabilityPool.userClaims({ user: address })
+}
+
 export const getAssetPool = async (address: Addr) => {
   const stabilityPool = await stabiityPoolClient()
   return stabilityPool.assetPool({ user: address })

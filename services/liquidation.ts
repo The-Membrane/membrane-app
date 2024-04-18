@@ -4,6 +4,7 @@ import {
   LiquidationQueueQueryClient,
 } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.client'
 import { LiquidationQueueMsgComposer } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.message-composer'
+import { ClaimsResponse } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.types'
 import { Addr } from '@/contracts/generated/positions/Positions.types'
 import { Asset } from '@/helpers/chain'
 import getCosmWasmClient from '@/helpers/comswasmClient'
@@ -126,5 +127,14 @@ export const getUserClaims = async (address: Addr) => {
 
   return client.userClaims({
     user: address,
+  })
+}
+
+export const claimstoCoins = (claims: ClaimsResponse[] = []) => {
+  return claims.map((claim) => {
+    return {
+      denom: claim.bid_for,
+      amount: claim.pending_liquidated_collateral,
+    }
   })
 }

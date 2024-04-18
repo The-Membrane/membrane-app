@@ -62,7 +62,7 @@ const CustomTick = ({ x, y, payload, onClick }) => {
   return (
     <g transform={`translate(${x},${y})`}>
       {/* Restyle the tick based on the condition */}
-      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} onClick={() => {console.log(payload.value); onClick(payload.value)}}>
+      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} onClick={() => {console.log(payload.value); onClick(payload.value)}} cursor={"pointer"}>
         {payload.value}
       </text>
     </g>

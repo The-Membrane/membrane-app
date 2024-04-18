@@ -31,7 +31,7 @@ const SummaryItem = ({
       <HStack>
         <Image src={selectedAsset?.logo} w="30px" h="30px" />
         <Text variant="value" textTransform="unset">
-          {selectedAsset?.symbol}
+          {premium === 10 ? "All Assets" : selectedAsset?.symbol}
         </Text>
       </HStack>
     </Stack>

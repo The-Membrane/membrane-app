@@ -154,7 +154,7 @@ const RiskChart = () => {
               const { payload: { value } } = e;
               const color = value === 10 ? "#e9f339" : "#FFF";
               e["fill"] = color;
-              return <Text {...e}>{value}</Text>;
+              return e;
             }}
             tickMargin={10}
             axisLine={{ stroke: '#FFF' }}

@@ -37,8 +37,6 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     var repay = num(newValue).isLessThan(debtAmount) ? diff : 0
     const ltvSlider = num(newValue).times(100).dividedBy(maxLTV).dp(2).toNumber()
 
-    console.log(ltvSlider)
-
     if (repay > parseFloat(walletCDT)) {
       repay = parseFloat(walletCDT)
     }

@@ -4,8 +4,10 @@ import {
   StabilityPoolClient,
   StabilityPoolQueryClient,
 } from '@/contracts/codegen/stability_pool/StabilityPool.client'
+import { StabilityPoolMsgComposer } from '@/contracts/codegen/stability_pool/StabilityPool.message-composer'
 import getCosmWasmClient from '@/helpers/comswasmClient'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
+import { Coin } from '@cosmjs/stargate'
 
 export const stabiityPoolClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -17,6 +19,16 @@ export const getSigningStabiityPoolClient = (
   address: Addr,
 ) => {
   return new StabilityPoolClient(signingClient, address, contracts.stabilityPool)
+}
+
+type BidMsg = {
+  address: Addr
+  funds?: Coin[]
+}
+
+export const buildStabilityPooldepositMsg = ({ address, funds = [] }: BidMsg) => {
+  const messageComposer = new StabilityPoolMsgComposer(address, contracts.stabilityPool)
+  return messageComposer.deposit({ }, funds)
 }
 
 export const getAssetPool = async (address: Addr) => {

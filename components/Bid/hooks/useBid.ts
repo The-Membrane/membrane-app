@@ -8,6 +8,7 @@ import { queryClient } from '@/pages/_app'
 import { buildBidMsg } from '@/services/liquidation'
 import { coin } from '@cosmjs/stargate'
 import useBidState from './useBidState'
+import { buildStabilityPooldepositMsg } from '@/services/stabilityPool'
 
 type Props = {
   txSuccess?: () => void
@@ -28,12 +29,17 @@ const useBid = ({ txSuccess }: Props) => {
       const microAmount = shiftDigits(cdt, 6).dp(0).toString()
       const funds = [coin(microAmount, cdtAsset?.base!)]
 
-      const msg = buildBidMsg({
-        address,
-        asset: selectedAsset,
-        liqPremium: premium,
-        funds,
-      })
+      var msg;
+      if (premium === 10){
+        msg = buildStabilityPooldepositMsg({ address, funds })
+      } else {
+        msg = buildBidMsg({
+          address,
+          asset: selectedAsset,
+          liqPremium: premium,
+          funds,
+        })
+      }      
       return [msg] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address && !!selectedAsset && !!premium && !!cdt,

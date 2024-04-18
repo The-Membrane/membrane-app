@@ -10,8 +10,7 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 
 const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsResponse | undefined) => {
-  // const { address } = useWallet()
-  const address = "osmo1ykqfsmrw0uk4fcnycpp60a0cdg0xlsmc8y2nkg"
+  const { address } = useWallet()
   const claimKeys = claims.map((claim) => claim.bid_for)
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({

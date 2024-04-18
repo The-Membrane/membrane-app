@@ -62,7 +62,7 @@ const CustomTick = ({ x, y, payload }) => {
   return (
     <g transform={`translate(${x},${y})`}>
       {/* Restyle the tick based on the condition */}
-      <text x={0} y={0} dy={16} textAnchor="middle" fill={isSpecialTick ? '#e9f339' : '#FFF'} fontSize={16}>
+      <text x={0} y={0} dy={12} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16}>
         {payload.value}
       </text>
     </g>

@@ -8,6 +8,17 @@ import useBid from './hooks/useBid'
 import useBidState from './hooks/useBidState'
 import useQueue from './hooks/useQueue'
 
+export const onPremiumChange = (value: number) => {
+  const { bidState, setBidState } = useBidState()
+  
+  const existingBid = bidState?.placeBid || {}
+  const placeBid = {
+    ...existingBid,
+    premium: value,
+  }
+  setBidState({ ...bidState, placeBid })
+}
+
 const PlaceBid = () => {
   const { bidState, setBidState } = useBidState()
 
@@ -32,14 +43,6 @@ const PlaceBid = () => {
     setBidState({ ...bidState, placeBid })
   }
 
-  const onPremiumChange = (value: number) => {
-    const existingBid = bidState?.placeBid || {}
-    const placeBid = {
-      ...existingBid,
-      premium: value,
-    }
-    setBidState({ ...bidState, placeBid })
-  }
 
   const isDisabled = !bidState?.placeBid?.cdt || !bidState?.placeBid?.premium
 

@@ -8,6 +8,7 @@ import useBidState from './hooks/useBidState'
 import useCapitalAheadOfDeposit from './hooks/useCapitalAheadOfDeposit'
 import useLiquidation from './hooks/useLiquidation'
 import useStabilityAssetPool from './hooks/useStabilityAssetPool'
+import { onPremiumChange } from './PlaceBid'
 
 const CustomTooltip = ({ active, payload, label }) => {
   const { tvl, premium, capitalAheadAmount } = payload[0]?.payload || {}
@@ -57,12 +58,12 @@ const CustomTooltip = ({ active, payload, label }) => {
 // Custom Tick component
 const CustomTick = ({ x, y, payload }) => {
   // Check if this tick needs restyling
-  const isSpecialTick = payload.value === 10 || payload.value === '10';
+  const isSpecialTick = payload.value === 10;
 
   return (
     <g transform={`translate(${x},${y})`}>
       {/* Restyle the tick based on the condition */}
-      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16}>
+      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} onClick={() => onPremiumChange(payload.value)}>
         {payload.value}
       </text>
     </g>

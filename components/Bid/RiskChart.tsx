@@ -55,26 +55,14 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 // Custom Tick component
-const CustomTick = ({ x, y, payload }) => {
+const CustomTick = ({ x, y, payload, onClick }) => {
   // Check if this tick needs restyling
   const isSpecialTick = payload.value === 10;
-
   
-const onPremiumChange = (value: number) => {  
-  const { bidState, setBidState } = useBidState()
-  
-  const existingBid = bidState?.placeBid || {}
-  const placeBid = {
-    ...existingBid,
-    premium: value,
-  }
-  setBidState({ ...bidState, placeBid })
-}
-
   return (
     <g transform={`translate(${x},${y})`}>
       {/* Restyle the tick based on the condition */}
-      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} onClick={() => {console.log(payload.value); onPremiumChange(payload.value)}}>
+      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} onClick={() => {console.log(payload.value); onClick(payload.value)}}>
         {payload.value}
       </text>
     </g>
@@ -83,10 +71,20 @@ const onPremiumChange = (value: number) => {
 
 const RiskChart = () => {
   const { address } = useWallet()
-  const { bidState } = useBidState()
+  const { bidState, setBidState } = useBidState()
   const { data: liqudation, isLoading } = useLiquidation(bidState?.selectedAsset)
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { data: capitalAheadAmount = 0 } = useCapitalAheadOfDeposit()
+
+    
+  const onPremiumChange = (value: number) => {    
+    const existingBid = bidState?.placeBid || {}
+    const placeBid = {
+      ...existingBid,
+      premium: value,
+    }
+    setBidState({ ...bidState, placeBid })
+  }
 
   //Save the indices of the LQ Slots that users are deposited in
   var userBidIndices = liqudation?.map((slot) => {
@@ -177,7 +175,9 @@ const RiskChart = () => {
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'none' }} />
           <XAxis
             dataKey="premium"
-            tick={<CustomTick />}
+            tick={({ x, y, payload }) => (
+              <CustomTick x={x} y={y} payload={payload} onClick={onPremiumChange} />
+            )}
             tickMargin={10}
             axisLine={{ stroke: '#FFF' }}
             tickLine={false}

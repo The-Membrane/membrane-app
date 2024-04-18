@@ -10,7 +10,8 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 
 const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsResponse | undefined) => {
-  const { address } = useWallet()
+  // const { address } = useWallet()
+  const address = "osmo1ykqfsmrw0uk4fcnycpp60a0cdg0xlsmc8y2nkg"
   const claimKeys = claims.map((claim) => claim.bid_for)
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
@@ -32,7 +33,8 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
           })
         })
 
-      if (sp_claims && sp_claims.claims.length > 0) {        
+      if (sp_claims && sp_claims.claims.length > 0) {
+        console.log("made it to sp")      
         const spMessageComposer = new StabilityPoolMsgComposer(address, contracts.stabilityPool)
         msgs.concat(
           spMessageComposer.claimRewards()

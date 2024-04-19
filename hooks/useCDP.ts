@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getBasket, getBasketPositions, getCollateralInterest, getCreditRate } from '@/services/cdp'
 import useWallet from './useWallet'
+import useMintState from '@/components/Mint/hooks/useMintState'
 
 export const useBasket = () => {
   return useQuery({
@@ -31,9 +32,10 @@ export const useCreditRate = () => {
 
 export const useBasketPositions = () => {
   const { address } = useWallet()
+  const { mintState } = useMintState()
 
   return useQuery({
-    queryKey: ['positions', address],
+    queryKey: ['positions', address, mintState?.transacted],
     queryFn: async () => {
       if (!address) return
       console.log("queried basket positions")

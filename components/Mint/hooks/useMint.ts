@@ -38,8 +38,9 @@ const useMint = () => {
     enabled: !!address && !mintState.overdraft,
   })
 
-  const onSuccess = () => {
-    queryClient.refetchQueries(['positions', 'balances'], { force: true })
+  const onSuccess = () => {    
+    queryClient.invalidateQueries({ queryKey: ['positions', 'balances'] })
+    queryClient.refetchQueries({ queryKey: ['positions', 'balances'] }, { force: true })
     setMintState({transacted: !mintState?.transacted})
     console.log("mint state transacted", mintState?.transacted)
   }

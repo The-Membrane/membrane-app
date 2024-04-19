@@ -20,6 +20,9 @@ const useMint = () => {
       'mint',
       address,
       positionId,
+      summary?.map((s: any) => String(s.amount)) || '0',
+      mintState?.mint,
+      mintState?.repay,
     ],
     queryFn: () => {
       if (!address) return

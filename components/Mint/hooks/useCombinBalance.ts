@@ -54,7 +54,7 @@ const useCombinBalance = () => {
         price,
       }
     }) as AssetWithBalance[]
-  }, [balances, basketPositions, basket, prices, mintState?.transacted])
+  }, [balances, basketPositions, basket, prices])
 }
 
 export default useCombinBalance

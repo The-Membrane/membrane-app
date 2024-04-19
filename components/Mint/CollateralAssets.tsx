@@ -42,7 +42,7 @@ const CollateralAssets = () => {
     } else {
       setMintState({ assets: assetsWithValuesGreaterThanZero })
     }
-  }, [toggle, mintState?.transacted])
+  }, [toggle])
 
   return (
     <Stack

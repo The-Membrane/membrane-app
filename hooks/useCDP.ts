@@ -31,7 +31,8 @@ export const useCreditRate = () => {
 
 export const useBasketPositions = () => {
   const { address } = useWallet()
-  
+  console.log("queried basket positions")
+
   return useQuery({
     queryKey: ['positions', address],
     queryFn: async () => {

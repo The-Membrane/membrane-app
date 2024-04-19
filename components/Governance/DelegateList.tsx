@@ -153,7 +153,7 @@ const DelegateList = () => {
   const isDisabled = !delegateState?.delegations?.length
 
   return (
-    <Stack w="full">
+    <Stack w="full" minWidth="432.43px">
       <Stack minH="230px">
         {paginatedData.map((validator) => (
           <DelegateSlider

@@ -20,15 +20,15 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
 
   const maxMint = useMemo(() => {
     if (isNaN(maxLTV)) return 0
-    if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return 0
+    // if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return 0
     return num(maxLTV).minus(debtAmount).dp(0).toNumber()
-  }, [maxLTV])
+  }, [maxLTV, debtAmount])
 
   const maxSlider = useMemo(() => {
     if (isNaN(maxLTV)) return 0
     if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return debtAmount
     return num(maxLTV).dp(0).toNumber()
-  }, [maxLTV]) 
+  }, [maxLTV, debtAmount]) 
 
   //For refreshes on state updates (ex: successful tx)
   var mint = 0
@@ -37,7 +37,7 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     mint = 0
     repay = 0
     return num(debtAmount).times(100).dividedBy(maxLTV).dp(2).toNumber()
-  }, [debtAmount])
+  }, [maxLTV, debtAmount])
 
   const onChange = (value: number) => {
     const newValue = num(value).dp(2).toNumber()

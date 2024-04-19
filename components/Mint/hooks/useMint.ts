@@ -39,7 +39,7 @@ const useMint = () => {
   })
 
   const onSuccess = () => {
-    queryClient.refetchQueries({ queryKey: ['baseket positions', 'balances'] })
+    queryClient.refetchQueries({ queryKey: ['positions', 'balances'] })
   }
 
   return useSimulateAndBroadcast({

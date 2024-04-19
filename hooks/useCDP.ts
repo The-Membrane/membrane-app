@@ -34,7 +34,7 @@ export const useBasketPositions = () => {
   // mock address
   // const address = 'osmo1988s5h45qwkaqch8km4ceagw2e08vdw28mwk4n'
   return useQuery({
-    queryKey: ['baseket positions', address],
+    queryKey: ['positions', address],
     queryFn: async () => {
       if (!address) return
       return getBasketPositions(address)

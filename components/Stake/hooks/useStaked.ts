@@ -1,14 +1,12 @@
 import useWallet from '@/hooks/useWallet'
 import { getRewards, getStaked } from '@/services/staking'
 import { useQuery } from '@tanstack/react-query'
-import useStakeState from './useStakeState'
 
 const useStaked = () => {
   const { address } = useWallet()
-  const { stakeState } = useStakeState()
 
   return useQuery({
-    queryKey: ['staked', address, stakeState.transacted],
+    queryKey: ['staked', address],
     queryFn: async () => {
       if (!address) return null
 

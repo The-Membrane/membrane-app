@@ -13,7 +13,6 @@ import {
 } from '@chakra-ui/react'
 import { ExplorerLink } from './ExplorerLink'
 import { LineItem } from './LineItem'
-import contracts from '@/config/contracts.json'
 
 type Props = {
   action?: Action

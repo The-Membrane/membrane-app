@@ -30,15 +30,20 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     return num(maxLTV).dp(0).toNumber()
   }, [maxLTV]) 
 
+  //For refreshes on state updates (ex: successful tx)
+  var mint = 0
+  var repay = 0
   var ltvSlider = useMemo(() => {
+    mint = 0
+    repay = 0
     return num(debtAmount).times(100).dividedBy(maxLTV).dp(2).toNumber()
   }, [debtAmount])
 
   const onChange = (value: number) => {
     const newValue = num(value).dp(2).toNumber()
     const diff = num(debtAmount).minus(newValue).abs().toNumber()
-    let mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0
-    var repay = num(newValue).isLessThan(debtAmount) ? diff : 0
+    mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0
+    repay = num(newValue).isLessThan(debtAmount) ? diff : 0
     ltvSlider = num(newValue).times(100).dividedBy(maxLTV).dp(2).toNumber()
 
     if (repay > parseFloat(walletCDT)) {

@@ -20,7 +20,6 @@ type MintState = {
   repay?: number
   overdraft?: boolean
   newDebtAmount?: number
-  transacted: boolean //On successful txs we'll requery
 }
 
 type Store = {
@@ -32,7 +31,6 @@ type Store = {
 const initialState: MintState = {
   assets: [],
   ltvSlider: 0,
-  transacted: false,
 }
 
 type Config = {

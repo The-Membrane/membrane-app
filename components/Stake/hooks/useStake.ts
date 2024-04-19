@@ -46,9 +46,6 @@ const useStakeing = ({}: UseStake) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staked'] })
       queryClient.invalidateQueries({ queryKey: ['balances'] })
-      queryClient.refetchQueries({ queryKey: ['staked'] }, { force: true })
-      queryClient.refetchQueries({ queryKey: ['balances'] }, { force: true })
-      setStakeState({transacted: !stakeState.transacted})
     },
   })
 }

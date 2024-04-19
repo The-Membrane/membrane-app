@@ -41,7 +41,13 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
   }, [maxLTV, debtAmount])
 
   const onChange = (value: number) => {
-    const newValue = num(value).dp(2).toNumber()
+    var newValue = num(value).dp(2).toNumber()
+    
+    if (newValue < 100) {
+      newValue = 100
+      value = 100
+    }
+    
     const diff = num(debtAmount).minus(newValue).abs().toNumber()
     mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0
     repay = num(newValue).isLessThan(debtAmount) ? diff : 0

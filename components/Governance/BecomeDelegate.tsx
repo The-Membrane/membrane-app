@@ -81,7 +81,7 @@ const BecomeDelegate = (props: Props) => {
         <ModalContent>
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <ModalHeader>
-              <Text variant="title">Submit Proposal</Text>
+              <Text variant="title">Submit Delegate Info</Text>
             </ModalHeader>
 
             <ModalCloseButton />

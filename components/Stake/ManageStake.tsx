@@ -5,7 +5,7 @@ import Unstaking from './Unstaking'
 
 const ManageStake = () => {
   return (
-    <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
+    <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between" style={{zoom: "85%"}}>
       <Tabs position="relative" variant="unstyled" w="full" isFitted>
         <TabList>
           <Tab>Stake</Tab>

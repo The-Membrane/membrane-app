@@ -32,10 +32,9 @@ export const useCreditRate = () => {
 
 export const useBasketPositions = () => {
   const { address } = useWallet()
-  const { mintState } = useMintState()
 
   return useQuery({
-    queryKey: ['positions', address, mintState.transacted],
+    queryKey: ['positions', address],
     queryFn: async () => {
       if (!address) return
       console.log("queried basket positions")

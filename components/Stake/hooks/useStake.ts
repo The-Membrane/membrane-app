@@ -15,7 +15,7 @@ type UseStake = {}
 const useStakeing = ({}: UseStake) => {
   const { address } = useWallet()
   const mbrnAsset = useAssetBySymbol('MBRN')
-  const { stakeState } = useStakeState()
+  const { stakeState, setStakeState } = useStakeState()
   const { amount, txType } = stakeState
 
   const { data: stakeMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[]>({
@@ -45,6 +45,7 @@ const useStakeing = ({}: UseStake) => {
     queryKey: [mbrnAsset?.base!],
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ['staked', 'balances'] })
+      setStakeState({transacted: !stakeState.transacted})
     },
   })
 }

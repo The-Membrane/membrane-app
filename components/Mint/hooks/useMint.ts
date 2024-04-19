@@ -9,7 +9,7 @@ import { queryClient } from '@/pages/_app'
 import { decodeMsgs } from '@/helpers/decodeMsg'
 
 const useMint = () => {
-  const { mintState } = useMintState()
+  const { mintState, setMintState } = useMintState()
   const { summary = [] } = mintState
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useBasketPositions()
@@ -40,6 +40,7 @@ const useMint = () => {
 
   const onSuccess = () => {
     queryClient.refetchQueries({ queryKey: ['positions', 'balances'] })
+    setMintState({transacted: !mintState?.transacted})
   }
 
   return useSimulateAndBroadcast({

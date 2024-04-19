@@ -6,6 +6,7 @@ import { useBasket, useBasketPositions, useCollateralInterest } from '@/hooks/us
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getBasketAssets, getPositions } from '@/services/cdp'
 import { useMemo } from 'react'
+import useMintState from './useMintState'
 
 export type AssetWithBalance = Asset & {
   sliderValue?: number
@@ -25,6 +26,7 @@ const useCombinBalance = () => {
   const { data: balances } = useBalance()
   const { data: basketPositions } = useBasketPositions()
   const { data: basket } = useBasket()
+  const { mintState } = useMintState()
 
   return useMemo(() => {
     const basketAssets = getBasketAssets(basket!, collateralInterest!)
@@ -52,7 +54,7 @@ const useCombinBalance = () => {
         price,
       }
     }) as AssetWithBalance[]
-  }, [balances, basketPositions, basket, prices])
+  }, [balances, basketPositions, basket, prices, mintState?.transacted])
 }
 
 export default useCombinBalance

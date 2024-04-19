@@ -33,6 +33,7 @@ const useVaultSummary = () => {
     mintState?.mint,
     mintState?.repay,
     mintState?.newDebtAmount,
+    mintState?.transacted,
   ])
 }
 

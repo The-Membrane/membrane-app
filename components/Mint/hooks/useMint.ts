@@ -39,7 +39,7 @@ const useMint = () => {
   })
 
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['baseket positions'] })
+    queryClient.refetchQueries({ queryKey: ['baseket positions', 'balances'] })
   }
 
   return useSimulateAndBroadcast({

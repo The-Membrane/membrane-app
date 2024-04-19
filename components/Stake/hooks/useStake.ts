@@ -44,7 +44,7 @@ const useStakeing = ({}: UseStake) => {
     amount: amount,
     queryKey: [mbrnAsset?.base!],
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ['staked', 'balances'] })
+      queryClient.invalidateQueries({ queryKey: ['staked', 'balances'] })
       setStakeState({transacted: !stakeState.transacted})
     },
   })

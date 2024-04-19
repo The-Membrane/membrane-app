@@ -35,7 +35,7 @@ export const useBasketPositions = () => {
   const { mintState } = useMintState()
 
   return useQuery({
-    queryKey: ['positions', address, mintState?.transacted],
+    queryKey: ['positions', address, mintState.transacted],
     queryFn: async () => {
       if (!address) return
       console.log("queried basket positions")

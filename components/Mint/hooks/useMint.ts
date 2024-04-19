@@ -39,8 +39,8 @@ const useMint = () => {
   })
 
   const onSuccess = () => {    
-    queryClient.invalidateQueries({ queryKey: ['positions', 'balances'] })
-    queryClient.refetchQueries({ queryKey: ['positions', 'balances'] }, { force: true })
+    queryClient.invalidateQueries({ queryKey: ['positions'] })
+    queryClient.refetchQueries({ queryKey: ['positions'] }, { force: true })
     setMintState({transacted: !mintState?.transacted})
     console.log("mint state transacted", mintState?.transacted)
   }

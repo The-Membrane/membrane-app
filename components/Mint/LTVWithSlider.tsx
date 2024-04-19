@@ -35,10 +35,11 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     const diff = num(debtAmount).minus(newValue).abs().toNumber()
     let mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0
     var repay = num(newValue).isLessThan(debtAmount) ? diff : 0
-    const ltvSlider = num(newValue).times(100).dividedBy(maxLTV).dp(2).toNumber()
+    var ltvSlider = num(newValue).times(100).dividedBy(maxLTV).dp(2).toNumber()
 
     if (repay > parseFloat(walletCDT)) {
       repay = parseFloat(walletCDT)
+      ltvSlider = num(debtAmount).minus(repay).times(100).dividedBy(maxLTV).dp(2).toNumber()
     }
 
     setMintState({ mint, repay, ltvSlider, newDebtAmount: newValue })

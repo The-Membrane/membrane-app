@@ -41,7 +41,7 @@ const useMint = () => {
   const onSuccess = () => {
     queryClient.refetchQueries({ queryKey: ['positions', 'balances'] })
     setMintState({transacted: !mintState?.transacted})
-    console.log("mint state transacted")
+    console.log("mint state transacted", mintState?.transacted)
   }
 
   return useSimulateAndBroadcast({

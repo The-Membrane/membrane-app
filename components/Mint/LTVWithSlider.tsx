@@ -14,21 +14,22 @@ export type LTVWithSliderProps = {
 
 export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
   const { setMintState, mintState } = useMintState()
-  const { maxLTV = 0, debtAmount } = useVaultSummary()
+  const { maxMint = 0, debtAmount } = useVaultSummary()
   const CDT = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(CDT)
 
-  const maxMint = useMemo(() => {
-    if (isNaN(maxLTV)) return 0
+  const maxMintLabel = useMemo(() => {
+    if (isNaN(maxMint)) return 0
     // if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return 0
-    return num(maxLTV).minus(debtAmount).dp(0).toNumber()
-  }, [maxLTV, debtAmount])
+    return num(maxMint).minus(debtAmount).dp(0).toNumber()
+  }, [maxMint, debtAmount])
+  console.log(maxMintLabel)
 
   const maxSlider = useMemo(() => {
-    if (isNaN(maxLTV)) return 0
-    if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return debtAmount
-    return num(maxLTV).dp(0).toNumber()
-  }, [maxLTV, debtAmount]) 
+    if (isNaN(maxMint)) return 0
+    if (num(maxMint).minus(debtAmount).dp(0).toNumber() < 0) return debtAmount
+    return num(maxMint).dp(0).toNumber()
+  }, [maxMint, debtAmount]) 
 
   //For refreshes on state updates (ex: successful tx)
   var mint = 0
@@ -37,25 +38,27 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     mint = 0
     repay = 0
     setMintState({ mint, repay})
-    return num(debtAmount).times(100).dividedBy(maxLTV).dp(2).toNumber()
-  }, [maxLTV, debtAmount])
+    return num(debtAmount).times(100).dividedBy(maxMint).dp(2).toNumber()
+  }, [maxMint, debtAmount])
 
   const onChange = (value: number) => {
     var newValue = num(value).dp(2).toNumber()
     
+    //Minimum debt stopper
     if (newValue < 100) {
       newValue = 100
       value = 100
     }
-    
+
     const diff = num(debtAmount).minus(newValue).abs().toNumber()
     mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0
     repay = num(newValue).isLessThan(debtAmount) ? diff : 0
-    ltvSlider = num(newValue).times(100).dividedBy(maxLTV).dp(2).toNumber()
+    ltvSlider = num(newValue).times(100).dividedBy(maxMint).dp(2).toNumber()
 
+    //Repay stopper at wallet's CDT balance
     if (repay > parseFloat(walletCDT)) {
       repay = parseFloat(walletCDT)
-      ltvSlider = num(debtAmount).minus(repay).times(100).dividedBy(maxLTV).dp(2).toNumber()
+      ltvSlider = num(debtAmount).minus(repay).times(100).dividedBy(maxMint).dp(2).toNumber()
     }
 
     setMintState({ mint, repay, ltvSlider, newDebtAmount: newValue })
@@ -65,7 +68,7 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     <Stack gap="0" px="3">
       <HStack justifyContent="space-between">
         <Text variant="lable" textTransform="unset">
-          {label} { (mintState?.mint??0) > 0.1 ? "(+$"+(mintState?.mint??0).toFixed(2)+")" : (mintState?.repay??0) > 0.1 ? "(-$"+(mintState?.repay??0).toFixed(2)+")" : "(mintable: $"+maxMint+")"}
+          {label} { (mintState?.mint??0) > 0.1 ? "(+$"+(mintState?.mint??0).toFixed(2)+")" : (mintState?.repay??0) > 0.1 ? "(-$"+(mintState?.repay??0).toFixed(2)+")" : "(mintable: $"+maxMintLabel+")"}
         </Text>
         <HStack>
           <Text variant="value">${value}</Text>

@@ -4,6 +4,7 @@ import { AssetWithBalance } from './hooks/useCombinBalance'
 import useMintState from './hooks/useMintState'
 import { getSummary } from '@/helpers/mint'
 import { num } from '@/helpers/num'
+import useVaultSummary from './hooks/useVaultSummary'
 
 export type AssetWithSliderProps = {
   label: string
@@ -12,10 +13,15 @@ export type AssetWithSliderProps = {
 
 export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
   const { mintState, setMintState } = useMintState()
+  const { maxMint = 0, borrowLTV, debtAmount, ltv } = useVaultSummary()
 
   const onChange = (value: number) => {
     let updatedAssets = mintState.assets.map((asset) => {
       const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
+      
+      // We want to stop the slider from moving if they are looking withdraw assets that pushes them below the borrowLTV
+      if (borrowLTV === ltv && sliderValue < (asset?.sliderValue??0)) return
+
       const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
       const newDepoist = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
       const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)

@@ -29,6 +29,7 @@ const useClaimFees = () => {
   return useSimulateAndBroadcast({
     msgs,
     onSuccess,
+    enabled: true
   })
 }
 

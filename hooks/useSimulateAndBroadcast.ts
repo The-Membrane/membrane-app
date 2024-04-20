@@ -20,12 +20,13 @@ const useSimulateAndBroadcast = ({
   queryKey,
   amount,
   onSuccess,
+  enabled = false,
 }: Props): SimulateAndBroadcast => {
   const simulate = useSimulate({
     msgs,
     amount,
     queryKey,
-    enabled: false,
+    enabled,
   })
 
   const [fee] = simulate.data || []

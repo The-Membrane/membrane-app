@@ -13,14 +13,16 @@ export type AssetWithSliderProps = {
 
 export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
   const { mintState, setMintState } = useMintState()
-  const { maxMint = 0, borrowLTV, debtAmount, ltv } = useVaultSummary()
+  const { ltv, liqudationLTV, borrowLTV } = useVaultSummary()
+
+  const health = num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
 
   const onChange = (value: number) => {
     let updatedAssets = mintState.assets.map((asset) => {
       const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
       
       // We want to stop the slider from moving if they are looking withdraw assets that pushes them below the borrowLTV
-      if (borrowLTV <= ltv && sliderValue <= (asset?.sliderValue??0)) return {...asset}
+      if (health <= 0 && sliderValue <= (asset?.sliderValue??0)) return {...asset}
 
       const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
       const newDepoist = num(asset.depositUsdValue).minus(diffInUsd).toNumber()

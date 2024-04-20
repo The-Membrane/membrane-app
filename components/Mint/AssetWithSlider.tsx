@@ -20,8 +20,7 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
       const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
       
       // We want to stop the slider from moving if they are looking withdraw assets that pushes them below the borrowLTV
-      if (borrowLTV <= ltv && sliderValue <= (asset?.sliderValue??0)) {console.log("yes"); return {...asset}}
-      console.log(borrowLTV, ltv, sliderValue, asset?.sliderValue??0)
+      if (borrowLTV <= ltv && sliderValue <= (asset?.sliderValue??0)) return {...asset}
 
       const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
       const newDepoist = num(asset.depositUsdValue).minus(diffInUsd).toNumber()

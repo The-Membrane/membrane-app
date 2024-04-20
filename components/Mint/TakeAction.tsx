@@ -6,7 +6,6 @@ import ActionButtons from './ActionButtons'
 import CollateralAssets from './CollateralAssets'
 import { LTVWithSlider } from './LTVWithSlider'
 import useCombinBalance from './hooks/useCombinBalance'
-import useMint from './hooks/useMint'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 
@@ -25,7 +24,6 @@ const calcSliderValue = (debtAmount: number, mint: number = 0, repay: number = 0
 const TakeAction = () => {
   const { mintState, setMintState } = useMintState()
   const combinBalance = useCombinBalance()
-  const mint = useMint()
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = useVaultSummary()
 
   useEffect(() => {

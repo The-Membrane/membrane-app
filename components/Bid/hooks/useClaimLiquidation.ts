@@ -8,6 +8,7 @@ import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
+import { queryClient } from '@/pages/_app'
 
 const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsResponse | undefined) => {
   const { address } = useWallet()
@@ -44,9 +45,20 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
     enabled: !!address,
   })
 
+  const onSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })
+    queryClient.invalidateQueries({ queryKey: ['stability pool claims'] })
+    queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
+    queryClient.invalidateQueries({ queryKey: ['user bids'] })
+    queryClient.invalidateQueries({ queryKey: ['capital ahead'] })
+    queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
+  }
+
   return useSimulateAndBroadcast({
     msgs,
     enabled: !!msgs,
+    onSuccess,
   })
 }
 

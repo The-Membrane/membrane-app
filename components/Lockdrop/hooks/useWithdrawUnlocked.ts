@@ -14,7 +14,7 @@ const useWithdrawUnlocked = () => {
       return client.claimFeesforRecipient()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allocatiions'] })
+      queryClient.invalidateQueries({ queryKey: ['allocations'] })
     },
   })
 }

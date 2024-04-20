@@ -20,10 +20,9 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
 
   const maxMintLabel = useMemo(() => {
     if (isNaN(maxMint)) return 0
-    // if (num(maxLTV).minus(debtAmount).dp(0).toNumber() < 0) return 0
+    if (num(maxMint).minus(debtAmount).dp(0).toNumber() < 0) return 0
     return num(maxMint).minus(debtAmount).dp(0).toNumber()
   }, [maxMint, debtAmount])
-  console.log(maxMintLabel)
 
   const maxSlider = useMemo(() => {
     if (isNaN(maxMint)) return 0

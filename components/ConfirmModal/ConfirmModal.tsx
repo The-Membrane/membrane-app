@@ -4,6 +4,7 @@ import { PropsWithChildren } from 'react'
 import ConfrimDetails from './ConfrimDetails'
 import { LoadingContent } from './LoadingContent'
 import { TxDetails } from './TxDetails'
+import { queryClient } from '@/pages/_app'
 
 type Props = PropsWithChildren & {
   label: string
@@ -36,7 +37,13 @@ const ConfirmModal = ({
         isLoading={action?.simulate.isLoading || action?.tx.isPending}
         // isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
         isDisabled={isDisabled}
-        onClick={onModalOpen}
+        onClick={() => {
+          //Invalidate Basket query to get the latest positionID for new deposits...
+          // in preparation for a deposit mint combo piece
+          if (label === 'Deposit Assets') queryClient.invalidateQueries({ queryKey: ['basket'] })
+
+          onModalOpen()
+        }}
         {...buttonProps}
       >
         {label}

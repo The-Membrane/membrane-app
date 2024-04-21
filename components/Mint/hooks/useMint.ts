@@ -13,17 +13,14 @@ const useMint = () => {
   const { summary = [] } = mintState
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useBasketPositions()
+  const { data: basket } = useBasket()
 
   //Use first position id or use the basket's next position ID
   var positionId = "";
   if (basketPositions !== undefined) {
     positionId = basketPositions?.[0]?.positions?.[0]?.position_id
   } else {
-    //Invalidate Basket query to get the latest positionID
-    // queryClient.invalidateQueries({ queryKey: ['basket'] })
-
     //Use the next position ID
-    const { data: basket } = useBasket()
     positionId = basket?.current_position_id ?? ""    
   }
 

@@ -221,8 +221,6 @@ export const getMaxMint = (
   borrowLTV: number,
   creditPrice: number,
 ) => {
-  console.log(tvl, borrowLTV, creditPrice)
-
   return num(tvl).times(borrowLTV / 100).dividedBy(creditPrice).toNumber()
 }
 
@@ -338,6 +336,7 @@ export const calculateVaultSummary = ({
   const initialLTV = getLTV(initialTVL, debtAmount)
   const creditPrice = Number(basket?.credit_price.price) || 1
   const liqudationLTV = getLiqudationLTV(tvl, positions, basketAssets)
+  console.log(positions)
   const borrowLTV = getBorrowLTV(tvl, positions, basketAssets)
   console.log(tvl, borrowLTV)
   const initialBorrowLTV = getBorrowLTV(initialTVL, initialPositions, basketAssets)

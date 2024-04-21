@@ -312,7 +312,7 @@ export const calculateVaultSummary = ({
   repay = 0,
   newDebtAmount = 0,
 }: VaultSummary) => {
-  if (!basket || !collateralInterest || !basketPositions || !prices) {
+  if (!basket || !collateralInterest || (!basketPositions && summary.length === 0) || !prices) {
     return {
       debtAmount: 0,
       cost: 0,

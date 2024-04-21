@@ -41,9 +41,7 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
       }
     })
 
-    console.log(updatedAssets)
     const { summary, totalUsdValue } = getSummary(updatedAssets)
-    console.log(summary)
 
     setMintState({ assets: updatedAssets, summary, totalUsdValue })
   }

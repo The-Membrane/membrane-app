@@ -287,7 +287,17 @@ const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
 
   //If no initial position, return a summary using the summary from the mint state
   if (!basketPositions){
-    return summary
+    
+    return summary.map((position) => {
+      const price = prices?.find((p) => p.denom === position.base)?.price || 0
+      const amount = num(position.amount).toNumber()
+      const usdValue = amount * price
+      return {
+        ...position,
+        amount,
+        usdValue,
+      }
+    })
   }
 
   const positions = getPositions(basketPositions, prices)

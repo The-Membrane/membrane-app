@@ -125,6 +125,7 @@ type GetDepostAndWithdrawMsgs = {
   summary?: Summary[]
   address: string
   positionId: string
+  hasPosition?: boolean
 }
 
 const getAsset = (asset: any): Asset => {
@@ -142,6 +143,7 @@ export const getDepostAndWithdrawMsgs = ({
   summary,
   address,
   positionId,
+  hasPosition = true,
 }: GetDepostAndWithdrawMsgs) => {
   const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
 
@@ -167,8 +169,14 @@ export const getDepostAndWithdrawMsgs = ({
     })
 
   if (depositFunds.length > 0) {
-    const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
-    msgs.push(depositMsg)
+    if (hasPosition) {
+      const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
+      msgs.push(depositMsg)
+    } else {
+      //Don't use positionID, deposit into new position
+      const depositMsg = messageComposer.deposit({ positionOwner: address }, depositFunds)
+      msgs.push(depositMsg)
+    }
   }
 
   if (withdraw.length > 0) {

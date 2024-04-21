@@ -1,5 +1,5 @@
 import { getDepostAndWithdrawMsgs, getMintAndRepayMsgs } from '@/helpers/mint'
-import { useBasketPositions } from '@/hooks/useCDP'
+import { useBasket, useBasketPositions } from '@/hooks/useCDP'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
@@ -13,7 +13,19 @@ const useMint = () => {
   const { summary = [] } = mintState
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useBasketPositions()
-  const positionId = basketPositions?.[0]?.positions?.[0]?.position_id
+
+  //Use first position id or use the basket's next position ID
+  var positionId = "";
+  if (basketPositions !== undefined) {
+    positionId = basketPositions?.[0]?.positions?.[0]?.position_id
+  } else {
+    //Invalidate Basket query to get the latest positionID
+    queryClient.invalidateQueries({ queryKey: ['basket'] })
+
+    //Use the next position ID
+    const { data: basket } = useBasket()
+    positionId = basket?.current_position_id ?? ""    
+  }
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: [
@@ -26,7 +38,7 @@ const useMint = () => {
     ],
     queryFn: () => {
       if (!address) return
-      const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, positionId })
+      const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
       const mintAndRepay = getMintAndRepayMsgs({
         address,
         positionId,

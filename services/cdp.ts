@@ -221,24 +221,7 @@ export const getMaxMint = (
   borrowLTV: number,
   creditPrice: number,
 ) => {
-  // const newPositions = summary.map((position) => ({
-  //   denom: position.base,
-  //   usdValue: position.amountValue,
-  // })) as Positions[]
-  // const filterPositions = positions.filter((position) => {
-  //   return !newPositions.find((newPosition) => newPosition.denom === position.denom)
-  // })
-  // const positionsWithRatio = getAssetRatio(tvl, [...filterPositions, ...newPositions])
-
-  // const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => {
-  //   const ltv =
-  //     basketAssets.find((asset) => asset?.asset?.base === position.denom)?.maxBorrowLTV || 0
-  //   const assetValue = num(position.ratio).times(tvl)
-
-  //   return acc.plus(assetValue.times(ltv))
-  // }, num(0))
-
-  //return maxBorrowLTV.toNumber()
+  console.log(tvl, borrowLTV, creditPrice)
 
   return num(tvl).times(borrowLTV / 100).dividedBy(creditPrice).toNumber()
 }

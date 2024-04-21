@@ -206,6 +206,7 @@ export const getBorrowLTV = (
   basketAssets: BasketAsset[] = [],
 ) => {
   const positionsWithRatio = getAssetRatio(tvl, positions)
+  console.log(positionsWithRatio, basketAssets)
   const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => {
     const ltv =
       basketAssets.find((asset) => asset?.asset?.base === position.denom)?.maxBorrowLTV || 0

@@ -17,13 +17,11 @@ const ActionButtons = ({ onRest }: Props) => {
   const { summary } = mintState
   const { data: basketPositions } = useBasketPositions()
 
-  console.log(basketPositions)
-
   return (
     <HStack mt="5" gap="4">
       <ConfirmModal
         label={
-          mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Mint' : basketPositions?.length === 0 ? 'Deposit Assets' : 'Update Assets'
+          mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Mint' : basketPositions === undefined ? 'Deposit Assets' : 'Update Assets'
         }
         action={mint}
         isDisabled={mintState?.overdraft || (!summary?.length && (!mintState?.mint && !mintState?.repay))}

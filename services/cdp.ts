@@ -334,10 +334,12 @@ export const calculateVaultSummary = ({
   const cost = getRateCost(positions, tvl, basketAssets)
   const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).toNumber())
 
+
   const initialLTV = getLTV(initialTVL, debtAmount)
   const creditPrice = Number(basket?.credit_price.price) || 1
   const liqudationLTV = getLiqudationLTV(tvl, positions, basketAssets)
   const borrowLTV = getBorrowLTV(tvl, positions, basketAssets)
+  console.log(tvl, borrowLTV)
   const initialBorrowLTV = getBorrowLTV(initialTVL, initialPositions, basketAssets)
   const maxMint = getMaxMint(tvl, borrowLTV, creditPrice)
 

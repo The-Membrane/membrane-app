@@ -15,8 +15,6 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
   const { mintState, setMintState } = useMintState()
   const { ltv, borrowLTV } = useVaultSummary()
 
-  console.log(ltv, borrowLTV)
-
   const health = num(1).minus(num(ltv).dividedBy(borrowLTV)).times(100).dp(0).toNumber()
 
   const onChange = (value: number) => {
@@ -45,6 +43,7 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
 
     console.log(updatedAssets)
     const { summary, totalUsdValue } = getSummary(updatedAssets)
+    console.log(summary)
 
     setMintState({ assets: updatedAssets, summary, totalUsdValue })
   }

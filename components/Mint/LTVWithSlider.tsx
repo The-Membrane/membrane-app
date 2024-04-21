@@ -38,7 +38,7 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     repay = 0
     setMintState({ mint, repay})
     return num(debtAmount).times(100).dividedBy(maxMint).dp(2).toNumber()
-  }, [maxMint, debtAmount])
+  }, [debtAmount])
 
   const onChange = (value: number) => {
     var newValue = num(value).dp(2).toNumber()

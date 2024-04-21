@@ -47,11 +47,8 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })
-    queryClient.invalidateQueries({ queryKey: ['stability pool claims'] })
     queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
     queryClient.invalidateQueries({ queryKey: ['user bids'] })
-    queryClient.invalidateQueries({ queryKey: ['capital ahead'] })
-    queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
 

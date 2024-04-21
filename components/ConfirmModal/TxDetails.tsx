@@ -13,6 +13,8 @@ import {
 } from '@chakra-ui/react'
 import { ExplorerLink } from './ExplorerLink'
 import { LineItem } from './LineItem'
+import contracts from '@/config/contracts.json'
+import { queryClient } from '@/pages/_app'
 
 type Props = {
   action?: Action
@@ -22,7 +24,15 @@ type Props = {
 export const TxDetails = ({ action, onClose }: Props) => {
   const osmo = useAssetBySymbol('OSMO')
 
-  if (!action?.tx?.isSuccess) return null 
+  if (!action?.tx?.isSuccess) return null
+
+  //Check for stability pool events & invalidate related queries
+  if (action?.tx?.data?.events.find((e) => e.attributes.find((a) => a.value === contracts.stabilityPool))){
+    queryClient.invalidateQueries({ queryKey: ['stability pool claims'] })
+    queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
+    queryClient.invalidateQueries({ queryKey: ['capital ahead'] })
+    console.log("refreshed SP queries")
+  }
 
   const { gasUsed, transactionHash, code } = action.tx.data
 

@@ -18,9 +18,10 @@ type MintState = {
   summary?: Summary[]
   mint?: number
   repay?: number
+  newDebtAmount?: number
   overdraft?: boolean
   belowMinDebt?: boolean
-  newDebtAmount?: number
+  nearOverdraft?: boolean
 }
 
 type Store = {

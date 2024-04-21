@@ -44,9 +44,9 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     var newValue = num(value).dp(2).toNumber()
     
     //Minimum debt show error msg
-    if (newValue < 100 && !mintState?.belowMinDebt) {
+    if (newValue < 100 && newValue != 0 && !mintState?.belowMinDebt) {
       setMintState({ belowMinDebt: true })
-    } else if (newValue >= 100 && mintState?.belowMinDebt){ 
+    } else if ((newValue >= 100 || newValue === 0) && mintState?.belowMinDebt){ 
       setMintState({ belowMinDebt: false }) 
     }
 

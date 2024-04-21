@@ -19,6 +19,7 @@ type MintState = {
   mint?: number
   repay?: number
   overdraft?: boolean
+  belowMinDebt?: boolean
   newDebtAmount?: number
 }
 

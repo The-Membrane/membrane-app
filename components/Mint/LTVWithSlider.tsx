@@ -43,10 +43,11 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
   const onChange = (value: number) => {
     var newValue = num(value).dp(2).toNumber()
     
-    //Minimum debt stopper
-    if (newValue < 100) {
-      newValue = 100
-      value = 100
+    //Minimum debt show error msg
+    if (newValue < 100 && !mintState?.belowMinDebt) {
+      setMintState({ belowMinDebt: true })
+    } else if (newValue >= 100 && mintState?.belowMinDebt){ 
+      setMintState({ belowMinDebt: false }) 
     }
 
     const diff = num(debtAmount).minus(newValue).abs().toNumber()

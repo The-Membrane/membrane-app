@@ -20,7 +20,7 @@ const useMint = () => {
     positionId = basketPositions?.[0]?.positions?.[0]?.position_id
   } else {
     //Invalidate Basket query to get the latest positionID
-    queryClient.invalidateQueries({ queryKey: ['basket'] })
+    // queryClient.invalidateQueries({ queryKey: ['basket'] })
 
     //Use the next position ID
     const { data: basket } = useBasket()

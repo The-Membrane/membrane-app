@@ -1,5 +1,6 @@
 import { Slider, SliderFilledTrack, SliderThumb, SliderTrack } from '@chakra-ui/react'
 import React from 'react'
+import { Summary } from './Summary'
 
 export type SliderProps = {
   value?: number
@@ -7,9 +8,10 @@ export type SliderProps = {
   min?: number
   max?: number
   walletCDT?: number
+  summary?: any[]
 }
 
-export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walletCDT = 0}: SliderProps) => {
+export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walletCDT = 0, summary = []}: SliderProps) => {
   return (
     <Slider
       aria-label="slider-ex-4"
@@ -18,7 +20,7 @@ export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walle
       max={max === 0 ? 1 : max}
       value={value}
       onChange={onChange}
-      isDisabled={max === 0 && walletCDT === 0}
+      isDisabled={max === 0 && (walletCDT === 0 && summary.length === 0)}
     >
       <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
         <SliderFilledTrack bg="#C445F0" />

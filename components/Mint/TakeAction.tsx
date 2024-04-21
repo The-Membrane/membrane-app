@@ -9,10 +9,10 @@ import useCombinBalance from './hooks/useCombinBalance'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 
-const OverDraftMessage = ({ overdraft = false, minDebt = false, nearOverdraft }: { overdraft?: boolean, minDebt?: boolean, nearOverdraft?: boolean }) => {
+const OverDraftMessage = ({ overdraft = false, minDebt = false}: { overdraft?: boolean, minDebt?: boolean }) => {
   return (
     <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-      {overdraft ? 'Withdrawal amount exceeds the maximum LTV.' : minDebt ? 'Minimum debt is 100 CDT unless fully repaying' : nearOverdraft ? 'Slider is stopped because any lower would take you past the max LTV' :' '}
+      {overdraft ? 'Withdrawal amount exceeds the maximum LTV.' : minDebt ? 'Minimum debt is 100 CDT unless fully repaying' : ' '}
     </Text>
   )
 }
@@ -58,7 +58,7 @@ const TakeAction = () => {
 
       <LTVWithSlider label="Your Debt" value={sliderValue} />
       <ActionButtons onRest={onRest} />
-      <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} nearOverdraft={mintState.nearOverdraft}/>
+      <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt}/>
     </TabPanel>
   )
 }

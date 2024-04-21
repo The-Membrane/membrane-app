@@ -21,12 +21,6 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
     let updatedAssets = mintState.assets.map((asset) => {
       const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
       
-      // We want to stop the slider from moving if they are looking withdraw assets that pushes them below the borrowLTV
-      if (health <= 0 && sliderValue <= (asset?.sliderValue??0)) {
-        if (!mintState.nearOverdraft) setMintState({ nearOverdraft: true })
-        return {...asset}
-      } else if (mintState.nearOverdraft) setMintState({ nearOverdraft: false })
-
       const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
       const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
       const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)

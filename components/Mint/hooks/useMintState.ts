@@ -21,7 +21,6 @@ type MintState = {
   newDebtAmount?: number
   overdraft?: boolean
   belowMinDebt?: boolean
-  nearOverdraft?: boolean
 }
 
 type Store = {

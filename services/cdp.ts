@@ -133,7 +133,6 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
 }
 
 export const getAssetRatio = (tvl: number, positions: Positions[]) => {
-  console.log(positions, tvl)
   return positions.map((position) => ({
     ...position,
     ratio: num(position.usdValue).div(tvl).toNumber(),
@@ -206,6 +205,7 @@ export const getBorrowLTV = (
   positions: Positions[],
   basketAssets: BasketAsset[] = [],
 ) => {
+  console.log(positions, tvl)
   const positionsWithRatio = getAssetRatio(tvl, positions)
   const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => {
     const ltv =
@@ -344,7 +344,6 @@ export const calculateVaultSummary = ({
   const initialLTV = getLTV(initialTVL, debtAmount)
   const creditPrice = Number(basket?.credit_price.price) || 1
   const liqudationLTV = getLiqudationLTV(tvl, positions, basketAssets)
-  console.log(positions)
   const borrowLTV = getBorrowLTV(tvl, positions, basketAssets)
   console.log(tvl, borrowLTV)
   const initialBorrowLTV = getBorrowLTV(initialTVL, initialPositions, basketAssets)

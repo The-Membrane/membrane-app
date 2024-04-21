@@ -17,6 +17,8 @@ const ActionButtons = ({ onRest }: Props) => {
   const { summary } = mintState
   const { data: basketPositions } = useBasketPositions()
 
+  console.log(basketPositions)
+
   return (
     <HStack mt="5" gap="4">
       <ConfirmModal

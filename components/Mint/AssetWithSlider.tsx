@@ -15,6 +15,8 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
   const { mintState, setMintState } = useMintState()
   const { ltv, borrowLTV } = useVaultSummary()
 
+  console.log(ltv, borrowLTV)
+
   const health = num(1).minus(num(ltv).dividedBy(borrowLTV)).times(100).dp(0).toNumber()
 
   const onChange = (value: number) => {
@@ -28,9 +30,9 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
       } else if (mintState.nearOverdraft) setMintState({ nearOverdraft: false })
 
       const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
-      const newDepoist = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
+      const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
       const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
-        ? newDepoist
+        ? newDeposit
         : -diffInUsd
       const amount = num(amountValue).dividedBy(asset.price).dp(6).toNumber()
       return {
@@ -41,6 +43,7 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
       }
     })
 
+    console.log(updatedAssets)
     const { summary, totalUsdValue } = getSummary(updatedAssets)
 
     setMintState({ assets: updatedAssets, summary, totalUsdValue })

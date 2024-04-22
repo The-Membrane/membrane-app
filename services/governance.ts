@@ -169,12 +169,12 @@ export const getProposals = async () => {
   // const requiredQuorum = parseFloat(config.proposal_required_quorum)
   const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
-  const start = 0
-  const limit = 512
+  const start = 50
+  const limit = 32
 
   const activeProposals = client.activeProposals({ start, limit }).then((res) => res.proposal_list)
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
-
+console.log(activeProposals)
   const statusOrder: Record<string, number> = {
     active: 0,
     pending: 1,

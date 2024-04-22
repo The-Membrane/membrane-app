@@ -106,7 +106,6 @@ const ProposalsTable = () => {
   const [filters, setFilters] = useState<Filter>({ status: 'active' })
   const [search, setSearch] = useState<string>('')
   const { data = [], isLoading } = useProposals()
-  console.log(data)
   const { paginatedData, ...pagination } = usePagination(data, 10, filters, search)
 
   if (isLoading) {

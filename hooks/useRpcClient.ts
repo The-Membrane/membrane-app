@@ -12,7 +12,7 @@ export const useRpcClient = (chainName: string) => {
       rpcEndpoint = `https://rpc.cosmos.directory/${chainName}`
     }
 
-    return await osmosis.ClientFactory.createRPCQueryClient({ rpcEndpoint: "https://rpc.osmosis.zone:443" })
+    return await osmosis.ClientFactory.createRPCQueryClient({ rpcEndpoint: "https://g.w.lavanet.xyz:443/gateway/cos3/rpc-http/bb6d2019c50124ec4fdb78498bc50573" })
   }
 
   return { getRpcClient }

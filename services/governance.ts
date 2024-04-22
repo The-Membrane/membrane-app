@@ -170,7 +170,7 @@ export const getProposals = async () => {
   const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
   const start = 0
-  const limit = 30
+  const limit = 512
 
   const activeProposals = client.activeProposals({ start, limit }).then((res) => res.proposal_list)
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)

@@ -42,6 +42,7 @@ const useLP = ({ txSuccess }: Props) => {
     },
     enabled: !!address && LPState.newCDT !== 0,
   })
+  console.log(!!address, LPState.newCDT !== 0, LPState.newCDT, msgs)
 
   const onSuccess = () => {
     //We'll handle withdraws and rewards in the future
@@ -54,7 +55,6 @@ const useLP = ({ txSuccess }: Props) => {
     msgs,
     queryKey: [],
     amount: LPState.newCDT.toString(),
-    enabled: false,
     onSuccess,
   })
 }

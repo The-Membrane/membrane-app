@@ -32,21 +32,21 @@ const LPTab = () => {
           <Stack py="5" w="full" gap="5">      
           <HStack justifyContent="space-between">
             <Text fontSize="16px" fontWeight="700">
-              {LPState.newCDT}
+              {LPState?.newCDT}
             </Text>
             <Text fontSize="16px" fontWeight="700">
               CDT
             </Text>
           </HStack>      
           <SliderWithState
-            value={LPState.newCDT}
+            value={LPState?.newCDT}
             onChange={onCDTChange}
             min={0}
             max={Number(cdtBalance)}
           />
           </Stack>
 
-          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState.newCDT === 0}>
+          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0}>
             <Summary />
         </ConfirmModal>
         </Card>

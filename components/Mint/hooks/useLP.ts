@@ -7,45 +7,47 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { queryClient } from '@/pages/_app'
 import { buildBidMsg } from '@/services/liquidation'
 import { coin } from '@cosmjs/stargate'
-import useBidState from './useBidState'
+import useLPState from './useLPState'
 import { buildStabilityPooldepositMsg } from '@/services/stabilityPool'
+import { constrainedMemory } from 'process'
+import { handleCollateralswaps, joinCLPools } from '@/services/osmosis'
+import { num } from '@/helpers/num'
+import { exported_supportedAssets } from '@/helpers/chain'
 
 type Props = {
   txSuccess?: () => void
 }
 
-const useBid = ({ txSuccess }: Props) => {
-  const { bidState } = useBidState()
+const useLP = ({ txSuccess }: Props) => {
+  const { LPState } = useLPState()
   const cdtAsset = useAssetBySymbol('CDT')
-  const selectedAsset = bidState?.selectedAsset
-  const { premium, cdt } = bidState?.placeBid
+  const usdcAsset = useAssetBySymbol('USDC')
   const { address } = useWallet()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['bid', 'msgs', address, selectedAsset?.base, premium, cdt],
+    queryKey: ['bid', 'msgs', address, LPState.newCDT],
     queryFn: () => {
-      if (!address || !selectedAsset) return
+      if (!address || LPState.newCDT === 0) return
 
-      const microAmount = shiftDigits(cdt, 6).dp(0).toString()
-      const funds = [coin(microAmount, cdtAsset?.base!)]
+    //   const microAmount = shiftDigits(LPState.newCDT, 6).dp(0).toString()
+    //   const funds = [coin(microAmount, cdtAsset?.base!)]
 
-      var msg;
-      if (premium === 10){
-        msg = buildStabilityPooldepositMsg({ address, funds })
-      } else {
-        msg = buildBidMsg({
-          address,
-          asset: selectedAsset,
-          liqPremium: premium,
-          funds,
-        })
-      }      
-      return [msg] as MsgExecuteContractEncodeObject[]
+      //Swap to USDC
+      const CDTInAmount = num(LPState.newCDT).div(2).toNumber()
+      const { msg, tokenOutMinAmount } = handleCollateralswaps('USDC' as keyof exported_supportedAssets, CDTInAmount)
+
+      //Build LP msg
+      const CDTCoinIn = coin(CDTInAmount.toString(), cdtAsset?.base!)
+      const USDCCoinIn = coin(tokenOutMinAmount.toString(), usdcAsset?.base!)
+      const LPmsg = joinCLPools(CDTCoinIn, 1268, USDCCoinIn)
+                
+      return [msg, LPmsg] as MsgExecuteContractEncodeObject[]
     },
-    enabled: !!address && !!selectedAsset && !!premium && !!cdt,
+    enabled: !!address && LPState.newCDT !== 0,
   })
 
   const onSuccess = () => {
+    //We'll handle withdraws and rewards in the future
     // queryClient.invalidateQueries({ queryKey: ['LP IDs'] })
     // queryClient.invalidateQueries({ queryKey: ['LP rewards'] })
     txSuccess?.()
@@ -54,10 +56,10 @@ const useBid = ({ txSuccess }: Props) => {
   return useSimulateAndBroadcast({
     msgs,
     queryKey: [],
-    amount: cdt.toString(),
+    amount: LPState.newCDT.toString(),
     enabled: !!msgs,
     onSuccess,
   })
 }
 
-export default useBid
+export default useLP

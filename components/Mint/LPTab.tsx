@@ -5,9 +5,8 @@ import { SliderWithState } from "./SliderWithState"
 import useLPState from "./hooks/useLPState"
 import ConfirmModal from "../ConfirmModal"
 import { Summary } from "./Summary"
+import useLP from "./hooks/useLP"
 
-const LPSlider = () => {
-}
 
 const LPTab = () => {
     const cdt = useAssetBySymbol('CDT')
@@ -15,11 +14,14 @@ const LPTab = () => {
 
     const { LPState, setLPState } = useLPState()
     
-    const bid = useBid({ txSuccess })
+    const txSuccess = () => {
+        setLPState({ newCDT: 0})
+    }
+    const LP = useLP({ txSuccess })
 
     const onCDTChange = (value: number) => {
         setLPState({ ...LPState, newCDT: value})
-      }
+    }
     
     return (
         <Card p="8" alignItems="center" gap={5}>
@@ -44,7 +46,7 @@ const LPTab = () => {
           />
           </Stack>
 
-          <ConfirmModal label="Join LP" action={} isDisabled={LPState.newCDT === 0}>
+          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState.newCDT === 0}>
             <Summary />
         </ConfirmModal>
         </Card>

@@ -68,6 +68,9 @@ dependencies:
   '@emotion/styled':
     specifier: ^11.11.0
     version: 11.11.0(@emotion/react@11.11.3)(@types/react@18.2.58)(react@18.2.0)
+  '@osmonauts/math':
+    specifier: ^1.15.1
+    version: 1.15.1
   '@tanstack/react-query':
     specifier: ^5.20.1
     version: 5.24.1(react@18.2.0)
@@ -1468,6 +1471,12 @@ packages:
       '@chain-registry/types': 0.25.1
     dev: false
 
+  /@chain-registry/types@0.16.0:
+    resolution: {integrity: sha512-4j6vq2Vqn/nF+UBjvRPUVs6eM3+5rJ+dPmEWpd/OoNH3wTy1k6aoilcSTZRR//vGcI5EOVGsxhhJxUzo2qqweA==}
+    dependencies:
+      '@babel/runtime': 7.23.9
+    dev: false
+
   /@chain-registry/types@0.17.0:
     resolution: {integrity: sha512-lavACU4oDxioUy8lZOFZN0Vrr2qR+Dg2yEh/mkrPfOldcioavREXJou0elDyyXwq4pGLC5YQ+IISCtQ4Du0bdw==}
     dependencies:
@@ -1487,6 +1496,15 @@ packages:
 
   /@chain-registry/types@0.25.1:
     resolution: {integrity: sha512-AbsJ2peoi9EjmdScFCLMqNhthJpLQUlEg3aiqSEonoqbKs6y1AuHqice2BuGBFGiAGQuAwUZR8HQDN46cIII3A==}
+    dev: false
+
+  /@chain-registry/utils@1.13.1:
+    resolution: {integrity: sha512-BV8XoZGGlfeF3d5p06y4w2uDggAxtWa5g5zEDRgcyi6V+iJUSlPwu5PL7IKB5qJvAq7J1Vgw8x+Jqj1TVxjpvA==}
+    dependencies:
+      '@babel/runtime': 7.23.9
+      '@chain-registry/types': 0.16.0
+      bignumber.js: 9.1.1
+      sha.js: 2.4.11
     dev: false
 
   /@chain-registry/utils@1.18.0:
@@ -4896,6 +4914,20 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
     dev: true
+
+  /@osmonauts/math@1.15.1:
+    resolution: {integrity: sha512-huvgJly1ZVT9bc6r2MMiRbCzb1bVUfdDGcWnuRzHCm4Pb+zDs8gkWedt6zhKpIIqBJnjf70TcLEy50t0l+NL7w==}
+    dependencies:
+      '@chain-registry/types': 0.16.0
+      '@chain-registry/utils': 1.13.1
+      bignumber.js: 9.1.2
+      decimal.js-light: 2.5.1
+      osmojs: 16.12.1
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
+    dev: false
 
   /@parcel/watcher-android-arm64@2.4.1:
     resolution: {integrity: sha512-LOi/WTbbh3aTn2RYddrO8pnapixAziFl6SMxHM69r3tvdSm94JtCenaKgk1GRg5FJ5wpMCpHeW+7yqPlvZv7kg==}
@@ -10954,6 +10986,20 @@ packages:
     resolution: {integrity: sha512-D2FR03Vir7FIu45XBY20mTb+/ZSWB00sjU9jdQXt83gDrI4Ztz5Fs7/yy74g2N5SVQY4xY1qDr4rNddwYRVX0g==}
     engines: {node: '>=0.10.0'}
     dev: true
+
+  /osmojs@16.12.1:
+    resolution: {integrity: sha512-3Crv2Du70felladlGbK2q/3vh4e/Cgp+PNMcicL7Pr9DPoRx6E+tjDbemCPES2J1BJlHodK1BEFowr/85BILVA==}
+    dependencies:
+      '@cosmjs/amino': 0.32.2
+      '@cosmjs/proto-signing': 0.32.2
+      '@cosmjs/stargate': 0.32.2
+      '@cosmjs/tendermint-rpc': 0.32.2
+      '@cosmology/lcd': 0.13.3
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
+    dev: false
 
   /osmojs@16.9.0:
     resolution: {integrity: sha512-/gcPAuMfhUGwbwG7/OcTzBCxhj+7EAXhsdoqAHoC6ztYX0b9HMvmwGgSFuec1UEiRc57oQX85uO62acV5k+XIw==}

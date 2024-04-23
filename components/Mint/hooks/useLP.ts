@@ -10,6 +10,7 @@ import useLPState from './useLPState'
 import { handleCollateralswaps, joinCLPools } from '@/services/osmosis'
 import { num } from '@/helpers/num'
 import { exported_supportedAssets } from '@/helpers/chain'
+import { useOraclePrice } from '@/hooks/useOracle'
 
 type Props = {
   txSuccess?: () => void
@@ -20,6 +21,8 @@ const useLP = ({ txSuccess }: Props) => {
   const cdtAsset = useAssetBySymbol('CDT')
   const usdcAsset = useAssetBySymbol("USDC")
   const { address } = useWallet()
+  const { data: prices } = useOraclePrice()
+  console.log(prices)
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['bid', 'msgs', address, LPState.newCDT],

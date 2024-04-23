@@ -25,7 +25,7 @@ const MintTabsCard = () => {
   const { setMintState } = useMintState()
 
   const onTabChange = (index: number) => {
-    setMintState({ isTakeAction: index === 1 })
+    setMintState({ isTakeAction: index === 1 || index === 2})
   }
   return (
     <Card minW="400px" gap="12" h="max-content" px="2">

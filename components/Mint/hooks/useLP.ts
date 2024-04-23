@@ -32,13 +32,17 @@ const useLP = ({ txSuccess }: Props) => {
       const CDTInAmount = num(microAmount).div(2).toNumber()
       const { msg, tokenOutMinAmount } = handleCollateralswaps(address, 'USDC' as keyof exported_supportedAssets, CDTInAmount)
 
-      var msgs = msg
+      var msgs = [msg]
       console.log("swap", msg)
 
       //Build LP msg
+      console.log("before")
       const CDTCoinIn = coin(CDTInAmount.toString(), cdtAsset?.base!)
+      console.log("before2")
       const USDCCoinIn = coin(tokenOutMinAmount.toString(), usdcAsset?.base!)
+      console.log("before3")
       const LPmsg = joinCLPools(address, CDTCoinIn, 1268, USDCCoinIn)
+      console.log("after")
 
       msgs = msgs.concat(LPmsg)
       console.log("lpmsg", LPmsg)

@@ -399,10 +399,9 @@ let calculator = new LiquidityPoolCalculator({ assets: osmosisAssets });
 //////joinPools
 //The input tokens must be in the order of the pool's assets
 //pool 1268 is CDT/USDC
-export const joinCLPools = (tokenIn1: Coin, poolId: number, tokenIn2: Coin) => {
+export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tokenIn2: Coin) => {
     console.log("join_CL_pool_attempt")
     let msg = [] as EncodeObject[];
-    const { address } = useWallet()
     let joinCoins = [tokenIn1, tokenIn2];
 
     msg.push(osmosis.concentratedliquidity.v1beta1.MessageComposer.withTypeUrl.createPosition({

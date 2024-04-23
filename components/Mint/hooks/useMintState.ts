@@ -34,10 +34,6 @@ const initialState: MintState = {
   ltvSlider: 0,
 }
 
-type Config = {
-  name: string
-}
-
 // @ts-ignore
 const store = (set) => ({
   mintState: initialState,

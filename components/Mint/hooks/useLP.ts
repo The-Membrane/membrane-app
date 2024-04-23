@@ -39,7 +39,7 @@ const useLP = ({ txSuccess }: Props) => {
       //Build LP msg
       const CDTCoinIn = coin(CDTInAmount.toString(), cdtAsset?.base!)
       const USDCCoinIn = coin(tokenOutMinAmount.toString(), usdcAsset?.base!)
-      const LPmsg = joinCLPools(CDTCoinIn, 1268, USDCCoinIn)
+      const LPmsg = joinCLPools(address, CDTCoinIn, 1268, USDCCoinIn)
                 
       return [msg, LPmsg] as MsgExecuteContractEncodeObject[]
     },

@@ -603,10 +603,12 @@ export const handleCollateralswaps = (address: string, tokenOut: keyof exported_
         
     //Get tokenOutAmount
     const tokenOutAmount = getCollateraltokenOutAmount(CDTInAmount, tokenOut);
+    console.log(tokenOutAmount)
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
 
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
+    console.log(tokenOutMinAmount)
 
     const msg = swapExactAmountIn({
         sender: address! as string,
@@ -614,7 +616,7 @@ export const handleCollateralswaps = (address: string, tokenOut: keyof exported_
         tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
         tokenOutMinAmount
     });
-
+    console.log(parseInt(tokenOutMinAmount))
     // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };

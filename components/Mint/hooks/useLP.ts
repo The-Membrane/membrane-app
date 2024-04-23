@@ -19,7 +19,6 @@ const useLP = ({ txSuccess }: Props) => {
   const { LPState } = useLPState()
   const cdtAsset = useAssetBySymbol('CDT')
   const usdcAsset = useAssetBySymbol("USDC")
-  console.log(usdcAsset)
   const { address } = useWallet()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
@@ -39,7 +38,7 @@ const useLP = ({ txSuccess }: Props) => {
       //Build LP msg
       console.log("before")
       const CDTCoinIn = coin(CDTInAmount.toString(), cdtAsset?.base!)
-      console.log("before2")
+      console.log("before2", tokenOutMinAmount, usdcAsset?.base!)
       const USDCCoinIn = coin(tokenOutMinAmount.toString(), usdcAsset?.base!)
       console.log("before3")
       const LPmsg = joinCLPools(address, CDTCoinIn, 1268, USDCCoinIn)

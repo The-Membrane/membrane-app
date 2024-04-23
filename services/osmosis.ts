@@ -14,7 +14,8 @@ import BigNumber from "bignumber.js";
 import { MsgSwapExactAmountIn } from "osmojs/dist/codegen/osmosis/gamm/v1beta1/tx";
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";
-import { Asset } from "@/contracts/codegen/positions/Positions.types";
+import { Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";
+import { Asset } from '@/helpers/chain'
 import { useEffect, useState } from "react";
 import { getAssetRatio, getBasketPositions } from "@/services/cdp";
 import useMintState from "@/components/Mint/hooks/useMintState";
@@ -591,8 +592,8 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
 }
 
 //This is for Collateral using the oracle's prices
-const getCollateraltokenOutAmount = (CDTInAmount: number, tokenOut: string) => {
-    let basePrice = getPriceByDenom(denoms.CDT[0] as string);
+const getCollateraltokenOutAmount = (cdtAsset: Asset, CDTInAmount: number, tokenOut: string) => {
+    let basePrice = getPriceByDenom(cdtAsset.base);
     console.log("base", basePrice)
     let asset = getAssetBySymbol(tokenOut);
     console.log("nexT", tokenOut, asset)
@@ -603,10 +604,10 @@ const getCollateraltokenOutAmount = (CDTInAmount: number, tokenOut: string) => {
 }
 
 //Swapping CDT to collateral
-export const handleCollateralswaps = (address: string, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
+export const handleCollateralswaps = (address: string, cdtAsset: Asset, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
         
     //Get tokenOutAmount
-    const tokenOutAmount = getCollateraltokenOutAmount(CDTInAmount, tokenOut);
+    const tokenOutAmount = getCollateraltokenOutAmount(cdtAsset, CDTInAmount, tokenOut);
     console.log(tokenOutAmount)
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);

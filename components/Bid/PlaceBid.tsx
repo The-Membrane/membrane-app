@@ -53,10 +53,10 @@ const PlaceBid = () => {
         <Stack w="full" gap="1">
           <HStack justifyContent="space-between">
             <Text fontSize="16px" fontWeight="700">
-              CDT with
+              {bidState?.placeBid?.cdt}
             </Text>
             <Text fontSize="16px" fontWeight="700">
-              {bidState?.placeBid?.cdt}
+              CDT with
             </Text>
           </HStack>
           <SliderWithState
@@ -70,10 +70,10 @@ const PlaceBid = () => {
         <Stack w="full" gap="1">
           <HStack justifyContent="space-between">
             <Text fontSize="16px" fontWeight="700">
-              % Premium
+              {bidState?.placeBid?.premium}
             </Text>
             <Text fontSize="16px" fontWeight="700">
-              {bidState?.placeBid?.premium}
+              % Premium
             </Text>
           </HStack>
           <SliderWithState

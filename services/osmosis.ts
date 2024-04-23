@@ -536,7 +536,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
         route = route.concat(cdtRoutes[routeKey as keyof exported_supportedAssets]);
 
         //output to test
-        console.log(route)
+        // console.log(route)
         iterations += 1;
     }
 
@@ -544,7 +544,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
 }
 //This is getting Swaps To CDT
 export const handleCDTswaps = (address: string, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
-    console.log("swap_attempt")
+    // console.log("swap_attempt")
     //Asserting prices were queried
     if (getPriceByDenom("uosmo") !== 0) {
         //Get tokenOutAmount
@@ -585,9 +585,6 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
         }
     });
 
-    if (tokenOut === "USDC") {
-        console.log(temp_routes, routes)
-    }
 
     return routes;
 }
@@ -603,8 +600,7 @@ const getCollateraltokenOutAmount = (CDTInAmount: number, tokenOut: string) => {
 
 //Swapping CDT to collateral
 export const handleCollateralswaps = (address: string, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
-    console.log("collateral_swap_attempt")
-    
+        
     //Get tokenOutAmount
     const tokenOutAmount = getCollateraltokenOutAmount(CDTInAmount, tokenOut);
     //Swap routes

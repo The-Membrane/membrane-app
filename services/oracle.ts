@@ -26,7 +26,6 @@ export const parsePrice = (prices: PriceResponse[], assetInfos: AssetInfo[]): Pr
 }
 
 export const getPriceByDenom = (denom: string) => {
-  console.log("here")
   const prices = queryClient.getQueryData(['oraclePrice']) as any[]
   return prices?.find((price) => price.denom === denom)
 }

@@ -22,7 +22,6 @@ const useLP = ({ txSuccess }: Props) => {
   const usdcAsset = useAssetBySymbol("USDC")
   const { address } = useWallet()
   const { data: prices } = useOraclePrice()
-  console.log(prices)
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['bid', 'msgs', address, LPState.newCDT],
@@ -32,8 +31,11 @@ const useLP = ({ txSuccess }: Props) => {
       const microAmount = shiftDigits(LPState.newCDT, 6).dp(0).toString()
 
       //Swap to USDC
+      const cdtPrice = prices?.find((price) => price.denom === cdtAsset?.base)
+      const usdcPrice = prices?.find((price) => price.denom === usdcAsset?.base)
+      console.log(cdtPrice, usdcPrice)
       const CDTInAmount = num(microAmount).div(2).toNumber()
-      const { msg, tokenOutMinAmount } = handleCollateralswaps(address, cdtAsset!, 'USDC' as keyof exported_supportedAssets, CDTInAmount)
+      const { msg, tokenOutMinAmount } = handleCollateralswaps(address, Number(cdtPrice!.price), Number(usdcPrice!.price), 'USDC' as keyof exported_supportedAssets, CDTInAmount)
 
       var msgs = [msg]
 

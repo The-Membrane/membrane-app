@@ -604,23 +604,23 @@ const getCollateraltokenOutAmount = (CDTInAmount: number, tokenOut: string) => {
 //Swapping CDT to collateral
 export const handleCollateralswaps = (address: string, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
     console.log("collateral_swap_attempt")
-    //Asserting prices were queried
-    // if (getPriceByDenom("uosmo") !== undefined) {
-        //Get tokenOutAmount
-        const tokenOutAmount = getCollateraltokenOutAmount(CDTInAmount, tokenOut);
-        //Swap routes
-        const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
+    
+    //Get tokenOutAmount
+    const tokenOutAmount = getCollateraltokenOutAmount(CDTInAmount, tokenOut);
+    //Swap routes
+    const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
 
-        const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
+    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
-        const msg = swapExactAmountIn({
-            sender: address! as string,
-            routes,
-            tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
-            tokenOutMinAmount
-        });
+    const msg = swapExactAmountIn({
+        sender: address! as string,
+        routes,
+        tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
+        tokenOutMinAmount
+    });
 
-        // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
-        return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
-    // }
+    console.log("swap msg:", msg)
+
+    // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
+    return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };

@@ -23,6 +23,7 @@ import { useOraclePrice } from "@/hooks/useOracle";
 import { useBasket, useBasketPositions } from "@/hooks/useCDP";
 import { useBalanceByAsset } from "@/hooks/useBalance";
 import { useAssetBySymbol } from "@/hooks/useAssets";
+import { num } from "@/helpers/num";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -592,10 +593,13 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
 //This is for Collateral using the oracle's prices
 const getCollateraltokenOutAmount = (CDTInAmount: number, tokenOut: string) => {
     let basePrice = getPriceByDenom(denoms.CDT[0] as string);
+    console.log(basePrice)
     let asset = getAssetBySymbol(tokenOut);
+    console.log(tokenOut, asset)
     let tokenOutPrice = getPriceByDenom(asset?.base ?? '');
+    console.log(tokenOutPrice)
 
-    return CDTInAmount * (basePrice / tokenOutPrice)
+    return num(CDTInAmount).multipliedBy(basePrice.div(tokenOutPrice)).toNumber()
 }
 
 //Swapping CDT to collateral
@@ -608,7 +612,6 @@ export const handleCollateralswaps = (address: string, tokenOut: keyof exported_
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
 
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
-    console.log(tokenOutMinAmount)
 
     const msg = swapExactAmountIn({
         sender: address! as string,
@@ -616,7 +619,6 @@ export const handleCollateralswaps = (address: string, tokenOut: keyof exported_
         tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
         tokenOutMinAmount
     });
-    console.log(parseInt(tokenOutMinAmount))
     // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };

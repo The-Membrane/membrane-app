@@ -54,7 +54,7 @@ const useLP = ({ txSuccess }: Props) => {
     msgs,
     queryKey: [],
     amount: LPState.newCDT.toString(),
-    enabled: !!msgs,
+    enabled: true,
     onSuccess,
   })
 }

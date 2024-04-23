@@ -1,6 +1,6 @@
 import { useBalanceByAsset } from "@/hooks/useBalance"
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import { Card, HStack, Stack, Text } from "@chakra-ui/react"
+import { Card, HStack, Stack, TabPanel, Text } from "@chakra-ui/react"
 import { SliderWithState } from "./SliderWithState"
 import useLPState from "./hooks/useLPState"
 import ConfirmModal from "../ConfirmModal"
@@ -24,6 +24,7 @@ const LPTab = () => {
     }
     
     return (
+        <TabPanel>
         <Card p="8" alignItems="center" gap={5}>
           <Text variant="title" fontSize="24px" >
             <a href="https://app.osmosis.zone/pool/1268">USDC Stableswap LP</a>.
@@ -50,6 +51,7 @@ const LPTab = () => {
             <Summary />
         </ConfirmModal>
         </Card>
+        </TabPanel>
       )
 }
 

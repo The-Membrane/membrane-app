@@ -18,7 +18,8 @@ type Props = {
 const useLP = ({ txSuccess }: Props) => {
   const { LPState } = useLPState()
   const cdtAsset = useAssetBySymbol('CDT')
-  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcAsset = useAssetBySymbol("USDC")
+  console.log(usdcAsset)
   const { address } = useWallet()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
@@ -33,7 +34,7 @@ const useLP = ({ txSuccess }: Props) => {
       const { msg, tokenOutMinAmount } = handleCollateralswaps(address, 'USDC' as keyof exported_supportedAssets, CDTInAmount)
 
       var msgs = [msg]
-      console.log("swap", msg)
+      console.log("swap", msgs)
 
       //Build LP msg
       console.log("before")

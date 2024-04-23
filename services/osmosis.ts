@@ -1,5 +1,4 @@
 import { cdtRoutes, denoms, mainnetAddrs, SWAP_SLIPPAGE } from "@/config/defaults";
-import useWallet from "@/hooks/useWallet";
 import { getPriceByDenom } from "@/services/oracle";
 import { Coin, coin, coins } from "@cosmjs/amino";
 
@@ -61,33 +60,33 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 
 //////Quick Action functions
 //Initialize osmosis client
-const [osmosisQueryClient, setosmosisQueryClient] = useState<any | null>(null);
-//Get Osmosis Client
-useEffect(() => {
-    if (osmosisQueryClient === null || osmosisQueryClient === undefined) {
-        const { createRPCQueryClient } = osmosis.ClientFactory;
-        const osmosisClient = createRPCQueryClient({ rpcEndpoint: "https://osmosis-rpc.polkachu.com/" }).then((osmosisClient) => {
-            if (!osmosisClient) {
-                console.error('osmosisClient undefined.');
-                return;
-            }
+// const [osmosisQueryClient, setosmosisQueryClient] = useState<any | null>(null);
+// //Get Osmosis Client
+// useEffect(() => {
+//     if (osmosisQueryClient === null || osmosisQueryClient === undefined) {
+//         const { createRPCQueryClient } = osmosis.ClientFactory;
+//         const osmosisClient = createRPCQueryClient({ rpcEndpoint: "https://osmosis-rpc.polkachu.com/" }).then((osmosisClient) => {
+//             if (!osmosisClient) {
+//                 console.error('osmosisClient undefined.');
+//                 return;
+//             }
 
-            //Set client
-            setosmosisQueryClient(osmosisClient);
-        });
-    }
-}, []); //We'll add dependencies for Quick Actions clicks so that this requeries if the user is about to need it & its undefined
-//Initialize osmosis variables
-//@ts-ignore
-let cg_prices;
-const osmosisAssets = [
-    ...assets.assets,
-    ...asset_list.assets,
-].filter(({ type_asset }) => type_asset !== 'ics20').filter((asset) => asset !== undefined);
-//@ts-ignore
-cg_prices = convertGeckoPricesToDenomPriceHash(osmosisAssets, priceResponse);
-//@ts-ignore
-let calculator = new LiquidityPoolCalculator({ assets: osmosisAssets });
+//             //Set client
+//             setosmosisQueryClient(osmosisClient);
+//         });
+//     }
+// }, []); //We'll add dependencies for Quick Actions clicks so that this requeries if the user is about to need it & its undefined
+// //Initialize osmosis variables
+// //@ts-ignore
+// let cg_prices;
+// const osmosisAssets = [
+//     ...assets.assets,
+//     ...asset_list.assets,
+// ].filter(({ type_asset }) => type_asset !== 'ics20').filter((asset) => asset !== undefined);
+// //@ts-ignore
+// cg_prices = convertGeckoPricesToDenomPriceHash(osmosisAssets, priceResponse);
+// //@ts-ignore
+// let calculator = new LiquidityPoolCalculator({ assets: osmosisAssets });
 
 /////functions/////
 // export const unloopPosition = (positionId: string, loops: number) => {
@@ -544,11 +543,10 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
     return route;
 }
 //This is getting Swaps To CDT
-export const handleCDTswaps = (tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
+export const handleCDTswaps = (address: string, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
     console.log("swap_attempt")
     //Asserting prices were queried
     if (getPriceByDenom("uosmo") !== 0) {
-        const { address } = useWallet()
         //Get tokenOutAmount
         const tokenOutAmount = getCDTtokenOutAmount(tokenInAmount, tokenIn);
         //Swap routes
@@ -604,7 +602,7 @@ const getCollateraltokenOutAmount = (CDTInAmount: number, tokenOut: string) => {
 }
 
 //Swapping CDT to collateral
-export const handleCollateralswaps = (tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
+export const handleCollateralswaps = (address: string, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
     console.log("collateral_swap_attempt")
     //Asserting prices were queried
     // if (getPriceByDenom("uosmo") !== undefined) {
@@ -615,7 +613,6 @@ export const handleCollateralswaps = (tokenOut: keyof exported_supportedAssets, 
 
         const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
-        const { address } = useWallet()
         const msg = swapExactAmountIn({
             sender: address! as string,
             routes,

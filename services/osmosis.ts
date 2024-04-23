@@ -619,8 +619,6 @@ export const handleCollateralswaps = (address: string, tokenOut: keyof exported_
         tokenOutMinAmount
     });
 
-    console.log("swap msg:", msg)
-
     // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };

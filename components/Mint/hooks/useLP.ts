@@ -40,13 +40,13 @@ const useLP = ({ txSuccess }: Props) => {
       const USDCCoinIn = coin(tokenOutMinAmount.toString(), usdcAsset?.base!)
       const LPmsg = joinCLPools(address, CDTCoinIn, 1268, USDCCoinIn)
 
-      console.log(msg)
+      console.log(LPmsg)
                 
       return [msg, LPmsg] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address && LPState.newCDT !== 0,
   })
-  
+  console.log(msgs)
 
   const onSuccess = () => {
     //We'll handle withdraws and rewards in the future

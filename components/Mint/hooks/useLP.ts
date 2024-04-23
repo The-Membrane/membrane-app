@@ -5,11 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { queryClient } from '@/pages/_app'
-import { buildBidMsg } from '@/services/liquidation'
 import { coin } from '@cosmjs/stargate'
 import useLPState from './useLPState'
-import { buildStabilityPooldepositMsg } from '@/services/stabilityPool'
-import { constrainedMemory } from 'process'
 import { handleCollateralswaps, joinCLPools } from '@/services/osmosis'
 import { num } from '@/helpers/num'
 import { exported_supportedAssets } from '@/helpers/chain'
@@ -29,12 +26,12 @@ const useLP = ({ txSuccess }: Props) => {
     queryFn: () => {
       if (!address || LPState.newCDT === 0) return
 
-    //   const microAmount = shiftDigits(LPState.newCDT, 6).dp(0).toString()
+      const microAmount = shiftDigits(LPState.newCDT, 6).dp(0).toString()
     //   const funds = [coin(microAmount, cdtAsset?.base!)]
 
       //Swap to USDC
-      const CDTInAmount = num(LPState.newCDT).div(2).toNumber()
-      const { msg, tokenOutMinAmount } = handleCollateralswaps('USDC' as keyof exported_supportedAssets, CDTInAmount)
+      const CDTInAmount = num(microAmount).div(2).toNumber()
+      const { msg, tokenOutMinAmount } = handleCollateralswaps(address, 'USDC' as keyof exported_supportedAssets, CDTInAmount)
 
       //Build LP msg
       const CDTCoinIn = coin(CDTInAmount.toString(), cdtAsset?.base!)

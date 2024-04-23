@@ -30,7 +30,7 @@ const useLP = ({ txSuccess }: Props) => {
 
       //Swap to USDC
       const CDTInAmount = num(microAmount).div(2).toNumber()
-      const { msg, tokenOutMinAmount } = handleCollateralswaps(address, 'USDC' as keyof exported_supportedAssets, CDTInAmount)
+      const { msg, tokenOutMinAmount } = handleCollateralswaps(address, cdtAsset!, 'USDC' as keyof exported_supportedAssets, CDTInAmount)
 
       var msgs = [msg]
 

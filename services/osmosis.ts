@@ -593,11 +593,11 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
 //This is for Collateral using the oracle's prices
 const getCollateraltokenOutAmount = (CDTInAmount: number, tokenOut: string) => {
     let basePrice = getPriceByDenom(denoms.CDT[0] as string);
-    console.log(basePrice)
+    console.log("base", basePrice)
     let asset = getAssetBySymbol(tokenOut);
-    console.log(tokenOut, asset)
+    console.log("nexT", tokenOut, asset)
     let tokenOutPrice = getPriceByDenom(asset?.base ?? '');
-    console.log(tokenOutPrice)
+    console.log("out price", tokenOutPrice)
 
     return num(CDTInAmount).multipliedBy(basePrice.div(tokenOutPrice)).toNumber()
 }

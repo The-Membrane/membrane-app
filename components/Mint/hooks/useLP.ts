@@ -27,7 +27,6 @@ const useLP = ({ txSuccess }: Props) => {
       if (!address || LPState.newCDT === 0) return
 
       const microAmount = shiftDigits(LPState.newCDT, 6).dp(0).toString()
-    //   const funds = [coin(microAmount, cdtAsset?.base!)]
 
       //Swap to USDC
       const CDTInAmount = num(microAmount).div(2).toNumber()
@@ -42,7 +41,7 @@ const useLP = ({ txSuccess }: Props) => {
 
       console.log("lpmsg", LPmsg)
                 
-      return [msg, LPmsg] as MsgExecuteContractEncodeObject[]
+      return [msg] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address && LPState.newCDT !== 0,
   })

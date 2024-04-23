@@ -43,7 +43,7 @@ const useLP = ({ txSuccess }: Props) => {
       msgs = msgs.concat(LPmsg)
       console.log("lpmsg", LPmsg)
                 
-      return [msg] as MsgExecuteContractEncodeObject[]
+      return msgs as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address && LPState.newCDT !== 0,
   })

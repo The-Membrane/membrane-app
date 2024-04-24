@@ -54,24 +54,36 @@ const SummaryItem = ({
     </HStack>
     <HStack>
       <Text>{num(amount).abs().toString()}</Text>
-    </HStack>
+    </HStack>    
+    {label === "SWAP" ? <Text variant="value" textTransform="unset">
+        to USDC
+    </Text> :  null}
   </HStack>
 )
 
 export const LPSummary = () => {
   const { LPState } = useLPState()
   const cdt = useAssetBySymbol('CDT')
+  const usdc = useAssetBySymbol('USDC')
 
   if (LPState.newCDT === 0) return null  
 
   return (
     <Stack h="max-content" overflow="auto" w="full">
-          
+
         <SummaryItem
           label="CDT"
+          badge="SWAP"
+          amount={num(LPState.newCDT).div(2).toNumber().toFixed(0)}
+          logo={cdt?.logo}
+        />
+          
+        <SummaryItem
+          label="CDT/USDC"
           badge="LP"
           amount={LPState.newCDT.toFixed(0)}
-          logo={cdt?.logo}
+          isLP={true}
+          logos={[cdt!.logo, usdc!.logo]}
         />
 
     </Stack>

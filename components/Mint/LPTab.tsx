@@ -11,10 +11,10 @@ import { ChangeEvent, useState } from "react"
 import { useOraclePrice } from "@/hooks/useOracle"
 
 
-const OverDraftMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolean }) => {
+const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolean }) => {
   return (
     <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-      {outsidePriceRange ? "CDT Price is outside of 0.99-1.01 & we don't want to provide you a bad swap rate" : ' '}
+      {outsidePriceRange ? "CDT price is below .98 & we don't want to provide you a bad swap rate" : ' '}
     </Text>
   )
 }
@@ -66,11 +66,10 @@ const LPTab = () => {
           />
           </Stack>
 
-          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0 || (parseFloat(cdtPrice!.price) > 1.01 || parseFloat(cdtPrice!.price) < 0.99)}>
+          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0 || parseFloat(cdtPrice!.price) < 0.98}>
             <LPSummary />
           </ConfirmModal>            
-          {/* <OverDraftMessage outsidePriceRange={(parseFloat(cdtPrice!.price) > 1.01 || parseFloat(cdtPrice!.price) < 0.99)}/> */}
-          <OverDraftMessage outsidePriceRange={true}/>
+          <ErrorMessage outsidePriceRange={parseFloat(cdtPrice!.price) < 0.98}/>
         </Card>
         </TabPanel>
       )

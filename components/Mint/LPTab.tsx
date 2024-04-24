@@ -8,14 +8,23 @@ import { LPSummary } from "./LPSummary"
 import useLP from "./hooks/useLP"
 import { num } from "@/helpers/num"
 import { ChangeEvent, useState } from "react"
+import { useOraclePrice } from "@/hooks/useOracle"
 
+
+const OverDraftMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolean }) => {
+  return (
+    <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+      {outsidePriceRange ? "CDT Price is outside of 0.99-1.01 & we don't want to provide you a bad swap rate" : ' '}
+    </Text>
+  )
+}
 
 const LPTab = () => {
     const cdt = useAssetBySymbol('CDT')
     const cdtBalance = useBalanceByAsset(cdt)
-
     const { LPState, setLPState } = useLPState()
-    const [inputAmount, setInputAmount] = useState(0)
+    const { data: prices } = useOraclePrice()
+    const cdtPrice = prices?.find((price) => price.denom === cdt?.base)
     
     const txSuccess = () => {
         setLPState({ newCDT: 0})
@@ -47,7 +56,7 @@ const LPTab = () => {
             <Text fontSize="16px" fontWeight="700">
               CDT
             </Text>
-          <Input width={"38%"} textAlign={"center"} placeholder="0" value={LPState?.newCDT} onChange={handleInputChange} />
+            <Input width={"38%"} textAlign={"center"} placeholder="0" value={LPState?.newCDT} onChange={handleInputChange} />
           </HStack>      
           <SliderWithState
             value={LPState?.newCDT}
@@ -57,9 +66,11 @@ const LPTab = () => {
           />
           </Stack>
 
-          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0}>
+          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0 || (parseFloat(cdtPrice!.price) > 1.01 || parseFloat(cdtPrice!.price) < 0.99)}>
             <LPSummary />
-        </ConfirmModal>
+          </ConfirmModal>            
+          {/* <OverDraftMessage outsidePriceRange={(parseFloat(cdtPrice!.price) > 1.01 || parseFloat(cdtPrice!.price) < 0.99)}/> */}
+          <OverDraftMessage outsidePriceRange={true}/>
         </Card>
         </TabPanel>
       )

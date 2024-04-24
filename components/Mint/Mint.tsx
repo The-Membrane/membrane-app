@@ -48,7 +48,7 @@ const MintTabsCard = () => {
             bg="#C445F0"
             borderRadius="28px"
           />
-          <TabPanels mt="5">
+          <TabPanels>
             <CurrentPositions />
             <TakeAction />
             <LPTab />

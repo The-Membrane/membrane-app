@@ -4,7 +4,7 @@ import { Card, HStack, Stack, TabPanel, Text } from "@chakra-ui/react"
 import { SliderWithState } from "./SliderWithState"
 import useLPState from "./hooks/useLPState"
 import ConfirmModal from "../ConfirmModal"
-import { Summary } from "./Summary"
+import { LPSummary } from "./LPSummary"
 import useLP from "./hooks/useLP"
 
 
@@ -48,7 +48,7 @@ const LPTab = () => {
           </Stack>
 
           <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0}>
-            <Summary />
+            <LPSummary />
         </ConfirmModal>
         </Card>
         </TabPanel>

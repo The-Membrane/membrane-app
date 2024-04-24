@@ -27,7 +27,7 @@ const LPTab = () => {
         <TabPanel>
         <Card p="8" alignItems="center" gap={5}>
           <Text variant="title" fontSize="24px" >
-            <a href="https://app.osmosis.zone/pool/1268">USDC Stableswap LP</a>.
+            <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">USDC LP</a>
           </Text>
     
           <Stack py="5" w="full" gap="5">      

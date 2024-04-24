@@ -28,8 +28,8 @@ const LPTab = () => {
     console.log(cdtBalance)
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       const newAmount = e.target.value
-      if (num(newAmount).isGreaterThan(cdtBalance)) setInputAmount(parseInt(cdtBalance))
-      else setInputAmount(parseInt(e.target.value))
+      if (num(newAmount).isGreaterThan(cdtBalance)) setLPState({newCDT: parseInt(cdtBalance)})
+      else setLPState({newCDT: parseInt(e.target.value)})
     }
     
     return (
@@ -41,13 +41,13 @@ const LPTab = () => {
     
           <Stack py="5" w="full" gap="5">      
           <HStack justifyContent="space-between">
-          <Input placeholder="0" value={LPState?.newCDT} onChange={handleInputChange} />
             {/* <Text fontSize="16px" fontWeight="700">
               {LPState?.newCDT}
             </Text> */}
             <Text fontSize="16px" fontWeight="700">
               CDT
             </Text>
+          <Input width={"38%"} textAlign={"center"} placeholder="0" value={LPState?.newCDT} onChange={handleInputChange} />
           </HStack>      
           <SliderWithState
             value={LPState?.newCDT}

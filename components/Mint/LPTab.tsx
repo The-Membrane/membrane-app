@@ -42,7 +42,7 @@ const LPTab = () => {
     }
     
     return (
-        <TabPanel>
+        <TabPanel marginTop={"2rem"}>
         <Card p="8" alignItems="center" gap={5}>
           <Text variant="title" fontSize="24px" >
             <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">USDC LP</a>

@@ -25,10 +25,10 @@ const LPTab = () => {
     const onCDTChange = (value: number) => {
         setLPState({ ...LPState, newCDT: value})
     }
-
+    console.log(cdtBalance)
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       const newAmount = e.target.value
-      if (num(newAmount).isGreaterThan(LPState?.newCDT)) setInputAmount(LPState?.newCDT)
+      if (num(newAmount).isGreaterThan(cdtBalance)) setInputAmount(parseInt(cdtBalance))
       else setInputAmount(parseInt(e.target.value))
     }
     

@@ -170,7 +170,7 @@ export const getProposals = async () => {
   const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
   const start = 50
-  const limit = 32
+  const limit = 30 //Contract's max limit is 30 so we'll need to move the start point every 30 proposals
 
   const activeProposals = client.activeProposals({ start, limit }).then((res) => res.proposal_list)
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)

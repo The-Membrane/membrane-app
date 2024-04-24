@@ -13,8 +13,9 @@ import Beaker from './Beaker'
 import CurrentPositions from './CurrentPositions'
 import TakeAction from './TakeAction'
 import useMintState from './hooks/useMintState'
+import LPTab from './LPTab'
 
-const CustomeTab = ({ label }: { label: string }) => (
+const CustomTab = ({ label }: { label: string }) => (
   <Tab zIndex={1} _selected={{ color: 'white' }}>
     {label}
   </Tab>
@@ -35,8 +36,9 @@ const MintTabsCard = () => {
 
         <Tabs position="relative" variant="unstyled" align="center" w="full" onChange={onTabChange}>
           <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
-            <CustomeTab label="Position info" />
-            <CustomeTab label="Take Action" />
+            <CustomTab label="Position info" />
+            <CustomTab label="Take Action" />
+            <CustomTab label="LP" />
           </TabList>
 
           <TabIndicator
@@ -49,6 +51,7 @@ const MintTabsCard = () => {
           <TabPanels mt="5">
             <CurrentPositions />
             <TakeAction />
+            <LPTab />
           </TabPanels>
         </Tabs>
       </VStack>

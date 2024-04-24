@@ -11,6 +11,20 @@ export type Asset = RegistryAsset & {
 
 const defaultChain = 'osmosis'
 
+//For swaps
+export interface exported_supportedAssets {
+  OSMO: undefined,
+  ATOM: undefined,
+  TIA: undefined,
+  CDT: undefined,
+  MBRN: undefined,
+  stOSMO: undefined,
+  stATOM: undefined,
+  USDT: undefined,
+  USDC: undefined,
+  "USDC.axl": undefined,
+}
+
 export const getAssetLogo = (asset: RegistryAsset) => {
   return asset?.logo_URIs?.svg || asset?.logo_URIs?.png || asset?.logo_URIs?.jpeg
 }

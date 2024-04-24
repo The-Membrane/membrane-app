@@ -66,10 +66,10 @@ const LPTab = () => {
           />
           </Stack>
 
-          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0 || parseFloat(cdtPrice!.price ?? '0') < 0.98}>
+          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0 || parseFloat(cdtPrice?.price ?? '0') < 0.98}>
             <LPSummary />
           </ConfirmModal>            
-          <ErrorMessage outsidePriceRange={parseFloat(cdtPrice!.price ?? "0") < 0.98}/>
+          <ErrorMessage outsidePriceRange={parseFloat(cdtPrice?.price ?? "0") < 0.98}/>
         </Card>
         </TabPanel>
       )

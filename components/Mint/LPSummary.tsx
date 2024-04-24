@@ -51,13 +51,14 @@ const SummaryItem = ({
           {badge}
         </Badge>
       )}
+    {badge === "SWAP" ? <Text variant="value" textTransform="unset">
+      to USDC
+      </Text> :  null}
     </HStack>
     <HStack>
       <Text>{num(amount).abs().toString()}</Text>
     </HStack>    
-    {label === "SWAP" ? <Text variant="value" textTransform="unset">
-        to USDC
-    </Text> :  null}
+    
   </HStack>
 )
 

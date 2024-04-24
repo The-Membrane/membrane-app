@@ -43,16 +43,13 @@ const LPTab = () => {
     
     return (
         <TabPanel>
-        <Card p="8" paddingTop="0" alignItems="center" gap={5}>
+        <Card p="8" paddingTop="0" alignItems="center" gap={7}>
           <Text variant="title" fontSize="24px" >
             <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">USDC LP</a>
           </Text>
     
           <Stack py="5" w="full" gap="5">      
           <HStack justifyContent="space-between">
-            {/* <Text fontSize="16px" fontWeight="700">
-              {LPState?.newCDT}
-            </Text> */}
             <Text fontSize="16px" fontWeight="700">
               CDT
             </Text>

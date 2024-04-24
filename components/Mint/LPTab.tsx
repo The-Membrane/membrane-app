@@ -14,7 +14,7 @@ import { useOraclePrice } from "@/hooks/useOracle"
 const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolean }) => {
   return (
     <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-      {outsidePriceRange ? "CDT price is below .98 & we don't want to provide you a bad swap rate" : ' '}
+      {outsidePriceRange ? "CDT price is below 0.98 & we don't want to provide you a bad swap rate" : ' '}
     </Text>
   )
 }
@@ -66,10 +66,10 @@ const LPTab = () => {
           />
           </Stack>
 
-          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0 || parseFloat(cdtPrice!.price) < 0.98}>
+          <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0 || parseFloat(cdtPrice!.price ?? '0') < 0.98}>
             <LPSummary />
           </ConfirmModal>            
-          <ErrorMessage outsidePriceRange={parseFloat(cdtPrice!.price) < 0.98}/>
+          <ErrorMessage outsidePriceRange={parseFloat(cdtPrice!.price ?? "0") < 0.98}/>
         </Card>
         </TabPanel>
       )

@@ -40,5 +40,5 @@ jobs:
         with:
           context: .
           push: true
-          tags: membraneDocker/membrane-app:latest
+          tags: membranedocker/membrane-app:latest
           labels: ${{ steps.metadata.outputs.labels }}

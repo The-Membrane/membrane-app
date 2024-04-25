@@ -40,7 +40,9 @@ const LPTab = () => {
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       e.preventDefault();
       const newAmount = e.target.value
+
       if (num(newAmount).isGreaterThan(cdtBalance)) setLPState({newCDT: parseInt(cdtBalance)})
+      else if (num(LPState?.newCDT).isGreaterThan(num(newAmount))) return 
       else setLPState({newCDT: parseInt(e.target.value)})
     }
       
@@ -64,6 +66,12 @@ const LPTab = () => {
               type="number" 
               value={LPState?.newCDT} 
               onChange={handleInputChange}
+              onBlur={(e: ChangeEvent<HTMLInputElement>)=>{
+                e.preventDefault();
+                const newAmount = e.target.value
+                if (num(newAmount).isGreaterThan(cdtBalance)) setLPState({newCDT: parseInt(cdtBalance)})
+                else setLPState({newCDT: parseInt(e.target.value)})
+              }}
              />
           </HStack>      
           <SliderWithState

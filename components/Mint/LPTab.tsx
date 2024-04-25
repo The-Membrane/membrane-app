@@ -27,6 +27,8 @@ const LPTab = () => {
     const { LPState, setLPState } = useLPState()
     const { data: prices } = useOraclePrice()
     const cdtPrice = prices?.find((price) => price.denom === cdt?.base)
+
+    const [ inputAmount, setInputAmount ] = useState(0);
     const delayTime = 500; // Delay time in milliseconds
     
     const txSuccess = () => {
@@ -43,6 +45,8 @@ const LPTab = () => {
       e.preventDefault()
       const newAmount = e.target.value
 
+      if (num(newAmount).isGreaterThan(cdtBalance)) setInputAmount(parseInt(cdtBalance))
+        else setInputAmount(parseInt(e.target.value))
       
       setTimeout(() => {
         if (num(newAmount).isGreaterThan(cdtBalance)) setLPState({newCDT: parseInt(cdtBalance)})
@@ -68,9 +72,8 @@ const LPTab = () => {
               textAlign={"center"} 
               placeholder="0" 
               type="number" 
-              value={LPState?.newCDT} 
+              value={inputAmount} 
               onChange={handleInputChange}
-              autoFocus={true}
              />
           </HStack>      
           <SliderWithState

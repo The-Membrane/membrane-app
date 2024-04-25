@@ -20,40 +20,6 @@ const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolea
   )
 }
 
-// export type SliderProps = {
-//   value?: number
-//   onChange: (value: number) => void
-// }
-
-// const CustomSlider = (onChange) => {
-//   const [sliderValue, setSliderValue] = useState(0);
-
-//   const handleChange = (value) => {
-//     setSliderValue(value);
-//     // Handle slider value change here
-//   };
-
-//   const handleThumbClick = (event) => {
-//     event.preventDefault(); // Prevent default behavior
-//     event.stopPropagation(); // Stop event from bubbling up
-//   };
-
-//   return (
-//     <Slider
-//       value={sliderValue}
-//       onChange={handleChange}
-//     >
-//       <SliderTrack>
-//         <SliderFilledTrack />
-//       </SliderTrack>
-//       <SliderThumb onClick={handleThumbClick} />
-//     </Slider>
-//   );
-// };
-
-// export default YourComponent;
-
-
 const LPTab = () => {
     const cdt = useAssetBySymbol('CDT')
     const cdtBalance = useBalanceByAsset(cdt)
@@ -99,7 +65,7 @@ const LPTab = () => {
               type="number" 
               value={LPState?.newCDT} 
               onChange={handleInputChange}
-              // onBlur={handleInputChange}
+              autoFocus={true}
              />
           </HStack>      
           <SliderWithState

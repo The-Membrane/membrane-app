@@ -22,11 +22,11 @@ const ClaimLiqudation = () => {
   
   return (
     <ConfirmModal
-      label="Claim Liquidation"
+      label="Claim"
       buttonProps={{
         borderRadius: '24px',
         justifySelf: 'end',
-        w: '220px',
+        w: '90px',
         px: '4',
         size: 'sm',
         fontWeight: 'normal',

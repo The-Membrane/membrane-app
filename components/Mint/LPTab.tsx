@@ -38,6 +38,7 @@ const LPTab = () => {
     }
     
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+      e.preventDefault();
       const newAmount = e.target.value
       if (num(newAmount).isGreaterThan(cdtBalance)) setLPState({newCDT: parseInt(cdtBalance)})
       else setLPState({newCDT: parseInt(e.target.value)})

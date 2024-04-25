@@ -64,8 +64,8 @@ const LPTab = () => {
               placeholder="0" 
               type="number" 
               value={LPState?.newCDT} 
-              // onChange={handleInputChange}
-              onBlur={handleInputChange}
+              onChange={handleInputChange}
+              // onBlur={handleInputChange}
              />
           </HStack>      
           <SliderWithState

@@ -4,7 +4,6 @@ import PlaceBid from './PlaceBid'
 import MyBid from './MyBid'
 import ClaimLiqudation from './ClaimLiqudation'
 import StabilityPool from './StabilityPool'
-import useBidState from './hooks/useBidState'
 
 const CustomTab = ({ children }: PropsWithChildren) => (
   <Tab
@@ -19,14 +18,12 @@ const CustomTab = ({ children }: PropsWithChildren) => (
 )
 
 const BidAction = () => {
-  const { bidState } = useBidState()
-
   return (
     <Tabs variant="soft-rounded" size="sm" colorScheme="primary">
       <HStack w="full">
         <TabList gap="2" w="full">
           <CustomTab>Place Bid</CustomTab>
-          <CustomTab>My {bidState?.selectedAsset?.symbol ?? ""} Bids</CustomTab>
+          <CustomTab>Single-Asset Bids</CustomTab>
           <CustomTab>Omni-Bids</CustomTab>
         </TabList>
         <ClaimLiqudation />

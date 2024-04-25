@@ -100,7 +100,7 @@ const MyBid = () => {
     return (
       <Card p="8" alignItems="center" gap={5}>
         <Text variant="title" fontSize="24px">
-          My Bid
+          My {bidState?.selectedAsset?.symbol ?? ""} Bid
         </Text>
         <Text color="gray">No active bids</Text>
       </Card>
@@ -109,7 +109,7 @@ const MyBid = () => {
   return (
     <Card p="8" alignItems="center" gap={5}>
       <Text variant="title" fontSize="24px">
-        My Bid
+          My {bidState?.selectedAsset?.symbol ?? ""} Bid
       </Text>
 
       {bids?.map((bid) => <MyBidItem key={bid?.id} bid={bid} />)}

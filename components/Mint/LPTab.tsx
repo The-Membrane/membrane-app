@@ -55,7 +55,7 @@ const LPTab = () => {
             <Text fontSize="16px" fontWeight="700">
               CDT
             </Text>
-            <Input width={"38%"} textAlign={"center"} placeholder="0" value={LPState?.newCDT} onChange={debounce(handleInputChange, 30)} />
+            <Input width={"38%"} textAlign={"center"} placeholder="0" type="number" value={LPState?.newCDT} onChange={handleInputChange} />
           </HStack>      
           <SliderWithState
             value={LPState?.newCDT}

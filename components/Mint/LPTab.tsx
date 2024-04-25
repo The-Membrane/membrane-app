@@ -29,7 +29,7 @@ const LPTab = () => {
     const cdtPrice = prices?.find((price) => price.denom === cdt?.base)
 
     const [ inputAmount, setInputAmount ] = useState(0);
-    const delayTime = 1000; // Delay time in milliseconds
+    const delayTime = 5000; // Delay time in milliseconds
     
     const txSuccess = () => {
         setLPState({ newCDT: 0})
@@ -39,6 +39,7 @@ const LPTab = () => {
     const onCDTChange = (value: number) => {
         console.log("slider")
         setLPState({ ...LPState, newCDT: value})
+        setInputAmount(value)
     }
     
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {

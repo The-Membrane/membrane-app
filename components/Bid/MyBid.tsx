@@ -99,7 +99,7 @@ const MyBid = () => {
   if (bids.length === 0) {
     return (
       <Card p="8" alignItems="center" gap={5}>
-        <Text variant="title" fontSize="24px" alignContent={"center"}>
+        <Text variant="title" fontSize="24px" textAlign={"center"}>
           My {bidState?.selectedAsset?.symbol ?? ""} Bids
         </Text>
         <Text color="gray">No active bids</Text>
@@ -108,7 +108,7 @@ const MyBid = () => {
   }
   return (
     <Card p="8" alignItems="center" gap={5}>
-      <Text variant="title" fontSize="24px" alignContent={"center"}>
+      <Text variant="title" fontSize="24px" textAlign={"center"}>
           My {bidState?.selectedAsset?.symbol ?? ""} Bids
       </Text>
 

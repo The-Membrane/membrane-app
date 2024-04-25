@@ -28,8 +28,9 @@ const LPTab = () => {
     const { data: prices } = useOraclePrice()
     const cdtPrice = prices?.find((price) => price.denom === cdt?.base)
 
+    //inputAmount is seprate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
-    const delayTime = 2500; // Delay time in milliseconds
+    const delayTime = 1500; // Delay time in milliseconds
     
     const txSuccess = () => {
         setLPState({ newCDT: 0})
@@ -37,7 +38,6 @@ const LPTab = () => {
     const LP = useLP({ txSuccess })
 
     const onCDTChange = (value: number) => {
-        console.log("slider")
         setLPState({ ...LPState, newCDT: value})
         setInputAmount(value)
     }

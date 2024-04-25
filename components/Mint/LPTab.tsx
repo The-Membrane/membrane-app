@@ -34,11 +34,12 @@ const LPTab = () => {
     const LP = useLP({ txSuccess })
 
     const onCDTChange = (value: number) => {
+        console.log("slider")
         setLPState({ ...LPState, newCDT: value})
     }
     
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault();
+      e.preventDefault()
       const newAmount = e.target.value
 
       if (num(newAmount).isGreaterThan(cdtBalance)) setLPState({newCDT: parseInt(cdtBalance)})

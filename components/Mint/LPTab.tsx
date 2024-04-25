@@ -7,9 +7,8 @@ import ConfirmModal from "../ConfirmModal"
 import { LPSummary } from "./LPSummary"
 import useLP from "./hooks/useLP"
 import { num } from "@/helpers/num"
-import { ChangeEvent, KeyboardEventHandler, useState } from "react"
+import { ChangeEvent, useState } from "react"
 import { useOraclePrice } from "@/hooks/useOracle"
-import debounce from 'lodash/debounce';
 
 
 
@@ -20,6 +19,40 @@ const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolea
     </Text>
   )
 }
+
+// export type SliderProps = {
+//   value?: number
+//   onChange: (value: number) => void
+// }
+
+// const CustomSlider = (onChange) => {
+//   const [sliderValue, setSliderValue] = useState(0);
+
+//   const handleChange = (value) => {
+//     setSliderValue(value);
+//     // Handle slider value change here
+//   };
+
+//   const handleThumbClick = (event) => {
+//     event.preventDefault(); // Prevent default behavior
+//     event.stopPropagation(); // Stop event from bubbling up
+//   };
+
+//   return (
+//     <Slider
+//       value={sliderValue}
+//       onChange={handleChange}
+//     >
+//       <SliderTrack>
+//         <SliderFilledTrack />
+//       </SliderTrack>
+//       <SliderThumb onClick={handleThumbClick} />
+//     </Slider>
+//   );
+// };
+
+// export default YourComponent;
+
 
 const LPTab = () => {
     const cdt = useAssetBySymbol('CDT')

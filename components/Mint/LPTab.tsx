@@ -9,7 +9,8 @@ import useLP from "./hooks/useLP"
 import { num } from "@/helpers/num"
 import { ChangeEvent, useState } from "react"
 import { useOraclePrice } from "@/hooks/useOracle"
-import useDebounce from "@/hooks/useDebounce"
+import debounce from 'lodash/debounce';
+
 
 
 const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolean }) => {
@@ -54,7 +55,7 @@ const LPTab = () => {
             <Text fontSize="16px" fontWeight="700">
               CDT
             </Text>
-            <Input width={"38%"} textAlign={"center"} placeholder="0" value={LPState?.newCDT} onChange={useDebounce(handleInputChange, 300)} />
+            <Input width={"38%"} textAlign={"center"} placeholder="0" value={LPState?.newCDT} onChange={debounce(handleInputChange, 300)} />
           </HStack>      
           <SliderWithState
             value={LPState?.newCDT}

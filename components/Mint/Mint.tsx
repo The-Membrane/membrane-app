@@ -37,7 +37,7 @@ const MintTabsCard = () => {
         <Tabs position="relative" variant="unstyled" align="center" w="full" onChange={onTabChange}>
           <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
             <CustomTab label="Position info" />
-            <CustomTab label="Take Action" />
+            <CustomTab label="Manage Vault" />
             <CustomTab label="LP" />
           </TabList>
 

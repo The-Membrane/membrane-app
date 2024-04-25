@@ -10,7 +10,6 @@ const SelectAsset = (props: Props) => {
   const { bidState, setBidState } = useBidState()
 
   const assetsWithOptions = assets
-    ?.filter((asset) => !asset?.isLP)
     ?.map((asset) => ({
       ...asset,
       value: asset?.symbol,

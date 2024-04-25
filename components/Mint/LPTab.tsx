@@ -43,11 +43,6 @@ const LPTab = () => {
       if (num(newAmount).isGreaterThan(cdtBalance)) setLPState({newCDT: parseInt(cdtBalance)})
       else setLPState({newCDT: parseInt(e.target.value)})
     }
-
-    const handleKeyDown = (event: any) => {
-      // Prevent default behavior to avoid losing focus
-      event.preventDefault();
-    }
       
     
     return (
@@ -69,7 +64,6 @@ const LPTab = () => {
               type="number" 
               value={LPState?.newCDT} 
               onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
              />
           </HStack>      
           <SliderWithState

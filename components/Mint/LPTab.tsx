@@ -29,7 +29,7 @@ const LPTab = () => {
     const cdtPrice = prices?.find((price) => price.denom === cdt?.base)
 
     const [ inputAmount, setInputAmount ] = useState(0);
-    const delayTime = 5000; // Delay time in milliseconds
+    const delayTime = 2500; // Delay time in milliseconds
     
     const txSuccess = () => {
         setLPState({ newCDT: 0})

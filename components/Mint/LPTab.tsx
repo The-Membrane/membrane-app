@@ -9,6 +9,7 @@ import useLP from "./hooks/useLP"
 import { num } from "@/helpers/num"
 import { ChangeEvent, useState } from "react"
 import { useOraclePrice } from "@/hooks/useOracle"
+import useDebounce from "@/hooks/useDebounce"
 
 
 const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolean }) => {
@@ -34,7 +35,7 @@ const LPTab = () => {
     const onCDTChange = (value: number) => {
         setLPState({ ...LPState, newCDT: value})
     }
-    console.log(cdtBalance)
+    
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       const newAmount = e.target.value
       if (num(newAmount).isGreaterThan(cdtBalance)) setLPState({newCDT: parseInt(cdtBalance)})
@@ -53,7 +54,7 @@ const LPTab = () => {
             <Text fontSize="16px" fontWeight="700">
               CDT
             </Text>
-            <Input width={"38%"} textAlign={"center"} placeholder="0" value={LPState?.newCDT} onChange={handleInputChange} />
+            <Input width={"38%"} textAlign={"center"} placeholder="0" value={LPState?.newCDT} onChange={useDebounce(handleInputChange, 300)} />
           </HStack>      
           <SliderWithState
             value={LPState?.newCDT}

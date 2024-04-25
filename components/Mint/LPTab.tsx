@@ -7,7 +7,7 @@ import ConfirmModal from "../ConfirmModal"
 import { LPSummary } from "./LPSummary"
 import useLP from "./hooks/useLP"
 import { num } from "@/helpers/num"
-import { ChangeEvent, useState } from "react"
+import { ChangeEvent, useRef, useState } from "react"
 import { useOraclePrice } from "@/hooks/useOracle"
 
 
@@ -20,12 +20,19 @@ const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolea
   )
 }
 
+const FocusedInput = () => {  
+
+
+  
+}
+
 const LPTab = () => {
     const cdt = useAssetBySymbol('CDT')
     const cdtBalance = useBalanceByAsset(cdt)
     const { LPState, setLPState } = useLPState()
     const { data: prices } = useOraclePrice()
     const cdtPrice = prices?.find((price) => price.denom === cdt?.base)
+    const inputRef = useRef(null);
     
     const txSuccess = () => {
         setLPState({ newCDT: 0})
@@ -35,6 +42,7 @@ const LPTab = () => {
     const onCDTChange = (value: number) => {
         console.log("slider")
         setLPState({ ...LPState, newCDT: value})
+        inputRef.current.focus()
     }
     
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +73,7 @@ const LPTab = () => {
               type="number" 
               value={LPState?.newCDT} 
               onChange={handleInputChange}
-              autoFocus={true}
+              ref={inputRef}
              />
           </HStack>      
           <SliderWithState

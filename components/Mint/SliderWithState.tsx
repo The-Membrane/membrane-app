@@ -37,6 +37,7 @@ export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walle
       value={value}
       onChange={handleChange}
       isDisabled={max === 0 && (walletCDT === 0 || summary.length === 0)}
+      ref={sliderRef}
     >
       <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
         <SliderFilledTrack bg="#C445F0" />

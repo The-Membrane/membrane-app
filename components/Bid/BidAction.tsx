@@ -11,6 +11,7 @@ const CustomTab = ({ children }: PropsWithChildren) => (
     color="white"
     fontWeight="normal"
     border="1px solid white"
+    width={"10%"}
     _selected={{ fontWeight: 'normal', color: 'white', bg: 'primary.200', border: 'none' }}
   >
     {children}

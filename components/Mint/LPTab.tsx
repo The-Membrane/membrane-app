@@ -7,7 +7,7 @@ import ConfirmModal from "../ConfirmModal"
 import { LPSummary } from "./LPSummary"
 import useLP from "./hooks/useLP"
 import { num } from "@/helpers/num"
-import { ChangeEvent, useState } from "react"
+import { ChangeEvent, KeyboardEventHandler, useState } from "react"
 import { useOraclePrice } from "@/hooks/useOracle"
 import debounce from 'lodash/debounce';
 
@@ -42,6 +42,12 @@ const LPTab = () => {
       if (num(newAmount).isGreaterThan(cdtBalance)) setLPState({newCDT: parseInt(cdtBalance)})
       else setLPState({newCDT: parseInt(e.target.value)})
     }
+
+    const handleKeyDown = (event: any) => {
+      // Prevent default behavior to avoid losing focus
+      event.preventDefault();
+    }
+      
     
     return (
         <TabPanel>
@@ -55,7 +61,15 @@ const LPTab = () => {
             <Text fontSize="16px" fontWeight="700">
               CDT
             </Text>
-            <Input width={"38%"} textAlign={"center"} placeholder="0" type="number" value={LPState?.newCDT} onChange={handleInputChange} />
+            <Input 
+              width={"38%"} 
+              textAlign={"center"} 
+              placeholder="0" 
+              type="number" 
+              value={LPState?.newCDT} 
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+             />
           </HStack>      
           <SliderWithState
             value={LPState?.newCDT}

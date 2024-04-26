@@ -59,7 +59,7 @@ const CustomTick = ({ x, y, payload, bidState, onClick }) => {
   // Check if this tick needs restyling
   const isSpecialTick = payload.value === 10;
   
-  console.log(bidState.placeBid.premium)
+  console.log(bidState.placeBid.premium, payload.value)
   
   return (
     <g transform={`translate(${x},${y})`}>

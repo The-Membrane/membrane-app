@@ -10,6 +10,7 @@ const useVaultSummary = () => {
   const { data: basketPositions } = useBasketPositions()
   const { data: prices } = useOraclePrice()
   const { mintState } = useMintState()
+  const { vaultSum } = useVaultSummary()
 
   return useMemo(() => {
     return calculateVaultSummary({
@@ -22,6 +23,11 @@ const useVaultSummary = () => {
       mint: mintState?.mint,
       repay: mintState?.repay,
       newDebtAmount: mintState?.newDebtAmount,
+      initialBorrowLTV: vaultSum?.initialBorrowLTV,
+      initialLTV: vaultSum?.initialLTV,
+      debtAmount: vaultSum?.debtAmount,
+      initialPositions: vaultSum?.initialPositions,
+      initialTVL: vaultSum?.initialTVL,
     })
   }, [
     basketPositions,

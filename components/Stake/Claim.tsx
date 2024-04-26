@@ -1,11 +1,12 @@
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import { Card, HStack, Image, Stack, Text } from '@chakra-ui/react'
+import { Button, Card, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import { TxButton } from '@/components/TxButton'
 import useStakingClaim from './hooks/useStakingClaim'
 import useStaked from './hooks/useStaked'
 import { isGreaterThanZero } from '@/helpers/num'
+import ConfirmModal from '../ConfirmModal'
 
 const Claim = () => {
   const { data: staked } = useStaked()
@@ -31,7 +32,16 @@ const Claim = () => {
         </HStack>
       </Stack>
 
-      <TxButton
+
+      <ConfirmModal
+        label={'Claim'}
+        action={claim}
+        isDisabled={!isGreaterThanZero(claimable)}
+      >
+        {/* <Summary /> */}
+      </ConfirmModal>
+      
+      {/* <TxButton
         maxW="200px"
         isDisabled={!isGreaterThanZero(claimable)}
         isLoading={claim.simulate.isLoading || claim.tx.isPending}
@@ -42,7 +52,7 @@ const Claim = () => {
         }}
       >
         Claim
-      </TxButton>
+      </TxButton> */}
     </Card>
   )
 }

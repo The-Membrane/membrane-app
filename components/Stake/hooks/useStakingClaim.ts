@@ -16,7 +16,7 @@ export const useStakingClaim = (restake = false) => {
         
       const messageComposer = new StakingMsgComposer(address, contracts.liquidation)
       const msgs = messageComposer.claimRewards({restake})
-
+      console.log(msgs)
       return [msgs] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
@@ -30,7 +30,8 @@ export const useStakingClaim = (restake = false) => {
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    enabled: true,
+    queryKey: [],
+    amount: '0',
     onSuccess,
   }), msgs}
 }

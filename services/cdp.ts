@@ -249,20 +249,14 @@ export type MaxMint = {
   tvl: number
   creditPrice: number
   debtAmount: number
-  positions: Positions[]
-  basketAssets: BasketAsset[]
-  summary?: any[]
+  ltv: number
 }
 export const getMintAmount = ({
   tvl,
   creditPrice,
   debtAmount,
-  positions,
-  basketAssets,
-  summary = [],
+  ltv,
 }: MaxMint) => {
-  const ltv = getBorrowLTV(tvl, positions, basketAssets, summary)
-
   const creditPriceAdjusted = Math.max(creditPrice, 1)
   return num(tvl)
     .times(ltv / 100)
@@ -375,9 +369,7 @@ export const calculateVaultSummary = ({
     tvl,
     creditPrice,
     debtAmount: calc_debtAmount,
-    positions,
-    basketAssets: calc_basketAssets,
-    summary,
+    ltv: borrowLTV,
   })
 
   const liquidValue = getLiquidValue({

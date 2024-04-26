@@ -33,7 +33,6 @@ const useLP = ({ txSuccess }: Props) => {
       //Swap to USDC
       const cdtPrice = prices?.find((price) => price.denom === cdtAsset?.base)
       const usdcPrice = prices?.find((price) => price.denom === usdcAsset?.base)
-      console.log(cdtPrice, usdcPrice)
       const CDTInAmount = num(microAmount).div(2).toNumber()
       const { msg, tokenOutMinAmount } = handleCollateralswaps(address, Number(cdtPrice!.price), Number(usdcPrice!.price), 'USDC' as keyof exported_supportedAssets, CDTInAmount)
 
@@ -43,16 +42,13 @@ const useLP = ({ txSuccess }: Props) => {
       const CDTCoinIn = coin(CDTInAmount.toString(), cdtAsset?.base!)
       const USDCCoinIn = coin(tokenOutMinAmount.toString(), usdcAsset?.base!)
       const LPmsg = joinCLPools(address, CDTCoinIn, 1268, USDCCoinIn)
-      console.log("after")
 
       msgs = msgs.concat(LPmsg)
-      console.log("lpmsg", LPmsg)
                 
       return msgs as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address && LPState.newCDT !== 0,
   })
-  console.log("all msgs", msgs)
 
   const onSuccess = () => {
     //We'll handle withdraws and rewards in the future

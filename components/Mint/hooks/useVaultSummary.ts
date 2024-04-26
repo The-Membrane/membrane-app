@@ -3,6 +3,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { calculateVaultSummary } from '@/services/cdp'
 import { useMemo } from 'react'
 import useMintState from './useMintState'
+import useInitialVaultSummary from './useInitialVaultSummary'
 
 const useVaultSummary = () => {
   const { data: basket } = useBasket()
@@ -10,7 +11,7 @@ const useVaultSummary = () => {
   const { data: basketPositions } = useBasketPositions()
   const { data: prices } = useOraclePrice()
   const { mintState } = useMintState()
-  const { vaultSum } = useVaultSummary()
+  const { initialBorrowLTV, initialLTV, initialPositions, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary()
   // console.log(vaultSum)
 
   return useMemo(() => {
@@ -24,11 +25,12 @@ const useVaultSummary = () => {
       mint: mintState?.mint,
       repay: mintState?.repay,
       newDebtAmount: mintState?.newDebtAmount,
-      initialBorrowLTV: vaultSum?.initialBorrowLTV,
-      initialLTV: vaultSum?.initialLTV,
-      debtAmount: vaultSum?.debtAmount,
-      initialPositions: vaultSum?.initialPositions,
-      initialTVL: vaultSum?.initialTVL,
+      initialBorrowLTV,
+      initialLTV,
+      debtAmount,
+      initialPositions,
+      initialTVL,
+      basketAssets,
     })
   }, [
     basketPositions,

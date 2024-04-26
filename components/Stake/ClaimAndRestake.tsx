@@ -76,11 +76,7 @@ const ClaimAndRestake = (props: Props) => {
       <TxButton
         isDisabled={!isGreaterThanZero(claimable)}
         isLoading={claim.simulate.isLoading || claim.tx.isPending}
-        onClick={() => {         
-          claim.simulate.refetch().then(() => {
-            claim.tx.mutate()
-          })
-        }}
+        onClick={() => claim.tx.mutate()}
       >
         Claim
       </TxButton>

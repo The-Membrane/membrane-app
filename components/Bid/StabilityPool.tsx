@@ -19,6 +19,7 @@ import useCountdown from '@/hooks/useCountdown'
 import { ChangeEvent, useState } from 'react'
 import useStabilityAssetPool from './hooks/useStabilityAssetPool'
 import useWithdrawStabilityPool from './hooks/useWithdrawStabilityPool'
+import useBidState from './hooks/useBidState'
 
 const UnstakeButton = ({ amount }: { amount: string }) => {
   const withdraw = useWithdrawStabilityPool(amount)
@@ -129,9 +130,11 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   )
 }
 
-const StabilityPool = () => {
+const StabilityPool = (setActiveTabIndex: any) => {
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { deposits = [] } = stabilityPoolAssets || {}
+
+  const { bidState, setBidState } = useBidState()
 
   if (deposits.length === 0) {
     return (
@@ -140,7 +143,10 @@ const StabilityPool = () => {
         My Omni-Bids
         </Text>
         <Text color="gray">You don't have any deposits in the omni-asset pool.</Text>
-        <Button >
+        <Button onClick={()=>{
+          setBidState({placeBid: {...bidState?.placeBid, premium: 10}})
+          setActiveTabIndex(0)
+        }}>
           Set Premium to 10% for new Omni-Bids
         </Button>
       </Card>

@@ -11,6 +11,7 @@ const useVaultSummary = () => {
   const { data: prices } = useOraclePrice()
   const { mintState } = useMintState()
   const { vaultSum } = useVaultSummary()
+  console.log(vaultSum)
 
   return useMemo(() => {
     return calculateVaultSummary({

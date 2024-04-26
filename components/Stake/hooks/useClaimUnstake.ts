@@ -30,7 +30,7 @@ export const useClaimUnstake = (restake = false) => {
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    enabled: true,
     onSuccess,
   }), msgs}
 }

@@ -55,14 +55,14 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 // Custom Tick component
-const CustomTick = ({ x, y, payload, onClick }) => {
+const CustomTick = ({ x, y, payload, premium, onClick }) => {
   // Check if this tick needs restyling
   const isSpecialTick = payload.value === 10;
   
   return (
     <g transform={`translate(${x},${y})`}>
       {/* Restyle the tick based on the condition */}
-      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} onClick={() => {console.log(payload.value); onClick(payload.value)}} cursor={"pointer"}>
+      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} style={payload.value === premium ? {boxShadow: "0 0 10px rgba(0, 0, 255, 0.5)"} : {} } onClick={() => {console.log(payload.value); onClick(payload.value)}} cursor={"pointer"}>
         {payload.value}
       </text>
     </g>
@@ -176,7 +176,7 @@ const RiskChart = () => {
           <XAxis
             dataKey="premium"
             tick={({ x, y, payload }) => (
-              <CustomTick x={x} y={y} payload={payload} onClick={onPremiumChange} />
+              <CustomTick x={x} y={y} payload={payload} premium={bidState.placeBid.premium} onClick={onPremiumChange} />
             )}
             tickMargin={10}
             axisLine={{ stroke: '#FFF' }}

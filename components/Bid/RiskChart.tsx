@@ -64,7 +64,7 @@ const CustomTick = ({ x, y, payload, bidState, onClick }) => {
   return (
     <g transform={`translate(${x},${y})`}>
       {/* Restyle the tick based on the condition */}
-      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : payload.value === bidState.placeBid.premium ? "red" : '#FFF'} fontSize={16} style={payload.value === bidState.placeBid.premium ? {boxShadow: "0 0 10px rgba(0, 0, 255, 0.5)"} : {} } onClick={() => {onClick(payload.value)}} cursor={"pointer"}>
+      <text x={0} y={0} dy={11} textAnchor="middle" fill={isSpecialTick ? '#C445F0' : payload.value === bidState.placeBid.premium ? "silver" : '#FFF'} fontSize={16} style={payload.value === bidState.placeBid.premium ? {boxShadow: "0 0 10px rgba(0, 0, 255, 0.5)"} : {} } onClick={() => {onClick(payload.value)}} cursor={"pointer"}>
         {payload.value}
       </text>
     </g>

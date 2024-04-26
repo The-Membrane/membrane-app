@@ -19,11 +19,8 @@ const RestakeButton = ({ reward }: any) => {
       size="sm"
       px="2"
       isDisabled={Number(reward?.amount) <= 0}
-      isLoading={claim.simulate.isLoading || claim.tx.isPending}
-      onClick={() => {         
-        claim.simulate.refetch()
-        claim.tx.mutate()
-      }}
+      isLoading={claim.simulate.isLoading || claim.tx.isPending}      
+      onClick={() => claim.tx.mutate()}
     >
       Restake
     </TxButton>

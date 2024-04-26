@@ -35,7 +35,10 @@ const Claim = () => {
         maxW="200px"
         isDisabled={!isGreaterThanZero(claimable)}
         isLoading={claim.simulate.isLoading || claim.tx.isPending}
-        onClick={() => claim.tx.mutate()}
+        onClick={() => {         
+          claim.simulate.refetch()
+          claim.tx.mutate()
+        }}
       >
         Claim
       </TxButton>

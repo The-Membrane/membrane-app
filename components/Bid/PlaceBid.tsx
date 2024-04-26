@@ -80,7 +80,7 @@ const PlaceBid = () => {
             value={bidState?.placeBid?.premium}
             onChange={onPremiumChange}
             min={0}
-            max={Number(maxPremium || 0)}
+            max={10}
           />
         </Stack>
       </HStack>

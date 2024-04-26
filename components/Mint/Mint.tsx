@@ -37,7 +37,6 @@ const MintTabsCard = () => {
 
   const handleTabClick = (index: number) => {
     setActiveTabIndex(index);
-    console.log(activeTabIndex)
   };
 
   return (
@@ -64,7 +63,7 @@ const MintTabsCard = () => {
           <TabPanels paddingBottom={activeTabIndex === 2 ? 0 : 4}>
             <CurrentPositions />
             <TakeAction />
-            {/* <LPTab /> */}
+            <LPTab />
           </TabPanels>
         </Tabs>
       </VStack>

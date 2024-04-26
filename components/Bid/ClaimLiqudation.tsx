@@ -10,7 +10,7 @@ import { Coin } from '@cosmjs/stargate'
 const ClaimLiqudation = () => {
   const { data: claims } = useCheckClaims()
   const { data: SP_claims } = useCheckSPClaims()
-  const claimLiqudation = useClaimLiquidation(claims, SP_claims)
+  const claimLiqudation = useClaimLiquidation(claims, SP_claims).action
 
   var claim_coins: Coin[] = claimstoCoins(claims)
   if (SP_claims) {

@@ -3,14 +3,14 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Card, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import { TxButton } from '@/components/TxButton'
-import useClaim from './hooks/useClaim'
+import useStakingClaim from './hooks/useStakingClaim'
 import useStaked from './hooks/useStaked'
 import { isGreaterThanZero } from '@/helpers/num'
 
 const Claim = () => {
   const { data: staked } = useStaked()
   const mbrnAsset = useAssetBySymbol('MBRN')
-  const claim = useClaim()
+  const claim = useStakingClaim().action
 
   const claimable = useMemo(() => {
     if (!staked?.rewards || !mbrnAsset) return '0.00'
@@ -34,8 +34,8 @@ const Claim = () => {
       <TxButton
         maxW="200px"
         isDisabled={!isGreaterThanZero(claimable)}
-        isLoading={claim.isPending}
-        onClick={() => claim.mutate()}
+        isLoading={claim.simulate.isLoading || claim.tx.isPending}
+        onClick={() => claim.tx.mutate()}
       >
         Claim
       </TxButton>

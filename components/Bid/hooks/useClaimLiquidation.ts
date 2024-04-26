@@ -52,11 +52,12 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
 
-  return useSimulateAndBroadcast({
+  return {
+    action: useSimulateAndBroadcast({
     msgs,
     enabled: !!msgs,
     onSuccess,
-  })
+  }), msgs}
 }
 
 export default useClaimLiquidation

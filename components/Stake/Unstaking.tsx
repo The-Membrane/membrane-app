@@ -9,7 +9,7 @@ import useClaimUnstake from './hooks/useClaimUnstake'
 
 type Props = {}
 
-const getTimeLeft = (unstakeStartDate: number) => {
+export const getTimeLeft = (unstakeStartDate: number) => {
   const unstakingDate = dayjs.unix(unstakeStartDate).add(4, 'day')
   const daysLeft = unstakingDate.diff(dayjs(), 'day')
   const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
@@ -42,7 +42,7 @@ const DaysLeft = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
 
 const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
   const { minutesLeft } = getTimeLeft(unstakeStartDate)
-  const claim = useClaimUnstake()
+  const claim = useClaimUnstake().action
 
   const isReadyToClaim = minutesLeft <= 0
 
@@ -52,9 +52,9 @@ const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
       variant="ghost"
       size="sm"
       px="2"
-      isLoading={claim.isPending}
+      isLoading={claim.simulate.isLoading || claim.tx.isPending}
       isDisabled={!isReadyToClaim}
-      onClick={() => claim.mutate()}
+      onClick={() => claim.tx.mutate()}
     >
       Claim
     </TxButton>

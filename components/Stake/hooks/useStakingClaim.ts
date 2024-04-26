@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 
-export const useClaimUnstake = (restake = false) => {
+export const useStakingClaim = (restake = false) => {
   const { address } = useWallet()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
@@ -15,7 +15,7 @@ export const useClaimUnstake = (restake = false) => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
         
       const messageComposer = new StakingMsgComposer(address, contracts.liquidation)
-      const msgs = messageComposer.unstake({mbrnAmount: '0'})
+      const msgs = messageComposer.claimRewards({restake})
 
       return [msgs] as MsgExecuteContractEncodeObject[]
     },
@@ -35,4 +35,4 @@ export const useClaimUnstake = (restake = false) => {
   }), msgs}
 }
 
-export default useClaimUnstake
+export default useStakingClaim

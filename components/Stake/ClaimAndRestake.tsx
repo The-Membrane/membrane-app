@@ -3,13 +3,13 @@ import { shiftDigits } from '@/helpers/math'
 import { isGreaterThanZero, num } from '@/helpers/num'
 import { HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { useMemo } from 'react'
-import useClaim from './hooks/useClaim'
+import useStakingClaim from './hooks/useStakingClaim'
 import useStaked from './hooks/useStaked'
 
 type Props = {}
 
 const RestakeButton = ({ reward }: any) => {
-  const claim = useClaim(true)
+  const claim = useStakingClaim(true).action
 
   if (reward?.asset?.symbol !== 'MBRN') return null
 
@@ -19,8 +19,8 @@ const RestakeButton = ({ reward }: any) => {
       size="sm"
       px="2"
       isDisabled={Number(reward?.amount) <= 0}
-      isLoading={claim.isPending}
-      onClick={() => claim.mutate()}
+      isLoading={claim.simulate.isLoading || claim.tx.isPending}
+      onClick={() => claim.tx.mutate()}
     >
       Restake
     </TxButton>
@@ -30,7 +30,7 @@ const RestakeButton = ({ reward }: any) => {
 const ClaimAndRestake = (props: Props) => {
   const { data } = useStaked()
   const { rewards = [] } = data || {}
-  const claim = useClaim()
+  const claim = useStakingClaim().action
 
   const claimable = useMemo(() => {
     const rewardsAmount = rewards.reduce((acc, reward) => {
@@ -72,8 +72,8 @@ const ClaimAndRestake = (props: Props) => {
       </Stack>
       <TxButton
         isDisabled={!isGreaterThanZero(claimable)}
-        isLoading={claim.isPending}
-        onClick={() => claim.mutate()}
+        isLoading={claim.simulate.isLoading || claim.tx.isPending}
+        onClick={() => claim.tx.mutate()}
       >
         Claim
       </TxButton>

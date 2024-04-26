@@ -130,7 +130,7 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   )
 }
 
-const StabilityPool = (setActiveTabIndex: any) => {
+const StabilityPool = (setActiveTabIndex: (index: number) => void) => {
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { deposits = [] } = stabilityPoolAssets || {}
 

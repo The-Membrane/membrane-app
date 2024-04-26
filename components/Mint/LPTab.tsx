@@ -9,6 +9,7 @@ import useLP from "./hooks/useLP"
 import { num } from "@/helpers/num"
 import { ChangeEvent, useRef, useState } from "react"
 import { useOraclePrice } from "@/hooks/useOracle"
+import { delayTime } from "@/config/defaults"
 
 
 
@@ -28,9 +29,8 @@ const LPTab = () => {
     const { data: prices } = useOraclePrice()
     const cdtPrice = prices?.find((price) => price.denom === cdt?.base)
 
-    //inputAmount is seprate so we can use both the input box & the slider to set LPState without messing with focus
+    //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
-    const delayTime = 1500; // Delay time in milliseconds
     
     const txSuccess = () => {
         setLPState({ newCDT: 0})

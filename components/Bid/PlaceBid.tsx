@@ -1,12 +1,15 @@
 import ConfirmModal from '@/components/ConfirmModal'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { Card, HStack, Stack, Text } from '@chakra-ui/react'
+import { Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
 import { SliderWithState } from '../Mint/SliderWithState'
 import Summary from './Summary'
 import useBid from './hooks/useBid'
 import useBidState from './hooks/useBidState'
 import useQueue from './hooks/useQueue'
+import { ChangeEvent, useState } from 'react'
+import { num } from '@/helpers/num'
+import { delayTime } from '@/config/defaults'
 
 const PlaceBid = () => {
   const { bidState, setBidState } = useBidState()
@@ -17,11 +20,40 @@ const PlaceBid = () => {
 
   const bid = useBid({ txSuccess })
   const { data: queue } = useQueue(bidState?.selectedAsset)
-
   const cdt = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdt)
+  const [ inputAmount, setInputAmount ] = useState(0);
+  const [ premiuminputAmount, setPremiumInputAmount ] = useState(0);
 
   const maxPremium = queue?.max_premium
+  
+  //CDT Input
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const newAmount = e.target.value
+
+    if (num(newAmount).isGreaterThan(cdtBalance)) setInputAmount(parseInt(cdtBalance))
+      else setInputAmount(parseInt(e.target.value))
+    
+    setTimeout(() => {
+      if (num(newAmount).isGreaterThan(cdtBalance)) setBidState({placeBid: {...bidState?.placeBid, cdt: parseInt(cdtBalance)}})
+        else setBidState({placeBid: {...bidState?.placeBid, cdt: parseInt(e.target.value)}})
+    }, delayTime);        
+  }
+  //Premium Input
+  const handlePremiumInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const newAmount = e.target.value
+
+    if (num(newAmount).isGreaterThan(maxPremium??10)) setInputAmount(parseInt(maxPremium??'10'))
+      else setInputAmount(parseInt(e.target.value))
+    
+    setTimeout(() => {
+      if (num(newAmount).isGreaterThan(maxPremium??10)) setBidState({placeBid: {...bidState?.placeBid, premium: parseInt(maxPremium??'10')}})
+        else setBidState({placeBid: {...bidState?.placeBid, premium: parseInt(e.target.value)}})
+    }, delayTime);        
+  }
+
 
   const onCDTChange = (value: number) => {
     const existingBid = bidState?.placeBid || {}
@@ -52,9 +84,17 @@ const PlaceBid = () => {
       <HStack w="full" gap="10" mb="2">
         <Stack w="full" gap="1">
           <HStack justifyContent="space-between">
-            <Text fontSize="16px" fontWeight="700">
+            {/* <Text fontSize="16px" fontWeight="700">
               {bidState?.placeBid?.cdt}
-            </Text>
+            </Text> */}            
+            <Input 
+              width={"38%"} 
+              textAlign={"center"} 
+              placeholder="0" 
+              type="number" 
+              value={inputAmount} 
+              onChange={handleInputChange}
+             />
             <Text fontSize="16px" fontWeight="700">
               CDT with
             </Text>
@@ -69,9 +109,17 @@ const PlaceBid = () => {
 
         <Stack w="full" gap="1">
           <HStack justifyContent="space-between">
-            <Text fontSize="16px" fontWeight="700">
+            {/* <Text fontSize="16px" fontWeight="700">
               {bidState?.placeBid?.premium}
-            </Text>
+            </Text> */}
+            <Input 
+              width={"38%"} 
+              textAlign={"center"} 
+              placeholder="0" 
+              type="number" 
+              value={premiuminputAmount} 
+              onChange={handlePremiumInputChange}
+             />
             <Text fontSize="16px" fontWeight="700">
               % Premium
             </Text>

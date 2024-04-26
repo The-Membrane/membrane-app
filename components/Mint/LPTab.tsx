@@ -69,7 +69,7 @@ const LPTab = () => {
               CDT
             </Text>
             <Input 
-              width={"49%"} 
+              width={"38%"} 
               textAlign={"center"} 
               placeholder="0" 
               type="number" 

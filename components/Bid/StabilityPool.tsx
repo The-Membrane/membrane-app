@@ -147,7 +147,7 @@ const StabilityPool = (setActiveTabIndex: any) => {
           setBidState({placeBid: {...bidState?.placeBid, premium: 10}})
           setActiveTabIndex(0)
         }}>
-          Bid in the Omni-Pool by Setting Premium to 10%
+          Bid in Omni-Pool - Set Premium to 10%
         </Button>
       </Card>
     )

@@ -64,7 +64,7 @@ const MintTabsCard = () => {
           <TabPanels paddingBottom={activeTabIndex === 2 ? 0 : 4}>
             <CurrentPositions />
             <TakeAction />
-            <LPTab />
+            {/* <LPTab /> */}
           </TabPanels>
         </Tabs>
       </VStack>

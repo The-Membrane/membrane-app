@@ -85,10 +85,7 @@ const PlaceBid = () => {
 
       <HStack w="full" gap="10" mb="2">
         <Stack w="full" gap="1">
-          <HStack justifyContent="space-between">
-            {/* <Text fontSize="16px" fontWeight="700">
-              {bidState?.placeBid?.cdt}
-            </Text> */}            
+          <HStack justifyContent="space-between">          
             <Input 
               width={"49%"} 
               textAlign={"center"} 
@@ -111,9 +108,6 @@ const PlaceBid = () => {
 
         <Stack w="full" gap="1">
           <HStack justifyContent="space-between">
-            {/* <Text fontSize="16px" fontWeight="700">
-              {bidState?.placeBid?.premium}
-            </Text> */}
             <Input 
               width={"38%"} 
               textAlign={"center"} 

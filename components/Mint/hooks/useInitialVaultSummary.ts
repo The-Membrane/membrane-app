@@ -21,7 +21,6 @@ const useInitialVaultSummary = () => {
       initialBorrowLTV: calc_initialBorrowLTV,
       initialLTV: calc_initialLTV,
       debtAmount: calc_debtAmount,
-      initialPositions: calc_initialPositions,
       initialTVL: calc_initialTVL,
       basketAssets: calc_basketAssets,
     }

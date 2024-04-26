@@ -275,12 +275,11 @@ type VaultSummary = {
   mint?: number
   repay?: number
   newDebtAmount?: number
-  initialBorrowLTV?: number
-  initialLTV?: number
-  initialTVL?: number
-  initialPositions?: any[]
-  debtAmount?: number
-  basketAssets?: BasketAsset[]
+  initialBorrowLTV: number
+  initialLTV: number
+  initialTVL: number
+  debtAmount: number
+  basketAssets: BasketAsset[]
 }
 
 const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
@@ -330,7 +329,6 @@ export const calculateVaultSummary = ({
   initialBorrowLTV,
   initialLTV,
   initialTVL,
-  initialPositions,
   debtAmount,
   basketAssets,
 }: VaultSummary) => {
@@ -347,20 +345,13 @@ export const calculateVaultSummary = ({
   }
 
   const positions = updatedSummary(summary, basketPositions, prices)
-  const calc_initialPositions = initialPositions??getPositions(basketPositions, prices)
-  const calc_debtAmount = debtAmount??getDebt(basketPositions)
-  const calc_basketAssets = basketAssets??getBasketAssets(basket!, collateralInterest!)
-  const calc_initialTVL = initialTVL??getTVL(calc_initialPositions)
-  const tvl = calc_initialTVL + newDeposit
+  const tvl = initialTVL + newDeposit
   const { cost, ratios} = getRateCost(positions, tvl, basketAssets)
-  const ltv = getLTV(tvl, num(calc_debtAmount).plus(mint).minus(repay).toNumber())
+  const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).toNumber())
 
-
-  const calc_initialLTV = initialLTV??getLTV(calc_initialTVL, calc_debtAmount)
   const creditPrice = Number(basket?.credit_price.price) || 1
-  const liqudationLTV = getLiqudationLTV(tvl, positions, calc_basketAssets, ratios)
-  const borrowLTV = getBorrowLTV(tvl, positions, calc_basketAssets, ratios)
-  const calc_initialBorrowLTV = initialBorrowLTV??getBorrowLTV(calc_initialTVL, calc_initialPositions, calc_basketAssets)
+  const liqudationLTV = getLiqudationLTV(tvl, positions, basketAssets, ratios)
+  const borrowLTV = getBorrowLTV(tvl, positions, basketAssets, ratios)
   const maxMint = getMaxMint(tvl, borrowLTV, creditPrice)
   
   console.log(maxMint)
@@ -368,13 +359,13 @@ export const calculateVaultSummary = ({
   const mintAmount = getMintAmount({
     tvl,
     creditPrice,
-    debtAmount: calc_debtAmount,
+    debtAmount,
     ltv: borrowLTV,
   })
 
   const liquidValue = getLiquidValue({
     liqudationLTV,
-    debtAmount: calc_debtAmount,
+    debtAmount,
     mintAmount,
     repayAmount: 0,
     creditPrice,
@@ -382,7 +373,7 @@ export const calculateVaultSummary = ({
 
   return {
     newDebtAmount,
-    debtAmount: calc_debtAmount,
+    debtAmount,
     cost,
     tvl,
     ltv,
@@ -390,9 +381,9 @@ export const calculateVaultSummary = ({
     maxMint,
     liquidValue,
     liqudationLTV,
-    initialLTV: calc_initialLTV,
-    initialTVL: calc_initialTVL,
-    initialBorrowLTV: calc_initialBorrowLTV,
+    initialLTV,
+    initialTVL,
+    initialBorrowLTV,
     mintAmount,
   }
 }

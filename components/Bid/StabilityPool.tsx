@@ -130,7 +130,11 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   )
 }
 
-const StabilityPool = (setActiveTabIndex: (index: number) => void) => {
+type Props = {
+  setActiveTabIndex: React.Dispatch<React.SetStateAction<number>>
+}
+
+const StabilityPool = ({ setActiveTabIndex }: Props) => {
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { deposits = [] } = stabilityPoolAssets || {}
 

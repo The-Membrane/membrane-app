@@ -140,6 +140,9 @@ const StabilityPool = () => {
         My Omni-Bids
         </Text>
         <Text color="gray">You don't have any deposits in the omni-asset pool.</Text>
+        <Button >
+          Set Premium to 10% for new Omni-Bids
+        </Button>
       </Card>
     )
   }

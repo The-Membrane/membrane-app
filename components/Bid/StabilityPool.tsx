@@ -136,6 +136,11 @@ const StabilityPool = (setActiveTabIndex: any) => {
 
   const { bidState, setBidState } = useBidState()
 
+  const changeTab = () => {
+    setBidState({placeBid: {...bidState?.placeBid, premium: 10}})
+    setActiveTabIndex(0)
+  };
+
   if (deposits.length === 0) {
     return (
       <Card p="8" alignItems="center" gap={5}>
@@ -143,10 +148,7 @@ const StabilityPool = (setActiveTabIndex: any) => {
         My Omni-Bids
         </Text>
         <Text color="gray">You don't have any deposits in the omni-asset pool.</Text>
-        <Button onClick={()=>{
-          setBidState({placeBid: {...bidState?.placeBid, premium: 10}})
-          setActiveTabIndex(0)
-        }}>
+        <Button onClick={changeTab}>
           Bid in Omni-Pool - Set Premium to 10%
         </Button>
       </Card>

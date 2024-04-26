@@ -37,7 +37,7 @@ const Claim = () => {
         isLoading={claim.simulate.isLoading || claim.tx.isPending}
         onClick={() => {         
           claim.simulate.refetch().then(() => {
-          claim.tx.mutate()
+            claim.tx.mutate()
           })
         }}
       >

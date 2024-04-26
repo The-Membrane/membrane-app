@@ -34,7 +34,7 @@ const useSimulate = ({ msgs, amount, enabled = true, queryKey = [] }: Simulate) 
     retry: false,
     staleTime: 30000, // data considered "fresh" for 30 seconds
   })
-  console.log(enabled && (msgs?.length || 0) > 0 && isWalletConnected)
+  console.log(enabled, (msgs?.length || 0) > 0, isWalletConnected)
   return {
     ...simulate,
     errorMessage,

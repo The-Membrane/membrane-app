@@ -14,7 +14,7 @@ export const useStakingClaim = (restake = false) => {
     queryFn: () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
         
-      const messageComposer = new StakingMsgComposer(address, contracts.liquidation)
+      const messageComposer = new StakingMsgComposer(address, contracts.staking)
       const msgs = messageComposer.claimRewards({restake})
       console.log(msgs)
       return [msgs] as MsgExecuteContractEncodeObject[]

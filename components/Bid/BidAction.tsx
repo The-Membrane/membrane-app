@@ -25,8 +25,9 @@ const CustomTab = ({ onClick, children }: TabProps) => (
 const BidAction = () => {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
-  const handleTabClick = (index) => {
+  const handleTabClick = (index: number) => {
     setActiveTabIndex(index);
+    console.log(activeTabIndex)
   };
   
   return (

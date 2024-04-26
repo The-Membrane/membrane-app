@@ -45,8 +45,8 @@ const PlaceBid = () => {
     e.preventDefault()
     const newAmount = e.target.value
 
-    if (num(newAmount).isGreaterThan(maxPremium??10)) setInputAmount(parseInt(maxPremium??'10'))
-      else setInputAmount(parseInt(e.target.value))
+    if (num(newAmount).isGreaterThan(maxPremium??10)) setPremiumInputAmount(parseInt(maxPremium??'10'))
+      else setPremiumInputAmount(parseInt(e.target.value))
     
     setTimeout(() => {
       if (num(newAmount).isGreaterThan(maxPremium??10)) setBidState({placeBid: {...bidState?.placeBid, premium: parseInt(maxPremium??'10')}})
@@ -62,6 +62,7 @@ const PlaceBid = () => {
       cdt: value,
     }
     setBidState({ ...bidState, placeBid })
+    setInputAmount(value)
   }
 
   const onPremiumChange = (value: number) => {
@@ -71,6 +72,7 @@ const PlaceBid = () => {
       premium: value,
     }
     setBidState({ ...bidState, placeBid })
+    setPremiumInputAmount(value)
   }
 
   const isDisabled = !bidState?.placeBid?.cdt || !bidState?.placeBid?.premium

@@ -26,11 +26,11 @@ const useClaimFees = () => {
     queryClient.invalidateQueries({ queryKey: ['allocations'] })
   }
 
-  return useSimulateAndBroadcast({
+  return {action: useSimulateAndBroadcast({
     msgs,
     onSuccess,
     enabled: true
-  })
+  }), msgs}
 }
 
 export default useClaimFees

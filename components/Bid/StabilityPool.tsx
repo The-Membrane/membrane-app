@@ -20,6 +20,21 @@ import { ChangeEvent, useState } from 'react'
 import useStabilityAssetPool from './hooks/useStabilityAssetPool'
 import useWithdrawStabilityPool from './hooks/useWithdrawStabilityPool'
 import useBidState from './hooks/useBidState'
+import dayjs from 'dayjs'
+
+
+export const getSPTimeLeft = (unstakeStartDate: number) => {
+  const unstakingDate = dayjs.unix(unstakeStartDate).add(1, 'day')
+  const daysLeft = unstakingDate.diff(dayjs(), 'day')
+  const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
+  const minutesLeft = unstakingDate.diff(dayjs(), 'minute')
+
+  return {
+    daysLeft,
+    hoursLeft,
+    minutesLeft,
+  }
+}
 
 const UnstakeButton = ({ amount }: { amount: string }) => {
   const withdraw = useWithdrawStabilityPool(amount)
@@ -28,8 +43,8 @@ const UnstakeButton = ({ amount }: { amount: string }) => {
       w="150px"
       px="10"
       isDisabled={!isGreaterThanZero(amount)}
-      isLoading={withdraw.isPending}
-      onClick={() => withdraw.mutate()}
+      isLoading={withdraw.action.simulate.isLoading || withdraw.action.tx.isPending}
+      onClick={() => withdraw.action.tx.mutate()}
     >
       Unstake
     </TxButton>
@@ -42,9 +57,9 @@ const WithdrawButton = ({ amount }: { amount: string }) => {
     <TxButton
       w="150px"
       px="10"
-      isDisabled={!isGreaterThanZero(amount)}
-      isLoading={withdraw.isPending}
-      onClick={() => withdraw.mutate()}
+      isDisabled={!isGreaterThanZero(amount)}      
+      isLoading={withdraw.action.simulate.isLoading || withdraw.action.tx.isPending}
+      onClick={() => withdraw.action.tx.mutate()}
     >
       Withdraw
     </TxButton>
@@ -70,7 +85,7 @@ const CountDown = ({ timeString, amount }: { timeString: string; amount: string 
 }
 
 const Action = ({ deposit, amount }: { deposit: Deposit; amount: string }) => {
-  if (!deposit.unstake_time) {
+  if (!deposit.unstake_time || getSPTimeLeft(deposit.unstake_time).minutesLeft > 0){
     return <UnstakeButton amount={amount} />
   }
 

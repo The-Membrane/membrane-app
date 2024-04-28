@@ -7,7 +7,7 @@ import Summary from './Summary'
 import useBid from './hooks/useBid'
 import useBidState from './hooks/useBidState'
 import useQueue from './hooks/useQueue'
-import { ChangeEvent, useState } from 'react'
+import { ChangeEvent, useMemo, useState } from 'react'
 import { num } from '@/helpers/num'
 import { delayTime } from '@/config/defaults'
 
@@ -72,8 +72,10 @@ const PlaceBid = () => {
       premium: value,
     }
     setBidState({ ...bidState, placeBid })
-    setPremiumInputAmount(value)
   }
+  //Instead of changing the premium input amount on the slider, we useMemo to account for premium x-axis clicks
+  useMemo(() => {setPremiumInputAmount(bidState?.placeBid.premium)}, [bidState?.placeBid.premium])
+
 
   const isDisabled = !bidState?.placeBid?.cdt || !bidState?.placeBid?.premium
 

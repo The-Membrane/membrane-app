@@ -109,9 +109,9 @@ const TokenAllocation = (props: Props) => {
         <TxButton
           mt={4}
           maxW="300px"
-          isLoading={claimFees?.simulate.isLoading || claimFees?.tx.isPending}
-          isDisabled={claimFees?.simulate.isError}
-          onClick={() => claimFees.tx.mutate()}
+          isLoading={claimFees?.action.simulate.isLoading || claimFees?.action.tx.isPending}
+          isDisabled={claimFees?.action.simulate.isError}
+          onClick={() => claimFees.action.tx.mutate()}
         >
           Claim
         </TxButton>

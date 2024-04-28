@@ -37,8 +37,8 @@ export const useBasketPositions = () => {
     queryKey: ['positions', address],
     queryFn: async () => {
       if (!address) return
-      console.log("queried basket positions")
-      return getBasketPositions(address)
+      let addr = "osmo12uk22nzee0hgahzttujcdce78ax627as04tcas"
+      return getBasketPositions(addr)
     },
     enabled: !!address,
   })

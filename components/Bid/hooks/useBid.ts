@@ -40,7 +40,7 @@ const useBid = ({ txSuccess }: Props) => {
           funds,
         })
       }      
-      console.log(premium, msg)
+      
       return [msg] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address && !!selectedAsset && !!cdt,

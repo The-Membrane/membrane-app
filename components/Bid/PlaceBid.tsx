@@ -77,7 +77,7 @@ const PlaceBid = () => {
   useMemo(() => {setPremiumInputAmount(bidState?.placeBid.premium)}, [bidState?.placeBid.premium])
 
 
-  const isDisabled = !bidState?.placeBid?.cdt || !bidState?.placeBid?.premium
+  const isDisabled = !bidState?.placeBid?.cdt
 
   return (
     <Card p="8" alignItems="center" gap={5}>

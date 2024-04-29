@@ -42,7 +42,7 @@ const useBid = ({ txSuccess }: Props) => {
       }      
       return [msg] as MsgExecuteContractEncodeObject[]
     },
-    enabled: !!address && !!selectedAsset && !!premium && !!cdt,
+    enabled: !!address && !!selectedAsset && !!cdt,
   })
 
   const onSuccess = () => {

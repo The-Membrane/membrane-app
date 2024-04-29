@@ -28,7 +28,7 @@ const useBid = ({ txSuccess }: Props) => {
 
       const microAmount = shiftDigits(cdt, 6).dp(0).toString()
       const funds = [coin(microAmount, cdtAsset?.base!)]
-
+      console.log(premium)
       var msg;
       if (premium === 10){
         msg = buildStabilityPooldepositMsg({ address, funds })

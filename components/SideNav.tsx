@@ -6,6 +6,7 @@ import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon } from './Icons'
 import Logo from './Logo'
 import { StatsCard } from './StatsCard'
 import WallectConnect from './WallectConnect'
+import { BalanceCard } from './BalanceCard'
 
 type NavItems = {
   label: string
@@ -64,7 +65,7 @@ const SideNav = () => {
         <WallectConnect />
       </Stack>
 
-      <StatsCard />
+      <BalanceCard />
     </Stack>
   )
 }

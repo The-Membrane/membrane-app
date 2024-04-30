@@ -36,9 +36,9 @@ export const StatsCard = () => {
 
   return (
     <HStack mt="auto" gap="3">
-      <Divider mx="0" mb="5" />
       <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
       <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
+      <Divider mx="0" mb="5" />
     </HStack>
   )
 }

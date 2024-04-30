@@ -32,7 +32,7 @@ const featurs = [
 
 const Home = () => {
   return (
-    <Stack justifyContent={"center"}>
+    <Stack>
       <StatsCard />
       {/* <Center h="full" w="full" justifyContent="center">      
         <SimpleGrid columns={2} spacing={12} justifyContent="center">

@@ -32,15 +32,15 @@ const featurs = [
 
 const Home = () => {
   return (
-    <Stack>
+    <Stack justifyContent={"center"}>
       <StatsCard />
-      <Center h="full" w="full" justifyContent="center">      
+      {/* <Center h="full" w="full" justifyContent="center">      
         <SimpleGrid columns={2} spacing={12} justifyContent="center">
           {featurs.map((feature, index) => (
             <FeatureCard key={index} {...feature} />
           ))}
         </SimpleGrid>
-      </Center>
+      </Center> */}
     </Stack>
   )
 }

@@ -1,4 +1,4 @@
-import { Stack, Text } from '@chakra-ui/react'
+import { HStack, Stack, Text } from '@chakra-ui/react'
 import React, { useMemo } from 'react'
 import Divider from './Divider'
 import { useBasket } from '@/hooks/useCDP'
@@ -35,10 +35,10 @@ export const StatsCard = () => {
   }, [basket, prices])
 
   return (
-    <Stack mt="auto" gap="3">
+    <HStack mt="auto" gap="3">
       <Divider mx="0" mb="5" />
       <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
       <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
-    </Stack>
+    </HStack>
   )
 }

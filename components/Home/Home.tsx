@@ -1,6 +1,7 @@
 import { Center, SimpleGrid } from '@chakra-ui/react'
 import { BidIcon, ClaimIcon, MintIcon, StakeIcon } from '../Icons'
 import FeatureCard from './FeatureCard'
+import { StatsCard } from '../StatsCard'
 
 const featurs = [
   {

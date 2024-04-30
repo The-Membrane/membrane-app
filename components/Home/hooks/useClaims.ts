@@ -60,7 +60,7 @@ const useProtocolClaims = () => {
 
         const isClaimDisabled = claim_coins?.filter((claim) => num(claim.amount).gt(0))
         if (!claimLiq?.action.simulate.isError){
-          msgs.concat(claimLiq.msgs ?? [])
+          msgs = msgs.concat(claimLiq.msgs ?? [])
           msgsToSend = true
         }
         /////Add Staking reward and Stake Claims////
@@ -70,7 +70,7 @@ const useProtocolClaims = () => {
           const stakingClaim = useStakingClaim(false)
           console.log("stakingClaim:", stakingClaim.msgs)
           if (!stakingClaim?.action.simulate.isError){
-            msgs.concat(stakingClaim.msgs ?? [])
+            msgs = msgs.concat(stakingClaim.msgs ?? [])
             msgsToSend = true
           }
         }
@@ -82,14 +82,14 @@ const useProtocolClaims = () => {
           const unstakeClaim = useClaimUnstake()
           console.log("unstakeClaim:", unstakeClaim.msgs)
           if (!unstakeClaim?.action.simulate.isError){
-            msgs.concat(unstakeClaim.msgs ?? [])         
+            msgs = msgs.concat(unstakeClaim.msgs ?? [])         
             msgsToSend = true 
           }
         }
         /////Add Vesting Claims////
         console.log("claimFees:", claimFees.msgs)
         if (!claimFees?.action.simulate.isError){
-          msgs.concat(claimFees.msgs ?? [])
+          msgs = msgs.concat(claimFees.msgs ?? [])
           msgsToSend = true
         }
 
@@ -109,7 +109,7 @@ const useProtocolClaims = () => {
             const SPwithdraw = useWithdrawStabilityPool(totalwithdrawableDeposits.toString())
             console.log("SPwithdraw:", SPwithdraw.msgs)
             if (!SPwithdraw?.action.simulate.isError){
-                msgs.concat(SPwithdraw.msgs ?? [])
+              msgs = msgs.concat(SPwithdraw.msgs ?? [])
                 msgsToSend = true
             }
         }

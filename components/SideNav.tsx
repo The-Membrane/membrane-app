@@ -9,6 +9,7 @@ import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
 import useProtocolClaims from './Home/hooks/useClaims'
 import ConfirmModal from './ConfirmModal'
+import { getRiskyPositions } from '@/services/cdp'
 
 type NavItems = {
   label: string
@@ -57,7 +58,8 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 
 const SideNav = () => {
   const { action: claim } = useProtocolClaims()
-
+  const liq = getRiskyPositions()
+  console.log(liq)
 
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
@@ -77,12 +79,6 @@ const SideNav = () => {
       >
         Claim
       </Button>
-      {/* <ConfirmModal
-        label={'Claim'}
-        action={claim}
-        isDisabled={claim?.simulate.isError || !claim?.simulate.data}
-      >
-      </ConfirmModal> */}
 
       <BalanceCard />
     </Stack>

@@ -5,7 +5,7 @@ import { GrPowerReset } from 'react-icons/gr'
 import { Summary } from './Summary'
 import useMint from './hooks/useMint'
 import useMintState from './hooks/useMintState'
-import { useBasketPositions } from '@/hooks/useCDP'
+import { useUserPositions } from '@/hooks/useCDP'
 
 type Props = {
   onRest: () => void
@@ -15,7 +15,7 @@ const ActionButtons = ({ onRest }: Props) => {
   const mint = useMint()
   const { mintState } = useMintState()
   const { summary } = mintState
-  const { data: basketPositions } = useBasketPositions()
+  const { data: basketPositions } = useUserPositions()
 
   return (
     <HStack mt="5" gap="4">

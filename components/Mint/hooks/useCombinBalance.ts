@@ -2,7 +2,7 @@ import { Asset } from '@/helpers/chain'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import useBalance from '@/hooks/useBalance'
-import { useBasket, useBasketPositions, useCollateralInterest } from '@/hooks/useCDP'
+import { useBasket, useUserPositions, useCollateralInterest } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getBasketAssets, getPositions } from '@/services/cdp'
 import { useMemo } from 'react'
@@ -24,7 +24,7 @@ const useCombinBalance = () => {
   const { data: collateralInterest } = useCollateralInterest()
   const { data: prices } = useOraclePrice()
   const { data: balances } = useBalance()
-  const { data: basketPositions } = useBasketPositions()
+  const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
   const { mintState } = useMintState()
 

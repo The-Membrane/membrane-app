@@ -1,5 +1,5 @@
 import { getDepostAndWithdrawMsgs, getMintAndRepayMsgs } from '@/helpers/mint'
-import { useBasket, useBasketPositions } from '@/hooks/useCDP'
+import { useBasket, useUserPositions } from '@/hooks/useCDP'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
@@ -12,7 +12,7 @@ const useMint = () => {
   const { mintState, setMintState } = useMintState()
   const { summary = [] } = mintState
   const { address } = useWallet()
-  const { data: basketPositions, ...basketErrors } = useBasketPositions()
+  const { data: basketPositions, ...basketErrors } = useUserPositions()
   const { data: basket } = useBasket()
 
   //Use first position id or use the basket's next position ID

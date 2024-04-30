@@ -1,4 +1,4 @@
-import { useBasket, useBasketPositions, useCollateralInterest } from '@/hooks/useCDP'
+import { useBasket, useUserPositions, useCollateralInterest } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getBasketAssets, getBorrowLTV, getDebt, getLTV, getPositions, getTVL } from '@/services/cdp'
 import { useMemo } from 'react'
@@ -6,7 +6,7 @@ import { useMemo } from 'react'
 const useInitialVaultSummary = () => {
   const { data: basket } = useBasket()
   const { data: collateralInterest } = useCollateralInterest()
-  const { data: basketPositions } = useBasketPositions()
+  const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
 
   return useMemo(() => {

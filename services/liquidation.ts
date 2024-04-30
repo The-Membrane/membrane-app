@@ -44,6 +44,11 @@ export const getQueue = async (asset: Asset) => {
   })
 }
 
+export const getAllQueues = async () => {
+  const client = await liquidationClient()
+  return client.queues({ limit: 256 })
+}
+
 type BidMsg = {
   address: Addr
   asset: Asset

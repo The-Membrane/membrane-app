@@ -11,6 +11,7 @@ import getCosmWasmClient from '@/helpers/comswasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
+import { useBasket, useCollateralInterest } from '@/hooks/useCDP'
 
 export const cdpClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -82,10 +83,17 @@ export const getCreditRate = async () => {
   return client.getCreditRate()
 }
 
-export const getBasketPositions = async (address: Addr) => {
+export const getUserPositions = async (address: Addr) => {
   const client = await cdpClient()
   return client.getBasketPositions({
     user: address,
+  })
+}
+
+export const getBasketPositions = async () => {
+  const client = await cdpClient()
+  return client.getBasketPositions({
+    limit: 1024,
   })
 }
 
@@ -152,29 +160,6 @@ export const getRateCost = (
   }, num(0))
 
   return {cost: cost.toNumber(), ratios: positionsWithRatio}
-}
-
-export type LiquidationLTV = {
-  tvl: number
-  debtAmount: number
-  mintAmount?: number
-  repayAmount?: number
-  creditPrice: number
-}
-export const getLquidationLTV = ({
-  tvl,
-  debtAmount,
-  mintAmount = 0,
-  repayAmount = 0,
-  creditPrice,
-}: LiquidationLTV) => {
-  return num(debtAmount)
-    .plus(mintAmount)
-    .minus(repayAmount)
-    .times(creditPrice)
-    .div(tvl)
-    .times(100)
-    .toNumber()
 }
 
 export type LiquidValue = {
@@ -347,14 +332,13 @@ export const calculateVaultSummary = ({
   const positions = updatedSummary(summary, basketPositions, prices)
   const tvl = initialTVL + newDeposit
   const { cost, ratios} = getRateCost(positions, tvl, basketAssets)
-  const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).toNumber())
+  const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).multipliedBy(basket.credit_price.price).toNumber())
 
   const creditPrice = Number(basket?.credit_price.price) || 1
   const liqudationLTV = getLiqudationLTV(tvl, positions, basketAssets, ratios)
   const borrowLTV = getBorrowLTV(tvl, positions, basketAssets, ratios)
   const maxMint = getMaxMint(tvl, borrowLTV, creditPrice)
   
-  console.log(maxMint)
 
   const mintAmount = getMintAmount({
     tvl,
@@ -402,4 +386,38 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   return positions.reduce((acc, position) => {
     return acc + position
   }, 0)
+}
+
+export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[]) => {
+  if (!basketPositions || !prices) return []
+
+  const { data: basket } = useBasket()
+  const { data: interest } = useCollateralInterest()
+
+  //Get current LTV & liquidation LTV for all positions
+  //Return positions that can be liquidated
+  return basketPositions.map((basketPosition) => {
+    const positions = getPositions([basketPosition], prices)
+    const tvl = getTVL(positions)
+    const debt = getDebt([basketPosition])
+    const ltv = getLTV(tvl, num(debt).multipliedBy(basketPosition.credit_price.price).toNumber())    
+    const positionsWithRatio = getAssetRatio(tvl, positions)
+    const liqudationLTV = getLiqudationLTV(
+      tvl,
+      positions,
+      getBasketAssets(basket!, interest!),
+      positionsWithRatio,
+    )
+
+    if (ltv > liqudationLTV) {
+      return {
+        address: basketPosition.user,
+        positions,
+        tvl,
+        debt,
+        ltv,
+        liqudationLTV,
+      }
+    }
+  })
 }

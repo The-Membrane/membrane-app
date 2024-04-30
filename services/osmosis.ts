@@ -17,11 +17,11 @@ import { EncodeObject } from "@cosmjs/proto-signing";
 import { Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";
 import { Asset } from '@/helpers/chain'
 import { useEffect, useState } from "react";
-import { getAssetRatio, getBasketPositions } from "@/services/cdp";
+import { getAssetRatio, getUserPositions } from "@/services/cdp";
 import useMintState from "@/components/Mint/hooks/useMintState";
 import useVaultSummary from "@/components/Mint/hooks/useVaultSummary";
 import { useOraclePrice } from "@/hooks/useOracle";
-import { useBasket, useBasketPositions } from "@/hooks/useCDP";
+import { useBasket, useUserPositions } from "@/hooks/useCDP";
 import { useBalanceByAsset } from "@/hooks/useBalance";
 import { useAssetBySymbol } from "@/hooks/useAssets";
 import { num } from "@/helpers/num";
@@ -102,7 +102,7 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 //     //Create CDP Message Composer
 //     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
 //     //getPosition
-//     const { data: basketPositions } = useBasketPositions()
+//     const { data: basketPositions } = useUserPositions()
 
 //     //Set Position value
 //     var positionValue = initialTVL!;
@@ -238,7 +238,7 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 //     //Create CDP Message Composer
 //     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
 //     //getPosition
-//     const { data: basketPositions } = useBasketPositions()
+//     const { data: basketPositions } = useUserPositions()
 
 //     //Set Position value
 //     var positionValue = initialTVL!;

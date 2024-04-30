@@ -394,7 +394,6 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
 
-  console.log(basket, interest)
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
@@ -402,7 +401,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     const positions = getPositions([basketPosition], prices)
     const tvl = getTVL(positions)
     const debt = getDebt([basketPosition])
-    const ltv = getLTV(tvl, num(debt).multipliedBy(basketPosition.credit_price.price).toNumber())    
+    const ltv = getLTV(tvl, num(debt).multipliedBy(basket!.credit_price.price).toNumber())    
     const positionsWithRatio = getAssetRatio(tvl, positions)
     const liqudationLTV = getLiqudationLTV(
       tvl,

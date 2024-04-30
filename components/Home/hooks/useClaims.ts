@@ -123,7 +123,7 @@ const useProtocolClaims = () => {
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    enabled: false,
     onSuccess,
   }), msgsToSend}
 }

@@ -35,10 +35,12 @@ export const StatsCard = () => {
   }, [basket, prices])
 
   return (
-    <HStack mt="auto" gap="3">
-      <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
-      <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
+    <Stack gap={3}>
+      <HStack mt="auto" gap="3">
+        <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
+        <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
+      </HStack>
       <Divider mx="0" mb="5" />
-    </HStack>
+    </Stack>
   )
 }

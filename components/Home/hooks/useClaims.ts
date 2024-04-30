@@ -59,7 +59,7 @@ const useProtocolClaims = () => {
         }
 
         const isClaimDisabled = claim_coins?.filter((claim) => num(claim.amount).gt(0))
-        if (!claimLiq?.action.simulate.isError){
+        if (!!isClaimDisabled?.length){
           msgs.concat(claimLiq.msgs ?? [])
           msgsToSend = true
         }

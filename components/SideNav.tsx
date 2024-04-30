@@ -58,8 +58,9 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 
 const SideNav = () => {
   const { action: claim } = useProtocolClaims()
+  //Move this to on-click of the button only
+  //It'll be within a larger use function that creates the liq msgs as well
   const liq = getRiskyPositions()
-  console.log("Test: ", liq)
 
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>

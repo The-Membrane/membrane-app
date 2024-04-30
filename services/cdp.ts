@@ -418,6 +418,8 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
         ltv,
         liqudationLTV,
       }
+    } else {
+      console.log("LTVs:", ltv, liqudationLTV)
     }
   })
 }

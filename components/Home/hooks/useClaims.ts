@@ -12,12 +12,14 @@ import { getTimeLeft } from '@/components/Stake/Unstaking'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useMemo } from 'react'
 import { shiftDigits } from '@/helpers/math'
-import { isGreaterThanZero } from '@/helpers/num'
+import { isGreaterThanZero, num } from '@/helpers/num'
 import useClaimFees from '@/components/Lockdrop/hooks/useClaimFees'
 import useWithdrawStabilityPool from '@/components/Bid/hooks/useWithdrawStabilityPool'
 import useStabilityAssetPool from '@/components/Bid/hooks/useStabilityAssetPool'
 import { getSPTimeLeft } from '@/components/Bid/StabilityPool'
 import useClaimUnstake from '@/components/Stake/hooks/useClaimUnstake'
+import { claimstoCoins } from '@/services/liquidation'
+import { Coin } from '@cosmjs/stargate'
 
 const useProtocolClaims = () => {
   var msgsToSend = false
@@ -51,7 +53,12 @@ const useProtocolClaims = () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
         /////Add Liquidation claims/////        
-        console.log("ClaimLiq:", claimLiq.msgs)
+        var claim_coins: Coin[] = claimstoCoins(claims)
+        if (SP_claims) {
+          claim_coins = claim_coins.concat(SP_claims.claims)
+        }
+
+        const isClaimDisabled = claim_coins?.filter((claim) => num(claim.amount).gt(0))
         if (!claimLiq?.action.simulate.isError){
           msgs.concat(claimLiq.msgs ?? [])
           msgsToSend = true

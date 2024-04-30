@@ -20,8 +20,30 @@ import { getSPTimeLeft } from '@/components/Bid/StabilityPool'
 import useClaimUnstake from '@/components/Stake/hooks/useClaimUnstake'
 
 const useProtocolClaims = () => {
-  const { address } = useWallet()
   var msgsToSend = false
+  const { address } = useWallet()
+
+  //Liquidations
+  const { data: claims } = useCheckClaims()
+  const { data: SP_claims } = useCheckSPClaims()
+  const claimLiq = useClaimLiquidation(claims, SP_claims)
+  //SP Unstaking  
+  const { data: stabilityPoolAssets } = useStabilityAssetPool()
+  const { deposits = [] } = stabilityPoolAssets || {}
+
+  //Staking
+  const { data } = useStaked()        
+  const { staked = [] } = data || {}
+  const { unstaking = [] } = data || {}
+  const mbrnAsset = useAssetBySymbol('MBRN')
+  const claimable = useMemo(() => {
+  if (!staked?.rewards || !mbrnAsset) return '0.00'
+
+  return shiftDigits(staked?.rewards?.accrued_interest, -mbrnAsset?.decimal).toString()
+  }, [staked, mbrnAsset])
+
+  //Vesting
+  const claimFees = useClaimFees()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg all protocol claims', address],
@@ -29,24 +51,12 @@ const useProtocolClaims = () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
         /////Add Liquidation claims/////        
-        const { data: claims } = useCheckClaims()
-        const { data: SP_claims } = useCheckSPClaims()
-        const claimLiq = useClaimLiquidation(claims, SP_claims)
         console.log("ClaimLiq:", claimLiq.msgs)
         if (!claimLiq?.action.simulate.isError){
           msgs.concat(claimLiq.msgs ?? [])
           msgsToSend = true
         }
         /////Add Staking reward and Stake Claims////
-        const { data } = useStaked()        
-        const { staked = [] } = data || {}
-        const { unstaking = [] } = data || {}
-        const mbrnAsset = useAssetBySymbol('MBRN')
-        const claimable = useMemo(() => {
-            if (!staked?.rewards || !mbrnAsset) return '0.00'
-        
-            return shiftDigits(staked?.rewards?.accrued_interest, -mbrnAsset?.decimal).toString()
-          }, [staked, mbrnAsset])
 
         //If there is anything to claim, claim
         if (isGreaterThanZero(claimable)) {
@@ -70,7 +80,6 @@ const useProtocolClaims = () => {
           }
         }
         /////Add Vesting Claims////
-        const claimFees = useClaimFees()
         console.log("claimFees:", claimFees.msgs)
         if (!claimFees?.action.simulate.isError){
           msgs.concat(claimFees.msgs ?? [])
@@ -78,8 +87,6 @@ const useProtocolClaims = () => {
         }
 
         ///Add SP Unstaking////
-        const { data: stabilityPoolAssets } = useStabilityAssetPool()
-        const { deposits = [] } = stabilityPoolAssets || {}
         //sum the deposits that are ready to be withdrawn
         const totalwithdrawableDeposits = deposits.reduce((acc, deposit) => {
             if (deposit.unstake_time) {

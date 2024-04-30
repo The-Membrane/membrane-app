@@ -18,8 +18,6 @@ import useWithdrawStabilityPool from '@/components/Bid/hooks/useWithdrawStabilit
 import useStabilityAssetPool from '@/components/Bid/hooks/useStabilityAssetPool'
 import { getSPTimeLeft } from '@/components/Bid/StabilityPool'
 import useClaimUnstake from '@/components/Stake/hooks/useClaimUnstake'
-import { claimstoCoins } from '@/services/liquidation'
-import { Coin } from '@cosmjs/stargate'
 
 const useProtocolClaims = () => {
   var msgsToSend = false
@@ -53,12 +51,6 @@ const useProtocolClaims = () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
         /////Add Liquidation claims/////        
-        var claim_coins: Coin[] = claimstoCoins(claims)
-        if (SP_claims) {
-          claim_coins = claim_coins.concat(SP_claims.claims)
-        }
-
-        const isClaimDisabled = claim_coins?.filter((claim) => num(claim.amount).gt(0))
         if (!claimLiq?.action.simulate.isError){
           msgs = msgs.concat(claimLiq.msgs ?? [])
           msgsToSend = true

@@ -389,10 +389,10 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
 }
 
 export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[]) => {
-  if (!basketPositions || !prices) return []
-
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
+
+  if (!basketPositions || !prices) return []
 
 
   //Get current LTV & liquidation LTV for all positions

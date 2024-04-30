@@ -34,7 +34,7 @@ const Home = () => {
   return (
     <Stack>
       <StatsCard />
-      <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)">
+      <Text justifyContent={"center"} variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)">
         More Stats Coming Soon...
       </Text>
     </Stack>

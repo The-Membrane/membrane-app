@@ -69,10 +69,10 @@ const useProtocolClaims = () => {
         if (isGreaterThanZero(claimable)) {
           const stakingClaim = useStakingClaim(false)
           console.log("stakingClaim:", stakingClaim.msgs)
-          if (!stakingClaim?.action.simulate.isError){
+          // if (!stakingClaim?.action.simulate.isError){
             msgs.concat(stakingClaim.msgs ?? [])
             msgsToSend = true
-          }
+          // }
         }
         //If there is anything to unstake, unstake
         if (unstaking?.find((unstake: any, index: number) => {            
@@ -81,17 +81,17 @@ const useProtocolClaims = () => {
         })){
           const unstakeClaim = useClaimUnstake()
           console.log("unstakeClaim:", unstakeClaim.msgs)
-          if (!unstakeClaim?.action.simulate.isError){
+          // if (!unstakeClaim?.action.simulate.isError){
             msgs.concat(unstakeClaim.msgs ?? [])         
             msgsToSend = true 
-          }
+          // }
         }
         /////Add Vesting Claims////
-        console.log("claimFees:", claimFees.msgs)
-        if (!claimFees?.action.simulate.isError){
+        console.log("claimFees:", claimFees.msgs ?? [])
+        // if (!claimFees?.action.simulate.isError){
           msgs.concat(claimFees.msgs ?? [])
           msgsToSend = true
-        }
+        // }
 
         ///Add SP Unstaking////
         //sum the deposits that are ready to be withdrawn
@@ -108,10 +108,10 @@ const useProtocolClaims = () => {
         if (totalwithdrawableDeposits > 0){
             const SPwithdraw = useWithdrawStabilityPool(totalwithdrawableDeposits.toString())
             console.log("SPwithdraw:", SPwithdraw.msgs)
-            if (!SPwithdraw?.action.simulate.isError){
+            // if (!SPwithdraw?.action.simulate.isError){
                 msgs.concat(SPwithdraw.msgs ?? [])
                 msgsToSend = true
-            }
+            // }
         }
 
       return msgs as MsgExecuteContractEncodeObject[]

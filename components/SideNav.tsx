@@ -59,7 +59,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 const SideNav = () => {
   const { action: claim } = useProtocolClaims()
   const liq = getRiskyPositions()
-  console.log(liq)
+  console.log("Test: ", liq)
 
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>

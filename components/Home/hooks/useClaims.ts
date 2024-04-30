@@ -60,7 +60,7 @@ const useProtocolClaims = () => {
         //If there is anything to claim, claim
         if (isGreaterThanZero(claimable)) {
           const stakingClaim = useStakingClaim(false)
-          console.log("stakingClaim:", stakingClaim.msgs)
+
           if (!stakingClaim?.action.simulate.isError){
             msgs = msgs.concat(stakingClaim.msgs ?? [])
             msgsToSend = true
@@ -72,14 +72,13 @@ const useProtocolClaims = () => {
             minutesLeft <= 0
         })){
           const unstakeClaim = useClaimUnstake()
-          console.log("unstakeClaim:", unstakeClaim.msgs)
+          
           if (!unstakeClaim?.action.simulate.isError){
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
             msgsToSend = true 
           }
         }
         /////Add Vesting Claims////
-        console.log("claimFees:", claimFees.msgs)
         if (!claimFees?.action.simulate.isError){
           msgs = msgs.concat(claimFees.msgs ?? [])
           msgsToSend = true
@@ -99,7 +98,7 @@ const useProtocolClaims = () => {
         }, 0)
         if (totalwithdrawableDeposits > 0){
             const SPwithdraw = useWithdrawStabilityPool(totalwithdrawableDeposits.toString())
-            console.log("SPwithdraw:", SPwithdraw.msgs)
+            
             if (!SPwithdraw?.action.simulate.isError){
               msgs = msgs.concat(SPwithdraw.msgs ?? [])
                 msgsToSend = true
@@ -110,7 +109,7 @@ const useProtocolClaims = () => {
     },
     enabled: !!address,
   })
-  console.log("Claims:", msgs, msgsToSend)
+  
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })

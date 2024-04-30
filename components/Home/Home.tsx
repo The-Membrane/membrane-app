@@ -1,4 +1,4 @@
-import { Center, SimpleGrid } from '@chakra-ui/react'
+import { Center, SimpleGrid, Stack } from '@chakra-ui/react'
 import { BidIcon, ClaimIcon, MintIcon, StakeIcon } from '../Icons'
 import FeatureCard from './FeatureCard'
 import { StatsCard } from '../StatsCard'
@@ -32,15 +32,16 @@ const featurs = [
 
 const Home = () => {
   return (
-    <Center h="full" w="full" justifyContent="center">
+    <Stack>
       <StatsCard />
-      
-      <SimpleGrid columns={2} spacing={12} justifyContent="center">
-        {featurs.map((feature, index) => (
-          <FeatureCard key={index} {...feature} />
-        ))}
-      </SimpleGrid>
-    </Center>
+      <Center h="full" w="full" justifyContent="center">      
+        <SimpleGrid columns={2} spacing={12} justifyContent="center">
+          {featurs.map((feature, index) => (
+            <FeatureCard key={index} {...feature} />
+          ))}
+        </SimpleGrid>
+      </Center>
+    </Stack>
   )
 }
 

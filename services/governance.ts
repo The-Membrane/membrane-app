@@ -174,7 +174,7 @@ export const getProposals = async () => {
 
   const activeProposals = client.activeProposals({ start, limit }).then((res) => res.proposal_list)
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
-console.log(activeProposals)
+
   const statusOrder: Record<string, number> = {
     active: 0,
     pending: 1,

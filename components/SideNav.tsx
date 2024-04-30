@@ -73,7 +73,7 @@ const SideNav = () => {
       <Button
         isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
         isDisabled={claim?.simulate.isError || !claim?.simulate.data}
-        onClick={() => claim?.tx.mutate()}
+        onClick={() => {claim?.simulate.refetch(); claim?.tx.mutate()}}
       >
         Claim
       </Button>

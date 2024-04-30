@@ -46,7 +46,7 @@ const useProtocolClaims = () => {
   const claimFees = useClaimFees()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg all protocol claims', address],
+    queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, deposits, claimable, claimFees, stabilityPoolAssets],
     queryFn: () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 

@@ -1,4 +1,4 @@
-import { Box, HStack, Stack, Text } from '@chakra-ui/react'
+import { Box, Button, HStack, Stack, Text } from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { useState } from 'react'
@@ -70,12 +70,20 @@ const SideNav = () => {
         <WallectConnect />
       </Stack>
       {/* Claim Button */}
-      <ConfirmModal
+      <Button
+        isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
+        isDisabled={claim?.simulate.isError || !claim?.simulate.data}
+        onClick={() => claim?.tx.mutate()}
+      >
+        Claim
+      </Button>
+      {/* <ConfirmModal
         label={'Claim'}
         action={claim}
         isDisabled={claim?.simulate.isError || !claim?.simulate.data}
+        onClick={() => claim?.tx.mutate()}
       >
-      </ConfirmModal>
+      </ConfirmModal> */}
 
       <BalanceCard />
     </Stack>

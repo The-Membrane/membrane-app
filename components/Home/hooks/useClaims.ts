@@ -32,6 +32,7 @@ const useProtocolClaims = () => {
         const { data: claims } = useCheckClaims()
         const { data: SP_claims } = useCheckSPClaims()
         const claimLiq = useClaimLiquidation(claims, SP_claims)
+        console.log("ClaimLiq:", claimLiq.msgs)
         if (!claimLiq?.action.simulate.isError){
           msgs.concat(claimLiq.msgs ?? [])
           msgsToSend = true
@@ -50,6 +51,7 @@ const useProtocolClaims = () => {
         //If there is anything to claim, claim
         if (isGreaterThanZero(claimable)) {
           const stakingClaim = useStakingClaim(false)
+          console.log("stakingClaim:", stakingClaim.msgs)
           if (!stakingClaim?.action.simulate.isError){
             msgs.concat(stakingClaim.msgs ?? [])
             msgsToSend = true
@@ -61,6 +63,7 @@ const useProtocolClaims = () => {
             minutesLeft <= 0
         })){
           const unstakeClaim = useClaimUnstake()
+          console.log("unstakeClaim:", unstakeClaim.msgs)
           if (!unstakeClaim?.action.simulate.isError){
             msgs.concat(unstakeClaim.msgs ?? [])         
             msgsToSend = true 
@@ -68,6 +71,7 @@ const useProtocolClaims = () => {
         }
         /////Add Vesting Claims////
         const claimFees = useClaimFees()
+        console.log("claimFees:", claimFees.msgs)
         if (!claimFees?.action.simulate.isError){
           msgs.concat(claimFees.msgs ?? [])
           msgsToSend = true
@@ -89,6 +93,7 @@ const useProtocolClaims = () => {
         }, 0)
         if (totalwithdrawableDeposits > 0){
             const SPwithdraw = useWithdrawStabilityPool(totalwithdrawableDeposits.toString())
+            console.log("SPwithdraw:", SPwithdraw.msgs)
             if (!SPwithdraw?.action.simulate.isError){
                 msgs.concat(SPwithdraw.msgs ?? [])
                 msgsToSend = true

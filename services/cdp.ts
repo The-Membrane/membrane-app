@@ -415,8 +415,6 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
         address: basketPosition.user,
         id: basketPosition.positions[0].position_id,
       }
-    } else {
-      console.log("LTVs:", ltv, liqudationLTV)
     }
   })
 }

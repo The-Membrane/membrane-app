@@ -117,4 +117,4 @@ const useProtocolClaims = () => {
   }), msgsToSend}
 }
 
-export default useClaimLiquidation
+export default useProtocolClaims

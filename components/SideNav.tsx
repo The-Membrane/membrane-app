@@ -7,6 +7,8 @@ import Logo from './Logo'
 import { StatsCard } from './StatsCard'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
+import useProtocolClaims from './Home/hooks/useClaims'
+import ConfirmModal from './ConfirmModal'
 
 type NavItems = {
   label: string
@@ -54,6 +56,9 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 }
 
 const SideNav = () => {
+  const { action: claim } = useProtocolClaims()
+
+
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
       <Stack as="ul" gap="2">
@@ -64,6 +69,13 @@ const SideNav = () => {
         ))}
         <WallectConnect />
       </Stack>
+      {/* Claim Button */}
+      <ConfirmModal
+        label={'Claim'}
+        action={claim}
+        isDisabled={claim?.simulate.isError || !claim?.simulate.data}
+      >
+      </ConfirmModal>
 
       <BalanceCard />
     </Stack>

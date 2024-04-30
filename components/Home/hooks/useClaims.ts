@@ -80,7 +80,7 @@ const useProtocolClaims = () => {
         const totalwithdrawableDeposits = deposits.reduce((acc, deposit) => {
             if (deposit.unstake_time) {
               //How much time left
-              const { daysLeft, hoursLeft, minutesLeft } = getSPTimeLeft(deposit.unstake_time)
+              const { minutesLeft } = getSPTimeLeft(deposit.unstake_time)
               if (minutesLeft <= 0) {
                 return acc + Number(deposit.amount)
               }
@@ -99,7 +99,7 @@ const useProtocolClaims = () => {
     },
     enabled: !!address,
   })
-  console.log("Claims:", msgs)
+  console.log("Claims:", msgs, msgsToSend)
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })

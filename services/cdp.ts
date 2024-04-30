@@ -394,6 +394,8 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
 
+  console.log(basket, interest)
+
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   return basketPositions.map((basketPosition) => {
@@ -412,11 +414,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     if (ltv > liqudationLTV) {
       return {
         address: basketPosition.user,
-        positions,
-        tvl,
-        debt,
-        ltv,
-        liqudationLTV,
+        id: basketPosition.positions[0].position_id,
       }
     } else {
       console.log("LTVs:", ltv, liqudationLTV)

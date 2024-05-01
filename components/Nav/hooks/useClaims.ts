@@ -28,7 +28,11 @@ type ClaimsSummary = {
   sp_unstaking: Coin[]
   staking: Coin[]
   vesting: Coin[]
+}
 
+type QueryData = {
+  msgs: MsgExecuteContractEncodeObject[] | undefined
+  claims: ClaimsSummary
 }
 
 const useProtocolClaims = () => {
@@ -74,7 +78,7 @@ const useProtocolClaims = () => {
   const { data: allocations } = useAllocation()
   const { claimables } = allocations || {}
 
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+  const { data: queryData } = useQuery<QueryData | undefined>({
     queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, allocations, deposits, mbrnClaimable, rewardClaimable, claimFees, stabilityPoolAssets],
     queryFn: () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
@@ -163,11 +167,12 @@ const useProtocolClaims = () => {
       }
       console.log("in fn",  claims_summary)
 
-      return msgs as MsgExecuteContractEncodeObject[]
+      return {msgs, claims: claims_summary}
     },
     enabled: !!address,
   })
   
+  const { msgs, claims: queryclaimsSummary } = queryData ?? {}
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })
@@ -178,12 +183,12 @@ const useProtocolClaims = () => {
     queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
-  console.log("claims_msgs", msgs, claims_summary)
+  console.log("claims_msgs", msgs, queryclaimsSummary)
   return {action: useSimulateAndBroadcast({
     msgs,
     enabled: !!msgs,
     onSuccess,
-  }), claims_summary: claims_summary}
+  }), claims_summary: queryclaimsSummary}
 }
 
 export default useProtocolClaims

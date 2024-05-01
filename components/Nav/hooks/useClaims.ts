@@ -178,12 +178,12 @@ const useProtocolClaims = () => {
     queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
-  console.log("claims_msgs", msgs)
+  console.log("claims_msgs", msgs, claims_summary)
   return {action: useSimulateAndBroadcast({
     msgs,
     enabled: !!msgs,
     onSuccess,
-  }), claims_summary}
+  }), claims_summary: claims_summary}
 }
 
 export default useProtocolClaims

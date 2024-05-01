@@ -43,7 +43,7 @@ const useProtocolClaims = () => {
   //Liquidations
   const { data: claims } = useCheckClaims()
   const { data: SP_claims } = useCheckSPClaims()
-  const claimLiq = useClaimLiquidation(claims, SP_claims)
+  const claimLiq = useClaimLiquidation(claims, SP_claims, true)
   useMemo(() => {
     if (claims && !claimLiq?.action.simulate.isError){
       claims_summary.liquidation = claimstoCoins(claims)

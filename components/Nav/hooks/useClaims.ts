@@ -172,7 +172,11 @@ const useProtocolClaims = () => {
     enabled: !!address,
   })
   
-  const { msgs, claims: queryclaimsSummary } = queryData || {}
+  const { msgs, claims: queryclaimsSummary } = useMemo(() => {
+    if (!queryData) return {msgs: undefined, claims: claims_summary}
+    else return queryData
+}, [queryData])
+  
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })

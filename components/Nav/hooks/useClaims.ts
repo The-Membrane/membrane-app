@@ -172,7 +172,7 @@ const useProtocolClaims = () => {
     enabled: !!address,
   })
   
-  const { msgs, claims: queryclaimsSummary } = queryData ?? {}
+  const { msgs, claims: queryclaimsSummary } = queryData || {}
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })

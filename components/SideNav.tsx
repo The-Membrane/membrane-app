@@ -4,15 +4,9 @@ import { useRouter } from 'next/router'
 import React, { useState } from 'react'
 import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon } from './Icons'
 import Logo from './Logo'
-import { StatsCard } from './StatsCard'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
 import useProtocolClaims from './Nav/hooks/useClaims'
-import ConfirmModal from './ConfirmModal'
-import { getRiskyPositions } from '@/services/cdp'
-import { useBasketPositions } from '@/hooks/useCDP'
-import { useOraclePrice } from '@/hooks/useOracle'
-import { ClaimSummary } from './Bid/ClaimSummary'
 
 type NavItems = {
   label: string

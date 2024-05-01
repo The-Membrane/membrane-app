@@ -44,16 +44,6 @@ const useProtocolClaims = () => {
   const { data: claims } = useCheckClaims()
   const { data: SP_claims } = useCheckSPClaims()
   const claimLiq = useClaimLiquidation(claims, SP_claims)
-  useMemo(() => {
-    if (claims){
-      claims_summary.liquidation = claimstoCoins(claims)
-      console.log(claims_summary)
-    }
-    if (SP_claims){
-      claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
-      console.log(claims_summary)
-    }
-  }, [claims, SP_claims])
   //SP Unstaking  
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { deposits = [] } = stabilityPoolAssets || {}
@@ -77,35 +67,12 @@ const useProtocolClaims = () => {
 
     return shiftDigits(rewardsAmount.toNumber(), -6).toString()
   }, [rewards])
-  //Add claims to summary
-  if (isGreaterThanZero(mbrnClaimable)){
-    claims_summary.staking.push({
-      denom: mbrnAsset?.symbol as string,
-      amount: mbrnClaimable
-    })
-  }
-  if (isGreaterThanZero(rewardClaimable)){
-    claims_summary.staking.push({
-      denom: denoms.CDT[0] as string,
-      amount: rewardClaimable
-    })
-  }
   //
 
   //Vesting
   const claimFees = useClaimFees()
   const { data: allocations } = useAllocation()
   const { claimables } = allocations || {}
-  useMemo(() => {
-    if (claimables){
-      claims_summary.vesting = claimables.map((claimable) => {
-        return {
-          denom: claimable.info.native_token.denom,
-          amount: claimable.amount
-        }
-      })
-    }
-  }, [claimables])
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, allocations, deposits, mbrnClaimable, rewardClaimable, claimFees, stabilityPoolAssets],
@@ -165,6 +132,36 @@ const useProtocolClaims = () => {
               }]
             }
         }
+
+        ///Summary        
+        if (claims){
+          claims_summary.liquidation = claimstoCoins(claims)
+        }
+        if (SP_claims){
+          claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
+        }
+        if (claimables){
+          claims_summary.vesting = claimables.map((claimable) => {
+            return {
+              denom: claimable.info.native_token.denom,
+              amount: claimable.amount
+            }
+          })
+        }        
+      //Add claims to summary
+      if (isGreaterThanZero(mbrnClaimable)){
+        claims_summary.staking.push({
+          denom: mbrnAsset?.symbol as string,
+          amount: mbrnClaimable
+        })
+      }
+      if (isGreaterThanZero(rewardClaimable)){
+        claims_summary.staking.push({
+          denom: denoms.CDT[0] as string,
+          amount: rewardClaimable
+        })
+      }
+      console.log("in fn",  claims_summary)
 
       return msgs as MsgExecuteContractEncodeObject[]
     },

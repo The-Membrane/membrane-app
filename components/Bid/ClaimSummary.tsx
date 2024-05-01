@@ -72,6 +72,7 @@ export const ClaimSummary = ({ claims = [] }: Props) => {
             claim.amount,
             -asset?.decimal!,
           ).toNumber()
+          console.log(amount)
           return (
             <SummaryItem
               key={claim.denom}

@@ -101,11 +101,11 @@ const useProtocolClaims = () => {
 
         /////Add Liquidation claims/////        
         const claimLiq = useClaimLiquidation(claims, SP_claims)
+        console.log("testy", SP_claims, claimLiq?.action.simulate.isError)
         useMemo(() => {
           if (claims && !claimLiq?.action.simulate.isError){
             claims_summary.liquidation = claimstoCoins(claims)
           }
-          console.log(SP_claims, claimLiq?.action.simulate.isError)
           if (SP_claims && !claimLiq?.action.simulate.isError){
             claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
           }

@@ -401,7 +401,8 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     const positions = getPositions([basketPosition], prices)
     const tvl = getTVL(positions)
     const debt = getDebt([basketPosition])
-    const ltv = getLTV(tvl, num(debt).multipliedBy(basket!.credit_price.price).toNumber())    
+    const debtValue = num(debt).times(basketPosition.credit_price.price).toNumber()
+    const ltv = getLTV(tvl, debtValue)
     const positionsWithRatio = getAssetRatio(tvl, positions)
     const liqudationLTV = getLiqudationLTV(
       tvl,
@@ -414,6 +415,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
       return {
         address: basketPosition.user,
         id: basketPosition.positions[0].position_id,
+        fee: num(ltv - liqudationLTV).multipliedBy(debtValue).toNumber(),
       }
     }
   })

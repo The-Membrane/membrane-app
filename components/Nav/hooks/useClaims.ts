@@ -97,7 +97,6 @@ const useProtocolClaims = () => {
   const { data: allocations } = useAllocation()
   const { claimables } = allocations || {}
   useMemo(() => {
-    console.log(claims_summary, claimables)
     if (claimables){
       claims_summary.vesting = claimables.map((claimable) => {
         return {
@@ -105,7 +104,6 @@ const useProtocolClaims = () => {
           amount: claimable.amount
         }
       })
-      console.log("post vest", claims_summary)
     }
   }, [claimables])
 

@@ -12,6 +12,7 @@ import ConfirmModal from './ConfirmModal'
 import { getRiskyPositions } from '@/services/cdp'
 import { useBasketPositions } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
+import { ClaimSummary } from './Bid/ClaimSummary'
 
 type NavItems = {
   label: string
@@ -59,7 +60,9 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 }
 
 const SideNav = () => {
-  const { action: claim } = useProtocolClaims()
+  const { action: claim, claims_summary } = useProtocolClaims()
+  //Transform claim summary to a single list of Coin
+  const claims = Object.values(claims_summary).reduce((acc, val) => acc.concat(val), [])
   //Move this to on-click of the button only
   //It'll be within a larger use function that creates the liq msgs as well
   // const { data: allPositions } = useBasketPositions()
@@ -78,22 +81,20 @@ const SideNav = () => {
         <WallectConnect />
       </Stack>
       {/* Claim Button */}
-      <Button
+      {/* <Button
         isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
         isDisabled={claim?.simulate.isError || !claim?.simulate.data}
         onClick={() => {claim?.simulate.refetch(); claim?.tx.mutate()}}
       >
         Claim
-      </Button>
-      {/*<ConfirmModal
-        label={
-          mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Mint' : basketPositions === undefined ? 'Deposit Assets' : 'Update Assets'
-        }
-        action={mint}
-        isDisabled={mintState?.overdraft || mintState?.belowMinDebt || (!summary?.length && (!mintState?.mint && !mintState?.repay))}
+      </Button> */}
+      <ConfirmModal
+        label={ 'Claim' }
+        action={claim}
+        isDisabled={claim?.simulate.isError || !claim?.simulate.data}
       >
-        <Summary />
-      </ConfirmModal>*/}
+        <ClaimSummary claims={claims}/>
+      </ConfirmModal>
 
       <BalanceCard />
     </Stack>

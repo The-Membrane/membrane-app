@@ -17,7 +17,7 @@ import {
   Text,
   Tr,
 } from '@chakra-ui/react'
-import useAllocations from './hooks/useAllocation'
+import useAllocation from './hooks/useAllocation'
 import useClaimFees from './hooks/useClaimFees'
 import useWithdrawUnlocked from './hooks/useWithdrawUnlocked'
 
@@ -45,7 +45,7 @@ const ClaimAsset = ({ claimable }: ClaimAssetProps) => {
 }
 
 const TokenAllocation = (props: Props) => {
-  const { data: allocations } = useAllocations()
+  const { data: allocations } = useAllocation()
   const mbrnAsset = useAssetBySymbol('MBRN')
   const { unlocked, allocation, claimables } = allocations || {}
   const claimFees = useClaimFees()

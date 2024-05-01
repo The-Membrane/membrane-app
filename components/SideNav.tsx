@@ -81,20 +81,20 @@ const SideNav = () => {
         <WallectConnect />
       </Stack>
       {/* Claim Button */}
-      {/* <Button
+      <Button
         isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
         isDisabled={claim?.simulate.isError || !claim?.simulate.data}
         onClick={() => {claim?.simulate.refetch(); claim?.tx.mutate()}}
       >
         Claim
-      </Button> */}
-      <ConfirmModal
+      </Button>
+      {/* <ConfirmModal
         label={ 'Claim' }
         action={claim}
         isDisabled={claim?.simulate.isError || !claim?.simulate.data}
       >
-        <ClaimSummary claims={claims}/>
-      </ConfirmModal>
+        <ClaimSummary claims={claims}/> */}
+      {/* </ConfirmModal> */}
 
       <BalanceCard />
     </Stack>

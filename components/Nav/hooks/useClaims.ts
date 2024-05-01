@@ -76,6 +76,7 @@ const useProtocolClaims = () => {
       denom: denoms.CDT[0] as string,
       amount: rewardClaimable
     })
+    console.log(rewardClaimable)
   }
   //
 

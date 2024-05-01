@@ -60,9 +60,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 }
 
 const SideNav = () => {
-  const { action: claim, claims_summary } = useProtocolClaims()
-  //Transform claim summary to a single list of Coin
-  const claims = Object.values(claims_summary).reduce((acc, val) => acc.concat(val), [])
+  const { action: claim } = useProtocolClaims()
   //Move this to on-click of the button only
   //It'll be within a larger use function that creates the liq msgs as well
   // const { data: allPositions } = useBasketPositions()
@@ -88,13 +86,6 @@ const SideNav = () => {
       >
         Claim
       </Button>
-      {/* <ConfirmModal
-        label={ 'Claim' }
-        action={claim}
-        isDisabled={claim?.simulate.isError || !claim?.simulate.data}
-      >
-        <ClaimSummary claims={claims}/> */}
-      {/* </ConfirmModal> */}
 
       <BalanceCard />
     </Stack>

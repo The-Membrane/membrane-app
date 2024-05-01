@@ -40,8 +40,9 @@ const useProtocolClaims = () => {
 
   return shiftDigits(staked?.rewards?.accrued_interest, -mbrnAsset?.decimal).toString()
   }, [staked, mbrnAsset])
-  console.log(claimable)  
+  console.log(claimable, !staked?.rewards, staked?.rewards)  
   const rewardClaimable = useMemo(() => {
+    if (!staked?.rewards || !mbrnAsset) return '0.00'
     const rewardsAmount = rewards.reduce((acc, reward) => {
       return acc.plus(reward?.amount)
     }, num(0))

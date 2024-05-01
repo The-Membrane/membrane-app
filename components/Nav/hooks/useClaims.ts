@@ -43,6 +43,15 @@ const useProtocolClaims = () => {
   //Liquidations
   const { data: claims } = useCheckClaims()
   const { data: SP_claims } = useCheckSPClaims()
+  const claimLiq = useClaimLiquidation(claims, SP_claims)
+  useMemo(() => {
+    if (claims && !claimLiq?.action.simulate.isError){
+      claims_summary.liquidation = claimstoCoins(claims)
+    }
+    if (SP_claims && !claimLiq?.action.simulate.isError){
+      claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
+    }
+  }, [claims, SP_claims])
   //SP Unstaking  
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { deposits = [] } = stabilityPoolAssets || {}
@@ -94,23 +103,14 @@ const useProtocolClaims = () => {
     }
   }, [claimables])
 
-  console.log("made it here")
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, allocations, deposits, mbrnClaimable, rewardClaimable, claimFees, stabilityPoolAssets],
     queryFn: () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
+        console.log("made it here")
 
         /////Add Liquidation claims/////        
-        const claimLiq = useClaimLiquidation(claims, SP_claims)
         console.log("testy", SP_claims, claimLiq?.action.simulate.isError)
-        useMemo(() => {
-          if (claims && !claimLiq?.action.simulate.isError){
-            claims_summary.liquidation = claimstoCoins(claims)
-          }
-          if (SP_claims && !claimLiq?.action.simulate.isError){
-            claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
-          }
-        }, [claims, SP_claims])
         if (!claimLiq?.action.simulate.isError){
           msgs = msgs.concat(claimLiq.msgs ?? [])
         }

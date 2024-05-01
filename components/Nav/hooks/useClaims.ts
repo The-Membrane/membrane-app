@@ -33,20 +33,27 @@ const useProtocolClaims = () => {
 
   //Staking
   const { data } = useStaked()        
-  const { staked = [] } = data || {}
-  const { unstaking = [] } = data || {}
+  const { staked = [],unstaking = [], rewards = [] } = data || {}
   const mbrnAsset = useAssetBySymbol('MBRN')
   const claimable = useMemo(() => {
   if (!staked?.rewards || !mbrnAsset) return '0.00'
 
   return shiftDigits(staked?.rewards?.accrued_interest, -mbrnAsset?.decimal).toString()
   }, [staked, mbrnAsset])
+  console.log(claimable)  
+  const rewardClaimable = useMemo(() => {
+    const rewardsAmount = rewards.reduce((acc, reward) => {
+      return acc.plus(reward?.amount)
+    }, num(0))
+
+    return shiftDigits(rewardsAmount.toNumber(), -6).toString()
+  }, [rewards])
 
   //Vesting
   const claimFees = useClaimFees()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, deposits, claimable, claimFees, stabilityPoolAssets],
+    queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, deposits, claimable, rewardClaimable, claimFees, stabilityPoolAssets],
     queryFn: () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
@@ -58,7 +65,7 @@ const useProtocolClaims = () => {
         /////Add Staking reward and Stake Claims////
 
         //If there is anything to claim, claim
-        if (isGreaterThanZero(claimable)) {
+        if (isGreaterThanZero(claimable) || isGreaterThanZero(rewardClaimable)) {
           const stakingClaim = useStakingClaim(false)
 
           if (!stakingClaim?.action.simulate.isError){

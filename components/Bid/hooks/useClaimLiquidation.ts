@@ -10,7 +10,7 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 
-const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsResponse | undefined, dontSim: boolean = false) => {
+const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsResponse | undefined) => {
   const { address } = useWallet()
   const claimKeys = claims.map((claim) => claim.bid_for)
 
@@ -55,7 +55,7 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs || dontSim,
+    enabled: !!msgs,
     onSuccess,
   }), msgs}
 }

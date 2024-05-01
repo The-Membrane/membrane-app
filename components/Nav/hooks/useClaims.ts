@@ -43,8 +43,8 @@ const useProtocolClaims = () => {
   //Liquidations
   const { data: claims } = useCheckClaims()
   const { data: SP_claims } = useCheckSPClaims()
-  const claimLiq = useClaimLiquidation(claims, SP_claims, true)
-  useMemo(() => {
+  const claimLiq = useClaimLiquidation(claims, SP_claims)
+  const a = useMemo(() => {
     if (claims && !claimLiq?.action.simulate.isError){
       claims_summary.liquidation = claimstoCoins(claims)
     }
@@ -92,7 +92,7 @@ const useProtocolClaims = () => {
   const claimFees = useClaimFees()
   const { data: allocations } = useAllocation()
   const { claimables } = allocations || {}
-  useMemo(() => {
+  const b = useMemo(() => {
     if (claimables && !claimFees?.action.simulate.isError){
       claims_summary.vesting = claimables.map((claimable) => {
         return {

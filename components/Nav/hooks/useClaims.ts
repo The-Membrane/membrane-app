@@ -105,6 +105,7 @@ const useProtocolClaims = () => {
           amount: claimable.amount
         }
       })
+      console.log("post vest", claims_summary)
     }
   }, [claimables])
 

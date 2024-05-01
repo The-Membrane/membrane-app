@@ -32,7 +32,7 @@ type ClaimsSummary = {
 }
 
 const useProtocolClaims = () => {
-  var claims_summary: ClaimsSummary = {
+  const claims_summary: ClaimsSummary = {
     liquidation: [],
     sp_unstaking: [],
     staking: [],

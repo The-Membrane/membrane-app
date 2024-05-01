@@ -45,10 +45,10 @@ const useProtocolClaims = () => {
   const { data: SP_claims } = useCheckSPClaims()
   const claimLiq = useClaimLiquidation(claims, SP_claims)
   useMemo(() => {
-    if (claims && !claimLiq?.action.simulate.isError){
+    if (claims){
       claims_summary.liquidation = claimstoCoins(claims)
     }
-    if (SP_claims && !claimLiq?.action.simulate.isError){
+    if (SP_claims){
       claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
     }
   }, [claims, SP_claims])
@@ -68,7 +68,7 @@ const useProtocolClaims = () => {
   }, [staked, mbrnAsset])
   const rewardClaimable = useMemo(() => {
     if (!staked?.rewards || !mbrnAsset) return '0.00'
-    
+
     const rewardsAmount = rewards.reduce((acc, reward) => {
       return acc.plus(reward?.amount)
     }, num(0))
@@ -95,7 +95,7 @@ const useProtocolClaims = () => {
   const { data: allocations } = useAllocation()
   const { claimables } = allocations || {}
   useMemo(() => {
-    if (claimables && !claimFees?.action.simulate.isError){
+    if (claimables){
       claims_summary.vesting = claimables.map((claimable) => {
         return {
           denom: claimable.info.native_token.denom,
@@ -109,10 +109,8 @@ const useProtocolClaims = () => {
     queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, allocations, deposits, mbrnClaimable, rewardClaimable, claimFees, stabilityPoolAssets],
     queryFn: () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
-        console.log("made it here")
 
         /////Add Liquidation claims/////        
-        console.log("testy", SP_claims, claimLiq?.action.simulate.isError)
         if (!claimLiq?.action.simulate.isError){
           msgs = msgs.concat(claimLiq.msgs ?? [])
         }

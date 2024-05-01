@@ -18,60 +18,111 @@ import useWithdrawStabilityPool from '@/components/Bid/hooks/useWithdrawStabilit
 import useStabilityAssetPool from '@/components/Bid/hooks/useStabilityAssetPool'
 import { getSPTimeLeft } from '@/components/Bid/StabilityPool'
 import useClaimUnstake from '@/components/Stake/hooks/useClaimUnstake'
+import { Coin } from '@cosmjs/stargate'
+import { denoms } from '@/config/defaults'
+import { claimstoCoins } from '@/services/liquidation'
+import useAllocation from '@/components/Lockdrop/hooks/useAllocation'
+
+type ClaimsSummary = {
+  liquidation: Coin[]
+  sp_unstaking: Coin[]
+  staking: Coin[]
+  vesting: Coin[]
+
+}
 
 const useProtocolClaims = () => {
-  var msgsToSend = false
+  var claims_summary: ClaimsSummary = {
+    liquidation: [],
+    sp_unstaking: [],
+    staking: [],
+    vesting: []
+  };
   const { address } = useWallet()
 
   //Liquidations
   const { data: claims } = useCheckClaims()
   const { data: SP_claims } = useCheckSPClaims()
   const claimLiq = useClaimLiquidation(claims, SP_claims)
+  useMemo(() => {
+    if (claims && !claimLiq?.action.simulate.isError){
+      claims_summary.liquidation = claimstoCoins(claims)
+    }
+    if (SP_claims && !claimLiq?.action.simulate.isError){
+      claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
+    }
+  }, [claims, SP_claims])
   //SP Unstaking  
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { deposits = [] } = stabilityPoolAssets || {}
 
   //Staking
   const { data } = useStaked()        
-  const { staked = [],unstaking = [], rewards = [] } = data || {}
+  const { staked = [], unstaking = [], rewards = []} = data || {}
   const mbrnAsset = useAssetBySymbol('MBRN')
-  const claimable = useMemo(() => {
+  //Sum claims
+  const mbrnClaimable = useMemo(() => {
   if (!staked?.rewards || !mbrnAsset) return '0.00'
 
   return shiftDigits(staked?.rewards?.accrued_interest, -mbrnAsset?.decimal).toString()
   }, [staked, mbrnAsset])
-  console.log(claimable, !staked?.rewards, staked?.rewards)  
   const rewardClaimable = useMemo(() => {
     if (!staked?.rewards || !mbrnAsset) return '0.00'
+    
     const rewardsAmount = rewards.reduce((acc, reward) => {
       return acc.plus(reward?.amount)
     }, num(0))
 
     return shiftDigits(rewardsAmount.toNumber(), -6).toString()
   }, [rewards])
+  //Add claims to summary
+  if (isGreaterThanZero(mbrnClaimable)){
+    claims_summary.staking.push({
+      denom: mbrnAsset?.symbol as string,
+      amount: mbrnClaimable
+    })
+  }
+  if (isGreaterThanZero(rewardClaimable)){
+    claims_summary.staking.push({
+      denom: denoms.CDT[0] as string,
+      amount: rewardClaimable
+    })
+  }
+  //
 
   //Vesting
   const claimFees = useClaimFees()
+  const { data: allocations } = useAllocation()
+  const { claimables } = allocations || {}
+  useMemo(() => {
+    if (claimables && !claimFees?.action.simulate.isError){
+      claims_summary.vesting = claimables.map((claimable) => {
+        return {
+          denom: claimable.info.native_token.denom,
+          amount: claimable.amount
+        }
+      })
+    }
+  }, [claimables])
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, deposits, claimable, rewardClaimable, claimFees, stabilityPoolAssets],
+    queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, allocations, deposits, mbrnClaimable, rewardClaimable, claimFees, stabilityPoolAssets],
     queryFn: () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
+        console.log("made it here")
 
         /////Add Liquidation claims/////        
+        console.log("testy", SP_claims, claimLiq?.action.simulate.isError)
         if (!claimLiq?.action.simulate.isError){
           msgs = msgs.concat(claimLiq.msgs ?? [])
-          msgsToSend = true
         }
         /////Add Staking reward and Stake Claims////
-
         //If there is anything to claim, claim
-        if (isGreaterThanZero(claimable) || isGreaterThanZero(rewardClaimable)) {
+        if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(rewardClaimable)) {
           const stakingClaim = useStakingClaim(false)
 
           if (!stakingClaim?.action.simulate.isError){
             msgs = msgs.concat(stakingClaim.msgs ?? [])
-            msgsToSend = true
           }
         }
         //If there is anything to unstake, unstake
@@ -83,13 +134,11 @@ const useProtocolClaims = () => {
           
           if (!unstakeClaim?.action.simulate.isError){
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
-            msgsToSend = true 
           }
         }
         /////Add Vesting Claims////
         if (!claimFees?.action.simulate.isError){
           msgs = msgs.concat(claimFees.msgs ?? [])
-          msgsToSend = true
         }
 
         ///Add SP Unstaking////
@@ -109,7 +158,11 @@ const useProtocolClaims = () => {
             
             if (!SPwithdraw?.action.simulate.isError){
               msgs = msgs.concat(SPwithdraw.msgs ?? [])
-                msgsToSend = true
+              //Update claims summary
+              claims_summary.sp_unstaking = [{
+                denom: denoms.CDT[0] as string,
+                amount: totalwithdrawableDeposits.toString()              
+              }]
             }
         }
 
@@ -128,12 +181,12 @@ const useProtocolClaims = () => {
     queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
-
+  console.log("claims_msgs", msgs)
   return {action: useSimulateAndBroadcast({
     msgs,
     enabled: !!msgs,
     onSuccess,
-  }), msgsToSend}
+  }), claims_summary}
 }
 
 export default useProtocolClaims

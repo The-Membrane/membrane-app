@@ -65,14 +65,13 @@ export const ClaimSummary = ({ claims = [] }: Props) => {
   return (
     <Stack h="max-content" overflow="auto" w="full">
       {claims
-        .filter((a) => num(a.amount).isGreaterThan(0))
+        .filter((a) => num(a.amount).isGreaterThan(1))
         .map((claim) => {
           const asset = getAssetByDenom(claim.denom)
           const amount = shiftDigits(
             claim.amount,
             -asset?.decimal!,
           ).toNumber()
-          console.log(claim.amount)
           return (
             <SummaryItem
               key={claim.denom}

@@ -76,7 +76,6 @@ const useProtocolClaims = () => {
       denom: denoms.CDT[0] as string,
       amount: rewardClaimable
     })
-    console.log(rewardClaimable)
   }
   //
 
@@ -179,7 +178,7 @@ const useProtocolClaims = () => {
     queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
-
+  console.log("claims_msgs", msgs)
   return {action: useSimulateAndBroadcast({
     msgs,
     enabled: !!msgs,

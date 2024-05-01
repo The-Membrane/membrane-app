@@ -180,7 +180,7 @@ const useProtocolClaims = () => {
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: false,
+    enabled: !!msgs,
     onSuccess,
   }), claims_summary}
 }

@@ -1,10 +1,8 @@
 import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
-import { AssetWithBalance } from './hooks/useCombinBalance'
-import useMintState from './hooks/useMintState'
 
-type SummaryItemProps = Partial<AssetWithBalance> & {
+type SummaryItemProps = {
   label: string
   amount?: string | number
   showBadge?: boolean
@@ -58,12 +56,7 @@ const SummaryItem = ({
   </HStack>
 )
 
-export const Summary = () => {
-  const { mintState } = useMintState()
-  const { summary } = mintState
-  const cdt = useAssetBySymbol('CDT')
-
-  if (!mintState.isTakeAction) return null
+{/*export const Summary = () => {
 
   return (
     <Stack h="max-content" overflow="auto" w="full">
@@ -101,4 +94,4 @@ export const Summary = () => {
       )}
     </Stack>
   )
-}
+}*/}

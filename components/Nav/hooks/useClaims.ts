@@ -47,9 +47,11 @@ const useProtocolClaims = () => {
   useMemo(() => {
     if (claims){
       claims_summary.liquidation = claimstoCoins(claims)
+      console.log(claims_summary)
     }
     if (SP_claims){
       claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
+      console.log(claims_summary)
     }
   }, [claims, SP_claims])
   //SP Unstaking  
@@ -95,6 +97,7 @@ const useProtocolClaims = () => {
   const { data: allocations } = useAllocation()
   const { claimables } = allocations || {}
   useMemo(() => {
+    console.log(claims_summary, claimables)
     if (claimables){
       claims_summary.vesting = claimables.map((claimable) => {
         return {

@@ -127,7 +127,7 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
   return positions?.collateral_assets.map((asset) => {
     const denom = asset.asset.info.native_token.denom
     const assetInfo = getAssetByDenom(denom) || { denom }
-    const amount = shiftDigits(asset.asset.amount, -asset.asset.amount).toNumber()
+    const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal??6)).toNumber()
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
     const usdValue = num(amount).times(assetPrice).toNumber()
@@ -376,7 +376,8 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   if (!basket || !prices) return 0
   const positions = basket?.collateral_types.map((asset) => {
     const denom = asset.asset?.info.native_token?.denom
-    const amount = shiftDigits(asset.asset.amount, -6).toNumber()
+    const assetInfo = getAssetByDenom(denom) || { denom }
+    const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal??6)).toNumber()
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
     const usdValue = num(amount).times(assetPrice).toNumber()

@@ -117,3 +117,4 @@ export const ClaimAndRestake = (props: Props) => {
   )
 }
 
+export default ClaimAndRestake

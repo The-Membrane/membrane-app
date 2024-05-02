@@ -9,13 +9,13 @@ import { queryClient } from '@/pages/_app'
 import { decodeMsgs } from '@/helpers/decodeMsg'
 
 const useMint = () => {
-  const { mintState, setMintState } = useMintState()
+  const { mintState } = useMintState()
   const { summary = [] } = mintState
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useUserPositions()
   const { data: basket } = useBasket()
 
-  //Use first position id or use the basket's next position ID
+  //Use first position id or use the basket's next position ID (for new positions)
   var positionId = "";
   if (basketPositions !== undefined) {
     positionId = basketPositions?.[0]?.positions?.[0]?.position_id

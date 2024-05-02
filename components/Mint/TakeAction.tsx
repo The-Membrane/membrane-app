@@ -26,6 +26,8 @@ const TakeAction = () => {
   const combinBalance = useCombinBalance()
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = useVaultSummary()
 
+  console.log(combinBalance)
+
   useEffect(() => {
     const overdraft = ltv > borrowLTV
     setMintState({ overdraft })

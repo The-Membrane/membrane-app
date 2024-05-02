@@ -59,7 +59,7 @@ const useProtocolClaims = () => {
   //Sum claims
   console.log("Rewards", rewards, staked?.rewards)
   const mbrnClaimable = useMemo(() => {
-  if (!staked?.rewards || !rewards || !mbrnAsset) return '0.00'
+  if (!rewards || !mbrnAsset) return '0.00'
 
     const reward = rewards.reduce((acc, reward) => {
       if (reward?.asset?.symbol === 'MBRN') {
@@ -71,7 +71,7 @@ const useProtocolClaims = () => {
     return shiftDigits(reward.toNumber(), -6).toString()
   }, [rewards, staked, mbrnAsset])
   const cdtClaimable = useMemo(() => {
-    if (!staked?.rewards || !rewards || !mbrnAsset) return '0.00'
+    if (!rewards || !mbrnAsset) return '0.00'
 
     const reward = rewards.reduce((acc, reward) => {
       if (reward?.asset?.symbol === 'CDT') {

@@ -10,7 +10,7 @@ import {
   useRanking,
   useUserInfo,
 } from './hooks/useLockdrop'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 const data = [{ name: 'Group A', value: 400 }]
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
@@ -21,7 +21,7 @@ const Chart = () => {
   const { data: lockdropClient } = useLockdropClient()
   const { data: userInfo } = useUserInfo()
 
-  var pieValue = 1
+  const [ pieValue, setPieValue ] = useState(0)
   var endTime = lockdrop?.withdrawal_end
   var currentTime = 0
   var progress: number[] | undefined = []
@@ -45,9 +45,7 @@ const Chart = () => {
       }
     })
 
-    console.log(progress)
-    if (progress) pieValue = progress.reduce((a, b) => a+b, 0); else return 1
-  console.log(pieValue)
+    if (progress) setPieValue(progress.reduce((a, b) => a+b, 0)); else setPieValue(1)
     
   })  
 

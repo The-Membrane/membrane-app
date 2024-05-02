@@ -32,9 +32,9 @@ const MintTabsCard = () => {
 
   const onTabChange = (index: number) => {
     setMintState({ isTakeAction: index === 1 })
-    console.log("log", index === 1, index, activeTabIndex)
   }  
   const [activeTabIndex, setActiveTabIndex] = useState(1);
+  setMintState({ isTakeAction: activeTabIndex === 1 })
 
   const handleTabClick = (index: number) => {
     setActiveTabIndex(index);

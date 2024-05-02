@@ -130,7 +130,7 @@ type GetDepostAndWithdrawMsgs = {
 
 const getAsset = (asset: any): Asset => {
   return {
-    amount: shiftDigits(Math.abs(asset.amount), 6).dp(0).toString(),
+    amount: shiftDigits(Math.abs(asset.amount), asset.decimal).dp(0).toString(),
     info: {
       native_token: {
         denom: asset.base,

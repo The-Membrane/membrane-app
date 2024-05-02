@@ -63,7 +63,6 @@ const SideNav = () => {
   const { action: claim, claims_summary } = useProtocolClaims()
   //Transform claim summary to a single list of Coin
   const claims = Object.values(claims_summary).reduce((acc, val) => acc.concat(val), [])
-  console.log(claims, claims_summary)
   //Move this to on-click of the button only
   //It'll be within a larger use function that creates the liq msgs as well
   // const { data: allPositions } = useBasketPositions()
@@ -82,13 +81,6 @@ const SideNav = () => {
         <WallectConnect />
       </Stack>
       {/* Claim Button */}
-      {/* <Button
-        isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
-        isDisabled={claim?.simulate.isError || !claim?.simulate.data}
-        onClick={() => {claim?.simulate.refetch(); claim?.tx.mutate()}}
-      >
-        Claim
-      </Button> */}
       <ConfirmModal
         label={ 'Claim' }
         action={claim}

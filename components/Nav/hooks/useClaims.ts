@@ -22,6 +22,7 @@ import { Coin } from '@cosmjs/stargate'
 import { denoms } from '@/config/defaults'
 import { claimstoCoins } from '@/services/liquidation'
 import useAllocation from '@/components/Lockdrop/hooks/useAllocation'
+import { m } from 'framer-motion'
 
 type ClaimsSummary = {
   liquidation: Coin[]
@@ -57,7 +58,6 @@ const useProtocolClaims = () => {
   const { staked = [], unstaking = [], rewards = []} = data || {}
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
-  console.log("Rewards", rewards, staked?.rewards)
   const mbrnClaimable = useMemo(() => {
   if (!rewards || !mbrnAsset) return '0.00'
 
@@ -82,6 +82,7 @@ const useProtocolClaims = () => {
 
     return shiftDigits(reward.toNumber(), -6).toString()
   }, [rewards, staked, mbrnAsset])
+  console.log(cdtClaimable, mbrnClaimable, rewards)
   //
 
   //Vesting

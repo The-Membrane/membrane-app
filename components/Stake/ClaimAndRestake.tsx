@@ -41,7 +41,7 @@ export const ClaimAndRestake = (props: Props) => {
       if (reward?.asset?.symbol === 'MBRN') {
         return acc.plus(reward?.amount)
       }
-      return acc
+      return acc.plus(0)
     }, num(0))
 
     return reward
@@ -54,7 +54,7 @@ export const ClaimAndRestake = (props: Props) => {
       if (reward?.asset?.symbol === 'CDT') {
         return acc.plus(reward?.amount)
       }
-      return acc
+      return acc.plus(0)
     }, num(0))
     
     return reward

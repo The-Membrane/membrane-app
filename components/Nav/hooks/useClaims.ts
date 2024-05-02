@@ -65,7 +65,7 @@ const useProtocolClaims = () => {
       if (reward?.asset?.symbol === 'MBRN') {
         return acc.plus(reward?.amount)
       }
-      return acc
+      return acc.plus(0)
     }, num(0))
 
     return shiftDigits((rewardsAmount).toNumber(), -6).toString()
@@ -78,7 +78,7 @@ const useProtocolClaims = () => {
       if (reward?.asset?.symbol === 'CDT') {
         return acc.plus(reward?.amount)
       }
-      return acc
+      return acc.plus(0)
     }, num(0))
 
     return shiftDigits(rewardsAmount.toNumber(), -6).toString()

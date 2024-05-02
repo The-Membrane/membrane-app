@@ -56,33 +56,22 @@ const useProtocolClaims = () => {
   const { data } = useStaked()        
   const { staked = [], unstaking = [], rewards = []} = data || {}
   const mbrnAsset = useAssetBySymbol('MBRN')
-  //Sum MBRN claims
+  //Sum claims
+  console.log("Rewards", rewards, staked?.rewards)
   const mbrnClaimable = useMemo(() => {
+  if (!rewards || !mbrnAsset) return '0.00'
+
+  return shiftDigits(staked?.rewards?.accrued_interest, -mbrnAsset?.decimal).toString()
+  }, [staked, mbrnAsset])
+  const rewardClaimable = useMemo(() => {
     if (!rewards || !mbrnAsset) return '0.00'
 
     const rewardsAmount = rewards.reduce((acc, reward) => {
-      if (reward?.asset?.symbol === 'MBRN') {
-        return acc.plus(reward?.amount)
-      }
-      return acc.plus(0)
-    }, num(0))
-
-    
-    return shiftDigits(rewardsAmount.toNumber(), -6).toString()
-    }, [rewards, staked, mbrnAsset])
-  //Sum CDT claims
-  const cdtClaimable = useMemo(() => {
-    if (!rewards || !mbrnAsset) return '0.00'
-
-    const rewardsAmount = rewards.reduce((acc, reward) => {
-      if (reward?.asset?.symbol === 'CDT') {
-        return acc.plus(reward?.amount)
-      }
-      return acc.plus(0)
+      return acc.plus(reward?.amount)
     }, num(0))
 
     return shiftDigits(rewardsAmount.toNumber(), -6).toString()
-  }, [rewards, staked, mbrnAsset])
+  }, [rewards])
   //
 
   //Vesting
@@ -91,7 +80,7 @@ const useProtocolClaims = () => {
   const { claimables } = allocations || {}
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, allocations, deposits, mbrnClaimable, cdtClaimable, claimFees, stabilityPoolAssets],
+    queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, allocations, deposits, mbrnClaimable, rewardClaimable, claimFees, stabilityPoolAssets],
     queryFn: () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
@@ -101,7 +90,7 @@ const useProtocolClaims = () => {
         }
         /////Add Staking reward and Stake Claims////
         //If there is anything to claim, claim
-        if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
+        if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(rewardClaimable)) {
           const stakingClaim = useStakingClaim(false)
 
           if (!stakingClaim?.action.simulate.isError){
@@ -171,10 +160,10 @@ const useProtocolClaims = () => {
           amount: mbrnClaimable
         })
       }
-      if (isGreaterThanZero(cdtClaimable)){
+      if (isGreaterThanZero(rewardClaimable)){
         claims_summary.staking.push({
           denom: denoms.CDT[0] as string,
-          amount: cdtClaimable
+          amount: rewardClaimable
         })
       }
       //Update claims summary with unstaking

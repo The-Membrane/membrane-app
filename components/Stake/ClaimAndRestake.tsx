@@ -5,20 +5,19 @@ import { HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import useStakingClaim from './hooks/useStakingClaim'
 import useStaked from './hooks/useStaked'
+import { useAssetBySymbol } from '@/hooks/useAssets'
 
 type Props = {}
 
 const RestakeButton = ({ reward }: any) => {
   const claim = useStakingClaim(true).action
 
-  if (reward?.asset?.symbol !== 'MBRN') return null
-
   return (
     <TxButton
       variant="ghost"
       size="sm"
       px="2"
-      isDisabled={Number(reward?.amount) <= 0}
+      isDisabled={Number(reward) <= 0}
       isLoading={claim.simulate.isLoading || claim.tx.isPending}      
       onClick={() => claim.tx.mutate()}
     >
@@ -32,13 +31,25 @@ const ClaimAndRestake = (props: Props) => {
   const { rewards = [] } = data || {}
   const claim = useStakingClaim().action
 
-  const claimable = useMemo(() => {
-    const rewardsAmount = rewards.reduce((acc, reward) => {
-      return acc.plus(reward?.amount)
-    }, num(0))
+  const CDT = useAssetBySymbol('CDT')
+  const MBRN = useAssetBySymbol('MBRN')
 
-    return shiftDigits(rewardsAmount.toNumber(), -6).toString()
-  }, [rewards])
+  //MBRN claims
+  const mbrnClaims = rewards.reduce((acc, reward) => {
+    if (reward?.asset?.symbol === 'MBRN') {
+      return acc.plus(reward?.amount)
+    }
+    return acc
+  }, num(0))
+
+  ///CDT claims
+  const cdtClaims = rewards.reduce((acc, reward) => {
+    if (reward?.asset?.symbol === 'CDT') {
+      return acc.plus(reward?.amount)
+    }
+    return acc
+  }, num(0))
+  
 
   if (!rewards.length)
     return (
@@ -52,26 +63,40 @@ const ClaimAndRestake = (props: Props) => {
   return (
     <Stack gap="10" pt="5">
       <Stack>
-        {rewards.map((reward, index) => (
-          <HStack justifyContent="space-between" key={`${reward?.asset?.base}-${index}`}>
+        {/* MBRN Claim */}
+          <HStack justifyContent="space-between">
             <HStack>
               <Image
-                src={reward?.asset?.logo}
+                src={MBRN?.logo}
                 w="20px"
                 h="20px"
-                transform={reward?.asset?.symbol === 'MBRN' ? 'scale(1.2)' : 'none'}
+                transform={'scale(1.2)'}
               />
-              <Text>{reward?.asset?.symbol}</Text>
+              <Text>{MBRN?.symbol}</Text>
             </HStack>
             <HStack>
-              <Text>{shiftDigits(reward?.amount, -6).toString()}</Text>
-              <RestakeButton reward={reward} />
+              <Text>{shiftDigits(mbrnClaims.toNumber(), -6).toString()}</Text>
+              <RestakeButton reward={mbrnClaims} />
             </HStack>
           </HStack>
-        ))}
+          {/* CDT Claim */}
+          <HStack justifyContent="space-between">
+            <HStack>
+              <Image
+                src={CDT?.logo}
+                w="20px"
+                h="20px"
+                transform={'none'}
+              />
+              <Text>{CDT?.symbol}</Text>
+            </HStack>
+            <HStack>
+              <Text>{shiftDigits(cdtClaims.toNumber(), -6).toString()}</Text>
+            </HStack>
+          </HStack>
       </Stack>
       <TxButton
-        isDisabled={!isGreaterThanZero(claimable)}
+        isDisabled={!isGreaterThanZero(cdtClaims.toNumber()) && !isGreaterThanZero(mbrnClaims.toNumber())}
         isLoading={claim.simulate.isLoading || claim.tx.isPending}
         onClick={() => claim.tx.mutate()}
       >
@@ -81,4 +106,3 @@ const ClaimAndRestake = (props: Props) => {
   )
 }
 
-export default ClaimAndRestake

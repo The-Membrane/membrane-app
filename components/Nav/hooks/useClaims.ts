@@ -164,21 +164,18 @@ const useProtocolClaims = () => {
         }        
       //Add claims to summary
       if (isGreaterThanZero(mbrnClaimable)){
-        console.log("adding claims")
-        claims_summary.staking.push({
+        claims_summary.staking = claims_summary.staking.concat([{
           denom: mbrnAsset?.symbol as string,
           amount: mbrnClaimable
-        })        
-        console.log(claims_summary.staking, "claims summary staking")
+        }])        
       }
       if (isGreaterThanZero(cdtClaimable)){
-        claims_summary.staking.push({
+        claims_summary.staking = claims_summary.staking.concat([{
           denom: denoms.CDT[0] as string,
           amount: cdtClaimable
-        })
+        }])
       }
       //Update claims summary with unstaking
-        console.log(claims_summary.staking, "pre-unstake claims summary staking")
       claims_summary.staking = claims_summary.staking.concat(unstaking.map((unstake) => {
         if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {              
         return {
@@ -186,7 +183,6 @@ const useProtocolClaims = () => {
           amount: unstake?.amount
         }
       }}))
-      console.log(claims_summary.staking, "post-unstake claims summary staking")
 
       return {msgs, claims: claims_summary}
     },
@@ -196,7 +192,7 @@ const useProtocolClaims = () => {
   const { msgs, claims: queryclaimsSummary } = useMemo(() => {
     if (!queryData) return {msgs: undefined, claims: claims_summary}
     else return queryData
-}, [queryData])
+  }, [queryData])
   
 console.log(queryclaimsSummary.staking, "claims summary staking")
 

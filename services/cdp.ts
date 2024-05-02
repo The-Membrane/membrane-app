@@ -127,7 +127,7 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
   return positions?.collateral_assets.map((asset) => {
     const denom = asset.asset.info.native_token.denom
     const assetInfo = getAssetByDenom(denom) || { denom }
-    const amount = shiftDigits(asset.asset.amount, -6).toNumber()
+    const amount = shiftDigits(asset.asset.amount, -asset.asset.amount).toNumber()
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
     const usdValue = num(amount).times(assetPrice).toNumber()

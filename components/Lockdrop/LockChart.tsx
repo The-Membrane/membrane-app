@@ -10,6 +10,7 @@ import {
   useRanking,
   useUserInfo,
 } from './hooks/useLockdrop'
+import { useMemo } from 'react'
 
 const data = [{ name: 'Group A', value: 400 }]
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
@@ -45,8 +46,11 @@ const Chart = () => {
 
     console.log(progress)
 
-    if (progress) pieValue = progress?.reduce((a, b) => a + b, 0)
+    pieValue = useMemo(() => {if (progress) return progress?.reduce((a, b) => a + b, 0); else return 1},[progress])
+    
   })
+
+  console.log(pieValue)
 
   return (
     <Stack w="full" alignItems="center">

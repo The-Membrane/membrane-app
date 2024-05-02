@@ -32,6 +32,7 @@ type Store = {
 const initialState: MintState = {
   assets: [],
   ltvSlider: 0,
+  isTakeAction: true,
 }
 
 // @ts-ignore

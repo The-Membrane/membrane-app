@@ -34,7 +34,6 @@ const MintTabsCard = () => {
     setMintState({ isTakeAction: index === 1 })
   }  
   const [activeTabIndex, setActiveTabIndex] = useState(1);
-  setMintState({ isTakeAction: activeTabIndex === 1 })
 
   const handleTabClick = (index: number) => {
     setActiveTabIndex(index);

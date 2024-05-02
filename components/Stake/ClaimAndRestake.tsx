@@ -74,7 +74,7 @@ export const ClaimAndRestake = (props: Props) => {
     <Stack gap="10" pt="5">
       <Stack>
         {/* MBRN Claim */}
-        {MBRN ? 
+        {MBRN && mbrnClaims > num(0) ? 
           <HStack justifyContent="space-between">
             <HStack>
               <Image
@@ -91,15 +91,15 @@ export const ClaimAndRestake = (props: Props) => {
             </HStack>
           </HStack> :  null}
           {/* CDT Claim */}
-          {CDT ? <HStack justifyContent="space-between">
+          {CDT && cdtClaims > num(0) ? <HStack justifyContent="space-between">
             <HStack>
               <Image
-                src={CDT?.logo}
+                src={CDT.logo}
                 w="20px"
                 h="20px"
                 transform={'none'}
               />
-              <Text>{CDT?.symbol}</Text>
+              <Text>{CDT.symbol}</Text>
             </HStack>
             <HStack>
               <Text>{shiftDigits(cdtClaims.toNumber(), -6).toString()}</Text>

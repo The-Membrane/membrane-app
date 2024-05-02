@@ -58,7 +58,7 @@ const useProtocolClaims = () => {
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum MBRN claims
   const mbrnClaimable = useMemo(() => {
-    if (!rewards) return '0.00'
+    if (!rewards|| !mbrnAsset) return '0.00'
 
     //find the mbrn rewards & sum it
     const rewardsAmount = rewards.reduce((acc, reward) => {
@@ -69,10 +69,10 @@ const useProtocolClaims = () => {
     }, num(0))
 
     return shiftDigits((rewardsAmount).toNumber(), -6).toString()
-  }, [rewards])
+  }, [rewards, staked, mbrnAsset])
   //Sum CDT claims
   const cdtClaimable = useMemo(() => {
-    if (!rewards) return '0.00'
+    if (!rewards|| !mbrnAsset) return '0.00'
     
     const rewardsAmount = rewards.reduce((acc, reward) => {
       if (reward?.asset?.symbol === 'CDT') {
@@ -82,7 +82,7 @@ const useProtocolClaims = () => {
     }, num(0))
 
     return shiftDigits(rewardsAmount.toNumber(), -6).toString()
-  }, [rewards])
+  }, [rewards, staked, mbrnAsset])
   //
 
   //Vesting

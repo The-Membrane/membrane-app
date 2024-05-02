@@ -63,6 +63,7 @@ export const Summary = () => {
   const { summary } = mintState
   const cdt = useAssetBySymbol('CDT')
 
+  console.log(!mintState.isTakeAction)
   if (!mintState.isTakeAction) return null
 
   return (

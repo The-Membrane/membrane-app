@@ -165,17 +165,17 @@ const useProtocolClaims = () => {
       //Add claims to summary
       if (isGreaterThanZero(mbrnClaimable)){
         console.log("adding claims")
-        claims_summary.staking.push({
+        claims_summary.staking.concat([{
           denom: mbrnAsset?.symbol as string,
           amount: mbrnClaimable
-        })        
+        }])        
         console.log(claims_summary.staking, "claims summary staking")
       }
       if (isGreaterThanZero(cdtClaimable)){
-        claims_summary.staking.push({
+        claims_summary.staking.concat([{
           denom: denoms.CDT[0] as string,
           amount: cdtClaimable
-        })
+        }])
       }
       //Update claims summary with unstaking
       claims_summary.staking = claims_summary.staking.concat(unstaking.map((unstake) => {

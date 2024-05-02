@@ -126,7 +126,7 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
 
   return positions?.collateral_assets.map((asset) => {
     const denom = asset.asset.info.native_token.denom
-    const assetInfo = getAssetByDenom(denom) || { denom }
+    const assetInfo = getAssetByDenom(denom)
     const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal??6)).toNumber()
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
@@ -376,7 +376,7 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   if (!basket || !prices) return 0
   const positions = basket?.collateral_types.map((asset) => {
     const denom = asset.asset?.info.native_token?.denom
-    const assetInfo = getAssetByDenom(denom) || { denom }
+    const assetInfo = getAssetByDenom(denom)
     const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal??6)).toNumber()
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 

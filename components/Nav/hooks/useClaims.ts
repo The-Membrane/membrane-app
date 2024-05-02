@@ -52,11 +52,30 @@ const useProtocolClaims = () => {
   //SP Unstaking  
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { deposits = [] } = stabilityPoolAssets || {}
+  var SPwithdraw: {
+    action: any;
+    msgs: MsgExecuteContractEncodeObject[] | undefined;
+  } = {action: undefined, msgs: undefined}
+  //sum the deposits that are ready to be withdrawn
+  const totalwithdrawableDeposits = deposits.reduce((acc, deposit) => {
+      if (deposit.unstake_time) {
+        //How much time left
+        const { minutesLeft } = getSPTimeLeft(deposit.unstake_time)
+        if (minutesLeft <= 0) {
+          return acc + Number(deposit.amount)
+        }
+      }
+      return acc
+  }, 0)
+  if (totalwithdrawableDeposits > 0){
+      SPwithdraw = useWithdrawStabilityPool(totalwithdrawableDeposits.toString())
+  }
 
   //Staking
   const { data } = useStaked()        
   const { staked = [], unstaking = [], rewards = []} = data || {}  
   const stakingClaim = useStakingClaim(false)
+  const unstakeClaim = useClaimUnstake()
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {
@@ -111,9 +130,7 @@ const useProtocolClaims = () => {
         if (unstaking?.find((unstake: any, index: number) => {            
             const { minutesLeft } = getTimeLeft(unstake?.unstake_start_time)
             minutesLeft <= 0
-        })){
-          const unstakeClaim = useClaimUnstake()
-          
+        })){          
           if (!unstakeClaim?.action.simulate.isError){
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
           }
@@ -123,30 +140,16 @@ const useProtocolClaims = () => {
           msgs = msgs.concat(claimFees.msgs ?? [])
         }
 
-        ///Add SP Unstaking////
-        //sum the deposits that are ready to be withdrawn
-        const totalwithdrawableDeposits = deposits.reduce((acc, deposit) => {
-            if (deposit.unstake_time) {
-              //How much time left
-              const { minutesLeft } = getSPTimeLeft(deposit.unstake_time)
-              if (minutesLeft <= 0) {
-                return acc + Number(deposit.amount)
-              }
-            }
-            return acc
-        }, 0)
-        if (totalwithdrawableDeposits > 0){
-            const SPwithdraw = useWithdrawStabilityPool(totalwithdrawableDeposits.toString())
-            
-            if (!SPwithdraw?.action.simulate.isError){
-              msgs = msgs.concat(SPwithdraw.msgs ?? [])
-              //Update claims summary
-              claims_summary.sp_unstaking = [{
-                denom: denoms.CDT[0] as string,
-                amount: totalwithdrawableDeposits.toString()              
-              }]
-            }
-        }
+        ///Add SP Unstaking////            
+          if (!SPwithdraw?.action.simulate.isError){
+            msgs = msgs.concat(SPwithdraw.msgs ?? [])
+            //Update claims summary
+            claims_summary.sp_unstaking = [{
+              denom: denoms.CDT[0] as string,
+              amount: totalwithdrawableDeposits.toString()              
+            }]
+          }
+        
 
         ///Summary        
         if (claims){
@@ -165,12 +168,10 @@ const useProtocolClaims = () => {
         }        
       //Add claims to summary
       if (isGreaterThanZero(mbrnClaimable)){
-        console.log("adding claims")
         claims_summary.staking.push({
           denom: mbrnAsset?.symbol as string,
           amount: mbrnClaimable
         })        
-        console.log(claims_summary.staking, "claims summary staking")
       }
       if (isGreaterThanZero(cdtClaimable)){
         claims_summary.staking.push({
@@ -195,7 +196,7 @@ const useProtocolClaims = () => {
   const { msgs, claims: queryclaimsSummary } = useMemo(() => {
     if (!queryData) return {msgs: undefined, claims: claims_summary}
     else return queryData
-}, [queryData])
+  }, [queryData])
   
 
   const onSuccess = () => {
@@ -207,6 +208,9 @@ const useProtocolClaims = () => {
     queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
+
+  
+  console.log(queryclaimsSummary.staking, "claims summary staking")
 
   return {action: useSimulateAndBroadcast({
     msgs,

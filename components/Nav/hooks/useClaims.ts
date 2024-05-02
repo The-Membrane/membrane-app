@@ -198,7 +198,7 @@ const useProtocolClaims = () => {
     else return queryData
 }, [queryData])
   
-console.log(claims_summary.staking, "claims summary staking")
+console.log(queryclaimsSummary.staking, "claims summary staking")
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })

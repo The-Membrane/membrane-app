@@ -80,7 +80,7 @@ const useProtocolClaims = () => {
   const { claimables } = allocations || {}
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, allocations, deposits, mbrnClaimable, rewardClaimable, claimFees, stabilityPoolAssets],
+    queryKey: ['msg all protocol claims', address, claims, SP_claims, staked, unstaking, allocations, deposits, mbrnClaimable, cdtClaimable, claimFees, stabilityPoolAssets],
     queryFn: () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
@@ -90,7 +90,7 @@ const useProtocolClaims = () => {
         }
         /////Add Staking reward and Stake Claims////
         //If there is anything to claim, claim
-        if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(rewardClaimable)) {
+        if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
           const stakingClaim = useStakingClaim(false)
 
           if (!stakingClaim?.action.simulate.isError){
@@ -160,10 +160,10 @@ const useProtocolClaims = () => {
           amount: mbrnClaimable
         })
       }
-      if (isGreaterThanZero(rewardClaimable)){
+      if (isGreaterThanZero(cdtClaimable)){
         claims_summary.staking.push({
           denom: denoms.CDT[0] as string,
-          amount: rewardClaimable
+          amount: cdtClaimable
         })
       }
       //Update claims summary with unstaking

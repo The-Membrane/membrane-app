@@ -66,11 +66,14 @@ const SideNav = () => {
   const { action: claim, claims_summary } = useProtocolClaims()
   //Transform claim summary to a single list of Coin
   const claims = Object.values(claims_summary).reduce((acc, val) => acc.concat(val), [])
-  //Aggregate coins in claims that havethe same denom
+  //Aggregate coins in claims that have the same denom
   const agg_claims = claims.filter((coin) => num(coin.amount).isGreaterThan(0))
   .reduce((acc, claim) => {
     const existing = acc.find((c) => c.denom === claim.denom)
     if (existing) {
+      //Remove claim from acc
+      acc = acc.filter((c) => c.denom !== claim.denom)
+      //Add new
       acc.push({
         denom: claim.denom,
         amount: num(claim.amount).plus(existing.amount).toString(),

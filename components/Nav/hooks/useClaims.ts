@@ -103,7 +103,6 @@ const useProtocolClaims = () => {
         /////Add Staking reward and Stake Claims////
         //If there is anything to claim, claim
         if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
-          console.log("attempted stake claim")
           if (!stakingClaim?.action.simulate.isError){
             msgs = msgs.concat(stakingClaim.msgs ?? [])
           }
@@ -194,7 +193,6 @@ const useProtocolClaims = () => {
     else return queryData
   }, [queryData])
   
-console.log(queryclaimsSummary.staking, "claims summary staking")
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })

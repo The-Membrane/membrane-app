@@ -67,7 +67,7 @@ export const getUserInfo = async (address: Addr) => {
   const osmos = getAssetBySymbol('OSMO')
   const client = await lockdropClient()
   const userInfo = await client.userInfo({
-    user: address,
+    user: "osmo1v46a5pqqn0clx0xnmkdtnmxquxeqynza02tlxg",
   })
 
   const updateData = userInfo?.deposits?.map((data) => {

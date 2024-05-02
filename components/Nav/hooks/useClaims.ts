@@ -61,17 +61,27 @@ const useProtocolClaims = () => {
   const mbrnClaimable = useMemo(() => {
   if (!staked?.rewards || !rewards || !mbrnAsset) return '0.00'
 
-  return shiftDigits(staked?.rewards?.accrued_interest, -mbrnAsset?.decimal).toString()
-  }, [staked, mbrnAsset])
+    const reward = rewards.reduce((acc, reward) => {
+      if (reward?.asset?.symbol === 'MBRN') {
+        return acc.plus(reward?.amount)
+      }
+      return acc.plus(0)
+    }, num(0))
+
+    return shiftDigits(reward.toNumber(), -6).toString()
+  }, [rewards, staked, mbrnAsset])
   const cdtClaimable = useMemo(() => {
     if (!staked?.rewards || !rewards || !mbrnAsset) return '0.00'
 
-    const rewardsAmount = rewards.reduce((acc, reward) => {
-      return acc.plus(reward?.amount)
+    const reward = rewards.reduce((acc, reward) => {
+      if (reward?.asset?.symbol === 'CDT') {
+        return acc.plus(reward?.amount)
+      }
+      return acc.plus(0)
     }, num(0))
 
-    return shiftDigits(rewardsAmount.toNumber(), -6).toString()
-  }, [rewards])
+    return shiftDigits(reward.toNumber(), -6).toString()
+  }, [rewards, staked, mbrnAsset])
   //
 
   //Vesting

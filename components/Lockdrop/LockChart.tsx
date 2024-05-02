@@ -10,6 +10,7 @@ import {
   useRanking,
   useUserInfo,
 } from './hooks/useLockdrop'
+import { useMemo, useState } from 'react'
 
 const data = [{ name: 'Group A', value: 400 }]
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
@@ -20,14 +21,15 @@ const Chart = () => {
   const { data: lockdropClient } = useLockdropClient()
   const { data: userInfo } = useUserInfo()
 
-  var pieValue = 1
+  const [ pieValue, setPieValue ] = useState(0)
   var endTime = lockdrop?.withdrawal_end
   var currentTime = 0
+  var progress: number[] | undefined = []
 
   lockdropClient?.client.getBlock().then((block) => {
     currentTime = Date.parse(block.header.time) / 1000
 
-    var progress = userInfo?.lockups.map((deposit) => {
+    progress = userInfo?.lockups.map((deposit) => {
       if (deposit.deposit != '') {
         var ratio =
           (deposit.deposit * (deposit.lockUpDuration + 1)) /
@@ -43,9 +45,8 @@ const Chart = () => {
       }
     })
 
-    console.log(progress)
-
-    if (progress) pieValue = progress?.reduce((a, b) => a + b, 0)
+    if (progress) setPieValue(progress.reduce((a, b) => a+b, 0)); else setPieValue(1)
+    
   })
 
   return (
@@ -66,7 +67,7 @@ const Chart = () => {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
           <Label
-            value={(pieValue * 100).toString() + '%'}
+            value={(pieValue * 100).toFixed(0) + '%'}
             position="center"
             fill="#fff"
             fontSize="24px"

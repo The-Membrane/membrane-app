@@ -83,7 +83,6 @@ const SideNav = () => {
     }
     return acc
   }, [] as Coin[])
-  console.log(agg_claims)
 
   //Move this to on-click of the button only
   //It'll be within a larger use function that creates the liq msgs as well

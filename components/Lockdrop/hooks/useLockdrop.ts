@@ -30,7 +30,7 @@ export const useIncentives = () => {
     queryKey: ['user incentives', address],
     queryFn: async () => {
       if (!address) return
-      return getIncentives(address)
+      return getIncentives("osmo1v46a5pqqn0clx0xnmkdtnmxquxeqynza02tlxg")
     },
     enabled: !!address,
   })
@@ -43,7 +43,7 @@ export const useUserInfo = () => {
     queryKey: ['user info', address],
     queryFn: async () => {
       if (!address) return
-      return getUserInfo(address)
+      return getUserInfo("osmo1v46a5pqqn0clx0xnmkdtnmxquxeqynza02tlxg")
     },
     enabled: !!address,
   })

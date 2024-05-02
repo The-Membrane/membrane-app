@@ -7,7 +7,7 @@ export const parseError = (error: Error) => {
     { regex: /ran out of ticks for pool/i, message: 'Low liquidity, try lower amount' },
     { regex: /no liquidity in pool/i, message: 'No liquidity available' },
     { regex: /token amount calculated/i, message: 'Try increasing slippage' },
-    { regex: /Must stake at least 1 MBRN/i, message: 'Must stake at least 1 MBRN' },
+    { regex: /Must stake at least 1 MBRN/i, message: 'New stake must be at least 1 MBRN' },
     { regex: /is below minimum/i, message: 'Minimum 100 CDT to mint' },
     { regex: /invalid coin/i, message: 'Invalid coins provided' },
     { regex: /tx already exists in cache/i, message: 'Transaction already exists in cache' },

@@ -102,11 +102,12 @@ const useProtocolClaims = () => {
         /////Add Staking reward and Stake Claims////
         //If there is anything to claim, claim
         if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
-          const stakingClaim = useStakingClaim(false)
+          console.log("attempted stake claim")
+          // const stakingClaim = useStakingClaim(false)
 
-          if (!stakingClaim?.action.simulate.isError){
-            msgs = msgs.concat(stakingClaim.msgs ?? [])
-          }
+          // if (!stakingClaim?.action.simulate.isError){
+          //   msgs = msgs.concat(stakingClaim.msgs ?? [])
+          // }
         }
         //If there is anything to unstake, unstake
         if (unstaking?.find((unstake: any, index: number) => {            

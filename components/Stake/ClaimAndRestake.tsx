@@ -6,10 +6,11 @@ import { useMemo } from 'react'
 import useStakingClaim from './hooks/useStakingClaim'
 import useStaked from './hooks/useStaked'
 import { useAssetBySymbol } from '@/hooks/useAssets'
+import BigNumber from 'bignumber.js'
 
 type Props = {}
 
-const RestakeButton = ({ reward }: any) => {
+const RestakeButton = (reward: BigNumber) => {
   const claim = useStakingClaim(true).action
 
   return (

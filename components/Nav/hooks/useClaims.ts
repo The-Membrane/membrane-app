@@ -58,12 +58,12 @@ const useProtocolClaims = () => {
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {
-  if (!rewards || !mbrnAsset) return '0.00'
+  if (!staked?.rewards || !mbrnAsset) return '0.00'
 
   return shiftDigits(staked?.rewards?.accrued_interest, -mbrnAsset?.decimal).toString()
   }, [staked, mbrnAsset])
   const rewardClaimable = useMemo(() => {
-    if (!rewards || !mbrnAsset) return '0.00'
+    if (!staked?.rewards || !mbrnAsset) return '0.00'
 
     const rewardsAmount = rewards.reduce((acc, reward) => {
       return acc.plus(reward?.amount)
@@ -86,15 +86,6 @@ const useProtocolClaims = () => {
         /////Add Liquidation claims/////        
         if (!claimLiq?.action.simulate.isError){
           msgs = msgs.concat(claimLiq.msgs ?? [])
-          
-          //Update claims summary
-          if (SP_claims){
-            claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
-          }   
-          if (claims){
-            claims_summary.liquidation = claimstoCoins(claims)
-          }
-
         }
         /////Add Staking reward and Stake Claims////
         //If there is anything to claim, claim
@@ -103,20 +94,6 @@ const useProtocolClaims = () => {
 
           if (!stakingClaim?.action.simulate.isError){
             msgs = msgs.concat(stakingClaim.msgs ?? [])
-
-            //Add claims to summary
-            if (isGreaterThanZero(mbrnClaimable)){
-              claims_summary.staking.push({
-                denom: mbrnAsset?.symbol as string,
-                amount: mbrnClaimable
-              })
-            }
-            if (isGreaterThanZero(rewardClaimable)){
-              claims_summary.staking.push({
-                denom: denoms.CDT[0] as string,
-                amount: rewardClaimable
-              })
-            }
           }
         }
         //If there is anything to unstake, unstake
@@ -127,32 +104,12 @@ const useProtocolClaims = () => {
           const unstakeClaim = useClaimUnstake()
           
           if (!unstakeClaim?.action.simulate.isError){
-            msgs = msgs.concat(unstakeClaim.msgs ?? [])
-            
-            //Update claims summary
-            claims_summary.staking = unstaking.map((unstake) => {
-              if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {              
-              return {
-                denom: unstake?.asset?.symbol,
-                amount: unstake?.amount
-              }
-            }
-            })
+            msgs = msgs.concat(unstakeClaim.msgs ?? [])         
           }
         }
         /////Add Vesting Claims////
         if (!claimFees?.action.simulate.isError){
           msgs = msgs.concat(claimFees.msgs ?? [])
-
-          //Update claims summary
-          if (claimables){
-            claims_summary.vesting = claimables.map((claimable) => {
-              return {
-                denom: claimable.info.native_token.denom,
-                amount: claimable.amount
-              }
-            })
-          }     
         }
 
         ///Add SP Unstaking////
@@ -180,7 +137,42 @@ const useProtocolClaims = () => {
             }
         }
 
-        
+        ///Summary        
+        if (claims){
+          claims_summary.liquidation = claimstoCoins(claims)
+        }
+        if (SP_claims){
+          claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
+        }
+        if (claimables){
+          claims_summary.vesting = claimables.map((claimable) => {
+            return {
+              denom: claimable.info.native_token.denom,
+              amount: claimable.amount
+            }
+          })
+        }        
+      //Add claims to summary
+      if (isGreaterThanZero(mbrnClaimable)){
+        claims_summary.staking.push({
+          denom: mbrnAsset?.symbol as string,
+          amount: mbrnClaimable
+        })
+      }
+      if (isGreaterThanZero(rewardClaimable)){
+        claims_summary.staking.push({
+          denom: denoms.CDT[0] as string,
+          amount: rewardClaimable
+        })
+      }
+      //Update claims summary with unstaking
+      claims_summary.staking = claims_summary.staking.concat(unstaking.map((unstake) => {
+        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {              
+        return {
+          denom: unstake?.asset?.symbol,
+          amount: unstake?.amount
+        }
+      }}))
 
       return {msgs, claims: claims_summary}
     },

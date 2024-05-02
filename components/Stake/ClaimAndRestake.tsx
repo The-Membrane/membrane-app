@@ -38,11 +38,11 @@ export const ClaimAndRestake = (props: Props) => {
   const mbrnClaims = useMemo(() => 
     {
       const reward = rewards.reduce((acc, reward) => {
-      if (reward?.asset?.symbol === 'MBRN') {
-        return acc.plus(reward?.amount)
-      }
-      return acc.plus(0)
-    }, num(0))
+        if (reward?.asset?.symbol === 'MBRN') {
+          return acc.plus(reward?.amount)
+        }
+        return acc.plus(0)
+      }, num(0))
 
     return reward
   }, [rewards])
@@ -51,11 +51,11 @@ export const ClaimAndRestake = (props: Props) => {
   const cdtClaims = useMemo(() => 
     {
       const reward = rewards.reduce((acc, reward) => {
-      if (reward?.asset?.symbol === 'CDT') {
-        return acc.plus(reward?.amount)
-      }
-      return acc.plus(0)
-    }, num(0))
+        if (reward?.asset?.symbol === 'CDT') {
+          return acc.plus(reward?.amount)
+        }
+        return acc.plus(0)
+      }, num(0))
     
     return reward
   }, [rewards])

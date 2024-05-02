@@ -1,6 +1,6 @@
 import { Card, Tab, TabIndicator, TabList, TabPanel, TabPanels, Tabs } from '@chakra-ui/react'
 import Staking from './Staking'
-import ClaimAndRestake from './ClaimAndRestake'
+import { ClaimAndRestake } from './ClaimAndRestake'
 import Unstaking from './Unstaking'
 
 const ManageStake = () => {

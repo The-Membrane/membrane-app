@@ -63,6 +63,7 @@ const SideNav = () => {
   const { action: claim, claims_summary } = useProtocolClaims()
   //Transform claim summary to a single list of Coin
   const claims = Object.values(claims_summary).reduce((acc, val) => acc.concat(val), [])
+  console.log(claims, claims_summary)
   //Move this to on-click of the button only
   //It'll be within a larger use function that creates the liq msgs as well
   // const { data: allPositions } = useBasketPositions()

@@ -85,6 +85,7 @@ const LockChart = () => {
 
   const { totalRanking, userRanking } = distribution || {}
   const inCentivesAmount = isNaN(Number(incentives?.amount || 0)) ? 0 : incentives?.amount
+  console.log(incentives?.amount)
 
   return (
     <Card maxW="600px">

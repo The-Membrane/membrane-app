@@ -13,6 +13,9 @@ import { getRiskyPositions } from '@/services/cdp'
 import { useBasketPositions } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { ClaimSummary } from './Bid/ClaimSummary'
+import { coin } from 'cosmwasm'
+import { num } from '@/helpers/num'
+import { Coin } from '@cosmjs/stargate'
 
 type NavItems = {
   label: string
@@ -63,7 +66,22 @@ const SideNav = () => {
   const { action: claim, claims_summary } = useProtocolClaims()
   //Transform claim summary to a single list of Coin
   const claims = Object.values(claims_summary).reduce((acc, val) => acc.concat(val), [])
-  console.log(claims, claims_summary)
+  //Aggregate coins in claims that havethe same denom
+  const agg_claims = claims.filter((coin) => num(coin.amount).isGreaterThan(0))
+  .reduce((acc, claim) => {
+    const existing = acc.find((c) => c.denom === claim.denom)
+    if (existing) {
+      acc.push({
+        denom: claim.denom,
+        amount: num(claim.amount).plus(existing.amount).toString(),
+      })
+    } else {
+      acc.push(claim)
+    }
+    return acc
+  }, [] as Coin[])
+  console.log(agg_claims)
+
   //Move this to on-click of the button only
   //It'll be within a larger use function that creates the liq msgs as well
   // const { data: allPositions } = useBasketPositions()
@@ -87,7 +105,7 @@ const SideNav = () => {
         action={claim}
         isDisabled={claim?.simulate.isError || !claim?.simulate.data}
       >
-        <ClaimSummary claims={claims}/>
+        <ClaimSummary claims={agg_claims}/>
       </ConfirmModal>
 
       <BalanceCard />

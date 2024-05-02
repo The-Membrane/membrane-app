@@ -55,7 +55,8 @@ const useProtocolClaims = () => {
 
   //Staking
   const { data } = useStaked()        
-  const { staked = [], unstaking = [], rewards = []} = data || {}
+  const { staked = [], unstaking = [], rewards = []} = data || {}  
+  const stakingClaim = useStakingClaim(false)
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {
@@ -82,7 +83,6 @@ const useProtocolClaims = () => {
 
     return shiftDigits(reward.toNumber(), -6).toString()
   }, [rewards, staked, mbrnAsset])
-  console.log(cdtClaimable, mbrnClaimable, rewards)
   //
 
   //Vesting
@@ -103,11 +103,9 @@ const useProtocolClaims = () => {
         //If there is anything to claim, claim
         if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
           console.log("attempted stake claim")
-          // const stakingClaim = useStakingClaim(false)
-
-          // if (!stakingClaim?.action.simulate.isError){
-          //   msgs = msgs.concat(stakingClaim.msgs ?? [])
-          // }
+          if (!stakingClaim?.action.simulate.isError){
+            msgs = msgs.concat(stakingClaim.msgs ?? [])
+          }
         }
         //If there is anything to unstake, unstake
         if (unstaking?.find((unstake: any, index: number) => {            
@@ -167,10 +165,12 @@ const useProtocolClaims = () => {
         }        
       //Add claims to summary
       if (isGreaterThanZero(mbrnClaimable)){
+        console.log("adding claims")
         claims_summary.staking.push({
           denom: mbrnAsset?.symbol as string,
           amount: mbrnClaimable
-        })
+        })        
+        console.log(claims_summary.staking, "claims summary staking")
       }
       if (isGreaterThanZero(cdtClaimable)){
         claims_summary.staking.push({

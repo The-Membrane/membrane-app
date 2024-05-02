@@ -6,11 +6,10 @@ import { useMemo } from 'react'
 import useStakingClaim from './hooks/useStakingClaim'
 import useStaked from './hooks/useStaked'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import BigNumber from 'bignumber.js'
 
 type Props = {}
 
-const RestakeButton = (reward: BigNumber) => {
+const RestakeButton = (reward: any) => {
   const claim = useStakingClaim(true).action
 
   return (
@@ -36,20 +35,30 @@ export const ClaimAndRestake = (props: Props) => {
   const MBRN = useAssetBySymbol('MBRN')
 
   //MBRN claims
-  const mbrnClaims = rewards.reduce((acc, reward) => {
-    if (reward?.asset?.symbol === 'MBRN') {
-      return acc.plus(reward?.amount)
-    }
-    return acc
-  }, num(0))
+  const mbrnClaims = useMemo(() => 
+    {
+      const reward = rewards.reduce((acc, reward) => {
+      if (reward?.asset?.symbol === 'MBRN') {
+        return acc.plus(reward?.amount)
+      }
+      return acc
+    }, num(0))
+
+    return reward
+  }, [rewards])
 
   ///CDT claims
-  const cdtClaims = rewards.reduce((acc, reward) => {
-    if (reward?.asset?.symbol === 'CDT') {
-      return acc.plus(reward?.amount)
-    }
-    return acc
-  }, num(0))
+  const cdtClaims = useMemo(() => 
+    {
+      const reward = rewards.reduce((acc, reward) => {
+      if (reward?.asset?.symbol === 'CDT') {
+        return acc.plus(reward?.amount)
+      }
+      return acc
+    }, num(0))
+    
+    return reward
+  }, [rewards])
   
 
   if (!rewards.length)

@@ -24,11 +24,12 @@ const Chart = () => {
   var pieValue = 1
   var endTime = lockdrop?.withdrawal_end
   var currentTime = 0
+  var progress: number[] | undefined = []
 
   lockdropClient?.client.getBlock().then((block) => {
     currentTime = Date.parse(block.header.time) / 1000
 
-    var progress = userInfo?.lockups.map((deposit) => {
+    progress = userInfo?.lockups.map((deposit) => {
       if (deposit.deposit != '') {
         var ratio =
           (deposit.deposit * (deposit.lockUpDuration + 1)) /
@@ -45,10 +46,10 @@ const Chart = () => {
     })
 
     console.log(progress)
-
-    pieValue = useMemo(() => {if (progress) return progress?.reduce((a, b) => a + b, 0); else return 1},[progress])
     
-  })
+  })  
+
+  pieValue = useMemo(() => {if (progress) return progress?.reduce((a, b) => a + b, 0); else return 1},[progress])
 
   console.log(pieValue)
 

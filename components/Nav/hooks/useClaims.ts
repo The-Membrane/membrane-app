@@ -165,7 +165,7 @@ const useProtocolClaims = () => {
       //Add claims to summary
       if (isGreaterThanZero(mbrnClaimable)){
         claims_summary.staking.push({
-          denom: mbrnAsset?.symbol as string,
+          denom: mbrnAsset?.base as string,
           amount: mbrnClaimable
         })        
       }

@@ -43,6 +43,8 @@ const Chart = () => {
       }
     })
 
+    console.log(progress)
+
     if (progress) pieValue = progress?.reduce((a, b) => a + b, 0)
   })
 

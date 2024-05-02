@@ -26,7 +26,7 @@ const RestakeButton = ({ reward }: any) => {
   )
 }
 
-const ClaimAndRestake = (props: Props) => {
+export const ClaimAndRestake = (props: Props) => {
   const { data } = useStaked()
   const { rewards = [] } = data || {}
   const claim = useStakingClaim().action

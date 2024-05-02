@@ -69,7 +69,7 @@ const useProtocolClaims = () => {
   }, num(0))
 
   return shiftDigits((rewardsAmount).toNumber(), -6).toString()
-  }, [staked])
+  }, [rewards])
   const rewardClaimable = useMemo(() => {
     if (!rewards) return '0.00'
 

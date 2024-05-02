@@ -46,15 +46,16 @@ const Chart = () => {
     })
 
     console.log(progress)
+    if (progress) pieValue = progress.reduce((a, b) => a+b, 0); else return 1
+  console.log(pieValue)
     
   })  
 
-  pieValue = useMemo(() => {if (progress) return progress.reduce((a, b) => {
-    console.log(a, b, a+b)
-    return a + b
-  }, 0); else return 1},[progress])
+  // pieValue = useMemo(() => {if (progress) return progress.reduce((a, b) => {
+  //   console.log(a, b, a+b)
+  //   return a + b
+  // }, 0); else return 1},[progress])
 
-  console.log(pieValue)
 
   return (
     <Stack w="full" alignItems="center">

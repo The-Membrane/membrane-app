@@ -47,13 +47,7 @@ const Chart = () => {
 
     if (progress) setPieValue(progress.reduce((a, b) => a+b, 0)); else setPieValue(1)
     
-  })  
-
-  // pieValue = useMemo(() => {if (progress) return progress.reduce((a, b) => {
-  //   console.log(a, b, a+b)
-  //   return a + b
-  // }, 0); else return 1},[progress])
-
+  })
 
   return (
     <Stack w="full" alignItems="center">
@@ -73,7 +67,7 @@ const Chart = () => {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
           <Label
-            value={(pieValue * 100).toString() + '%'}
+            value={(pieValue * 100).toFixed(0) + '%'}
             position="center"
             fill="#fff"
             fontSize="24px"

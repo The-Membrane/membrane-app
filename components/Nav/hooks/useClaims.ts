@@ -186,6 +186,7 @@ const useProtocolClaims = () => {
           amount: unstake?.amount
         }
       }}))
+      console.log(claims_summary.staking, "post-unstake claims summary staking")
 
       return {msgs, claims: claims_summary}
     },

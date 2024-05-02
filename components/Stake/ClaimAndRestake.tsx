@@ -74,23 +74,24 @@ export const ClaimAndRestake = (props: Props) => {
     <Stack gap="10" pt="5">
       <Stack>
         {/* MBRN Claim */}
+        {MBRN ? 
           <HStack justifyContent="space-between">
             <HStack>
               <Image
-                src={MBRN?.logo}
+                src={MBRN.logo}
                 w="20px"
                 h="20px"
                 transform={'scale(1.2)'}
               />
-              <Text>{MBRN?.symbol}</Text>
+              <Text>{MBRN.symbol}</Text>
             </HStack>
             <HStack>
               <Text>{shiftDigits(mbrnClaims.toNumber(), -6).toString()}</Text>
               <RestakeButton reward={mbrnClaims} />
             </HStack>
-          </HStack>
+          </HStack> :  null}
           {/* CDT Claim */}
-          <HStack justifyContent="space-between">
+          {CDT ? <HStack justifyContent="space-between">
             <HStack>
               <Image
                 src={CDT?.logo}
@@ -103,7 +104,7 @@ export const ClaimAndRestake = (props: Props) => {
             <HStack>
               <Text>{shiftDigits(cdtClaims.toNumber(), -6).toString()}</Text>
             </HStack>
-          </HStack>
+          </HStack> : null}
       </Stack>
       <TxButton
         isDisabled={!isGreaterThanZero(cdtClaims.toNumber()) && !isGreaterThanZero(mbrnClaims.toNumber())}

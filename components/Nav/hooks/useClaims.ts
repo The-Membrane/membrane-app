@@ -56,7 +56,7 @@ const useProtocolClaims = () => {
   const { data } = useStaked()        
   const { staked = [], unstaking = [], rewards = []} = data || {}
   const mbrnAsset = useAssetBySymbol('MBRN')
-  //Sum claims
+  //Sum MBRN claims
   const mbrnClaimable = useMemo(() => {
     if (!rewards) return '0.00'
 
@@ -70,6 +70,7 @@ const useProtocolClaims = () => {
 
     return shiftDigits((rewardsAmount).toNumber(), -6).toString()
   }, [rewards])
+  //Sum CDT claims
   const cdtClaimable = useMemo(() => {
     if (!rewards) return '0.00'
     

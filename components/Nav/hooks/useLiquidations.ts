@@ -32,7 +32,7 @@ const useProtocolLiquidations = () => {
   const { data: prices } = useOraclePrice()
   const { data: allPositions } = useBasketPositions()
   //For metric purposes
-//   console.log("total # of CDPs: ", allPositions?.length)
+  console.log("total # of CDPs: ", allPositions?.length)
   //
 //   let liq = allPositions?.find((pos) => pos.positions[0].position_id === '282')
 //   console.log(liq)
@@ -46,7 +46,7 @@ const useProtocolLiquidations = () => {
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices],
     queryFn: () => {
-        if (!address) return {msgs: undefined, liquidating_positions: []}
+        if (!address || liq === undefined) return {msgs: undefined, liquidating_positions: []}
 
         var msgs = [] as MsgExecuteContractEncodeObject[]
 

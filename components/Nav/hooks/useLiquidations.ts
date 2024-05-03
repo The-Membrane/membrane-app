@@ -31,7 +31,7 @@ const useProtocolLiquidations = () => {
 
   
   const { data: allPositions } = useBasketPositions()
-  console.log(allPositions?.length )
+  console.log(allPositions?.length, allPositions )
   const { data: prices } = useOraclePrice()
 
   const { data: queryData } = useQuery<QueryData>({

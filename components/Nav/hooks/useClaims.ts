@@ -98,7 +98,12 @@ const useProtocolClaims = () => {
 
         /////Add Liquidation claims/////        
         if (!claimLiq?.action.simulate.isError && (claims || SP_claims)){
-          msgs = msgs.concat(claimLiq.msgs ?? [])
+          //If SP_claims is undefined, make sure LQ_claims aren't all 0
+          let nonZeroClaims = claims?.filter((claim) => num(claim.pending_liquidated_collateral).isGreaterThan(0)) || []
+          //add msg
+          if (nonZeroClaims.length > 0 || SP_claims){
+            msgs = msgs.concat(claimLiq.msgs ?? [])
+          }
         }
         /////Add Staking reward and Stake Claims////
         //If there is anything to claim, claim

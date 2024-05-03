@@ -70,7 +70,7 @@ const useProtocolClaims = () => {
       return acc.plus(0)
     }, num(0))
 
-    return shiftDigits(reward.toNumber(), -6).toString()
+    return reward.toString()
   }, [rewards, staked, mbrnAsset])
   const cdtClaimable = useMemo(() => {
     if (!rewards || !mbrnAsset) return '0.00'
@@ -82,7 +82,7 @@ const useProtocolClaims = () => {
       return acc.plus(0)
     }, num(0))
 
-    return shiftDigits(reward.toNumber(), -6).toString()
+    return reward.toString()
   }, [rewards, staked, mbrnAsset])
   //
 

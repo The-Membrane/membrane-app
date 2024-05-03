@@ -6,6 +6,7 @@ import useClaimLiquidation from './hooks/useClaimLiquidation'
 import useCheckSPClaims from './hooks/useCheckSPClaims'
 import { claimstoCoins } from '@/services/liquidation'
 import { Coin } from '@cosmjs/stargate'
+import { SP } from 'next/dist/shared/lib/utils'
 
 const ClaimLiqudation = () => {
   const { data: claims } = useCheckClaims()
@@ -13,9 +14,13 @@ const ClaimLiqudation = () => {
   const claimLiqudation = useClaimLiquidation(claims, SP_claims).action
 
   var claim_coins: Coin[] = claimstoCoins(claims)
+  console.log(claim_coins)
   if (SP_claims) {
     claim_coins = claim_coins.concat(SP_claims.claims)
+    console.log("SP:", SP_claims.claims)
+
   }
+
 
   const isClaimDisabled = claim_coins?.filter((claim) => num(claim.amount).gt(0))
   

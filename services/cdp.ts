@@ -395,9 +395,6 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
 
   if (!basketPositions || !prices || !basket || !interest) return []
 
-  let liq = basketPositions?.find((pos) => pos.positions[0].position_id === '282')
-  console.log(liq)
-
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   return basketPositions?.map((basketPosition) => {

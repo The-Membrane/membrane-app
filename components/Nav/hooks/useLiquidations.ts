@@ -39,7 +39,6 @@ const useProtocolLiquidations = () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
         const liq = getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
-        console.log("risk:", liq)
 
         if (liq.length > 0) {
             const liq_msgs = getLiquidationMsgs({address, liq_info: liq})

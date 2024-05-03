@@ -16,6 +16,7 @@ import { ClaimSummary } from './Bid/ClaimSummary'
 import { coin } from 'cosmwasm'
 import { num } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
+import { setTimeout } from 'timers/promises'
 
 type NavItems = {
   label: string
@@ -91,6 +92,10 @@ const SideNav = () => {
   // const liq = getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined)
 
   console.log(claims_summary, "--", agg_claims, "--", claims)
+
+  //Disable claims for the first 10 secs to allow simulates to go through
+  const enable_claims = setTimeout(10000, true);
+
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
       <Stack as="ul" gap="2">
@@ -105,8 +110,7 @@ const SideNav = () => {
       <ConfirmModal
         label={ 'Claim' }
         action={claim}
-        isDisabled={claims_summary.liquidation.length === 0 && claims_summary.sp_unstaking.length === 0 && claims_summary.staking.length === 0 && claims_summary.vesting.length === 0}
-        // isDisabled={claim?.simulate.isError || !claim?.simulate.data}
+        isDisabled={claim?.simulate.isError || !claim?.simulate.data || !enable_claims}
       >
         <ClaimSummary claims={agg_claims}/>
       </ConfirmModal>

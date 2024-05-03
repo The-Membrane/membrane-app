@@ -90,7 +90,7 @@ const SideNav = () => {
   // const { data: prices } = useOraclePrice()
   // const liq = getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined)
 
-  console.log(claims_summary)
+  console.log(claims_summary, "--", agg_claims, "--", claims)
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
       <Stack as="ul" gap="2">

@@ -389,34 +389,33 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   }, 0)
 }
 
-export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[]) => {
-  const { data: basket } = useBasket()
-  const { data: interest } = useCollateralInterest()
+export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], basket?: Basket, interest?: CollateralInterestResponse ) => {
 
-  if (!basketPositions || !prices) return []
+  console.log("here", basketPositions === undefined, prices === undefined, basket === undefined, interest === undefined)
 
+  if (!basketPositions || !prices || !basket || !interest) return []
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
-  return basketPositions.map((basketPosition) => {
+  return basketPositions?.map((basketPosition) => {
     const positions = getPositions([basketPosition], prices)
     const tvl = getTVL(positions)
     const debt = getDebt([basketPosition])
-    const debtValue = num(debt).times(basketPosition.credit_price.price).toNumber()
+    const debtValue = num(debt).times(basket.credit_price.price).toNumber()
     const ltv = getLTV(tvl, debtValue)
     const positionsWithRatio = getAssetRatio(tvl, positions)
-    const liqudationLTV = getLiqudationLTV(
+    const liquidationLTV = getLiqudationLTV(
       tvl,
       positions,
       getBasketAssets(basket!, interest!),
       positionsWithRatio,
     )
 
-    if (ltv > liqudationLTV) {
+    if (ltv > liquidationLTV) {
       return {
         address: basketPosition.user,
         id: basketPosition.positions[0].position_id,
-        fee: num(ltv - liqudationLTV).multipliedBy(debtValue).toNumber(),
+        fee: num(ltv - liquidationLTV).div(100).multipliedBy(debtValue).toNumber().toFixed(2),
       }
     }
   })

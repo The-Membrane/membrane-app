@@ -15,7 +15,9 @@ const ClaimLiqudation = () => {
   var claim_coins: Coin[] = claimstoCoins(claims)
   if (SP_claims) {
     claim_coins = claim_coins.concat(SP_claims.claims)
+
   }
+
 
   const isClaimDisabled = claim_coins?.filter((claim) => num(claim.amount).gt(0))
   

@@ -11,7 +11,6 @@ import useStaked from '@/components/Stake/hooks/useStaked'
 import { getTimeLeft } from '@/components/Stake/Unstaking'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useMemo } from 'react'
-import { shiftDigits } from '@/helpers/math'
 import { isGreaterThanZero, num } from '@/helpers/num'
 import useClaimFees from '@/components/Lockdrop/hooks/useClaimFees'
 import useWithdrawStabilityPool from '@/components/Bid/hooks/useWithdrawStabilityPool'
@@ -207,11 +206,32 @@ const useProtocolClaims = () => {
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
 
+  
+  //Transform claim summary to a single list of Coin
+  const claims_summ = Object.values(queryclaimsSummary).reduce((acc, val) => acc.concat(val), [])
+  //Aggregate coins in claims that have the same denom
+  const agg_claims = claims_summ.filter((coin) => num(coin.amount).isGreaterThan(0))
+  .reduce((acc, claim) => {
+    const existing = acc.find((c) => c.denom === claim.denom)
+    if (existing) {
+      //Remove claim from acc
+      acc = acc.filter((c) => c.denom !== claim.denom)
+      //Add new
+      acc.push({
+        denom: claim.denom,
+        amount: num(claim.amount).plus(existing.amount).toString(),
+      })
+    } else {
+      acc.push(claim)
+    }
+    return acc
+  }, [] as Coin[])
+
   return {action: useSimulateAndBroadcast({
     msgs,
     enabled: !!msgs,
     onSuccess,
-  }), claims_summary: queryclaimsSummary}
+  }), claims_summary: agg_claims}
 }
 
 export default useProtocolClaims

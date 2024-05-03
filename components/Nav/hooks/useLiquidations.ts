@@ -3,21 +3,16 @@ import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
-import { getTimeLeft } from '@/components/Stake/Unstaking'
 import { useMemo } from 'react'
-import { isGreaterThanZero, num } from '@/helpers/num'
-import { denoms } from '@/config/defaults'
-import { claimstoCoins } from '@/services/liquidation'
 
 import { getRiskyPositions } from '@/services/cdp'
 import { useBasket, useBasketPositions, useCollateralInterest } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
-import { get } from 'lodash'
 import { getLiquidationMsgs } from '@/helpers/mint'
 
 export type Liq = {
     position_id: string
-    position_fee: number
+    position_fee: string
 }
 
 type QueryData = {
@@ -34,15 +29,7 @@ const useProtocolLiquidations = () => {
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
   //For metric purposes
-//   console.log("total # of CDPs: ", allPositions?.length)
-  //
-//   let liq = allPositions?.find((pos) => pos.positions[0].position_id === '282')
-//   console.log(liq)
-  
-//   const liq = useMemo(() =>{
-//     return getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]
-//     },
-//   [allPositions, prices])
+  console.log("total # of CDPs: ", allPositions?.length)
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
@@ -50,9 +37,9 @@ const useProtocolLiquidations = () => {
         if (!address) return {msgs: undefined, liquidating_positions: []}
 
         var msgs = [] as MsgExecuteContractEncodeObject[]
-
-        const liq = getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]
-        console.log(liq)
+        
+        const liq = getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
+        console.log("risk:", liq)
 
         if (liq.length > 0) {
             const liq_msgs = getLiquidationMsgs({address, liq_info: liq})

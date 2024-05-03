@@ -37,18 +37,20 @@ const useProtocolLiquidations = () => {
 //   let liq = allPositions?.find((pos) => pos.positions[0].position_id === '282')
 //   console.log(liq)
   
-  const liq = useMemo(() =>{
-    return getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]
-    },
-  [allPositions, prices])
-  console.log(liq)
+//   const liq = useMemo(() =>{
+//     return getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]
+//     },
+//   [allPositions, prices])
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices],
     queryFn: () => {
-        if (!address || liq === undefined) return {msgs: undefined, liquidating_positions: []}
+        if (!address) return {msgs: undefined, liquidating_positions: []}
 
         var msgs = [] as MsgExecuteContractEncodeObject[]
+
+        const liq = getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]
+        console.log(liq)
 
         if (liq.length > 0) {
             const liq_msgs = getLiquidationMsgs({address, liq_info: liq})

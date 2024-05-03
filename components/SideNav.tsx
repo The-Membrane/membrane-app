@@ -16,7 +16,6 @@ import { ClaimSummary } from './Bid/ClaimSummary'
 import { coin } from 'cosmwasm'
 import { num } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
-import { setTimeout } from 'timers/promises'
 
 type NavItems = {
   label: string
@@ -94,7 +93,7 @@ const SideNav = () => {
   console.log(claims_summary, "--", agg_claims, "--", claims)
 
   //Disable claims for the first 10 secs to allow simulates to go through
-  const enable_claims = setTimeout(10000, true);
+  const enable_claims = setTimeout(() => true, 10000);
 
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>

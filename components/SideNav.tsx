@@ -13,6 +13,7 @@ import { num } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
 import useProtocolLiquidations from './Nav/hooks/useLiquidations'
 import { LiqSummary } from './Nav/LiqSummary'
+import { CommunityPoolSpendProposal } from 'cosmjs-types/cosmos/distribution/v1beta1/distribution'
 
 type NavItems = {
   label: string
@@ -62,6 +63,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 const SideNav = () => {
   const { action: claim, claims_summary } = useProtocolClaims()
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
+  console.log(liq_summ)
 
   //Disable claims for the first 10 secs to allow simulates to go through
   const [enable_msgs, setEnableMsgs] = useState(false)
@@ -89,7 +91,7 @@ const SideNav = () => {
       <ConfirmModal
         label={ 'Liquidate' }
         action={liquidate}
-        isDisabled={liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs}
+        isDisabled={liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs || liq_summ.length === 0}
       >
         <LiqSummary liquidations={liq_summ}/>
       </ConfirmModal>

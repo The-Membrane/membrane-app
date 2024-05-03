@@ -29,11 +29,19 @@ const useProtocolLiquidations = () => {
   const liquidating_positions: Liq[] = [];
   const { address } = useWallet()
 
-  
-  const { data: allPositions } = useBasketPositions()
-  let liq = allPositions?.find((pos) => pos.positions[0].position_id === '282')
-  console.log(liq)
   const { data: prices } = useOraclePrice()
+  const { data: allPositions } = useBasketPositions()
+  //For metric purposes
+  console.log("total # of CDPs: ", allPositions?.length)
+  //
+//   let liq = allPositions?.find((pos) => pos.positions[0].position_id === '282')
+//   console.log(liq)
+  
+  const liq = useMemo(() =>{
+    return getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]
+    },
+  [allPositions, prices])
+  console.log(liq)
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices],
@@ -41,8 +49,6 @@ const useProtocolLiquidations = () => {
         if (!address) return {msgs: undefined, liquidating_positions: []}
 
         var msgs = [] as MsgExecuteContractEncodeObject[]
-
-        const liq = getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]
 
         if (liq.length > 0) {
             const liq_msgs = getLiquidationMsgs({address, liq_info: liq})

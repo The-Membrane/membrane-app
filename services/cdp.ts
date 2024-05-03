@@ -393,6 +393,8 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
 
+  console.log(basketPositions === undefined, prices === undefined)
+
   if (!basketPositions || !prices) return []
 
   let liq = basketPositions?.find((pos) => pos.positions[0].position_id === '282')

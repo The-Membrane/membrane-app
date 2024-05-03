@@ -90,8 +90,6 @@ const SideNav = () => {
   // const { data: prices } = useOraclePrice()
   // const liq = getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined)
 
-  console.log(claims_summary, "--", agg_claims, "--", claims)
-
   //Disable claims for the first 10 secs to allow simulates to go through
   const [enable_claims, setEnableClaims] = useState(false)
   setTimeout(() => setEnableClaims(true), 5000);

@@ -39,7 +39,7 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
           spMessageComposer.claimRewards()
         )
       }
-
+      console.log(msgs)
       return msgs as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,

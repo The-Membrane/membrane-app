@@ -418,7 +418,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
       return {
         address: basketPosition.user,
         id: basketPosition.positions[0].position_id,
-        fee: num(ltv - liquidationLTV).div(100).multipliedBy(debtValue).toNumber(),
+        fee: num(ltv - liquidationLTV).div(100).multipliedBy(debtValue).toNumber().toFixed(2),
       }
     }
   })

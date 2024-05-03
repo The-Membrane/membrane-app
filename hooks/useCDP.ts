@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions } from '@/services/cdp'
 import useWallet from './useWallet'
-import useMintState from '@/components/Mint/hooks/useMintState'
 
 export const useBasket = () => {
   return useQuery({

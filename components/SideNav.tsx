@@ -4,18 +4,15 @@ import { useRouter } from 'next/router'
 import React, { useState } from 'react'
 import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon } from './Icons'
 import Logo from './Logo'
-import { StatsCard } from './StatsCard'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
 import useProtocolClaims from './Nav/hooks/useClaims'
 import ConfirmModal from './ConfirmModal'
-import { getRiskyPositions } from '@/services/cdp'
-import { useBasketPositions } from '@/hooks/useCDP'
-import { useOraclePrice } from '@/hooks/useOracle'
 import { ClaimSummary } from './Bid/ClaimSummary'
-import { coin } from 'cosmwasm'
 import { num } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
+import useProtocolLiquidations from './Nav/hooks/useLiquidations'
+import { LiqSummary } from './Nav/LiqSummary'
 
 type NavItems = {
   label: string
@@ -64,35 +61,11 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 
 const SideNav = () => {
   const { action: claim, claims_summary } = useProtocolClaims()
-  //Transform claim summary to a single list of Coin
-  const claims = Object.values(claims_summary).reduce((acc, val) => acc.concat(val), [])
-  //Aggregate coins in claims that have the same denom
-  const agg_claims = claims.filter((coin) => num(coin.amount).isGreaterThan(0))
-  .reduce((acc, claim) => {
-    const existing = acc.find((c) => c.denom === claim.denom)
-    if (existing) {
-      //Remove claim from acc
-      acc = acc.filter((c) => c.denom !== claim.denom)
-      //Add new
-      acc.push({
-        denom: claim.denom,
-        amount: num(claim.amount).plus(existing.amount).toString(),
-      })
-    } else {
-      acc.push(claim)
-    }
-    return acc
-  }, [] as Coin[])
-
-  //Move this to on-click of the button only
-  //It'll be within a larger use function that creates the liq msgs as well
-  // const { data: allPositions } = useBasketPositions()
-  // const { data: prices } = useOraclePrice()
-  // const liq = getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined)
+  const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
 
   //Disable claims for the first 10 secs to allow simulates to go through
-  const [enable_claims, setEnableClaims] = useState(false)
-  setTimeout(() => setEnableClaims(true), 3333);
+  const [enable_msgs, setEnableMsgs] = useState(false)
+  setTimeout(() => setEnableMsgs(true), 3333);
 
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
@@ -108,9 +81,17 @@ const SideNav = () => {
       <ConfirmModal
         label={ 'Claim' }
         action={claim}
-        isDisabled={claim?.simulate.isError || !claim?.simulate.data || !enable_claims}
+        isDisabled={claim?.simulate.isError || !claim?.simulate.data || !enable_msgs}
       >
-        <ClaimSummary claims={agg_claims}/>
+        <ClaimSummary claims={claims_summary}/>
+      </ConfirmModal>
+      {/* Liquidate Button */}
+      <ConfirmModal
+        label={ 'Liquidate' }
+        action={liquidate}
+        isDisabled={liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs}
+      >
+        <LiqSummary liquidations={liq_summ}/>
       </ConfirmModal>
 
       <BalanceCard />

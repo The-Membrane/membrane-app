@@ -7,15 +7,16 @@ import { Asset } from '@/contracts/codegen/positions/Positions.types'
 import { Coin, coin } from '@cosmjs/stargate'
 import { shiftDigits } from './math'
 import { getAssetBySymbol } from './chain'
+import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 
-const getDeposited = (deposited = 0, newDeposit: string) => {
-  const diff = num(newDeposit).minus(deposited).dp(6).toNumber()
-  return diff !== 0 ? diff : 0
-}
+// const getDeposited = (deposited = 0, newDeposit: string) => {
+//   const diff = num(newDeposit).minus(deposited).dp(6).toNumber()
+//   return diff !== 0 ? diff : 0
+// }
 
-const calculateNewDeposit = (sliderValue: number, combinUsdValue: number, price: number) => {
-  return num(sliderValue).times(combinUsdValue).dividedBy(100).dividedBy(price).toFixed(6)
-}
+// const calculateNewDeposit = (sliderValue: number, combinUsdValue: number, price: number) => {
+//   return num(sliderValue).times(combinUsdValue).dividedBy(100).dividedBy(price).toFixed(6)
+// }
 
 export const getSummary = (assets: AssetWithBalance[]) => {
   const summary = assets
@@ -223,3 +224,26 @@ export const getMintAndRepayMsgs = ({
 
   return msgs
 }
+
+type GetLiqMsgs = {
+  address: string
+  liq_info: any[]
+} 
+export const getLiquidationMsgs = ({
+  address,
+  liq_info
+}: GetLiqMsgs) => {
+  const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
+  const msgs = [] as MsgExecuteContractEncodeObject[]
+
+  liq_info.map((liq) => {
+    const liqMsg = messageComposer.liquidate({
+      positionId: liq.id,
+      positionOwner: liq.address
+    })
+    msgs.push(liqMsg)
+  })
+
+  return msgs
+}
+

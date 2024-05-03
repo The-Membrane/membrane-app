@@ -390,10 +390,13 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
 }
 
 export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[]) => {
+
+  console.log("here", basketPositions === undefined, prices === undefined)
+
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
 
-  console.log(basketPositions === undefined, prices === undefined)
+  console.log(basket, interest)
 
   if (!basketPositions || !prices) return []
 

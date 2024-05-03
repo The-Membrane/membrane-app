@@ -31,13 +31,14 @@ const useProtocolLiquidations = () => {
 
   
   const { data: allPositions } = useBasketPositions()
+  console.log(allPositions?.length, allPositions?[allPositions?.length -1])
   const { data: prices } = useOraclePrice()
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices],
     queryFn: () => {
         if (!address) return {msgs: undefined, liquidating_positions: []}
-        
+
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
         const liq = getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]

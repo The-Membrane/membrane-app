@@ -86,13 +86,13 @@ const SideNav = () => {
         <ClaimSummary claims={claims_summary}/>
       </ConfirmModal>
       {/* Liquidate Button */}
-      {/* <ConfirmModal
+      <ConfirmModal
         label={ 'Liquidate' }
         action={liquidate}
         isDisabled={liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs}
       >
         <LiqSummary liquidations={liq_summ}/>
-      </ConfirmModal> */}
+      </ConfirmModal>
 
       <BalanceCard />
     </Stack>

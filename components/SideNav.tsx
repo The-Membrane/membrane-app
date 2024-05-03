@@ -92,7 +92,7 @@ const SideNav = () => {
 
   //Disable claims for the first 10 secs to allow simulates to go through
   const [enable_claims, setEnableClaims] = useState(false)
-  setTimeout(() => setEnableClaims(true), 5000);
+  setTimeout(() => setEnableClaims(true), 3333);
 
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>

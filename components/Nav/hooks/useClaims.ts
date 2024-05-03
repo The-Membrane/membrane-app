@@ -92,7 +92,7 @@ const useProtocolClaims = () => {
   const { claimables } = allocations || {}
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg all protocol claims', address, claims, SP_claims, stakingClaim, unstakeClaim, claimFees, deposits, mbrnClaimable, cdtClaimable],
+    queryKey: ['msg all protocol claims', address, claims, SP_claims, unstaking, claimables, deposits, mbrnClaimable, cdtClaimable],
     queryFn: () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
@@ -118,7 +118,6 @@ const useProtocolClaims = () => {
         }
         /////Add Vesting Claims////
         if (!claimFees?.action.simulate.isError && (claimables?.length??0) > 0){
-          console.log(claimables)
           msgs = msgs.concat(claimFees.msgs ?? [])
         }
 
@@ -193,9 +192,6 @@ const useProtocolClaims = () => {
     if (!queryData) return {msgs: undefined, claims: claims_summary}
     else return queryData
   }, [queryData])
-
-  console.log(msgs)
-
   
 
   const onSuccess = () => {

@@ -45,13 +45,13 @@ const useProtocolLiquidations = () => {
 //   [allPositions, prices])
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg liquidations', address, allPositions, prices],
+    queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
     queryFn: () => {
         if (!address) return {msgs: undefined, liquidating_positions: []}
 
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
-        const liq = getRiskyPositions(allPositions, prices).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]
+        const liq = getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: number}[]
         console.log(liq)
 
         if (liq.length > 0) {

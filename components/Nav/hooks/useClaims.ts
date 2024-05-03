@@ -97,7 +97,7 @@ const useProtocolClaims = () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
         /////Add Liquidation claims/////        
-        if (!claimLiq?.action.simulate.isError){
+        if (!claimLiq?.action.simulate.isError && (claims || SP_claims)){
           msgs = msgs.concat(claimLiq.msgs ?? [])
         }
         /////Add Staking reward and Stake Claims////
@@ -117,7 +117,7 @@ const useProtocolClaims = () => {
           }
         }
         /////Add Vesting Claims////
-        if (!claimFees?.action.simulate.isError){
+        if (!claimFees?.action.simulate.isError && claimables){
           msgs = msgs.concat(claimFees.msgs ?? [])
         }
 

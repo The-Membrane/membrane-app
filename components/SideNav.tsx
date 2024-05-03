@@ -64,7 +64,7 @@ const SideNav = () => {
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
 
   //Disable claims for the first 10 secs to allow simulates to go through
-  const [enable_msgs, setEnableMsgs] = useState(false)
+  const [enable_msgs, setEnableMsgs] = useState(true)
   setTimeout(() => setEnableMsgs(true), 3333);
 
   return (

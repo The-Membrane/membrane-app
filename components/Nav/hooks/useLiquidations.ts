@@ -31,7 +31,8 @@ const useProtocolLiquidations = () => {
 
   
   const { data: allPositions } = useBasketPositions()
-  console.log(allPositions?.length, allPositions )
+  let liq = allPositions?.find((pos) => pos.positions[0].position_id === '282')
+  console.log(liq)
   const { data: prices } = useOraclePrice()
 
   const { data: queryData } = useQuery<QueryData>({

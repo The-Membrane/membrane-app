@@ -117,7 +117,7 @@ const useProtocolClaims = () => {
           }
         }
         /////Add Vesting Claims////
-        if (!claimFees?.action.simulate.isError && claimables){
+        if (!claimFees?.action.simulate.isError && (claimables?.length??0) > 0){
           console.log(claimables)
           msgs = msgs.concat(claimFees.msgs ?? [])
         }

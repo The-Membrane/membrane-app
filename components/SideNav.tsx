@@ -83,7 +83,7 @@ const SideNav = () => {
       <ConfirmModal
         label={ 'Claim' }
         action={claim}
-        isDisabled={claim?.simulate.isError || !claim?.simulate.data || !enable_msgs}
+        isDisabled={claim?.simulate.isError || !claim?.simulate.data || !enable_msgs || claims_summary.length === 0}
       >
         <ClaimSummary claims={claims_summary}/>
       </ConfirmModal>

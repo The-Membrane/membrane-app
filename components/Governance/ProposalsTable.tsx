@@ -39,7 +39,7 @@ const NoProposals = ({ show }: { show: boolean }) => {
   return (
     <Box p="3" bg="whiteAlpha.200" borderRadius="lg" textAlign="center">
       <Text fontSize="md" color="gray.300">
-        No active proposals
+        No proposals fit this filter
       </Text>
     </Box>
   )

@@ -83,7 +83,7 @@ const Stakeing = () => {
       <Stack>
         <HStack justifyContent="space-between">
           <Text>Your Stake</Text>
-          <Text>{stakeAmount} MBRN {parseInt(stakeState.amount) > 0 ? <>{stakeState.txType || 'Stake' === 'Stake' ? " + " : null}{stakeState.amount}</> : null}</Text>
+          <Text>{stakeAmount} MBRN {parseInt(stakeState.amount) > 0 ? <>{stakeState.txType || 'Stake' === 'Stake' ? " + " : " - "}{stakeState.amount} MBRN</> : null}</Text>
         </HStack>
 
         <SliderWithState

@@ -64,7 +64,7 @@ const SideNav = () => {
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
 
   //Disable claims for the first 10 secs to allow simulates to go through
-  const [enable_msgs, setEnableMsgs] = useState(true)
+  const [enable_msgs, setEnableMsgs] = useState(false)
   setTimeout(() => setEnableMsgs(true), 3333);
 
   return (
@@ -86,13 +86,13 @@ const SideNav = () => {
         <ClaimSummary claims={claims_summary}/>
       </ConfirmModal>
       {/* Liquidate Button */}
-      <ConfirmModal
+      {/* <ConfirmModal
         label={ 'Liquidate' }
         action={liquidate}
         isDisabled={liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs}
       >
         <LiqSummary liquidations={liq_summ}/>
-      </ConfirmModal>
+      </ConfirmModal> */}
 
       <BalanceCard />
     </Stack>

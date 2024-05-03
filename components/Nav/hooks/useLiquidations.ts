@@ -10,7 +10,7 @@ import { denoms } from '@/config/defaults'
 import { claimstoCoins } from '@/services/liquidation'
 
 import { getRiskyPositions } from '@/services/cdp'
-import { useBasketPositions } from '@/hooks/useCDP'
+import { useBasket, useBasketPositions, useCollateralInterest } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { get } from 'lodash'
 import { getLiquidationMsgs } from '@/helpers/mint'
@@ -31,6 +31,8 @@ const useProtocolLiquidations = () => {
 
   const { data: prices } = useOraclePrice()
   const { data: allPositions } = useBasketPositions()
+  const { data: basket } = useBasket()
+  const { data: interest } = useCollateralInterest()
   //For metric purposes
 //   console.log("total # of CDPs: ", allPositions?.length)
   //

@@ -389,16 +389,11 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   }, 0)
 }
 
-export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[]) => {
+export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], basket?: Basket, interest?: CollateralInterestResponse ) => {
 
-  console.log("here", basketPositions === undefined, prices === undefined)
+  console.log("here", basketPositions === undefined, prices === undefined, basket === undefined, interest === undefined)
 
-  const { data: basket } = useBasket()
-  const { data: interest } = useCollateralInterest()
-
-  console.log(basket, interest)
-
-  if (!basketPositions || !prices) return []
+  if (!basketPositions || !prices || !basket || !interest) return []
 
   let liq = basketPositions?.find((pos) => pos.positions[0].position_id === '282')
   console.log(liq)

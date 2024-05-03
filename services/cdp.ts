@@ -401,9 +401,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   return basketPositions?.map((basketPosition) => {
-    console.log(basketPosition)
-    console.log(basketPosition.positions[0].position_id)
-    console.log(basketPosition?.positions[0].position_id)
+    console.log(basketPositions)
     const positions = getPositions([basketPosition], prices)
     const tvl = getTVL(positions)
     const debt = getDebt([basketPosition])

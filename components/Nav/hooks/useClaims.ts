@@ -102,7 +102,6 @@ const useProtocolClaims = () => {
         }
         /////Add Staking reward and Stake Claims////
         //If there is anything to claim, claim
-          console.log(mbrnClaimable, cdtClaimable)
         if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
           if (!stakingClaim?.action.simulate.isError){
             msgs = msgs.concat(stakingClaim.msgs ?? [])
@@ -194,6 +193,9 @@ const useProtocolClaims = () => {
     if (!queryData) return {msgs: undefined, claims: claims_summary}
     else return queryData
   }, [queryData])
+
+  console.log(msgs)
+
   
 
   const onSuccess = () => {

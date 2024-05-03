@@ -401,19 +401,27 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   return basketPositions?.map((basketPosition) => {
-    console.log(basketPositions)
     const positions = getPositions([basketPosition], prices)
+    console.log("here1", basketPosition.positions[0].position_id)
     const tvl = getTVL(positions)
+    console.log("here2", basketPosition.positions[0].position_id)
     const debt = getDebt([basketPosition])
+    console.log("here3", basketPosition.positions[0].position_id)
     const debtValue = num(debt).times(basketPosition.credit_price.price).toNumber()
+    console.log("here4", basketPosition.positions[0].position_id)
     const ltv = getLTV(tvl, debtValue)
+    console.log("here5", basketPosition.positions[0].position_id)
     const positionsWithRatio = getAssetRatio(tvl, positions)
+    console.log("here6", basketPosition.positions[0].position_id)
     const liquidationLTV = getLiqudationLTV(
       tvl,
       positions,
       getBasketAssets(basket!, interest!),
       positionsWithRatio,
     )
+
+    
+    console.log("here6", basketPosition.positions[0].position_id)
 
     // if (basketPosition.positions[0].position_id === "282"){
     //   console.log(ltv, liquidationLTV)
@@ -426,5 +434,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
         fee: num(ltv - liquidationLTV).multipliedBy(debtValue).toNumber(),
       }
     }
+
+    console.log("here7", basketPosition.positions[0].position_id)
   })
 }

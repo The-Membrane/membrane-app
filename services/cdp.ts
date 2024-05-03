@@ -414,11 +414,8 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
       positionsWithRatio,
     )
 
-    if (basketPosition.positions[0].position_id === "282"){
-      console.log(ltv, liquidationLTV)
-    }
-
     if (ltv > liquidationLTV) {
+      console.log(debtValue, debt, basket.credit_price.price)
       return {
         address: basketPosition.user,
         id: basketPosition.positions[0].position_id,

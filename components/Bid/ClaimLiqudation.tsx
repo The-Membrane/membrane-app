@@ -6,7 +6,6 @@ import useClaimLiquidation from './hooks/useClaimLiquidation'
 import useCheckSPClaims from './hooks/useCheckSPClaims'
 import { claimstoCoins } from '@/services/liquidation'
 import { Coin } from '@cosmjs/stargate'
-import { SP } from 'next/dist/shared/lib/utils'
 
 const ClaimLiqudation = () => {
   const { data: claims } = useCheckClaims()

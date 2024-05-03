@@ -196,11 +196,9 @@ const useProtocolClaims = () => {
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })
-    queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
-    queryClient.invalidateQueries({ queryKey: ['user bids'] })
     queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['allocations'] })
-    queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
+    queryClient.invalidateQueries({ queryKey: ['allocation claim fees'] })
+    queryClient.invalidateQueries({ queryKey: ['stability pool claims'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
 

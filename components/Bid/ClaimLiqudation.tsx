@@ -18,7 +18,6 @@ const ClaimLiqudation = () => {
 
   }
 
-
   const isClaimDisabled = claim_coins?.filter((claim) => num(claim.amount).gt(0))
   
   return (

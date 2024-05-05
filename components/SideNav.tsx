@@ -71,6 +71,8 @@ const SideNav = () => {
       const { data: prices } = useOraclePrice()
       console.log("prices:", prices)
       console.log("cdt:", prices?.find((price) => price.denom === cdt?.base))
+      const price = prices?.find((price) => price.denom === cdt?.base)
+      setcdtPrice(parseFloat(price?.price??"1.00").toFixed(2))
       
       // if (price !== undefined) {
       //   console.log("CDT Price: ", parseFloat(price.price).toFixed(2))

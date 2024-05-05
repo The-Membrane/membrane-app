@@ -64,6 +64,7 @@ const SideNav = () => {
   const cdt = getAssetBySymbol('CDT')
   const [cdtPrice, setcdtPrice ] = useState("1.00")
 
+  console.log(cdt)
   useMemo(() => {
     if (cdt) {
       const price = getPriceByDenom(cdt.base)

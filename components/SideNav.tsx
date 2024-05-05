@@ -69,7 +69,7 @@ const SideNav = () => {
   useMemo(() => {
     if (cdt) {
       const prices = useOraclePrice()
-      console.log(prices)
+      console.log("prices:", prices)
       // if (price !== undefined) {
       //   console.log("CDT Price: ", parseFloat(price.price).toFixed(2))
       //   setcdtPrice(parseFloat(price.price).toFixed(2))

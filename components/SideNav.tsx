@@ -1,7 +1,7 @@
-import { Box, Button, HStack, Stack, Text } from '@chakra-ui/react'
+import { Box, Button, HStack, Stack, Text, Image } from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon } from './Icons'
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
@@ -10,10 +10,11 @@ import useProtocolClaims from './Nav/hooks/useClaims'
 import ConfirmModal from './ConfirmModal'
 import { ClaimSummary } from './Bid/ClaimSummary'
 import { num } from '@/helpers/num'
-import { Coin } from '@cosmjs/stargate'
 import useProtocolLiquidations from './Nav/hooks/useLiquidations'
 import { LiqSummary } from './Nav/LiqSummary'
-import { CommunityPoolSpendProposal } from 'cosmjs-types/cosmos/distribution/v1beta1/distribution'
+import { getPriceByDenom } from '@/services/oracle'
+import { getAssetBySymbol } from '@/helpers/chain'
+import { useOraclePrice } from '@/hooks/useOracle'
 
 type NavItems = {
   label: string
@@ -60,19 +61,37 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
   )
 }
 
+const getCDTPrice = () => {
+  const cdt = getAssetBySymbol('CDT')
+  const { data: prices } = useOraclePrice()
+  const price = prices?.find((price) => price.denom === cdt?.base)
+  return parseFloat((price?.price??"1.00")).toFixed(4)
+}
+
 const SideNav = () => {
+  const [cdtPrice, setcdtPrice ] = useState("1.00")
+  const price = getCDTPrice()
+  if (price != cdtPrice) setcdtPrice(price)
+
   const { action: claim, claims_summary } = useProtocolClaims()
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
-  console.log(liq_summ)
 
-  //Disable claims for the first 10 secs to allow simulates to go through
+  //Disable claims for a time period to allow simulates to run
   const [enable_msgs, setEnableMsgs] = useState(false)
-  setTimeout(() => setEnableMsgs(true), 3333);
-
+  setTimeout(() => setEnableMsgs(true), 2222);
+  
   return (
-    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
-      <Stack as="ul" gap="2">
-        <Logo />
+    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '85%'}}>
+      <Stack as="ul" gap="1">
+        <Stack marginTop={"6%"}>
+          <Logo />
+          <HStack justifyContent={"center"}>
+            <Image src={"/images/cdt.svg"} w="18px" h="18px" />
+            <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize={"medium"}>
+              {cdtPrice}
+            </Text>
+          </HStack>
+        </Stack>
         <Box h="10" />
         {navItems.map((item, index) => (
           <NavItem key={index} {...item} />

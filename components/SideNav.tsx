@@ -65,7 +65,10 @@ const SideNav = () => {
   const [cdtPrice, setcdtPrice ] = useState("1.00")
   if (cdt) {
     const price = getPriceByDenom(cdt.base)
-    if (price) setcdtPrice(num(price).toFixed(2))
+    if (price) {
+      console.log("CDT Price: ", num(price).toFixed(2))
+      setcdtPrice(num(price).toFixed(2))
+    }
   }
 
   const { action: claim, claims_summary } = useProtocolClaims()

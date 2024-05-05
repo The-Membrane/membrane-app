@@ -518,6 +518,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 //This is for CDT using the oracle's prices
 const getCDTtokenOutAmount = (tokenInAmount: number, tokenIn: string) => {
     let basePrice = getPriceByDenom(tokenIn);
+    console.log(basePrice, tokenIn)
     let tokenOut = getPriceByDenom(denoms.CDT[0] as string);
 
     return tokenInAmount * (basePrice / tokenOut)

@@ -64,9 +64,8 @@ const SideNav = () => {
   const cdt = getAssetBySymbol('CDT')
   const [cdtPrice, setcdtPrice ] = useState("1.00")
   if (cdt) {
-    getPriceByDenom(cdt.base).then((price) => {
-      setcdtPrice(num(price).toFixed(2))
-    })
+    const price = getPriceByDenom(cdt.base)
+    if (price) setcdtPrice(num(price).toFixed(2))
   }
 
   const { action: claim, claims_summary } = useProtocolClaims()

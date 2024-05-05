@@ -14,6 +14,9 @@ import { Coin } from '@cosmjs/stargate'
 import useProtocolLiquidations from './Nav/hooks/useLiquidations'
 import { LiqSummary } from './Nav/LiqSummary'
 import { CommunityPoolSpendProposal } from 'cosmjs-types/cosmos/distribution/v1beta1/distribution'
+import { useOraclePrice } from '@/hooks/useOracle'
+import { getPriceByDenom } from '@/services/oracle'
+import { getAssetBySymbol } from '@/helpers/chain'
 
 type NavItems = {
   label: string
@@ -61,9 +64,16 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 }
 
 const SideNav = () => {
+  const cdt = getAssetBySymbol('CDT')
+  const [cdtPrice, setcdtPrice ] = useState("1.00")
+  if (cdt) {
+    getPriceByDenom(cdt.base).then((price) => {
+      setcdtPrice(num(price).toFixed(2))
+    })
+  }
+
   const { action: claim, claims_summary } = useProtocolClaims()
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
-  console.log(liq_summ)
 
   //Disable claims for a time period to allow simulates to run
   const [enable_msgs, setEnableMsgs] = useState(false)
@@ -73,6 +83,12 @@ const SideNav = () => {
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
       <Stack as="ul" gap="2">
         <Logo />
+          <HStack>
+            <Image src={"/images/cdt.svg"} w="24px" h="24px" />
+            <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)">
+              {cdtPrice}
+            </Text>
+          </HStack>
         <Box h="10" />
         {navItems.map((item, index) => (
           <NavItem key={index} {...item} />

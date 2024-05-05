@@ -66,21 +66,15 @@ const SideNav = () => {
   const [cdtPrice, setcdtPrice ] = useState("1.00")
 
   console.log(cdt)
-  useMemo(() => {
-    if (cdt) {
-      const { data: prices } = useOraclePrice()
-      console.log("prices:", prices)
-      console.log("cdt:", prices?.find((price) => price.denom === cdt?.base))
-      const price = prices?.find((price) => price.denom === cdt?.base)
-      console.log("price:", price)
-      if(price) setcdtPrice(parseFloat((price.price)).toFixed(4))
-      
-      // if (price !== undefined) {
-      //   console.log("CDT Price: ", parseFloat(price.price).toFixed(2))
-      //   setcdtPrice(parseFloat(price.price).toFixed(2))
-      // }
-    }
-  }, [cdt])
+
+  if (cdt) {
+    const { data: prices } = useOraclePrice()
+    console.log("prices:", prices)
+    console.log("cdt:", prices?.find((price) => price.denom === cdt?.base))
+    const price = prices?.find((price) => price.denom === cdt?.base)
+    console.log("price:", price)
+    if(price) setcdtPrice(parseFloat((price.price)).toFixed(4))
+  }
 
   const { action: claim, claims_summary } = useProtocolClaims()
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()

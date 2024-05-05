@@ -70,7 +70,7 @@ const getCDTPrice = () => {
 
 const SideNav = () => {
   const [cdtPrice, setcdtPrice ] = useState("1.00")
-  setcdtPrice(getCDTPrice())
+  // setcdtPrice(getCDTPrice())
 
   const { action: claim, claims_summary } = useProtocolClaims()
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()

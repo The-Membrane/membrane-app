@@ -14,6 +14,7 @@ import useProtocolLiquidations from './Nav/hooks/useLiquidations'
 import { LiqSummary } from './Nav/LiqSummary'
 import { getPriceByDenom } from '@/services/oracle'
 import { getAssetBySymbol } from '@/helpers/chain'
+import { useOraclePrice } from '@/hooks/useOracle'
 
 type NavItems = {
   label: string
@@ -67,9 +68,8 @@ const SideNav = () => {
   console.log(cdt)
   useMemo(() => {
     if (cdt) {
-      // console.log(cdt.base)
-      // const price = getPriceByDenom(cdt.base)
-      // console.log(price)
+      const prices = useOraclePrice()
+      console.log(prices)
       // if (price !== undefined) {
       //   console.log("CDT Price: ", parseFloat(price.price).toFixed(2))
       //   setcdtPrice(parseFloat(price.price).toFixed(2))

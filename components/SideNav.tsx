@@ -78,7 +78,7 @@ const SideNav = () => {
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
       <Stack as="ul" gap="2">
-        <Stack as="ul" gap="2">
+        <Stack>
           <Logo />
           <HStack>
             <Image src={"/images/cdt.svg"} w="18px" h="18px" />

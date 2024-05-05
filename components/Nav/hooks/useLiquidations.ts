@@ -34,7 +34,7 @@ const useProtocolLiquidations = () => {
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
     queryFn: () => {
-        if (!address) return {msgs: undefined, liquidating_positions: []}
+        if (!address || !allPositions || !prices || !basket || !interest) return {msgs: undefined, liquidating_positions: []}
 
         var msgs = [] as MsgExecuteContractEncodeObject[]
         

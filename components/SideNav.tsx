@@ -64,18 +64,15 @@ const SideNav = () => {
   const cdt = getAssetBySymbol('CDT')
   const [cdtPrice, setcdtPrice ] = useState("1.00")
 
-  console.log(cdt)
-  useMemo(() => {
-    if (cdt) {
-      console.log(cdt.base)
-      const price = getPriceByDenom(cdt.base)
-      console.log(price)
-      if (price !== undefined) {
-        console.log("CDT Price: ", parseFloat(price.price).toFixed(2))
-        setcdtPrice(parseFloat(price.price).toFixed(2))
-      }
+  if (cdt) {
+    console.log(cdt.base)
+    const price = getPriceByDenom(cdt.base)
+    console.log(price)
+    if (price !== undefined) {
+      console.log("CDT Price: ", parseFloat(price.price).toFixed(2))
+      setcdtPrice(parseFloat(price.price).toFixed(2))
     }
-  }, [cdt])
+  }
 
   const { action: claim, claims_summary } = useProtocolClaims()
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()

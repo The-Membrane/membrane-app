@@ -78,13 +78,15 @@ const SideNav = () => {
   return (
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
       <Stack as="ul" gap="2">
-        <Logo />
+        <Stack as="ul" gap="2">
+          <Logo />
           <HStack>
-            <Image src={"/images/cdt.svg"} w="24px" h="24px" />
-            <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)">
+            <Image src={"/images/cdt.svg"} w="18px" h="18px" />
+            <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize={"medium"}>
               {cdtPrice}
             </Text>
           </HStack>
+        </Stack>
         <Box h="10" />
         {navItems.map((item, index) => (
           <NavItem key={index} {...item} />

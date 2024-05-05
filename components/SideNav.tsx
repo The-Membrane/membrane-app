@@ -74,13 +74,13 @@ const SideNav = () => {
   //Disable claims for a time period to allow simulates to run
   const [enable_msgs, setEnableMsgs] = useState(false)
   setTimeout(() => setEnableMsgs(true), 2222);
-
+  
   return (
-    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '90%'}}>
-      <Stack as="ul" gap="2">
+    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '85%'}}>
+      <Stack as="ul" gap="1">
         <Stack>
           <Logo />
-          <HStack>
+          <HStack justifyContent={"center"}>
             <Image src={"/images/cdt.svg"} w="18px" h="18px" />
             <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize={"medium"}>
               {cdtPrice}

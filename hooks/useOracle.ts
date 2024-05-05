@@ -11,7 +11,7 @@ export const useOraclePrice = () => {
       if (!basket) return
       return getOraclePrices(basket)
     },
-    refetchInterval: 1000 * 60 * 10, // refetch every 10 minutes
+    refetchInterval: false,
     enabled: !!basket,
   })
 }

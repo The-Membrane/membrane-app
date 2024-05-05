@@ -1,7 +1,7 @@
 import { Box, Button, HStack, Stack, Text, Image } from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon } from './Icons'
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
@@ -63,13 +63,16 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 const SideNav = () => {
   const cdt = getAssetBySymbol('CDT')
   const [cdtPrice, setcdtPrice ] = useState("1.00")
-  if (cdt) {
-    const price = getPriceByDenom(cdt.base)
-    if (price) {
-      console.log("CDT Price: ", num(price).toFixed(2))
-      setcdtPrice(num(price).toFixed(2))
+
+  useMemo(() => {
+    if (cdt) {
+      const price = getPriceByDenom(cdt.base)
+      if (price) {
+        console.log("CDT Price: ", num(price).toFixed(2))
+        setcdtPrice(num(price).toFixed(2))
+      }
     }
-  }
+  }, [cdt])
 
   const { action: claim, claims_summary } = useProtocolClaims()
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()

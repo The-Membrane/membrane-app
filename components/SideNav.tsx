@@ -71,8 +71,8 @@ const SideNav = () => {
       const price = getPriceByDenom(cdt.base)
       console.log(price)
       if (price !== undefined) {
-        console.log("CDT Price: ", num(price).toFixed(2))
-        setcdtPrice(num(price).toFixed(2))
+        console.log("CDT Price: ", parseFloat(price.price).toFixed(2))
+        setcdtPrice(parseFloat(price.price).toFixed(2))
       }
     }
   }, [cdt])

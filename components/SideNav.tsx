@@ -65,13 +65,14 @@ const getCDTPrice = () => {
   const cdt = getAssetBySymbol('CDT')
   const { data: prices } = useOraclePrice()
   const price = prices?.find((price) => price.denom === cdt?.base)
-  return parseFloat((price?.price??"")).toFixed(4)
+  if (!price) return '0'
+  return parseFloat((price.price)).toFixed(4)
 }
 
 const SideNav = () => {
-  const [cdtPrice, setcdtPrice ] = useState("")
+  const [cdtPrice, setcdtPrice ] = useState(" ")
   const price = getCDTPrice()
-  if (price != cdtPrice) setcdtPrice(price)
+  if (price != cdtPrice && price != '0') setcdtPrice(price)
 
   const { action: claim, claims_summary } = useProtocolClaims()
   const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()

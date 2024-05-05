@@ -4,6 +4,7 @@ import { AssetInfo, PriceResponse } from '@/contracts/codegen/oracle/Oracle.type
 import getCosmWasmClient from '@/helpers/comswasmClient'
 import { queryClient } from '@/pages/_app'
 import { Basket } from '@/contracts/codegen/positions/Positions.types'
+import { useOraclePrice } from '@/hooks/useOracle'
 
 export const oracleClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -26,7 +27,8 @@ export const parsePrice = (prices: PriceResponse[], assetInfos: AssetInfo[]): Pr
 }
 
 export const getPriceByDenom = (denom: string) => {
-  const prices = queryClient.getQueryData(['oraclePrice']) as any[]
+  const { data: prices } = useOraclePrice()
+  console.log(prices)
   return prices?.find((price) => price.denom === denom)
 }
 

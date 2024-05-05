@@ -65,11 +65,11 @@ const getCDTPrice = () => {
   const cdt = getAssetBySymbol('CDT')
   const { data: prices } = useOraclePrice()
   const price = prices?.find((price) => price.denom === cdt?.base)
-  return parseFloat((price?.price??"1.00")).toFixed(4)
+  return parseFloat((price?.price??"")).toFixed(4)
 }
 
 const SideNav = () => {
-  const [cdtPrice, setcdtPrice ] = useState("1.00")
+  const [cdtPrice, setcdtPrice ] = useState("")
   const price = getCDTPrice()
   if (price != cdtPrice) setcdtPrice(price)
 

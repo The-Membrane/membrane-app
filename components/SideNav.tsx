@@ -68,7 +68,8 @@ const SideNav = () => {
   useMemo(() => {
     if (cdt) {
       const price = getPriceByDenom(cdt.base)
-      if (price) {
+      console.log(price)
+      if (price !== undefined) {
         console.log("CDT Price: ", num(price).toFixed(2))
         setcdtPrice(num(price).toFixed(2))
       }

@@ -14,11 +14,11 @@ import { Asset } from '@/helpers/chain'
 type Props = {
   value: any
   onChange: (value: string) => void
+  walletBalances: any
 }
 
-const AssetsWithBalanceMenu = (props: Props) => {
+const AssetsWithBalanceMenu = ({ value, onChange, walletBalances }: Props) => {
   const assets = useCollateralAssets()
-  const { data: walletBalances } = useBalance()
   
   // const assetsWithBalance: any[] = [];
   // useMemo( () => {assets?.forEach((asset) => {
@@ -36,9 +36,9 @@ const AssetsWithBalanceMenu = (props: Props) => {
     }))
 
   console.log("Options:", assetsWithBalance)
-  console.log("Value:", props.value)
+  console.log("Value:", value)
 
-  return <QASelect options={assetsWithBalance} onChange={props.onChange} value={props.value} />
+  return <QASelect options={assetsWithBalance} onChange={onChange} value={value} />
 }
 
 
@@ -97,7 +97,7 @@ export const SliderWithInputBox = ({ label, value, setActionState, max, inputBox
 
 
 const Home = () => { 
-
+  const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   
   const onMenuChange = (value: string) => {
@@ -111,7 +111,7 @@ const Home = () => {
       <StatsCard />      
       <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
         <Text variant="title" fontSize="16px">
-          Single Asset Mint & LP
+          Mint & LP
         </Text>
 
         {/* //Action */}
@@ -120,6 +120,7 @@ const Home = () => {
           <AssetsWithBalanceMenu 
             value={quickActionState?.selectedAsset}
             onChange={onMenuChange}
+            walletBalances={walletBalances}
           />
           <SliderWithInputBox
             label={quickActionState?.selectedAsset?.symbol??"None"} 

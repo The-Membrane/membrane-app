@@ -3,7 +3,7 @@ import { StatsCard } from '../StatsCard'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
-import Select from '@/components/Select'
+import QASelect from '@/components/Select'
 import useQuickActionState from './hooks/useQuickActionState'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { ChangeEvent, useMemo, useState } from 'react'
@@ -28,7 +28,8 @@ const AssetsWithBalanceMenu = (props: Props) => {
   // })}, [walletBalances])
 
   const assetsWithBalance = assets
-    ?.map((asset) => ({
+    ?.filter((asset) => {walletBalances?.find((b: any) => b.denom === asset?.base)?.amount != "0"})
+    .map((asset) => ({
       ...asset,
       value: asset?.symbol,
       label: asset?.symbol,
@@ -37,7 +38,7 @@ const AssetsWithBalanceMenu = (props: Props) => {
   console.log("Options:", assetsWithBalance)
   console.log("Value:", props.value)
 
-  return <Select options={assetsWithBalance} onChange={props.onChange} value={props.value} />
+  return <QASelect options={assetsWithBalance} onChange={props.onChange} value={props.value} />
 }
 
 
@@ -121,7 +122,7 @@ const Home = () => {
             onChange={onMenuChange}
           />
           <SliderWithInputBox
-            label="CDT"        
+            label={quickActionState?.selectedAsset?.symbol??"None"} 
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={0}

@@ -15,7 +15,7 @@ import { Coin } from '@cosmjs/stargate'
 type Props = {
   value: any
   onChange: (value: string) => void
-  walletBalances: Coin[] | null | undefined
+  walletBalances: Coin[]
   QAState: QuickActionState
   setQAState: (set: any) => void
 }
@@ -30,9 +30,9 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
   //   if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance: parseInt(balance)})
   // })}, [walletBalances])
 
-  console.log("balances:", walletBalances!.map((b: any) => {console.log(b.amount != "0"); b.amount}))
+  console.log("balances:", walletBalances.map((b: any) => {console.log(b.amount != "0"); b.amount}))
   console.log(assets?.filter((asset) => {
-    walletBalances!.find((b: any) => b.denom === asset?.base)?.amount != "0"
+    walletBalances.find((b: any) => b.denom === asset?.base)?.amount != "0"
   }))
 
   //We want this to only hold assets that have a balance within the wallet
@@ -45,7 +45,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
   useEffect(() => {
     if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {
-      const balance = walletBalances!.find((b: any) => b.denom === (assetsWithBalance?.[0] as Asset).base)?.amount
+      const balance = walletBalances.find((b: any) => b.denom === (assetsWithBalance?.[0] as Asset).base)?.amount
 
       console.log("assetsWithBalance:", balance)
 
@@ -147,7 +147,7 @@ const Home = () => {
           <AssetsWithBalanceMenu 
             value={quickActionState?.selectedAsset}
             onChange={onMenuChange}
-            walletBalances={walletBalances}
+            walletBalances={walletBalances??[]}
             QAState={quickActionState}
             setQAState={setQuickActionState}
           />

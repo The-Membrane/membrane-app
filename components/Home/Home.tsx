@@ -1,7 +1,8 @@
-import { Center, SimpleGrid, Stack, Text } from '@chakra-ui/react'
+import { Card, Center, SimpleGrid, Stack, Text } from '@chakra-ui/react'
 import { BidIcon, ClaimIcon, MintIcon, StakeIcon } from '../Icons'
 import FeatureCard from './FeatureCard'
 import { StatsCard } from '../StatsCard'
+import ConfirmModal from '../ConfirmModal'
 
 const featurs = [
   {
@@ -33,10 +34,21 @@ const featurs = [
 const Home = () => {
   return (
     <Stack >
-      <StatsCard />
-      <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)">
+      <StatsCard />      
+      <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
+        <Text variant="title" fontSize="16px">
+          Single Asset Mint & LP
+        </Text>
+
+        {/* //Action */}
+
+        <ConfirmModal label={'LP'}>
+          Deposit - Mint - LP Summary
+        </ConfirmModal>
+      </Card>
+      {/* <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)">
         More Stats Coming Soon...
-      </Text>
+      </Text> */}
     </Stack>
   )
 }

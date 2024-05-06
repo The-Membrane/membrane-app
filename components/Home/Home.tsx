@@ -135,6 +135,8 @@ const Home = () => {
             value={quickActionState?.selectedAsset}
             onChange={onMenuChange}
             walletBalances={walletBalances}
+            QAState={quickActionState}
+            setQAState={setQuickActionState}
           />
           <SliderWithInputBox
             label={quickActionState?.selectedAsset?.symbol} 

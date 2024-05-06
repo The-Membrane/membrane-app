@@ -42,6 +42,7 @@ const Home = () => {
 
         {/* //Action */}
         {/* Asset Menu + Input Box*/}
+        <AssetsWithBalanceMenu />
         {/* LTV Input Box */}
 
         <ConfirmModal label={'LP'}>

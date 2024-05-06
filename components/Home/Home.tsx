@@ -2,15 +2,19 @@ import { Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
-import useBalance from '@/hooks/useBalance'
+import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
 import Select from '@/components/Select'
 import useQuickActionState from './hooks/useQuickActionState'
 import { SliderWithState } from '../Mint/SliderWithState'
-import { useState } from 'react'
+import { ChangeEvent, useState } from 'react'
 import { num } from '@/helpers/num'
 import { delayTime } from "@/config/defaults"
+import { getAssetBySymbol } from '@/helpers/chain'
 
-type Props = {}
+type Props = {
+  value: string
+  onChange: (value: string) => void
+}
 
 const AssetsWithBalanceMenu = (props: Props) => {
   const assets = useCollateralAssets()
@@ -23,26 +27,18 @@ const AssetsWithBalanceMenu = (props: Props) => {
     if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance})
   })
 
-  const { quickActionState, setQuickActionState } = useQuickActionState()
-  
-  const onChange = (value: string) => {
-    setQuickActionState({
-      selectedAsset: value
-    })
-  }
-
-  return <Select options={assetsWithBalance} onChange={onChange} value={quickActionState?.selectedAsset??"No Collateral Assets in Wallet"} />
+  return <Select options={assetsWithBalance} onChange={props.onChange} value={props.value} />
 }
 
 
 type SliderWithInputProps = {
   value: number
   setActionState: (set: any) => void
-  min: number
   max: number
+  inputBoxWidth?: string
 }
 
-const SliderWithInputBox = ({ setActionState, max }: SliderWithInputProps) => {  
+const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
     //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
 
@@ -63,10 +59,41 @@ const SliderWithInputBox = ({ setActionState, max }: SliderWithInputProps) => {
           else setActionState(parseInt(e.target.value))
       }, delayTime);        
     }
+
+    return (<Stack py="5" w="full" gap="5">      
+    <HStack justifyContent="space-between">
+      <Text fontSize="16px" fontWeight="700">
+        CDT
+      </Text>
+      <Input 
+        width={inputBoxWidth} 
+        textAlign={"center"} 
+        placeholder="0" 
+        type="number" 
+        value={inputAmount} 
+        onChange={handleInputChange}
+      />
+    </HStack>      
+    <SliderWithState
+      value={value}
+      onChange={onSliderChange}
+      min={0}
+      max={max}
+    />
+  </Stack>)
 }
 
 
-const Home = () => {
+const Home = () => { 
+
+  const { quickActionState, setQuickActionState } = useQuickActionState()
+  
+  const onMenuChange = (value: string) => {
+    setQuickActionState({
+      selectedAsset: value
+    })
+  }
+
   return (
     <Stack >
       <StatsCard />      
@@ -78,27 +105,15 @@ const Home = () => {
         {/* //Action */}
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="5">      
-          <AssetsWithBalanceMenu />
-          <HStack justifyContent="space-between">
-            <Text fontSize="16px" fontWeight="700">
-              CDT
-            </Text>
-            <Input 
-              width={"38%"} 
-              textAlign={"center"} 
-              placeholder="0" 
-              type="number" 
-              value={inputAmount} 
-              onChange={handleInputChange}
-             />
-          </HStack>      
-          <SliderWithState
-            value={LPState?.newCDT}
-            onChange={onCDTChange}
-            min={0}
-            max={Number(cdtBalance)}
+          <AssetsWithBalanceMenu 
+            value={quickActionState?.selectedAsset?.symbol??"No Collateral Assets in Wallet"}
+            onChange={onMenuChange}
           />
-          </Stack>
+          <SliderWithInputBox 
+            value={quickActionState.assetActionAmount}
+            setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
+            max={quickActionState?.selectedAsset?.balance??0}
+          />
         </Stack>
         {/* LTV Input Box */}
 

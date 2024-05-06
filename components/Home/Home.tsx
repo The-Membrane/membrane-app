@@ -27,6 +27,9 @@ const AssetsWithBalanceMenu = (props: Props) => {
     if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance})
   })
 
+  console.log("Options:", assetsWithBalance)
+  console.log("Value:", props.value)
+
   return <Select options={assetsWithBalance} onChange={props.onChange} value={props.value} />
 }
 
@@ -38,7 +41,7 @@ type SliderWithInputProps = {
   inputBoxWidth?: string
 }
 
-const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
+export const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
     //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
 

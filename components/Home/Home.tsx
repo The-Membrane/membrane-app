@@ -7,7 +7,7 @@ import QASelect from '@/components/QuickActionSelect'
 import useQuickActionState, { QuickActionState } from './hooks/useQuickActionState'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { ChangeEvent, useEffect, useMemo, useState } from 'react'
-import { num } from '@/helpers/num'
+import { num, shiftDigits } from '@/helpers/num'
 import { delayTime } from "@/config/defaults"
 import { Asset } from '@/helpers/chain'
 
@@ -152,7 +152,8 @@ const Home = () => {
             label={quickActionState?.selectedAsset?.symbol} 
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
-            max={quickActionState.assetMax}
+            max={num(shiftDigits(quickActionState.assetMax, -(quickActionState?.selectedAsset?.decimal??6))).toNumber()}
+            inputBoxWidth='50%'
           />
         </Stack>
         {/* LTV Input Box */}

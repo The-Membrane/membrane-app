@@ -9,7 +9,7 @@ import { SliderWithState } from '../Mint/SliderWithState'
 import { ChangeEvent, useMemo, useState } from 'react'
 import { num } from '@/helpers/num'
 import { delayTime } from "@/config/defaults"
-import { getAssetBySymbol } from '@/helpers/chain'
+import { Asset } from '@/helpers/chain'
 
 type Props = {
   value: any
@@ -20,17 +20,24 @@ const AssetsWithBalanceMenu = (props: Props) => {
   const assets = useCollateralAssets()
   const { data: walletBalances } = useBalance()
   
-  const assetsWithBalance = [];
-  useMemo( () => {assets?.forEach((asset) => {
-    const balance = walletBalances?.find((b: any) => b.denom === asset?.base)?.amount
+  // const assetsWithBalance: any[] = [];
+  // useMemo( () => {assets?.forEach((asset) => {
+  //   const balance = walletBalances?.find((b: any) => b.denom === asset?.base)?.amount
     
-    if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance})
-  })}, [walletBalances])
+  //   if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance: parseInt(balance)})
+  // })}, [walletBalances])
+
+  const assetsWithBalance = assets
+    ?.map((asset) => ({
+      ...asset,
+      value: asset?.symbol,
+      label: asset?.symbol,
+    }))
 
   console.log("Options:", assetsWithBalance)
   console.log("Value:", props.value)
 
-  return <Select options={assetsWithBalance} onChange={props.onChange} value={props.value} />
+  return <Select options={assetsWithBalance} onChange={props.onChange} value={props.value.symbol} />
 }
 
 

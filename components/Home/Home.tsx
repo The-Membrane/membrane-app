@@ -29,7 +29,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
   //   if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance: parseInt(balance)})
   // })}, [walletBalances])
 
-  console.log(walletBalances)
+  console.log("balances:", walletBalances)
   console.log(assets?.filter((asset) => {
     walletBalances?.find((b: any) => b.denom === asset?.base)?.amount != "0"
   }))
@@ -48,9 +48,6 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
       })
     }
   }, [assetsWithBalance])
-
-  console.log("Options:", assetsWithBalance)
-  console.log("Value:", value)
 
   return <QASelect options={assetsWithBalance} onChange={onChange} value={value} />
 }
@@ -112,6 +109,7 @@ export const SliderWithInputBox = ({ label, value, setActionState, max, inputBox
 
 const Home = () => { 
   const { data: walletBalances } = useBalance()
+  console.log("balances:", walletBalances)
   const { quickActionState, setQuickActionState } = useQuickActionState()
   
   const onMenuChange = (value: string) => {
@@ -119,6 +117,16 @@ const Home = () => {
       selectedAsset: value
     })
   }
+
+  var max = 0
+  useEffect(() => {
+    if (quickActionState?.selectedAsset) {
+      const balance = walletBalances?.find((b: any) => b.denom === quickActionState?.selectedAsset?.base)?.amount
+      console.log(balance)
+      max = parseInt(balance??"0")
+    }
+  
+  }, [quickActionState.selectedAsset])
 
   return (
     <Stack >
@@ -142,7 +150,7 @@ const Home = () => {
             label={quickActionState?.selectedAsset?.symbol} 
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
-            max={0}
+            max={max}
           />
         </Stack>
         {/* LTV Input Box */}

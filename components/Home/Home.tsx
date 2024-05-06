@@ -1,35 +1,35 @@
-import { Card, Center, SimpleGrid, Stack, Text } from '@chakra-ui/react'
-import { BidIcon, ClaimIcon, MintIcon, StakeIcon } from '../Icons'
-import FeatureCard from './FeatureCard'
+import { Card, Stack, Text } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import ConfirmModal from '../ConfirmModal'
+import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
+import useBalance from '@/hooks/useBalance'
+import Select from '@/components/Select'
+import useQuickActionState from './hooks/useQuickActionState'
 
-const featurs = [
-  {
-    label: 'Vaults',
-    FeatureIcon: MintIcon,
-    href: '/mint',
-    ctaLabel: 'Mint',
-  },
-  {
-    label: 'Liquidations',
-    FeatureIcon: BidIcon,
-    href: '/bid',
-    ctaLabel: 'Bid',
-  },
-  {
-    label: 'Staking',
-    FeatureIcon: StakeIcon,
-    href: '/stake',
-    ctaLabel: 'Stake',
-  },
-  {
-    label: 'Lockdrop',
-    FeatureIcon: ClaimIcon,
-    href: '/lockdrop',
-    ctaLabel: 'Claim',
-  },
-]
+type Props = {}
+
+const AssetsWithBalanceMenu = (props: Props) => {
+  const assets = useCollateralAssets()
+  const { data: walletBalances } = useBalance()
+  
+  const assetsWithBalance = [];
+  assets?.forEach((asset) => {
+    const balance = walletBalances?.find((b: any) => b.denom === asset?.base)?.amount
+    
+    if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance})
+  })
+
+  const { quickActionState, setQuickActionState } = useQuickActionState()
+  
+  const onChange = (value: string) => {
+    setQuickActionState({
+      selectedAsset: value
+    })
+  }
+
+  return <Select options={assetsWithBalance} onChange={onChange} value={quickActionState?.selectedAsset??"No Collateral Assets in Wallet"} />
+}
+
 
 const Home = () => {
   return (
@@ -41,6 +41,8 @@ const Home = () => {
         </Text>
 
         {/* //Action */}
+        {/* Asset Menu + Input Box*/}
+        {/* LTV Input Box */}
 
         <ConfirmModal label={'LP'}>
           Deposit - Mint - LP Summary

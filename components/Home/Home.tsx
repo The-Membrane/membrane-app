@@ -12,7 +12,7 @@ import { delayTime } from "@/config/defaults"
 import { getAssetBySymbol } from '@/helpers/chain'
 
 type Props = {
-  value: string
+  value: any
   onChange: (value: string) => void
 }
 
@@ -110,7 +110,7 @@ const Home = () => {
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="5">      
           <AssetsWithBalanceMenu 
-            value={quickActionState?.selectedAsset?.symbol??"No Collateral Assets in Wallet"}
+            value={quickActionState?.selectedAsset}
             onChange={onMenuChange}
           />
           <SliderWithInputBox

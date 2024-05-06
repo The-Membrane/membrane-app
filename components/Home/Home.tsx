@@ -4,9 +4,9 @@ import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
 import QASelect from '@/components/QuickActionSelect'
-import useQuickActionState from './hooks/useQuickActionState'
+import useQuickActionState, { QuickActionState } from './hooks/useQuickActionState'
 import { SliderWithState } from '../Mint/SliderWithState'
-import { ChangeEvent, useMemo, useState } from 'react'
+import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { num } from '@/helpers/num'
 import { delayTime } from "@/config/defaults"
 import { Asset } from '@/helpers/chain'
@@ -15,9 +15,11 @@ type Props = {
   value: any
   onChange: (value: string) => void
   walletBalances: any
+  QAState: QuickActionState
+  setQAState: (set: any) => void
 }
 
-const AssetsWithBalanceMenu = ({ value, onChange, walletBalances }: Props) => {
+const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQAState }: Props) => {
   const assets = useCollateralAssets()
   
   // const assetsWithBalance: any[] = [];
@@ -38,6 +40,14 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances }: Props) => {
       value: asset?.symbol,
       label: asset?.symbol,
     }))
+
+  useEffect(() => {
+    if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {
+      setQAState({
+        selectedAsset: assetsWithBalance?.[0],
+      })
+    }
+  }, [assetsWithBalance])
 
   console.log("Options:", assetsWithBalance)
   console.log("Value:", value)
@@ -127,7 +137,7 @@ const Home = () => {
             walletBalances={walletBalances}
           />
           <SliderWithInputBox
-            label={quickActionState?.selectedAsset} 
+            label={quickActionState?.selectedAsset?.symbol} 
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={0}

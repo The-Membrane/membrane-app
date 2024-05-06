@@ -2,7 +2,7 @@ import { Asset } from '@/helpers/chain'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
-type QuickActionState = {
+export type QuickActionState = {
   selectedAsset?: Asset
   assetActionAmount: number
 }

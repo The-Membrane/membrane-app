@@ -30,7 +30,8 @@ const chakraStyles: ChakraStylesConfig = {
     bg: 'transparent',
     color: '#fff',
     cursor: 'pointer',
-    width: '73%',
+    width: '100%',
+    maxWidth: '73%',
     justifyContent: 'center',
     _selected: {
       bg: '#C445F0',

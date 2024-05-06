@@ -54,7 +54,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
         assetMax: parseInt(balance??"0")        
       })
     }
-  }, [assetsWithBalance])
+  }, [assetsWithBalance, walletBalances])
 
   return <QASelect options={assetsWithBalance} onChange={onChange} value={value} />
 }

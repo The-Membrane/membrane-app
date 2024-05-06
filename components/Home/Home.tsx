@@ -27,14 +27,18 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances }: Props) => {
   //   if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance: parseInt(balance)})
   // })}, [walletBalances])
 
+  console.log(walletBalances)
+  console.log(assets?.filter((asset) => {
+    walletBalances?.find((b: any) => b.denom === asset?.base)?.amount != "0"
+  }))
+
   const assetsWithBalance = assets
-    ?.filter((asset) => {walletBalances?.find((b: any) => b.denom === asset?.base)?.amount != "0"})
-    .map((asset) => ({
+    ?.map((asset) => ({
       ...asset,
       value: asset?.symbol,
       label: asset?.symbol,
     }))
-
+//Remove filter to test menu formatting & log balances
   console.log("Options:", assetsWithBalance)
   console.log("Value:", value)
 

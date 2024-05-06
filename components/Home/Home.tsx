@@ -88,7 +88,7 @@ export const SliderWithInputBox = ({ label, value, setActionState, max, inputBox
 
     return (<Stack py="5" w="full" gap="5">      
     <HStack justifyContent="space-between">
-      <Text fontSize="16px" fontWeight="700">
+      <Text fontSize="14px" fontWeight="700">
         {label}
       </Text>
       <Input 

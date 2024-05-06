@@ -43,9 +43,10 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
   useEffect(() => {
     if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {
-      console.log("assetsWithBalance:", assetsWithBalance?.[0])
       const balance = walletBalances?.find((b: any) => b.denom === (assetsWithBalance?.[0] as Asset).base)?.amount
 
+      console.log("assetsWithBalance:", balance)
+      
       setQAState({
         selectedAsset: assetsWithBalance?.[0],
         assetMax: parseInt(balance??"0")        

@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
 type QuickActionState = {
-  selectedAsset?: Asset & { balance: number}
+  selectedAsset?: Asset
   assetActionAmount: number
 }
 

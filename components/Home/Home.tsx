@@ -37,7 +37,7 @@ const AssetsWithBalanceMenu = (props: Props) => {
   console.log("Options:", assetsWithBalance)
   console.log("Value:", props.value)
 
-  return <Select options={assetsWithBalance} onChange={props.onChange} value={props.value.symbol} />
+  return <Select options={assetsWithBalance} onChange={props.onChange} value={props.value} />
 }
 
 
@@ -124,7 +124,7 @@ const Home = () => {
             label="CDT"        
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
-            max={quickActionState?.selectedAsset?.balance??0}
+            max={0}
           />
         </Stack>
         {/* LTV Input Box */}

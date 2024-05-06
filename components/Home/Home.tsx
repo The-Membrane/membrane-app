@@ -3,7 +3,7 @@ import { StatsCard } from '../StatsCard'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
-import QASelect from '@/components/Select'
+import QASelect from '@/components/QuickActionSelect'
 import useQuickActionState from './hooks/useQuickActionState'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { ChangeEvent, useMemo, useState } from 'react'
@@ -38,7 +38,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances }: Props) => {
       value: asset?.symbol,
       label: asset?.symbol,
     }))
-//Remove filter to test menu formatting & log balances
+
   console.log("Options:", assetsWithBalance)
   console.log("Value:", value)
 

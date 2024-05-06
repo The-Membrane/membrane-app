@@ -6,6 +6,7 @@ const chakraStyles: ChakraStylesConfig = {
     border: 'none',
     fontSize: '16px',
     justifyContent: 'center',
+    display: 'flex',
     px: 2,
     cursor: 'pointer',
   }),

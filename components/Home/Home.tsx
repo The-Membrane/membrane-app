@@ -29,7 +29,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
   //   if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance: parseInt(balance)})
   // })}, [walletBalances])
 
-  console.log("balances:", walletBalances)
+  console.log("balances:", walletBalances.map((b: any) => {console.log(b.amount != "0"); b.amount}))
   console.log(assets?.filter((asset) => {
     walletBalances?.find((b: any) => b.denom === asset?.base)?.amount != "0"
   }))
@@ -46,7 +46,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
       const balance = walletBalances?.find((b: any) => b.denom === (assetsWithBalance?.[0] as Asset).base)?.amount
 
       console.log("assetsWithBalance:", balance)
-      
+
       setQAState({
         selectedAsset: assetsWithBalance?.[0],
         assetMax: parseInt(balance??"0")        

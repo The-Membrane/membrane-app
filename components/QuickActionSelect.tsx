@@ -5,6 +5,7 @@ const chakraStyles: ChakraStylesConfig = {
     ...provided,
     border: 'none',
     fontSize: '16px',
+    justifyContent: 'center',
     px: 2,
     cursor: 'pointer',
   }),
@@ -31,7 +32,6 @@ const chakraStyles: ChakraStylesConfig = {
     color: '#fff',
     cursor: 'pointer',
     width: '100%',
-    maxWidth: '73%',
     justifyContent: 'center',
     _selected: {
       bg: '#C445F0',

@@ -6,7 +6,7 @@ import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
 import Select from '@/components/Select'
 import useQuickActionState from './hooks/useQuickActionState'
 import { SliderWithState } from '../Mint/SliderWithState'
-import { ChangeEvent, useState } from 'react'
+import { ChangeEvent, useMemo, useState } from 'react'
 import { num } from '@/helpers/num'
 import { delayTime } from "@/config/defaults"
 import { getAssetBySymbol } from '@/helpers/chain'
@@ -21,11 +21,11 @@ const AssetsWithBalanceMenu = (props: Props) => {
   const { data: walletBalances } = useBalance()
   
   const assetsWithBalance = [];
-  assets?.forEach((asset) => {
+  useMemo( () => {assets?.forEach((asset) => {
     const balance = walletBalances?.find((b: any) => b.denom === asset?.base)?.amount
     
     if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance})
-  })
+  })}, [walletBalances])
 
   console.log("Options:", assetsWithBalance)
   console.log("Value:", props.value)
@@ -35,13 +35,14 @@ const AssetsWithBalanceMenu = (props: Props) => {
 
 
 type SliderWithInputProps = {
+  label: string
   value: number
   setActionState: (set: any) => void
   max: number
   inputBoxWidth?: string
 }
 
-export const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
+export const SliderWithInputBox = ({ label, value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
     //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
 
@@ -66,7 +67,7 @@ export const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth =
     return (<Stack py="5" w="full" gap="5">      
     <HStack justifyContent="space-between">
       <Text fontSize="16px" fontWeight="700">
-        CDT
+        {label}
       </Text>
       <Input 
         width={inputBoxWidth} 
@@ -112,7 +113,8 @@ const Home = () => {
             value={quickActionState?.selectedAsset?.symbol??"No Collateral Assets in Wallet"}
             onChange={onMenuChange}
           />
-          <SliderWithInputBox 
+          <SliderWithInputBox
+            label="CDT"        
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={quickActionState?.selectedAsset?.balance??0}

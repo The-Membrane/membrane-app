@@ -10,11 +10,12 @@ import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { num, shiftDigits } from '@/helpers/num'
 import { delayTime } from "@/config/defaults"
 import { Asset } from '@/helpers/chain'
+import { Coin } from '@cosmjs/stargate'
 
 type Props = {
   value: any
   onChange: (value: string) => void
-  walletBalances: any
+  walletBalances: Coin[] | null | undefined
   QAState: QuickActionState
   setQAState: (set: any) => void
 }
@@ -29,11 +30,12 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
   //   if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance: parseInt(balance)})
   // })}, [walletBalances])
 
-  console.log("balances:", walletBalances.map((b: any) => {console.log(b.amount != "0"); b.amount}))
+  console.log("balances:", walletBalances!.map((b: any) => {console.log(b.amount != "0"); b.amount}))
   console.log(assets?.filter((asset) => {
-    walletBalances?.find((b: any) => b.denom === asset?.base)?.amount != "0"
+    walletBalances!.find((b: any) => b.denom === asset?.base)?.amount != "0"
   }))
 
+  //We want this to only hold assets that have a balance within the wallet
   const assetsWithBalance = assets
     ?.map((asset) => ({
       ...asset,
@@ -43,7 +45,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
   useEffect(() => {
     if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {
-      const balance = walletBalances?.find((b: any) => b.denom === (assetsWithBalance?.[0] as Asset).base)?.amount
+      const balance = walletBalances!.find((b: any) => b.denom === (assetsWithBalance?.[0] as Asset).base)?.amount
 
       console.log("assetsWithBalance:", balance)
 

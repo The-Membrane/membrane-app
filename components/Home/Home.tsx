@@ -43,8 +43,12 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
   useEffect(() => {
     if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {
+      
+      const balance = walletBalances?.find((b: any) => b.denom === assetsWithBalance?.[0].base)?.amount
+
       setQAState({
         selectedAsset: assetsWithBalance?.[0],
+        assetMax: parseInt(balance??"0")        
       })
     }
   }, [assetsWithBalance])
@@ -118,12 +122,10 @@ const Home = () => {
     })
   }
 
-  var max = 0
   useEffect(() => {
     if (quickActionState?.selectedAsset) {
       const balance = walletBalances?.find((b: any) => b.denom === quickActionState?.selectedAsset?.base)?.amount
-      console.log(balance)
-      max = parseInt(balance??"0")
+      setQuickActionState({assetMax: parseInt(balance??"0")})
     }
   
   }, [quickActionState.selectedAsset])
@@ -150,7 +152,7 @@ const Home = () => {
             label={quickActionState?.selectedAsset?.symbol} 
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
-            max={max}
+            max={quickActionState.assetMax}
           />
         </Stack>
         {/* LTV Input Box */}

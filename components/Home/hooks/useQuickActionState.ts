@@ -4,6 +4,7 @@ import { devtools } from 'zustand/middleware'
 
 export type QuickActionState = {
   selectedAsset?: Asset
+  assetMax: number
   assetActionAmount: number
 }
 
@@ -14,6 +15,7 @@ type Store = {
 
 const initialState: QuickActionState = {  
     assetActionAmount: 0,
+    assetMax: 0,
 }
 
 // @ts-ignore

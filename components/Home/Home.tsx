@@ -127,7 +127,7 @@ const Home = () => {
             walletBalances={walletBalances}
           />
           <SliderWithInputBox
-            label={quickActionState?.selectedAsset?.symbol??"None"} 
+            label={quickActionState?.selectedAsset} 
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={0}

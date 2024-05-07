@@ -16,6 +16,7 @@ export const QuickActionAssetWithSlider = ({ asset, label }: AssetWithSliderProp
   const onChange = (value: number) => {
     let updatedAssets = quickActionState.assets.map((asset) => {
       const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
+      console.log(sliderValue, asset.combinUsdValue)
       
       const newDeposit = num(sliderValue).toNumber()
       const amount = num(newDeposit).dividedBy(asset.price).dp(asset.decimal??6).toNumber()

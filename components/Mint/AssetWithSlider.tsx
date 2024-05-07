@@ -36,7 +36,7 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
 
     setMintState({ assets: updatedAssets, summary, totalUsdValue })
   }
-
+  console.log(asset?.combinUsdValue)
   return (
     <Stack gap="0">
       <HStack justifyContent="space-between">

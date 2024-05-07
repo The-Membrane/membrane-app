@@ -49,11 +49,13 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
         ...asset,
         value: asset?.symbol,
         label: asset?.symbol,
+        sliderValue: 0,
         balance: Number(walletBalances?.find((b: any) => b.denom === asset.base)?.amount),
         combinUsdValue: num(walletBalances?.find((b: any) => b.denom === asset.base)?.amount).times(num(prices?.find((p: any) => p.denom === asset.base)??"0")).toNumber()
       }))
 
   }, [assets, walletBalances, prices])
+  console.log("ab:", assetsWithBalance)
 
   useEffect(() => {
     if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {

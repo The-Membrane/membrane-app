@@ -130,6 +130,7 @@ const Home = () => {
 
   useEffect(() => {
     if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
+      console.log("changed to:", quickActionState?.assets[0].symbol)
       setQuickActionState({
         selectedAsset:  quickActionState?.assets[0], 
       })
@@ -160,7 +161,7 @@ const Home = () => {
       })
     }
     
-  }, [quickActionState?.assets])
+  }, [quickActionState?.assets, quickActionState?.selectedAsset])
 
   return (
     <Stack >

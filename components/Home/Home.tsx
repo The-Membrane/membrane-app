@@ -16,6 +16,7 @@ import useVaultSummary from '../Mint/hooks/useVaultSummary'
 import useMintState from '../Mint/hooks/useMintState'
 import { calcSliderValue } from '../Mint/TakeAction'
 import { AssetWithSlider } from '../Mint/AssetWithSlider'
+import { useOraclePrice } from '@/hooks/useOracle'
 
 type Props = {
   value: string
@@ -27,6 +28,7 @@ type Props = {
 
 const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQAState }: Props) => {
   const assets = useCollateralAssets()
+  const { data: prices } = useOraclePrice()
   
   //List of all denoms in the wallet
   const walletDenoms = walletBalances.map((coin: Coin) => {
@@ -37,6 +39,8 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
   //Create an object of assets that only holds assets that have a walletBalance
   const assetsWithBalance = useMemo(() => {
+
+
       return assets?.filter((asset) => {
         if (asset) return walletDenoms.includes(asset.base)
         else return false
@@ -44,6 +48,8 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
         ...asset,
         value: asset?.symbol,
         label: asset?.symbol,
+        balance: Number(walletBalances?.find((b: any) => b.denom === asset.base)?.amount),
+        combinUsdValue: num(walletBalances?.find((b: any) => b.denom === asset.base)?.amount).times(num(prices?.find((p: any) => p.denom === asset.base)??"0")).toNumber()
       }))
 
   }, [assets, walletBalances])

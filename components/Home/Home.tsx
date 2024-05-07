@@ -58,11 +58,6 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
         selectedAsset: assetsWithBalance?.[0],
         assetMax: parseInt(balance??"0")        
       })
-    } else {
-      setQAState({
-        selectedAsset: "OSMO",
-        assetMax: "0"
-      })
     }
   }, [assetsWithBalance, walletBalances])
 

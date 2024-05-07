@@ -1,11 +1,14 @@
+import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
+import { Summary } from '@/components/Mint/hooks/useMintState'
 import { Asset } from '@/helpers/chain'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
 export type QuickActionState = {
   selectedAsset?: Asset
-  assetMax: number
-  assetActionAmount: number
+  assets: AssetWithBalance[]
+  summary?: Summary[]
+  totalUsdValue?: number
 }
 
 type Store = {
@@ -14,8 +17,7 @@ type Store = {
 }
 
 const initialState: QuickActionState = {  
-    assetActionAmount: 0,
-    assetMax: 0,
+  assets: [],
 }
 
 // @ts-ignore

@@ -15,6 +15,7 @@ import { LTVWithSlider } from '../Mint/LTVWithSlider'
 import useVaultSummary from '../Mint/hooks/useVaultSummary'
 import useMintState from '../Mint/hooks/useMintState'
 import { calcSliderValue } from '../Mint/TakeAction'
+import { AssetWithSlider } from '../Mint/AssetWithSlider'
 
 type Props = {
   value: string
@@ -79,7 +80,7 @@ const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%",
 
     const onSliderChange = (value: number) => {
       setActionState(value)
-      setInputAmount(value)    
+      setInputAmount(value)
     }
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -146,9 +147,15 @@ const Home = () => {
   
   }, [quickActionState.selectedAsset])
 
+  //Use mintState to update the deposit state
+  const { mintState } = useMintState()
+  //When QA's assetActionAmount changes, update the deposit state
+  useEffect(() => {
+
+  }, [quickActionState.assetActionAmount])
+
   
   const { debtAmount } = useVaultSummary()
-  const { mintState } = useMintState()
   const sliderValue = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
 
   return (
@@ -172,6 +179,7 @@ const Home = () => {
             onMenuChange={onMenuChange}
             walletBalances={walletBalances??[]}
           />
+          <AssetWithSlider key={quickActionState?.selectedAsset?.base} asset={quickActionState?.selectedAsset} label={quickActionState?.selectedAsset?.symbol} />
           <LTVWithSlider label="Your Debt" value={sliderValue}/>
         </Stack>
         {/* LTV Input Box */}

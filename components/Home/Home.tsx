@@ -13,7 +13,7 @@ import { Asset } from '@/helpers/chain'
 import { Coin } from '@cosmjs/stargate'
 
 type Props = {
-  value: any
+  value: Asset
   onChange: (value: Asset) => void
   walletBalances: Coin[]
   QAState: QuickActionState

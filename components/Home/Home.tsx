@@ -91,30 +91,34 @@ const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%",
       }, delayTime);        
     }
 
-    return (<Stack py="5" w="full" gap="5">      
-    {/* <HStack justifyContent="space-between"> */}
-      <AssetsWithBalanceMenu 
-        value={QAState?.selectedAsset} 
-        onChange={onMenuChange}
-        walletBalances={walletBalances??[]}
-        QAState={QAState}
-        setQAState={setQAState}
+    return (
+    <Stack py="5" w="full" gap="5">     
+      <Text fontSize="14px" fontWeight="700">
+        Choose Collateral
+      </Text> 
+      <HStack justifyContent="space-between">
+        <AssetsWithBalanceMenu 
+          value={QAState?.selectedAsset} 
+          onChange={onMenuChange}
+          walletBalances={walletBalances??[]}
+          QAState={QAState}
+          setQAState={setQAState}
+        />
+        <Input 
+          width={inputBoxWidth} 
+          textAlign={"center"} 
+          placeholder="0" 
+          type="number" 
+          value={inputAmount} 
+          onChange={handleInputChange}
+        />
+      </HStack>      
+      <SliderWithState
+        value={value}
+        onChange={onSliderChange}
+        min={0}
+        max={max}
       />
-      <Input 
-        width={inputBoxWidth} 
-        textAlign={"center"} 
-        placeholder="0" 
-        type="number" 
-        value={inputAmount} 
-        onChange={handleInputChange}
-      />
-    {/* </HStack>       */}
-    <SliderWithState
-      value={value}
-      onChange={onSliderChange}
-      min={0}
-      max={max}
-    />
   </Stack>)
 }
 
@@ -141,7 +145,7 @@ const Home = () => {
   return (
     <Stack >
       <StatsCard />      
-      <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
+      <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
         <Text variant="title" fontSize="16px">
           Mint & LP
         </Text>
@@ -153,7 +157,7 @@ const Home = () => {
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={num(shiftDigits(quickActionState.assetMax, -(quickActionState?.selectedAsset?.decimal??6))).toNumber()}
-            inputBoxWidth='50%'
+            inputBoxWidth='42%'
             QAState={quickActionState}
             setQAState={setQuickActionState}
             onMenuChange={onMenuChange}
@@ -166,9 +170,6 @@ const Home = () => {
           Deposit - Mint - LP Summary
         </ConfirmModal>
       </Card>
-      {/* <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)">
-        More Stats Coming Soon...
-      </Text> */}
     </Stack>
   )
 }

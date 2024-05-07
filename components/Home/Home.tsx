@@ -59,15 +59,17 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
 
 type SliderWithInputProps = {
-  label: string
-  component: any
   value: number
   setActionState: (set: any) => void
   max: number
   inputBoxWidth?: string
+  QAState: QuickActionState
+  setQAState: (set: any) => void
+  onMenuChange: (value: string) => void
+  walletBalances: Coin[]
 }
 
-export const SliderWithInputBox = ({ label, component, value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
+const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, walletBalances }: SliderWithInputProps) => {  
     //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
 
@@ -91,9 +93,13 @@ export const SliderWithInputBox = ({ label, component, value, setActionState, ma
 
     return (<Stack py="5" w="full" gap="5">      
     <HStack justifyContent="space-between">
-      {label === "" ? {component} : <Text fontSize="14px" fontWeight="700">
-        {label}
-      </Text>}
+      <AssetsWithBalanceMenu 
+        value={QAState?.selectedAsset} 
+        onChange={onMenuChange}
+        walletBalances={walletBalances??[]}
+        QAState={QAState}
+        setQAState={setQAState}
+      />
       <Input 
         width={inputBoxWidth} 
         textAlign={"center"} 
@@ -132,14 +138,6 @@ const Home = () => {
   
   }, [quickActionState.selectedAsset])
 
-  const menuComponent = <AssetsWithBalanceMenu 
-    value={quickActionState?.selectedAsset} 
-    onChange={onMenuChange}
-    walletBalances={walletBalances??[]}
-    QAState={quickActionState}
-    setQAState={setQuickActionState}
-  />;
-
   return (
     <Stack >
       <StatsCard />      
@@ -152,12 +150,15 @@ const Home = () => {
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="2">
           <SliderWithInputBox
-            label={""} 
-            component={menuComponent}
+            label={""}
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={num(shiftDigits(quickActionState.assetMax, -(quickActionState?.selectedAsset?.decimal??6))).toNumber()}
             inputBoxWidth='50%'
+            QAState={quickActionState}
+            setQAState={setQuickActionState}
+            onMenuChange={onMenuChange}
+            walletBalances={walletBalances??[]}
           />
         </Stack>
         {/* LTV Input Box */}

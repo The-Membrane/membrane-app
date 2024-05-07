@@ -30,25 +30,26 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
   //   if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance: parseInt(balance)})
   // })}, [walletBalances])
 
-  console.log("balances:", walletBalances.map((b: Coin) => {console.log(b.amount != "0"); b.amount}))
-  // console.log(
-  //   assets?.filter((asset) => 
-  //   {(walletBalances.find((b: Coin) => b.denom === (asset?).base)?).amount != "0"})
-  // )
+  console.log("balances:", walletBalances[0].amount)
+  //List of all denoms in the wallet
+  const walletDenoms = walletBalances.map((coin: Coin) => coin.denom);
+
 
   //Create an object of assets that only holds assets that have a walletBalance
   const assetsWithBalance = useMemo(() => {
       return assets?.filter((asset) => {
-        return walletBalances.find((b: Coin) => b.denom === (asset as Asset).base)?.amount != "0"
+        if (asset) walletDenoms.includes(asset.base)
+        else false
       })
 
   }, [walletBalances])
+  console.log("assetsWithBalance:", assetsWithBalance)
 
   useEffect(() => {
     if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {
       const balance = walletBalances.find((b: any) => b.denom === (assetsWithBalance?.[0] as Asset).base)?.amount
 
-      console.log("assetsWithBalance:", balance)
+      console.log("max frmo menu:", balance)
 
       setQAState({
         selectedAsset: assetsWithBalance?.[0],
@@ -128,6 +129,10 @@ const Home = () => {
   useEffect(() => {
     if (quickActionState?.selectedAsset) {
       const balance = walletBalances?.find((b: any) => b.denom === quickActionState?.selectedAsset?.base)?.amount
+
+      
+      console.log("max balance:", balance)
+
       setQuickActionState({assetMax: parseInt(balance??"0")})
     }
   

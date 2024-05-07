@@ -32,7 +32,10 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
   // console.log("balances:", walletBalances[0].amount)
   //List of all denoms in the wallet
-  const walletDenoms = walletBalances.map((coin: Coin) => coin.denom);
+  const walletDenoms = walletBalances.map((coin: Coin) => {
+    if (num(coin.amount).isGreaterThan(0)) return coin.denom
+    else return ""
+  }).filter((asset: string) => asset != "");
 
 
   //Create an object of assets that only holds assets that have a walletBalance

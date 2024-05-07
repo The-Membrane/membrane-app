@@ -61,6 +61,7 @@ type Props = {
 
 const QASelect = ({ options, onChange, value }: Props) => {
   if (!options) return null
+  console.log(value)
   return (
     <ChakraSelect
       isSearchable={false}

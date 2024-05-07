@@ -30,7 +30,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
   //   if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance: parseInt(balance)})
   // })}, [walletBalances])
 
-  console.log("balances:", walletBalances[0].amount)
+  // console.log("balances:", walletBalances[0].amount)
   //List of all denoms in the wallet
   const walletDenoms = walletBalances.map((coin: Coin) => coin.denom);
 

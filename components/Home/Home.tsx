@@ -17,60 +17,20 @@ import useMintState from '../Mint/hooks/useMintState'
 import { calcSliderValue } from '../Mint/TakeAction'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { QuickActionAssetWithSlider } from './QuickActionAssetSlider'
+import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 
 type Props = {
   value: string
   onChange: (value: string) => void
-  walletBalances: Coin[]
-  QAState: QuickActionState
-  setQAState: (set: any) => void
+  assets: AssetWithBalance[]
 }
 
-const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQAState }: Props) => {
-  const assets = useCollateralAssets()
-  const { data: prices } = useOraclePrice()
+const AssetsWithBalanceMenu = ({ value, onChange, assets }: Props) => {
   
-  //List of all denoms in the wallet
-  const walletDenoms = walletBalances.map((coin: Coin) => {
-    if (num(coin.amount).isGreaterThan(0)) return coin.denom
-    else return ""
-  }).filter((asset: string) => asset != "");
+  console.log("ab:", assets)
 
-
-  //Create an object of assets that only holds assets that have a walletBalance
-  useEffect(() => {
-    
-      const assetsWithBalance = assets?.filter((asset) => {
-        if (asset) return walletDenoms.includes(asset.base)
-        else return false
-      }).map((asset) => ({
-        ...asset,
-        value: asset?.symbol,
-        label: asset?.symbol,
-        sliderValue: 0,
-        balance: num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).toNumber(),
-        price: Number(prices?.find((p: any) => p.denom === asset.base).price??"0"),
-        combinUsdValue: num(num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0"))).toNumber()
-      }))
-
-      setQAState({
-        assets: assetsWithBalance
-      })
-
-  }, [assets, walletBalances, prices])
-  console.log("ab:", QAState?.assets)
-
-  useEffect(() => {
-    if (!QAState?.selectedAsset &&  QAState?.assets?.[0]) {
-      setQAState({
-        selectedAsset:  QAState?.assets?.[0], 
-      })
-    }
-  }, [ QAState?.assets, walletBalances])
-
-  return <QASelect options={QAState?.assets} onChange={onChange} value={value} />
+  return <QASelect options={assets} onChange={onChange} value={value} />
 }
-
 
 type SliderWithInputProps = {
   value: number
@@ -78,12 +38,10 @@ type SliderWithInputProps = {
   max: number
   inputBoxWidth?: string
   QAState: QuickActionState
-  setQAState: (set: any) => void
   onMenuChange: (value: string) => void
-  walletBalances: Coin[]
 }
 
-const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, walletBalances }: SliderWithInputProps) => {  
+const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%", QAState, onMenuChange }: SliderWithInputProps) => {  
     //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
 
@@ -114,9 +72,7 @@ const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%",
         <AssetsWithBalanceMenu 
           value={QAState?.selectedAsset} 
           onChange={onMenuChange}
-          walletBalances={walletBalances??[]}
-          QAState={QAState}
-          setQAState={setQAState}
+          assets={QAState?.assets}
         />
         <Input 
           width={inputBoxWidth} 
@@ -140,6 +96,46 @@ const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%",
 const Home = () => { 
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
+
+  const assets = useCollateralAssets()
+  const { data: prices } = useOraclePrice()
+  
+  ////Get all assets that have a wallet balance///////
+  //List of all denoms in the wallet
+  const walletDenoms = walletBalances.map((coin: Coin) => {
+    if (num(coin.amount).isGreaterThan(0)) return coin.denom
+    else return ""
+  }).filter((asset: string) => asset != "");
+
+  //Create an object of assets that only holds assets that have a walletBalance
+  useEffect(() => {    
+      const assetsWithBalance = assets?.filter((asset) => {
+        if (asset) return walletDenoms.includes(asset.base)
+        else return false
+      }).map((asset) => ({
+        ...asset,
+        value: asset?.symbol,
+        label: asset?.symbol,
+        sliderValue: 0,
+        balance: num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).toNumber(),
+        price: Number(prices?.find((p: any) => p.denom === asset.base).price??"0"),
+        combinUsdValue: num(num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0"))).toNumber()
+      }))
+
+      setQuickActionState({
+        assets: assetsWithBalance
+      })
+
+  }, [assets, walletBalances, prices])
+
+  useEffect(() => {
+    if (!quickActionState?.selectedAsset &&  quickActionState?.assets?.[0]) {
+      setQuickActionState({
+        selectedAsset:  quickActionState?.assets?.[0], 
+      })
+    }
+  }, [quickActionState?.assets, walletBalances])
+  //
   
   const onMenuChange = (value: string) => {
     setQuickActionState({
@@ -147,21 +143,8 @@ const Home = () => {
     })
   }
 
-  useEffect(() => {
-    if (quickActionState?.selectedAsset) {
-      const balance = walletBalances?.find((b: any) => b.denom === quickActionState?.selectedAsset?.base)?.amount
-
-      setQuickActionState({assetMax: parseInt(balance??"0")})
-    }
-  
-  }, [quickActionState.selectedAsset])
-
   //Use mintState to update the deposit state
   const { mintState } = useMintState()
-  //When QA's assetActionAmount changes, update the deposit state
-  useEffect(() => {
-
-  }, [quickActionState.assetActionAmount])
 
   
   const { debtAmount } = useVaultSummary()
@@ -178,16 +161,14 @@ const Home = () => {
         {/* //Action */}
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="2">
-          <SliderWithInputBox
+          {/* <SliderWithInputBox
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={quickActionState?.selectedAsset?.balance??0}
             inputBoxWidth='42%'
             QAState={quickActionState}
-            setQAState={setQuickActionState}
             onMenuChange={onMenuChange}
-            walletBalances={walletBalances??[]}
-          />
+          /> */}
           <QuickActionAssetWithSlider key={quickActionState?.selectedAsset?.base} asset={quickActionState?.selectedAsset} label={quickActionState?.selectedAsset?.symbol} />
           <LTVWithSlider label="Your Debt" value={sliderValue}/>
         </Stack>

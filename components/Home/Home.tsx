@@ -52,7 +52,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
         sliderValue: 0,
         balance: num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).toNumber(),
         price: Number(prices?.find((p: any) => p.denom === asset.base).price??"0"),
-        combinUsdValue: num(walletBalances?.find((b: any) => b.denom === asset.base)?.amount).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0")).toNumber()
+        combinUsdValue: num(num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0"))).toNumber()
       }))
 
   }, [assets, walletBalances, prices])
@@ -63,8 +63,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
       const balance = walletBalances.find((b: any) => b.denom === (assetsWithBalance?.[0] as Asset).base)?.amount??"0"
 
       setQAState({
-        selectedAsset: assetsWithBalance?.[0],
-        assetMax: parseInt(balance??"0")        
+        selectedAsset: assetsWithBalance?.[0], 
       })
     }
   }, [assetsWithBalance, walletBalances])
@@ -182,7 +181,7 @@ const Home = () => {
           <SliderWithInputBox
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
-            max={num(shiftDigits(quickActionState.assetMax, -(quickActionState?.selectedAsset?.decimal??6))).toNumber()}
+            max={quickActionState?.selectedAsset?.balance??0}
             inputBoxWidth='42%'
             QAState={quickActionState}
             setQAState={setQuickActionState}

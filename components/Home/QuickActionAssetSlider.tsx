@@ -32,6 +32,7 @@ export const QuickActionAssetWithSlider = ({ asset, label }: AssetWithSliderProp
 
     setQuickActionState({ assets: updatedAssets, summary, totalUsdValue })
   }
+  
   console.log("Asset in slider:", asset)
   return (
     <Stack gap="0">

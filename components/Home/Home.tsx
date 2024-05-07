@@ -14,7 +14,7 @@ import { Coin } from '@cosmjs/stargate'
 
 type Props = {
   value: any
-  onChange: (value: string) => void
+  onChange: (value: Asset) => void
   walletBalances: Coin[]
   QAState: QuickActionState
   setQAState: (set: any) => void
@@ -123,7 +123,7 @@ const Home = () => {
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   
-  const onMenuChange = (value: string) => {
+  const onMenuChange = (value: Asset) => {
     setQuickActionState({
       selectedAsset: value
     })

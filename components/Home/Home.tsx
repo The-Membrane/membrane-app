@@ -130,6 +130,7 @@ const Home = () => {
 
   useEffect(() => {
     if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
+      console.log("here", quickActionState?.assets[0])
       setQuickActionState({
         selectedAsset:  quickActionState?.assets[0], 
       })
@@ -153,6 +154,8 @@ const Home = () => {
   useEffect(() => {
 
     if (quickActionState?.assets) {
+      console.log(quickActionState?.assets)
+      console.log(quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol))
       setQuickActionState({
         selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
       })

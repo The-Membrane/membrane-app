@@ -39,7 +39,8 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
   //Create an object of assets that only holds assets that have a walletBalance
   const assetsWithBalance = useMemo(() => {
-
+      // const balance = walletBalances?.find((b: any) => b.denom === (assets?.[0]?.base) )?.amount??"0"
+      // const price = prices?.find((p: any) => p.denom === (assets?.[0]?.base) )?.price??"0"
 
       return assets?.filter((asset) => {
         if (asset) return walletDenoms.includes(asset.base)
@@ -52,7 +53,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
         combinUsdValue: num(walletBalances?.find((b: any) => b.denom === asset.base)?.amount).times(num(prices?.find((p: any) => p.denom === asset.base)??"0")).toNumber()
       }))
 
-  }, [assets, walletBalances])
+  }, [assets, walletBalances, prices])
 
   useEffect(() => {
     if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {

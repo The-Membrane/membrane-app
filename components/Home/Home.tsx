@@ -139,7 +139,7 @@ const Home = () => {
   
   const onMenuChange = (value: string) => {
     setQuickActionState({
-      selectedAsset: value
+      selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === value)??quickActionState?.assets[0]
     })
   }
 
@@ -169,7 +169,7 @@ const Home = () => {
             QAState={quickActionState}
             onMenuChange={onMenuChange}
           /> */}
-          <QuickActionAssetWithSlider key={quickActionState?.selectedAsset?.base} asset={quickActionState?.selectedAsset} label={quickActionState?.selectedAsset?.symbol} />
+          <QuickActionAssetWithSlider key={quickActionState?.selectedAsset?.base} asset={quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol)??quickActionState?.assets[0]} label={quickActionState?.selectedAsset?.symbol} />
           <LTVWithSlider label="Your Debt" value={sliderValue}/>
         </Stack>
         {/* LTV Input Box */}

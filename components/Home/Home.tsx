@@ -157,7 +157,7 @@ const Home = () => {
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="5">      
           <AssetsWithBalanceMenu 
-            value={quickActionState?.selectedAsset?.symbol} 
+            value={quickActionState?.selectedAsset} 
             onChange={onMenuChange}
             walletBalances={walletBalances??[]}
             QAState={quickActionState}

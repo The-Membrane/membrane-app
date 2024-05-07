@@ -155,7 +155,7 @@ const Home = () => {
 
         {/* //Action */}
         {/* Asset Menu + Input Box/Slider*/}        
-        <Stack py="5" w="full" gap="5">      
+        <Stack py="5" w="full" gap="2">      
           <AssetsWithBalanceMenu 
             value={quickActionState?.selectedAsset} 
             onChange={onMenuChange}
@@ -164,7 +164,7 @@ const Home = () => {
             setQAState={setQuickActionState}
           />
           <SliderWithInputBox
-            label={quickActionState?.selectedAsset?.symbol} 
+            label={""} 
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={num(shiftDigits(quickActionState.assetMax, -(quickActionState?.selectedAsset?.decimal??6))).toNumber()}

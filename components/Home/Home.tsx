@@ -146,13 +146,13 @@ const Home = () => {
           <SliderWithInputBox
             label={""} 
             component={      
-              <AssetsWithBalanceMenu 
+              <><AssetsWithBalanceMenu 
                 value={quickActionState?.selectedAsset} 
                 onChange={onMenuChange}
                 walletBalances={walletBalances??[]}
                 QAState={quickActionState}
                 setQAState={setQuickActionState}
-              />}
+              /></>}
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={num(shiftDigits(quickActionState.assetMax, -(quickActionState?.selectedAsset?.decimal??6))).toNumber()}

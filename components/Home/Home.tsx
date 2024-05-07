@@ -129,9 +129,9 @@ const Home = () => {
   }, [assets, walletBalances, prices])
 
   useEffect(() => {
-    if (!quickActionState?.selectedAsset && quickActionState?.assets?.[0]) {
+    if (!quickActionState?.selectedAsset && quickActionState?.assets.length > 0) {
       setQuickActionState({
-        selectedAsset:  quickActionState?.assets?.[0], 
+        selectedAsset:  quickActionState?.assets[0], 
       })
     }
   }, [quickActionState?.assets, walletBalances])

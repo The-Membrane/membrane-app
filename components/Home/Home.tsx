@@ -50,8 +50,8 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
         value: asset?.symbol,
         label: asset?.symbol,
         sliderValue: 0,
-        balance: Number(walletBalances?.find((b: any) => b.denom === asset.base)?.amount),
-        price: num(prices?.find((p: any) => p.denom === asset.base).price??"0"),
+        balance: shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6)).toNumber(),
+        price: Number(prices?.find((p: any) => p.denom === asset.base).price??"0"),
         combinUsdValue: num(walletBalances?.find((b: any) => b.denom === asset.base)?.amount).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0")).toNumber()
       }))
 

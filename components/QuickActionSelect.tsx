@@ -56,7 +56,7 @@ const chakraStyles: ChakraStylesConfig = {
 type Props = {
   options: OptionProps<any>[]
   onChange?: (value: any) => void
-  value?: Asset || undefined
+  value?: Asset | undefined
 }
 
 const QASelect = ({ options, onChange, value }: Props) => {

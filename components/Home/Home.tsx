@@ -102,7 +102,7 @@ const Home = () => {
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
-  const walletDenoms = walletBalances.map((coin: Coin) => {
+  const walletDenoms = (walletBalances??[]).map((coin: Coin) => {
     if (num(coin.amount).isGreaterThan(0)) return coin.denom
     else return ""
   }).filter((asset: string) => asset != "");

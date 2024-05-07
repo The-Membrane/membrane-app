@@ -60,14 +60,14 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
 type SliderWithInputProps = {
   label: string
-  component?: any
+  component: any
   value: number
   setActionState: (set: any) => void
   max: number
   inputBoxWidth?: string
 }
 
-export const SliderWithInputBox = ({ label, component = undefined, value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
+export const SliderWithInputBox = ({ label, component, value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
     //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
 
@@ -91,7 +91,7 @@ export const SliderWithInputBox = ({ label, component = undefined, value, setAct
 
     return (<Stack py="5" w="full" gap="5">      
     <HStack justifyContent="space-between">
-      {component ? {component} : <Text fontSize="14px" fontWeight="700">
+      {label === "" ? {component} : <Text fontSize="14px" fontWeight="700">
         {label}
       </Text>}
       <Input 

@@ -66,8 +66,8 @@ const QASelect = ({ options, onChange, value }: Props) => {
       isSearchable={false}
       variant="unstyled"
       chakraStyles={chakraStyles}
-      defaultValue={options?.[0]}
-      value={options.length === 0 ? "No collateral in wallet" : value}
+      defaultValue={options?.[0] ?? "No collateral in wallet"}
+      value={value}
       options={options}
       onChange={onChange}
     />

@@ -31,17 +31,15 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
   // })}, [walletBalances])
 
   console.log("balances:", walletBalances.map((b: Coin) => {console.log(b.amount != "0"); b.amount}))
-  console.log(assets?.filter((asset) => {
-    walletBalances.find((b: any) => b.denom === asset?.base)?.amount != "0"
-  }))
+  // console.log(
+  //   assets?.filter((asset) => 
+  //   {(walletBalances.find((b: Coin) => b.denom === (asset?).base)?).amount != "0"})
+  // )
 
-  //We want this to only hold assets that have a balance within the wallet
-  const assetsWithBalance = assets
-    ?.map((asset) => ({
-      ...asset,
-      value: asset?.symbol,
-      label: asset?.symbol,
-    }))
+  //Create an object of assets that only holds assets that have a walletBalance
+  const assetsWithBalance = assets?.filter((asset) => {
+    return walletBalances.find((b: Coin) => b.denom === (asset as Asset).base)?.amount != "0"
+  })
 
   useEffect(() => {
     if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {
@@ -116,7 +114,6 @@ export const SliderWithInputBox = ({ label, value, setActionState, max, inputBox
 
 const Home = () => { 
   const { data: walletBalances } = useBalance()
-  console.log("balances:", walletBalances)
   const { quickActionState, setQuickActionState } = useQuickActionState()
   
   const onMenuChange = (value: string) => {

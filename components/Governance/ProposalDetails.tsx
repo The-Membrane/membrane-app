@@ -198,6 +198,8 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
   const { address } = useWallet()
   const buttonLabel = proposal?.status === 'active' ? 'Vote' : 'View'
   const { data: proposalDetails } = useProposalById(Number(proposal?.proposal_id))
+  if (Number(proposal?.proposal_id) === 58) console.log("proposal:", proposal?.proposal_id, proposalDetails?.quorum)
+
 
   const isExecuteAllowed = proposal?.badge === 'passed'
   const isRemoveAllowed = proposal?.submitter === address

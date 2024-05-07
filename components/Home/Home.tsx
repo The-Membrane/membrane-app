@@ -92,7 +92,7 @@ const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%",
     }
 
     return (<Stack py="5" w="full" gap="5">      
-    <HStack justifyContent="space-between">
+    {/* <HStack justifyContent="space-between"> */}
       <AssetsWithBalanceMenu 
         value={QAState?.selectedAsset} 
         onChange={onMenuChange}
@@ -108,7 +108,7 @@ const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%",
         value={inputAmount} 
         onChange={handleInputChange}
       />
-    </HStack>      
+    {/* </HStack>       */}
     <SliderWithState
       value={value}
       onChange={onSliderChange}
@@ -150,7 +150,6 @@ const Home = () => {
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="2">
           <SliderWithInputBox
-            label={""}
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={num(shiftDigits(quickActionState.assetMax, -(quickActionState?.selectedAsset?.decimal??6))).toNumber()}

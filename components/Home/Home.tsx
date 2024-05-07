@@ -132,6 +132,14 @@ const Home = () => {
   
   }, [quickActionState.selectedAsset])
 
+  const menuComponent = <AssetsWithBalanceMenu 
+    value={quickActionState?.selectedAsset} 
+    onChange={onMenuChange}
+    walletBalances={walletBalances??[]}
+    QAState={quickActionState}
+    setQAState={setQuickActionState}
+  />;
+
   return (
     <Stack >
       <StatsCard />      
@@ -145,14 +153,7 @@ const Home = () => {
         <Stack py="5" w="full" gap="2">
           <SliderWithInputBox
             label={""} 
-            component={      
-              <><AssetsWithBalanceMenu 
-                value={quickActionState?.selectedAsset} 
-                onChange={onMenuChange}
-                walletBalances={walletBalances??[]}
-                QAState={quickActionState}
-                setQAState={setQuickActionState}
-              /></>}
+            component={menuComponent}
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={num(shiftDigits(quickActionState.assetMax, -(quickActionState?.selectedAsset?.decimal??6))).toNumber()}

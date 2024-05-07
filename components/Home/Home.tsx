@@ -154,7 +154,7 @@ const Home = () => {
 
     if (quickActionState?.assets) {
       console.log( quickActionState?.assets, "assets")
-      console.log((quickActionState?.assets as AssetWithBalance[]).find((asset: AssetWithBalance) => asset.symbol === quickActionState?.selectedAsset?.symbol), "symbol":, quickActionState?.selectedAsset?.symbol)
+      console.log((quickActionState?.assets as AssetWithBalance[]).find((asset: AssetWithBalance) => asset.symbol === quickActionState?.selectedAsset?.symbol), "symbol:", quickActionState?.selectedAsset?.symbol)
       setQuickActionState({
         selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
       })

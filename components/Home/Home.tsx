@@ -11,6 +11,10 @@ import { num, shiftDigits } from '@/helpers/num'
 import { delayTime } from "@/config/defaults"
 import { Asset } from '@/helpers/chain'
 import { Coin } from '@cosmjs/stargate'
+import { LTVWithSlider } from '../Mint/LTVWithSlider'
+import useVaultSummary from '../Mint/hooks/useVaultSummary'
+import useMintState from '../Mint/hooks/useMintState'
+import { calcSliderValue } from '../Mint/TakeAction'
 
 type Props = {
   value: string
@@ -142,6 +146,11 @@ const Home = () => {
   
   }, [quickActionState.selectedAsset])
 
+  
+  const { debtAmount } = useVaultSummary()
+  const { mintState } = useMintState()
+  const sliderValue = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
+
   return (
     <Stack >
       <StatsCard />      
@@ -163,6 +172,7 @@ const Home = () => {
             onMenuChange={onMenuChange}
             walletBalances={walletBalances??[]}
           />
+          <LTVWithSlider label="Your Debt" value={sliderValue}/>
         </Stack>
         {/* LTV Input Box */}
 

@@ -123,13 +123,13 @@ const Home = () => {
       }))
 
       setQuickActionState({
-        assets: assetsWithBalance
+        assets: (assetsWithBalance??[])
       })
 
   }, [assets, walletBalances, prices])
 
   useEffect(() => {
-    if (!quickActionState?.selectedAsset && quickActionState?.assets.length > 0) {
+    if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
       setQuickActionState({
         selectedAsset:  quickActionState?.assets[0], 
       })

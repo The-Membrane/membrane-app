@@ -1,4 +1,5 @@
 import { Select as ChakraSelect, ChakraStylesConfig, OptionProps } from 'chakra-react-select'
+import { Asset } from '@/helpers/chain'
 
 const chakraStyles: ChakraStylesConfig = {
   singleValue: (provided, state) => ({
@@ -68,7 +69,7 @@ const QASelect = ({ options, onChange, value }: Props) => {
       variant="unstyled"
       chakraStyles={chakraStyles}
       defaultValue={options?.[0]}
-      value={(value.symbol??"None")}
+      value={(value?.symbol??"None")}
       options={options}
       onChange={onChange}
     />

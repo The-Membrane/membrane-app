@@ -38,8 +38,8 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
   //Create an object of assets that only holds assets that have a walletBalance
   const assetsWithBalance = useMemo(() => {
       return assets?.filter((asset) => {
-        if (asset) {console.log(walletDenoms.includes(asset.base)); true}
-        else false
+        if (asset) return walletDenoms.includes(asset.base)
+        else return false
       })
 
   }, [assets, walletBalances])

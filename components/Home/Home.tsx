@@ -13,8 +13,8 @@ import { Asset } from '@/helpers/chain'
 import { Coin } from '@cosmjs/stargate'
 
 type Props = {
-  value: Asset
-  onChange: (value: Asset) => void
+  value: string
+  onChange: (value: string) => void
   walletBalances: Coin[]
   QAState: QuickActionState
   setQAState: (set: any) => void
@@ -43,7 +43,11 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
       return assets?.filter((asset) => {
         if (asset) return walletDenoms.includes(asset.base)
         else return false
-      })
+      }).map((asset) => ({
+        ...asset,
+        value: asset?.symbol,
+        label: asset?.symbol,
+      }))
 
   }, [assets, walletBalances])
   console.log("assetsWithBalance:", assetsWithBalance)
@@ -123,7 +127,7 @@ const Home = () => {
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   
-  const onMenuChange = (value: Asset) => {
+  const onMenuChange = (value: string) => {
     setQuickActionState({
       selectedAsset: value
     })
@@ -153,7 +157,7 @@ const Home = () => {
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="5">      
           <AssetsWithBalanceMenu 
-            value={quickActionState?.selectedAsset}
+            value={quickActionState?.selectedAsset?.symbol} 
             onChange={onMenuChange}
             walletBalances={walletBalances??[]}
             QAState={quickActionState}

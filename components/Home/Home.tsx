@@ -152,9 +152,11 @@ const Home = () => {
 
   useEffect(() => {
 
-    setQuickActionState({
-      selectedAsset: quickActionState?.assets?.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol)??quickActionState?.assets[0]
-    })
+    if (quickActionState?.assets) {
+      setQuickActionState({
+        selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
+      })
+    }
     
   }, [quickActionState?.assets])
 

@@ -153,7 +153,7 @@ const Home = () => {
 
   useEffect(() => {
 
-    if (quickActionState?.assets) {
+    if (quickActionState?.assets && quickActionState?.selectedAsset?.symbol != undefined) {
       console.log( quickActionState?.assets, "assets")
       console.log((quickActionState?.assets as AssetWithBalance[]).find((asset: AssetWithBalance) => asset.symbol === quickActionState?.selectedAsset?.symbol), "symbol:", quickActionState?.selectedAsset?.symbol)
       setQuickActionState({

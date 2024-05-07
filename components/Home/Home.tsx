@@ -23,14 +23,6 @@ type Props = {
 const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQAState }: Props) => {
   const assets = useCollateralAssets()
   
-  // const assetsWithBalance: any[] = [];
-  // useMemo( () => {assets?.forEach((asset) => {
-  //   const balance = walletBalances?.find((b: any) => b.denom === asset?.base)?.amount
-    
-  //   if (balance && parseInt(balance) > 0) assetsWithBalance.push({...asset, balance: parseInt(balance)})
-  // })}, [walletBalances])
-
-  // console.log("balances:", walletBalances[0].amount)
   //List of all denoms in the wallet
   const walletDenoms = walletBalances.map((coin: Coin) => {
     if (num(coin.amount).isGreaterThan(0)) return coin.denom
@@ -50,13 +42,10 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
       }))
 
   }, [assets, walletBalances])
-  console.log("assetsWithBalance:", assetsWithBalance)
 
   useEffect(() => {
     if (!QAState?.selectedAsset && assetsWithBalance?.[0]) {
       const balance = walletBalances.find((b: any) => b.denom === (assetsWithBalance?.[0] as Asset).base)?.amount??"0"
-
-      console.log("max frmo menu:", balance)
 
       setQAState({
         selectedAsset: assetsWithBalance?.[0],
@@ -71,13 +60,14 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
 
 type SliderWithInputProps = {
   label: string
+  component?: any
   value: number
   setActionState: (set: any) => void
   max: number
   inputBoxWidth?: string
 }
 
-export const SliderWithInputBox = ({ label, value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
+export const SliderWithInputBox = ({ label, component = undefined, value, setActionState, max, inputBoxWidth = "38%" }: SliderWithInputProps) => {  
     //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
 
@@ -101,9 +91,9 @@ export const SliderWithInputBox = ({ label, value, setActionState, max, inputBox
 
     return (<Stack py="5" w="full" gap="5">      
     <HStack justifyContent="space-between">
-      <Text fontSize="14px" fontWeight="700">
+      {component ? {component} : <Text fontSize="14px" fontWeight="700">
         {label}
-      </Text>
+      </Text>}
       <Input 
         width={inputBoxWidth} 
         textAlign={"center"} 
@@ -137,9 +127,6 @@ const Home = () => {
     if (quickActionState?.selectedAsset) {
       const balance = walletBalances?.find((b: any) => b.denom === quickActionState?.selectedAsset?.base)?.amount
 
-      
-      console.log("max balance:", balance)
-
       setQuickActionState({assetMax: parseInt(balance??"0")})
     }
   
@@ -155,16 +142,17 @@ const Home = () => {
 
         {/* //Action */}
         {/* Asset Menu + Input Box/Slider*/}        
-        <Stack py="5" w="full" gap="2">      
-          <AssetsWithBalanceMenu 
-            value={quickActionState?.selectedAsset} 
-            onChange={onMenuChange}
-            walletBalances={walletBalances??[]}
-            QAState={quickActionState}
-            setQAState={setQuickActionState}
-          />
+        <Stack py="5" w="full" gap="2">
           <SliderWithInputBox
             label={""} 
+            component={      
+              <AssetsWithBalanceMenu 
+                value={quickActionState?.selectedAsset} 
+                onChange={onMenuChange}
+                walletBalances={walletBalances??[]}
+                QAState={quickActionState}
+                setQAState={setQuickActionState}
+              />}
             value={quickActionState.assetActionAmount}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
             max={num(shiftDigits(quickActionState.assetMax, -(quickActionState?.selectedAsset?.decimal??6))).toNumber()}

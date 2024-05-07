@@ -42,7 +42,7 @@ const AssetsWithBalanceMenu = ({ value, onChange, walletBalances, QAState, setQA
         else false
       })
 
-  }, [walletBalances])
+  }, [assets, walletBalances])
   console.log("assetsWithBalance:", assetsWithBalance)
 
   useEffect(() => {

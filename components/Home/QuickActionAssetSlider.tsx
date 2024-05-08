@@ -11,10 +11,9 @@ export type AssetWithSliderProps = {
   label: string
   asset: AssetWithBalance
   onChangeExt: (value: number) => void
-  inputAmount: number
 }
 
-export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt, inputAmount }: AssetWithSliderProps) => {
+export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetWithSliderProps) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
 
   const onChange = (value: number) => {
@@ -38,11 +37,11 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt, inputAmo
   }
 
   //When the amount in the input box changes, update the slider value on a delay
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     if (inputAmount != (asset?.sliderValue??0)) onChange(inputAmount)
-  //   }, delayTime);  
-  // }, [inputAmount])
+  useEffect(() => {
+    setTimeout(() => {
+      if (asset?.inputAmount != (asset?.sliderValue??0)) onChange(asset?.inputAmount)
+    }, delayTime);  
+  }, [asset?.inputAmount])
 
   console.log("Slider Value", asset?.sliderValue)
 

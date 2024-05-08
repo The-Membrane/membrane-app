@@ -35,23 +35,22 @@ type SliderWithInputProps = {
   max: number
   inputBoxWidth?: string
   QAState: QuickActionState
+  setQAState: (partialState: Partial<QuickActionState>) => void
   onMenuChange: (value: string) => void
 }
 
-const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, onMenuChange }: SliderWithInputProps) => {  
-    //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
-    const [ inputAmount, setInputAmount ] = useState(0);
+const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange }: SliderWithInputProps) => {
 
     const onSliderChange = (value: number) => {
-      if (inputAmount != value) setInputAmount(value)
+      if (QAState?.selectedAsset && QAState?.selectedAsset?.inputAmount != value) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: value }})
     }
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       e.preventDefault()
       const newAmount = e.target.value
 
-      if (num(newAmount).isGreaterThan(max)) setInputAmount(max)
-        else setInputAmount(parseInt(e.target.value))
+      if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: max }})
+        else setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: (parseInt(newAmount)) }})
     }
 
     return (
@@ -62,7 +61,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, onMenuChange 
       <HStack justifyContent="space-between">
         <AssetsWithBalanceMenu 
           value={QAState?.selectedAsset} 
-          onChange={(value: string) => {onMenuChange(value); if (inputAmount != 0) setInputAmount(0);}}
+          onChange={(value: string) => {onMenuChange(value); if (QAState?.selectedAsset?.inputAmount??0 != 0) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: 0 }});}}
           assets={QAState?.assets}
         />
         <Input 
@@ -70,11 +69,11 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, onMenuChange 
           textAlign={"center"} 
           placeholder="0" 
           type="number" 
-          value={inputAmount} 
+          value={QAState?.selectedAsset?.inputAmount??0} 
           onChange={handleInputChange}
         />
       </HStack>
-      <QuickActionAssetWithSlider inputAmount={inputAmount} onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
+      <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
 
   </Stack>)
 }
@@ -104,6 +103,7 @@ const Home = () => {
         value: asset?.symbol,
         label: asset?.symbol,
         sliderValue: 0,
+        inputAmount: 0,
         balance: num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).toNumber(),
         price: Number(prices?.find((p: any) => p.denom === asset.base).price??"0"),
         combinUsdValue: num(num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0"))).toNumber()
@@ -159,6 +159,7 @@ const Home = () => {
             max={quickActionState?.selectedAsset?.combinUsdValue??0}
             inputBoxWidth='42%'
             QAState={quickActionState}
+            setQAState={setQuickActionState}
             onMenuChange={onMenuChange}
           />
           <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>

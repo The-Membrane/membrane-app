@@ -38,11 +38,11 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt, inputAmo
   }
 
   //When the amount in the input box changes, update the slider value on a delay
-  useEffect(() => {
-    setTimeout(() => {
-      if (inputAmount != (asset?.sliderValue??0)) onChange(inputAmount)
-    }, delayTime);  
-  }, [inputAmount])
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     if (inputAmount != (asset?.sliderValue??0)) onChange(inputAmount)
+  //   }, delayTime);  
+  // }, [inputAmount])
 
   console.log("Slider Value", asset?.sliderValue)
 

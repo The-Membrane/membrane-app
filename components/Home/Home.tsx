@@ -43,7 +43,7 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
     const [ inputAmount, setInputAmount ] = useState(0);
 
     const onSliderChange = (value: number) => {
-      setInputAmount(value)
+      if (inputAmount != value) setInputAmount(value)
     }
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {

@@ -26,14 +26,11 @@ type Props = {
 }
 
 const AssetsWithBalanceMenu = ({ value, onChange, assets }: Props) => {
-  
-  console.log("ab:", assets)
-
-  return <QASelect options={assets} onChange={onChange} value={value} />
+    return <QASelect options={assets} onChange={onChange} value={value} />
 }
 
 type SliderWithInputProps = {
-  value: number
+  // value: number
   setActionState: (set: any) => void
   max: number
   inputBoxWidth?: string
@@ -41,7 +38,7 @@ type SliderWithInputProps = {
   onMenuChange: (value: string) => void
 }
 
-const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%", QAState, onMenuChange }: SliderWithInputProps) => {  
+const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAState, onMenuChange }: SliderWithInputProps) => {  
     //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
 
@@ -82,13 +79,15 @@ const SliderWithInputBox = ({ value, setActionState, max, inputBoxWidth = "38%",
           value={inputAmount} 
           onChange={handleInputChange}
         />
-      </HStack>      
-      <SliderWithState
+      </HStack>
+      <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
+
+      {/* <SliderWithState
         value={value}
         onChange={onSliderChange}
         min={0}
         max={max}
-      />
+      /> */}
   </Stack>)
 }
 
@@ -130,7 +129,6 @@ const Home = () => {
 
   useEffect(() => {
     if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
-      console.log("changed to:", quickActionState?.assets[0].symbol)
       setQuickActionState({
         selectedAsset:  quickActionState?.assets[0], 
       })
@@ -154,8 +152,6 @@ const Home = () => {
   useEffect(() => {
 
     if (quickActionState?.assets && quickActionState?.selectedAsset?.symbol != undefined) {
-      console.log( quickActionState?.assets, "assets")
-      console.log((quickActionState?.assets as AssetWithBalance[]).find((asset: AssetWithBalance) => asset.symbol === quickActionState?.selectedAsset?.symbol), "symbol:", quickActionState?.selectedAsset?.symbol)
       setQuickActionState({
         selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
       })
@@ -174,15 +170,15 @@ const Home = () => {
         {/* //Action */}
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="2">
-          {/* <SliderWithInputBox
-            value={quickActionState.assetActionAmount}
+          <SliderWithInputBox
+            // value={quickActionState.selectedAsset?.sliderValue??0}
             setActionState={(value: number) => setQuickActionState({ assetActionAmount: value })}
-            max={quickActionState?.selectedAsset?.balance??0}
+            max={quickActionState?.selectedAsset?.combinUsdValue??0}
             inputBoxWidth='42%'
             QAState={quickActionState}
             onMenuChange={onMenuChange}
-          /> */}
-          <QuickActionAssetWithSlider key={quickActionState?.selectedAsset?.base} asset={quickActionState?.selectedAsset} label={quickActionState?.selectedAsset?.symbol} />
+          />
+          {/* <QuickActionAssetWithSlider key={quickActionState?.selectedAsset?.base} asset={quickActionState?.selectedAsset} label={quickActionState?.selectedAsset?.symbol} /> */}
           <LTVWithSlider label="Your Debt" value={sliderValue}/>
         </Stack>
         {/* LTV Input Box */}

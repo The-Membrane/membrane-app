@@ -48,7 +48,6 @@ const chakraStyles: ChakraStylesConfig = {
     borderRadius: 16,
     width: 'max-content',
     justifyContent: 'center',
-    zIndex: 99,
     minWidth: '200px',
     ml: '-5px',
   }),

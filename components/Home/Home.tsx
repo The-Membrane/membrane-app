@@ -58,7 +58,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       }, delayTime);  
     }
 
-    // useEffect(() => console.log(QAState?.selectedAsset?.inputAmount), [QAState?.selectedAsset?.inputAmount])
+    useEffect(() => console.log(QAState?.selectedAsset?.inputAmount), [QAState?.selectedAsset?.inputAmount])
 
     return (
     <Stack py="5" w="full" gap="5">     
@@ -117,11 +117,15 @@ const Home = () => {
               label: asset?.symbol,
               sliderValue: 0,
               inputAmount: 0,
-              balance: num(shiftDigits((walletBalances?.find((b: any) => b.denom === (asset?.base??""))?.amount??0), -(asset?.decimal??6))).toNumber(),
-              price: Number(prices?.find((p: any) => p.denom === (asset?.base??""))?.price??"0"),
-              combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === (asset?.base??""))?.amount??0), -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset?.base)?.price??"0"))).toNumber()
+              balance: 0,
+              price: 0,
+              combinUsdValue: 0
             })
           }
+          
+          // balance: num(shiftDigits((walletBalances?.find((b: any) => b.denom === (asset?.base??""))?.amount??0), -(asset?.decimal??6))).toNumber(),
+          // price: Number(prices?.find((p: any) => p.denom === (asset?.base??""))?.price??"0"),
+          // combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === (asset?.base??""))?.amount??0), -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset?.base)?.price??"0"))).toNumber()
         })
 
         setQuickActionState({

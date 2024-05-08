@@ -125,17 +125,15 @@ const Home = () => {
   //
   
   const onMenuChange = (value: string) => {
-    console.log(value)
     setQuickActionState({
-      selectedAsset: { ...value.selectedAsset, sliderValue: 0 }
+      selectedAsset: value
     })
-
   }
 
   //Use mintState to update the deposit state
   const { debtAmount, maxMint } = useQuickActionVaultSummary()
   const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
-  console.log("Max Mint:", maxMint)
+  console.log("Slider Value", sliderValue, debtAmount, quickActionState.mint)
 
   useEffect(() => {
 

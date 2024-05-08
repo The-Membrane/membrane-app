@@ -125,9 +125,11 @@ const Home = () => {
   //
   
   const onMenuChange = (value: string) => {
+    console.log(value)
     setQuickActionState({
-      selectedAsset: value
+      selectedAsset: { ...value.selectedAsset, sliderValue: 0 }
     })
+
   }
 
   //Use mintState to update the deposit state

@@ -113,9 +113,9 @@ const Home = () => {
           label: asset?.symbol,
           sliderValue: 0,
           inputAmount: 0,
-          balance: num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).toNumber(),
-          price: Number(prices?.find((p: any) => p.denom === asset.base).price??"0"),
-          combinUsdValue: num(num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0"))).toNumber()
+          balance: num(shiftDigits(walletBalances?.find((b: any) => b.denom === (asset.base??""))?.amount, -(asset?.decimal??6))).toNumber(),
+          price: Number(prices?.find((p: any) => p.denom === (asset.base??"")).price??"0"),
+          combinUsdValue: num(num(shiftDigits(walletBalances?.find((b: any) => b.denom === (asset.base??""))?.amount, -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0"))).toNumber()
         }))
 
         setQuickActionState({

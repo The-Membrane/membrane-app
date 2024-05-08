@@ -59,7 +59,7 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
         setInputAmount(0)
         console.log("set")
       }
-    }, [QAState?.selectedAsset!.symbol])
+    }, [QAState?.selectedAsset])
 
     return (
     <Stack py="5" w="full" gap="5">     

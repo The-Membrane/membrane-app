@@ -133,7 +133,6 @@ const Home = () => {
   //Use mintState to update the deposit state
   const { debtAmount, maxMint } = useQuickActionVaultSummary()
   const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
-  console.log("Slider Value", sliderValue, debtAmount, quickActionState.mint)
 
   useEffect(() => {
 

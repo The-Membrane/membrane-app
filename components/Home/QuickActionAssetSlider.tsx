@@ -43,6 +43,9 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt, inputAmo
       if (inputAmount != (asset?.sliderValue??0)) onChange(inputAmount)
     }, delayTime);  
   }, [inputAmount])
+
+  console.log("Slider Value", asset?.sliderValue)
+
   
   return (
     <Stack gap="0">

@@ -58,7 +58,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       }, delayTime);  
     }
 
-    useEffect(() => console.log(QAState?.selectedAsset?.inputAmount), [QAState?.selectedAsset?.inputAmount])
+    // useEffect(() => console.log(QAState?.selectedAsset?.inputAmount), [QAState?.selectedAsset?.inputAmount])
 
     return (
     <Stack py="5" w="full" gap="5">     

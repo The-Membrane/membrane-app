@@ -55,7 +55,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       const newAmount = e.target.value
 
       if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: max }})
-        else setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: (parseInt(newAmount)) }})
+        else setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: (parseInt(e.target.value)) }})
     }
 
     return (
@@ -74,7 +74,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
           textAlign={"center"} 
           placeholder="0" 
           type="number" 
-          value={(QAState?.selectedAsset?.inputAmount??0)} 
+          value={QAState?.selectedAsset?.inputAmount} 
           onChange={handleInputChange}
         />
       </HStack>

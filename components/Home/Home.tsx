@@ -107,7 +107,8 @@ const Home = () => {
         const assetsWithBalance: AssetWithBalance[] = [];
 
         assets?.filter((asset) => {
-          if (asset !== undefined) return walletDenoms.includes(asset.base)
+          if (asset !== undefined) return true
+          //  walletDenoms.includes((asset?.base??""))
           else return false
         }).forEach((asset) => {
           if (asset !== undefined){

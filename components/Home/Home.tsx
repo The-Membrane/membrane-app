@@ -18,6 +18,8 @@ import { calcSliderValue } from '../Mint/TakeAction'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { QuickActionAssetWithSlider } from './QuickActionAssetSlider'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
+import { QuickActionLTVWithSlider } from './QuickActionLTVWithSlider'
+import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
 
 type Props = {
   value: string
@@ -30,15 +32,13 @@ const AssetsWithBalanceMenu = ({ value, onChange, assets }: Props) => {
 }
 
 type SliderWithInputProps = {
-  // value: number
-  setActionState: (set: any) => void
   max: number
   inputBoxWidth?: string
   QAState: QuickActionState
   onMenuChange: (value: string) => void
 }
 
-const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAState, onMenuChange }: SliderWithInputProps) => {  
+const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, onMenuChange }: SliderWithInputProps) => {  
     //inputAmount is separate so we can use both the input box & the slider to set LPState without messing with focus
     const [ inputAmount, setInputAmount ] = useState(0);
 
@@ -131,11 +131,8 @@ const Home = () => {
   }
 
   //Use mintState to update the deposit state
-  const { mintState } = useMintState()
-
-  
-  const { debtAmount } = useVaultSummary()
-  const sliderValue = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
+  const { debtAmount } = useQuickActionVaultSummary()
+  const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
 
   useEffect(() => {
 
@@ -159,15 +156,12 @@ const Home = () => {
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="2">
           <SliderWithInputBox
-            // value={quickActionState.selectedAsset?.sliderValue??0}
-            setActionState={(value: number) => setQuickActionState({ selectedAsset: { ...quickActionState?.selectedAsset, sliderValue: value} })}
             max={quickActionState?.selectedAsset?.combinUsdValue??0}
             inputBoxWidth='42%'
             QAState={quickActionState}
             onMenuChange={onMenuChange}
           />
-          {/* <QuickActionAssetWithSlider key={quickActionState?.selectedAsset?.base} asset={quickActionState?.selectedAsset} label={quickActionState?.selectedAsset?.symbol} /> */}
-          <LTVWithSlider label="Your Debt" value={sliderValue}/>
+          <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
         </Stack>
         {/* LTV Input Box */}
 

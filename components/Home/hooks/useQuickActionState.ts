@@ -9,6 +9,7 @@ export type QuickActionState = {
   assets: AssetWithBalance[]
   summary?: Summary[]
   totalUsdValue?: number
+  mint?: number
 }
 
 type Store = {

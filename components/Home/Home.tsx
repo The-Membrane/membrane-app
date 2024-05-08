@@ -42,7 +42,12 @@ type SliderWithInputProps = {
 const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange }: SliderWithInputProps) => {
 
     const onSliderChange = (value: number) => {
-      if (QAState?.selectedAsset && QAState?.selectedAsset?.inputAmount != value) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: value }})
+      console.log(QAState?.selectedAsset != undefined, QAState?.selectedAsset?.inputAmount != value)
+      if (QAState?.selectedAsset && QAState?.selectedAsset?.inputAmount != value) 
+        {
+          console.log("Input is now", value)
+          setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: value }})
+        }
     }
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +66,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       <HStack justifyContent="space-between">
         <AssetsWithBalanceMenu 
           value={QAState?.selectedAsset} 
-          onChange={(value: string) => {onMenuChange(value); if (QAState?.selectedAsset?.inputAmount??0 != 0) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: 0 }});}}
+          onChange={(value: string) => {onMenuChange(value); if ((QAState?.selectedAsset?.inputAmount??0) != 0) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: 0 }});}}
           assets={QAState?.assets}
         />
         <Input 
@@ -69,7 +74,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
           textAlign={"center"} 
           placeholder="0" 
           type="number" 
-          value={QAState?.selectedAsset?.inputAmount??0} 
+          value={(QAState?.selectedAsset?.inputAmount??0)} 
           onChange={handleInputChange}
         />
       </HStack>

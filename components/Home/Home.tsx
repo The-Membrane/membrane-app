@@ -41,14 +41,9 @@ type SliderWithInputProps = {
 
 const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange }: SliderWithInputProps) => {
 
-    // const onSliderChange = (value: number) => {
-    //   console.log(QAState?.selectedAsset != undefined, QAState?.selectedAsset?.inputAmount != value)
-    //   if (QAState?.selectedAsset && QAState?.selectedAsset?.inputAmount != value) 
-    //     {
-    //       console.log("Input is now", value)
-    //       setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: value }})
-    //     }
-    // }
+    const onSliderChange = (value: number) => {
+      if (QAState?.selectedAsset && QAState?.selectedAsset?.inputAmount != value) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: value }})
+    }
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       e.preventDefault()
@@ -56,6 +51,11 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
 
       if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: max }})
         else setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: (parseInt(e.target.value)) }})
+
+      setTimeout(() => {
+        if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, sliderValue: max }})
+          else setQAState({ selectedAsset: { ...QAState?.selectedAsset, sliderValue: (parseInt(e.target.value)) }})
+      }, delayTime);  
     }
 
     return (
@@ -74,11 +74,11 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
           textAlign={"center"} 
           placeholder="0" 
           type="number" 
-          value={QAState?.selectedAsset?.sliderValue} 
+          value={QAState?.selectedAsset?.inputAmount} 
           onChange={handleInputChange}
         />
       </HStack>
-      <QuickActionAssetWithSlider key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
+      <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
       </> : null}
 
   </Stack>)

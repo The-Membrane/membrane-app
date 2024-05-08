@@ -41,14 +41,14 @@ type SliderWithInputProps = {
 
 const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange }: SliderWithInputProps) => {
 
-    const onSliderChange = (value: number) => {
-      console.log(QAState?.selectedAsset != undefined, QAState?.selectedAsset?.inputAmount != value)
-      if (QAState?.selectedAsset && QAState?.selectedAsset?.inputAmount != value) 
-        {
-          console.log("Input is now", value)
-          setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: value }})
-        }
-    }
+    // const onSliderChange = (value: number) => {
+    //   console.log(QAState?.selectedAsset != undefined, QAState?.selectedAsset?.inputAmount != value)
+    //   if (QAState?.selectedAsset && QAState?.selectedAsset?.inputAmount != value) 
+    //     {
+    //       console.log("Input is now", value)
+    //       setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: value }})
+    //     }
+    // }
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       e.preventDefault()
@@ -74,11 +74,11 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
           textAlign={"center"} 
           placeholder="0" 
           type="number" 
-          value={QAState?.selectedAsset?.inputAmount} 
+          value={QAState?.selectedAsset?.sliderValue} 
           onChange={handleInputChange}
         />
       </HStack>
-      <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
+      <QuickActionAssetWithSlider key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
       </> : null}
 
   </Stack>)

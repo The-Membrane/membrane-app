@@ -5,7 +5,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
 export type QuickActionState = {
-  selectedAsset?: Asset
+  selectedAsset?: AssetWithBalance
   assets: AssetWithBalance[]
   summary?: Summary[]
   totalUsdValue?: number

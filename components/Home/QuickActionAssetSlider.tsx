@@ -17,7 +17,6 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
   const { quickActionState, setQuickActionState } = useQuickActionState()
 
   const onChange = (value: number) => {
-    onChangeExt(value)
     let updatedAssets = quickActionState.assets.map((asset) => {
       const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
       

@@ -18,6 +18,7 @@ export type AssetWithBalance = Asset & {
   combinUsdValue: number
   price: number
   amount?: string | number
+  inputAmount?: number
 }
 
 const useCombinBalance = () => {

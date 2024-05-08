@@ -63,7 +63,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       <Text fontSize="14px" fontWeight="700">
         Choose Collateral
       </Text> 
-      <HStack justifyContent="space-between">
+      {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
         <AssetsWithBalanceMenu 
           value={QAState?.selectedAsset} 
           onChange={(value: string) => {onMenuChange(value); if ((QAState?.selectedAsset?.inputAmount??0) != 0) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: 0 }});}}
@@ -79,6 +79,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
         />
       </HStack>
       <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
+      </> : null}
 
   </Stack>)
 }

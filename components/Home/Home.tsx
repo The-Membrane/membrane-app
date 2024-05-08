@@ -58,6 +58,8 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       }, delayTime);  
     }
 
+    useEffect(() => console.log(QAState?.selectedAsset?.inputAmount), [QAState?.selectedAsset?.inputAmount])
+
     return (
     <Stack py="5" w="full" gap="5">     
       <Text fontSize="14px" fontWeight="700">
@@ -101,24 +103,25 @@ const Home = () => {
 
   //Create an object of assets that only holds assets that have a walletBalance
   useEffect(() => {    
-      const assetsWithBalance = assets?.filter((asset) => {
-        if (asset != undefined) return walletDenoms.includes(asset.base)
-        else return false
-      }).map((asset) => ({
-        ...asset,
-        value: asset?.symbol,
-        label: asset?.symbol,
-        sliderValue: 0,
-        inputAmount: 0,
-        balance: num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).toNumber(),
-        price: Number(prices?.find((p: any) => p.denom === asset.base).price??"0"),
-        combinUsdValue: num(num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0"))).toNumber()
-      }))
+    if (prices && walletBalances && assets){
+        const assetsWithBalance = assets?.filter((asset) => {
+          if (asset != undefined) return walletDenoms.includes(asset.base)
+          else return false
+        }).map((asset) => ({
+          ...asset,
+          value: asset?.symbol,
+          label: asset?.symbol,
+          sliderValue: 0,
+          inputAmount: 0,
+          balance: num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).toNumber(),
+          price: Number(prices?.find((p: any) => p.denom === asset.base).price??"0"),
+          combinUsdValue: num(num(shiftDigits(walletBalances?.find((b: any) => b.denom === asset.base)?.amount, -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base).price??"0"))).toNumber()
+        }))
 
-      setQuickActionState({
-        assets: (assetsWithBalance??[])
-      })
-
+        setQuickActionState({
+          assets: (assetsWithBalance??[])
+        })
+      }
   }, [assets, walletBalances, prices])
 
   useEffect(() => {

@@ -110,7 +110,7 @@ const Home = () => {
           if (asset !== undefined) return walletDenoms.includes(asset.base)
           else return false
         }).forEach((asset) => {
-          if (asset){
+          if (asset !== undefined){
             assetsWithBalance.push({
               ...asset,
               value: asset?.symbol,

@@ -13,7 +13,7 @@ export type AssetWithSliderProps = {
   onChangeExt: (value: number) => void
 }
 
-export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetWithSliderProps) => {
+export const QuickActionAssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
 
   const onChange = (value: number) => {

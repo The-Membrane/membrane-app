@@ -101,7 +101,7 @@ const Home = () => {
   //Create an object of assets that only holds assets that have a walletBalance
   useEffect(() => {    
       const assetsWithBalance = assets?.filter((asset) => {
-        if (asset) return walletDenoms.includes(asset.base)
+        if (asset != undefined) return walletDenoms.includes(asset.base)
         else return false
       }).map((asset) => ({
         ...asset,

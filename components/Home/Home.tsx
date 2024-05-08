@@ -131,7 +131,7 @@ const Home = () => {
   }
 
   //Use mintState to update the deposit state
-  const { debtAmount } = useQuickActionVaultSummary()
+  const { debtAmount, maxMint } = useQuickActionVaultSummary()
   const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
   console.log("DEbt:", debtAmount, "Mint:", quickActionState.mint, "Slider:", sliderValue)
 
@@ -162,6 +162,9 @@ const Home = () => {
             QAState={quickActionState}
             onMenuChange={onMenuChange}
           />
+          <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+            { maxMint < 100 ? "Minimum debt is 100, deposit more to increase your available mint amount: " + {maxMint} : ' '}
+          </Text>
           <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
         </Stack>
         {/* LTV Input Box */}

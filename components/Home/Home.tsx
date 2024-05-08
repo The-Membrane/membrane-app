@@ -43,7 +43,6 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
     const [ inputAmount, setInputAmount ] = useState(0);
 
     const onSliderChange = (value: number) => {
-      // setActionState(value)
       setInputAmount(value)
     }
 
@@ -54,10 +53,10 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
       if (num(newAmount).isGreaterThan(max)) setInputAmount(max)
         else setInputAmount(parseInt(e.target.value))
       
-      setTimeout(() => {
-        if (num(newAmount).isGreaterThan(max)) setActionState(max)
-          else setActionState(parseInt(e.target.value))
-      }, delayTime);        
+      // setTimeout(() => {
+      //   if (num(newAmount).isGreaterThan(max)) setActionState(max)
+      //     else setActionState(parseInt(e.target.value))
+      // }, delayTime);        
     }
 
     return (
@@ -68,7 +67,7 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
       <HStack justifyContent="space-between">
         <AssetsWithBalanceMenu 
           value={QAState?.selectedAsset} 
-          onChange={onMenuChange}
+          onChange={(value: string) => {onMenuChange(value); setInputAmount(0);}}
           assets={QAState?.assets}
         />
         <Input 
@@ -80,7 +79,7 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
           onChange={handleInputChange}
         />
       </HStack>
-      <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
+      <QuickActionAssetWithSlider inputAmount={inputAmount} onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
 
       {/* <SliderWithState
         value={value}

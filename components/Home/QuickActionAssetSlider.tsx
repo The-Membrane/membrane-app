@@ -4,14 +4,17 @@ import { num } from '@/helpers/num'
 import useQuickActionState from './hooks/useQuickActionState'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 import { SliderWithState } from '../Mint/SliderWithState'
+import { delayTime } from '@/config/defaults'
+import { useEffect } from 'react'
 
 export type AssetWithSliderProps = {
   label: string
   asset: AssetWithBalance
   onChangeExt: (value: number) => void
+  inputAmount: number
 }
 
-export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetWithSliderProps) => {
+export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt, inputAmount }: AssetWithSliderProps) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
 
   const onChange = (value: number) => {
@@ -33,6 +36,13 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
 
     setQuickActionState({ assets: updatedAssets, summary, totalUsdValue })
   }
+
+  //When the amount in the input box changes, update the slider value on a delay
+  useEffect(() => {
+    setTimeout(() => {
+      onChange(inputAmount)
+    }, delayTime);  
+  }, [inputAmount])
   
   return (
     <Stack gap="0">
@@ -53,3 +63,4 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
     </Stack>
   )
 }
+

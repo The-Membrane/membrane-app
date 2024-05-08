@@ -48,7 +48,6 @@ export const QuickActionLTVWithSlider = ({ label, value = 100 }: LTVWithSliderPr
     const diff = num(debtAmount).minus(newValue).abs().toNumber()
     mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0
     repay = num(newValue).isLessThan(debtAmount) ? diff : 0
-    // ltvSlider = num(newValue).times(100).dividedBy(maxMint).dp(2).toNumber()
 
     setQuickActionState({ mint })
   }

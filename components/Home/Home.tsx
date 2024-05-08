@@ -51,15 +51,8 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
       const newAmount = e.target.value
 
       if (num(newAmount).isGreaterThan(max)) setInputAmount(max)
-        else setInputAmount(parseInt(e.target.value))           
+        else setInputAmount(parseInt(e.target.value))
     }
-
-    // useEffect(() => {
-    //   if (QAState?.selectedAsset && QAState?.selectedAsset.symbol) {
-    //     setInputAmount(0)
-    //     console.log("set")
-    //   }
-    // }, [QAState?.selectedAsset])
 
     return (
     <Stack py="5" w="full" gap="5">     
@@ -69,7 +62,7 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
       <HStack justifyContent="space-between">
         <AssetsWithBalanceMenu 
           value={QAState?.selectedAsset} 
-          onChange={onMenuChange}
+          onChange={(value: string) => {onMenuChange(value); if (inputAmount != 0) setInputAmount(0);}}
           assets={QAState?.assets}
         />
         <Input 

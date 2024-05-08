@@ -19,7 +19,7 @@ const useQuickActionVaultSummary = () => {
       collateralInterest,
       basketPositions,
       prices,
-      newDeposit: quickActionState?.selectedAsset.sliderValue || 0,
+      newDeposit: (quickActionState?.selectedAsset.sliderValue??0) || 0,
       summary: [quickActionState?.selectedAsset],
       mint: quickActionState?.mint,
       initialBorrowLTV,

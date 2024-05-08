@@ -172,7 +172,7 @@ const Home = () => {
         <Stack py="5" w="full" gap="2">
           <SliderWithInputBox
             // value={quickActionState.selectedAsset?.sliderValue??0}
-            setActionState={(value: number) => setQuickActionState({ selectedAsset: { sliderValue: value} })}
+            setActionState={(value: number) => setQuickActionState({ selectedAsset: { ...quickActionState?.selectedAsset, sliderValue: value} })}
             max={quickActionState?.selectedAsset?.combinUsdValue??0}
             inputBoxWidth='42%'
             QAState={quickActionState}

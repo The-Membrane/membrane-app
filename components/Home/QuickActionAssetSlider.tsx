@@ -18,7 +18,7 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt, inputAmo
   const { quickActionState, setQuickActionState } = useQuickActionState()
 
   const onChange = (value: number) => {
-    // onChangeExt(value)
+    onChangeExt(value)
     let updatedAssets = quickActionState.assets.map((asset) => {
       const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
       
@@ -39,7 +39,7 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt, inputAmo
 
   //When the amount in the input box changes, update the slider value on a delay
   useEffect(() => {
-      onChange(inputAmount)
+    onChange(inputAmount)
   }, [inputAmount])
   
   return (

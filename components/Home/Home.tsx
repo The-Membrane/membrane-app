@@ -76,12 +76,6 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
       </HStack>
       <QuickActionAssetWithSlider inputAmount={inputAmount} onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
 
-      {/* <SliderWithState
-        value={value}
-        onChange={onSliderChange}
-        min={0}
-        max={max}
-      /> */}
   </Stack>)
 }
 

@@ -51,13 +51,15 @@ const SliderWithInputBox = ({ setActionState, max, inputBoxWidth = "38%", QAStat
       const newAmount = e.target.value
 
       if (num(newAmount).isGreaterThan(max)) setInputAmount(max)
-        else setInputAmount(parseInt(e.target.value))
-      
-      // setTimeout(() => {
-      //   if (num(newAmount).isGreaterThan(max)) setActionState(max)
-      //     else setActionState(parseInt(e.target.value))
-      // }, delayTime);        
+        else setInputAmount(parseInt(e.target.value))           
     }
+
+    useEffect(() => {
+      if (QAState?.selectedAsset.symbol) {
+        setInputAmount(0)
+        console.log("set")
+      }
+    }, [QAState?.selectedAsset.symbol])
 
     return (
     <Stack py="5" w="full" gap="5">     

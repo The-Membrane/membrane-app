@@ -79,6 +79,7 @@ const useQuickAction = () => {
         pairedAsset: usdcAsset,
         poolID: 1268,
       })
+      console.log("under LP", quickActionState?.mint??0, tokenOutMinAmount)
       msgs.push(lp as MsgExecuteContractEncodeObject)
       console.log(msgs)
 

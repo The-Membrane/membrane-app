@@ -6,7 +6,7 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useQuickActionState from './useQuickActionState'
 import { queryClient } from '@/pages/_app'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 const useQuickAction = () => {
   const { quickActionState } = useQuickActionState()
@@ -18,16 +18,7 @@ const useQuickAction = () => {
   /////First we'll do new positions only, but these actions will be usable by all positions & multiple per user in the future//////
 
   //Use first position id or use the basket's next position ID (for new positions)
-  var positionId = "";
-//   if (basketPositions !== undefined) {
-//     positionId = basketPositions?.[0]?.positions?.[0]?.position_id
-//   } else {
-    //Use the next position ID
-    useEffect(() => {
-      positionId = basket?.current_position_id ?? ""
-      console.log("ID", positionId)
-    }, [basket])
-//   }
+  const positionId = useMemo(() => basket?.current_position_id ?? "", [basket])
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: [

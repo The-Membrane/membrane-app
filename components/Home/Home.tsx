@@ -68,7 +68,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       </Text> 
       {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
         <AssetsWithBalanceMenu 
-          value={QAState?.selectedAsset} 
+          value={QAState?.selectedAsset?.value} 
           onChange={onMenuChange}
           assets={QAState?.assets}
         />

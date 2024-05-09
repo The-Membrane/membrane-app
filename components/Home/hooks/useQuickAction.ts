@@ -40,6 +40,7 @@ const useQuickAction = () => {
       quickActionState?.selectedAsset,
     ],
     queryFn: () => {
+      console.log(!address, !basket, !usdcAsset)
       if (!address || !basket || !usdcAsset) return
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
       const mint = getMintAndRepayMsgs({

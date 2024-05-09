@@ -158,7 +158,8 @@ export const getRateCost = (
 ): { cost: number, ratios: any } => {
   if (!positions) return {cost: 0, ratios: []}
   const positionsWithRatio = getAssetRatio(tvl, positions)
-  const cost = positionsWithRatio.reduce((acc, position) => {
+  const cost = positionsWithRatio.reduce((acc, position) => {    
+    if (!position) return acc
     const rate =
       basketAssets.find((asset) => asset?.asset?.base === position.denom)?.interestRate || 0
     return acc.plus(num(position.ratio).times(rate))

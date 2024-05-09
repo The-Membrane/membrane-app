@@ -41,14 +41,15 @@ type SliderWithInputProps = {
 
 const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange }: SliderWithInputProps) => {
 
-    const onSliderChange = (value: number) => {
+    const onSliderChange = (value: number) => {      
+      console.log("external input change", value)
       if (QAState?.selectedAsset && QAState?.selectedAsset?.inputAmount != value) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: value }})
     }
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       e.preventDefault()
       const newAmount = e.target.value
-
+      console.log("internal input change", newAmount, max)
       if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: max }})
         else setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: (parseInt(e.target.value)) }})
 
@@ -67,7 +68,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       </Text> 
       {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
         <AssetsWithBalanceMenu 
-          value={QAState?.selectedAsset?.symbol??"None"} 
+          value={QAState?.selectedAsset} 
           onChange={(value: string) => {onMenuChange(value); if ((QAState?.selectedAsset?.inputAmount??0) != 0) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: 0 }});}}
           assets={QAState?.assets}
         />

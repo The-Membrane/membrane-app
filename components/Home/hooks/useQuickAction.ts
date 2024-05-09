@@ -48,18 +48,16 @@ const useQuickAction = () => {
     ],
     queryFn: () => {
       if (!address || !basket || !usdcAsset || !prices || !cdtAsset) return
-      console.log(!address, !basket, !usdcAsset, !prices, !cdtAsset)
-      console.log(quickActionState?.mint??0)
-      console.log("on top of deposit")
+      //Deposit
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
-      console.log("on top of mint")
+      //Mint
       const mint = getMintAndRepayMsgs({
         address,
         positionId,
         mintAmount: quickActionState?.mint??0,
         repayAmount: 0,
       })
-      console.log("on top of swap")
+      //Swap
       const { msg: swap, tokenOutMinAmount } = swapToMsg({
         address, 
         cdtAmount: quickActionState?.mint??0, 
@@ -70,9 +68,8 @@ const useQuickAction = () => {
       var msgs = [] as MsgExecuteContractEncodeObject[]
       msgs = msgs.concat(deposit)
       msgs = msgs.concat(mint)
-      msgs.push(swap as MsgExecuteContractEncodeObject)      
-      console.log("on top of LP")
-      console.log("under LP", quickActionState?.mint??0, tokenOutMinAmount)
+      msgs.push(swap as MsgExecuteContractEncodeObject)  
+      //LP   
       const lp = LPMsg({
         address,
         cdtInAmount: shiftDigits(quickActionState?.mint??0, 6).dp(0).toString(),
@@ -82,7 +79,6 @@ const useQuickAction = () => {
         poolID: 1268,
       })
       msgs.push(lp as MsgExecuteContractEncodeObject)
-      console.log(msgs)
 
       return msgs as MsgExecuteContractEncodeObject[]
     },

@@ -141,6 +141,7 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
 }
 
 export const getAssetRatio = (tvl: number, positions: Positions[]) => {
+  if (!positions) return []
   return positions.map((position) => ({
     ...position,
     ratio: num(position.usdValue).div(tvl).toNumber(),
@@ -288,6 +289,7 @@ const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
   const positions = getPositions(basketPositions, prices)
 
   return positions.map((position) => {
+    if (!position) return
     const updatedPosition = summary.find((p: any) => p.symbol === position.symbol)
     const price = prices?.find((p) => p.denom === position.denom)?.price || 0
     const amount = num(position.amount)

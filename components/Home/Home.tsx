@@ -102,32 +102,25 @@ const Home = () => {
   }).filter((asset: string) => asset != "");
 
   //Create an object of assets that only holds assets that have a walletBalance
-  useEffect(() => {
+  useEffect(() => {    
     if (prices && walletBalances && assets){
-        const assetsWithBalance: AssetWithBalance[] = [];
-
-        assets?.filter((asset) => {
-          if (asset !== undefined) return true
-          //  walletDenoms.includes((asset?.base??""))
+        const assetsWithBalance = assets?.filter((asset) => {
+          if (asset !== undefined) return walletDenoms.includes(asset.base)
           else return false
-        }).forEach((asset) => {
-          if (asset !== undefined){
-            assetsWithBalance.push({
-              ...asset,
-              value: asset?.symbol,
-              label: asset?.symbol,
-              sliderValue: 0,
-              inputAmount: 0,
-              balance: 0,
-              price: 0,
-              combinUsdValue: 0
-            })
-          }
+        }).map((asset) => {
+          if (!asset) return
           
-          // balance: num(shiftDigits((walletBalances?.find((b: any) => b.denom === (asset?.base??""))?.amount??0), -(asset?.decimal??6))).toNumber(),
-          // price: Number(prices?.find((p: any) => p.denom === (asset?.base??""))?.price??"0"),
-          // combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === (asset?.base??""))?.amount??0), -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset?.base)?.price??"0"))).toNumber()
-        })
+          return {
+            ...asset,
+            value: asset?.symbol,
+            label: asset?.symbol,
+            sliderValue: 0,
+            inputAmount: 0,
+            balance: num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount??0), -(asset?.decimal??6))).toNumber(),
+            price: Number(prices?.find((p: any) => p.denom === asset.base)?.price??"0"),
+            combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount??0), -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base)?.price??"0"))).toNumber()
+          }
+    })
 
         setQuickActionState({
           assets: (assetsWithBalance??[])

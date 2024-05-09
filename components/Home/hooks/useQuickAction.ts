@@ -75,8 +75,6 @@ const useQuickAction = () => {
         pairedAsset: usdcAsset,
         poolID: 1268,
       })
-      console.log(address, quickActionState?.mint??0, tokenOutMinAmount,
-       usdcAsset)
       msgs.push(lp as MsgExecuteContractEncodeObject)
 
       return msgs as MsgExecuteContractEncodeObject[]

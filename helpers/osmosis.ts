@@ -47,7 +47,8 @@ export const LPMsg = ({
     pairedAsset,
     poolID,
 }: GetLPMsgs) => {
-    const CDTCoinIn = coin(cdtInAmount.toString(), cdtAsset.base!)
-    const USDCCoinIn = coin(pairedAssetInAmount.toString(), pairedAsset.base!)
+    const CDTCoinIn = coin(cdtInAmount.toString(), cdtAsset.base)
+    const USDCCoinIn = coin(pairedAssetInAmount.toString(), pairedAsset.base)
+    console.log("made it 1")
     return joinCLPools(address, CDTCoinIn, poolID, USDCCoinIn)
 }

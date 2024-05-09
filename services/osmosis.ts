@@ -406,7 +406,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 
     return osmosis.concentratedliquidity.v1beta1.MessageComposer.withTypeUrl.createPosition({
         poolId: BigInt(poolId),
-        sender: address! as string,
+        sender: address as string,
         //This range is .98 to 1.02
         // lowerTick: BigInt("-200000"),
         // upperTick: BigInt(20000),

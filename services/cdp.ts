@@ -273,7 +273,7 @@ const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
   if (!basketPositions){
 
     return summary.map((position) => {
-      const price = prices?.find((p) => p.denom === position.base)?.price || 0
+      const price = prices?.find((p) => p.denom === (position?.base??""))?.price || 0
       const amount = num(position.amount).toNumber()
       const usdValue = amount * price
       return {

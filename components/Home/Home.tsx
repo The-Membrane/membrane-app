@@ -139,6 +139,7 @@ const Home = () => {
   //
   
   const onMenuChange = (value: string) => {
+    console.log(value.inputAmount)
     setQuickActionState({
       selectedAsset: value
     })

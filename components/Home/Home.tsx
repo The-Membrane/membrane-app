@@ -49,7 +49,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       e.preventDefault()
       const newAmount = e.target.value
-      console.log("internal input change", newAmount, max)
+      // console.log("internal input change", newAmount, max)
       if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: max }})
         else setQAState({ selectedAsset: { ...QAState?.selectedAsset, inputAmount: (parseInt(e.target.value)) }})
 
@@ -139,7 +139,6 @@ const Home = () => {
   //
   
   const onMenuChange = (value: string) => {
-    console.log(value.inputAmount)
     setQuickActionState({
       selectedAsset: value
     })
@@ -152,6 +151,7 @@ const Home = () => {
   useEffect(() => {
 
     if (quickActionState?.assets && quickActionState?.selectedAsset?.symbol != undefined) {
+      console.log("external change", quickActionState?.selectedAsset?.symbol)
       setQuickActionState({
         selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
       })

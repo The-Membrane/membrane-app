@@ -25,7 +25,7 @@ const useQuickAction = () => {
     //Use the next position ID
     useEffect(() => {
       positionId = basket?.current_position_id ?? ""
-      console.log(positionId)
+      console.log("ID", positionId)
     }, [basket])
 //   }
 

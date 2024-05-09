@@ -67,11 +67,10 @@ const useQuickAction = () => {
       msgs = msgs.concat(mint)
       msgs.push(swap as MsgExecuteContractEncodeObject)      
       console.log(msgs)
-      console.log(address, quickActionState?.mint??0, tokenOutMinAmount,
-       usdcAsset)
       const lp = LPMsg({
         address,
         cdtInAmount: quickActionState?.mint??0,
+        cdtAsset,
         pairedAssetInAmount: tokenOutMinAmount,
         pairedAsset: usdcAsset,
         poolID: 1268,

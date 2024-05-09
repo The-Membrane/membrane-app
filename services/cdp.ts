@@ -111,7 +111,8 @@ export type Positions = Asset & {
 
 export const getTVL = (positions: Positions[]) => {
   if (!positions) return 0
-  return positions?.reduce((acc, position) => {
+  return positions?.reduce((acc, position) => { 
+    if (!position) return acc
     return acc + position.usdValue
   }, 0)
 }
@@ -198,7 +199,8 @@ export const getBorrowLTV = (
   ratios?: any[],
 ) => {  
   const positionsWithRatio = ratios??getAssetRatio(tvl, positions);
-  const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => {
+  const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => { 
+    if (!position) return acc
     const ltv =
       basketAssets.find((asset) => asset?.asset?.base === position.denom || asset?.asset?.base === position.base)?.maxBorrowLTV || 0
     return acc.plus(num(position.ratio).times(100).times(ltv))
@@ -224,7 +226,8 @@ export const getLiqudationLTV = (
 ) => {
   const positionsWithRatio = ratios??getAssetRatio(tvl, positions);
 
-  const maxLTV = positionsWithRatio.reduce((acc, position) => {
+  const maxLTV = positionsWithRatio.reduce((acc, position) => { 
+    if (!position) return acc
     const ltv = basketAssets.find((asset) => asset?.asset?.base === position.denom || asset?.asset?.base === position.base)?.maxLTV || 0
     return acc.plus(num(position.ratio).times(100).times(ltv))
   }, num(0))
@@ -401,7 +404,8 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
     return usdValue
   })
 
-  return positions.reduce((acc, position) => {
+  return positions.reduce((acc, position) => { 
+    if (!position) return acc
     return acc + position
   }, 0)
 }

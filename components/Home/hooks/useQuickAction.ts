@@ -55,6 +55,7 @@ const useQuickAction = () => {
         cdtAmount: quickActionState?.mint??0, 
         swapToAsset: usdcAsset,
       })
+      console.log(swap)
       // const lp = LPMsg({
       //   address,
       //   cdtInAmount: quickActionState?.mint??0,

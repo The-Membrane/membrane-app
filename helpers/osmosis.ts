@@ -25,6 +25,7 @@ export const swapToMsg = ({
     const cdtPrice = prices?.find((price) => price.denom === cdtAsset?.base)
     const swapToPrice = prices?.find((price) => price.denom === swapToAsset.base)
     const CDTInAmount = num(microAmount).div(2).toNumber()
+    
     return handleCollateralswaps(address, Number(cdtPrice!.price), Number(swapToPrice!.price), swapToAsset.symbol as keyof exported_supportedAssets, CDTInAmount)
 }
 

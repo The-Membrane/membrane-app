@@ -38,6 +38,7 @@ const useQuickAction = () => {
       summary?.map((s: any) => String(s.amount)) || '0',
       quickActionState?.mint,
       quickActionState?.selectedAsset,
+      usdcAsset,
     ],
     queryFn: () => {
       console.log(!address, !basket, !usdcAsset)

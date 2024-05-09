@@ -11,6 +11,13 @@ const useInitialVaultSummary = () => {
 
   return useMemo(() => {
     const calc_initialPositions = getPositions(basketPositions, prices)
+    if (!calc_initialPositions) return { 
+      initialBorrowLTV: 0, 
+      initialLTV: 0, 
+      debtAmount: 0, 
+      initialTVL: 0, 
+      basketAssets: []
+    }
     const calc_debtAmount = getDebt(basketPositions)
     const calc_basketAssets = getBasketAssets(basket!, collateralInterest!)
     const calc_initialTVL = getTVL(calc_initialPositions)

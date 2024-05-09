@@ -10,6 +10,7 @@ import { useEffect, useMemo } from 'react'
 import { LPMsg, swapToMsg } from '@/helpers/osmosis'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useOraclePrice } from '@/hooks/useOracle'
+import { shiftDigits } from '@/helpers/math'
 
 const useQuickAction = () => {
   const { quickActionState } = useQuickActionState()
@@ -74,7 +75,7 @@ const useQuickAction = () => {
       console.log("under LP", quickActionState?.mint??0, tokenOutMinAmount)
       const lp = LPMsg({
         address,
-        cdtInAmount: quickActionState?.mint??0,
+        cdtInAmount: shiftDigits(quickActionState?.mint??0, 6).dp(0).toString(),
         cdtAsset,
         pairedAssetInAmount: tokenOutMinAmount,
         pairedAsset: usdcAsset,

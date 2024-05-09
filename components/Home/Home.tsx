@@ -157,7 +157,7 @@ const Home = () => {
       })
     }
     
-  }, [quickActionState?.assets, quickActionState?.selectedAsset])
+  }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])
 
   return (
     <Stack >

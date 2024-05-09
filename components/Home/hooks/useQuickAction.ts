@@ -31,7 +31,7 @@ const useQuickAction = () => {
       //Use the next position ID
       return basket?.current_position_id ?? ""
     }
-  }, [basket])
+  }, [basket, basketPositions])
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: [
@@ -62,19 +62,20 @@ const useQuickAction = () => {
         prices,
         cdtAsset,
       })
-      console.log("swap msg", swap)
+      const lp = LPMsg({
+        address,
+        cdtInAmount: quickActionState?.mint??0,
+        pairedAssetInAmount: tokenOutMinAmount,
+        pairedAsset: usdcAsset,
+        poolID: 1268,
+      })
+
       var msgs = [] as MsgExecuteContractEncodeObject[]
       msgs = msgs.concat(deposit)
       msgs = msgs.concat(mint)
       msgs.push(swap as MsgExecuteContractEncodeObject)
-      console.log("msgs", msgs)
-      // const lp = LPMsg({
-      //   address,
-      //   cdtInAmount: quickActionState?.mint??0,
-      //   pairedAssetInAmount: tokenOutMinAmount,
-      //   pairedAsset: usdcAsset,
-      //   poolID: 1268,
-      // })
+      msgs = msgs.concat(lp as MsgExecuteContractEncodeObject[])
+
       return msgs as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,

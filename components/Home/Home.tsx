@@ -155,7 +155,9 @@ const Home = () => {
       setQuickActionState({
         selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
       })
-      setInputAmount(0)
+      if (quickActionState?.selectedAsset?.sliderValue != inputAmount) {
+        setInputAmount(quickActionState?.selectedAsset?.sliderValue??0)
+      }
     }
     
   }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])

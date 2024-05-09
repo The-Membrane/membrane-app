@@ -218,6 +218,7 @@ export const getMintAndRepayMsgs = ({
     const cdt = getAssetBySymbol('CDT')
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
     const funds = [coin(microAmount, cdt?.base!)]
+    console.log(funds)
     const repayMsg = messageComposer.repay({ positionId }, funds)
     msgs.push(repayMsg)
   }

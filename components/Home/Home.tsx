@@ -59,6 +59,14 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       }, delayTime);  
     }
 
+    useEffect(() => {
+      //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
+      if (QAState?.selectedAsset?.sliderValue != inputAmount) {
+        setInputAmount(QAState?.selectedAsset?.sliderValue??0)
+      }
+    }, [QAState?.selectedAsset?.sliderValue])
+    
+
 
     return (
     <Stack py="5" w="full" gap="5">     
@@ -153,10 +161,6 @@ const Home = () => {
       setQuickActionState({
         selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
       })
-      if (quickActionState?.selectedAsset?.sliderValue != inputAmount) {
-        console.log("setting", quickActionState?.selectedAsset?.sliderValue)
-        setInputAmount(quickActionState?.selectedAsset?.sliderValue??0)
-      }
     }
     
   }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])

@@ -14,7 +14,19 @@ const useQuickActionVaultSummary = () => {
   const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary()
 
   return useMemo(() => {
-    console.log(quickActionState?.selectedAsset)
+    
+    if (!quickActionState?.selectedAsset){
+      return {
+        debtAmount: 0,
+        cost: 0,
+        tvl: 0,
+        ltv: 0,
+        borrowLTV: 0,
+        liquidValue: 0,
+        liqudationLTV: 0,
+      }
+    }
+
     return calculateVaultSummary({
       basket,
       collateralInterest,

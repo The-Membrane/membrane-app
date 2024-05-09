@@ -334,6 +334,15 @@ export const calculateVaultSummary = ({
   }
 
   const positions = updatedSummary(summary, basketPositions, prices)
+  if (!positions) return {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
   const tvl = initialTVL + newDeposit
   const { cost, ratios} = getRateCost(positions, tvl, basketAssets)
   const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).multipliedBy(basket.credit_price.price).toNumber())

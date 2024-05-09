@@ -36,6 +36,7 @@ const useQuickAction = () => {
     ],
     queryFn: () => {
       if (!address) return
+      console.log(quickActionState?.mint, summary)
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
       const mint = getMintAndRepayMsgs({
         address,

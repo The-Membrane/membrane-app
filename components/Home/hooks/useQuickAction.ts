@@ -46,13 +46,14 @@ const useQuickAction = () => {
       cdtAsset
     ],
     queryFn: () => {
-      console.log(!address, !basket, !usdcAsset, !prices, !cdtAsset)
       if (!address || !basket || !usdcAsset || !prices || !cdtAsset) return
+      console.log(!address, !basket, !usdcAsset, !prices, !cdtAsset)
+      console.log(quickActionState?.mint??0)
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
       const mint = getMintAndRepayMsgs({
         address,
         positionId,
-        mintAmount: quickActionState?.mint,
+        mintAmount: quickActionState?.mint??0,
         repayAmount: 0,
       })
       const { msg: swap, tokenOutMinAmount } = swapToMsg({
@@ -74,7 +75,6 @@ const useQuickAction = () => {
         pairedAsset: usdcAsset,
         poolID: 1268,
       })
-      console.log(quickActionState?.mint??0)
       msgs.push(lp as MsgExecuteContractEncodeObject)
       console.log(msgs)
 

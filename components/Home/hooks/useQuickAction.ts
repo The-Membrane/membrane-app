@@ -49,13 +49,16 @@ const useQuickAction = () => {
       if (!address || !basket || !usdcAsset || !prices || !cdtAsset) return
       console.log(!address, !basket, !usdcAsset, !prices, !cdtAsset)
       console.log(quickActionState?.mint??0)
+      console.log("on top of deposit")
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
+      console.log("on top of mint")
       const mint = getMintAndRepayMsgs({
         address,
         positionId,
         mintAmount: quickActionState?.mint??0,
         repayAmount: 0,
       })
+      console.log("on top of swap")
       const { msg: swap, tokenOutMinAmount } = swapToMsg({
         address, 
         cdtAmount: quickActionState?.mint??0, 
@@ -67,6 +70,7 @@ const useQuickAction = () => {
       msgs = msgs.concat(deposit)
       msgs = msgs.concat(mint)
       msgs.push(swap as MsgExecuteContractEncodeObject)      
+      console.log("on top of LP")
       const lp = LPMsg({
         address,
         cdtInAmount: quickActionState?.mint??0,

@@ -72,7 +72,7 @@ const useQuickAction = () => {
       //   pairedAsset: usdcAsset,
       //   poolID: 1268,
       // })
-      return [...deposit, ...mint, ...swap] as MsgExecuteContractEncodeObject[]
+      return [deposit, mint, swap] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
   })

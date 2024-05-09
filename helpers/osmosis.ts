@@ -11,21 +11,23 @@ type GetSwapToMsgs = {
     cdtAmount: string | number
     swapToAsset: Asset
     address: string
+    prices: Price[]
+    cdtAsset: Asset
 }
 export const swapToMsg = ({
     address,
     cdtAmount,
     swapToAsset,
+    prices,
+    cdtAsset,
 }: GetSwapToMsgs) => {
-    const { data: prices } = useOraclePrice()
-    const cdtAsset = useAssetBySymbol('CDT')
     const microAmount = shiftDigits(cdtAmount, 6).dp(0).toString()
 
     //Swap to USDC
     const cdtPrice = prices?.find((price) => price.denom === cdtAsset?.base)
     const swapToPrice = prices?.find((price) => price.denom === swapToAsset.base)
     const CDTInAmount = num(microAmount).div(2).toNumber()
-    
+
     return handleCollateralswaps(address, Number(cdtPrice!.price), Number(swapToPrice!.price), swapToAsset.symbol as keyof exported_supportedAssets, CDTInAmount)
 }
 

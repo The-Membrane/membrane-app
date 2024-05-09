@@ -9,6 +9,7 @@ import { queryClient } from '@/pages/_app'
 import { useEffect, useMemo } from 'react'
 import { LPMsg, swapToMsg } from '@/helpers/osmosis'
 import { useAssetBySymbol } from '@/hooks/useAssets'
+import { useOraclePrice } from '@/hooks/useOracle'
 
 const useQuickAction = () => {
   const { quickActionState } = useQuickActionState()
@@ -17,6 +18,8 @@ const useQuickAction = () => {
   const { data: basketPositions, ...basketErrors } = useUserPositions()
   const { data: basket } = useBasket()
   const usdcAsset = useAssetBySymbol("USDC")
+  const { data: prices } = useOraclePrice()
+  const cdtAsset = useAssetBySymbol('CDT')
 
   /////First we'll do new positions only, but these actions will be usable by all positions & multiple per user in the future//////
 
@@ -39,10 +42,12 @@ const useQuickAction = () => {
       quickActionState?.mint,
       quickActionState?.selectedAsset,
       usdcAsset,
+      prices,
+      cdtAsset
     ],
     queryFn: () => {
-      console.log(!address, !basket, !usdcAsset)
-      if (!address || !basket || !usdcAsset) return
+      console.log(!address, !basket, !usdcAsset, !prices, !cdtAsset)
+      if (!address || !basket || !usdcAsset || !prices || !cdtAsset) return
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
       const mint = getMintAndRepayMsgs({
         address,
@@ -54,6 +59,8 @@ const useQuickAction = () => {
         address, 
         cdtAmount: quickActionState?.mint??0, 
         swapToAsset: usdcAsset,
+        prices,
+        cdtAsset,
       })
       console.log(swap)
       // const lp = LPMsg({

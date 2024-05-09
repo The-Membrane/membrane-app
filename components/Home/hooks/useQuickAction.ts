@@ -45,7 +45,7 @@ const useQuickAction = () => {
       })
       return [...deposit, ...mint] as MsgExecuteContractEncodeObject[]
     },
-    enabled: !!address && !!summary && !!quickActionState?.mint && !!positionId,
+    enabled: !!address,
   })
 
   const onSuccess = () => {    
@@ -59,6 +59,7 @@ const useQuickAction = () => {
       String(quickActionState?.mint) || '0',
       ...summary?.map((s: any) => String(s.amount)),
     ],
+    enabled: !!msgs,
     onSuccess,
   })
 }

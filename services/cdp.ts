@@ -142,10 +142,13 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
 
 export const getAssetRatio = (tvl: number, positions: Positions[]) => {
   if (!positions) return []
-  return positions.map((position) => ({
+  return positions.map((position) => {
+    if (!position) return 
+    return {
     ...position,
     ratio: num(position.usdValue).div(tvl).toNumber(),
-  }))
+  }
+  })
 }
 
 export const getRateCost = (

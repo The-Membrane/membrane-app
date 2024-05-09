@@ -37,15 +37,16 @@ type SliderWithInputProps = {
   QAState: QuickActionState
   setQAState: (partialState: Partial<QuickActionState>) => void
   onMenuChange: (value: string) => void
+  inputAmount: number
+  setInputAmount: (value: number) => void
 }
 
-const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange }: SliderWithInputProps) => {
+const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount }: SliderWithInputProps) => {
 
     const onSliderChange = (value: number) => {      
       if (inputAmount != value) setInputAmount(value)
     }
 
-    const [ inputAmount, setInputAmount ] = useState(0);    
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       e.preventDefault()
       const newAmount = e.target.value
@@ -91,6 +92,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
 const Home = () => { 
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
+  const [ inputAmount, setInputAmount ] = useState(0);    
 
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
@@ -115,8 +117,7 @@ const Home = () => {
             ...asset,
             value: asset?.symbol,
             label: asset?.symbol,
-            // sliderValue: 0,
-            // inputAmount: 0,
+            sliderValue: 0,
             balance: num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount??0), -(asset?.decimal??6))).toNumber(),
             price: Number(prices?.find((p: any) => p.denom === asset.base)?.price??"0"),
             combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount??0), -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base)?.price??"0"))).toNumber()
@@ -151,10 +152,10 @@ const Home = () => {
   useEffect(() => {
 
     if (quickActionState?.assets && quickActionState?.selectedAsset?.symbol != undefined) {
-      console.log("external change", quickActionState?.selectedAsset?.symbol)
       setQuickActionState({
         selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
       })
+      setInputAmount(0)
     }
     
   }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])
@@ -176,6 +177,8 @@ const Home = () => {
             QAState={quickActionState}
             setQAState={setQuickActionState}
             onMenuChange={onMenuChange}
+            inputAmount={inputAmount}
+            setInputAmount={setInputAmount}
           />
           <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
           { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">

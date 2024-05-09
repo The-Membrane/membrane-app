@@ -44,13 +44,12 @@ type SliderWithInputProps = {
 const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount }: SliderWithInputProps) => {
 
     const onSliderChange = (value: number) => {      
-      setInputAmount(value)
+      if (inputAmount != value) setInputAmount(value)
     }
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       e.preventDefault()
       const newAmount = e.target.value
-      // console.log("internal input change", newAmount, max)
       if (num(newAmount).isGreaterThan(max)) setInputAmount(max)
         else setInputAmount(parseInt(e.target.value))
 
@@ -60,7 +59,6 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
       }, delayTime);  
     }
 
-    // useEffect(() => console.log(QAState?.selectedAsset?.inputAmount), [QAState?.selectedAsset?.inputAmount])
 
     return (
     <Stack py="5" w="full" gap="5">     
@@ -156,6 +154,7 @@ const Home = () => {
         selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
       })
       if (quickActionState?.selectedAsset?.sliderValue != inputAmount) {
+        console.log("setting", quickActionState?.selectedAsset?.sliderValue)
         setInputAmount(quickActionState?.selectedAsset?.sliderValue??0)
       }
     }

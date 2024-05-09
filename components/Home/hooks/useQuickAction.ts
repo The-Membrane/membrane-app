@@ -66,7 +66,6 @@ const useQuickAction = () => {
       msgs = msgs.concat(deposit)
       msgs = msgs.concat(mint)
       msgs.push(swap as MsgExecuteContractEncodeObject)      
-      console.log(msgs)
       const lp = LPMsg({
         address,
         cdtInAmount: quickActionState?.mint??0,
@@ -76,6 +75,7 @@ const useQuickAction = () => {
         poolID: 1268,
       })
       msgs.push(lp as MsgExecuteContractEncodeObject)
+      console.log(msgs)
 
       return msgs as MsgExecuteContractEncodeObject[]
     },

@@ -153,6 +153,7 @@ export const getRateCost = (
   tvl: number,
   basketAssets: BasketAsset[] = [],
 ): { cost: number, ratios: any } => {
+  if (!positions) return {cost: 0, ratios: []}
   const positionsWithRatio = getAssetRatio(tvl, positions)
   const cost = positionsWithRatio.reduce((acc, position) => {
     const rate =

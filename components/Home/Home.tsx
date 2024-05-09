@@ -20,6 +20,7 @@ import { QuickActionAssetWithSlider } from './QuickActionAssetSlider'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 import { QuickActionLTVWithSlider } from './QuickActionLTVWithSlider'
 import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
+import useQuickAction from './hooks/useQuickAction'
 
 type Props = {
   value: string
@@ -98,10 +99,11 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
 const Home = () => { 
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  const [ inputAmount, setInputAmount ] = useState(0);    
-
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
+  const quickAction = useQuickAction()
+  
+  const [ inputAmount, setInputAmount ] = useState(0);  
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -128,7 +130,13 @@ const Home = () => {
             price: Number(prices?.find((p: any) => p.denom === asset.base)?.price??"0"),
             combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount??0), -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base)?.price??"0"))).toNumber()
           }
-    })
+        }).filter((asset) => {
+          if (!asset) return false
+           //This helps us decrease the menu size by removing dust
+           //Technically we could do anything under $110 as that's the minimum but for new users that adds confusion
+          if (asset.combinUsdValue < 5) return false
+          else return true
+        })
 
         setQuickActionState({
           assets: (assetsWithBalance??[])
@@ -190,9 +198,9 @@ const Home = () => {
              Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
           </Text>: null}
         </Stack>
-        {/* LTV Input Box */}
 
-        <ConfirmModal label={'LP'}>
+        {/* Deposit-Mint-LP Button */}
+        <ConfirmModal action={quickAction} label={'LP'}>
           Deposit - Mint - LP Summary
         </ConfirmModal>
       </Card>

@@ -16,6 +16,7 @@ const useQuickAction = () => {
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useUserPositions()
   const { data: basket } = useBasket()
+  const usdcAsset = useAssetBySymbol("USDC")
 
   /////First we'll do new positions only, but these actions will be usable by all positions & multiple per user in the future//////
 
@@ -38,7 +39,7 @@ const useQuickAction = () => {
       quickActionState?.mint,
     ],
     queryFn: () => {
-      if (!address || !basket) return
+      if (!address || !basket || !usdcAsset) return
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
       const mint = getMintAndRepayMsgs({
         address,
@@ -46,17 +47,16 @@ const useQuickAction = () => {
         mintAmount: quickActionState?.mint,
         repayAmount: 0,
       })
-      const usdcAsset = useAssetBySymbol("USDC")
       const { msg: swap, tokenOutMinAmount } = swapToMsg({
         address, 
         cdtAmount: quickActionState?.mint??0, 
-        swapToAsset: usdcAsset!,
+        swapToAsset: usdcAsset,
       })
       const lp = LPMsg({
         address,
         cdtInAmount: quickActionState?.mint??0,
         pairedAssetInAmount: tokenOutMinAmount,
-        pairedAsset: usdcAsset!,
+        pairedAsset: usdcAsset,
         poolID: 1268,
       })
 

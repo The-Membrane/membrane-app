@@ -62,7 +62,7 @@ const useQuickAction = () => {
         prices,
         cdtAsset,
       })
-      console.log(swap)
+      console.log("swap msg", swap)
       // const lp = LPMsg({
       //   address,
       //   cdtInAmount: quickActionState?.mint??0,
@@ -70,7 +70,7 @@ const useQuickAction = () => {
       //   pairedAsset: usdcAsset,
       //   poolID: 1268,
       // })
-
+      console.log([...deposit, ...mint, ...swap] as MsgExecuteContractEncodeObject[])
       return [...deposit, ...mint, ...swap] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
@@ -83,10 +83,7 @@ const useQuickAction = () => {
 
   return useSimulateAndBroadcast({
     msgs,
-    queryKey: [
-      String(quickActionState?.mint) || '0',
-      ...summary?.map((s: any) => String(s.amount)),
-    ],
+    queryKey: [],
     enabled: !!msgs,
     onSuccess,
   })

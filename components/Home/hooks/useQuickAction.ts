@@ -71,6 +71,7 @@ const useQuickAction = () => {
       msgs = msgs.concat(mint)
       msgs.push(swap as MsgExecuteContractEncodeObject)      
       console.log("on top of LP")
+      console.log("under LP", quickActionState?.mint??0, tokenOutMinAmount)
       const lp = LPMsg({
         address,
         cdtInAmount: quickActionState?.mint??0,
@@ -79,7 +80,6 @@ const useQuickAction = () => {
         pairedAsset: usdcAsset,
         poolID: 1268,
       })
-      console.log("under LP", quickActionState?.mint??0, tokenOutMinAmount)
       msgs.push(lp as MsgExecuteContractEncodeObject)
       console.log(msgs)
 

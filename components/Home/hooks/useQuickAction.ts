@@ -38,13 +38,13 @@ const useQuickAction = () => {
       if (!address) return
       console.log(quickActionState?.mint, summary)
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
-      const mint = getMintAndRepayMsgs({
-        address,
-        positionId,
-        mintAmount: quickActionState?.mint,
-        repayAmount: 0,
-      })
-      return [...deposit, ...mint] as MsgExecuteContractEncodeObject[]
+      // const mint = getMintAndRepayMsgs({
+      //   address,
+      //   positionId,
+      //   mintAmount: quickActionState?.mint,
+      //   repayAmount: 0,
+      // })
+      return [...deposit] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
   })

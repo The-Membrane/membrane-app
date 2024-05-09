@@ -298,6 +298,7 @@ const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
 
   return positions.map((position) => {
     if (!position) return
+    if (!summary) return 
     const updatedPosition = summary.find((p: any) => p.symbol === position.symbol)
     const price = prices?.find((p) => p.denom === position.denom)?.price || 0
     const amount = num(position.amount)

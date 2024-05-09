@@ -23,7 +23,10 @@ const useQuickAction = () => {
 //     positionId = basketPositions?.[0]?.positions?.[0]?.position_id
 //   } else {
     //Use the next position ID
-    useEffect(() => {positionId = basket?.current_position_id ?? ""}, [basket])
+    useEffect(() => {
+      positionId = basket?.current_position_id ?? ""
+      console.log(positionId)
+    }, [basket])
 //   }
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
@@ -35,7 +38,7 @@ const useQuickAction = () => {
       quickActionState?.mint,
     ],
     queryFn: () => {
-      if (!address) return
+      if (!address || !basket) return
       console.log(quickActionState?.mint, summary)
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
       const mint = getMintAndRepayMsgs({

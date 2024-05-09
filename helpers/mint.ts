@@ -211,7 +211,6 @@ export const getMintAndRepayMsgs = ({
       positionId,
       amount: shiftDigits(mintAmount, 6).dp(0).toString(),
     })
-    console.log(positionId, shiftDigits(mintAmount, 6).dp(0).toString())
     msgs.push(mintMsg)
   }
 

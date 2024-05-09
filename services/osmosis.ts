@@ -401,8 +401,8 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 //The input tokens must be in the order of the pool's assets
 //pool 1268 is CDT/USDC
 export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tokenIn2: Coin) => {
-    let msg = [] as EncodeObject[];
     let joinCoins = [tokenIn1, tokenIn2];
+    console.log("made it")
 
     return osmosis.concentratedliquidity.v1beta1.MessageComposer.withTypeUrl.createPosition({
         poolId: BigInt(poolId),

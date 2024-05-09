@@ -44,7 +44,7 @@ type SliderWithInputProps = {
 const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount }: SliderWithInputProps) => {
 
     const onSliderChange = (value: number) => {      
-      if (inputAmount != value) setInputAmount(value)
+      setInputAmount(value)
     }
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {

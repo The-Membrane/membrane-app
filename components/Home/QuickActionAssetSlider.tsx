@@ -36,7 +36,6 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
     setQuickActionState({ assets: updatedAssets, summary, totalUsdValue })
   }
 
-  console.log("Slider Value", asset?.sliderValue)
 
   
   return (

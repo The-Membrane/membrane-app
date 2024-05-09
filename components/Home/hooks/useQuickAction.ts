@@ -73,8 +73,9 @@ const useQuickAction = () => {
       var msgs = [] as MsgExecuteContractEncodeObject[]
       msgs = msgs.concat(deposit)
       msgs = msgs.concat(mint)
-      msgs.push(swap as MsgExecuteContractEncodeObject)
-      msgs = msgs.concat(lp as MsgExecuteContractEncodeObject[])
+      msgs.push(swap as MsgExecuteContractEncodeObject)      
+      msgs.push(lp as MsgExecuteContractEncodeObject)
+      console.log(msgs)
 
       return msgs as MsgExecuteContractEncodeObject[]
     },

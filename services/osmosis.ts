@@ -404,7 +404,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
     let msg = [] as EncodeObject[];
     let joinCoins = [tokenIn1, tokenIn2];
 
-    msg.push(osmosis.concentratedliquidity.v1beta1.MessageComposer.withTypeUrl.createPosition({
+    return osmosis.concentratedliquidity.v1beta1.MessageComposer.withTypeUrl.createPosition({
         poolId: BigInt(poolId),
         sender: address! as string,
         //This range is .98 to 1.02
@@ -423,9 +423,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
         //Do we care about input minimums since we are depositing both?
         tokenMinAmount0: "0",
         tokenMinAmount1: "0",
-    }));
-
-    return msg
+    })
 }
 //This is used primarily to loop GAMM shares used as collateral
 // export const joinGAMMPools = (tokenIn1: Coin, poolId: number, tokenIn2?: Coin) => {

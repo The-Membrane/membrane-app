@@ -63,7 +63,10 @@ const useQuickAction = () => {
         cdtAsset,
       })
       console.log("swap msg", swap)
-      var msgs = [deposit, mint, swap] as MsgExecuteContractEncodeObject[]
+      var msgs = [] as MsgExecuteContractEncodeObject[]
+      msgs = msgs.concat(deposit)
+      msgs = msgs.concat(mint)
+      msgs.push(swap as MsgExecuteContractEncodeObject)
       console.log("msgs", msgs)
       // const lp = LPMsg({
       //   address,
@@ -72,7 +75,7 @@ const useQuickAction = () => {
       //   pairedAsset: usdcAsset,
       //   poolID: 1268,
       // })
-      return [deposit, mint, swap] as MsgExecuteContractEncodeObject[]
+      return msgs as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
   })

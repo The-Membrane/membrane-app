@@ -50,11 +50,11 @@ const useQuickAction = () => {
         mintAmount: quickActionState?.mint,
         repayAmount: 0,
       })
-      // const { msg: swap, tokenOutMinAmount } = swapToMsg({
-      //   address, 
-      //   cdtAmount: quickActionState?.mint??0, 
-      //   swapToAsset: usdcAsset,
-      // })
+      const { msg: swap, tokenOutMinAmount } = swapToMsg({
+        address, 
+        cdtAmount: quickActionState?.mint??0, 
+        swapToAsset: usdcAsset,
+      })
       // const lp = LPMsg({
       //   address,
       //   cdtInAmount: quickActionState?.mint??0,
@@ -63,7 +63,7 @@ const useQuickAction = () => {
       //   poolID: 1268,
       // })
 
-      return [...deposit, ...mint] as MsgExecuteContractEncodeObject[]
+      return [...deposit, ...mint, ...swap] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
   })

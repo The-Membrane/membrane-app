@@ -47,10 +47,10 @@ const useQuickAction = () => {
       cdtAsset
     ],
     queryFn: () => {
-      if (!address || !basket || !usdcAsset || !prices || !cdtAsset) return
+      if (!address || !basket || !usdcAsset || !prices || !cdtAsset || !quickActionState?.selectedAsset) return
       var msgs = [] as MsgExecuteContractEncodeObject[]
       //Deposit
-      const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
+      const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
       msgs = msgs.concat(deposit)
       if (quickActionState?.mint && quickActionState?.mint > 0){
         //Mint

@@ -63,7 +63,7 @@ const SummaryItem = ({
 
 export const QASummary = () => {
   const { quickActionState } = useQuickActionState()
-  const { summary } = quickActionState
+  const summary = [quickActionState?.selectedAsset]
   const cdt = useAssetBySymbol('CDT')
   const usdc = useAssetBySymbol('USDC')
 

@@ -59,11 +59,11 @@ type Props = {
   
   
       return (
-      <Stack py="5" w="full" gap="5">     
+      <Stack py="5" w="full" gap="3">     
         <Text fontSize="14px" fontWeight="700">
           Choose Collateral {basketPositions ? "(optional)" : null}
         </Text> 
-        <Divider mx="0" mb="0" />
+        <Divider mx="0" mt="0" mb="5"/>
         {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
             value={QAState?.selectedAsset} 

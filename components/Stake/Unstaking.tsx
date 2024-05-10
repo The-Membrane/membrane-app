@@ -53,8 +53,8 @@ const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
       size="sm"
       px="2"
       isLoading={claim.simulate.isLoading || claim.tx.isPending}
-      isDisabled={!isReadyToClaim}
-      onClick={() => claim.tx.mutate()}
+      isDisabled={claim.simulate.isError || !isReadyToClaim}
+      onClick={() => claim.simulate.refetch().then(() => claim.tx.mutate())}
     >
       Claim
     </TxButton>

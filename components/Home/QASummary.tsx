@@ -94,14 +94,14 @@ export const QASummary = () => {
         <SummaryItem
           label="CDT"
           badge="SWAP"
-          amount={num(quickActionState.mint).div(2).toNumber().toFixed(0)}
+          amount={num(quickActionState.mint).div(2).toNumber().toFixed(2)}
           logo={cdt?.logo}
         />
           
         <SummaryItem
           label="CDT/USDC"
           badge="LP"
-          amount={num(quickActionState.mint).toFixed(0)}
+          amount={num(quickActionState.mint).toFixed(2)}
           isLP={true}
           logos={[cdt!.logo, usdc!.logo]}
         /></> : null}

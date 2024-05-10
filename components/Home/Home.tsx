@@ -2,18 +2,13 @@ import { Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
-import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
+import useBalance from '@/hooks/useBalance'
 import QASelect from '@/components/QuickActionSelect'
 import useQuickActionState, { QuickActionState } from './hooks/useQuickActionState'
-import { SliderWithState } from '../Mint/SliderWithState'
-import { ChangeEvent, useEffect, useMemo, useState } from 'react'
+import { ChangeEvent, useEffect, useState } from 'react'
 import { num, shiftDigits } from '@/helpers/num'
 import { delayTime } from "@/config/defaults"
-import { Asset } from '@/helpers/chain'
 import { Coin } from '@cosmjs/stargate'
-import { LTVWithSlider } from '../Mint/LTVWithSlider'
-import useVaultSummary from '../Mint/hooks/useVaultSummary'
-import useMintState from '../Mint/hooks/useMintState'
 import { calcSliderValue } from '../Mint/TakeAction'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { QuickActionAssetWithSlider } from './QuickActionAssetSlider'
@@ -22,7 +17,6 @@ import { QuickActionLTVWithSlider } from './QuickActionLTVWithSlider'
 import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
 import useQuickAction from './hooks/useQuickAction'
 import { QASummary } from './QASummary'
-import useWallet from '@/hooks/useWallet'
 
 type Props = {
   value: string
@@ -182,7 +176,12 @@ const Home = () => {
         <Text variant="title" fontSize="16px">
           Mint & LP
         </Text>
-
+        {quickActionState.assets.length > 0 ? 
+          <Text variant="title" fontSize="16px">
+            Loading your available collateral...
+          </Text>
+        : 
+        <>
         {/* //Action */}
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="2">
@@ -202,9 +201,12 @@ const Home = () => {
         </Stack>
 
         {/* Deposit-Mint-LP Button */}
-        <ConfirmModal action={quickAction} label={'LP'}>
+        <ConfirmModal 
+          action={quickAction}
+          label={'LP'}
+          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || (!quickActionState.summary?.length && !quickActionState?.mint)}>
           <QASummary/>
-        </ConfirmModal>
+        </ConfirmModal></>}
       </Card>
     </Stack>
   )

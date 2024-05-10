@@ -121,7 +121,10 @@ const Home = () => {
             onMenuChange={onMenuChange}
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
-          />
+          />    
+          <Text fontSize="14px" fontWeight="700">
+            Mint CDT to LP
+          </Text> 
           <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
           { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
              Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}

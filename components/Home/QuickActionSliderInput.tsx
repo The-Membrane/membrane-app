@@ -6,6 +6,7 @@ import { delayTime } from "@/config/defaults"
 import { QuickActionState } from "./hooks/useQuickActionState"
 import QASelect from "../QuickActionSelect"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
+import { useUserPositions } from "@/hooks/useCDP"
 
 type Props = {
     value: string
@@ -28,7 +29,9 @@ type Props = {
   }
   
   export const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount }: SliderWithInputProps) => {
-  
+      
+      const { data: basketPositions } = useUserPositions()
+
       const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
       }
@@ -57,7 +60,7 @@ type Props = {
       return (
       <Stack py="5" w="full" gap="5">     
         <Text fontSize="14px" fontWeight="700">
-          Choose Collateral
+          Choose Collateral {basketPositions ? "(optional)" : null}
         </Text> 
         {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 

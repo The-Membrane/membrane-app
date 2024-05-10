@@ -17,6 +17,8 @@ import { QuickActionLTVWithSlider } from './QuickActionLTVWithSlider'
 import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
 import useQuickAction from './hooks/useQuickAction'
 import { QASummary } from './QASummary'
+import useWallet from '@/hooks/useWallet'
+import { ConnectButton } from '../WallectConnect'
 
 type Props = {
   value: string
@@ -92,7 +94,8 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
 }
 
 
-const Home = () => { 
+const Home = () => {
+  const { isWalletConnected } = useWallet()
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const assets = useCollateralAssets()
@@ -176,7 +179,9 @@ const Home = () => {
         <Text variant="title" fontSize="16px">
           Mint & LP
         </Text>
-        {quickActionState.assets.length === 0 ? 
+        {!isWalletConnected ? 
+          <ConnectButton/>
+        : quickActionState.assets.length === 0 ? 
           <Text variant="body" fontSize="16px" marginTop={6}>
             Loading your available collateral...
           </Text>

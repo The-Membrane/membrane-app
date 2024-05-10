@@ -20,6 +20,8 @@ export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walle
       value={value}
       onChange={onChange}
       isDisabled={max === 0 && (walletCDT === 0 || summary.length === 0)}
+      paddingLeft={0}
+      paddingRight={0}
     >
       <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
         <SliderFilledTrack bg="#C445F0" />

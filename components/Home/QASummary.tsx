@@ -51,6 +51,9 @@ const SummaryItem = ({
           {badge}
         </Badge>
       )}
+      {badge === "SWAP" ? <Text variant="value" textTransform="unset">
+      to USDC
+      </Text> :  null}
     </HStack>
     <HStack>
       <Text>{num(amount).abs().toString()}</Text>
@@ -62,6 +65,7 @@ export const QASummary = () => {
   const { quickActionState } = useQuickActionState()
   const { summary } = quickActionState
   const cdt = useAssetBySymbol('CDT')
+  const usdc = useAssetBySymbol('USDC')
 
   return (
     <Stack h="max-content" overflow="auto" w="full">
@@ -80,14 +84,27 @@ export const QASummary = () => {
         )
       })}
 
-      {num(quickActionState.mint).isGreaterThan(0) && (
         <SummaryItem
           label="CDT"
           badge="Mint"
           amount={quickActionState.mint?.toFixed(2)}
           logo={cdt?.logo}
         />
-      )}
+
+        <SummaryItem
+          label="CDT"
+          badge="SWAP"
+          amount={num(quickActionState.mint).div(2).toNumber().toFixed(0)}
+          logo={cdt?.logo}
+        />
+          
+        <SummaryItem
+          label="CDT/USDC"
+          badge="LP"
+          amount={num(quickActionState.mint).toFixed(0)}
+          isLP={true}
+          logos={[cdt!.logo, usdc!.logo]}
+        />
     </Stack>
   )
 }

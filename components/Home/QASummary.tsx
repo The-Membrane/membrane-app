@@ -1,8 +1,8 @@
 import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
-import { AssetWithBalance } from './hooks/useCombinBalance'
 import useQuickActionState from './hooks/useQuickActionState'
+import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 
 type SummaryItemProps = Partial<AssetWithBalance> & {
   label: string

@@ -22,6 +22,7 @@ import { QuickActionLTVWithSlider } from './QuickActionLTVWithSlider'
 import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
 import useQuickAction from './hooks/useQuickAction'
 import { QASummary } from './QASummary'
+import useWallet from '@/hooks/useWallet'
 
 type Props = {
   value: string
@@ -98,6 +99,7 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
 
 
 const Home = () => { 
+  const { address } = useWallet()
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const assets = useCollateralAssets()
@@ -143,7 +145,7 @@ const Home = () => {
           assets: (assetsWithBalance??[])
         })
       }
-  }, [assets, walletBalances, prices])
+  }, [assets, walletBalances, prices, address])
 
   useEffect(() => {
     if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
@@ -151,7 +153,7 @@ const Home = () => {
         selectedAsset:  quickActionState?.assets[0], 
       })
     }
-  }, [quickActionState?.assets, walletBalances])
+  }, [quickActionState?.assets, walletBalances, address])
   //
   
   const onMenuChange = (value: string) => {

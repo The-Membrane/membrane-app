@@ -48,37 +48,39 @@ const useQuickAction = () => {
     ],
     queryFn: () => {
       if (!address || !basket || !usdcAsset || !prices || !cdtAsset) return
+      var msgs = [] as MsgExecuteContractEncodeObject[]
       //Deposit
       const deposit = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
-      //Mint
-      const mint = getMintAndRepayMsgs({
-        address,
-        positionId,
-        mintAmount: quickActionState?.mint??0,
-        repayAmount: 0,
-      })
-      //Swap
-      const { msg: swap, tokenOutMinAmount } = swapToMsg({
-        address, 
-        cdtAmount: quickActionState?.mint??0, 
-        swapToAsset: usdcAsset,
-        prices,
-        cdtAsset,
-      })   
-      var msgs = [] as MsgExecuteContractEncodeObject[]
       msgs = msgs.concat(deposit)
-      msgs = msgs.concat(mint)
-      msgs.push(swap as MsgExecuteContractEncodeObject)  
-      //LP   
-      const lp = LPMsg({
-        address,
-        cdtInAmount: shiftDigits(quickActionState?.mint??0, 6).dp(0).toString(),
-        cdtAsset,
-        pairedAssetInAmount: tokenOutMinAmount,
-        pairedAsset: usdcAsset,
-        poolID: 1268,
-      })
-      msgs.push(lp as MsgExecuteContractEncodeObject)
+      if (quickActionState?.mint && quickActionState?.mint > 0){
+        //Mint
+        const mint = getMintAndRepayMsgs({
+          address,
+          positionId,
+          mintAmount: quickActionState?.mint,
+          repayAmount: 0,
+        })
+        msgs = msgs.concat(mint)
+        //Swap
+        const { msg: swap, tokenOutMinAmount } = swapToMsg({
+          address, 
+          cdtAmount: quickActionState?.mint, 
+          swapToAsset: usdcAsset,
+          prices,
+          cdtAsset,
+        })   
+        msgs.push(swap as MsgExecuteContractEncodeObject)  
+        //LP   
+        const lp = LPMsg({
+          address,
+          cdtInAmount: shiftDigits(quickActionState?.mint, 6).dp(0).toString(),
+          cdtAsset,
+          pairedAssetInAmount: tokenOutMinAmount,
+          pairedAsset: usdcAsset,
+          poolID: 1268,
+        })
+        msgs.push(lp as MsgExecuteContractEncodeObject)
+      }
 
       return msgs as MsgExecuteContractEncodeObject[]
     },

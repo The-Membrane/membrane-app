@@ -99,7 +99,6 @@ const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, o
 
 
 const Home = () => { 
-  const { address } = useWallet()
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const assets = useCollateralAssets()
@@ -145,7 +144,7 @@ const Home = () => {
           assets: (assetsWithBalance??[])
         })
       }
-  }, [assets, walletBalances, prices, address])
+  }, [assets, walletBalances, prices])
 
   useEffect(() => {
     if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
@@ -153,7 +152,7 @@ const Home = () => {
         selectedAsset:  quickActionState?.assets[0], 
       })
     }
-  }, [quickActionState?.assets, walletBalances, address])
+  }, [quickActionState?.assets, walletBalances])
   //
   
   const onMenuChange = (value: string) => {

@@ -84,7 +84,7 @@ export const QASummary = () => {
         )
       })}
 
-        <SummaryItem
+        {num(quickActionState.mint).isGreaterThan(0) ? <><SummaryItem
           label="CDT"
           badge="Mint"
           amount={quickActionState.mint?.toFixed(2)}
@@ -104,7 +104,7 @@ export const QASummary = () => {
           amount={num(quickActionState.mint).toFixed(0)}
           isLP={true}
           logos={[cdt!.logo, usdc!.logo]}
-        />
+        /></> : null}
     </Stack>
   )
 }

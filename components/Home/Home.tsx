@@ -21,6 +21,7 @@ import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 import { QuickActionLTVWithSlider } from './QuickActionLTVWithSlider'
 import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
 import useQuickAction from './hooks/useQuickAction'
+import { QASummary } from './QASummary'
 
 type Props = {
   value: string
@@ -201,7 +202,7 @@ const Home = () => {
 
         {/* Deposit-Mint-LP Button */}
         <ConfirmModal action={quickAction} label={'LP'}>
-          Deposit - Mint - LP Summary
+          <QASummary/>
         </ConfirmModal>
       </Card>
     </Stack>

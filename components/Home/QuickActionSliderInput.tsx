@@ -7,6 +7,7 @@ import { QuickActionState } from "./hooks/useQuickActionState"
 import QASelect from "../QuickActionSelect"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import { useUserPositions } from "@/hooks/useCDP"
+import Divider from "../Divider"
 
 type Props = {
     value: string
@@ -62,6 +63,7 @@ type Props = {
         <Text fontSize="14px" fontWeight="700">
           Choose Collateral {basketPositions ? "(optional)" : null}
         </Text> 
+        <Divider mx="0" mb="5" />
         {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
             value={QAState?.selectedAsset} 

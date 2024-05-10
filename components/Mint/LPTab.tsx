@@ -38,8 +38,8 @@ const LPTab = () => {
     const LP = useLP({ txSuccess })
 
     const onCDTChange = (value: number) => {
-        setLPState({ ...LPState, newCDT: value})
-        setInputAmount(value)
+      setLPState({ ...LPState, newCDT: value})
+      setInputAmount(value)
     }
     
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -64,25 +64,25 @@ const LPTab = () => {
           </Text>
     
           <Stack py="5" w="full" gap="5">      
-          <HStack justifyContent="space-between">
-            <Text fontSize="16px" fontWeight="700">
-              CDT
-            </Text>
-            <Input 
-              width={"38%"} 
-              textAlign={"center"} 
-              placeholder="0" 
-              type="number" 
-              value={inputAmount} 
-              onChange={handleInputChange}
-             />
-          </HStack>      
-          <SliderWithState
-            value={LPState?.newCDT}
-            onChange={onCDTChange}
-            min={0}
-            max={Number(cdtBalance)}
-          />
+            <HStack justifyContent="space-between">
+              <Text fontSize="16px" fontWeight="700">
+                CDT
+              </Text>
+              <Input 
+                width={"38%"} 
+                textAlign={"center"} 
+                placeholder="0" 
+                type="number" 
+                value={inputAmount} 
+                onChange={handleInputChange}
+              />
+            </HStack>      
+            <SliderWithState
+              value={LPState?.newCDT}
+              onChange={onCDTChange}
+              min={0}
+              max={Number(cdtBalance)}
+            />
           </Stack>
 
           <ConfirmModal label="Join LP" action={LP} isDisabled={LPState?.newCDT === 0 || parseFloat(cdtPrice?.price ?? '0') < 0.98}>

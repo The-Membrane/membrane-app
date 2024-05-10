@@ -6,7 +6,6 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useMintState from './useMintState'
 import { queryClient } from '@/pages/_app'
-import { decodeMsgs } from '@/helpers/decodeMsg'
 
 const useMint = () => {
   const { mintState } = useMintState()

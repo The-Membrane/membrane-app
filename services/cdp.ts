@@ -111,7 +111,8 @@ export type Positions = Asset & {
 
 export const getTVL = (positions: Positions[]) => {
   if (!positions) return 0
-  return positions?.reduce((acc, position) => {
+  return positions?.reduce((acc, position) => { 
+    if (!position) return acc
     return acc + position.usdValue
   }, 0)
 }
@@ -141,10 +142,14 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
 }
 
 export const getAssetRatio = (tvl: number, positions: Positions[]) => {
-  return positions.map((position) => ({
+  if (!positions) return []
+  return positions.map((position) => {
+    if (!position) return 
+    return {
     ...position,
     ratio: num(position.usdValue).div(tvl).toNumber(),
-  }))
+  }
+  })
 }
 
 export const getRateCost = (
@@ -152,8 +157,10 @@ export const getRateCost = (
   tvl: number,
   basketAssets: BasketAsset[] = [],
 ): { cost: number, ratios: any } => {
+  if (!positions) return {cost: 0, ratios: []}
   const positionsWithRatio = getAssetRatio(tvl, positions)
-  const cost = positionsWithRatio.reduce((acc, position) => {
+  const cost = positionsWithRatio.reduce((acc, position) => {    
+    if (!position) return acc
     const rate =
       basketAssets.find((asset) => asset?.asset?.base === position.denom)?.interestRate || 0
     return acc.plus(num(position.ratio).times(rate))
@@ -192,7 +199,8 @@ export const getBorrowLTV = (
   ratios?: any[],
 ) => {  
   const positionsWithRatio = ratios??getAssetRatio(tvl, positions);
-  const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => {
+  const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => { 
+    if (!position) return acc
     const ltv =
       basketAssets.find((asset) => asset?.asset?.base === position.denom || asset?.asset?.base === position.base)?.maxBorrowLTV || 0
     return acc.plus(num(position.ratio).times(100).times(ltv))
@@ -218,7 +226,8 @@ export const getLiqudationLTV = (
 ) => {
   const positionsWithRatio = ratios??getAssetRatio(tvl, positions);
 
-  const maxLTV = positionsWithRatio.reduce((acc, position) => {
+  const maxLTV = positionsWithRatio.reduce((acc, position) => { 
+    if (!position) return acc
     const ltv = basketAssets.find((asset) => asset?.asset?.base === position.denom || asset?.asset?.base === position.base)?.maxLTV || 0
     return acc.plus(num(position.ratio).times(100).times(ltv))
   }, num(0))
@@ -273,8 +282,9 @@ const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
   if (!basketPositions){
 
     return summary.map((position) => {
-      const price = prices?.find((p) => p.denom === position.base)?.price || 0
-      const amount = num(position.amount).toNumber()
+      if (!position) return
+      const price = prices?.find((p) => p.denom === (position.base))?.price || 0
+      const amount = num(position?.amount).toNumber()
       const usdValue = amount * price
       return {
         ...position,
@@ -287,6 +297,7 @@ const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
   const positions = getPositions(basketPositions, prices)
 
   return positions.map((position) => {
+    if (!position) return
     const updatedPosition = summary.find((p: any) => p.symbol === position.symbol)
     const price = prices?.find((p) => p.denom === position.denom)?.price || 0
     const amount = num(position.amount)
@@ -330,6 +341,15 @@ export const calculateVaultSummary = ({
   }
 
   const positions = updatedSummary(summary, basketPositions, prices)
+  if (!positions) return {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
   const tvl = initialTVL + newDeposit
   const { cost, ratios} = getRateCost(positions, tvl, basketAssets)
   const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).multipliedBy(basket.credit_price.price).toNumber())
@@ -384,7 +404,8 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
     return usdValue
   })
 
-  return positions.reduce((acc, position) => {
+  return positions.reduce((acc, position) => { 
+    if (!position) return acc
     return acc + position
   }, 0)
 }

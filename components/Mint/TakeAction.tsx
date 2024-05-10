@@ -17,7 +17,7 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false}: { overdraft?: b
   )
 }
 
-const calcSliderValue = (debtAmount: number, mint: number = 0, repay: number = 0) => {
+export const calcSliderValue = (debtAmount: number, mint: number = 0, repay: number = 0) => {
   return num(debtAmount).plus(mint).minus(repay).dp(2).toNumber()
 }
 
@@ -25,8 +25,6 @@ const TakeAction = () => {
   const { mintState, setMintState } = useMintState()
   const combinBalance = useCombinBalance()
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = useVaultSummary()
-
-  console.log(combinBalance)
 
   useEffect(() => {
     const overdraft = ltv > borrowLTV

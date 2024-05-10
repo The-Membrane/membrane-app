@@ -97,9 +97,6 @@ const Home = () => {
 
   return (
     <Stack >
-      <Text variant="title" fontSize="16px">
-        $CDT: The safety net for Interchain risk takers
-      </Text>
       <StatsCard />      
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
         <Text variant="title" fontSize="16px">

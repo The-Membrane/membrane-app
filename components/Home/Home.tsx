@@ -16,6 +16,7 @@ import { QASummary } from './QASummary'
 import useWallet from '@/hooks/useWallet'
 import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
+import Divider from '../Divider'
 
 const Home = () => {
   const { isWalletConnected } = useWallet()
@@ -122,9 +123,10 @@ const Home = () => {
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
           />    
-          <Text fontSize="14px" fontWeight="700">
+          <Text fontSize="14px" fontWeight="700" marginBottom={"3%"}>
             Mint CDT to LP
           </Text> 
+          <Divider mx="0" mb="0" />
           <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
           { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
              Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}

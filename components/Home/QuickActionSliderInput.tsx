@@ -63,7 +63,7 @@ type Props = {
         <Text fontSize="14px" fontWeight="700">
           Choose Collateral {basketPositions ? "(optional)" : null}
         </Text> 
-        <Divider mx="0" mb="5" />
+        <Divider mx="0" mb="0" />
         {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
             value={QAState?.selectedAsset} 

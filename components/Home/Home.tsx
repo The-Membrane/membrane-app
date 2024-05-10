@@ -176,8 +176,8 @@ const Home = () => {
         <Text variant="title" fontSize="16px">
           Mint & LP
         </Text>
-        {quickActionState.assets.length > 0 ? 
-          <Text variant="title" fontSize="16px">
+        {quickActionState.assets.length === 0 ? 
+          <Text variant="body" fontSize="16px">
             Loading your available collateral...
           </Text>
         : 

@@ -86,6 +86,7 @@ const Home = () => {
   }
 
   const onActionMenuChange = (value: string) => {
+    console.log("changed", value)
     setQuickActionState({
       action: value
     })

@@ -110,7 +110,7 @@ const Home = () => {
           Mint & 
         </Text>        
         <QASelect 
-          options={[{value: "LP", label: "LP", defaultValue: "LP"}, {value: "Bid", label: "Bid"}, {value: "Loop", label: "Loop"}]}
+          options={[{value: "LP", label: "LP"}, {value: "Bid", label: "Bid"}, {value: "Loop", label: "Loop"}]}
           onChange={onActionMenuChange}
           value={menuAction} 
         />

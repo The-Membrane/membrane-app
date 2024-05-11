@@ -61,15 +61,13 @@ type Props = {
 
 const QASelect = ({ options, onChange, value }: Props) => {
   if (!options) return null
-  console.log(options)
-  console.log(options?.[0])
   if (options && options.length === 0) return "No collateral in wallet"
   return (
     <ChakraSelect
       isSearchable={false}
       variant="unstyled"
       chakraStyles={chakraStyles}
-      defaultValue={options?.[0].label}
+      defaultValue={options?.[0]}
       value={value}
       options={options}
       onChange={onChange}

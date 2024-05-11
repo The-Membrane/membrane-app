@@ -42,6 +42,7 @@ const useQuickAction = () => {
       summary?.map((s: any) => String(s.amount)) || '0',
       quickActionState?.mint,
       quickActionState?.selectedAsset,
+      quickActionState?.action,
       usdcAsset,
       prices,
       cdtAsset

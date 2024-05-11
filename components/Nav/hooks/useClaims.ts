@@ -159,6 +159,7 @@ const useProtocolClaims = () => {
         }
         if (claimables){
           claims_summary.vesting = claimables.map((claimable) => {
+            if (!claimable) return { denom: '', amount: '0'}
             return {
               denom: claimable.info.native_token.denom,
               amount: claimable.amount
@@ -180,7 +181,8 @@ const useProtocolClaims = () => {
       }
       //Update claims summary with unstaking
       claims_summary.staking = claims_summary.staking.concat(unstaking.map((unstake) => {
-        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {              
+        if (!unstake) return { denom: '', amount: '0'}
+        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {             
         return {
           denom: unstake?.asset?.symbol,
           amount: unstake?.amount

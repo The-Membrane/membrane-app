@@ -151,7 +151,7 @@ const Home = () => {
         <ConfirmModal 
           action={quickAction}
           label={'LP'}
-          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || (!quickActionState.summary?.length && !quickActionState?.mint)}>
+          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
           <QASummary/>
         </ConfirmModal></>}
       </Card>

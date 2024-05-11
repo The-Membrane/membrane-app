@@ -11,6 +11,8 @@ import { LPMsg, swapToMsg } from '@/helpers/osmosis'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { shiftDigits } from '@/helpers/math'
+import { buildStabilityPooldepositMsg } from '@/services/stabilityPool'
+import { coin } from '@cosmjs/stargate'
 
 const useQuickAction = () => {
   const { quickActionState } = useQuickActionState()
@@ -62,9 +64,7 @@ const useQuickAction = () => {
           repayAmount: 0,
         })
         msgs = msgs.concat(mint)
-        console.log(quickActionState.action.value, quickActionState.action.value === "LP")
         if (quickActionState.action.value === "LP"){
-          console.log("making LPs")
           //Swap
           const { msg: swap, tokenOutMinAmount } = swapToMsg({
             address, 
@@ -84,6 +84,14 @@ const useQuickAction = () => {
             poolID: 1268,
           })
           msgs.push(lp as MsgExecuteContractEncodeObject)
+
+        } else if (quickActionState.action.value === "Bid"){         
+          //Omni-Pool     
+          const microAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toString()
+          const funds = [coin(microAmount, cdtAsset?.base!)]
+
+          const omni = buildStabilityPooldepositMsg({ address, funds })
+          msgs.push(omni as MsgExecuteContractEncodeObject)
         }
       }
 

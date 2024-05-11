@@ -1,4 +1,4 @@
-import { Card, Stack, Text } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
@@ -17,6 +17,7 @@ import useWallet from '@/hooks/useWallet'
 import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
+import QASelect from '../QuickActionSelect'
 
 const Home = () => {
   const { isWalletConnected } = useWallet()
@@ -25,8 +26,11 @@ const Home = () => {
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const quickAction = useQuickAction()
+  const { debtAmount, maxMint } = useQuickActionVaultSummary()
+  const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
   
-  const [ inputAmount, setInputAmount ] = useState(0);  
+  const [ inputAmount, setInputAmount ] = useState(0);
+  const [ menuAction, setMenuAction ] = useState("LP");
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -76,15 +80,16 @@ const Home = () => {
   }, [quickActionState?.assets, walletBalances])
   //
   
-  const onMenuChange = (value: string) => {
+  const onAssetMenuChange = (value: string) => {
     setQuickActionState({
       selectedAsset: value
     })
   }
 
-  //Use mintState to update the deposit state
-  const { debtAmount, maxMint } = useQuickActionVaultSummary()
-  const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
+  const onActionMenuChange = (value: string) => {
+    setMenuAction(value)
+  }
+
 
   useEffect(() => {
 
@@ -99,10 +104,17 @@ const Home = () => {
   return (
     <Stack >
       <StatsCard />      
-      <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
+      <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">        
+      <HStack justifyContent="space-between">
         <Text variant="title" fontSize="16px">
-          Mint & LP
-        </Text>
+          Mint & 
+        </Text>        
+        <QASelect 
+          options={["LP", "Bid", "Loop"]}
+          onChange={onActionMenuChange}
+          value={menuAction} 
+        />
+      </HStack>
         {!isWalletConnected ? 
           <ConnectButton marginTop={6}/>
         : quickActionState.assets.length === 0 ? 
@@ -119,7 +131,7 @@ const Home = () => {
             inputBoxWidth='42%'
             QAState={quickActionState}
             setQAState={setQuickActionState}
-            onMenuChange={onMenuChange}
+            onMenuChange={onAssetMenuChange}
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
           />    

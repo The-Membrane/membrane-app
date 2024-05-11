@@ -3,6 +3,7 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import useQuickActionState from './hooks/useQuickActionState'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
+import { useMemo } from 'react'
 
 type SummaryItemProps = Partial<AssetWithBalance> & {
   label: string
@@ -63,7 +64,10 @@ const SummaryItem = ({
 
 export const QASummary = () => {
   const { quickActionState } = useQuickActionState()
-  const summary = [quickActionState?.selectedAsset]
+  const summary = useMemo(() => {
+    if (quickActionState?.selectedAsset && num(quickActionState?.selectedAsset?.amount).isGreaterThan(0)) return [quickActionState?.selectedAsset]
+    else return []
+  }, [quickActionState?.selectedAsset?.amount])
   const cdt = useAssetBySymbol('CDT')
   const usdc = useAssetBySymbol('USDC')
 

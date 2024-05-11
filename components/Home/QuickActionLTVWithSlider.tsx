@@ -53,7 +53,7 @@ export const QuickActionLTVWithSlider = ({ label, value = 100 }: LTVWithSliderPr
   }
 
   return (
-    <Stack gap="0" px="3">
+    <Stack gap="0" px="0">
       <HStack justifyContent="space-between">
         <Text variant="lable" textTransform="unset">
           {label} { (quickActionState?.mint??0) > 0.1 ? "(+$"+(quickActionState?.mint??0).toFixed(2)+")" : "(mintable: $"+maxMintLabel+")"}

@@ -138,7 +138,7 @@ const Home = () => {
             setInputAmount={setInputAmount}
           />    
           <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
-            Mint CDT to  <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a>
+            Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}
           </Text> 
         <Divider mx="0" mt="0" mb="4%"/>
           <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
@@ -150,7 +150,7 @@ const Home = () => {
         {/* Deposit-Mint-LP Button */}
         <ConfirmModal 
           action={quickAction}
-          label={'LP'}
+          label={quickActionState.action.value}
           isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
           <QASummary/>
         </ConfirmModal></>}

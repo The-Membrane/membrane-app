@@ -99,7 +99,11 @@ const useQuickAction = () => {
 
   return useSimulateAndBroadcast({
     msgs,
-    queryKey: [],
+    queryKey: [
+      String(quickActionState?.mint) || '0',
+      String(quickActionState?.selectedAsset?.amount) || '0',
+      quickActionState?.action?.value,
+    ],
     enabled: !!msgs,
     onSuccess,
   })

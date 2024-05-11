@@ -69,7 +69,7 @@ const QASelect = ({ options, onChange, value }: Props) => {
       isSearchable={false}
       variant="unstyled"
       chakraStyles={chakraStyles}
-      defaultValue={options?.[0]}
+      defaultValue={options?.[0].label}
       value={value}
       options={options}
       onChange={onChange}

@@ -30,7 +30,6 @@ const Home = () => {
   const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
   
   const [ inputAmount, setInputAmount ] = useState(0);
-  const [ menuAction, setMenuAction ] = useState({value: "LP", label: "LP"});
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -87,7 +86,9 @@ const Home = () => {
   }
 
   const onActionMenuChange = (value: string) => {
-    setMenuAction(value)
+    setQuickActionState({
+      action: value
+    })
   }
 
 
@@ -112,7 +113,7 @@ const Home = () => {
         <QASelect 
           options={[{value: "LP", label: "LP"}, {value: "Bid", label: "Bid"}, {value: "Loop", label: "Loop"}]}
           onChange={onActionMenuChange}
-          value={menuAction} 
+          value={quickActionState?.action} 
         />
       </HStack>
         {!isWalletConnected ? 

@@ -61,25 +61,27 @@ const useQuickAction = () => {
           repayAmount: 0,
         })
         msgs = msgs.concat(mint)
-        //Swap
-        const { msg: swap, tokenOutMinAmount } = swapToMsg({
-          address, 
-          cdtAmount: quickActionState?.mint, 
-          swapToAsset: usdcAsset,
-          prices,
-          cdtAsset,
-        })   
-        msgs.push(swap as MsgExecuteContractEncodeObject)  
-        //LP   
-        const lp = LPMsg({
-          address,
-          cdtInAmount: shiftDigits(quickActionState?.mint, 6).dp(0).toString(),
-          cdtAsset,
-          pairedAssetInAmount: tokenOutMinAmount,
-          pairedAsset: usdcAsset,
-          poolID: 1268,
-        })
-        msgs.push(lp as MsgExecuteContractEncodeObject)
+        if (quickActionState.action.value === "LP"){
+          //Swap
+          const { msg: swap, tokenOutMinAmount } = swapToMsg({
+            address, 
+            cdtAmount: quickActionState?.mint, 
+            swapToAsset: usdcAsset,
+            prices,
+            cdtAsset,
+          })   
+          msgs.push(swap as MsgExecuteContractEncodeObject)  
+          //LP   
+          const lp = LPMsg({
+            address,
+            cdtInAmount: shiftDigits(quickActionState?.mint, 6).dp(0).toString(),
+            cdtAsset,
+            pairedAssetInAmount: tokenOutMinAmount,
+            pairedAsset: usdcAsset,
+            poolID: 1268,
+          })
+          msgs.push(lp as MsgExecuteContractEncodeObject)
+        }
       }
 
       return msgs as MsgExecuteContractEncodeObject[]

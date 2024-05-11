@@ -30,7 +30,7 @@ const Home = () => {
   const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
   
   const [ inputAmount, setInputAmount ] = useState(0);
-  const [ menuAction, setMenuAction ] = useState("LP");
+  const [ menuAction, setMenuAction ] = useState({value: "LP", label: "LP"});
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet

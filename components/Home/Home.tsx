@@ -114,7 +114,7 @@ const Home = () => {
             { value: "LP", isSelected: true, group: { groupName: "Group 1", groupId: 1 } },
             { value: "Bid", isSelected: false, group: { groupName: "Group 2", groupId: 2 } },
             { value: "Loop", isSelected: false, group: { groupName: "Group 3", groupId: 3 } },
-        ]}
+          ]}
           onChange={onActionMenuChange}
           value={menuAction} 
         />

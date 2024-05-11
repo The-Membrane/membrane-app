@@ -54,7 +54,9 @@ const SummaryItem = ({
       )}
       {badge === "SWAP" ? <Text variant="value" textTransform="unset">
       to USDC
-      </Text> :  null}
+      </Text> : badge === "BID" ? <Text variant="value" textTransform="unset">
+       on all assets at a 10% premium
+      </Text> : null}
     </HStack>
     <HStack>
       <Text>{num(amount).abs().toString()}</Text>
@@ -95,9 +97,33 @@ export const QASummary = () => {
           logo={cdt?.logo}
         />
 
+        {quickActionState.action.value === "LP" ? <>
+          <SummaryItem
+            label="CDT"
+            badge="SWAP"
+            amount={num(quickActionState.mint).div(2).toNumber().toFixed(2)}
+            logo={cdt?.logo}
+          />
+          
+          <SummaryItem
+            label="CDT/USDC"
+            badge="LP"
+            amount={num(quickActionState.mint).toFixed(2)}
+            isLP={true}
+            logos={[cdt!.logo, usdc!.logo]}
+          />
+        </> : quickActionState.action.value === "Bid" ? <>
+          <SummaryItem
+            label="CDT"
+            badge="BID"
+            amount={num(quickActionState.mint).div(2).toNumber().toFixed(2)}
+            logo={cdt?.logo}
+          />
+        </>        
+        : quickActionState.action.value === "Loop" ? <>
         <SummaryItem
           label="CDT"
-          badge="SWAP"
+          badge="LOOP"
           amount={num(quickActionState.mint).div(2).toNumber().toFixed(2)}
           logo={cdt?.logo}
         />
@@ -108,7 +134,11 @@ export const QASummary = () => {
           amount={num(quickActionState.mint).toFixed(2)}
           isLP={true}
           logos={[cdt!.logo, usdc!.logo]}
-        /></> : null}
+        />
+      </> 
+        : null}
+        
+        </> : null}
     </Stack>
   )
 }

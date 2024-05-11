@@ -212,7 +212,8 @@ const useProtocolClaims = () => {
   //Transform claim summary to a single list of Coin
   const claims_summ = Object.values(queryclaimsSummary).reduce((acc, val) => acc.concat(val), [])
   //Aggregate coins in claims that have the same denom
-  const agg_claims = claims_summ.filter((coin) => num(coin.amount).isGreaterThan(0))
+  const definedClaims = claims_summ.filter((coin) => coin !== undefined)
+  const agg_claims = definedClaims.filter((coin) => num(coin.amount).isGreaterThan(0))
   .reduce((acc, claim) => {
     const existing = acc.find((c) => c.denom === claim.denom)
     if (existing) {

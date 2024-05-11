@@ -61,6 +61,7 @@ const useQuickAction = () => {
           repayAmount: 0,
         })
         msgs = msgs.concat(mint)
+        console.log(quickActionState.action.value)
         if (quickActionState.action.value === "LP"){
           //Swap
           const { msg: swap, tokenOutMinAmount } = swapToMsg({

@@ -290,7 +290,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
                 let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[2] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
                 console.log("swap_output", swap_output)                
                 swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
-                tokenOutMins.push(coin(swap_output.tokenOutMinAmount, denoms[amount[0] as keyof exported_supportedAssets][0] as string));
+                tokenOutMins.push(coin(swap_output.tokenOutMinAmount, denoms[amount[2] as keyof exported_supportedAssets][0] as string));
             }
         });
         console.log("swap_msgs", swap_msgs)

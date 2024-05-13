@@ -231,8 +231,9 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
 export const loopPosition = (LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket) => {
-    const { tvl, debtAmount, borrowLTV } = useQuickActionVaultSummary();
     console.log("here loop")
+    const { tvl, debtAmount, borrowLTV } = useQuickActionVaultSummary();
+    console.log("here loop2")
 
     //Set cdtPrice
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket!.credit_asset.info.denom)?.price || '0');

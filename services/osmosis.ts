@@ -289,7 +289,12 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
                 tokenOutMins.push(coin(swap_output.tokenOutMinAmount, denoms[amount[2] as keyof exported_supportedAssets][0] as string));
             }
         });
-        console.log("swap_msgs", swap_msgs)
+        //If there are no swaps, don't add mint or deposit msgs
+        if (swap_msgs.length === 0) {
+            console.log("No swaps were made, ending loop")
+            return;
+        }
+        
         //Create deposit msgs for newly swapped assets
         var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
             positionId: positionId,

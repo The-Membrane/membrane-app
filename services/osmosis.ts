@@ -286,7 +286,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
                 let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
                 let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[2] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
                 swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
-                tokenOutMins.push(coin(swap_output.tokenOutMinAmount, denoms[amount[2] as keyof exported_supportedAssets][0] as string));
+                tokenOutMins.push(coin(swap_output.tokenOutMinAmount, amount[0] as string));
             }
         });
         //If there are no swaps, don't add mint or deposit msgs

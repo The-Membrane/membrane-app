@@ -237,6 +237,7 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket!.credit_asset.info.denom)?.price || '0');
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
+    console.log("here loop2")
 
     //Set Position value
     var positionValue = tvl!;
@@ -252,11 +253,12 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     let cAsset_ratios = getAssetRatio(tvl!, positions);
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount);
+    console.log(currentLTV)
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
         return;
     }
-    console.log("here loop2")
+    console.log("here loop3")
 
     //Repeat until CDT to mint is under 1 or Loops are done
     var mintAmount = 0;

@@ -103,7 +103,7 @@ const useQuickAction = () => {
           //Loop
           //Calc LTV based on mint
           console.log("here1")
-          const mintLTV = num(quickActionState?.mint).div(maxMint).times(borrowLTV).div(100).toFixed(2)
+          const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100).toFixed(2)
           console.log("here2")
           const positions = updatedSummary(summary, basketPositions, prices)
           //Loop max amount
@@ -143,7 +143,7 @@ const useQuickAction = () => {
       String(quickActionState?.selectedAsset?.amount) || '0',
       quickActionState?.action?.value,
     ],
-    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && (num(quickActionState?.selectedAsset?.amount??0) > num(0)) && (maxMint + debtAmount > 0),
+    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && (num(quickActionState?.selectedAsset?.amount??0) > num(0)) && (maxMint??0 + debtAmount > 0),
     onSuccess,
   })
 }

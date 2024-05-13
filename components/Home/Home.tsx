@@ -64,6 +64,12 @@ const Home = () => {
           else return true
         })
 
+        //Sort assets by USD value
+        assetsWithBalance.sort((a, b) => {
+          if (a.combinUsdValue < b.combinUsdValue) return 1
+          else return -1
+        })
+
         setQuickActionState({
           assets: (assetsWithBalance??[])
         })

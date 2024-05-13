@@ -56,22 +56,22 @@ const useQuickAction = () => {
       cdtAsset, basketPositions, tvl, debtAmount, summary
     ],
     queryFn: () => {
-      if (!address || !basket || !usdcAsset || !prices || !cdtAsset || !quickActionState?.selectedAsset) return
+      if (!address || !basket || !usdcAsset || !prices || !cdtAsset || !quickActionState?.selectedAsset || ((maxMint??0) < 100 && ((quickActionState?.mint??0) + debtAmount < 100))) return
       var msgs = [] as MsgExecuteContractEncodeObject[]
       //Deposit
-      const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
-      msgs = msgs.concat(deposit)
+      if ( num(quickActionState?.selectedAsset?.amount??"0") > num(0)){
+        const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
+        msgs = msgs.concat(deposit)
+      }
       if (quickActionState?.mint && quickActionState?.mint > 0){
         //Set cdtPrice
         const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
         
         //If we are looping we skip the initial mint msg bc the loop will handle it
-        if (quickActionState.action.value === "Loop"){        
+        if (quickActionState.action.value === "Loop"){
           //Loop
           //Calc LTV based on mint
-          console.log("here1")
           const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100).toFixed(2)
-          console.log("here2")
           const positions = updatedSummary(summary, basketPositions, prices)
           //Loop max amount
           const loopMax = 5;
@@ -99,7 +99,6 @@ const useQuickAction = () => {
             repayAmount: 0,
           })
           msgs = msgs.concat(mint)
-
           
           if (quickActionState.action.value === "LP"){
             //Swap
@@ -151,7 +150,7 @@ const useQuickAction = () => {
       String(quickActionState?.selectedAsset?.amount) || '0',
       quickActionState?.action?.value,
     ],
-    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && (num(quickActionState?.selectedAsset?.amount??0) > num(0)) && ((maxMint??0) + debtAmount > 100),
+    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && ((quickActionState?.mint??0) + debtAmount > 100),
     onSuccess,
   })
 }

@@ -600,13 +600,16 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 
 //Swapping CDT to collateral
 export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
-        
+    console.log("swap1", CDTInAmount, tokenOutPrice, cdtPrice)
     //Get tokenOutAmount
     const tokenOutAmount = getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice);
+    console.log("swap2", tokenOutAmount, tokenOut)
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
+    console.log("swap3", routes)
 
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
+    console.log("swap4", tokenOutMinAmount)
 
     const msg = swapExactAmountIn({
         sender: address! as string,

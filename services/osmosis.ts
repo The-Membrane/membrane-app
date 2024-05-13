@@ -55,9 +55,8 @@ const {
     beginUnlocking
 } = osmosis.lockup.MessageComposer.withTypeUrl;
 
-function getPositionLTV(position_value: number, credit_amount: number) {
-    const { data: basket } = useBasket()
-    let debt_value = (credit_amount) * parseFloat(basket?.credit_price.price ?? "1");
+function getPositionLTV(position_value: number, credit_amount: number, basket: Basket) {
+    let debt_value = (credit_amount) * parseFloat(basket.credit_price.price ?? "1");
 
     return debt_value / position_value;
 }
@@ -253,7 +252,7 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     let cAsset_ratios = getAssetRatio(tvl, positions);
     console.log(cAsset_ratios)
     //Get Position's LTV
-    var currentLTV = getPositionLTV(positionValue, creditAmount);
+    var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     console.log(currentLTV)
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
@@ -314,7 +313,7 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
         //Set credit amount
         creditAmount += mintAmount;
         //Calc new LTV
-        currentLTV = getPositionLTV(positionValue, creditAmount);
+        currentLTV = getPositionLTV(positionValue, creditAmount, basket);
 
         //Add msgs to all_msgs
         all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);

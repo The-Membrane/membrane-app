@@ -230,13 +230,11 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
 export const loopPosition = (LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
-    console.log("here loop")
 
     //Set cdtPrice
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket.credit_asset.info.denom)?.price || '0');
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address, mainnetAddrs.positions);
-    console.log("here loop2")
 
     //Set Position value
     var positionValue = tvl;
@@ -250,15 +248,12 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(tvl, positions);
-    console.log(cAsset_ratios)
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
-    console.log(currentLTV)
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
         return;
     }
-    console.log("here loop3")
 
     //Repeat until CDT to mint is under 1 or Loops are done
     var mintAmount = 0;
@@ -270,8 +265,9 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
         //Set value to mint
         var mintValue = positionValue * LTV_range;
         //Set amount to mint
-        mintAmount = parseInt(((mintValue / parseFloat(basket!.credit_price.price)) * 1_000_000).toFixed(0));
+        mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
 
+        console.log("mint", mintAmount)
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
             positionId: positionId,
@@ -283,6 +279,7 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
             return [asset.symbol, (asset.ratio * mintAmount)];
         });
 
+        console.log("cAsset_amounts", cAsset_amounts)
         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs = [] as MsgExecuteContractEncodeObject[];
         var tokenOutMins: Coin[] = [];
@@ -296,6 +293,7 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
                 tokenOutMins.push(coin(swap_output.tokenOutMinAmount, denoms[amount[0] as keyof exported_supportedAssets][0] as string));
             }
         });
+        console.log("swap_msgs", swap_msgs)
         //Create deposit msgs for newly swapped assets
         var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
             positionId: positionId,

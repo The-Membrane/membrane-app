@@ -20,7 +20,7 @@ import Divider from '../Divider'
 import QASelect from '../QuickActionSelect'
 
 const Home = () => {
-  const { isWalletConnected } = useWallet()
+  const { isWalletConnected, address } = useWallet()
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const assets = useCollateralAssets()
@@ -68,7 +68,7 @@ const Home = () => {
           assets: (assetsWithBalance??[])
         })
       }
-  }, [assets, walletBalances, prices])
+  }, [assets, walletBalances, prices, address])
 
   useEffect(() => {
     if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {

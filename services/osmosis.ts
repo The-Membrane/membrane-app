@@ -232,7 +232,7 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 //LTV as a decimal
 export const loopPosition = (LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket) => {
     console.log("here loop")
-    const { tvl, debtAmount, borrowLTV } = useQuickActionVaultSummary();
+    const { tvl, debtAmount, borrowLTV } = useQuickActionVaultSummary()
     console.log("here loop2")
 
     //Set cdtPrice

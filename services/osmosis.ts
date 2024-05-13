@@ -232,7 +232,8 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 export const loopPosition = (LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
 
     //Set cdtPrice
-    const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket.credit_asset.info.denom)?.price || '0');
+    const cdtPrice = prices.find((price) => price.denom === basket.credit_asset.info.denom);
+    console.log(cdtPrice!.price)
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address, mainnetAddrs.positions);
 
@@ -289,7 +290,7 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
                 //Get price for denom 
                 let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
                 console.log("price", price)
-                let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
+                let swap_output = handleCollateralswaps(address, parseFloat(cdtPrice!.price), parseFloat(price), amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
                 console.log("swap_output", swap_output)                
                 swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
                 tokenOutMins.push(coin(swap_output.tokenOutMinAmount, denoms[amount[0] as keyof exported_supportedAssets][0] as string));

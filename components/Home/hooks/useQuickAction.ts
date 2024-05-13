@@ -14,16 +14,19 @@ import { shiftDigits } from '@/helpers/math'
 import { buildStabilityPooldepositMsg } from '@/services/stabilityPool'
 import { coin } from '@cosmjs/stargate'
 import { loopPosition } from '@/services/osmosis'
+import useQuickActionVaultSummary from './useQuickActionVaultSummary'
+import { num } from '@/helpers/num'
 
 const useQuickAction = () => {
   const { quickActionState } = useQuickActionState()
   const { summary = [] } = quickActionState
   const { address } = useWallet()
-  const { data: basketPositions, ...basketErrors } = useUserPositions()
+  const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
   const usdcAsset = useAssetBySymbol("USDC")
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
+  const { borrowLTV, maxMint } = useQuickActionVaultSummary()
 
   /////First we'll do new positions only, but these actions will be usable by all positions & multiple per user in the future//////
 
@@ -96,10 +99,11 @@ const useQuickAction = () => {
         } else if (quickActionState.action.value === "Loop"){
           //Loop
           //Calc LTV based on mint
-          //Get position ID
+          const mintLTV = num(quickActionState?.mint).div(maxMint).times(borrowLTV).div(100).toNumber()
+          console.log(mintLTV)
           //Loop max amount
           const loopMax = 5;
-          const loops = loopPosition( loopMax)
+          const loops = loopPosition(mintLTV, positionId, loopMax)
 
           msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])  
         }

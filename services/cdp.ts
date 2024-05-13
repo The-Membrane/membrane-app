@@ -276,7 +276,7 @@ type VaultSummary = {
   basketAssets: BasketAsset[]
 }
 
-const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
+export const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
 
   //If no initial position, return a summary using the summary from the mint state
   if (!basketPositions){

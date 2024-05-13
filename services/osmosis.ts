@@ -14,10 +14,10 @@ import BigNumber from "bignumber.js";
 import { MsgSwapExactAmountIn } from "osmojs/dist/codegen/osmosis/gamm/v1beta1/tx";
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";
-import { Basket, Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";
+import { Basket, BasketPositionsResponse, Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";
 import { Asset } from '@/helpers/chain'
 import { useEffect, useState } from "react";
-import { getAssetRatio, getPositions, getUserPositions } from "@/services/cdp";
+import { getAssetRatio, getPositions, getUserPositions, Positions, updatedSummary } from "@/services/cdp";
 import useMintState from "@/components/Mint/hooks/useMintState";
 import useVaultSummary from "@/components/Mint/hooks/useVaultSummary";
 import { useOraclePrice } from "@/hooks/useOracle";
@@ -230,17 +230,13 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 // }
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
-export const loopPosition = (LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket) => {
+export const loopPosition = (LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
     console.log("here loop")
-    const { tvl, debtAmount, borrowLTV } = useQuickActionVaultSummary()
-    console.log("here loop2")
 
     //Set cdtPrice
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket!.credit_asset.info.denom)?.price || '0');
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
-    //getPosition
-    const { data: basketPositions } = useUserPositions()
 
     //Set Position value
     var positionValue = tvl!;
@@ -253,13 +249,14 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
-    let cAsset_ratios = getAssetRatio(tvl!, getPositions(basketPositions, prices));
+    let cAsset_ratios = getAssetRatio(tvl!, positions);
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount);
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
         return;
     }
+    console.log("here loop2")
 
     //Repeat until CDT to mint is under 1 or Loops are done
     var mintAmount = 0;

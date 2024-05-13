@@ -16,6 +16,7 @@ import { coin } from '@cosmjs/stargate'
 import { loopPosition } from '@/services/osmosis'
 import useQuickActionVaultSummary from './useQuickActionVaultSummary'
 import { num } from '@/helpers/num'
+import { updatedSummary } from '@/services/cdp'
 
 const useQuickAction = () => {
   const { quickActionState } = useQuickActionState()
@@ -26,7 +27,7 @@ const useQuickAction = () => {
   const usdcAsset = useAssetBySymbol("USDC")
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
-  const { borrowLTV, maxMint, debtAmount } = useQuickActionVaultSummary()
+  const { borrowLTV, maxMint, debtAmount, tvl } = useQuickActionVaultSummary()
 
   /////First we'll do new positions only, but these actions will be usable by all positions & multiple per user in the future//////
 
@@ -52,7 +53,7 @@ const useQuickAction = () => {
       quickActionState?.action,
       usdcAsset,
       prices,
-      cdtAsset
+      cdtAsset, basketPositions, tvl, debtAmount, summary
     ],
     queryFn: () => {
       if (!address || !basket || !usdcAsset || !prices || !cdtAsset || !quickActionState?.selectedAsset) return
@@ -104,9 +105,21 @@ const useQuickAction = () => {
           console.log("here1")
           const mintLTV = num(quickActionState?.mint).div(maxMint).times(borrowLTV).div(100).toFixed(2)
           console.log("here2")
+          const positions = updatedSummary(summary, basketPositions, prices)
           //Loop max amount
           const loopMax = 5;
-          const loops = loopPosition(parseFloat(mintLTV), positionId, loopMax, address, prices, basket)
+          const loops = loopPosition(
+            parseFloat(mintLTV), 
+            positionId, 
+            loopMax, 
+            address, 
+            prices, 
+            basket,
+            tvl, 
+            debtAmount, 
+            borrowLTV, 
+            positions
+          )
           console.log("here3")
           console.log(loops)
           msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])

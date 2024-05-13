@@ -244,7 +244,8 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     //Set credit amount
     var creditAmount = debtAmount;
     //Confirm desired LTV isn't over the borrowable LTV
-    if (LTV >= borrowLTV! / 100) {
+    console.log(borrowLTV)
+    if (LTV >= borrowLTV / 100) {
         console.log("Desired LTV is over the Position's borrowable LTV")
         return;
     }

@@ -431,10 +431,13 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     )
 
     if (ltv > liquidationLTV) {
+      let ltv_diff = num(ltv).minus(liquidationLTV)
+      let liq_ratio = ltv_diff.div(ltv)
+      let liq_debt = liq_ratio.times(debtValue)
       return {
         address: basketPosition.user,
         id: basketPosition.positions[0].position_id,
-        fee: num(ltv - liquidationLTV).div(100).multipliedBy(debtValue).toNumber().toFixed(2),
+        fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
       }
     }
   })

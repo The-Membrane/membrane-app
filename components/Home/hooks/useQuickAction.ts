@@ -13,6 +13,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { shiftDigits } from '@/helpers/math'
 import { buildStabilityPooldepositMsg } from '@/services/stabilityPool'
 import { coin } from '@cosmjs/stargate'
+import { loopPosition } from '@/services/osmosis'
 
 const useQuickAction = () => {
   const { quickActionState } = useQuickActionState()
@@ -92,6 +93,15 @@ const useQuickAction = () => {
 
           const omni = buildStabilityPooldepositMsg({ address, funds })
           msgs.push(omni as MsgExecuteContractEncodeObject)
+        } else if (quickActionState.action.value === "Loop"){
+          //Loop
+          //Calc LTV based on mint
+          //Get position ID
+          //Loop max amount
+          const loopMax = 5;
+          const loops = loopPosition( loopMax)
+
+          msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])  
         }
       }
 

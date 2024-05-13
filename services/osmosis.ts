@@ -17,7 +17,7 @@ import { EncodeObject } from "@cosmjs/proto-signing";
 import { Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";
 import { Asset } from '@/helpers/chain'
 import { useEffect, useState } from "react";
-import { getAssetRatio, getUserPositions } from "@/services/cdp";
+import { getAssetRatio, getPositions, getUserPositions } from "@/services/cdp";
 import useMintState from "@/components/Mint/hooks/useMintState";
 import useVaultSummary from "@/components/Mint/hooks/useVaultSummary";
 import { useOraclePrice } from "@/hooks/useOracle";
@@ -25,6 +25,7 @@ import { useBasket, useUserPositions } from "@/hooks/useCDP";
 import { useBalanceByAsset } from "@/hooks/useBalance";
 import { useAssetBySymbol } from "@/hooks/useAssets";
 import { num } from "@/helpers/num";
+import useWallet from "@/hooks/useWallet";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -228,99 +229,105 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 // }
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
-// export const loopPosition = (LTV: number, positionId: string, loops: number) => {
-//     const { address } = useWallet()
-//     const { mintState } = useMintState()
-//     const { data: prices } = useOraclePrice()
-//     const { data: basket } = useBasket()
-//     const { initialTVL, debtAmount, initialBorrowLTV } = useVaultSummary();
+export const loopPosition = (LTV: number, positionId: string, loops: number) => {
+    const { address } = useWallet()
+    const { mintState } = useMintState()
+    const { data: prices } = useOraclePrice()
+    const { data: basket } = useBasket()
+    const { initialTVL, debtAmount, initialBorrowLTV } = useVaultSummary();
 
-//     //Create CDP Message Composer
-//     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
-//     //getPosition
-//     const { data: basketPositions } = useUserPositions()
+    //Set cdtPrice
+    const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket!.credit_asset.info.denom)?.price || '0');
+    //Create CDP Message Composer
+    const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
+    //getPosition
+    const { data: basketPositions } = useUserPositions()
 
-//     //Set Position value
-//     var positionValue = initialTVL!;
-//     //Set credit amount
-//     var creditAmount = debtAmount;
-//     //Confirm desired LTV isn't over the borrowable LTV
-//     if (LTV >= initialBorrowLTV! / 100) {
-//         console.log("Desired LTV is over the Position's borrowable LTV")
-//         return;
-//     }
-//     //Get position cAsset ratios 
-//     //Ratios won't change in btwn loops so we can set them outside the loop
-//     let cAsset_ratios = getAssetRatio(initialTVL!, getPositionAssets(mintState.index, basketPositions, prices));
-//     //Get Position's LTV
-//     var currentLTV = getPositionLTV(positionValue, creditAmount);
-//     if (LTV < currentLTV) {
-//         console.log("Desired LTV is under the Position's current LTV")
-//         return;
-//     }
+    //Set Position value
+    var positionValue = initialTVL!;
+    //Set credit amount
+    var creditAmount = debtAmount;
+    //Confirm desired LTV isn't over the borrowable LTV
+    if (LTV >= initialBorrowLTV! / 100) {
+        console.log("Desired LTV is over the Position's borrowable LTV")
+        return;
+    }
+    //Get position cAsset ratios 
+    //Ratios won't change in btwn loops so we can set them outside the loop
+    let cAsset_ratios = getAssetRatio(initialTVL!, getPositions(basketPositions, prices));
+    //Get Position's LTV
+    var currentLTV = getPositionLTV(positionValue, creditAmount);
+    if (LTV < currentLTV) {
+        console.log("Desired LTV is under the Position's current LTV")
+        return;
+    }
 
-//     //Repeat until CDT to mint is under 1 or Loops are done
-//     var mintAmount = 0;
-//     var iter = 0;
-//     var all_msgs: EncodeObject[] = [];
-//     while ((mintAmount > 1_000_000 || iter == 0) && iter < loops) {
-//         //Set LTV range
-//         let LTV_range = LTV - currentLTV;
-//         //Set value to mint
-//         var mintValue = positionValue * LTV_range;
-//         //Set amount to mint
-//         mintAmount = parseInt(((mintValue / parseFloat(basket!.credit_price.price)) * 1_000_000).toFixed(0));
+    //Repeat until CDT to mint is under 1 or Loops are done
+    var mintAmount = 0;
+    var iter = 0;
+    var all_msgs: EncodeObject[] = [];
+    while ((mintAmount > 1_000_000 || iter == 0) && iter < loops) {
+        //Set LTV range
+        let LTV_range = LTV - currentLTV;
+        //Set value to mint
+        var mintValue = positionValue * LTV_range;
+        //Set amount to mint
+        mintAmount = parseInt(((mintValue / parseFloat(basket!.credit_price.price)) * 1_000_000).toFixed(0));
 
-//         //Create mint msg
-//         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
-//             positionId: positionId,
-//             amount: mintAmount.toString(),
-//         });
-//         //Divvy mint amount to the cAssets based on ratio
-//         let cAsset_amounts = cAsset_ratios.map((asset) => {
-//             return [asset.symbol, (asset.ratio * mintAmount)];
-//         });
+        //Create mint msg
+        let mint_msg: EncodeObject = cdp_composer.increaseDebt({
+            positionId: positionId,
+            amount: mintAmount.toString(),
+        });
+        //Divvy mint amount to the cAssets based on ratio
+        let cAsset_amounts = cAsset_ratios.map((asset) => {
+            if (!asset) return;
+            return [asset.symbol, (asset.ratio * mintAmount)];
+        });
 
-//         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
-//         var swap_msgs: EncodeObject[] = [];
-//         var tokenOutMins: Coin[] = [];
-//         cAsset_amounts.forEach((amount) => {
-//             if (amount[1] as number > 0) {
-//                 let swap_output = handleCollateralswaps(amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number)!;
-//                 swap_msgs.push(swap_output);
-//                 tokenOutMins.push(coin((swap_output.value as MsgSwapExactAmountIn).tokenOutMinAmount, denoms[amount[0] as keyof exported_supportedAssets][0] as string));
-//             }
-//         });
-//         //Create deposit msgs for newly swapped assets
-//         var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
-//             positionId: positionId,
-//         });
-//         //Sort tokenOutMins alphabetically
-//         tokenOutMins.sort((a, b) => (a.denom > b.denom) ? 1 : -1);
-//         deposit_msg.value.funds = tokenOutMins;
-//         //////////////////////////
+        //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
+        var swap_msgs = [] as MsgExecuteContractEncodeObject[];
+        var tokenOutMins: Coin[] = [];
+        cAsset_amounts.forEach((amount) => {
+            if (!amount || !address) return;
+            if (amount[1] as number > 0) {
+                //Get price for denom 
+                let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
+                let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number)!;
+                swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
+                tokenOutMins.push(coin(swap_output.tokenOutMinAmount, denoms[amount[0] as keyof exported_supportedAssets][0] as string));
+            }
+        });
+        //Create deposit msgs for newly swapped assets
+        var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
+            positionId: positionId,
+        });
+        //Sort tokenOutMins alphabetically
+        tokenOutMins.sort((a, b) => (a.denom > b.denom) ? 1 : -1);
+        deposit_msg.value.funds = tokenOutMins;
+        //////////////////////////
 
-//         //Subtract slippage to mint value
-//         mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
-//         //Calc new TVL (w/ slippage calculated into the mintValue)
-//         positionValue = positionValue + mintValue;
+        //Subtract slippage to mint value
+        mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
+        //Calc new TVL (w/ slippage calculated into the mintValue)
+        positionValue = positionValue + mintValue;
 
-//         //Set credit amount
-//         creditAmount += mintAmount;
-//         //Calc new LTV
-//         currentLTV = getPositionLTV(positionValue, creditAmount);
+        //Set credit amount
+        creditAmount += mintAmount;
+        //Calc new LTV
+        currentLTV = getPositionLTV(positionValue, creditAmount);
 
-//         //Add msgs to all_msgs
-//         all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);
+        //Add msgs to all_msgs
+        all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);
 
-//         //Increment iter
-//         iter += 1;
-//     }
+        //Increment iter
+        iter += 1;
+    }
 
-//     console.log(all_msgs, iter)
+    console.log(all_msgs, iter)
 
-//     return all_msgs
-// }
+    return all_msgs
+}
 // export const exitCLPools = (poolId: number) => {
 //     console.log("exit_cl_attempt")
 //     let msg = [] as EncodeObject[];

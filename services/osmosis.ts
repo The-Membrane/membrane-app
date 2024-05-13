@@ -290,37 +290,35 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             }
         });
         //If there are no swaps, don't add mint or deposit msgs
-        if (swap_msgs.length === 0) {
-            console.log("No swaps were made, ending loop")
-            return;
-        }
+        if (swap_msgs.length !== 0) {
         
-        //Create deposit msgs for newly swapped assets
-        var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
-            positionId: positionId,
-        });
-        //Sort tokenOutMins alphabetically
-        tokenOutMins.sort((a, b) => (a.denom > b.denom) ? 1 : -1);
-        deposit_msg.value.funds = tokenOutMins;
-        //////////////////////////
+            //Create deposit msgs for newly swapped assets
+            var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
+                positionId: positionId,
+            });
+            //Sort tokenOutMins alphabetically
+            tokenOutMins.sort((a, b) => (a.denom > b.denom) ? 1 : -1);
+            deposit_msg.value.funds = tokenOutMins;
+            //////////////////////////
 
-        //Subtract slippage to mint value
-        mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
-        //Calc new TVL (w/ slippage calculated into the mintValue)
-        positionValue = positionValue + mintValue;
+            //Subtract slippage to mint value
+            mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
+            //Calc new TVL (w/ slippage calculated into the mintValue)
+            positionValue = positionValue + mintValue;
 
-        //Set credit amount
-        creditAmount += mintAmount;
-        //Calc new LTV
-        currentLTV = getPositionLTV(positionValue, creditAmount, basket);
+            //Set credit amount
+            creditAmount += mintAmount;
+            //Calc new LTV
+            currentLTV = getPositionLTV(positionValue, creditAmount, basket);
 
-        console.log("mint_msg", mint_msg, "swap_msgs", swap_msgs, "deposit_msg", deposit_msg)
+            console.log("mint_msg", mint_msg, "swap_msgs", swap_msgs, "deposit_msg", deposit_msg)
 
-        //Add msgs to all_msgs
-        all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);
+            //Add msgs to all_msgs
+            all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);
 
-        //Increment iter
-        iter += 1;
+            //Increment iter
+            iter += 1;
+        }
     }
 
     console.log(all_msgs, iter)

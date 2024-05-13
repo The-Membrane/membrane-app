@@ -311,8 +311,6 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             //Calc new LTV
             currentLTV = getPositionLTV(positionValue, creditAmount, basket);
 
-            console.log("mint_msg", mint_msg, "swap_msgs", swap_msgs, "deposit_msg", deposit_msg)
-
             //Add msgs to all_msgs
             all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);
 
@@ -320,8 +318,6 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             iter += 1;
         }
     }
-
-    console.log(all_msgs, iter)
 
     return all_msgs
 }

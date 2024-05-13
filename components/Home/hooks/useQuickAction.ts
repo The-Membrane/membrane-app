@@ -123,9 +123,8 @@ const useQuickAction = () => {
             borrowLTV, 
             positions
           )
-          console.log("here3")
-          console.log(loops)
           msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
+          console.log(msgs)
         }
       }
 

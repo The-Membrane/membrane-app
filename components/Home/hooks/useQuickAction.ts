@@ -26,7 +26,7 @@ const useQuickAction = () => {
   const usdcAsset = useAssetBySymbol("USDC")
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
-  const { borrowLTV, maxMint } = useQuickActionVaultSummary()
+  const { borrowLTV, maxMint, debtAmount } = useQuickActionVaultSummary()
 
   /////First we'll do new positions only, but these actions will be usable by all positions & multiple per user in the future//////
 
@@ -101,10 +101,13 @@ const useQuickAction = () => {
         } else if (quickActionState.action.value === "Loop"){
           //Loop
           //Calc LTV based on mint
+          console.log("here1")
           const mintLTV = num(quickActionState?.mint).div(maxMint).times(borrowLTV).div(100).toFixed(2)
+          console.log("here2")
           //Loop max amount
           const loopMax = 5;
           const loops = loopPosition(parseFloat(mintLTV), positionId, loopMax, address, prices, basket)
+          console.log("here3")
           console.log(loops)
           msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
         }
@@ -127,7 +130,7 @@ const useQuickAction = () => {
       String(quickActionState?.selectedAsset?.amount) || '0',
       quickActionState?.action?.value,
     ],
-    enabled: !!msgs,
+    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && (num(quickActionState?.selectedAsset?.amount??0) > num(0)) && (maxMint + debtAmount > 0),
     onSuccess,
   })
 }

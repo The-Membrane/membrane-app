@@ -232,7 +232,7 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 //LTV as a decimal
 export const loopPosition = (LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket) => {
     const { tvl, debtAmount, borrowLTV } = useQuickActionVaultSummary();
-    console.log("here")
+    console.log("here loop")
 
     //Set cdtPrice
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket!.credit_asset.info.denom)?.price || '0');

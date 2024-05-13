@@ -44,8 +44,9 @@ const useQuickAction = () => {
     queryKey: [
       'mint',
       address,
-      positionId,
-      summary?.map((s: any) => String(s.amount)) || '0',
+      positionId, 
+      borrowLTV, 
+      maxMint,
       quickActionState?.mint,
       quickActionState?.selectedAsset,
       quickActionState?.action,
@@ -89,7 +90,7 @@ const useQuickAction = () => {
           })
           msgs.push(lp as MsgExecuteContractEncodeObject)
 
-        } else if (quickActionState.action.value === "Bid"){         
+        } else if (quickActionState.action.value === "Bid"){  
           //Omni-Pool     
           const microAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toString()
           const funds = [coin(microAmount, cdtAsset?.base!)]
@@ -103,7 +104,7 @@ const useQuickAction = () => {
           const mintLTV = num(quickActionState?.mint).div(maxMint).times(borrowLTV).div(100).toFixed(2)
           //Loop max amount
           const loopMax = 5;
-          const loops = loopPosition(parseFloat(mintLTV), positionId, loopMax)
+          const loops = loopPosition(parseFloat(mintLTV), positionId, loopMax, address, prices, basket)
           console.log(loops)
           msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
         }

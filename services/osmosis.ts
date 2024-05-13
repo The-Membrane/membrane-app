@@ -1,5 +1,5 @@
 import { cdtRoutes, denoms, mainnetAddrs, SWAP_SLIPPAGE } from "@/config/defaults";
-import { getPriceByDenom } from "@/services/oracle";
+import { getPriceByDenom, Price } from "@/services/oracle";
 import { Coin, coin, coins } from "@cosmjs/amino";
 
 import { calcAmountWithSlippage, calcShareOutAmount, convertGeckoPricesToDenomPriceHash, LiquidityPoolCalculator } from "@osmonauts/math";
@@ -14,7 +14,7 @@ import BigNumber from "bignumber.js";
 import { MsgSwapExactAmountIn } from "osmojs/dist/codegen/osmosis/gamm/v1beta1/tx";
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";
-import { Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";
+import { Basket, Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";
 import { Asset } from '@/helpers/chain'
 import { useEffect, useState } from "react";
 import { getAssetRatio, getPositions, getUserPositions } from "@/services/cdp";
@@ -26,6 +26,7 @@ import { useBalanceByAsset } from "@/hooks/useBalance";
 import { useAssetBySymbol } from "@/hooks/useAssets";
 import { num } from "@/helpers/num";
 import useWallet from "@/hooks/useWallet";
+import useQuickActionVaultSummary from "@/components/Home/hooks/useQuickActionVaultSummary";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -229,12 +230,9 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 // }
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
-export const loopPosition = (LTV: number, positionId: string, loops: number) => {
-    const { address } = useWallet()
-    const { mintState } = useMintState()
-    const { data: prices } = useOraclePrice()
-    const { data: basket } = useBasket()
-    const { initialTVL, debtAmount, initialBorrowLTV } = useVaultSummary();
+export const loopPosition = (LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket) => {
+    const { tvl, debtAmount, borrowLTV } = useQuickActionVaultSummary();
+    console.log("here")
 
     //Set cdtPrice
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket!.credit_asset.info.denom)?.price || '0');
@@ -244,17 +242,17 @@ export const loopPosition = (LTV: number, positionId: string, loops: number) => 
     const { data: basketPositions } = useUserPositions()
 
     //Set Position value
-    var positionValue = initialTVL!;
+    var positionValue = tvl!;
     //Set credit amount
     var creditAmount = debtAmount;
     //Confirm desired LTV isn't over the borrowable LTV
-    if (LTV >= initialBorrowLTV! / 100) {
+    if (LTV >= borrowLTV! / 100) {
         console.log("Desired LTV is over the Position's borrowable LTV")
         return;
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
-    let cAsset_ratios = getAssetRatio(initialTVL!, getPositions(basketPositions, prices));
+    let cAsset_ratios = getAssetRatio(tvl!, getPositions(basketPositions, prices));
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount);
     if (LTV < currentLTV) {

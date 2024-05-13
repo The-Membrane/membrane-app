@@ -191,7 +191,8 @@ export const getProposals = async () => {
       }),
     )
 
-  return allProposals.map((proposal) => ({
+  return allProposals.filter((prop) => prop.proposal_id != "61")
+  .map((proposal) => ({
     ...proposal,
     result: calculateProposalResult(proposal, config),
     ratio: calcuateRatio(proposal, config),

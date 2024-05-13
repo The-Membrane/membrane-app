@@ -96,16 +96,16 @@ const useQuickAction = () => {
 
           const omni = buildStabilityPooldepositMsg({ address, funds })
           msgs.push(omni as MsgExecuteContractEncodeObject)
+
         } else if (quickActionState.action.value === "Loop"){
           //Loop
           //Calc LTV based on mint
-          const mintLTV = num(quickActionState?.mint).div(maxMint).times(borrowLTV).div(100).toNumber()
-          console.log(mintLTV)
+          const mintLTV = num(quickActionState?.mint).div(maxMint).times(borrowLTV).div(100).toFixed(2)
           //Loop max amount
           const loopMax = 5;
-          const loops = loopPosition(mintLTV, positionId, loopMax)
-
-          msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])  
+          const loops = loopPosition(parseFloat(mintLTV), positionId, loopMax)
+          console.log(loops)
+          msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
         }
       }
 

@@ -265,7 +265,6 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         //Set amount to mint
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
 
-        console.log("mint", mintAmount)
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
             positionId: positionId,
@@ -277,7 +276,6 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             return [asset.base, (asset.ratio * mintAmount), asset.symbol];
         });
 
-        console.log("cAsset_amounts", cAsset_amounts)
         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs = [] as MsgExecuteContractEncodeObject[];
         var tokenOutMins: Coin[] = [];
@@ -286,9 +284,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             if (amount[1] as number > 0) {
                 //Get price for denom 
                 let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
-                console.log("price", price)
                 let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[2] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
-                console.log("swap_output", swap_output)                
                 swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
                 tokenOutMins.push(coin(swap_output.tokenOutMinAmount, denoms[amount[2] as keyof exported_supportedAssets][0] as string));
             }
@@ -312,6 +308,8 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         creditAmount += mintAmount;
         //Calc new LTV
         currentLTV = getPositionLTV(positionValue, creditAmount, basket);
+
+        console.log("mint_msg", mint_msg, "swap_msgs", swap_msgs, "deposit_msg", deposit_msg)
 
         //Add msgs to all_msgs
         all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);

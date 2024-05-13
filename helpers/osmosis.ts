@@ -2,10 +2,8 @@ import { Price } from "@/services/oracle"
 import { handleCollateralswaps, joinCLPools } from "@/services/osmosis"
 import { shiftDigits } from "./math"
 import { Asset, exported_supportedAssets } from "./chain"
-import { useAssetBySymbol } from "@/hooks/useAssets"
 import { num } from "./num"
 import { coin } from "@cosmjs/stargate"
-import { useOraclePrice } from "@/hooks/useOracle"
 
 type GetSwapToMsgs = {
     cdtAmount: string | number

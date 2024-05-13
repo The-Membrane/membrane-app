@@ -172,7 +172,7 @@ export const getProposals = async () => {
   const start = 50
   const limit = 30 //Contract's max limit is 30 so we'll need to move the start point every 30 proposals
 
-  const activeProposals = client.activeProposals({ start, limit }).then((res) => res.proposal_list)
+  const activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop)=> prop.proposal_id != "61")
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
 
   const statusOrder: Record<string, number> = {

@@ -236,7 +236,7 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     //Set cdtPrice
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket!.credit_asset.info.denom)?.price || '0');
     //Create CDP Message Composer
-    const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
+    const cdp_composer = new PositionsMsgComposer(address, mainnetAddrs.positions);
     console.log("here loop2")
 
     //Set Position value
@@ -251,7 +251,7 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
-    let cAsset_ratios = getAssetRatio(tvl!, positions);
+    let cAsset_ratios = getAssetRatio(tvl, positions);
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount);
     console.log(currentLTV)

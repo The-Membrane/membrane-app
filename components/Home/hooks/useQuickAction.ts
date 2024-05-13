@@ -62,6 +62,9 @@ const useQuickAction = () => {
       const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
       msgs = msgs.concat(deposit)
       if (quickActionState?.mint && quickActionState?.mint > 0){
+        //Set cdtPrice
+        const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
+        console.log(cdtPrice)
         //Mint
         const mint = getMintAndRepayMsgs({
           address,
@@ -77,7 +80,7 @@ const useQuickAction = () => {
             cdtAmount: quickActionState?.mint, 
             swapToAsset: usdcAsset,
             prices,
-            cdtAsset,
+            cdtPrice,
           })   
           msgs.push(swap as MsgExecuteContractEncodeObject)  
           //LP   
@@ -109,6 +112,7 @@ const useQuickAction = () => {
           //Loop max amount
           const loopMax = 5;
           const loops = loopPosition(
+            cdtPrice,
             parseFloat(mintLTV), 
             positionId, 
             loopMax, 

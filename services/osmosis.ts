@@ -234,17 +234,16 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     console.log("here loop")
 
     //Set cdtPrice
-    const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket!.credit_asset.info.denom)?.price || '0');
+    const cdtPrice = parseFloat(prices?.find((price) => price.denom === basket.credit_asset.info.denom)?.price || '0');
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address, mainnetAddrs.positions);
     console.log("here loop2")
 
     //Set Position value
-    var positionValue = tvl!;
+    var positionValue = tvl;
     //Set credit amount
     var creditAmount = debtAmount;
     //Confirm desired LTV isn't over the borrowable LTV
-    console.log(borrowLTV)
     if (LTV >= borrowLTV / 100) {
         console.log("Desired LTV is over the Position's borrowable LTV")
         return;
@@ -252,6 +251,7 @@ export const loopPosition = (LTV: number, positionId: string, loops: number, add
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(tvl, positions);
+    console.log(cAsset_ratios)
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount);
     console.log(currentLTV)

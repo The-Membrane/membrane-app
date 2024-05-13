@@ -64,7 +64,6 @@ const useQuickAction = () => {
       if (quickActionState?.mint && quickActionState?.mint > 0){
         //Set cdtPrice
         const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
-        console.log(cdtPrice)
         //Mint
         const mint = getMintAndRepayMsgs({
           address,

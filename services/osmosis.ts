@@ -274,7 +274,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         //Divvy mint amount to the cAssets based on ratio
         let cAsset_amounts = cAsset_ratios.map((asset) => {
             if (!asset) return;
-            return [asset.base, (asset.ratio * mintAmount)];
+            return [asset.base, (asset.ratio * mintAmount), asset.symbol];
         });
 
         console.log("cAsset_amounts", cAsset_amounts)
@@ -287,7 +287,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
                 //Get price for denom 
                 let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
                 console.log("price", price)
-                let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
+                let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[2] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
                 console.log("swap_output", swap_output)                
                 swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
                 tokenOutMins.push(coin(swap_output.tokenOutMinAmount, denoms[amount[0] as keyof exported_supportedAssets][0] as string));

@@ -127,7 +127,7 @@ const useQuickAction = () => {
           console.log(msgs)
         }
       }
-
+      console.log(((quickActionState?.mint??0) > 0), (num(quickActionState?.selectedAsset?.amount??0) > num(0)), ((maxMint??0) + debtAmount > 0))
       return msgs as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,

@@ -108,7 +108,6 @@ const Home = () => {
     
   }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])
 
-  console.log(quickAction?.simulate.isError, !quickAction?.simulate.data)
 
   return (
     <Stack >

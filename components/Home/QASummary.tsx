@@ -62,7 +62,7 @@ const SummaryItem = ({
       </Text> : badge === "BID" ? <Text variant="value" textTransform="unset">
        on all assets at a 10% premium
       </Text> : badge === "LOOP" ? <Text variant="value" textTransform="unset">
-       at a max of {loopMax} times to a {newLTV}% LTV & ${newValue} position value
+       to a {newLTV}% LTV & ${newValue} position value
       </Text>
       : null}
     </HStack>

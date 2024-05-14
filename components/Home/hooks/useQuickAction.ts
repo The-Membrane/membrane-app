@@ -74,7 +74,7 @@ const useQuickAction = () => {
           const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100).toFixed(2)
           const positions = updatedSummary(summary, basketPositions, prices)
           //Loop max amount
-          const loopMax = 11;
+          const loopMax = 8;
           const loops = loopPosition(
             cdtPrice,
             parseFloat(mintLTV), 

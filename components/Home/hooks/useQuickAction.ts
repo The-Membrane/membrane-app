@@ -157,7 +157,7 @@ const useQuickAction = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
-  console.log(!!msgs, ((quickActionState?.mint??0) > 0), ((quickActionState?.mint??0) + debtAmount > 99))
+  console.log(msgs)
 
   return {
     action: useSimulateAndBroadcast({

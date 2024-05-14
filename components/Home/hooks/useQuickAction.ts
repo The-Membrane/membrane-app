@@ -6,7 +6,7 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useQuickActionState from './useQuickActionState'
 import { queryClient } from '@/pages/_app'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { LPMsg, swapToMsg } from '@/helpers/osmosis'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useOraclePrice } from '@/hooks/useOracle'
@@ -74,7 +74,7 @@ const useQuickAction = () => {
           const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100).toFixed(2)
           const positions = updatedSummary(summary, basketPositions, prices)
           //Loop max amount
-          const loopMax = 5;
+          const loopMax = 11;
           const loops = loopPosition(
             cdtPrice,
             parseFloat(mintLTV), 

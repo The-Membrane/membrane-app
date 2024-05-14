@@ -14,8 +14,8 @@ type SummaryItemProps = Partial<AssetWithBalance> & {
   logo?: string
   logos?: string[]
   isLP?: boolean
-  newValue?: number
-  newLTV?: number
+  newValue?: string
+  newLTV?: string
 }
 
 const SummaryItem = ({
@@ -132,8 +132,8 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
         <SummaryItem
           label="CDT"
           badge="LOOP"
-          newValue={newPositionValue}
-          newLTV={newLTV}
+          newValue={newPositionValue.toFixed(0)}
+          newLTV={(newLTV * 100).toFixed(0)}
           logo={cdt?.logo}
         />
       </> 

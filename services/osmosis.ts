@@ -27,6 +27,7 @@ import { useAssetBySymbol } from "@/hooks/useAssets";
 import { num } from "@/helpers/num";
 import useWallet from "@/hooks/useWallet";
 import useQuickActionVaultSummary from "@/components/Home/hooks/useQuickActionVaultSummary";
+import { shiftDigits } from "@/helpers/math";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -261,6 +262,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         console.log(iter)
         //Set LTV range
         let LTV_range = LTV - currentLTV;
+        console.log(LTV, currentLTV)
         //Set value to mint
         var mintValue = positionValue * LTV_range;
         //Set amount to mint
@@ -310,7 +312,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             console.log(positionValue, iter)
 
             //Set credit amount
-            creditAmount += mintAmount;
+            creditAmount += shiftDigits(mintAmount, -6).toNumber();
             //Calc new LTV
             currentLTV = getPositionLTV(positionValue, creditAmount, basket);
 

@@ -249,6 +249,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     let cAsset_ratios = getAssetRatio(tvl, positions);
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
+    console.log(LTV, currentLTV, borrowLTV / 100)
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
         return;

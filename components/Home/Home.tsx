@@ -25,7 +25,7 @@ const Home = () => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const quickAction = useQuickAction()
+  const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
   const { debtAmount, maxMint } = useQuickActionVaultSummary()
   const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
   
@@ -156,10 +156,10 @@ const Home = () => {
 
         {/* Deposit-Mint-LP Button */}
         <ConfirmModal 
-          action={quickAction.action}
+          action={quickAction}
           label={quickActionState.action.value}
-          isDisabled={quickAction?.action.simulate.isError || !quickAction?.action.simulate.data || !quickActionState?.mint}>
-          <QASummary newPositionValue={quickAction.newPositionValue} newLTV={quickAction.newPositionLTV}/>
+          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
+          <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
         </ConfirmModal></>}
       </Card>
     </Stack>

@@ -30,7 +30,7 @@ const useQuickAction = () => {
   const cdtAsset = useAssetBySymbol('CDT')
   const { borrowLTV, maxMint, debtAmount, tvl } = useQuickActionVaultSummary()
 
-  /////First we'll do new positions only, but these actions will be usable by all positions & multiple per user in the future//////
+  /////First we'll do 1 position, but these actions will be usable by multiple per user in the future//////
 
   //Use first position id or use the basket's next position ID (for new positions)
   const positionId = useMemo(() => {
@@ -41,6 +41,8 @@ const useQuickAction = () => {
       return basket?.current_position_id ?? ""
     }
   }, [basket, basketPositions])
+  var newPositionValue = 0
+  var newPositionLTV = 0
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: [
@@ -88,7 +90,9 @@ const useQuickAction = () => {
             borrowLTV, 
             positions
           )
-          msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
+          msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
+          newPositionValue = loops!.newValue
+          newPositionLTV = loops!.newLTV
         } else {
 
           //Mint
@@ -143,7 +147,8 @@ const useQuickAction = () => {
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
 
-  return useSimulateAndBroadcast({
+  return {
+    action: useSimulateAndBroadcast({
     msgs,
     queryKey: [
       String(quickActionState?.mint) || '0',
@@ -152,7 +157,9 @@ const useQuickAction = () => {
     ],
     enabled: !!msgs && ((quickActionState?.mint??0) > 0) && ((quickActionState?.mint??0) + debtAmount > 99),
     onSuccess,
-  })
+  }),
+  newPositionValue,
+  newPositionLTV}
 }
 
 export default useQuickAction

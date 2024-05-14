@@ -324,7 +324,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         }
     }
 
-    return all_msgs
+    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV }
 }
 // export const exitCLPools = (poolId: number) => {
 //     console.log("exit_cl_attempt")

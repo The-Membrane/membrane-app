@@ -14,6 +14,8 @@ type SummaryItemProps = Partial<AssetWithBalance> & {
   logo?: string
   logos?: string[]
   isLP?: boolean
+  newValue?: number
+  newLTV?: number
 }
 
 const SummaryItem = ({
@@ -24,6 +26,8 @@ const SummaryItem = ({
   logo,
   logos,
   isLP,
+  newValue,
+  newLTV,
 }: SummaryItemProps) => (
   <HStack
     key={label}
@@ -58,7 +62,7 @@ const SummaryItem = ({
       </Text> : badge === "BID" ? <Text variant="value" textTransform="unset">
        on all assets at a 10% premium
       </Text> : badge === "LOOP" ? <Text variant="value" textTransform="unset">
-       at a max of {loopMax} times
+       at a max of {loopMax} times to a {newLTV}% LTV & ${newValue} position value
       </Text>
       : null}
     </HStack>
@@ -68,7 +72,7 @@ const SummaryItem = ({
   </HStack>
 )
 
-export const QASummary = () => {
+export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: number, newLTV: number}) => {
   const { quickActionState } = useQuickActionState()
   const summary = useMemo(() => {
     if (quickActionState?.selectedAsset && num(quickActionState?.selectedAsset?.amount).isGreaterThan(0)) return [quickActionState?.selectedAsset]
@@ -128,7 +132,8 @@ export const QASummary = () => {
         <SummaryItem
           label="CDT"
           badge="LOOP"
-          amount={""}
+          newValue={newPositionValue}
+          newLTV={newLTV}
           logo={cdt?.logo}
         />
       </> 

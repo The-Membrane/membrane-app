@@ -156,10 +156,10 @@ const Home = () => {
 
         {/* Deposit-Mint-LP Button */}
         <ConfirmModal 
-          action={quickAction}
+          action={quickAction.action}
           label={quickActionState.action.value}
-          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
-          <QASummary/>
+          isDisabled={quickAction?.action.simulate.isError || !quickAction?.action.simulate.data || !quickActionState?.mint}>
+          <QASummary newPositionValue={quickAction.newPositionValue} newLTV={quickAction.newPositionLTV}/>
         </ConfirmModal></>}
       </Card>
     </Stack>

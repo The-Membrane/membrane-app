@@ -74,7 +74,7 @@ const useQuickAction = () => {
           const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100).toFixed(2)
           const positions = updatedSummary(summary, basketPositions, prices)
           //Loop max amount
-          const loopMax = 8;
+          const loopMax = 33;
           const loops = loopPosition(
             cdtPrice,
             parseFloat(mintLTV), 
@@ -150,7 +150,7 @@ const useQuickAction = () => {
       String(quickActionState?.selectedAsset?.amount) || '0',
       quickActionState?.action?.value,
     ],
-    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && ((quickActionState?.mint??0) + debtAmount > 100),
+    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && ((quickActionState?.mint??0) + debtAmount >= 100),
     onSuccess,
   })
 }

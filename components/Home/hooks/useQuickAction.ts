@@ -150,7 +150,7 @@ const useQuickAction = () => {
       String(quickActionState?.selectedAsset?.amount) || '0',
       quickActionState?.action?.value,
     ],
-    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && ((quickActionState?.mint??0) + debtAmount >= 100),
+    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && ((quickActionState?.mint??0) + debtAmount > 99),
     onSuccess,
   })
 }

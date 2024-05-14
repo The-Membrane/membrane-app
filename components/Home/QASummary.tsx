@@ -57,13 +57,13 @@ const SummaryItem = ({
       to USDC
       </Text> : badge === "BID" ? <Text variant="value" textTransform="unset">
        on all assets at a 10% premium
-      </Text>: badge === "LOOP" ? <Text variant="value" textTransform="unset">
+      </Text> : badge === "LOOP" ? <Text variant="value" textTransform="unset">
        at a max of {loopMax} times
       </Text>
       : null}
     </HStack>
     <HStack>
-      <Text>{num(amount).abs().toString()}</Text>
+      {badge !== "LOOP" ? <Text>{num(amount).abs().toString()}</Text> : null}
     </HStack>
   </HStack>
 )

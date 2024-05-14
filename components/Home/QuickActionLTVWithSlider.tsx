@@ -43,7 +43,10 @@ export const QuickActionLTVWithSlider = ({ label, value = 100 }: LTVWithSliderPr
     var newValue = num(value).dp(2).toNumber()
     
     //Minimum debt show error msg
-    if (newValue < 100) newValue = 100
+    if (newValue < 100) {
+      if (quickActionState.action.label === "Loop") newValue = 101
+      else newValue = 100
+    }
 
     const diff = num(debtAmount).minus(newValue).abs().toNumber()
     mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0

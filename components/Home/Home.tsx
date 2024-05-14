@@ -108,7 +108,7 @@ const Home = () => {
     
   }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])
 
-
+console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickActionState?.mint)
   return (
     <Stack >
       <StatsCard />      

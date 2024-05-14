@@ -93,6 +93,7 @@ const useQuickAction = () => {
           msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
           newPositionValue = loops!.newValue
           newPositionLTV = loops!.newLTV
+          console.log(newPositionValue, newPositionLTV)
         } else {
 
           //Mint

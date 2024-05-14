@@ -41,10 +41,14 @@ const useQuickAction = () => {
       return basket?.current_position_id ?? ""
     }
   }, [basket, basketPositions])
-  var newPositionValue = 0
-  var newPositionLTV = 0
 
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+  type QueryData = {
+    msgs: MsgExecuteContractEncodeObject[] | undefined
+    newPositionValue: number
+    newPositionLTV: number
+  }
+
+  const { data: queryData } = useQuery<QueryData>({
     queryKey: [
       'mint',
       address,
@@ -59,8 +63,10 @@ const useQuickAction = () => {
       cdtAsset, basketPositions, tvl, debtAmount, summary
     ],
     queryFn: () => {
-      if (!address || !basket || !usdcAsset || !prices || !cdtAsset || !quickActionState?.selectedAsset || ((maxMint??0) < 100 && ((quickActionState?.mint??0) + debtAmount < 100))) return
+      if (!address || !basket || !usdcAsset || !prices || !cdtAsset || !quickActionState?.selectedAsset || ((maxMint??0) < 100 && ((quickActionState?.mint??0) + debtAmount < 100))) return {msgs: undefined, newPositionLTV: 0, newPositionValue: 0}
       var msgs = [] as MsgExecuteContractEncodeObject[]
+      var newPositionValue = 0
+      var newPositionLTV = 0
       //Deposit
       if ( num(quickActionState?.selectedAsset?.amount??"0") > num(0)){
         const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
@@ -138,10 +144,15 @@ const useQuickAction = () => {
           
         }
       }
-      return msgs as MsgExecuteContractEncodeObject[]
+      return { msgs, newPositionValue, newPositionLTV }
     },
     enabled: !!address,
   })
+
+  const { msgs, newPositionLTV, newPositionValue } = useMemo(() => {
+    if (!queryData) return {msgs: undefined, newPositionLTV: 0, newPositionValue: 0}
+    else return queryData
+  }, [queryData])
 
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })

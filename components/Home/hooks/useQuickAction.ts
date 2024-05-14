@@ -17,6 +17,7 @@ import { loopPosition } from '@/services/osmosis'
 import useQuickActionVaultSummary from './useQuickActionVaultSummary'
 import { num } from '@/helpers/num'
 import { updatedSummary } from '@/services/cdp'
+import { loopMax } from '@/config/defaults'
 
 const useQuickAction = () => {
   const { quickActionState } = useQuickActionState()
@@ -74,7 +75,6 @@ const useQuickAction = () => {
           const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100).toFixed(2)
           const positions = updatedSummary(summary, basketPositions, prices)
           //Loop max amount
-          const loopMax = 33;
           const loops = loopPosition(
             cdtPrice,
             parseFloat(mintLTV), 

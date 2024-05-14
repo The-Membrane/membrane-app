@@ -4,6 +4,7 @@ import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import useQuickActionState from './hooks/useQuickActionState'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 import { useMemo } from 'react'
+import { loopMax } from '@/config/defaults'
 
 type SummaryItemProps = Partial<AssetWithBalance> & {
   label: string
@@ -56,7 +57,10 @@ const SummaryItem = ({
       to USDC
       </Text> : badge === "BID" ? <Text variant="value" textTransform="unset">
        on all assets at a 10% premium
-      </Text> : null}
+      </Text>: badge === "LOOP" ? <Text variant="value" textTransform="unset">
+       at a max of {loopMax} times
+      </Text>
+      : null}
     </HStack>
     <HStack>
       <Text>{num(amount).abs().toString()}</Text>
@@ -124,7 +128,7 @@ export const QASummary = () => {
         <SummaryItem
           label="CDT"
           badge="LOOP"
-          amount={num(quickActionState.mint).toFixed(2)}
+          amount={""}
           logo={cdt?.logo}
         />
       </> 

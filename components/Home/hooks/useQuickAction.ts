@@ -80,12 +80,12 @@ const useQuickAction = () => {
         if (quickActionState.action.value === "Loop"){
           //Loop
           //Calc LTV based on mint
-          const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100).toFixed(2)
+          const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100)
           const positions = updatedSummary(summary, basketPositions, prices)
           //Loop max amount
           const loops = loopPosition(
             cdtPrice,
-            parseFloat(mintLTV), 
+            mintLTV.toNumber(), //"99423726"
             positionId, 
             loopMax, 
             address, 

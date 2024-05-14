@@ -258,12 +258,14 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     var iter = 0;
     var all_msgs: EncodeObject[] = [];
     while ((mintAmount > 1_000_000 || iter == 0) && iter < loops) {
+        console.log(iter)
         //Set LTV range
         let LTV_range = LTV - currentLTV;
         //Set value to mint
         var mintValue = positionValue * LTV_range;
         //Set amount to mint
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
+        console.log(mintAmount)
 
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
@@ -305,6 +307,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
             //Calc new TVL (w/ slippage calculated into the mintValue)
             positionValue = positionValue + mintValue;
+            console.log(positionValue, iter)
 
             //Set credit amount
             creditAmount += mintAmount;

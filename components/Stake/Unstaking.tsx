@@ -43,7 +43,7 @@ const DaysLeft = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
 const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
   const { minutesLeft } = getTimeLeft(unstakeStartDate)
   const claim = useClaimUnstake().action
-
+  
   const isReadyToClaim = minutesLeft <= 0
 
   return (
@@ -85,8 +85,9 @@ const Unstaking = (props: Props) => {
         <HStack key={'unstake' + index} justifyContent="space-between">
           <Text w="full">{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
           <DaysLeft unstakeStartDate={unstake?.unstake_start_time} />
-          im here
+          <Text w="full">top</Text>
           <ClaimButton unstakeStartDate={unstake?.unstake_start_time} />
+          <Text w="full">bottom</Text>
         </HStack>
       ))}
     </Stack>

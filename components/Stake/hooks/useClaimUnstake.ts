@@ -1,5 +1,4 @@
 import contracts from '@/config/contracts.json'
-import useWallet from '@/hooks/useWallet'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { useQuery } from '@tanstack/react-query'
@@ -7,7 +6,7 @@ import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 
 export const useClaimUnstake = ({ address } : { address: string | undefined}) => {
-  console.log("is this running at all?: -1", !address)
+  
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg staking claims', address],
     queryFn: () => {
@@ -25,6 +24,7 @@ export const useClaimUnstake = ({ address } : { address: string | undefined}) =>
     },
     enabled: !!address,
   })
+  console.log("is this running at all?: 2")
   
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['staked'] })

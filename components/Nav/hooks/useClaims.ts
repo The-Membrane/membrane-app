@@ -229,6 +229,7 @@ const useProtocolClaims = () => {
     }
     return acc
   }, [] as Coin[])
+  console.log(agg_claims)
 
   return {action: useSimulateAndBroadcast({
     msgs,

@@ -83,14 +83,14 @@ const Unstaking = (props: Props) => {
         <Image src={mbrn?.logo} w="40px" h="40px" />
         <Text>{mbrn?.symbol}</Text>
       </HStack>
-      {unstaking?.map((unstake: any, index: number) => (
-        <HStack key={'unstake' + index} justifyContent="space-between">
-          <Text w="full">{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
-          <DaysLeft unstakeStartDate={unstake?.unstake_start_time} />
+      {/* {unstaking?.map((unstake: any, index: number) => ( */}
+        <HStack key={'unstake'} justifyContent="space-between">
+          {/* <Text w="full">{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
+          <DaysLeft unstakeStartDate={unstake?.unstake_start_time} /> */}
 
-          <ClaimButton unstakeStartDate={unstake?.unstake_start_time} action={claim} />
+          <ClaimButton unstakeStartDate={0} action={claim} />
         </HStack>
-      ))}
+      {/* // ))}  */}
     </Stack>
   )
 }

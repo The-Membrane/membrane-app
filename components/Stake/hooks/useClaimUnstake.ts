@@ -12,6 +12,7 @@ export const useClaimUnstake = () => {
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg staking claims', address],
     queryFn: () => {
+      console.log("is this running at all?: 0", !address)
       if (!address) return [] as MsgExecuteContractEncodeObject[]
         
     console.log("is this running at all?: 1")

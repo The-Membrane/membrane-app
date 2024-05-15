@@ -181,13 +181,14 @@ const useProtocolClaims = () => {
       }
       //Update claims summary with unstaking
       claims_summary.staking = claims_summary.staking.concat(unstaking.map((unstake) => {
-        if (!unstake) return { denom: '', amount: '0'}
-        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {             
+        if (!unstake) return
+        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {           
         return {
           denom: unstake?.asset?.base,
           amount: unstake?.amount
         }
-      }}))
+      }}))      
+      console.log("claims staking: ", claims_summary.staking)
 
       return {msgs, claims: claims_summary}
     },

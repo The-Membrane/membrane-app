@@ -184,7 +184,7 @@ const useProtocolClaims = () => {
         if (!unstake) return { denom: '', amount: '0'}
         if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {             
         return {
-          denom: unstake?.asset?.symbol,
+          denom: unstake?.asset?.base,
           amount: unstake?.amount
         }
       }}))

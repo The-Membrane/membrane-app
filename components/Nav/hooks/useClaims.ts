@@ -112,18 +112,9 @@ const useProtocolClaims = () => {
           }
         }
         //If there is anything to unstake, unstake
-          console.log(unstaking)
-            console.log(unstaking.find((unstake: any, index: number) => {            
-              const { minutesLeft } = getTimeLeft(unstake.unstake_start_time)
-              return minutesLeft <= 0
-          }))
-          console.log(unstaking.find((unstake: any, index: number) => {            
-            const { minutesLeft } = getTimeLeft(unstake.unstake_start_time)
-            minutesLeft <= 0
-        }))
         if (unstaking.find((unstake: any, index: number) => {            
             const { minutesLeft } = getTimeLeft(unstake.unstake_start_time)
-            minutesLeft <= 0
+            return minutesLeft <= 0
         })){          
           console.log("made it here")
           if (!unstakeClaim.action.simulate.isError){

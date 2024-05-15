@@ -8,7 +8,7 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 export const useClaimUnstake = ({ address } : { address: string | undefined}) => {
   
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg staking claims', address],
+    queryKey: ['msg unstaking claims', address],
     queryFn: () => {
       console.log("is this running at all?: 0", !address)
       if (!address) return [] as MsgExecuteContractEncodeObject[]

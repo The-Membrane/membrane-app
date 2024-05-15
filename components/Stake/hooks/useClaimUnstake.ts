@@ -10,21 +10,16 @@ export const useClaimUnstake = ({ address } : { address: string | undefined}) =>
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg unstaking claims', address],
     queryFn: () => {
-      console.log("is this running at all?: 0", !address)
       if (!address) return [] as MsgExecuteContractEncodeObject[]
         
-    console.log("is this running at all?: 1")
       const messageComposer = new StakingMsgComposer(address, contracts.staking)
       
-  console.log("is this running at all?: 2")
       const msgs = messageComposer.unstake({mbrnAmount: '0'})
-      console.log(msgs)
 
       return [msgs] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
   })
-  console.log("is this running at all?: ", msgs)
   
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['staked'] })

@@ -112,6 +112,7 @@ const useProtocolClaims = () => {
           }
         }
         //If there is anything to unstake, unstake
+          console.log(unstaking)
             console.log(unstaking?.find((unstake: any, index: number) => {            
               const { minutesLeft } = getTimeLeft(unstake?.unstake_start_time)
               minutesLeft <= 0

@@ -6,9 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 
-export const useClaimUnstake = () => {
-  const { address } = useWallet()
-
+export const useClaimUnstake = ({ address } : { address: string | undefined}) => {
   console.log("is this running at all?: -1", !address)
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg staking claims', address],

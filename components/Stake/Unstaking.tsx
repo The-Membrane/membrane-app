@@ -6,6 +6,7 @@ import useStaked from './hooks/useStaked'
 import { TxButton } from '../TxButton'
 import dayjs from 'dayjs'
 import useClaimUnstake from './hooks/useClaimUnstake'
+import useWallet from '@/hooks/useWallet'
 
 type Props = {}
 
@@ -64,7 +65,8 @@ const Unstaking = (props: Props) => {
   const mbrn = useAssetBySymbol('MBRN')
   const { data } = useStaked()
   const { unstaking = [] } = data || {}
-  const { action: claim } = useClaimUnstake()
+  const { address } = useWallet()
+  const { action: claim } = useClaimUnstake({address: address})
 
   if (!unstaking?.length)
     return (

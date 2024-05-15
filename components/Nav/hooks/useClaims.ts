@@ -184,11 +184,10 @@ const useProtocolClaims = () => {
         if (!unstake) return
         if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {           
         return {
-          denom: unstake?.asset?.base,
+          denom: mbrnAsset?.base as string,
           amount: unstake?.amount
         }
       }}))      
-      console.log("claims staking: ", claims_summary.staking)
 
       return {msgs, claims: claims_summary}
     },

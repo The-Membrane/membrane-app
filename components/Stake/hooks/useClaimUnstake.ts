@@ -9,6 +9,7 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 export const useClaimUnstake = () => {
   const { address } = useWallet()
 
+  console.log("is this running at all?: -1", !address)
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg staking claims', address],
     queryFn: () => {

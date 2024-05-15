@@ -16,6 +16,7 @@ export const useStakingClaim = (restake = false) => {
         
       const messageComposer = new StakingMsgComposer(address, contracts.staking)
       const msgs = messageComposer.claimRewards({restake})
+      console.log("claiming rewards...")
       return [msgs] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,

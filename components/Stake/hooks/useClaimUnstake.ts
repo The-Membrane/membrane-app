@@ -7,7 +7,6 @@ import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 
 export const useClaimUnstake = () => {
-  console.log("is this running at all?")
   const { address } = useWallet()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
@@ -15,7 +14,10 @@ export const useClaimUnstake = () => {
     queryFn: () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
         
+    console.log("is this running at all?: 1")
       const messageComposer = new StakingMsgComposer(address, contracts.staking)
+      
+  console.log("is this running at all?: 2")
       const msgs = messageComposer.unstake({mbrnAmount: '0'})
       console.log(msgs)
 

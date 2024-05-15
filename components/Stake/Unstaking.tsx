@@ -43,7 +43,7 @@ const DaysLeft = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
 const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
   const { minutesLeft } = getTimeLeft(unstakeStartDate)
   const { action: claim, msgs } = useClaimUnstake()
-  console.log("claim_msg", msgs)
+
   const isReadyToClaim = minutesLeft <= 0
 
   return (
@@ -56,7 +56,7 @@ const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
       isDisabled={claim.simulate.isError || !isReadyToClaim}
       onClick={() => claim.simulate.refetch().then(() => claim.tx.mutate())}
     >
-      Button
+      Claim
     </TxButton>
   )
 }
@@ -85,9 +85,8 @@ const Unstaking = (props: Props) => {
         <HStack key={'unstake' + index} justifyContent="space-between">
           <Text w="full">{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
           <DaysLeft unstakeStartDate={unstake?.unstake_start_time} />
-          <Text w="full">top</Text>
+          
           <ClaimButton unstakeStartDate={unstake?.unstake_start_time} />
-          <Text w="full">bottom</Text>
         </HStack>
       ))}
     </Stack>

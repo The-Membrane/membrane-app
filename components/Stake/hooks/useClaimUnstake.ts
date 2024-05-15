@@ -16,6 +16,7 @@ export const useClaimUnstake = (restake = false) => {
         
       const messageComposer = new StakingMsgComposer(address, contracts.staking)
       const msgs = messageComposer.unstake({mbrnAmount: '0'})
+      console.log(msgs)
 
       return [msgs] as MsgExecuteContractEncodeObject[]
     },

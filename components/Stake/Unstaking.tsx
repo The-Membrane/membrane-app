@@ -42,8 +42,8 @@ const DaysLeft = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
 
 const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
   const { minutesLeft } = getTimeLeft(unstakeStartDate)
-  const claim = useClaimUnstake().action
-  
+  const { action: claim, msgs } = useClaimUnstake()
+  console.log("claim_msg", msgs)
   const isReadyToClaim = minutesLeft <= 0
 
   return (
@@ -56,7 +56,7 @@ const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
       isDisabled={claim.simulate.isError || !isReadyToClaim}
       onClick={() => claim.simulate.refetch().then(() => claim.tx.mutate())}
     >
-      Claim
+      Button
     </TxButton>
   )
 }

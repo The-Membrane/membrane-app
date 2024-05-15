@@ -56,7 +56,7 @@ const useProtocolClaims = () => {
   const { data } = useStaked()        
   const { staked = [], unstaking = [], rewards = []} = data || {}  
   const stakingClaim = useStakingClaim(false)
-  const unstakeClaim = useClaimUnstake()
+  const unstakeClaim = useClaimUnstake({address: address})
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {
@@ -117,6 +117,7 @@ const useProtocolClaims = () => {
             minutesLeft <= 0
         })){          
           if (!unstakeClaim?.action.simulate.isError){
+            console.log("adding unstaking claim")
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
           }
         }

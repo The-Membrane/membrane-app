@@ -30,7 +30,7 @@ export const useStakingClaim = (restake = false) => {
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    enabled: true,
+    enabled: !!msgs,
     onSuccess,
   }), msgs}
 }

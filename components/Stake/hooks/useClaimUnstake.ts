@@ -24,7 +24,7 @@ export const useClaimUnstake = ({ address } : { address: string | undefined}) =>
     },
     enabled: !!address,
   })
-  console.log("is this running at all?: 2")
+  console.log("is this running at all?: ", msgs)
   
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['staked'] })
@@ -34,7 +34,7 @@ export const useClaimUnstake = ({ address } : { address: string | undefined}) =>
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    enabled: true,
+    enabled: !!msgs,
     onSuccess,
   }), msgs}
 }

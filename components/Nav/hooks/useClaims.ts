@@ -116,7 +116,7 @@ const useProtocolClaims = () => {
             const { minutesLeft } = getTimeLeft(unstake?.unstake_start_time)
             minutesLeft <= 0
         })){          
-          if (!unstakeClaim?.action.simulate.isError){
+          if (!unstakeClaim.action.simulate.isError){
             console.log("adding unstaking claim")
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
           }
@@ -230,7 +230,6 @@ const useProtocolClaims = () => {
     }
     return acc
   }, [] as Coin[])
-  console.log(agg_claims)
 
   return {action: useSimulateAndBroadcast({
     msgs,

@@ -1,20 +1,19 @@
 import contracts from '@/config/contracts.json'
-import useWallet from '@/hooks/useWallet'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 
-export const useClaimUnstake = (restake = false) => {
-  const { address } = useWallet()
-
+export const useClaimUnstake = ({ address } : { address: string | undefined}) => {
+  
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg staking claims', address],
+    queryKey: ['msg unstaking claims', address],
     queryFn: () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
         
       const messageComposer = new StakingMsgComposer(address, contracts.staking)
+      
       const msgs = messageComposer.unstake({mbrnAmount: '0'})
 
       return [msgs] as MsgExecuteContractEncodeObject[]
@@ -30,7 +29,7 @@ export const useClaimUnstake = (restake = false) => {
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    enabled: true,
+    enabled: !!msgs,
     onSuccess,
   }), msgs}
 }

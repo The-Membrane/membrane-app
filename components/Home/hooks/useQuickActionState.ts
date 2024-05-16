@@ -4,12 +4,18 @@ import { Asset } from '@/helpers/chain'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
+type ActionMenu = {
+  value: string
+  label: string
+}
+
 export type QuickActionState = {
   selectedAsset?: AssetWithBalance
   assets: AssetWithBalance[]
   summary?: Summary[]
   totalUsdValue?: number
   mint?: number
+  action: ActionMenu
 }
 
 type Store = {
@@ -19,6 +25,7 @@ type Store = {
 
 const initialState: QuickActionState = {  
   assets: [],
+  action: {value: "LP", label: "LP"},
 }
 
 // @ts-ignore

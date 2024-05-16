@@ -6,6 +6,7 @@ import useStaked from './hooks/useStaked'
 import { TxButton } from '../TxButton'
 import dayjs from 'dayjs'
 import useClaimUnstake from './hooks/useClaimUnstake'
+import useWallet from '@/hooks/useWallet'
 
 type Props = {}
 
@@ -40,9 +41,8 @@ const DaysLeft = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
   }
 }
 
-const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
+const ClaimButton = ({ unstakeStartDate, action }: { unstakeStartDate: number, action: any }) => {
   const { minutesLeft } = getTimeLeft(unstakeStartDate)
-  const claim = useClaimUnstake().action
 
   const isReadyToClaim = minutesLeft <= 0
 
@@ -52,9 +52,9 @@ const ClaimButton = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
       variant="ghost"
       size="sm"
       px="2"
-      isLoading={claim.simulate.isLoading || claim.tx.isPending}
-      isDisabled={claim.simulate.isError || !isReadyToClaim}
-      onClick={() => claim.simulate.refetch().then(() => claim.tx.mutate())}
+      isLoading={action.simulate.isLoading || action.tx.isPending}
+      isDisabled={action.simulate.isError || !isReadyToClaim}
+      onClick={() => action.tx.mutate()}
     >
       Claim
     </TxButton>
@@ -65,6 +65,8 @@ const Unstaking = (props: Props) => {
   const mbrn = useAssetBySymbol('MBRN')
   const { data } = useStaked()
   const { unstaking = [] } = data || {}
+  const { address } = useWallet()
+  const { action: claim } = useClaimUnstake({address: address})
 
   if (!unstaking?.length)
     return (
@@ -86,7 +88,7 @@ const Unstaking = (props: Props) => {
           <Text w="full">{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
           <DaysLeft unstakeStartDate={unstake?.unstake_start_time} />
 
-          <ClaimButton unstakeStartDate={unstake?.unstake_start_time} />
+          <ClaimButton unstakeStartDate={unstake?.unstake_start_time} action={claim} />
         </HStack>
       ))}
     </Stack>

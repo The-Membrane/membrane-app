@@ -56,7 +56,7 @@ const useProtocolClaims = () => {
   const { data } = useStaked()        
   const { staked = [], unstaking = [], rewards = []} = data || {}  
   const stakingClaim = useStakingClaim(false)
-  const unstakeClaim = useClaimUnstake()
+  const unstakeClaim = useClaimUnstake({address: address})
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {
@@ -112,11 +112,13 @@ const useProtocolClaims = () => {
           }
         }
         //If there is anything to unstake, unstake
-        if (unstaking?.find((unstake: any, index: number) => {            
-            const { minutesLeft } = getTimeLeft(unstake?.unstake_start_time)
-            minutesLeft <= 0
+        if (unstaking.find((unstake: any, index: number) => {            
+            const { minutesLeft } = getTimeLeft(unstake.unstake_start_time)
+            return minutesLeft <= 0
         })){          
-          if (!unstakeClaim?.action.simulate.isError){
+          console.log("made it here")
+          if (!unstakeClaim.action.simulate.isError){
+            console.log("adding unstaking claim")
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
           }
         }
@@ -181,13 +183,13 @@ const useProtocolClaims = () => {
       }
       //Update claims summary with unstaking
       claims_summary.staking = claims_summary.staking.concat(unstaking.map((unstake) => {
-        if (!unstake) return { denom: '', amount: '0'}
-        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {             
+        if (!unstake) return
+        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {           
         return {
-          denom: unstake?.asset?.symbol,
+          denom: mbrnAsset?.base as string,
           amount: unstake?.amount
         }
-      }}))
+      }}))      
 
       return {msgs, claims: claims_summary}
     },

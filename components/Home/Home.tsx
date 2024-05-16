@@ -1,4 +1,4 @@
-import { Card, Stack, Text } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
@@ -17,16 +17,19 @@ import useWallet from '@/hooks/useWallet'
 import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
+import QASelect from '../QuickActionSelect'
 
 const Home = () => {
-  const { isWalletConnected } = useWallet()
+  const { isWalletConnected, address } = useWallet()
   const { data: walletBalances } = useBalance()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const quickAction = useQuickAction()
+  const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
+  const { debtAmount, maxMint } = useQuickActionVaultSummary()
+  const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
   
-  const [ inputAmount, setInputAmount ] = useState(0);  
+  const [ inputAmount, setInputAmount ] = useState(0);
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -61,11 +64,17 @@ const Home = () => {
           else return true
         })
 
+        //Sort assets by USD value
+        assetsWithBalance.sort((a, b) => {
+          if (a.combinUsdValue < b.combinUsdValue) return 1
+          else return -1
+        })
+
         setQuickActionState({
           assets: (assetsWithBalance??[])
         })
       }
-  }, [assets, walletBalances, prices])
+  }, [assets, walletBalances, prices, address])
 
   useEffect(() => {
     if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
@@ -76,15 +85,18 @@ const Home = () => {
   }, [quickActionState?.assets, walletBalances])
   //
   
-  const onMenuChange = (value: string) => {
+  const onAssetMenuChange = (value: string) => {
     setQuickActionState({
       selectedAsset: value
     })
   }
 
-  //Use mintState to update the deposit state
-  const { debtAmount, maxMint } = useQuickActionVaultSummary()
-  const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
+  const onActionMenuChange = (value: string) => {
+    setQuickActionState({
+      action: value
+    })
+  }
+
 
   useEffect(() => {
 
@@ -96,13 +108,21 @@ const Home = () => {
     
   }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])
 
+console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickActionState?.mint)
   return (
     <Stack >
       <StatsCard />      
-      <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
+      <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">        
+      <HStack justifyContent="space-between">
         <Text variant="title" fontSize="16px">
-          Mint & LP
-        </Text>
+          Mint & 
+        </Text>        
+        <QASelect 
+          options={[{value: "LP", label: "LP"}, {value: "Bid", label: "Bid"}, {value: "Loop", label: "Loop"}]}
+          onChange={onActionMenuChange}
+          value={quickActionState?.action} 
+        />
+      </HStack>
         {!isWalletConnected ? 
           <ConnectButton marginTop={6}/>
         : quickActionState.assets.length === 0 ? 
@@ -119,12 +139,12 @@ const Home = () => {
             inputBoxWidth='42%'
             QAState={quickActionState}
             setQAState={setQuickActionState}
-            onMenuChange={onMenuChange}
+            onMenuChange={onAssetMenuChange}
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
           />    
           <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
-            Mint CDT to  <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a>
+            Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}
           </Text> 
         <Divider mx="0" mt="0" mb="4%"/>
           <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
@@ -136,9 +156,9 @@ const Home = () => {
         {/* Deposit-Mint-LP Button */}
         <ConfirmModal 
           action={quickAction}
-          label={'LP'}
-          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || (!quickActionState.summary?.length && !quickActionState?.mint)}>
-          <QASummary/>
+          label={quickActionState.action.value}
+          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
+          <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
         </ConfirmModal></>}
       </Card>
     </Stack>

@@ -4,6 +4,7 @@ import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import useQuickActionState from './hooks/useQuickActionState'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 import { useMemo } from 'react'
+import { loopMax } from '@/config/defaults'
 
 type SummaryItemProps = Partial<AssetWithBalance> & {
   label: string
@@ -13,6 +14,8 @@ type SummaryItemProps = Partial<AssetWithBalance> & {
   logo?: string
   logos?: string[]
   isLP?: boolean
+  newValue?: string
+  newLTV?: string
 }
 
 const SummaryItem = ({
@@ -23,6 +26,8 @@ const SummaryItem = ({
   logo,
   logos,
   isLP,
+  newValue,
+  newLTV,
 }: SummaryItemProps) => (
   <HStack
     key={label}
@@ -54,15 +59,20 @@ const SummaryItem = ({
       )}
       {badge === "SWAP" ? <Text variant="value" textTransform="unset">
       to USDC
-      </Text> :  null}
+      </Text> : badge === "BID" ? <Text variant="value" textTransform="unset">
+       on all assets at a 10% premium
+      </Text> : badge === "LOOP" ? <Text variant="value" textTransform="unset">
+       to a {newLTV}% LTV & ${newValue} position value
+      </Text>
+      : null}
     </HStack>
     <HStack>
-      <Text>{num(amount).abs().toString()}</Text>
+      {badge !== "LOOP" ? <Text>{num(amount).abs().toString()}</Text> : null}
     </HStack>
   </HStack>
 )
 
-export const QASummary = () => {
+export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: number, newLTV: number}) => {
   const { quickActionState } = useQuickActionState()
   const summary = useMemo(() => {
     if (quickActionState?.selectedAsset && num(quickActionState?.selectedAsset?.amount).isGreaterThan(0)) return [quickActionState?.selectedAsset]
@@ -95,20 +105,41 @@ export const QASummary = () => {
           logo={cdt?.logo}
         />
 
+        {quickActionState.action.value === "LP" ? <>
+          <SummaryItem
+            label="CDT"
+            badge="SWAP"
+            amount={num(quickActionState.mint).div(2).toNumber().toFixed(2)}
+            logo={cdt?.logo}
+          />
+          
+          <SummaryItem
+            label="CDT/USDC"
+            badge="LP"
+            amount={num(quickActionState.mint).toFixed(2)}
+            isLP={true}
+            logos={[cdt!.logo, usdc!.logo]}
+          />
+        </> : quickActionState.action.value === "Bid" ? <>
+          <SummaryItem
+            label="CDT"
+            badge="BID"
+            amount={num(quickActionState.mint).toFixed(2)}
+            logo={cdt?.logo}
+          />
+        </>        
+        : quickActionState.action.value === "Loop" ? <>
         <SummaryItem
           label="CDT"
-          badge="SWAP"
-          amount={num(quickActionState.mint).div(2).toNumber().toFixed(2)}
+          badge="LOOP"
+          newValue={newPositionValue.toFixed(0)}
+          newLTV={(newLTV * 100).toFixed(0)}
           logo={cdt?.logo}
         />
-          
-        <SummaryItem
-          label="CDT/USDC"
-          badge="LP"
-          amount={num(quickActionState.mint).toFixed(2)}
-          isLP={true}
-          logos={[cdt!.logo, usdc!.logo]}
-        /></> : null}
+      </> 
+        : null}
+        
+        </> : null}
     </Stack>
   )
 }

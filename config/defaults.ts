@@ -32,6 +32,7 @@ export const aminoTypes = new AminoTypes(aminoConverters)
 export const rpcUrl = 'https://rpc.osmosis.zone/'
 
 export const delayTime = 2000; // State update Delay time in millisecond
+export const loopMax = 5;
 
 ////Specifics for Osmosis services//////
 export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
@@ -76,6 +77,8 @@ export const denoms = {
   TIA: ["ibc/D79E7D83AB399BFFF93433E54FAA480C191248FC556924A2A8351AE2638B3877", 6],
   //USDT
   USDT: ["ibc/4ABBEF4C8926DDDB320AE5188CFD63267ABBCEFC0583E4AE05D6E5AA2401DDAB", 6],
+  //WBTC.axl
+  WBTCaxl: ["ibc/D1542AA8762DB13087D8364F3EA6509FD6F009A34F00426AF9E4F9FA85CBBF1F", 8],
 };
 
 //all CDT pairs
@@ -110,6 +113,18 @@ export const cdtRoutes = {
       tokenOutDenom: denoms.USDC[0],
     }
   ],
+  "stTIA": [
+    {
+      poolId: BigInt(1428),
+      tokenOutDenom: denoms.TIA[0],
+    }
+  ],
+  "milkTIA": [
+    {
+      poolId: BigInt(1475),
+      tokenOutDenom: denoms.TIA[0],
+    }
+  ],
   "stATOM": [
     {
       poolId: BigInt(1283), //1136
@@ -126,6 +141,24 @@ export const cdtRoutes = {
     {//This is the transmuter pool
       poolId: BigInt(1212), //1223
       tokenOutDenom: denoms.USDC[0],
+    }
+  ],
+  "WBTC.axl": [
+    {
+      poolId: BigInt(712), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "ETH": [ //This is ETH.axl that Osmosis is using as canonical denom rn
+    {
+      poolId: BigInt(704),
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "WBTC": [
+    {
+      poolId: BigInt(1422), 
+      tokenOutDenom: denoms.WBTCaxl[0],
     }
   ],
   "MBRN": [

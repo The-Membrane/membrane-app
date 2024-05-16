@@ -1,5 +1,5 @@
 import { cdtRoutes, denoms, mainnetAddrs, SWAP_SLIPPAGE } from "@/config/defaults";
-import { getPriceByDenom } from "@/services/oracle";
+import { getPriceByDenom, Price } from "@/services/oracle";
 import { Coin, coin, coins } from "@cosmjs/amino";
 
 import { calcAmountWithSlippage, calcShareOutAmount, convertGeckoPricesToDenomPriceHash, LiquidityPoolCalculator } from "@osmonauts/math";
@@ -14,10 +14,10 @@ import BigNumber from "bignumber.js";
 import { MsgSwapExactAmountIn } from "osmojs/dist/codegen/osmosis/gamm/v1beta1/tx";
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";
-import { Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";
+import { Basket, BasketPositionsResponse, Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";
 import { Asset } from '@/helpers/chain'
 import { useEffect, useState } from "react";
-import { getAssetRatio, getUserPositions } from "@/services/cdp";
+import { getAssetRatio, getPositions, getUserPositions, Positions, updatedSummary } from "@/services/cdp";
 import useMintState from "@/components/Mint/hooks/useMintState";
 import useVaultSummary from "@/components/Mint/hooks/useVaultSummary";
 import { useOraclePrice } from "@/hooks/useOracle";
@@ -25,6 +25,9 @@ import { useBasket, useUserPositions } from "@/hooks/useCDP";
 import { useBalanceByAsset } from "@/hooks/useBalance";
 import { useAssetBySymbol } from "@/hooks/useAssets";
 import { num } from "@/helpers/num";
+import useWallet from "@/hooks/useWallet";
+import useQuickActionVaultSummary from "@/components/Home/hooks/useQuickActionVaultSummary";
+import { shiftDigits } from "@/helpers/math";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -53,9 +56,8 @@ const {
     beginUnlocking
 } = osmosis.lockup.MessageComposer.withTypeUrl;
 
-function getPositionLTV(position_value: number, credit_amount: number) {
-    const { data: basket } = useBasket()
-    let debt_value = (credit_amount) * parseFloat(basket?.credit_price.price ?? "1");
+function getPositionLTV(position_value: number, credit_amount: number, basket: Basket) {
+    let debt_value = (credit_amount) * parseFloat(basket.credit_price.price ?? "1");
 
     return debt_value / position_value;
 }
@@ -228,99 +230,98 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 // }
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
-// export const loopPosition = (LTV: number, positionId: string, loops: number) => {
-//     const { address } = useWallet()
-//     const { mintState } = useMintState()
-//     const { data: prices } = useOraclePrice()
-//     const { data: basket } = useBasket()
-//     const { initialTVL, debtAmount, initialBorrowLTV } = useVaultSummary();
+export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
 
-//     //Create CDP Message Composer
-//     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
-//     //getPosition
-//     const { data: basketPositions } = useUserPositions()
+    //Create CDP Message Composer
+    const cdp_composer = new PositionsMsgComposer(address, mainnetAddrs.positions);
 
-//     //Set Position value
-//     var positionValue = initialTVL!;
-//     //Set credit amount
-//     var creditAmount = debtAmount;
-//     //Confirm desired LTV isn't over the borrowable LTV
-//     if (LTV >= initialBorrowLTV! / 100) {
-//         console.log("Desired LTV is over the Position's borrowable LTV")
-//         return;
-//     }
-//     //Get position cAsset ratios 
-//     //Ratios won't change in btwn loops so we can set them outside the loop
-//     let cAsset_ratios = getAssetRatio(initialTVL!, getPositionAssets(mintState.index, basketPositions, prices));
-//     //Get Position's LTV
-//     var currentLTV = getPositionLTV(positionValue, creditAmount);
-//     if (LTV < currentLTV) {
-//         console.log("Desired LTV is under the Position's current LTV")
-//         return;
-//     }
+    //Set Position value
+    var positionValue = tvl;
+    //Set credit amount
+    var creditAmount = debtAmount;
+    //Confirm desired LTV isn't over the borrowable LTV
+    if (LTV >= borrowLTV / 100) {
+        console.log("Desired LTV is over the Position's borrowable LTV")
+        return;
+    }
+    //Get position cAsset ratios 
+    //Ratios won't change in btwn loops so we can set them outside the loop
+    let cAsset_ratios = getAssetRatio(tvl, positions);
+    //Get Position's LTV
+    var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
+    if (LTV < currentLTV) {
+        console.log("Desired LTV is under the Position's current LTV")
+        return;
+    }
 
-//     //Repeat until CDT to mint is under 1 or Loops are done
-//     var mintAmount = 0;
-//     var iter = 0;
-//     var all_msgs: EncodeObject[] = [];
-//     while ((mintAmount > 1_000_000 || iter == 0) && iter < loops) {
-//         //Set LTV range
-//         let LTV_range = LTV - currentLTV;
-//         //Set value to mint
-//         var mintValue = positionValue * LTV_range;
-//         //Set amount to mint
-//         mintAmount = parseInt(((mintValue / parseFloat(basket!.credit_price.price)) * 1_000_000).toFixed(0));
+    //Repeat until CDT to mint is under 1 or Loops are done
+    var mintAmount = 0;
+    var iter = 0;
+    var all_msgs: EncodeObject[] = [];
+    while ((mintAmount > 1_000_000 || iter == 0) && iter < loops) {
+        //Set LTV range
+        let LTV_range = LTV - currentLTV;
+        //Set value to mint
+        var mintValue = positionValue * LTV_range;
+        //Set amount to mint
+        mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
 
-//         //Create mint msg
-//         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
-//             positionId: positionId,
-//             amount: mintAmount.toString(),
-//         });
-//         //Divvy mint amount to the cAssets based on ratio
-//         let cAsset_amounts = cAsset_ratios.map((asset) => {
-//             return [asset.symbol, (asset.ratio * mintAmount)];
-//         });
+        //Create mint msg
+        let mint_msg: EncodeObject = cdp_composer.increaseDebt({
+            positionId: positionId,
+            amount: mintAmount.toString(),
+        });
+        //Divvy mint amount to the cAssets based on ratio
+        let cAsset_amounts = cAsset_ratios.map((asset) => {
+            if (!asset) return;
+            return [asset.base, (asset.ratio * mintAmount), asset.symbol];
+        });
 
-//         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
-//         var swap_msgs: EncodeObject[] = [];
-//         var tokenOutMins: Coin[] = [];
-//         cAsset_amounts.forEach((amount) => {
-//             if (amount[1] as number > 0) {
-//                 let swap_output = handleCollateralswaps(amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number)!;
-//                 swap_msgs.push(swap_output);
-//                 tokenOutMins.push(coin((swap_output.value as MsgSwapExactAmountIn).tokenOutMinAmount, denoms[amount[0] as keyof exported_supportedAssets][0] as string));
-//             }
-//         });
-//         //Create deposit msgs for newly swapped assets
-//         var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
-//             positionId: positionId,
-//         });
-//         //Sort tokenOutMins alphabetically
-//         tokenOutMins.sort((a, b) => (a.denom > b.denom) ? 1 : -1);
-//         deposit_msg.value.funds = tokenOutMins;
-//         //////////////////////////
+        //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
+        var swap_msgs = [] as MsgExecuteContractEncodeObject[];
+        var tokenOutMins: Coin[] = [];
+        cAsset_amounts.forEach((amount) => {
+            if (!amount || !address) return;
+            if (amount[1] as number > 0) {
+                //Get price for denom 
+                let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
+                let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[2] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
+                swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
+                tokenOutMins.push(coin(swap_output.tokenOutMinAmount, amount[0] as string));
+            }
+        });
+        //If there are no swaps, don't add mint or deposit msgs
+        if (swap_msgs.length !== 0) {
+        
+            //Create deposit msgs for newly swapped assets
+            var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
+                positionId: positionId,
+            });
+            //Sort tokenOutMins alphabetically
+            tokenOutMins.sort((a, b) => (a.denom > b.denom) ? 1 : -1);
+            deposit_msg.value.funds = tokenOutMins;
+            //////////////////////////
 
-//         //Subtract slippage to mint value
-//         mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
-//         //Calc new TVL (w/ slippage calculated into the mintValue)
-//         positionValue = positionValue + mintValue;
+            //Subtract slippage to mint value
+            mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
+            //Calc new TVL (w/ slippage calculated into the mintValue)
+            positionValue = positionValue + mintValue;
 
-//         //Set credit amount
-//         creditAmount += mintAmount;
-//         //Calc new LTV
-//         currentLTV = getPositionLTV(positionValue, creditAmount);
+            //Set credit amount
+            creditAmount += shiftDigits(mintAmount, -6).toNumber();
+            //Calc new LTV
+            currentLTV = getPositionLTV(positionValue, creditAmount, basket);
 
-//         //Add msgs to all_msgs
-//         all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);
+            //Add msgs to all_msgs
+            all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);
 
-//         //Increment iter
-//         iter += 1;
-//     }
+            //Increment iter
+            iter += 1;
+        }
+    }
 
-//     console.log(all_msgs, iter)
-
-//     return all_msgs
-// }
+    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV }
+}
 // export const exitCLPools = (poolId: number) => {
 //     console.log("exit_cl_attempt")
 //     let msg = [] as EncodeObject[];
@@ -402,7 +403,6 @@ function getPositionLTV(position_value: number, credit_amount: number) {
 //pool 1268 is CDT/USDC
 export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tokenIn2: Coin) => {
     let joinCoins = [tokenIn1, tokenIn2];
-    console.log("made it 2")
 
     return osmosis.concentratedliquidity.v1beta1.MessageComposer.withTypeUrl.createPosition({
         poolId: BigInt(poolId),
@@ -545,7 +545,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
 export const handleCDTswaps = (address: string, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
     // console.log("swap_attempt")
     //Asserting prices were queried
-    if (getPriceByDenom("uosmo") !== 0) {
+    if (getPriceByDenom("uosmo")?.price !== "0") {
         //Get tokenOutAmount
         const tokenOutAmount = getCDTtokenOutAmount(tokenInAmount, tokenIn);
         //Swap routes
@@ -595,7 +595,6 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 
 //Swapping CDT to collateral
 export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
-        
     //Get tokenOutAmount
     const tokenOutAmount = getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice);
     //Swap routes

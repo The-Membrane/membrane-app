@@ -545,7 +545,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
 export const handleCDTswaps = (address: string, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
     // console.log("swap_attempt")
     //Asserting prices were queried
-    if (getPriceByDenom("uosmo") !== 0) {
+    if (getPriceByDenom("uosmo")?.price !== "0") {
         //Get tokenOutAmount
         const tokenOutAmount = getCDTtokenOutAmount(tokenInAmount, tokenIn);
         //Swap routes

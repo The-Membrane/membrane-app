@@ -137,7 +137,7 @@ const useQuickAction = () => {
           //Swap
           const { msg: swap, tokenOutMinAmount } = swapToCollateralMsg({
             address, 
-            cdtAmount: quickActionState?.mint, 
+            cdtAmount: num(quickActionState?.mint).div(2).toNumber(), 
             swapToAsset: usdcAsset,
             prices,
             cdtPrice,

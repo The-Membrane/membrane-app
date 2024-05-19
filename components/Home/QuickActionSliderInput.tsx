@@ -44,8 +44,8 @@ type Props = {
           else setInputAmount(parseInt(e.target.value))
   
         setTimeout(() => {
-          if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, sliderValue: max }})
-            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, sliderValue: (parseInt(e.target.value)) }})
+          if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
+            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
         }, delayTime);  
       }
   

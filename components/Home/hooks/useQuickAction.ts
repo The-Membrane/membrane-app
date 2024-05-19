@@ -94,7 +94,7 @@ const useQuickAction = () => {
           })
           msgs.push(swap as MsgExecuteContractEncodeObject)
           //Set the mint amount to the swap amount
-          quickActionState.mint = shiftDigits(tokenOutMinAmount, -6).dp(0).toNumber()
+          quickActionState.mint = shiftDigits(tokenOutMinAmount, -6).toNumber()
           setQuickActionState({mint: quickActionState.mint})
         
         }

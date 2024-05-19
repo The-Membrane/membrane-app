@@ -143,10 +143,17 @@ const useQuickAction = () => {
             cdtPrice,
           })   
           msgs.push(swap as MsgExecuteContractEncodeObject)  
+
+          var CDTInAmount = 0;
+          if (!quickActionState?.swapInsteadofMint){
+            CDTInAmount = shiftDigits(quickActionState?.mint, 6).dp(0).div(2).toNumber()
+          } else {
+            CDTInAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toNumber()
+          }
           //LP   
           const lp = LPMsg({
             address,
-            cdtInAmount: shiftDigits(quickActionState?.mint, 6).dp(0).div(2).toString(),
+            cdtInAmount: CDTInAmount.toString(),
             cdtAsset,
             pairedAssetInAmount: tokenOutMinAmount,
             pairedAsset: usdcAsset,

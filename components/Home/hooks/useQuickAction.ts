@@ -156,8 +156,8 @@ const useQuickAction = () => {
           }           
           //If we are LPing USDC & the input asset is USDC & we are not swapping instead of minting, then we don't swap again. 
           else {
-            cdtInAmount = cdtInAmount.times(2)
             tokenOutAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toNumber()
+            cdtInAmount = cdtInAmount.times(2)
           }
 
           //LP   
@@ -165,7 +165,7 @@ const useQuickAction = () => {
             address,
             cdtInAmount: cdtInAmount.toString(),
             cdtAsset,
-            pairedAssetInAmount: tokenOutMinAmount,
+            pairedAssetInAmount: tokenOutAmount,
             pairedAsset: usdcAsset,
             poolID: 1268,
           })

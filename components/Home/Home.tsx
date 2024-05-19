@@ -158,6 +158,9 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
               { maxMint < 100 && !quickActionState.swapInsteadofMint ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
                 Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
               </Text>
+              : (quickActionState?.mint??0 < 100) && !quickActionState.swapInsteadofMint ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+                Minimum mint amount is 100
+              </Text>
               : null }
               
             </Stack>

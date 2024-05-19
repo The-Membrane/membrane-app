@@ -35,7 +35,7 @@ export const delayTime = 2000; // State update Delay time in millisecond
 export const loopMax = 5;
 
 ////Specifics for Osmosis services//////
-export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
+export const SWAP_SLIPPAGE = 0.5; //0.5% slippage
 
 /// Mainnet addrs
 export const mainnetAddrs = {

@@ -113,61 +113,63 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
   return (
     <Stack >
       <StatsCard />      
-      <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">        
-      <HStack justifyContent="space-between">
-        <Text variant="title" fontSize="16px">
-          Mint & 
-        </Text>        
-        <QASelect 
-          options={[{value: "LP", label: "LP"}, {value: "Bid", label: "Bid"}, {value: "Loop", label: "Loop"}]}
-          onChange={onActionMenuChange}
-          value={quickActionState?.action} 
-        />
-      </HStack>
-        {!isWalletConnected ? 
-          <ConnectButton marginTop={6}/>
-        : quickActionState.assets.length === 0 ? 
-          <Text variant="body" fontSize="16px" marginTop={6}>
-            Loading your available collateral...
-          </Text>
-        : 
-        <>
-        {/* //Action */}
-        {/* Asset Menu + Input Box/Slider*/}        
-        <Stack py="5" w="full" gap="2">
-          <SliderWithInputBox
-            max={quickActionState?.selectedAsset?.combinUsdValue??0}
-            inputBoxWidth='42%'
-            QAState={quickActionState}
-            setQAState={setQuickActionState}
-            onMenuChange={onAssetMenuChange}
-            inputAmount={inputAmount}
-            setInputAmount={setInputAmount}
-          />    
-          <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
-            Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}
-          </Text> 
-        <Divider mx="0" mt="0" mb="4%"/>
-          <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
-          { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-             Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
-          </Text>
-           : 
-           quickActionState.action.value === "LP" || quickActionState.action.value === "Loop" ?
-           <><Text fontSize="sm" color="white" mt="2" minH="21px">
-             max slippage: {SWAP_SLIPPAGE}%
-          </Text></> : null
-          }
-        </Stack>
+      <HStack justifyContent="center">
+        <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
+          <HStack justifyContent="space-between">
+            <Text variant="title" fontSize="16px">
+              Mint & 
+            </Text>        
+            <QASelect 
+              options={[{value: "LP", label: "LP"}, {value: "Bid", label: "Bid"}, {value: "Loop", label: "Loop"}]}
+              onChange={onActionMenuChange}
+              value={quickActionState?.action} 
+            />
+          </HStack>
+          {!isWalletConnected ? 
+            <ConnectButton marginTop={6}/>
+          : quickActionState.assets.length === 0 ? 
+            <Text variant="body" fontSize="16px" marginTop={6}>
+              Loading your available collateral...
+            </Text>
+          : 
+          <>
+          {/* //Action */}
+          {/* Asset Menu + Input Box/Slider*/}        
+          <Stack py="5" w="full" gap="2">
+            <SliderWithInputBox
+              max={quickActionState?.selectedAsset?.combinUsdValue??0}
+              inputBoxWidth='42%'
+              QAState={quickActionState}
+              setQAState={setQuickActionState}
+              onMenuChange={onAssetMenuChange}
+              inputAmount={inputAmount}
+              setInputAmount={setInputAmount}
+            />    
+            <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
+              Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}
+            </Text> 
+          <Divider mx="0" mt="0" mb="4%"/>
+            <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
+            { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+              Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
+            </Text>
+            : 
+            quickActionState.action.value === "LP" || quickActionState.action.value === "Loop" ?
+            <><Text fontSize="sm" color="white" mt="2" minH="21px">
+              max slippage: {SWAP_SLIPPAGE}%
+            </Text></> : null
+            }
+          </Stack>
 
-        {/* Deposit-Mint-LP Button */}
-        <ConfirmModal 
-          action={quickAction}
-          label={quickActionState.action.value}
-          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
-          <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
-        </ConfirmModal></>}
-      </Card>
+          {/* Deposit-Mint-LP Button */}
+          <ConfirmModal 
+            action={quickAction}
+            label={quickActionState.action.value}
+            isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
+            <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
+          </ConfirmModal></>}
+        </Card>
+      </HStack>
     </Stack>
   )
 }

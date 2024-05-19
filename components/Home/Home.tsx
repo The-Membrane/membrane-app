@@ -120,7 +120,7 @@ const Home = () => {
   }, [quickActionState?.swapInsteadofMint])
 
 
-console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickActionState?.mint)
+console.log(quickActionState?.mint??0 < 100, !quickActionState.swapInsteadofMint)
   return (
     <Stack >
       <StatsCard />      

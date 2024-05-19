@@ -163,7 +163,7 @@ const useQuickAction = () => {
           //LP   
           const lp = LPMsg({
             address,
-            cdtInAmount: .toString(),
+            cdtInAmount: cdtInAmount.toString(),
             cdtAsset,
             pairedAssetInAmount: tokenOutMinAmount,
             pairedAsset: usdcAsset,

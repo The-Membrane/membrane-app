@@ -64,7 +64,7 @@ const useQuickAction = () => {
       cdtAsset, basketPositions, tvl, debtAmount, summary
     ],
     queryFn: () => {
-      if (!address || !basket || !usdcAsset || !prices || !cdtAsset || !quickActionState?.selectedAsset || ((maxMint??0) < 100 && ((quickActionState?.mint??0) + debtAmount < 100))) return {msgs: undefined, newPositionLTV: 0, newPositionValue: 0}
+      if (!address || !basket || !usdcAsset || !prices || !cdtAsset || !quickActionState?.selectedAsset) return {msgs: undefined, newPositionLTV: 0, newPositionValue: 0}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
       var newPositionLTV = 0

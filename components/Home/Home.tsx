@@ -145,7 +145,7 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
               inputAmount={inputAmount}
               setInputAmount={setInputAmount}
             />
-            <Checkbox borderColor={"#00A3F9"} bgColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint})}> 
+            <Checkbox borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint})}> 
               Swap Instead of Mint
             </Checkbox >
                    
@@ -155,16 +155,16 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
               </Text> 
               <Divider mx="0" mt="0" mb="4%"/>
               <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
-              { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+              { maxMint < 100 && !quickActionState.swapInsteadofMint ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
                 Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
               </Text>
-              : 
-              quickActionState.action.value === "LP" || quickActionState.action.value === "Loop" ?
-              <><Text fontSize="sm" color="white" mt="2" minH="21px">
-                max slippage: {SWAP_SLIPPAGE}%
-              </Text></> : null
-              }
+              : null }
+              
             </Stack>
+            {quickActionState.action.value === "LP" || quickActionState.action.value === "Loop" ?
+            <><Text fontSize="sm" color="white" mt="2" minH="21px">
+              max slippage: {SWAP_SLIPPAGE}%
+            </Text></> : null }
           </Stack>
 
           {/* Deposit-Mint-LP Button */}

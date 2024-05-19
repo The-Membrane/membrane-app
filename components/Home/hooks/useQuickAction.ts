@@ -18,9 +18,10 @@ import useQuickActionVaultSummary from './useQuickActionVaultSummary'
 import { num } from '@/helpers/num'
 import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
+import { set } from 'react-hook-form'
 
 const useQuickAction = () => {
-  const { quickActionState } = useQuickActionState()
+  const { quickActionState, setQuickActionState } = useQuickActionState()
   const { summary = [] } = quickActionState
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
@@ -87,6 +88,8 @@ const useQuickAction = () => {
           msgs.push(swap as MsgExecuteContractEncodeObject)
           //Set the mint amount to the swap amount
           quickActionState.mint = shiftDigits(tokenOutMinAmount, -6).dp(0).toNumber()
+          setQuickActionState({mint: quickActionState.mint})
+          console.log(quickActionState.mint)
         
         }
       }

@@ -57,7 +57,7 @@ const SummaryItem = ({
           {badge}
         </Badge>
       )}
-      {badge === "SWAP" ? label === "CDT" ? <Text variant="value" textTransform="unset">
+      {badge === "SWAP" ? label !== "CDT" ? <Text variant="value" textTransform="unset">
       to CDT
       </Text> : <Text variant="value" textTransform="unset">
       to USDC
@@ -110,7 +110,7 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
         /> : <SummaryItem
           label={quickActionState.selectedAsset?.label}
           badge="SWAP"
-          amount={quickActionState.mint?.toFixed(2)}
+          amount={num(quickActionState.selectedAsset?.amount??0).toFixed(2)}
           logo={quickActionState.selectedAsset?.logo}
         />}
 

@@ -93,9 +93,16 @@ const Home = () => {
   }
 
   const onActionMenuChange = (value: string) => {
-    setQuickActionState({
-      action: value
-    })
+    if (value.value === "Loop") {
+      setQuickActionState({
+        action: value,
+        swapInsteadofMint: false,
+      })
+    } else {
+      setQuickActionState({
+        action: value,
+      })
+    }
   }
 
 

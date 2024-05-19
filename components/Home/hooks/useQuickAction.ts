@@ -77,19 +77,25 @@ const useQuickAction = () => {
           const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
           msgs = msgs.concat(deposit)
         } else {
+          //Choose amount to swap to CDT
+          //- If LPing USDC, only swap half the amount
+          //- Otherwise, swap the full amount to CDT
+          const swapFromAmount = (quickActionState?.selectedAsset?.symbol === "USDC" && quickActionState?.action.value === "LP") ?
+             num(quickActionState?.selectedAsset?.amount).div(2).toNumber() 
+             : num(quickActionState?.selectedAsset?.amount).toNumber()
+
           //Swap
           const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
             address, 
-            swapFromAmount: Number(quickActionState?.selectedAsset?.amount), 
+            swapFromAmount,
             swapFromAsset: quickActionState?.selectedAsset,
             prices,
             cdtPrice,
           })
           msgs.push(swap as MsgExecuteContractEncodeObject)
           //Set the mint amount to the swap amount
-          quickActionState.mint = shiftDigits(tokenOutMinAmount, -6).dp(0).toNumber()
+          quickActionState.mint = shiftDigits(tokenOutMinAmount, -6).toNumber()
           setQuickActionState({mint: quickActionState.mint})
-          console.log(quickActionState.mint)
         
         }
       }
@@ -142,14 +148,24 @@ const useQuickAction = () => {
             prices,
             cdtPrice,
           })   
-          msgs.push(swap as MsgExecuteContractEncodeObject)  
+          var tokenOutAmount = tokenOutMinAmount
+          var cdtInAmount = shiftDigits(quickActionState?.mint, 6).dp(0).div(2)
+          //Swap here if its not a redundant swap
+          if (quickActionState?.selectedAsset?.symbol !== "USDC" || quickActionState?.action.value !== "LP" || !quickActionState.swapInsteadofMint) {
+            msgs.push(swap as MsgExecuteContractEncodeObject)
+          }           
+          //If we are LPing USDC & the input asset is USDC & we are not swapping instead of minting, then we don't swap again. 
+          else {
+            tokenOutAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toNumber()
+            cdtInAmount = cdtInAmount.times(2)
+          }
 
           //LP   
           const lp = LPMsg({
             address,
-            cdtInAmount: shiftDigits(quickActionState?.mint, 6).dp(0).div(2).toString(),
+            cdtInAmount: cdtInAmount.toString(),
             cdtAsset,
-            pairedAssetInAmount: tokenOutMinAmount,
+            pairedAssetInAmount: tokenOutAmount,
             pairedAsset: usdcAsset,
             poolID: 1268,
           })

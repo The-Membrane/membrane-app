@@ -117,7 +117,7 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
         <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
           <HStack justifyContent="space-between">
             <Text variant="title" fontSize="16px">
-              Mint & 
+              {quickActionState.swapInsteadofMint ? "Swap" : "Mint"} & 
             </Text>        
             <QASelect 
               options={[{value: "LP", label: "LP"}, {value: "Bid", label: "Bid"}, {value: "Loop", label: "Loop"}]}
@@ -135,7 +135,10 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
           <>
           {/* //Action */}
           {/* Asset Menu + Input Box/Slider*/}        
-          <Stack py="5" w="full" gap="2">
+          <Stack py="5" w="full" gap="2">            
+            {quickActionState.action.value !== "Loop" ? <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint})}> 
+              Swap Instead of Mint
+            </Checkbox > : null}
             <SliderWithInputBox
               max={quickActionState?.selectedAsset?.combinUsdValue??0}
               inputBoxWidth='42%'
@@ -144,11 +147,7 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
               onMenuChange={onAssetMenuChange}
               inputAmount={inputAmount}
               setInputAmount={setInputAmount}
-            />
-            {quickActionState.action.value !== "Loop" ? <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint})}> 
-              Swap Instead of Mint
-            </Checkbox > : null}
-                   
+            />                   
             <Stack w="full" opacity={quickActionState.swapInsteadofMint ? "22%" : "100%"}>
               <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
                 Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}

@@ -148,12 +148,22 @@ const useQuickAction = () => {
             prices,
             cdtPrice,
           })   
-          if (quickActionState?.selectedAsset?.symbol !== "USDC" && quickActionState?.action.value !== "LP") msgs.push(swap as MsgExecuteContractEncodeObject)  
+          var tokenOutAmount = tokenOutMinAmount
+          var cdtInAmount = shiftDigits(quickActionState?.mint, 6).dp(0).div(2)
+          //Swap here if its not a redundant swap
+          if (quickActionState?.selectedAsset?.symbol !== "USDC" || quickActionState?.action.value !== "LP" || !quickActionState.swapInsteadofMint) {
+            msgs.push(swap as MsgExecuteContractEncodeObject)
+          }           
+          //If we are LPing USDC & the input asset is USDC & we are not swapping instead of minting, then we don't swap again. 
+          else {
+            cdtInAmount = cdtInAmount.times(2)
+            tokenOutAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toNumber()
+          }
 
           //LP   
           const lp = LPMsg({
             address,
-            cdtInAmount: shiftDigits(quickActionState?.mint, 6).dp(0).div(2).toString(),
+            cdtInAmount: .toString(),
             cdtAsset,
             pairedAssetInAmount: tokenOutMinAmount,
             pairedAsset: usdcAsset,

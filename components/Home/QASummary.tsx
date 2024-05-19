@@ -85,7 +85,7 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
 
   return (
     <Stack h="max-content" overflow="auto" w="full">
-      {summary?.map((asset) => {
+      {!quickActionState.swapInsteadofMint ? summary?.map((asset) => {
         const badge = 'Deposit'
         return (
           <SummaryItem
@@ -98,7 +98,7 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
             badge={badge}
           />
         )
-      })}
+      }) : null}
 
         {num(quickActionState.mint).isGreaterThan(0) ? <>
         

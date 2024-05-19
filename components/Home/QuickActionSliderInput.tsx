@@ -44,8 +44,8 @@ type Props = {
           else setInputAmount(parseInt(e.target.value))
   
         setTimeout(() => {
-          if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, sliderValue: max }})
-            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, sliderValue: (parseInt(e.target.value)) }})
+          if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
+            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
         }, delayTime);  
       }
   
@@ -61,7 +61,7 @@ type Props = {
       return (
       <Stack py="5" w="full" gap="3" mb="8">     
         <Text fontSize="14px" fontWeight="700">
-          Choose Collateral {basketPositions ? "(optional)" : null}
+          {basketPositions ? "Add collateral to your existing vault (optional)" : "Choose Collateral"}
         </Text> 
         <Divider mx="0" mt="0" mb="5"/>
         {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">

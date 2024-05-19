@@ -514,11 +514,8 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 // }
 
 //This is for CDT using the oracle's prices
-const getCDTtokenOutAmount = (tokenInAmount: number, tokenIn: string) => {
-    let basePrice = getPriceByDenom(tokenIn);
-    let tokenOut = getPriceByDenom(denoms.CDT[0] as string);
-
-    return tokenInAmount * (basePrice / tokenOut)
+const getCDTtokenOutAmount = (tokenInAmount: number, cdtPrice: number, swapFromPrice: number) => {
+    return tokenInAmount * (swapFromPrice / cdtPrice)
 }
 //Parse through saved Routes until we reach CDT
 const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
@@ -542,28 +539,23 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
     return route;
 }
 //This is getting Swaps To CDT
-export const handleCDTswaps = (address: string, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
-    // console.log("swap_attempt")
-    //Asserting prices were queried
-    if (getPriceByDenom("uosmo")?.price !== "0") {
-        //Get tokenOutAmount
-        const tokenOutAmount = getCDTtokenOutAmount(tokenInAmount, tokenIn);
-        //Swap routes
-        const routes: SwapAmountInRoute[] = getCDTRoute(tokenIn);
+export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
+    
+    //Get tokenOutAmount
+    const tokenOutAmount = getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice);
+    //Swap routes
+    const routes: SwapAmountInRoute[] = getCDTRoute(tokenIn);
 
-        const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
+    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
-        const msg = swapExactAmountIn({
-            sender: address! as string,
-            routes,
-            tokenIn: coin(tokenInAmount, denoms[tokenIn][0] as string),
-            tokenOutMinAmount
-        });
+    const msg = swapExactAmountIn({
+        sender: address! as string,
+        routes,
+        tokenIn: coin(tokenInAmount, denoms[tokenIn][0] as string),
+        tokenOutMinAmount
+    });
 
-        return msg;
-        // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
-        // handleCDTswaps("atom", 1000000)
-    }
+    return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };
 
 //Parse through saved Routes until we reach CDT

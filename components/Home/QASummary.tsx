@@ -57,7 +57,9 @@ const SummaryItem = ({
           {badge}
         </Badge>
       )}
-      {badge === "SWAP" ? <Text variant="value" textTransform="unset">
+      {badge === "SWAP" ? label !== "CDT" ? <Text variant="value" textTransform="unset">
+      to CDT
+      </Text> : <Text variant="value" textTransform="unset">
       to USDC
       </Text> : badge === "BID" ? <Text variant="value" textTransform="unset">
        on all assets at a 10% premium
@@ -83,7 +85,7 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
 
   return (
     <Stack h="max-content" overflow="auto" w="full">
-      {summary?.map((asset) => {
+      {!quickActionState.swapInsteadofMint ? summary?.map((asset) => {
         const badge = 'Deposit'
         return (
           <SummaryItem
@@ -96,14 +98,21 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
             badge={badge}
           />
         )
-      })}
+      }) : null}
 
-        {num(quickActionState.mint).isGreaterThan(0) ? <><SummaryItem
+        {num(quickActionState.mint).isGreaterThan(0) ? <>
+        
+        {!quickActionState.swapInsteadofMint ? <SummaryItem
           label="CDT"
           badge="Mint"
           amount={quickActionState.mint?.toFixed(2)}
           logo={cdt?.logo}
-        />
+        /> : <SummaryItem
+          label={quickActionState.selectedAsset?.label}
+          badge="SWAP"
+          amount={num(quickActionState.selectedAsset?.amount??0).toFixed(2)}
+          logo={quickActionState.selectedAsset?.logo}
+        />}
 
         {quickActionState.action.value === "LP" ? <>
           <SummaryItem

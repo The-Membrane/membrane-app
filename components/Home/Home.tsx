@@ -109,6 +109,18 @@ const Home = () => {
     
   }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])
 
+  
+  useEffect(() => {
+    if (!quickActionState?.swapInsteadofMint) {
+      setQuickActionState({
+        mint: 0,
+        selectedAsset: {...quickActionState?.selectedAsset, sliderValue: 0},
+      })
+    }
+    
+  }, [quickActionState?.swapInsteadofMint])
+
+
 console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickActionState?.mint)
   return (
     <Stack >

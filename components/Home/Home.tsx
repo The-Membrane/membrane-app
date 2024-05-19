@@ -114,7 +114,6 @@ const Home = () => {
     if (!quickActionState?.swapInsteadofMint) {
       setQuickActionState({
         mint: 0,
-        selectedAsset: {...quickActionState?.selectedAsset, sliderValue: 0},
       })
     }
     

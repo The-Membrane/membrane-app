@@ -31,7 +31,7 @@ export const aminoTypes = new AminoTypes(aminoConverters)
 
 export const rpcUrl = 'https://rpc.osmosis.zone/'
 
-export const delayTime = 2000; // State update Delay time in millisecond
+export const delayTime = 1200; // State update Delay time in millisecond
 export const loopMax = 5;
 
 ////Specifics for Osmosis services//////

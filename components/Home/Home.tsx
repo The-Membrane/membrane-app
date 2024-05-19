@@ -1,4 +1,4 @@
-import { Card, HStack, Stack, Text, Radio } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text, Checkbox } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
@@ -145,7 +145,9 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
               inputAmount={inputAmount}
               setInputAmount={setInputAmount}
             />
-            <Radio color={"#00A3F9"} onChange={() => {setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint}); console.log(quickActionState.swapInsteadofMint)}}/>
+            <Checkbox  color={"#00A3F9"} onChange={() => {setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint}); console.log(quickActionState.swapInsteadofMint)}}> 
+              Swap Instead of Mint
+            </Checkbox >
             <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
               Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}
             </Text> 

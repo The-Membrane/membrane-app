@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import useQuickActionState from './useQuickActionState'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
-import { LPMsg, swapToMsg } from '@/helpers/osmosis'
+import { LPMsg, swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { shiftDigits } from '@/helpers/math'
@@ -58,6 +58,7 @@ const useQuickAction = () => {
       quickActionState?.mint,
       quickActionState?.selectedAsset,
       quickActionState?.action,
+      quickActionState?.swapInsteadofMint,
       usdcAsset,
       prices,
       cdtAsset, basketPositions, tvl, debtAmount, summary
@@ -67,82 +68,101 @@ const useQuickAction = () => {
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
       var newPositionLTV = 0
-      //Deposit
-      if ( num(quickActionState?.selectedAsset?.amount??"0") > num(0)){
-        const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
-        msgs = msgs.concat(deposit)
-      }
-      if (quickActionState?.mint && quickActionState?.mint > 0){
-        //Set cdtPrice
-        const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
-        
-        //If we are looping we skip the initial mint msg bc the loop will handle it
-        if (quickActionState.action.value === "Loop"){
-          //Loop
-          //Calc LTV based on mint
-          const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100)
-          const positions = updatedSummary(summary, basketPositions, prices)
-          //Loop max amount
-          const loops = loopPosition(
-            cdtPrice,
-            mintLTV.toNumber(), //"99423726"
-            positionId, 
-            loopMax, 
-            address, 
-            prices, 
-            basket,
-            tvl, 
-            debtAmount, 
-            borrowLTV, 
-            positions
-          )
-          msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
-          newPositionValue = loops!.newValue
-          newPositionLTV = loops!.newLTV
+      const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
+      //Deposit or Swap to CDT
+      if (num(quickActionState?.selectedAsset?.amount??"0") > num(0)){
+        //Deposit
+        if (!quickActionState.swapInsteadofMint){
+          const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
+          msgs = msgs.concat(deposit)
         } else {
-
-          //Mint
-          const mint = getMintAndRepayMsgs({
-            address,
-            positionId,
-            mintAmount: quickActionState?.mint,
-            repayAmount: 0,
+          //Swap
+          const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
+            address, 
+            swapFromAmount: Number(quickActionState?.selectedAsset?.amount), 
+            swapFromAsset: quickActionState?.selectedAsset,
+            prices,
+            cdtPrice,
           })
-          msgs = msgs.concat(mint)
-          
-          if (quickActionState.action.value === "LP"){
-            //Swap
-            const { msg: swap, tokenOutMinAmount } = swapToMsg({
-              address, 
-              cdtAmount: quickActionState?.mint, 
-              swapToAsset: usdcAsset,
-              prices,
-              cdtPrice,
-            })   
-            msgs.push(swap as MsgExecuteContractEncodeObject)  
-            //LP   
-            const lp = LPMsg({
-              address,
-              cdtInAmount: shiftDigits(quickActionState?.mint, 6).dp(0).toString(),
-              cdtAsset,
-              pairedAssetInAmount: tokenOutMinAmount,
-              pairedAsset: usdcAsset,
-              poolID: 1268,
-            })
-            msgs.push(lp as MsgExecuteContractEncodeObject)
-
-          } else if (quickActionState.action.value === "Bid"){  
-            //Omni-Pool     
-            const microAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toString()
-            const funds = [coin(microAmount, cdtAsset?.base!)]
-
-            const omni = buildStabilityPooldepositMsg({ address, funds })
-            msgs.push(omni as MsgExecuteContractEncodeObject)
-
-          }
-          
+          msgs.push(swap as MsgExecuteContractEncodeObject)
+          //Set the mint amount to the swap amount
+          quickActionState.mint = tokenOutMinAmount
+        
         }
       }
+      
+      if (quickActionState?.mint && quickActionState?.mint > 0){        
+        /////Actions that require minting to acquire CDT/////
+        if (!quickActionState.swapInsteadofMint){   
+          if (quickActionState.action.value === "Loop"){            
+            //If we are looping we skip the initial mint msg bc the loop will handle it
+            //Loop
+            //Calc LTV based on mint
+            const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100)
+            const positions = updatedSummary(summary, basketPositions, prices)
+            //Loop max amount
+            const loops = loopPosition(
+              cdtPrice,
+              mintLTV.toNumber(), //"99423726"
+              positionId, 
+              loopMax, 
+              address, 
+              prices, 
+              basket,
+              tvl, 
+              debtAmount, 
+              borrowLTV, 
+              positions
+            )
+            msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
+            newPositionValue = loops!.newValue
+            newPositionLTV = loops!.newLTV
+          } else {
+
+            //Mint
+            const mint = getMintAndRepayMsgs({
+              address,
+              positionId,
+              mintAmount: quickActionState?.mint,
+              repayAmount: 0,
+            })
+            msgs = msgs.concat(mint)
+          }          
+        }
+
+        ////Actions after acquiring CDT////
+        if (quickActionState.action.value === "LP"){
+          //Swap
+          const { msg: swap, tokenOutMinAmount } = swapToCollateralMsg({
+            address, 
+            cdtAmount: quickActionState?.mint, 
+            swapToAsset: usdcAsset,
+            prices,
+            cdtPrice,
+          })   
+          msgs.push(swap as MsgExecuteContractEncodeObject)  
+          //LP   
+          const lp = LPMsg({
+            address,
+            cdtInAmount: shiftDigits(quickActionState?.mint, 6).dp(0).toString(),
+            cdtAsset,
+            pairedAssetInAmount: tokenOutMinAmount,
+            pairedAsset: usdcAsset,
+            poolID: 1268,
+          })
+          msgs.push(lp as MsgExecuteContractEncodeObject)
+
+        } else if (quickActionState.action.value === "Bid"){  
+          //Omni-Pool     
+          const microAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toString()
+          const funds = [coin(microAmount, cdtAsset?.base!)]
+
+          const omni = buildStabilityPooldepositMsg({ address, funds })
+          msgs.push(omni as MsgExecuteContractEncodeObject)
+
+        }
+      }
+      
       return { msgs, newPositionValue, newPositionLTV }
     },
     enabled: !!address,

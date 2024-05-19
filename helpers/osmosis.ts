@@ -1,5 +1,5 @@
 import { Price } from "@/services/oracle"
-import { handleCollateralswaps, joinCLPools } from "@/services/osmosis"
+import { handleCDTswaps, handleCollateralswaps, joinCLPools } from "@/services/osmosis"
 import { shiftDigits } from "./math"
 import { Asset, exported_supportedAssets } from "./chain"
 import { num } from "./num"
@@ -12,7 +12,7 @@ type GetSwapToMsgs = {
     prices: Price[]
     cdtPrice: number
 }
-export const swapToMsg = ({
+export const swapToCollateralMsg = ({
     address,
     cdtAmount,
     swapToAsset,
@@ -21,11 +21,34 @@ export const swapToMsg = ({
 }: GetSwapToMsgs) => {
     const microAmount = shiftDigits(cdtAmount, 6).dp(0).toString()
 
-    //Swap to USDC
+    //Swap to Asset from CDT
     const swapToPrice = prices?.find((price) => price.denom === swapToAsset.base)
     const CDTInAmount = num(microAmount).div(2).toNumber()
 
     return handleCollateralswaps(address, cdtPrice, Number(swapToPrice!.price), swapToAsset.symbol as keyof exported_supportedAssets, CDTInAmount)
+}
+
+type GetSwapFromMsgs = {
+    swapFromAmount: string | number
+    swapFromAsset: Asset
+    address: string
+    prices: Price[]
+    cdtPrice: number
+}
+export const swapToCDTMsg = ({
+    address,
+    swapFromAmount,
+    swapFromAsset,
+    prices,
+    cdtPrice
+}: GetSwapFromMsgs) => {
+    const microAmount = shiftDigits(swapFromAmount, swapFromAsset.decimal).dp(0).toString()
+
+    //Swap to CDT from Asset
+    const swapFromPrice = prices?.find((price) => price.denom === swapFromAsset.base)
+    const scaledSwapFromAmount = num(microAmount).div(2).toNumber()
+
+    return handleCDTswaps(address, cdtPrice, Number(swapFromPrice!.price), swapFromAsset.symbol as keyof exported_supportedAssets, scaledSwapFromAmount)
 }
 
 type GetLPMsgs = {

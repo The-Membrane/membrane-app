@@ -93,7 +93,6 @@ const useQuickAction = () => {
       
       if (quickActionState?.mint && quickActionState?.mint > 0){        
         /////Actions that require minting to acquire CDT/////
-        if (!quickActionState.swapInsteadofMint){   
           if (quickActionState.action.value === "Loop"){            
             //If we are looping we skip the initial mint msg bc the loop will handle it
             //Loop
@@ -117,7 +116,7 @@ const useQuickAction = () => {
             msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
             newPositionValue = loops!.newValue
             newPositionLTV = loops!.newLTV
-          } else {
+          } else if (!quickActionState.swapInsteadofMint) {
 
             //Mint
             const mint = getMintAndRepayMsgs({
@@ -128,7 +127,7 @@ const useQuickAction = () => {
             })
             msgs = msgs.concat(mint)
           }          
-        }
+        
 
         ////Actions after acquiring CDT////
         if (quickActionState.action.value === "LP"){

@@ -145,9 +145,9 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
               inputAmount={inputAmount}
               setInputAmount={setInputAmount}
             />
-            <Checkbox borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint})}> 
+            {quickActionState.action.value !== "Loop" ? <Checkbox borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint})}> 
               Swap Instead of Mint
-            </Checkbox >
+            </Checkbox > : null}
                    
             <Stack w="full" opacity={quickActionState.swapInsteadofMint ? "22%" : "100%"}>
               <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>

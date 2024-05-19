@@ -145,23 +145,26 @@ console.log(quickAction?.simulate.isError, !quickAction?.simulate.data, !quickAc
               inputAmount={inputAmount}
               setInputAmount={setInputAmount}
             />
-            <Checkbox  color={"#00A3F9"} onChange={() => {setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint}); console.log(quickActionState.swapInsteadofMint)}}> 
+            <Checkbox borderColor={"#00A3F9"} bgColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint})}> 
               Swap Instead of Mint
             </Checkbox >
-            <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
-              Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}
-            </Text> 
-          <Divider mx="0" mt="0" mb="4%"/>
-            <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
-            { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-              Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
-            </Text>
-            : 
-            quickActionState.action.value === "LP" || quickActionState.action.value === "Loop" ?
-            <><Text fontSize="sm" color="white" mt="2" minH="21px">
-              max slippage: {SWAP_SLIPPAGE}%
-            </Text></> : null
-            }
+                   
+            <Stack w="full" opacity={quickActionState.swapInsteadofMint ? "22%" : "100%"}>
+              <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
+                Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}
+              </Text> 
+              <Divider mx="0" mt="0" mb="4%"/>
+              <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
+              { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+                Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
+              </Text>
+              : 
+              quickActionState.action.value === "LP" || quickActionState.action.value === "Loop" ?
+              <><Text fontSize="sm" color="white" mt="2" minH="21px">
+                max slippage: {SWAP_SLIPPAGE}%
+              </Text></> : null
+              }
+            </Stack>
           </Stack>
 
           {/* Deposit-Mint-LP Button */}

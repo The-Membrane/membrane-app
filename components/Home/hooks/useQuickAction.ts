@@ -86,7 +86,7 @@ const useQuickAction = () => {
           })
           msgs.push(swap as MsgExecuteContractEncodeObject)
           //Set the mint amount to the swap amount
-          quickActionState.mint = tokenOutMinAmount
+          quickActionState.mint = shiftDigits(tokenOutMinAmount, -6).dp(0).toNumber()
         
         }
       }
@@ -185,8 +185,9 @@ const useQuickAction = () => {
       String(quickActionState?.mint) || '0',
       String(quickActionState?.selectedAsset?.amount) || '0',
       quickActionState?.action?.value,
+      String(quickActionState?.swapInsteadofMint),
     ],
-    enabled: !!msgs && ((quickActionState?.mint??0) > 0) && ((quickActionState?.mint??0) + debtAmount > 99),
+    enabled: !!msgs && ((quickActionState?.mint??0) > 0),
     onSuccess,
   }),
   newPositionValue,

@@ -115,12 +115,12 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
         />}
 
         {quickActionState.action.value === "LP" ? <>
-          <SummaryItem
+          {(quickActionState?.selectedAsset?.symbol === "USDC" && quickActionState?.action.value === "LP" && quickActionState.swapInsteadofMint) ? null : <SummaryItem
             label="CDT"
             badge="SWAP"
             amount={num(quickActionState.mint).div(2).toNumber().toFixed(2)}
             logo={cdt?.logo}
-          />
+          />}
           
           <SummaryItem
             label="CDT/USDC"

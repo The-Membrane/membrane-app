@@ -85,7 +85,6 @@ const CountDown = ({ timeString, amount }: { timeString: string; amount: string 
 }
 
 const Action = ({ deposit, amount }: { deposit: Deposit; amount: string }) => {
-  console.log(deposit.unstake_time, getSPTimeLeft(deposit.unstake_time??0).minutesLeft)
   if (!deposit.unstake_time || getSPTimeLeft(deposit.unstake_time).minutesLeft > 0){
     return <UnstakeButton amount={amount} />
   }
@@ -108,7 +107,7 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   const onMax = () => {
     setInputAmount(amount)
   }
-
+  console.log(isEnded, deposit.unstake_time)
   if (!isEnded && deposit.unstake_time) {
     return (
       <HStack alignItems="flex-start" gap="5">

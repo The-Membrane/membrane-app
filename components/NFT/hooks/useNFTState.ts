@@ -11,7 +11,8 @@ import { AssetWithBalance } from './useCombinBalance'
 // }
 
 type NFTState = {
-    bidAmount: number
+    nftBidAmount: number
+    assetBidAmount: number
 }
 
 type Store = {
@@ -21,7 +22,8 @@ type Store = {
 }
 
 const initialState: NFTState = {
-  bidAmount: 0,
+    nftBidAmount: 0,
+    assetBidAmount: 0,
 }
 
 // @ts-ignore

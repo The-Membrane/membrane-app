@@ -1,8 +1,7 @@
-import Governance from '@/components/Governance'
 import { HStack, Stack, Text } from '@chakra-ui/react'
-import Delegate from '@/components/Governance/Delegate'
 import LiveAuction from './LiveAuction'
 import NFTBid from './NFTBid'
+import AssetAuction from './AssetAuction'
 
 const NFT = () => {
     return (
@@ -12,6 +11,8 @@ const NFT = () => {
                 <LiveAuction />
                 <NFTBid />
             </Stack>
+            <AssetAuction />
+            {/* Claim button for either the NFT or the Asset */}
         </HStack>
     )
 }

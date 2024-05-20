@@ -108,7 +108,7 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
     setInputAmount(amount)
   }
   console.log(isEnded, deposit.unstake_time)
-  if (!isEnded && deposit.unstake_time) {
+  if (deposit.unstake_time && getSPTimeLeft(deposit.unstake_time).minutesLeft > 0) {
     return (
       <HStack alignItems="flex-start" gap="5">
         <Box bg="blackAlpha.500" borderRadius="md" px="4" py="1" h="full">

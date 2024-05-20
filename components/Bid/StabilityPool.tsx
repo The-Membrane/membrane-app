@@ -85,6 +85,7 @@ const CountDown = ({ timeString, amount }: { timeString: string; amount: string 
 }
 
 const Action = ({ deposit, amount }: { deposit: Deposit; amount: string }) => {
+  console.log(deposit.unstake_time, getSPTimeLeft(deposit.unstake_time??0).minutesLeft)
   if (!deposit.unstake_time || getSPTimeLeft(deposit.unstake_time).minutesLeft > 0){
     return <UnstakeButton amount={amount} />
   }

@@ -13,7 +13,7 @@ export const useWithdrawStabilityPool = (amount: string) => {
     queryKey: ['msg omni-asset withdraw', address, amount],
     queryFn: () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
-      console.log(amount)
+      
       const messageComposer = new StabilityPoolMsgComposer(address, contracts.stabilityPool)
       const msgs = messageComposer.withdraw({amount})
       return [msgs] as MsgExecuteContractEncodeObject[]

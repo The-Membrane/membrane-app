@@ -30,6 +30,7 @@
     "@cosmos-kit/react": "^2.10.10",
     "@cosmos-kit/shell": "^2.6.9",
     "@cosmos-kit/station": "^2.5.9",
+    "@cosmos-kit/tailwind": "^1.2.0",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@tanstack/react-query": "^5.20.1",

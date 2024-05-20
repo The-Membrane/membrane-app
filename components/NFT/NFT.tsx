@@ -12,7 +12,6 @@ const NFT = () => {
                 <LiveAuction />
                 <NFTBid />
             </Stack>
-            <Governance />
         </HStack>
     )
 }

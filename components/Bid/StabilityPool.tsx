@@ -20,9 +20,10 @@ import { ChangeEvent, useState } from 'react'
 import useStabilityAssetPool from './hooks/useStabilityAssetPool'
 import useWithdrawStabilityPool from './hooks/useWithdrawStabilityPool'
 
-const UnstakeButton = ({ amount }: { amount: string }) => {
+const UnstakeButton = ({ amount }: { amount: string }) => {]
+  console.log("unstake", amount)
   const withdraw = useWithdrawStabilityPool(amount)
-  console.log({ withdraw })
+  
   return (
     <TxButton
       w="150px"

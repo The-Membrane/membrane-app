@@ -30,3 +30,4 @@ export const aminoTypes = new AminoTypes(aminoConverters)
 
 // export const rpcUrl = 'https://rpc.osmosis.zone/'
 export const rpcUrl = 'https://rpc.margined.io'
+export const stargazeRPCUrl = 'https://rpc.cosmos.directory/stargaze'

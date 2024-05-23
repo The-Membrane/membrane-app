@@ -1,7 +1,8 @@
 import { Card, HStack, Text, Stack } from "@chakra-ui/react"
+import { useLiveNFTAuction } from "./hooks/useBraneAuction"
+import useCountdown from "@/hooks/useCountdown"
 
-const NFTBid = () => {
-    // const {currentBid, timeLeft } = useLiveAuction()
+const NFTBid = ({ currentBid, timeLeft }: {currentBid: any, timeLeft: string}) => {
 
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
@@ -12,7 +13,7 @@ const NFTBid = () => {
                     Current Bid
                     </Text>
                     <Text fontSize="16px" fontWeight="700">
-                    {currentBid}
+                    {currentBid?.amount}
                     </Text>
                 </Stack>                
                 <Stack w="full" gap="1">

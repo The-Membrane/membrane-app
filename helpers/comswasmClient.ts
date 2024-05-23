@@ -1,8 +1,14 @@
-import { rpcUrl } from '@/config/defaults'
+import { rpcUrl, stargazeRPCUrl } from '@/config/defaults'
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
-const getCosmWasmClient = () => {
+//Osmosis
+export const getCosmWasmClient = () => {
   return CosmWasmClient.connect(rpcUrl)
+}
+
+//SG
+export const getSGCosmwasmClient = () => {
+  return CosmWasmClient.connect(stargazeRPCUrl)
 }
 
 export default getCosmWasmClient

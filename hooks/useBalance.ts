@@ -6,12 +6,12 @@ import { useRpcClient } from './useRpcClient'
 import useWallet from './useWallet'
 import { Asset } from '@/helpers/chain'
 
-export const useBalance = () => {
-  const { address, chain } = useWallet()
+export const useBalance = (chainID: string = "osmosis") => {  
+  const { address, chain } = useWallet(chainID)
   const { getRpcClient } = useRpcClient(chain.chain_name)
 
   return useQuery<QueryAllBalancesResponse['balances'] | null>({
-    queryKey: ['balances', address, chain.chain_id],
+    queryKey: [chainID + ' balances', address, chain.chain_id],
     queryFn: async () => {
       const client = await getRpcClient()
       if (!address) return null
@@ -33,9 +33,9 @@ export const useBalance = () => {
   })
 }
 
-export const useBalanceByAsset = (asset: Asset | null) => {
-  const { data: balances } = useBalance()
-  const { address } = useWallet()
+export const useBalanceByAsset = (asset: Asset | null, chainID: string = "osmosis")  => {
+  const { data: balances } = useBalance(chainID)
+  const { address } = useWallet(chainID)
 
   return useMemo(() => {
     if (!balances || !asset || !address) return '0'

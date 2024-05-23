@@ -5,18 +5,42 @@ import { useAssetBySymbol } from "@/hooks/useAssets";
 import { useBalanceByAsset } from "@/hooks/useBalance";
 import { TxButton } from "../TxButton";
 import { isGreaterThanZero } from "@/helpers/num";
+import useLiveNFTBid from "./hooks/useLiveNFTBid";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
 //ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm
+//ipfs://bafkreiglpln4i7lm5lbh4b6tqo5auvmh7iboleqnadzynfdokmizvlzvu4
 
+function removeSegmentAndBefore(input: string, segment: string): string {
+  // Find the position of the segment in the input string
+  const segmentIndex = input.indexOf(segment);
 
-//I have to remove anything before the hash (find // and remove starting infront) & then add "https://ipfs-gw.stargaze-apis.com/ipfs/" to the link
-const LiveAuction = () => {
+  // If the segment is not found, return the original string
+  if (segmentIndex === -1) {
+    return input;
+  }
+
+  // Calculate the position right after the segment
+  const afterSegmentIndex = segmentIndex + segment.length;
+
+  // Return the part of the string starting after the segment
+  return input.substring(afterSegmentIndex);
+}
+
+//todo: 
+{/* Curation pagination*/}
+
+const LiveAuction = ({ liveAuctionIPFS }: {liveAuctionIPFS: string}) => {
     const { NFTState, setNFTState } = useNFTState()
-    // const { bid } = useLiveNFTBid()
     const cdt = useAssetBySymbol('CDT')
-    const cdtBalance = useBalanceByAsset(cdt)
-    // const osmosisCDTBalance = useIBCBalanceByAsset('osmosis', cdt)
+    const bid = useLiveNFTBid()
+    const stargazeCDTBalance = useBalanceByAsset(cdt, 'stargaze')
+    const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
+
+    //Test
+    liveAuctionIPFS = "ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm"
+    //Remove ipfs portion of link
+    const ipfsString = removeSegmentAndBefore(liveAuctionIPFS, "ipfs://")
 
     const onBidChange = (value: number) => {
         setNFTState({ nftBidAmount: value })
@@ -27,7 +51,7 @@ const LiveAuction = () => {
             {/* Need to add pagination for submissions so we can curate */}
             <Image
                 // src="https://ipfs-gw.stargaze-apis.com/ipfs/bafybeib4p32yqheuhnounizgizaho66g2ypk6gocg7xzxais5tuyz42gym/1.png"
-                src="https://ipfs-gw.stargaze-apis.com/ipfs/bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm"
+                src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + ipfsString}
                 alt="Current Auctioned NFT Image"
             // width="80%"
             // height="80%"
@@ -46,14 +70,14 @@ const LiveAuction = () => {
                     value={NFTState.nftBidAmount}
                     onChange={onBidChange}
                     min={0}
-                    max={Number(cdtBalance + osmosisCDTBalance)}
+                    max={Number(stargazeCDTBalance + osmosisCDTBalance)}
                 />
                 <TxButton
                     w="150px"
                     px="10"
                     isDisabled={!isGreaterThanZero(NFTState.nftBidAmount)}
-                    isLoading={bid.isPending}
-                    onClick={() => bid.mutate()}
+                    isLoading={bid.simulate.isPending}
+                    onClick={() => bid.tx.mutate()}
                     >
                     Bid
                 </TxButton>

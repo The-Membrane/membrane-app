@@ -57,6 +57,7 @@ const AssetAuction = () => {
                     max={Number(stargazeMBRNBalance + osmosisMBRNBalance)}
                 />
                 <TxButton
+                    marginLeft={"33.5%"}
                     w="150px"
                     px="10"
                     isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}

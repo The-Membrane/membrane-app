@@ -2,7 +2,10 @@ import { Card, HStack, Text, Stack } from "@chakra-ui/react"
 import { useLiveNFTAuction } from "./hooks/useBraneAuction"
 import useCountdown from "@/hooks/useCountdown"
 
-const NFTBid = ({ currentBid, timeLeft }: {currentBid: any, timeLeft: string}) => {
+const NFTBid = () => {
+    const { data: liveNFTAuction } = useLiveNFTAuction()
+    const currentBid = liveNFTAuction?.highest_bid    
+    const timeLeft = useCountdown(liveNFTAuction?.auction_end_time).timeString
 
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">

@@ -6,6 +6,7 @@ import { useBalanceByAsset } from "@/hooks/useBalance";
 import { TxButton } from "../TxButton";
 import { isGreaterThanZero } from "@/helpers/num";
 import useLiveNFTBid from "./hooks/useLiveNFTBid";
+import { useLiveNFTAuction } from "./hooks/useBraneAuction";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
 //ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm
@@ -30,17 +31,18 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 //todo: 
 {/* Curation pagination in v2*/}
 
-const LiveAuction = ({ liveAuctionIPFS }: {liveAuctionIPFS: string}) => {
+const LiveAuction = () => {
+    const { data: liveNFTAuction } = useLiveNFTAuction()  
+    const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
+    
     const { NFTState, setNFTState } = useNFTState()
     const cdt = useAssetBySymbol('CDT')
     const bid = useLiveNFTBid()
     const stargazeCDTBalance = useBalanceByAsset(cdt, 'stargaze')
     const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
 
-    //Test
-    liveAuctionIPFS = "ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm"
     //Remove ipfs portion of link
-    const ipfsString = removeSegmentAndBefore(liveAuctionIPFS, "ipfs://")
+    const ipfsString = removeSegmentAndBefore(currentNFTIPFS, "ipfs://")
 
     const onBidChange = (value: number) => {
         setNFTState({ nftBidAmount: value })

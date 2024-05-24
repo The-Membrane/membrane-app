@@ -1,4 +1,4 @@
-import { getLiveNFTAuction } from '@/services/nft_auction'
+import { getLiveAssetAuction, getLiveNFTAuction } from '@/services/nft_auction'
 import { useQuery } from '@tanstack/react-query'
 
 export const useLiveNFTAuction = () => {
@@ -9,3 +9,13 @@ export const useLiveNFTAuction = () => {
     },
   })
 }
+
+export const useLiveAssetAuction = () => {
+  return useQuery({
+    queryKey: ['live asset auction'],
+    queryFn: async () => {
+      return getLiveAssetAuction()
+    },
+  })
+}
+

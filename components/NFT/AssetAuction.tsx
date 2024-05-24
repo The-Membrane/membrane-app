@@ -5,14 +5,23 @@ import { useBalanceByAsset } from "@/hooks/useBalance"
 import useNFTState from "./hooks/useNFTState"
 import { isGreaterThanZero } from "@/helpers/num"
 import { TxButton } from "../TxButton"
+import { useLiveAssetAuction, useLiveNFTAuction } from "./hooks/useBraneAuction"
+import useCountdown from "@/hooks/useCountdown"
+import useLiveAssetBid from "./hooks/useLiveAssetBid"
 
 const AssetAuction = () => {
     const { NFTState, setNFTState } = useNFTState()
-    // const { bid } = useAssetAuctionBid()
-    // const {auctionAmount, currentBid, timeLeft } = useAssetAuction()
+    const bid = useLiveAssetBid()
+    const { data: liveAssetAuction } = useLiveAssetAuction()
+    const auctionAmount = liveAssetAuction?.auctioned_asset.amount
+    const currentBid = liveAssetAuction?.highest_bid.amount
+    const { data: liveNFTAuction } = useLiveNFTAuction()
+    //Bid Auctions end when the current NFT auction does
+    const timeLeft = useCountdown(liveNFTAuction?.auction_end_time).timeString
+
     const mbrn = useAssetBySymbol('MBRN')
-    const mbrnBalance = useBalanceByAsset(mbrn)
-    // const osmosisMBRNBalance = useIBCBalanceByAsset('osmosis', mbrn)
+    const stargazeMBRNBalance = useBalanceByAsset(mbrn, 'stargaze')
+    const osmosisMBRNBalance = useBalanceByAsset(mbrn)
     
     const onBidChange = (value: number) => {
         setNFTState({ assetBidAmount: value })
@@ -26,7 +35,10 @@ const AssetAuction = () => {
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
                 Current Bid: {currentBid} MBRN
-                </Text>                
+                </Text>
+                <Text fontSize="16px" fontWeight="700">
+                Time Left: {timeLeft}
+                </Text>
                 <HStack justifyContent="space-between">
                     <Text fontSize="16px" fontWeight="700">
                     MBRN
@@ -40,14 +52,14 @@ const AssetAuction = () => {
                         value={NFTState.assetBidAmount}
                         onChange={onBidChange}
                         min={0}
-                        max={Number(mbrnBalance + osmosisMBRNBalance)}
+                        max={Number(stargazeMBRNBalance + osmosisMBRNBalance)}
                     />
                     <TxButton
                         w="150px"
                         px="10"
-                        isDisabled={!isGreaterThanZero(NFTState.assetBidAmount)}
-                        isLoading={bid.isPending}
-                        onClick={() => bid.mutate()}
+                        isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
+                        isLoading={bid.simulate.isPending && !bid.simulate.isError && bid.simulate.data}
+                        onClick={() => bid.tx.mutate()}
                         >
                         Bid
                     </TxButton>

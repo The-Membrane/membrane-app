@@ -76,6 +76,7 @@ const LiveAuction = () => {
                 min={0}
                 max={Number(stargazeCDTBalance + osmosisCDTBalance)}
             />
+            <div>
             <TxButton
                 w="150px"
                 px="10"
@@ -85,6 +86,7 @@ const LiveAuction = () => {
                 >
                 Bid
             </TxButton>
+            </div>
             </Stack>
         </Card>
     )

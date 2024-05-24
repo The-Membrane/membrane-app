@@ -9,7 +9,7 @@ const NFT = () => {
     const { data: liveNFTAuction } = useLiveNFTAuction()
     const currentBid = liveNFTAuction?.highest_bid    
     const timeLeft = useCountdown(liveNFTAuction?.auction_end_time).timeString
-    const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri
+    const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
 
     return (
         <HStack gap="5" w="full" alignItems="flex-start">
@@ -18,7 +18,7 @@ const NFT = () => {
                 <LiveAuction liveAuctionIPFS={currentNFTIPFS}/>
                 <NFTBid currentBid={currentBid} timeLeft={timeLeft} />
             </Stack>
-            <AssetAuction />
+            {/* <AssetAuction /> */}
             {/* Claim button for either the NFT or the Asset */}
         </HStack>
     )

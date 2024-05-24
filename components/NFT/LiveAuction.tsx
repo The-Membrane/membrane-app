@@ -77,7 +77,8 @@ const LiveAuction = () => {
                 max={Number(stargazeCDTBalance + osmosisCDTBalance)}
             />
             <TxButton
-                marginLeft={"33.5%"}
+                marginLeft={"35%"}
+                marginTop={"3%"}
                 w="150px"
                 px="10"
                 isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}

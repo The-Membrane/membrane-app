@@ -31,8 +31,13 @@ const AssetAuction = () => {
     }
 
     return (
-        <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="50%" justifyContent="space-between">            
+        <Stack w="full" gap="5">
+        <Text variant="title">ASSET AUCTION</Text>
+        <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="28%" justifyContent="space-between">            
             <Stack w="full" gap="1">
+                <Text fontSize="16px" fontWeight="700">
+                Auction for {auctionAmount??0} CDT
+                </Text>
                 <Text fontSize="16px" fontWeight="700">
                 Auction for {auctionAmount??0} CDT
                 </Text>
@@ -57,7 +62,8 @@ const AssetAuction = () => {
                     max={Number(stargazeMBRNBalance + osmosisMBRNBalance)}
                 />
                 <TxButton
-                    marginLeft={"33.5%"}
+                    marginLeft={"35%"}
+                    marginTop={"3%"}
                     w="150px"
                     px="10"
                     isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
@@ -68,6 +74,7 @@ const AssetAuction = () => {
                 </TxButton>
             </Stack>
         </Card>
+        </Stack>
     )
 }
 

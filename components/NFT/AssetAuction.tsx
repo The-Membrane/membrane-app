@@ -50,23 +50,21 @@ const AssetAuction = () => {
                     {NFTState.assetBidAmount}
                     </Text>
                 </HStack>
-                <HStack justifyContent="space-between">
-                    <SliderWithState
-                        value={NFTState.assetBidAmount}
-                        onChange={onBidChange}
-                        min={0}
-                        max={Number(stargazeMBRNBalance + osmosisMBRNBalance)}
-                    />
-                    <TxButton
-                        w="150px"
-                        px="10"
-                        isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
-                        isLoading={bid.simulate.isPending && !bid.simulate.isError && bid.simulate.data}
-                        onClick={() => bid.tx.mutate()}
-                        >
-                        Bid
-                    </TxButton>
-                </HStack>
+                <SliderWithState
+                    value={NFTState.assetBidAmount}
+                    onChange={onBidChange}
+                    min={0}
+                    max={Number(stargazeMBRNBalance + osmosisMBRNBalance)}
+                />
+                <TxButton
+                    w="150px"
+                    px="10"
+                    isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
+                    isLoading={bid.simulate.isPending && !bid.simulate.isError && bid.simulate.data}
+                    onClick={() => bid.tx.mutate()}
+                    >
+                    Bid
+                </TxButton>
             </Stack>
         </Card>
     )

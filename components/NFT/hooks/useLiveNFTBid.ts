@@ -22,6 +22,8 @@ const useLiveNFTBid = () => {
       const funds = coin(NFTState.nftBidAmount, "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")
       const msg = messageComposer.bidForNft([funds])
 
+      console.log("funds: ", funds, "msg: ", msg)
+
       return [msg] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,

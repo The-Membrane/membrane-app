@@ -28,7 +28,7 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 }
 
 //todo: 
-{/* Curation pagination*/}
+{/* Curation pagination in v2*/}
 
 const LiveAuction = ({ liveAuctionIPFS }: {liveAuctionIPFS: string}) => {
     const { NFTState, setNFTState } = useNFTState()

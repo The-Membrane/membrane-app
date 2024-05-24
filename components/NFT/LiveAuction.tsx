@@ -75,8 +75,8 @@ const LiveAuction = ({ liveAuctionIPFS }: {liveAuctionIPFS: string}) => {
                 <TxButton
                     w="150px"
                     px="10"
-                    isDisabled={!isGreaterThanZero(NFTState.nftBidAmount)}
-                    isLoading={bid.simulate.isPending}
+                    isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
+                    isLoading={bid.simulate.isPending && !bid.simulate.isError && bid.simulate.data}
                     onClick={() => bid.tx.mutate()}
                     >
                     Bid

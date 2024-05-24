@@ -31,7 +31,7 @@ const AssetAuction = () => {
     }
 
     return (
-        <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">            
+        <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="50%" justifyContent="space-between">            
             <Stack w="full" gap="1">
                 <Text fontSize="16px" fontWeight="700">
                 Auction for {auctionAmount??0} CDT

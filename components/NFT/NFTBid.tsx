@@ -10,7 +10,7 @@ const NFTBid = () => {
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             
-            <HStack justifyContent="space-between">
+            <HStack justifyContent="space-between" gap="24">
                 <Stack w="full" gap="1">
                     <Text fontSize="16px" fontWeight="700">
                     Current Bid
@@ -20,7 +20,7 @@ const NFTBid = () => {
                     </Text>
                 </Stack>                
                 <Stack w="full" gap="1">
-                    <Text fontSize="16px" fontWeight="700">
+                    <Text fontSize="16px" fontWeight="700" width="118%">
                     Time Remaining
                     </Text>
                     <Text fontSize="16px" fontWeight="700">

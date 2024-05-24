@@ -20,6 +20,9 @@ const AssetAuction = () => {
     const timeLeft = useCountdown(liveNFTAuction?.auction_end_time).timeString
 
     const mbrn = useAssetBySymbol('MBRN')
+    //Comment this until we add MBRN & CDT to SG registry
+    //Then change the useBalanceByAsset to use the correct Asset
+    // const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
     const stargazeMBRNBalance = useBalanceByAsset(mbrn, 'stargaze')
     const osmosisMBRNBalance = useBalanceByAsset(mbrn)
     
@@ -31,10 +34,10 @@ const AssetAuction = () => {
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">            
             <Stack w="full" gap="1">
                 <Text fontSize="16px" fontWeight="700">
-                Auction for {auctionAmount} CDT
+                Auction for {auctionAmount??0} CDT
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
-                Current Bid: {currentBid} MBRN
+                Current Bid: {currentBid??0} MBRN
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
                 Time Left: {timeLeft}

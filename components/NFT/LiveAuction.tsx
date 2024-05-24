@@ -38,6 +38,9 @@ const LiveAuction = () => {
     const { NFTState, setNFTState } = useNFTState()
     const cdt = useAssetBySymbol('CDT')
     const bid = useLiveNFTBid()
+    //Comment this until we add MBRN & CDT to SG registry
+    //Then change the useBalanceByAsset to use the correct Asset
+    // const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
     const stargazeCDTBalance = useBalanceByAsset(cdt, 'stargaze')
     const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
 

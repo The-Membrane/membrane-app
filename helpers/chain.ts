@@ -8,7 +8,6 @@ export type Asset = RegistryAsset & {
   logo: string
 }
 
-const defaultChain = 'osmosis'
 const supportedAssets = [
   'OSMO',
   'ATOM',
@@ -27,35 +26,35 @@ export const getAssetLogo = (asset: RegistryAsset) => {
   return asset?.logo_URIs?.svg || asset?.logo_URIs?.png || asset?.logo_URIs?.jpeg
 }
 
-const assetWithLogo = (asset: RegistryAsset) => ({
+const assetWithLogo = (asset: RegistryAsset, chainID: string = 'osmosis') => ({
   ...asset,
   logo: getAssetLogo(asset),
-  decimal: getExponentByDenom(registryAssets, asset.base, defaultChain),
+  decimal: getExponentByDenom(registryAssets, asset.base, chainID),
 })
 
-export const getChainAssets = () => {
-  const chainAssets = registryAssets.find((asset) => asset.chain_name === defaultChain)
+export const getChainAssets = (chainID: string = 'osmosis') => {
+  const chainAssets = registryAssets.find((asset) => asset.chain_name === chainID)
 
-  const assetsWtihLogo = chainAssets?.assets?.map(assetWithLogo) || []
+  const assetsWtihLogo = chainAssets?.assets?.map((asset) => assetWithLogo(asset, chainID)) || []
 
   return [...assetsWtihLogo, ...lpAssets]
 }
-export const getAssets = () => {
-  const chainAssets = registryAssets.find((asset) => asset.chain_name === defaultChain)
+export const getAssets = (chainID: string = 'osmosis') => {
+  const chainAssets = registryAssets.find((asset) => asset.chain_name === chainID)
   const supportedChainAssets = chainAssets?.assets.filter((asset) =>
     supportedAssets.includes(asset.symbol),
   )
-  const assetsWtihLogo = supportedChainAssets?.map(assetWithLogo) || []
+  const assetsWtihLogo = supportedChainAssets?.map((asset) => assetWithLogo(asset, chainID)) || []
 
   return [...assetsWtihLogo, ...lpAssets]
 }
 
-export const getAssetBySymbol = (symbol: string) => {
-  const assets = getAssets()
+export const getAssetBySymbol = (symbol: string, chainID: string = 'osmosis') => {
+  const assets = getAssets(chainID)
   return assets?.find((asset) => asset.symbol === symbol)
 }
 
-export const getAssetByDenom = (denom: string) => {
-  const assets = getAssets()
+export const getAssetByDenom = (denom: string, chainID: string = 'osmosis') => {
+  const assets = getAssets(chainID)
   return assets?.find((asset) => asset.base === denom)
 }

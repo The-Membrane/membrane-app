@@ -16,7 +16,7 @@ const NFTBid = () => {
                     Current Bid
                     </Text>
                     <Text fontSize="16px" fontWeight="700">
-                    {currentBid?.amount}
+                    {currentBid?.amount??0}
                     </Text>
                 </Stack>                
                 <Stack w="full" gap="1">

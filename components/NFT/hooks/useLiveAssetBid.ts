@@ -22,8 +22,6 @@ const useLiveAssetBid = () => {
       const funds = coin(NFTState.assetBidAmount, "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/umbrn")
       const msg = messageComposer.bidForAssets([funds])
 
-      console.log("funds: ", funds, "msg: ", msg)
-
       return [msg] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,

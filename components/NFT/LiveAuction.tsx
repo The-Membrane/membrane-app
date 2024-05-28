@@ -32,7 +32,7 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 //todo: 
 {/* Curation pagination in v2*/}
 
-const LiveAuction = async () => {
+const LiveAuction = () => {
     const { data: liveNFTAuction } = useLiveNFTAuction()  
     const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
     

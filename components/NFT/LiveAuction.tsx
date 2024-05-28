@@ -33,8 +33,9 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 {/* Curation pagination in v2*/}
 
 const LiveAuction = () => {
-    const { data: liveNFTAuction } = useLiveNFTAuction()  
-    const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
+    // const { data: liveNFTAuction } = useLiveNFTAuction()  
+    // const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
+    const currentNFTIPFS = "ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
     
     const { NFTState, setNFTState } = useNFTState()
     const bid = useLiveNFTBid()

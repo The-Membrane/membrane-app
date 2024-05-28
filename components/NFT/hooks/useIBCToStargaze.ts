@@ -14,17 +14,21 @@ import { useBalanceByAsset } from '@/hooks/useBalance'
 import { shiftDigits } from '@/helpers/math'
 import useLiveNFTBid from './useLiveNFTBid'
 import useLiveAssetBid from './useLiveAssetBid'
+import { useOsmosisBlockInfo, useOsmosisClient } from './useBraneAuction'
 
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
-const useIBCToStargaze = async () => {
+const useIBCToStargaze = () => {
   const nftBid = useLiveNFTBid()
   const assetBid = useLiveAssetBid()
   
   const { address: stargazeAddress } = useWallet('stargaze')
-  const { address: osmosisAddress, getSigningStargateClient } = useWallet('osmosis')
+  const { address: osmosisAddress } = useWallet('osmosis')
 
-  const osmosisClient = await getSigningStargateClient()
+  const { data: osmosisClient } = useOsmosisClient()
+  const { data: data } = useOsmosisBlockInfo()
+  const currentHeight = data?.currentHeight
+  const currentBlock = data?.currentBlock
   
   const osmosisCDT = useAssetBySymbol('CDT')
   const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
@@ -39,14 +43,11 @@ const useIBCToStargaze = async () => {
   const { NFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg ibc to stargaze', stargazeAddress, osmosisAddress, stargazeMBRNBalance, osmosisMBRNBalance, stargazeCDTBalance, osmosisCDTBalance,  NFTState.nftBidAmount, NFTState.assetBidAmount],
-    queryFn: async () => {
-      if (!stargazeAddress || !osmosisAddress) return [] as MsgExecuteContractEncodeObject[]
+    queryKey: ['msg ibc to stargaze', currentHeight, currentBlock, osmosisClient, stargazeAddress, osmosisAddress, stargazeMBRNBalance, osmosisMBRNBalance, stargazeCDTBalance, osmosisCDTBalance,  NFTState.nftBidAmount, NFTState.assetBidAmount],
+    queryFn: () => {
+      if (!stargazeAddress || !osmosisAddress || !osmosisClient) return [] as MsgExecuteContractEncodeObject[]
       const msgs: MsgExecuteContractEncodeObject[] = []
-      // Get the current block height and block so we can set a timeout height
-      // when we make the actual transfer message
-      const currentHeight = await osmosisClient.getHeight();
-      const currentBlock = await osmosisClient.getBlock(currentHeight);
+
 
       // IF the user's NFT bid is larger than their Stargaze CDT balance and they can fulfill it with their Osmosis CDT balance, IBC the remainder to Stargaze
       if (NFTState.nftBidAmount > Number(stargazeCDTBalance)) {
@@ -61,8 +62,8 @@ const useIBCToStargaze = async () => {
           sender: osmosisAddress,
           receiver: stargazeAddress,
           timeoutHeight: {
-            revisionNumber: BigInt(currentBlock.header.version.block),
-            revisionHeight: BigInt(currentHeight) + BigInt(1000),
+            revisionNumber: BigInt(currentBlock?.header.version.block??0),
+            revisionHeight: BigInt(currentHeight??0) + BigInt(1000),
           },
           timeoutTimestamp: BigInt(0),
           memo: "IBCTransfer from Osmosis to Stargaze",
@@ -83,8 +84,8 @@ const useIBCToStargaze = async () => {
           sender: osmosisAddress,
           receiver: stargazeAddress,
           timeoutHeight: {
-            revisionNumber: BigInt(currentBlock.header.version.block),
-            revisionHeight: BigInt(currentHeight) + BigInt(1000),
+            revisionNumber: BigInt(currentBlock?.header.version.block??0),
+            revisionHeight: BigInt(currentHeight??0) + BigInt(1000),
           },
           timeoutTimestamp: BigInt(0),
           memo: "IBCTransfer from Osmosis to Stargaze",

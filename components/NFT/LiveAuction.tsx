@@ -38,8 +38,7 @@ const LiveAuction = async () => {
     
     const { NFTState, setNFTState } = useNFTState()
     const bid = useLiveNFTBid()
-    const ibc = await useIBCToStargaze()
-
+    const ibc = useIBCToStargaze()
 
     const cdt = useAssetBySymbol('CDT')
     const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')

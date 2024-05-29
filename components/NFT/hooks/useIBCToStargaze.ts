@@ -22,7 +22,7 @@ const useIBCToStargaze = () => {
   console.log("here1")
   const { address: stargazeAddress } = useWallet('stargaze')
   const { address: osmosisAddress } = useWallet('osmosis')
-  console.log("here2")
+  console.log("here2", stargazeAddress, osmosisAddress)
 
   const { data: osmosisClient } = useOsmosisClient()
   const { data: data } = useOsmosisBlockInfo()

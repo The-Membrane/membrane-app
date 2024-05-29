@@ -113,6 +113,8 @@ const useIBCToStargaze = () => {
   return useSimulateAndBroadcast({
     msgs,
     enabled: true,
+    amount: "0",
+    queryKey: ['msg ibc to stargaze', msgs],
     // onSuccess,
   })
 }

@@ -3,16 +3,16 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useEffect, useState } from 'react'
 import useWallet from './useWallet'
 import { StdFee } from '@cosmjs/stargate'
-import { useQuery } from '@tanstack/react-query'
+import { QueryKey, useQuery } from '@tanstack/react-query'
 
 type Simulate = {
   msgs: MsgExecuteContractEncodeObject[] | undefined | null
   amount: string | undefined
   enabled?: boolean
-  queryKey?: string[]
+  queryKey?: QueryKey
 }
 
-const useSimulate = ({ msgs, amount, enabled = true, queryKey = [] }: Simulate) => {
+const useSimulate = ({ msgs, amount, enabled = true, queryKey }: Simulate) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet()
 
@@ -22,7 +22,7 @@ const useSimulate = ({ msgs, amount, enabled = true, queryKey = [] }: Simulate) 
   }, [amount, errorMessage])
 
   const simulate = useQuery<[StdFee, number] | undefined, Error>({
-    queryKey: ['simulate', amount, address, chain.chain_id, ...queryKey],
+    queryKey: ['simulate', amount, address, chain.chain_id, queryKey],
     queryFn: async () => {
       if (!isWalletConnected || !address || !msgs) return undefined
 

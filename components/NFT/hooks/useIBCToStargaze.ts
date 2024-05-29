@@ -114,7 +114,7 @@ const useIBCToStargaze = () => {
     msgs,
     enabled: true,
     amount: "0",
-    queryKey: ['msg ibc to stargaze', (msgs?.toString()??"0")],
+    queryKey: ['msg ibc to stargaze',  NFTState.nftBidAmount.toString(), NFTState.assetBidAmount.toString()],
     // onSuccess,
   })
 }

@@ -66,7 +66,7 @@ const useIBCToStargaze = () => {
             revisionHeight: BigInt(currentHeight!) + BigInt(1000),
           },
           timeoutTimestamp: BigInt(0),
-          memo: "IBCTransfer from Osmosis to Stargaze",
+          memo: "",
         })
         msg.typeUrl = "cosmos-sdk/MsgTransfer"
 

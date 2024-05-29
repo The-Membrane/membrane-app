@@ -44,6 +44,7 @@ const useIBCToStargaze = () => {
   const osmosisMBRNBalance = useBalanceByAsset(osmosisMBRN)
 
   const { NFTState } = useNFTState()
+  console.log("here4.5")
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['srngsrnskrn', currentHeight, currentBlock, osmosisClient, stargazeAddress, osmosisAddress, stargazeMBRNBalance, osmosisMBRNBalance, stargazeCDTBalance, osmosisCDTBalance,  NFTState.nftBidAmount, NFTState.assetBidAmount],

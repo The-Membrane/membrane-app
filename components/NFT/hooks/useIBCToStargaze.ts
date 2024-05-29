@@ -28,7 +28,7 @@ const useIBCToStargaze = () => {
   const { data: data } = useOsmosisBlockInfo()
   const currentHeight = data?.currentHeight
   const currentBlock = data?.currentBlock
-  console.log("here3")
+  console.log("here3", currentHeight, currentBlock)
   
   const osmosisCDT = useAssetBySymbol('CDT')
   const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
@@ -44,7 +44,7 @@ const useIBCToStargaze = () => {
   const { NFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg ibc to stargaze', currentHeight, currentBlock, osmosisClient, stargazeAddress, osmosisAddress, stargazeMBRNBalance, osmosisMBRNBalance, stargazeCDTBalance, osmosisCDTBalance,  NFTState.nftBidAmount, NFTState.assetBidAmount],
+    queryKey: ['msg ibc to stargaze', data, osmosisClient, stargazeAddress, osmosisAddress, stargazeMBRNBalance, osmosisMBRNBalance, stargazeCDTBalance, osmosisCDTBalance,  NFTState.nftBidAmount, NFTState.assetBidAmount],
     queryFn: () => {
       console.log(stargazeAddress, osmosisAddress, osmosisClient)
       if (!stargazeAddress || !osmosisAddress || !osmosisClient) return [] as MsgExecuteContractEncodeObject[]
@@ -66,8 +66,8 @@ const useIBCToStargaze = () => {
           sender: osmosisAddress,
           receiver: stargazeAddress,
           timeoutHeight: {
-            revisionNumber: BigInt(currentBlock?.header.version.block??0),
-            revisionHeight: BigInt(currentHeight??0) + BigInt(1000),
+            revisionNumber: BigInt(currentBlock!.header.version.block),
+            revisionHeight: BigInt(currentHeight!) + BigInt(1000),
           },
           timeoutTimestamp: BigInt(0),
           memo: "IBCTransfer from Osmosis to Stargaze",

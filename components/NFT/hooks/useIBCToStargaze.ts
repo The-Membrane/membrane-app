@@ -68,7 +68,7 @@ const useIBCToStargaze = () => {
           timeoutTimestamp: BigInt(0),
           memo: "",
         })
-        msg.typeUrl = "cosmos-sdk/MsgTransfer"
+        // msg.typeUrl = "cosmos-sdk/MsgTransfer"
 
         msgs.push(msg as MsgExecuteContractEncodeObject)
       }

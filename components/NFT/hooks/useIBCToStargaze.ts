@@ -114,7 +114,7 @@ const useIBCToStargaze = () => {
     msgs,
     enabled: true,
     amount: "0",
-    queryKey: ['msg ibc to stargaze', msgs],
+    queryKey: ['msg ibc to stargaze', (msgs?.toString()??"0")],
     // onSuccess,
   })
 }

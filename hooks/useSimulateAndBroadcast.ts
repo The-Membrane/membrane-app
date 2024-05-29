@@ -1,7 +1,6 @@
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import useSimulate from './useSimulate'
 import useTransaction from './useTransaction'
-import { QueryKey } from '@tanstack/react-query'
 
 type SimulateAndBroadcast = {
   simulate: ReturnType<typeof useSimulate>
@@ -10,7 +9,7 @@ type SimulateAndBroadcast = {
 
 type Props = {
   msgs?: MsgExecuteContractEncodeObject[]
-  queryKey?: QueryKey
+  queryKey?: string[]
   enabled?: boolean
   amount?: string
   onSuccess?: () => void

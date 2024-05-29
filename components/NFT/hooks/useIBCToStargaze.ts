@@ -103,6 +103,7 @@ const useIBCToStargaze = () => {
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['msg liveNFTbid'] })
     if (NFTState.nftBidAmount > Number(stargazeCDTBalance)) nftBid.tx.mutate()
     if (NFTState.assetBidAmount > Number(stargazeMBRNBalance)) assetBid.tx.mutate()
   }

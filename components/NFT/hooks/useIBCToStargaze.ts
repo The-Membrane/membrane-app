@@ -48,7 +48,9 @@ const useIBCToStargaze = () => {
       if (!stargazeAddress || !osmosisAddress || !osmosisClient) return [] as MsgExecuteContractEncodeObject[]
       const msgs: MsgExecuteContractEncodeObject[] = []
 
-
+      
+      console.log("NFTState.nftBidAmount: ", NFTState.nftBidAmount, "stargazeCDTBalance: ", stargazeCDTBalance, "osmosisCDTBalance: ", osmosisCDTBalance, "stargazeMBRNBalance: ", stargazeMBRNBalance, "osmosisMBRNBalance: ", osmosisMBRNBalance, "NFTState.assetBidAmount: ", NFTState.assetBidAmount)
+      console.log(osmosisCDT)
       // IF the user's NFT bid is larger than their Stargaze CDT balance and they can fulfill it with their Osmosis CDT balance, IBC the remainder to Stargaze
       if (NFTState.nftBidAmount > Number(stargazeCDTBalance)) {
         var remainder = NFTState.nftBidAmount - Number(stargazeCDTBalance)
@@ -93,7 +95,7 @@ const useIBCToStargaze = () => {
 
         msgs.push(msg as MsgExecuteContractEncodeObject)
       } 
-
+      console.log(msgs)
       return msgs as MsgExecuteContractEncodeObject[]
     },
     enabled: !!stargazeAddress && !!osmosisAddress && !!stargazeCDTBalance && !!osmosisCDTBalance && !!stargazeMBRNBalance && !!osmosisMBRNBalance && !!NFTState.nftBidAmount && !!NFTState.assetBidAmount,

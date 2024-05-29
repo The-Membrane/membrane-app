@@ -44,7 +44,7 @@ const useIBCToStargaze = () => {
   const { NFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg ibc to stargaze'],//, currentHeight, currentBlock, osmosisClient, stargazeAddress, osmosisAddress, stargazeMBRNBalance, osmosisMBRNBalance, stargazeCDTBalance, osmosisCDTBalance,  NFTState.nftBidAmount, NFTState.assetBidAmount],
+    queryKey: ['msg ibc to stargaze', currentHeight, currentBlock, osmosisClient, stargazeAddress, osmosisAddress, stargazeMBRNBalance, osmosisMBRNBalance, stargazeCDTBalance, osmosisCDTBalance,  NFTState.nftBidAmount, NFTState.assetBidAmount],
     queryFn: () => {
       console.log(stargazeAddress, osmosisAddress, osmosisClient)
       if (!stargazeAddress || !osmosisAddress || !osmosisClient) return [] as MsgExecuteContractEncodeObject[]
@@ -103,7 +103,7 @@ const useIBCToStargaze = () => {
     enabled: !!stargazeAddress && !!osmosisAddress && !!stargazeCDTBalance && !!osmosisCDTBalance && !!stargazeMBRNBalance && !!osmosisMBRNBalance && !!NFTState.nftBidAmount && !!NFTState.assetBidAmount,
   })
 
-  console.log("here5")
+  console.log("here5", msgs)
   
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })

@@ -100,7 +100,7 @@ const useIBCToStargaze = () => {
       console.log(msgs)
       return msgs as MsgExecuteContractEncodeObject[]
     },
-    enabled: !!stargazeAddress && !!osmosisAddress && !!stargazeCDTBalance && !!osmosisCDTBalance && !!stargazeMBRNBalance && !!osmosisMBRNBalance && !!NFTState.nftBidAmount && !!NFTState.assetBidAmount,
+    enabled: !!stargazeAddress && !!osmosisAddress,
   })
 
   console.log("here5", msgs)

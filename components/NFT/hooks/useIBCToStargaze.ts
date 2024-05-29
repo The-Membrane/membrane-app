@@ -21,19 +21,22 @@ const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 const useIBCToStargaze = () => {
   const nftBid = useLiveNFTBid()
   const assetBid = useLiveAssetBid()
-  
+  console.log("here1")
   const { address: stargazeAddress } = useWallet('stargaze')
   const { address: osmosisAddress } = useWallet('osmosis')
+  console.log("here2")
 
   const { data: osmosisClient } = useOsmosisClient()
   const { data: data } = useOsmosisBlockInfo()
   const currentHeight = data?.currentHeight
   const currentBlock = data?.currentBlock
+  console.log("here3")
   
   const osmosisCDT = useAssetBySymbol('CDT')
   const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
   const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
   const osmosisCDTBalance = useBalanceByAsset(osmosisCDT, 'osmosis')
+  console.log("here4")
   
   const osmosisMBRN = useAssetBySymbol('MBRN')
   const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
@@ -102,6 +105,7 @@ const useIBCToStargaze = () => {
     enabled: !!stargazeAddress && !!osmosisAddress && !!stargazeCDTBalance && !!osmosisCDTBalance && !!stargazeMBRNBalance && !!osmosisMBRNBalance && !!NFTState.nftBidAmount && !!NFTState.assetBidAmount,
   })
 
+  console.log("here5")
   
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })

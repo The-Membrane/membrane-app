@@ -87,7 +87,7 @@ const LiveAuction = () => {
                 isLoading={ibc.simulate.isPending && !ibc.simulate.isError && ibc.simulate.data}
                 onClick={() => ibc.tx.mutate()}
                 >
-                Bid
+                IBC + Bid
             </TxButton> : <TxButton
                 marginLeft={"35%"}
                 marginTop={"3%"}

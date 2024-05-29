@@ -38,12 +38,12 @@ export const useOsmosisBlockInfo = () => {
   return useQuery({
     queryKey: ['osmosis block info', client],
     queryFn: async () => {
-      const blockHeight = await client!.getHeight().then(async (height) => {        
+      const {currentBlock: currentBlock, currentHeight: height} = await client!.getHeight().then(async (height) => {        
       const currentBlock = await client!.getBlock(height);
       
       return {currentBlock: currentBlock, currentHeight: height}
       })
-      return {currentBlock: undefined, currentHeight: undefined} as {currentBlock: Block | undefined, currentHeight: number | undefined}
+      return {currentBlock: currentBlock, currentHeight: height} as {currentBlock: Block | undefined, currentHeight: number | undefined}
     },
   })
 }

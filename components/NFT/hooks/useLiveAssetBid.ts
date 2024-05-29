@@ -13,7 +13,7 @@ const useLiveAssetBid = () => {
   const { NFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg liveNFTbid', address, NFTState.nftBidAmount],
+    queryKey: ['msg liveAssetbid', address, NFTState.assetBidAmount],
     queryFn: () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
 

@@ -1,10 +1,8 @@
-import contracts from '@/config/contracts.json'
-import { BraneAuctionMsgComposer } from '@/contracts/codegen/brane_auction/BraneAuction.message-composer'
+
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
-import { coin } from '@cosmjs/stargate'
 import useNFTState from "./useNFTState";
 import { queryClient } from '@/pages/_app'
 

@@ -112,7 +112,7 @@ const useIBCToStargaze = () => {
 
   return useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    enabled: true,
     // onSuccess,
   })
 }

@@ -53,9 +53,7 @@ const LiveAuction = () => {
         setNFTState({ nftBidAmount: value })
     }
 
-    // console.log(ibc.tx.data?.msgResponses)
-    // console.log(ibc.tx.data)
-    // console.log(ibc)
+    console.log(!isGreaterThanZero(NFTState.nftBidAmount), ibc.simulate.isError, !ibc.simulate.data)
     
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">

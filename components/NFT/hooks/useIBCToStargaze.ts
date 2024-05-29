@@ -46,13 +46,9 @@ const useIBCToStargaze = () => {
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg ibc to stargaze', data, osmosisClient, stargazeAddress, osmosisAddress, stargazeMBRNBalance, osmosisMBRNBalance, stargazeCDTBalance, osmosisCDTBalance,  NFTState.nftBidAmount, NFTState.assetBidAmount],
     queryFn: () => {
-      console.log(stargazeAddress, osmosisAddress, osmosisClient)
       if (!stargazeAddress || !osmosisAddress || !osmosisClient) return [] as MsgExecuteContractEncodeObject[]
       const msgs: MsgExecuteContractEncodeObject[] = []
 
-      
-      console.log("NFTState.nftBidAmount: ", NFTState.nftBidAmount, "stargazeCDTBalance: ", stargazeCDTBalance, "osmosisCDTBalance: ", osmosisCDTBalance, "stargazeMBRNBalance: ", stargazeMBRNBalance, "osmosisMBRNBalance: ", osmosisMBRNBalance, "NFTState.assetBidAmount: ", NFTState.assetBidAmount)
-      console.log(osmosisCDT)
       // IF the user's NFT bid is larger than their Stargaze CDT balance and they can fulfill it with their Osmosis CDT balance, IBC the remainder to Stargaze
       if (NFTState.nftBidAmount > Number(stargazeCDTBalance)) {
         var remainder = NFTState.nftBidAmount - Number(stargazeCDTBalance)
@@ -72,6 +68,7 @@ const useIBCToStargaze = () => {
           timeoutTimestamp: BigInt(0),
           memo: "IBCTransfer from Osmosis to Stargaze",
         })
+        msg.typeUrl = "cosmos-sdk/MsgTransfer"
 
         msgs.push(msg as MsgExecuteContractEncodeObject)
       }

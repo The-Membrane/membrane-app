@@ -75,7 +75,7 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     <Stack gap="0" px="3">
       <HStack justifyContent="space-between">
         <Text variant="lable" textTransform="unset">
-          {label} { (mintState?.mint??0) > 0.1 ? "(+$"+(mintState?.mint??0).toFixed(2)+")" : (mintState?.repay??0) > 0.1 ? "(-$"+(mintState?.repay??0).toFixed(2)+")" : "(mintable: $"+maxMintLabel+")"}
+          {label} { (mintState?.mint??0) > 0.1 ? "(+$"+(mintState?.mint??0).toFixed(2)+")" : (mintState?.repay??0) > 0.1 ? "(-$"+(mintState?.repay??0).toFixed(2)+")": (mintState?.repay??0) > debtAmount ? "(-$"+(debtAmount).toFixed(2)+")" : "(mintable: $"+maxMintLabel+")"}
         </Text>
         <HStack>
           <Text variant="value">${value}</Text>

@@ -105,7 +105,6 @@ const useIBCToStargaze = () => {
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    queryClient.invalidateQueries({ queryKey: ['msg liveNFTbid'] })
   }
 
   return useSimulateAndBroadcast({

@@ -65,7 +65,6 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     if (repay > 0 && newValue == 0) {
       repay = parseFloat(walletCDT)
       ltvSlider = 0
-      value = 0
     }
 
 
@@ -79,7 +78,7 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
           {label} { (mintState?.mint??0) > 0.1 ? "(+$"+(mintState?.mint??0).toFixed(2)+")" : (mintState?.repay??0) > debtAmount ? "(-$"+(debtAmount).toFixed(2)+")" : (mintState?.repay??0) > 0.1 ? "(-$"+(mintState?.repay??0).toFixed(2)+")" : "(mintable: $"+maxMintLabel+")"}
         </Text>
         <HStack>
-          <Text variant="value">${value}</Text>
+          <Text variant="value">${Math.max(value, 0)}</Text>
         </HStack>
       </HStack>
       <SliderWithState value={value} onChange={onChange} min={0} max={maxSlider} walletCDT={parseFloat(walletCDT)} summary={mintState.summary}/>

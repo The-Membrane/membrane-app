@@ -96,9 +96,9 @@ const LiveAuction = () => {
                 marginTop={"3%"}
                 w="150px"
                 px="10"
-                isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
-                isLoading={bid.simulate.isPending && !bid.simulate.isError && bid.simulate.data}
-                onClick={() => bid.tx.mutate()}
+                isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
+                isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
+                onClick={() => bid.action.tx.mutate()}
                 >
                 Bid
             </TxButton>}

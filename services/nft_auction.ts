@@ -10,9 +10,16 @@ export const NFTAuctionClient = async () => {
 }
 
 export const getLiveNFTAuction = async () => {
-    const client = await NFTAuctionClient()
-    return client.liveNftAuction().then((res) => res.auction) as Promise<Auction>
-    
+  const client = await NFTAuctionClient()
+  return client.liveNftAuction().then((res) => res.auction) as Promise<Auction>    
+}
+
+
+export const getLiveNFTJSON = async (ipfsString: string) => {
+  const data = await fetch("https://ipfs-gw.stargaze-apis.com/ipfs/" + ipfsString)
+  const json = await data.json()
+  return json as Promise<any>
+  
 }
 
 export const getLiveAssetAuction = async () => {

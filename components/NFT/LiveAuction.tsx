@@ -6,7 +6,7 @@ import { useBalanceByAsset } from "@/hooks/useBalance";
 import { TxButton } from "../TxButton";
 import { isGreaterThanZero } from "@/helpers/num";
 import useLiveNFTBid from "./hooks/useLiveNFTBid";
-import { useLiveNFTAuction } from "./hooks/useBraneAuction";
+import { useLiveNFT, useLiveNFTAuction } from "./hooks/useBraneAuction";
 import useIBCToStargaze from "./hooks/useIBCToStargaze";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
@@ -46,8 +46,15 @@ const LiveAuction = () => {
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
     const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
 
-    //Remove ipfs portion of link
+    //Remove ipfs portion of link for metadata
     const ipfsString = removeSegmentAndBefore(currentNFTIPFS, "ipfs://")
+    //Get JSON metadata from IPFS
+    const { data: liveNFT } = useLiveNFT(ipfsString)
+    console.log(liveNFT)
+    //Remove ipfs portion of link for image
+    const imageIPFSString = removeSegmentAndBefore(liveNFT.image, "ipfs://")
+    console.log(imageIPFSString)
+
 
     const onBidChange = (value: number) => {
         setNFTState({ nftBidAmount: value })
@@ -61,7 +68,7 @@ const LiveAuction = () => {
             {/* Need to add pagination for submissions so we can curate */}
             <Image
                 // src="https://ipfs-gw.stargaze-apis.com/ipfs/bafybeib4p32yqheuhnounizgizaho66g2ypk6gocg7xzxais5tuyz42gym/1.png"
-                src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + ipfsString}
+                src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
             // width="80%"
             // height="80%"

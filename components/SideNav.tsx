@@ -89,7 +89,7 @@ const SideNav = () => {
           <HStack justifyContent={"center"}>
             <Image src={"/images/cdt.svg"} w="18px" h="18px" />
             <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize={"medium"}>
-              {cdtPrice}
+              {cdtPrice != " " && cdtPrice != "0" ? "$" : null}{cdtPrice}
             </Text>
           </HStack>
         </Stack>

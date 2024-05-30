@@ -205,7 +205,7 @@ export const getMintAndRepayMsgs = ({
 }: GetMintAndRepayMsgs) => {
   const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
   const msgs = []
-
+  
   if (num(mintAmount).isGreaterThan(0)) {
     const mintMsg = messageComposer.increaseDebt({
       positionId,

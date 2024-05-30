@@ -61,6 +61,13 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
       ltvSlider = num(debtAmount).minus(repay).times(100).dividedBy(maxMint).dp(2).toNumber()
     }
 
+    //If repaying everything, use all the Wallet's CDT to get past the minimum debt barrier
+    if (repay > 0 && newValue == 0) {
+      repay = parseFloat(walletCDT)
+      ltvSlider = 0
+    }
+
+
     setMintState({ mint, repay, ltvSlider, newDebtAmount: newValue })
   }
 

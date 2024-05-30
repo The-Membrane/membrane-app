@@ -56,7 +56,7 @@ const useProtocolClaims = () => {
   const { data } = useStaked()        
   const { staked = [], unstaking = [], rewards = []} = data || {}  
   const stakingClaim = useStakingClaim(false)
-  const unstakeClaim = useClaimUnstake()
+  const unstakeClaim = useClaimUnstake({address: address})
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {
@@ -112,11 +112,13 @@ const useProtocolClaims = () => {
           }
         }
         //If there is anything to unstake, unstake
-        if (unstaking?.find((unstake: any, index: number) => {            
-            const { minutesLeft } = getTimeLeft(unstake?.unstake_start_time)
-            minutesLeft <= 0
+        if (unstaking.find((unstake: any, index: number) => {            
+            const { minutesLeft } = getTimeLeft(unstake.unstake_start_time)
+            return minutesLeft <= 0
         })){          
-          if (!unstakeClaim?.action.simulate.isError){
+          console.log("made it here")
+          if (!unstakeClaim.action.simulate.isError){
+            console.log("adding unstaking claim")
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
           }
         }
@@ -159,6 +161,7 @@ const useProtocolClaims = () => {
         }
         if (claimables){
           claims_summary.vesting = claimables.map((claimable) => {
+            if (!claimable) return { denom: '', amount: '0'}
             return {
               denom: claimable.info.native_token.denom,
               amount: claimable.amount
@@ -180,12 +183,13 @@ const useProtocolClaims = () => {
       }
       //Update claims summary with unstaking
       claims_summary.staking = claims_summary.staking.concat(unstaking.map((unstake) => {
-        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {              
+        if (!unstake) return
+        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {           
         return {
-          denom: unstake?.asset?.symbol,
+          denom: mbrnAsset?.base as string,
           amount: unstake?.amount
         }
-      }}))
+      }}))      
 
       return {msgs, claims: claims_summary}
     },
@@ -210,7 +214,8 @@ const useProtocolClaims = () => {
   //Transform claim summary to a single list of Coin
   const claims_summ = Object.values(queryclaimsSummary).reduce((acc, val) => acc.concat(val), [])
   //Aggregate coins in claims that have the same denom
-  const agg_claims = claims_summ.filter((coin) => num(coin.amount).isGreaterThan(0))
+  const definedClaims = claims_summ.filter((coin) => coin !== undefined)
+  const agg_claims = definedClaims.filter((coin) => num(coin.amount).isGreaterThan(0))
   .reduce((acc, claim) => {
     const existing = acc.find((c) => c.denom === claim.denom)
     if (existing) {

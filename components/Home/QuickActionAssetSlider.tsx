@@ -1,41 +1,43 @@
 import { HStack, Stack, Text } from '@chakra-ui/react'
-import { SliderWithState } from './SliderWithState'
-import { AssetWithBalance } from './hooks/useCombinBalance'
-import useMintState from './hooks/useMintState'
 import { getSummary } from '@/helpers/mint'
 import { num } from '@/helpers/num'
+import useQuickActionState from './hooks/useQuickActionState'
+import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
+import { SliderWithState } from '../Mint/SliderWithState'
+import { delayTime } from '@/config/defaults'
+import { useEffect } from 'react'
 
 export type AssetWithSliderProps = {
   label: string
   asset: AssetWithBalance
+  onChangeExt: (value: number) => void
 }
 
-export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
-  const { mintState, setMintState } = useMintState()
+export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetWithSliderProps) => {
+  const { quickActionState, setQuickActionState } = useQuickActionState()
 
   const onChange = (value: number) => {
-    let updatedAssets = mintState.assets.map((asset) => {
+    onChangeExt(value)
+    let updatedAssets = quickActionState.assets.map((asset) => {
       const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
       
-      const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
-      const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
-      const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
-        ? newDeposit
-        : -diffInUsd
-      const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
+      const newDeposit = num(sliderValue).toNumber()
+      const amount = num(newDeposit).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
+
       return {
         ...asset,
         amount,
-        amountValue,
         sliderValue,
       }
     })
 
     const { summary, totalUsdValue } = getSummary(updatedAssets)
 
-    setMintState({ assets: updatedAssets, summary, totalUsdValue })
+    setQuickActionState({ assets: updatedAssets, summary, totalUsdValue })
   }
 
+
+  
   return (
     <Stack gap="0">
       <HStack justifyContent="space-between">
@@ -55,3 +57,4 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
     </Stack>
   )
 }
+

@@ -52,7 +52,7 @@ const LiveAuction = () => {
     const { data: liveNFT } = useLiveNFT(ipfsString)
     console.log(liveNFT)
     //Remove ipfs portion of link for image
-    const imageIPFSString = removeSegmentAndBefore(liveNFT.image, "ipfs://")
+    const imageIPFSString = removeSegmentAndBefore(liveNFT.image || "ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png", "ipfs://")
     console.log(imageIPFSString)
 
 

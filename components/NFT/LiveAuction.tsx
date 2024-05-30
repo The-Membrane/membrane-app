@@ -8,6 +8,7 @@ import { isGreaterThanZero } from "@/helpers/num";
 import useLiveNFTBid from "./hooks/useLiveNFTBid";
 import { useLiveNFT, useLiveNFTAuction } from "./hooks/useBraneAuction";
 import useIBCToStargaze from "./hooks/useIBCToStargaze";
+import { useMemo } from "react";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
 //ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm
@@ -52,7 +53,10 @@ const LiveAuction = () => {
     const { data: liveNFT } = useLiveNFT(ipfsString)
     console.log(liveNFT)
     //Remove ipfs portion of link for image
-    const imageIPFSString = removeSegmentAndBefore(liveNFT.image??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png", "ipfs://")
+    const imageIPFSString = useMemo(() => {
+        if (liveNFT) return removeSegmentAndBefore(liveNFT.image, "ipfs://")
+            else "bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
+    }, [liveNFT.image])
     console.log(imageIPFSString)
 
 

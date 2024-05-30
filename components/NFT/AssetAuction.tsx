@@ -26,6 +26,8 @@ const AssetAuction = () => {
         setNFTState({ assetBidAmount: value })
     }
 
+    if (!liveAssetAuction) return null
+
     return (
         <Stack w="full" gap="5">
         <Text variant="title">ASSET AUCTION</Text>

@@ -4,7 +4,7 @@ import NFTBid from './NFTBid'
 import AssetAuction from './AssetAuction'
 import BridgeToStargaze from './BridgeToStargaze'
 
-const NFT = () => {    
+const NFT = () => {
     return (
         <HStack gap="5" w="full" alignItems="flex-start">
             <Stack w="full" gap="5">

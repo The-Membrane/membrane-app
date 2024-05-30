@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { AssetWithBalance } from './useCombinBalance'
 
 // export type Summary = AssetWithBalance & {
 //   label: string
@@ -13,6 +12,8 @@ import { AssetWithBalance } from './useCombinBalance'
 type NFTState = {
     nftBidAmount: number
     assetBidAmount: number
+    cdtBridgeAmount: number
+    mbrnBridgeAmount: number
 }
 
 type Store = {
@@ -24,6 +25,8 @@ type Store = {
 const initialState: NFTState = {
     nftBidAmount: 0,
     assetBidAmount: 0,
+    cdtBridgeAmount: 0,
+    mbrnBridgeAmount: 0,
 }
 
 // @ts-ignore

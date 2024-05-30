@@ -2,6 +2,7 @@ import { HStack, Stack, Text } from '@chakra-ui/react'
 import LiveAuction from './LiveAuction'
 import NFTBid from './NFTBid'
 import AssetAuction from './AssetAuction'
+import BridgeToStargaze from './BridgeToStargaze'
 
 const NFT = () => {    
     return (
@@ -12,8 +13,7 @@ const NFT = () => {
                 <NFTBid />
             </Stack>
             <Stack w="full" gap="5">
-                <Text variant="title">Bridge To Stargaze</Text>
-                {/*  */}
+                <BridgeToStargaze />
                 <AssetAuction />
             </Stack>
             {/* Claim button for either the NFT or the Asset */}

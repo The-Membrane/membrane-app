@@ -19,10 +19,8 @@ const AssetAuction = () => {
     //Bid Auctions end when the current NFT auction does
     const timeLeft = useCountdown(liveNFTAuction?.auction_end_time).timeString
 
-    const mbrn = useAssetBySymbol('MBRN')
     const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
     const stargazeMBRNBalance = useBalanceByAsset(stargazeMBRN, 'stargaze')
-    const osmosisMBRNBalance = useBalanceByAsset(mbrn)
     
     const onBidChange = (value: number) => {
         setNFTState({ assetBidAmount: value })
@@ -57,7 +55,7 @@ const AssetAuction = () => {
                     value={NFTState.assetBidAmount}
                     onChange={onBidChange}
                     min={0}
-                    max={Number(stargazeMBRNBalance + osmosisMBRNBalance)}
+                    max={Number(stargazeMBRNBalance)}
                 />
                 <TxButton
                     marginLeft={"35%"}

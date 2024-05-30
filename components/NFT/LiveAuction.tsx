@@ -40,12 +40,9 @@ const LiveAuction = () => {
     
     const { NFTState, setNFTState } = useNFTState()
     const bid = useLiveNFTBid()
-    const ibc = useIBCToStargaze()
 
-    const cdt = useAssetBySymbol('CDT')
     const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
-    const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
 
     //Remove ipfs portion of link for metadata
     const ipfsString = removeSegmentAndBefore(currentNFTIPFS, "ipfs://")
@@ -62,8 +59,6 @@ const LiveAuction = () => {
         setNFTState({ nftBidAmount: value })
     }
 
-    console.log(!isGreaterThanZero(NFTState.nftBidAmount), ibc.simulate.isError, !ibc.simulate.data)
-    console.log(ibc.tx.error)
     
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
@@ -72,8 +67,8 @@ const LiveAuction = () => {
                 // src="https://ipfs-gw.stargaze-apis.com/ipfs/bafybeib4p32yqheuhnounizgizaho66g2ypk6gocg7xzxais5tuyz42gym/1.png"
                 src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
-            width="80%"
-            height="80%"
+            width="36%"
+            height="auto"
             />
             <Stack w="full" gap="1">
             <HStack justifyContent="space-between">
@@ -88,19 +83,9 @@ const LiveAuction = () => {
                 value={NFTState.nftBidAmount}
                 onChange={onBidChange}
                 min={0}
-                max={Number(stargazeCDTBalance + osmosisCDTBalance)}
+                max={Number(stargazeCDTBalance)}
             />
-            {NFTState.nftBidAmount > Number(stargazeCDTBalance) ? <TxButton
-                marginLeft={"35%"}
-                marginTop={"3%"}
-                w="150px"
-                px="10"
-                isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) }//|| ibc.simulate.isError || !ibc.simulate.data}
-                isLoading={ibc.simulate.isPending && !ibc.simulate.isError && ibc.simulate.data}
-                onClick={() => ibc.tx.mutate()}
-                >
-                IBC + Bid
-            </TxButton> : <TxButton
+            <TxButton
                 marginLeft={"35%"}
                 marginTop={"3%"}
                 w="150px"
@@ -110,7 +95,7 @@ const LiveAuction = () => {
                 onClick={() => bid.action.tx.mutate()}
                 >
                 Bid
-            </TxButton>}
+            </TxButton>
             </Stack>
         </Card>
     )

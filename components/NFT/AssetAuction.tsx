@@ -37,9 +37,6 @@ const AssetAuction = () => {
                 Auction for {auctionAmount??0} CDT
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
-                Auction for {auctionAmount??0} CDT
-                </Text>
-                <Text fontSize="16px" fontWeight="700">
                 Current Bid: {currentBid??0} MBRN
                 </Text>
                 <Text fontSize="16px" fontWeight="700">

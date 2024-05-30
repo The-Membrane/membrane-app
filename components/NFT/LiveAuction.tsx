@@ -51,13 +51,11 @@ const LiveAuction = () => {
     const ipfsString = removeSegmentAndBefore(currentNFTIPFS, "ipfs://")
     //Get JSON metadata from IPFS
     const { data: liveNFT } = useLiveNFT(ipfsString)
-    console.log(liveNFT)
     //Remove ipfs portion of link for image
     const imageIPFSString = useMemo(() => {
         if (liveNFT) return removeSegmentAndBefore(liveNFT.image, "ipfs://")
             else "bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
     }, [liveNFT])
-    console.log(imageIPFSString)
 
 
     const onBidChange = (value: number) => {
@@ -74,8 +72,8 @@ const LiveAuction = () => {
                 // src="https://ipfs-gw.stargaze-apis.com/ipfs/bafybeib4p32yqheuhnounizgizaho66g2ypk6gocg7xzxais5tuyz42gym/1.png"
                 src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
-            // width="80%"
-            // height="80%"
+            width="80%"
+            height="80%"
             />
             <Stack w="full" gap="1">
             <HStack justifyContent="space-between">

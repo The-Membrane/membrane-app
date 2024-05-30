@@ -98,7 +98,7 @@ export const Summary = () => {
         <SummaryItem
           badge="Repay"
           label="CDT"
-          amount={mintState.repay??0 <= debtAmount ? mintState.repay?.toFixed(2) : debtAmount.toFixed(2)}
+          amount={Math.min(debtAmount, mintState.repay??0).toFixed(2)}
           logo={cdt?.logo}
         />
       )}

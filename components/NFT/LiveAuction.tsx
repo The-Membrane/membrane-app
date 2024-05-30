@@ -56,7 +56,7 @@ const LiveAuction = () => {
     const imageIPFSString = useMemo(() => {
         if (liveNFT) return removeSegmentAndBefore(liveNFT.image, "ipfs://")
             else "bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
-    }, [liveNFT.image])
+    }, [liveNFT])
     console.log(imageIPFSString)
 
 

@@ -13,8 +13,6 @@ import { shiftDigits } from '@/helpers/math'
 import useLiveNFTBid from './useLiveNFTBid'
 import useLiveAssetBid from './useLiveAssetBid'
 import { useOsmosisBlockInfo, useOsmosisClient } from './useBraneAuction'
-import { buildBidMsg } from '@/services/liquidation';
-import { coin } from '@cosmjs/stargate';
 
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
@@ -45,7 +43,7 @@ const useIBCToStargaze = () => {
 
   const { NFTState } = useNFTState()
 
-  var { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg ibc to stargaze', data, osmosisClient, stargazeAddress, osmosisAddress, stargazeMBRNBalance, osmosisMBRNBalance, stargazeCDTBalance, osmosisCDTBalance,  NFTState.nftBidAmount, NFTState.assetBidAmount],
     queryFn: () => {
       if (!stargazeAddress || !osmosisAddress || !osmosisClient) return [] as MsgExecuteContractEncodeObject[]
@@ -103,25 +101,11 @@ const useIBCToStargaze = () => {
   })
 
   console.log("here5", msgs)
-  if (NFTState.nftBidAmount > Number(stargazeCDTBalance)) {
-    // if (msgs && nftBid.msgs) msgs = msgs.concat(nftBid.msgs)
 
-      if (msgs) {
-        var msg = buildBidMsg({          
-          address: osmosisAddress!,
-          asset: useAssetBySymbol('OSMO')!,
-          liqPremium: 1,
-          funds: [coin(1000000, osmosisCDT?.base!)],
-        })
-        msgs.push(msg as MsgExecuteContractEncodeObject)
-      }
-  }
-  
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['msg liveNFTbid'] })
-    if (NFTState.assetBidAmount > Number(stargazeMBRNBalance)) assetBid.tx.mutate()
   }
 
   return useSimulateAndBroadcast({

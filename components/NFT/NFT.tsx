@@ -9,9 +9,13 @@ const NFT = () => {
             <Stack w="full" gap="5">
                 <Text variant="title">NFT AUCTION</Text>
                 <LiveAuction/>
+                <NFTBid />
             </Stack>
-            <NFTBid />
-            <AssetAuction />
+            <Stack w="full" gap="5">
+                <Text variant="title">Bridge To Stargaze</Text>
+                {/*  */}
+                <AssetAuction />
+            </Stack>
             {/* Claim button for either the NFT or the Asset */}
         </HStack>
     )

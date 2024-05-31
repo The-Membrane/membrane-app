@@ -51,6 +51,7 @@ export const getAssets = (chainID: string = 'osmosis') => {
 
 export const getAssetBySymbol = (symbol: string, chainID: string = 'osmosis') => {
   const assets = getAssets(chainID)
+  if (chainID === "stargaze")console.log(assets)
   return assets?.find((asset) => asset.symbol === symbol)
 }
 

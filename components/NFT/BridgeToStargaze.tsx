@@ -23,8 +23,6 @@ const BridgeToStargaze = () => {
         setNFTState({ mbrnBridgeAmount: value })
     }
 
-    console.log((!isGreaterThanZero(NFTState.mbrnBridgeAmount) && !isGreaterThanZero(NFTState.cdtBridgeAmount)), ibc?.simulate.isError, !ibc?.simulate.data)
-
     return (
         <Stack w="full" gap="5">
         <Text variant="title">Bridge From Osmosis To Stargaze</Text>

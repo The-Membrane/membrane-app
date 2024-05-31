@@ -42,7 +42,9 @@ const LiveAuction = () => {
     const bid = useLiveNFTBid()
 
     const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
+    console.log(stargazeCDT)
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
+    console.log(stargazeCDTBalance)
 
     //Remove ipfs portion of link for metadata
     const ipfsString = removeSegmentAndBefore(currentNFTIPFS, "ipfs://")

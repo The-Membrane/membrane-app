@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 
 const useAssets = (chainID: string = 'osmosis') => {
   const { data: assets } = useQuery({
-    queryKey: ['assets'],
+    queryKey: [chainID + 'assets'],
     queryFn: async () => {
       return getAssets(chainID)
     },

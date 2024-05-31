@@ -15,6 +15,7 @@ const BridgeToStargaze = () => {
     const osmosisMBRNBalance = useBalanceByAsset(mbrn)    
     const cdt = useAssetBySymbol('CDT')
     const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
+    console.log(osmosisCDTBalance, osmosisMBRNBalance)
     
     const onCDTChange = (value: number) => {
         setNFTState({ cdtBridgeAmount: value })
@@ -40,7 +41,7 @@ const BridgeToStargaze = () => {
                     value={NFTState.cdtBridgeAmount}
                     onChange={onCDTChange}
                     min={0}
-                    max={Number(osmosisMBRNBalance)}
+                    max={Number(osmosisCDTBalance)}
                 />
                 <HStack justifyContent="space-between">
                     <Text fontSize="16px" fontWeight="700">
@@ -54,7 +55,7 @@ const BridgeToStargaze = () => {
                     value={NFTState.mbrnBridgeAmount}
                     onChange={onMBRNChange}
                     min={0}
-                    max={Number(osmosisCDTBalance)}
+                    max={Number(osmosisMBRNBalance)}
                 />
                 <TxButton
                     marginTop={"3%"}

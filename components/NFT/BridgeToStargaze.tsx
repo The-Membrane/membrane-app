@@ -23,6 +23,8 @@ const BridgeToStargaze = () => {
         setNFTState({ mbrnBridgeAmount: value })
     }
 
+    console.log((!isGreaterThanZero(NFTState.mbrnBridgeAmount) && !isGreaterThanZero(NFTState.cdtBridgeAmount)), ibc?.simulate.isError, !ibc?.simulate.data)
+
     return (
         <Stack w="full" gap="5">
         <Text variant="title">Bridge From Osmosis To Stargaze</Text>
@@ -60,7 +62,7 @@ const BridgeToStargaze = () => {
                     marginTop={"3%"}
                     w="100%"
                     px="10"
-                    isDisabled={!isGreaterThanZero(NFTState.mbrnBridgeAmount) || !isGreaterThanZero(NFTState.cdtBridgeAmount) || ibc?.simulate.isError || !ibc?.simulate.data}
+                    isDisabled={(!isGreaterThanZero(NFTState.mbrnBridgeAmount) && !isGreaterThanZero(NFTState.cdtBridgeAmount)) || ibc?.simulate.isError || !ibc?.simulate.data}
                     isLoading={ibc.simulate.isPending && !ibc.simulate.isError && ibc.simulate.data}
                     onClick={() => ibc.tx.mutate()}
                     >

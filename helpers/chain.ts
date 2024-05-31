@@ -41,6 +41,7 @@ export const getChainAssets = (chainID: string = 'osmosis') => {
 }
 export const getAssets = (chainID: string = 'osmosis') => {
   const chainAssets = registryAssets.find((asset) => asset.chain_name === chainID)
+  console.log(chainID, chainAssets)
   const supportedChainAssets = chainAssets?.assets.filter((asset) =>
     supportedAssets.includes(asset.symbol),
   )

@@ -27,7 +27,10 @@ export const useBalance = (chainID: string = "osmosis") => {
             reverse: false,
           },
         })
-        .then((res) => res.balances)
+        .then((res) => {
+          console.log(res.balances)
+          return res.balances
+        })
     },
     enabled: !!getRpcClient && !!address,
   })

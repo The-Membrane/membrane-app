@@ -17,9 +17,6 @@ import { useOsmosisBlockInfo, useOsmosisClient } from './useBraneAuction'
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
 const useIBCToStargaze = () => {
-  const nftBid = useLiveNFTBid()
-  const assetBid = useLiveAssetBid()
-
   const { address: stargazeAddress } = useWallet('stargaze')
   const { address: osmosisAddress } = useWallet('osmosis')
 
@@ -28,15 +25,8 @@ const useIBCToStargaze = () => {
   const currentHeight = data?.currentHeight
   const currentBlock = data?.currentBlock
   
-  const osmosisCDT = useAssetBySymbol('CDT')
-  const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
-  const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
-  const osmosisCDTBalance = useBalanceByAsset(osmosisCDT, 'osmosis')
-  
+  const osmosisCDT = useAssetBySymbol('CDT')  
   const osmosisMBRN = useAssetBySymbol('MBRN')
-  const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
-  const stargazeMBRNBalance = useBalanceByAsset(stargazeMBRN, 'stargaze')
-  const osmosisMBRNBalance = useBalanceByAsset(osmosisMBRN)
 
   const { NFTState } = useNFTState()
 
@@ -89,6 +79,7 @@ const useIBCToStargaze = () => {
 
         msgs.push(msg as MsgExecuteContractEncodeObject)
       } 
+      console.log(msgs)
       return msgs as MsgExecuteContractEncodeObject[]
     },
     enabled: !!stargazeAddress && !!osmosisAddress,

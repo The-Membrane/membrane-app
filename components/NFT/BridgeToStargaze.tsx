@@ -15,8 +15,6 @@ const BridgeToStargaze = () => {
     const osmosisMBRNBalance = useBalanceByAsset(mbrn)    
     const cdt = useAssetBySymbol('CDT')
     const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
-    console.log(cdt, mbrn)
-    console.log(osmosisCDTBalance, osmosisMBRNBalance)
     
     const onCDTChange = (value: number) => {
         setNFTState({ cdtBridgeAmount: value })

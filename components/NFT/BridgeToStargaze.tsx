@@ -57,9 +57,8 @@ const BridgeToStargaze = () => {
                     max={Number(osmosisCDTBalance)}
                 />
                 <TxButton
-                    marginLeft={"24%"}
                     marginTop={"3%"}
-                    w="fit-content"
+                    w="100%"
                     px="10"
                     isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || ibc?.simulate.isError || !ibc?.simulate.data}
                     isLoading={ibc.simulate.isPending && !ibc.simulate.isError && ibc.simulate.data}

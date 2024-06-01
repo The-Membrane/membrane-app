@@ -75,7 +75,7 @@ export const LPSummary = () => {
         <SummaryItem
           label="CDT"
           badge="SWAP"
-          amount={num(LPState.newCDT).div(2).toNumber().toFixed(0)}
+          amount={num(LPState.newCDT).multipliedBy(.04).toNumber().toFixed(0)}
           logo={cdt?.logo}
         />
           

@@ -40,7 +40,7 @@ export const StatsCard = () => {
     <Stack gap={3}>
       <HStack mt="auto" gap="24" justifyContent={"center"} onClick={()=>setTitleToggle(!titleToggle)}>
       {titleToggle ? 
-      <Text variant="title" fontSize="16px">
+      <Text fontWeight="bold" fontSize="33px" fontFamily="monospace">
         The Membrane for Stablecoin Laboratories on Osmosis
       </Text>        
            :

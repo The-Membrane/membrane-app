@@ -38,15 +38,15 @@ export const StatsCard = () => {
 
   return (    
     <Stack gap={3}>
+      <HStack mt="auto" gap="24" justifyContent={"center"} onClick={()=>setTitleToggle(!titleToggle)}>
       {titleToggle ? 
-      <Text variant="title" fontSize="16px" onClick={()=>setTitleToggle(!titleToggle)}>
+      <Text variant="title" fontSize="16px">
         The Membrane for Stablecoin Laboratories on Osmosis
       </Text>        
            :
-      <HStack mt="auto" gap="24" justifyContent={"center"} onClick={()=>setTitleToggle(!titleToggle)}>
-        <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
-        <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
-      </HStack>}
+        <><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
+        <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></>}
+      </HStack>
       <Divider mx="0" mb="5" />
     </Stack>
   )

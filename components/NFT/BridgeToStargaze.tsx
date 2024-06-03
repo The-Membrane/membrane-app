@@ -12,7 +12,8 @@ const BridgeToStargaze = () => {
     const ibc = useIBCToStargaze()
 
     const mbrn = useAssetBySymbol('MBRN')
-    const osmosisMBRNBalance = useBalanceByAsset(mbrn)    
+    const osmosisMBRNBalance = useBalanceByAsset(mbrn)
+    console.log(mbrn, osmosisMBRNBalance)
     const cdt = useAssetBySymbol('CDT')
     const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
     

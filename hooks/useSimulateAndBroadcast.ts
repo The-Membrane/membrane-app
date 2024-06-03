@@ -28,7 +28,7 @@ const useSimulateAndBroadcast = ({
     msgs,
     amount,
     queryKey,
-    chain_id
+    chain_id,
     enabled,
   })
 

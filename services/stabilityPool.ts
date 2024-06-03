@@ -18,7 +18,6 @@ import {
   StabilityPoolQueryClient,
 } from '@/contracts/codegen/stability_pool/StabilityPool.client'
 import { StabilityPoolMsgComposer } from '@/contracts/codegen/stability_pool/StabilityPool.message-composer'
-import getCosmWasmClient from '@/helpers/comswasmClient'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { Coin } from '@cosmjs/stargate'
 

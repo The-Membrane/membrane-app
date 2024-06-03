@@ -36,7 +36,7 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 const LiveAuction = () => {
     // const { data: liveNFTAuction } = useLiveNFTAuction()  
     // const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
-    const currentNFTIPFS = "ipfs://bafybeiad5etzz3mdchuexlentn3tporvshzvjmkg2jk2iqz74f6j6oxbsq/metadata/Barbrane"
+    const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
     
     const { NFTState, setNFTState } = useNFTState()
     const bid = useLiveNFTBid()

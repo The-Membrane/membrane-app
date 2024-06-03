@@ -15,7 +15,6 @@ const useAssets = (chainID: string = 'osmosis') => {
 
 export const useAssetBySymbol = (symbol: string,  chainID: string = 'osmosis') => {
   const assets = useAssets(chainID)
-  console.log(chainID, assets)
 
   return useMemo(() => {
     if (!assets || !symbol) return null

@@ -28,7 +28,6 @@ export const useBalance = (chainID: string = "osmosis") => {
           },
         })
         .then((res) => {
-          console.log(res.balances)
           return res.balances
         })
     },

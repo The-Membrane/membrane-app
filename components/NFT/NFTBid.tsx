@@ -1,6 +1,7 @@
 import { Card, HStack, Text, Stack } from "@chakra-ui/react"
 import { useLiveNFTAuction } from "./hooks/useBraneAuction"
 import useCountdown from "@/hooks/useCountdown"
+import { shiftDigits } from "@/helpers/math"
 
 const NFTBid = () => {
     const { data: liveNFTAuction } = useLiveNFTAuction()
@@ -16,7 +17,7 @@ const NFTBid = () => {
                     Current Bid
                     </Text>
                     <Text fontSize="16px" fontWeight="700">
-                    {currentBid?.amount??0}
+                    {shiftDigits(currentBid?.amount??0, -6).toString()}
                     </Text>
                 </Stack>                
                 <Stack w="full" gap="1">

@@ -20,6 +20,7 @@ const useLiveNFTBid = () => {
 
       const messageComposer = new BraneAuctionMsgComposer(address, contracts.brane_auction)
 
+      //Stargaze IBC CDT denom
       const funds = coin(shiftDigits(NFTState.nftBidAmount, 6).toString(), "ibc/B0263C28B6F44651F4596413B41FDB749EA010BD1220816DAC0ABF9947C1E806")
       const msg = messageComposer.bidForNft([funds])
 

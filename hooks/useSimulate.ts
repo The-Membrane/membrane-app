@@ -26,7 +26,6 @@ const useSimulate = ({ msgs, amount, enabled = true, queryKey = [], chain_id }: 
     queryKey: ['simulate', amount, address, chain.chain_id, ...queryKey],
     queryFn: async () => {
       if (!isWalletConnected || !address || !msgs) return undefined
-      console.log("SIM", !isWalletConnected, !address,  !msgs)
 
       const signingClient = await getSigningStargateClient()
       setErrorMessage(null)
@@ -36,7 +35,6 @@ const useSimulate = ({ msgs, amount, enabled = true, queryKey = [], chain_id }: 
     retry: false,
     staleTime: 30000, // data considered "fresh" for 30 seconds
   })
-  console.log("SIM", simulate)
 
   return {
     ...simulate,

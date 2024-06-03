@@ -8,7 +8,7 @@ import { isGreaterThanZero } from "@/helpers/num";
 import useLiveNFTBid from "./hooks/useLiveNFTBid";
 import { useLiveNFT, useLiveNFTAuction } from "./hooks/useBraneAuction";
 import useIBCToStargaze from "./hooks/useIBCToStargaze";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
 //ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm
@@ -59,14 +59,29 @@ const LiveAuction = () => {
         setNFTState({ nftBidAmount: value })
     }
 
-    console.log(bid?.action.simulate.errorMessage, !bid?.action.simulate.data)
+    const [isLoading, setIsLoading] = useState("Loading image from IPFS......");
+
+    // Handle when the image loads successfully
+    const handleImageLoaded = () => {
+      setIsLoading("");
+    };
+  
+    // Handle when the image fails to load
+    const handleImageError = () => {
+      setIsLoading("Error loading image.");
+    };
+
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}
+            {isLoading === "Loading image from IPFS......" || isLoading === "Error loading image." && <div>{isLoading}</div>}
             <Image
                 // src="https://ipfs-gw.stargaze-apis.com/ipfs/bafybeib4p32yqheuhnounizgizaho66g2ypk6gocg7xzxais5tuyz42gym/1.png"
                 src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
+                onLoad={handleImageLoaded}
+                onError={handleImageError}
+                style={{ display: isLoading === "Loading image from IPFS......" ? 'none' : 'block' }}
             width="36%"
             height="auto"
             />
@@ -89,7 +104,7 @@ const LiveAuction = () => {
                 marginTop={"3%"}
                 w="100%"
                 px="10"
-                // isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
+                isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
                 isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
                 onClick={() => bid.action.tx.mutate()}
                 >

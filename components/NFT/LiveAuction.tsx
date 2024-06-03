@@ -34,17 +34,16 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 {/* Curation pagination in v2*/}
 
 const LiveAuction = () => {
-    // const { data: liveNFTAuction } = useLiveNFTAuction()  
-    // const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
-    const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
+    const { data: liveNFTAuction } = useLiveNFTAuction()
+    console.log(liveNFTAuction)
+    const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
+    // const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
     
     const { NFTState, setNFTState } = useNFTState()
     const bid = useLiveNFTBid()
 
     const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
-    console.log(stargazeCDT)
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
-    console.log(stargazeCDTBalance)
 
     //Remove ipfs portion of link for metadata
     const ipfsString = removeSegmentAndBefore(currentNFTIPFS, "ipfs://")
@@ -56,7 +55,7 @@ const LiveAuction = () => {
             else "bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
     }, [liveNFT])
 
-
+    
     const onBidChange = (value: number) => {
         setNFTState({ nftBidAmount: value })
     }

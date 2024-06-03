@@ -1,6 +1,6 @@
 import contracts from '@/config/contracts.json'
 import { Addr } from '@/contracts/generated/positions/Positions.types'
-import getCosmWasmClient from '@/helpers/comswasmClient'
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { StakingClient, StakingQueryClient } from '@/contracts/generated/staking/Staking.client'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { coin } from '@cosmjs/amino'

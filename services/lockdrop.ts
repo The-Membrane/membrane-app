@@ -3,7 +3,7 @@ import { LaunchClient, LaunchQueryClient } from '@/contracts/codegen/launch/Laun
 import { UserRatio } from '@/contracts/codegen/launch/Launch.types'
 import { Addr } from '@/contracts/generated/positions/Positions.types'
 import { getAssetBySymbol } from '@/helpers/chain'
-import getCosmWasmClient from '@/helpers/comswasmClient'
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 

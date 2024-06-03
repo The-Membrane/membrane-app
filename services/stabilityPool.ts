@@ -7,7 +7,7 @@ import {
   CollateralInterestResponse,
 } from '@/contracts/codegen/positions/Positions.types'
 import { Asset, getAssetByDenom, getChainAssets } from '@/helpers/chain'
-import getCosmWasmClient from '@/helpers/comswasmClient'
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'

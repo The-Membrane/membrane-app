@@ -2,7 +2,7 @@ import { OracleQueryClient } from '@/contracts/codegen/oracle/Oracle.client'
 import contracts from '@/config/contracts.json'
 import collateralAssets from '@/config/collateralAssets.json'
 import { AssetInfo, PriceResponse } from '@/contracts/codegen/oracle/Oracle.types'
-import getCosmWasmClient from '@/helpers/comswasmClient'
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { queryClient } from '@/pages/_app'
 
 type CollateralAssets = {

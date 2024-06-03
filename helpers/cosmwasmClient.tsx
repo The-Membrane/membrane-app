@@ -10,5 +10,3 @@ export const getCosmWasmClient = () => {
 export const getSGCosmwasmClient = () => {
   return CosmWasmClient.connect(stargazeRPCUrl)
 }
-
-export default getCosmWasmClient

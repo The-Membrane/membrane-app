@@ -1,11 +1,11 @@
 
 import contracts from '@/config/contracts.json'
-import getSGCosmWasmClient from '@/helpers/comswasmClient'
+import { getSGCosmwasmClient } from '@/helpers/cosmwasmClient' 
 import { BraneAuctionQueryClient } from '@/contracts/codegen/brane_auction/BraneAuction.client'
 import { Auction, BidAssetAuction } from '@/contracts/codegen/brane_auction/BraneAuction.types'
 
 export const NFTAuctionClient = async () => {
-  const cosmWasmClient = await getSGCosmWasmClient()
+  const cosmWasmClient = await getSGCosmwasmClient()
   console.log(cosmWasmClient)
   return new BraneAuctionQueryClient(cosmWasmClient, contracts.brane_auction)
 }

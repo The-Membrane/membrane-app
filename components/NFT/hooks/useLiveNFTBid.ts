@@ -20,7 +20,7 @@ const useLiveNFTBid = () => {
 
       const messageComposer = new BraneAuctionMsgComposer(address, contracts.brane_auction)
 
-      const funds = coin(shiftDigits(NFTState.nftBidAmount, 6).toString(), "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")
+      const funds = coin(shiftDigits(NFTState.nftBidAmount, 6).toString(), "ibc/B0263C28B6F44651F4596413B41FDB749EA010BD1220816DAC0ABF9947C1E806")
       const msg = messageComposer.bidForNft([funds])
 
       return [msg] as MsgExecuteContractEncodeObject[]

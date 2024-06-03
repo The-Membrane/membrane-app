@@ -64,10 +64,10 @@ export const getChainAssets = (chainID: string = 'osmosis') => {
 
 export const getAssets = (chainID: string = 'osmosis') => {
   const chainAssets = registryAssets.find((asset) => asset.chain_name === chainID)
-  const supportedChainAssets = chainAssets?.assets.filter((asset) =>
-    supportedAssets.includes(asset.symbol),
-  )
-  const assetsWtihLogo = supportedChainAssets?.map((asset) => assetWithLogo(asset, chainID)) || []
+  // const supportedChainAssets = chainAssets?.assets.filter((asset) =>
+  //   supportedAssets.includes(asset.symbol),
+  // )
+  const assetsWtihLogo = chainAssets?.assets?.map((asset) => assetWithLogo(asset, chainID)) || []
 
   return [...assetsWtihLogo, ...lpAssets]
 }

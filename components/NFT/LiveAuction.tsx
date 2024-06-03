@@ -65,22 +65,16 @@ const LiveAuction = () => {
     const handleImageLoaded = () => {
       setIsLoading("");
     };
-  
-    // Handle when the image fails to load
-    const handleImageError = () => {
-      setIsLoading("Error loading image.");
-    };
 
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}
-            {isLoading === "Loading image from IPFS......" || isLoading === "Error loading image." && <div>{isLoading}</div>}
+            {isLoading === "Loading image from IPFS......" && <div>{isLoading}</div>}
             <Image
                 // src="https://ipfs-gw.stargaze-apis.com/ipfs/bafybeib4p32yqheuhnounizgizaho66g2ypk6gocg7xzxais5tuyz42gym/1.png"
                 src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
                 onLoad={handleImageLoaded}
-                onError={handleImageError}
                 style={{ display: isLoading === "Loading image from IPFS......" ? 'none' : 'block' }}
             width="36%"
             height="auto"

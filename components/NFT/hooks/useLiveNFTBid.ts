@@ -42,6 +42,7 @@ const useLiveNFTBid = () => {
     onSuccess,
     amount: "0",
     queryKey: ['msg brane auction bid', (msgs?.toString()??"0")],
+    chain_id: 'stargaze'
   }), msgs}
 }
 

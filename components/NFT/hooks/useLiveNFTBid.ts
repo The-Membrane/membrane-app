@@ -38,7 +38,7 @@ const useLiveNFTBid = () => {
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: true,
+    enabled: !!msgs,
     onSuccess,
     amount: "0",
     queryKey: ['msg brane auction bid', (msgs?.toString()??"0")],

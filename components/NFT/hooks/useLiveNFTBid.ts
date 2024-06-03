@@ -37,7 +37,7 @@ const useLiveNFTBid = () => {
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    enabled: true,
     onSuccess,
     amount: "0",
     queryKey: ['msg ibc', (msgs?.toString()??"0")],

@@ -11,6 +11,7 @@ import { handleCollateralswaps, joinCLPools } from '@/services/osmosis'
 import { num } from '@/helpers/num'
 import { exported_supportedAssets } from '@/helpers/chain'
 import { useOraclePrice } from '@/hooks/useOracle'
+import { USDC_CL_RATIO } from '@/config/defaults'
 
 type Props = {
   txSuccess?: () => void
@@ -33,9 +34,9 @@ const useLP = ({ txSuccess }: Props) => {
       //Swap to USDC
       const cdtPrice = prices?.find((price) => price.denom === cdtAsset?.base)
       const usdcPrice = prices?.find((price) => price.denom === usdcAsset?.base)
-      //CL LP range is 96% CDT - 4% USDC rn
-      const CDTInAmount = num(microAmount).multipliedBy(.96).toNumber()
-      const USDCTradeAmount = num(microAmount).multipliedBy(.04).toNumber()
+      //CL LP range flucuates so we havbe a config RATIO
+      const CDTInAmount = num(microAmount).multipliedBy(1 - USDC_CL_RATIO).toNumber()
+      const USDCTradeAmount = num(microAmount).multipliedBy(USDC_CL_RATIO).toNumber()
       const { msg, tokenOutMinAmount } = handleCollateralswaps(address, Number(cdtPrice!.price), Number(usdcPrice!.price), 'USDC' as keyof exported_supportedAssets, USDCTradeAmount)
 
       var msgs = [msg]

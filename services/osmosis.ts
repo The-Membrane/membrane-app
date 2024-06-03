@@ -414,8 +414,11 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
         // lowerTick: BigInt("-100000"),
         // upperTick: BigInt(10000),
         //This is range 0.99988 to 1.003
-        lowerTick: BigInt("-1200"),
-        upperTick: BigInt(3900),
+        // lowerTick: BigInt("-1200"),
+        // upperTick: BigInt(3900),        
+        //This is range 1.00000 to 1.0005
+        lowerTick: BigInt("-100"),
+        upperTick: BigInt(500),
         /**
          * tokens_provided is the amount of tokens provided for the position.
          * It must at a minimum be of length 1 (for a single sided position)

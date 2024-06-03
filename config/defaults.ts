@@ -37,6 +37,8 @@ export const loopMax = 5;
 
 ////Specifics for Osmosis services//////
 export const SWAP_SLIPPAGE = 0.5; //0.5% slippage
+export const USDC_CL_RATIO = 0.115; //11.5% CL
+
 
 /// Mainnet addrs
 export const mainnetAddrs = {

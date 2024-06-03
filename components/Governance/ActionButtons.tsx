@@ -26,13 +26,13 @@ const ActionButtons = ({
   isPending,
   vote,
 }: Props) => {
-  const { isWalletConnected } = useWallet()
+  const { isWalletConnected, connect } = useWallet()
 
   const { days, hours, minutes } = proposal?.daysLeft || {}
   const isEnded = !days && !hours && !minutes
 
   if (!isWalletConnected) {
-    return <ConnectButton w="200px" />
+    return <ConnectButton w="200px" onClick={connect}/>
   }
 
   return (

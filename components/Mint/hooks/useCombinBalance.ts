@@ -2,10 +2,11 @@ import { Asset } from '@/helpers/chain'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import useBalance from '@/hooks/useBalance'
-import { useBasket, useBasketPositions, useCollateralInterest } from '@/hooks/useCDP'
+import { useBasket, useUserPositions, useCollateralInterest } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getBasketAssets, getPositions } from '@/services/cdp'
 import { useMemo } from 'react'
+import useMintState from './useMintState'
 
 export type AssetWithBalance = Asset & {
   sliderValue?: number
@@ -17,14 +18,16 @@ export type AssetWithBalance = Asset & {
   combinUsdValue: number
   price: number
   amount?: string | number
+  inputAmount?: number
 }
 
 const useCombinBalance = () => {
   const { data: collateralInterest } = useCollateralInterest()
   const { data: prices } = useOraclePrice()
   const { data: balances } = useBalance()
-  const { data: basketPositions } = useBasketPositions()
+  const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
+  // const { mintState } = useMintState()
 
   return useMemo(() => {
     const basketAssets = getBasketAssets(basket!, collateralInterest!)
@@ -39,15 +42,14 @@ const useCombinBalance = () => {
         .toNumber()
       const price = prices?.find((p) => p.denom === asset.asset.base)?.price || 0
       const walletsdValue = num(balanceInMicro).times(price).toNumber()
-      const depositUsdValue = num(position?.usdValue || 0)
-        .dp(2)
-        .toNumber()
-      const combinUsdValue = num(combinBalance).times(price).dp(2).toNumber()
+      const depositUsdValue = num(position?.usdValue || 0).toNumber()
+      const combinUsdValue = num(combinBalance).times(price).toNumber()
+      console.log(asset.asset.symbol, balanceInMicro, position?.amount, combinBalance, price)
       return {
         ...asset.asset,
         walletBalance: Number(balanceInMicro),
         walletsdValue,
-        deposited: position?.amount,
+        deposited: position?.amount || 0,
         depositUsdValue,
         combinBalance,
         combinUsdValue,

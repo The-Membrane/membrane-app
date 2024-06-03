@@ -6,21 +6,24 @@ import lpAssets from '@/config/lpAssets.json'
 export type Asset = RegistryAsset & {
   decimal: number
   logo: string
+  isLP: boolean
 }
 
-const supportedAssets = [
-  'OSMO',
-  'ATOM',
-  'TIA',
-  'CDT',
-  'MBRN',
-  'stOSMO',
-  'stATOM',
-  'USDT',
-  'USDC',
-  'milkTIA',
-  'USDC.axl',
-]
+const defaultChain = 'osmosis'
+
+//For swaps
+export interface exported_supportedAssets {
+  OSMO: undefined,
+  ATOM: undefined,
+  TIA: undefined,
+  CDT: undefined,
+  MBRN: undefined,
+  stOSMO: undefined,
+  stATOM: undefined,
+  USDT: undefined,
+  USDC: undefined,
+  "USDC.axl": undefined,
+}
 
 export const getAssetLogo = (asset: RegistryAsset) => {
   return asset?.logo_URIs?.svg || asset?.logo_URIs?.png || asset?.logo_URIs?.jpeg
@@ -30,6 +33,7 @@ const assetWithLogo = (asset: RegistryAsset, chainID: string = 'osmosis') => ({
   ...asset,
   logo: getAssetLogo(asset),
   decimal: getExponentByDenom(registryAssets, asset.base, chainID),
+  isLP: false,
 })
 
 export const getChainAssets = (chainID: string = 'osmosis') => {
@@ -39,9 +43,9 @@ export const getChainAssets = (chainID: string = 'osmosis') => {
 
   return [...assetsWtihLogo, ...lpAssets]
 }
+
 export const getAssets = (chainID: string = 'osmosis') => {
   const chainAssets = registryAssets.find((asset) => asset.chain_name === chainID)
-  console.log(chainID, chainAssets)
   const supportedChainAssets = chainAssets?.assets.filter((asset) =>
     supportedAssets.includes(asset.symbol),
   )
@@ -52,7 +56,6 @@ export const getAssets = (chainID: string = 'osmosis') => {
 
 export const getAssetBySymbol = (symbol: string, chainID: string = 'osmosis') => {
   const assets = getAssets(chainID)
-  console.log(chainID, ":", assets)
   return assets?.find((asset) => asset.symbol === symbol)
 }
 

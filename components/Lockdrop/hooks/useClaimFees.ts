@@ -1,6 +1,5 @@
 import contracts from '@/config/contracts.json'
 import { VestingMsgComposer } from '@/contracts/codegen/vesting/Vesting.message-composer'
-import { decodeMsgs } from '@/helpers/decodeMsg'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
@@ -24,13 +23,14 @@ const useClaimFees = () => {
   })
 
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['allocatiions'] })
+    queryClient.invalidateQueries({ queryKey: ['allocations'] })
   }
 
-  return useSimulateAndBroadcast({
+  return {action: useSimulateAndBroadcast({
     msgs,
     onSuccess,
-  })
+    enabled: true
+  }), msgs}
 }
 
 export default useClaimFees

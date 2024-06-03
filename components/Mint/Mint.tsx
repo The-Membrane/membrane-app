@@ -1,7 +1,6 @@
 import {
   Card,
   HStack,
-  Stack,
   Tab,
   TabIndicator,
   TabList,
@@ -10,14 +9,20 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import BeakerScale from './BeakerScale'
+import Beaker from './Beaker'
 import CurrentPositions from './CurrentPositions'
 import TakeAction from './TakeAction'
 import useMintState from './hooks/useMintState'
-import Beaker from './Beaker'
+import LPTab from './LPTab'
+import { useState } from 'react'
 
-const CustomeTab = ({ label }: { label: string }) => (
-  <Tab zIndex={1} _selected={{ color: 'white' }}>
+type TabProps = {
+  onClick: any
+  label: string
+}
+
+const CustomTab = ({ onClick, label }: TabProps) => (
+  <Tab zIndex={1} onClick={onClick} _selected={{ color: 'white' }}>
     {label}
   </Tab>
 )
@@ -27,7 +32,13 @@ const MintTabsCard = () => {
 
   const onTabChange = (index: number) => {
     setMintState({ isTakeAction: index === 1 })
-  }
+  }  
+  const [activeTabIndex, setActiveTabIndex] = useState(1);
+
+  const handleTabClick = (index: number) => {
+    setActiveTabIndex(index);
+  };
+
   return (
     <Card minW="400px" gap="12" h="max-content" px="2">
       <VStack w="full" gap="5">
@@ -35,10 +46,11 @@ const MintTabsCard = () => {
           Mint
         </Text>
 
-        <Tabs position="relative" variant="unstyled" align="center" w="full" onChange={onTabChange}>
+        <Tabs position="relative" variant="unstyled" align="center" w="full" onChange={onTabChange} index={activeTabIndex}>
           <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
-            <CustomeTab label="Position info" />
-            <CustomeTab label="Take Action" />
+            <CustomTab onClick={() => handleTabClick(0)} label="Position info" />
+            <CustomTab onClick={() => handleTabClick(1)} label="Manage Vault" />
+            <CustomTab onClick={() => handleTabClick(2)} label="LP" />
           </TabList>
 
           <TabIndicator
@@ -48,9 +60,10 @@ const MintTabsCard = () => {
             bg="#C445F0"
             borderRadius="28px"
           />
-          <TabPanels mt="5">
+          <TabPanels paddingBottom={activeTabIndex === 2 ? 0 : 4}>
             <CurrentPositions />
             <TakeAction />
+            <LPTab />
           </TabPanels>
         </Tabs>
       </VStack>

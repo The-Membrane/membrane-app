@@ -5,10 +5,12 @@ import {
   ModalFooter,
   Text,
   ModalContent,
+  Stack,
 } from '@chakra-ui/react'
 import React, { Fragment, PropsWithChildren } from 'react'
 import { TxButton } from '../TxButton'
 import { Action } from '@/types/tx'
+import TxError from '@/components/TxError'
 
 type Props = PropsWithChildren & {
   action?: Action
@@ -31,7 +33,7 @@ const ConfrimDetails = ({ children, action }: Props) => {
 
       <ModalBody>{children}</ModalBody>
 
-      <ModalFooter justifyContent="center">
+      <ModalFooter justifyContent="center" as={Stack}>
         <TxButton
           maxW="200px"
           isLoading={action?.simulate.isLoading || action?.tx.isPending}
@@ -40,6 +42,7 @@ const ConfrimDetails = ({ children, action }: Props) => {
         >
           Confirm
         </TxButton>
+        <TxError action={action!} />
       </ModalFooter>
     </ModalContent>
   )

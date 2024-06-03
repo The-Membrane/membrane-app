@@ -19,18 +19,33 @@ import useCountdown from '@/hooks/useCountdown'
 import { ChangeEvent, useState } from 'react'
 import useStabilityAssetPool from './hooks/useStabilityAssetPool'
 import useWithdrawStabilityPool from './hooks/useWithdrawStabilityPool'
+import useBidState from './hooks/useBidState'
+import dayjs from 'dayjs'
+
+
+export const getSPTimeLeft = (unstakeStartDate: number) => {
+  const unstakingDate = dayjs.unix(unstakeStartDate).add(1, 'day')
+  const daysLeft = unstakingDate.diff(dayjs(), 'day')
+  const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
+  const minutesLeft = unstakingDate.diff(dayjs(), 'minute')
+
+  return {
+    daysLeft,
+    hoursLeft,
+    minutesLeft,
+  }
+}
 
 const UnstakeButton = ({ amount }: { amount: string }) => {
   console.log("unstake", amount)
   const withdraw = useWithdrawStabilityPool(amount)
-  
   return (
     <TxButton
       w="150px"
       px="10"
       isDisabled={!isGreaterThanZero(amount)}
-      isLoading={withdraw.isPending}
-      onClick={() => withdraw.mutate()}
+      isLoading={withdraw.action.simulate.isLoading || withdraw.action.tx.isPending}
+      onClick={() => withdraw.action.tx.mutate()}
     >
       Unstake
     </TxButton>
@@ -43,9 +58,9 @@ const WithdrawButton = ({ amount }: { amount: string }) => {
     <TxButton
       w="150px"
       px="10"
-      isDisabled={!isGreaterThanZero(amount)}
-      isLoading={withdraw.isPending}
-      onClick={() => withdraw.mutate()}
+      isDisabled={!isGreaterThanZero(amount)}      
+      isLoading={withdraw.action.simulate.isLoading || withdraw.action.tx.isPending}
+      onClick={() => withdraw.action.tx.mutate()}
     >
       Withdraw
     </TxButton>
@@ -71,7 +86,7 @@ const CountDown = ({ timeString, amount }: { timeString: string; amount: string 
 }
 
 const Action = ({ deposit, amount }: { deposit: Deposit; amount: string }) => {
-  if (!deposit.unstake_time) {
+  if (!deposit.unstake_time || getSPTimeLeft(deposit.unstake_time).minutesLeft > 0){
     return <UnstakeButton amount={amount} />
   }
 
@@ -93,9 +108,8 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   const onMax = () => {
     setInputAmount(amount)
   }
-
-  if (!isEnded && deposit.unstake_time) {
-    // return <CountDown timeString={timeString} amount={amount} />
+  console.log(isEnded, deposit.unstake_time)
+  if (deposit.unstake_time && getSPTimeLeft(deposit.unstake_time).minutesLeft > 0) {
     return (
       <HStack alignItems="flex-start" gap="5">
         <Box bg="blackAlpha.500" borderRadius="md" px="4" py="1" h="full">
@@ -132,44 +146,31 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   )
 }
 
-// const mockDeposits: Deposit[] = [
-//   {
-//     amount: '1000000000',
-//     deposit_time: 1626844800,
-//     last_accrued: 1626844800,
-//     unstake_time: 1712759367,
-//     // unstake_time: null,
-//     user: 'osmo1qz4g5s8j3x4z7x7z6y7x7z6y7x7z6y7x7z6y',
-//   },
-//   {
-//     amount: '1000000000',
-//     deposit_time: 1626844800,
-//     last_accrued: 1626844800,
-//     // unstake_time: 1712759367,
-//     unstake_time: null,
-//     user: 'osmo1qz4g5s8j3x4z7x7z6y7x7z6y7x7z6y7x7z6y',
-//   },
-//   {
-//     amount: '1000000000',
-//     deposit_time: 1626844800,
-//     last_accrued: 1626844800,
-//     unstake_time: 1712586567,
-//     user: 'osmo1qz4g5s8j3x4z7x7z6y7x7z6y7x7z6y7x7z6y',
-//   },
-// ]
+type Props = {
+  setActiveTabIndex: React.Dispatch<React.SetStateAction<number>>
+}
 
-const StabilityPool = () => {
+const StabilityPool = ({ setActiveTabIndex }: Props) => {
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { deposits = [] } = stabilityPoolAssets || {}
-  // const deposits = mockDeposits
+
+  const { bidState, setBidState } = useBidState()
+
+  const changeTab = () => {
+    setBidState({placeBid: {...bidState?.placeBid, premium: 10}})
+    setActiveTabIndex(0)
+  };
 
   if (deposits.length === 0) {
     return (
       <Card p="8" alignItems="center" gap={5}>
         <Text variant="title" fontSize="24px">
-          Omni-Asset Pool
+        My Omni-Bids
         </Text>
         <Text color="gray">You don't have any deposits in the omni-asset pool.</Text>
+        <Button onClick={changeTab}>
+          Bid in Omni-Pool - Set Premium to 10%
+        </Button>
       </Card>
     )
   }
@@ -177,7 +178,7 @@ const StabilityPool = () => {
   return (
     <Card p="8" alignItems="center" gap={5}>
       <Text variant="title" fontSize="24px">
-        Omni-Asset Pool
+        My Omni-Bids
       </Text>
 
       <Stack py="5" w="full" gap="5">

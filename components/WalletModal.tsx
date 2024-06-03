@@ -11,7 +11,6 @@ import {
   ModalHeader,
   ModalOverlay,
   Stack,
-  Switch,
   Text,
 } from '@chakra-ui/react'
 import { WalletModalComponentProps } from '@cosmos-kit/react'
@@ -57,8 +56,6 @@ const InstalledWallet = ({ wallet, onConnect }: WalletProps) => {
       justifyContent="start"
       borderRadius="12px"
       border="1px solid rgba(250, 129, 253, 0.37)"
-      // background="#05071B"
-      // boxShadow="0px 0px 24px 0px rgba(250, 129, 253, 0.32)"
     >
       <Image
         src={wallet?.walletInfo?.logo}
@@ -90,8 +87,6 @@ const InstallWallet = ({ wallet }: { wallet: any }) => {
       _hover={{ textDecoration: 'none' }}
       borderRadius="12px"
       border="1px solid rgba(250, 129, 253, 0.37)"
-      // background="#05071B"
-      // boxShadow="0px 0px 24px 0px rgba(250, 129, 253, 0.32)"
     >
       <Image
         src={wallet?.walletInfo?.logo}
@@ -141,17 +136,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
             <Text variant="title" w="150px">
               Select Wallet
             </Text>
-            <Stack>
-              {/* <HStack justifyContent="space-evenly">
-                <Image src="/images/wallet-connect-logo.svg" alt="wallet" boxSize="5" />
-                <Switch
-                  id="email-alerts"
-                  isChecked={isWallectconnect}
-                  onChange={(e) => setIsWalletConnect(e.target.checked)}
-                />
-              </HStack>
-              <Text fontSize="10px">Mobile wallet</Text> */}
-            </Stack>
+            <Stack></Stack>
           </HStack>
         </ModalHeader>
         <ModalCloseButton />

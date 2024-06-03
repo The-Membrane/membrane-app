@@ -9,7 +9,7 @@ const ConnectButton = (props: Props) => {
   const { connect } = useWallet()
 
   return (
-    <Button leftIcon={<WalletIcon />} onClick={connect} {...props}>
+    <Button leftIcon={<WalletIcon />} onClick={props.onClick??connect} {...props}>
       Connect Wallet
     </Button>
   )

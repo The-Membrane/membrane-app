@@ -1,4 +1,3 @@
-import TxError from '@/components/TxError'
 import { setInitialMintState } from '@/helpers/mint'
 import { num } from '@/helpers/num'
 import { Divider, TabPanel, Text } from '@chakra-ui/react'
@@ -7,26 +6,24 @@ import ActionButtons from './ActionButtons'
 import CollateralAssets from './CollateralAssets'
 import { LTVWithSlider } from './LTVWithSlider'
 import useCombinBalance from './hooks/useCombinBalance'
-import useMint from './hooks/useMint'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 
-const OverDraftMessage = ({ show = false }: { show?: boolean }) => {
+const OverDraftMessage = ({ overdraft = false, minDebt = false}: { overdraft?: boolean, minDebt?: boolean }) => {
   return (
     <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-      {show ? 'Withdrawal amount exceeds the maximum LTV.' : ' '}
+      {overdraft ? 'Withdrawal amount exceeds the maximum LTV.' : minDebt ? 'Minimum debt is 100 CDT unless fully repaying' : ' '}
     </Text>
   )
 }
 
-const calcSliderValue = (debtAmount: number, mint: number = 0, repay: number = 0) => {
+export const calcSliderValue = (debtAmount: number, mint: number = 0, repay: number = 0) => {
   return num(debtAmount).plus(mint).minus(repay).dp(2).toNumber()
 }
 
 const TakeAction = () => {
   const { mintState, setMintState } = useMintState()
   const combinBalance = useCombinBalance()
-  const mint = useMint()
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = useVaultSummary()
 
   useEffect(() => {
@@ -42,6 +39,7 @@ const TakeAction = () => {
       ltv: initialLTV,
       borrowLTV: initialBorrowLTV,
       setMintState,
+      newDebtAmount: 0,
     })
   }
 
@@ -58,10 +56,9 @@ const TakeAction = () => {
         mx="3"
       />
 
-      <LTVWithSlider label="Mintable LTV" value={sliderValue} />
+      <LTVWithSlider label="Your Debt" value={sliderValue} />
       <ActionButtons onRest={onRest} />
-      <OverDraftMessage show={mintState.overdraft} />
-      <TxError action={mint} />
+      <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt}/>
     </TabPanel>
   )
 }

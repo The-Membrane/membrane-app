@@ -2,28 +2,24 @@ import contracts from '@/config/contracts.json'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import useSimulate from '@/hooks/useSimulate'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import useTransaction from '@/hooks/useTransaction'
 import useWallet from '@/hooks/useWallet'
+import { queryClient } from '@/pages/_app'
 import { coin } from '@cosmjs/amino'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useStakeState from './useStakeState'
-import { queryClient } from '@/pages/_app'
 
-type UseStake = {
-  amount: string
-}
+type UseStake = {}
 
 const useStakeing = ({}: UseStake) => {
   const { address } = useWallet()
   const mbrnAsset = useAssetBySymbol('MBRN')
-  const { stakeState } = useStakeState()
+  const { stakeState, setStakeState } = useStakeState()
   const { amount, txType } = stakeState
 
   const { data: stakeMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[]>({
-    queryKey: ['msg', address, mbrnAsset?.base, contracts.staking, amount, txType],
+    queryKey: ['staking', 'msg', address, mbrnAsset?.base, contracts.staking, amount, txType],
     queryFn: async () => {
       if (!address || !mbrnAsset) return [] as MsgExecuteContractEncodeObject[]
 
@@ -40,7 +36,7 @@ const useStakeing = ({}: UseStake) => {
 
       return [msg]
     },
-    enabled: !!address && !!mbrnAsset && !!contracts.staking && Number(amount) > 0,
+    enabled: !!address && !!mbrnAsset && !!contracts.staking && Number(amount) >= 1,
   })
 
   return useSimulateAndBroadcast({
@@ -49,6 +45,7 @@ const useStakeing = ({}: UseStake) => {
     queryKey: [mbrnAsset?.base!],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staked'] })
+      queryClient.invalidateQueries({ queryKey: ['balances'] })
     },
   })
 }

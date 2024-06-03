@@ -1,20 +1,37 @@
-import useExecute from '@/hooks/useExecute'
-import useWallet from '@/hooks/useWallet'
-import { getSigningStakingClient } from '@/services/staking'
+import contracts from '@/config/contracts.json'
+import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
+import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
+import { useQuery } from '@tanstack/react-query'
+import { queryClient } from '@/pages/_app'
+import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 
-const useClaimUnstake = () => {
-  const { address, getSigningCosmWasmClient } = useWallet()
+export const useClaimUnstake = ({ address } : { address: string | undefined}) => {
+  
+  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+    queryKey: ['msg unstaking claims', address],
+    queryFn: () => {
+      if (!address) return [] as MsgExecuteContractEncodeObject[]
+        
+      const messageComposer = new StakingMsgComposer(address, contracts.staking)
+      
+      const msgs = messageComposer.unstake({mbrnAmount: '0'})
 
-  return useExecute({
-    onSubmit: async () => {
-      if (!address) return Promise.reject('No address found')
-      const signingClient = await getSigningCosmWasmClient()
-      const client = getSigningStakingClient(signingClient, address)
-      return client.unstake({
-        mbrnAmount: '0',
-      })
+      return [msgs] as MsgExecuteContractEncodeObject[]
     },
+    enabled: !!address,
   })
+  
+  const onSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['staked'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
+  }
+
+  return {
+    action: useSimulateAndBroadcast({
+    msgs,
+    enabled: !!msgs,
+    onSuccess,
+  }), msgs}
 }
 
 export default useClaimUnstake

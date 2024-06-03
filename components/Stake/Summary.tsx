@@ -1,11 +1,8 @@
+import { getAssetLogo } from '@/helpers/chain'
 import { num } from '@/helpers/num'
-import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Asset } from '@chain-registry/types'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import useStakeState from './hooks/useStakeState'
-import { getAssetLogo } from '@/helpers/chain'
-// import { AssetWithBalance } from './hooks/useCombinBalance'
-// import useMintState from './hooks/useMintState'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -46,10 +43,8 @@ const SummaryItem = ({ label, amount = 0, badge, showBadge = true, logo }: Summa
 
 export const Summary = () => {
   const { stakeState } = useStakeState()
-  const { asset, amount } = stakeState
+  const { asset } = stakeState
   const logo = getAssetLogo(asset!)
-
-  const txType = num(amount).isGreaterThan(0) ? 'Stake' : 'Unstake'
 
   return (
     <Stack h="max-content" overflow="auto" w="full">

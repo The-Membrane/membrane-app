@@ -17,7 +17,7 @@ import {
   Text,
   Tr,
 } from '@chakra-ui/react'
-import useAllocations from './hooks/useAllocation'
+import useAllocation from './hooks/useAllocation'
 import useClaimFees from './hooks/useClaimFees'
 import useWithdrawUnlocked from './hooks/useWithdrawUnlocked'
 
@@ -45,7 +45,7 @@ const ClaimAsset = ({ claimable }: ClaimAssetProps) => {
 }
 
 const TokenAllocation = (props: Props) => {
-  const { data: allocations } = useAllocations()
+  const { data: allocations } = useAllocation()
   const mbrnAsset = useAssetBySymbol('MBRN')
   const { unlocked, allocation, claimables } = allocations || {}
   const claimFees = useClaimFees()
@@ -109,9 +109,9 @@ const TokenAllocation = (props: Props) => {
         <TxButton
           mt={4}
           maxW="300px"
-          isLoading={claimFees?.simulate.isLoading || claimFees?.tx.isPending}
-          isDisabled={claimFees?.simulate.isError || !claimFees?.simulate.data}
-          onClick={() => claimFees.tx.mutate()}
+          isLoading={claimFees?.action.simulate.isLoading || claimFees?.action.tx.isPending}
+          isDisabled={claimFees?.action.simulate.isError}
+          onClick={() => claimFees.action.tx.mutate()}
         >
           Claim
         </TxButton>

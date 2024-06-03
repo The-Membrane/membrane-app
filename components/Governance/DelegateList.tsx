@@ -150,8 +150,10 @@ const DelegateList = () => {
     setDelegateState({ delegations: [] })
   }
 
+  const isDisabled = !delegateState?.delegations?.length
+
   return (
-    <Stack w="full">
+    <Stack w="full" minWidth="432.43px">
       <Stack minH="230px">
         {paginatedData.map((validator) => (
           <DelegateSlider
@@ -182,9 +184,8 @@ const DelegateList = () => {
         <Button variant="ghost" leftIcon={<GrPowerReset />} onClick={onRest}>
           Reset
         </Button>
-        <ConfirmModal label={'Update delegation'} action={updateDelegation}>
+        <ConfirmModal label={'Update delegation'} action={updateDelegation} isDisabled={isDisabled}>
           <Summary />
-          <TxError action={updateDelegation} />
         </ConfirmModal>
       </HStack>
     </Stack>

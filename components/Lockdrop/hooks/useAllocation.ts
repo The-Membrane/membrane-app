@@ -6,7 +6,7 @@ const useAllocation = () => {
   const { address } = useWallet()
 
   return useQuery({
-    queryKey: ['allocatiions', address],
+    queryKey: ['allocations', address],
     queryFn: async () => {
       if (!address) return null
 

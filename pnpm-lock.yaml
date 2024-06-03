@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@chain-registry/osmosis':
+    specifier: ^1.42.1
+    version: 1.42.1
   '@chain-registry/utils':
     specifier: ^1.44.8
     version: 1.44.8
@@ -68,9 +71,9 @@ dependencies:
   '@emotion/styled':
     specifier: ^11.11.5
     version: 11.11.5(@emotion/react@11.11.4)(@types/react@18.3.3)(react@18.3.1)
-  '@million/lint':
-    specifier: 1.0.0-rc.1
-    version: 1.0.0-rc.1
+  '@osmonauts/math':
+    specifier: ^1.15.1
+    version: 1.15.1
   '@tanstack/react-query':
     specifier: ^5.40.0
     version: 5.40.0(react@18.3.1)
@@ -104,9 +107,9 @@ dependencies:
   ipfs-http-client:
     specifier: ^60.0.1
     version: 60.0.1
-  million:
-    specifier: ^3.1.7
-    version: 3.1.7
+  lodash:
+    specifier: ^4.17.21
+    version: 4.17.21
   next:
     specifier: 14.1.0
     version: 14.1.0(@babel/core@7.24.6)(react-dom@18.3.1)(react@18.3.1)
@@ -1558,6 +1561,20 @@ packages:
 
   /@chain-registry/keplr@1.66.8:
     resolution: {integrity: sha512-0iMXZ3E0FmeiieBccsqRIFuVnqoc7Lhxwso/2MYRAaCvrFI9jELYHJHPptVmpi5Ac1dZT/zfc2sdCLVpFqC4Dg==}
+  /@chain-registry/osmosis@1.42.1:
+    resolution: {integrity: sha512-fgPJ2BMqUipu8lmYivmqdK7a0oWgT5MOXmH45x6nzqUoB150EBLZxZajNh4+bBPpS9rRmXl7+8S6a0QE2DgOtw==}
+    dependencies:
+      '@chain-registry/types': 0.25.1
+    dev: false
+
+  /@chain-registry/types@0.16.0:
+    resolution: {integrity: sha512-4j6vq2Vqn/nF+UBjvRPUVs6eM3+5rJ+dPmEWpd/OoNH3wTy1k6aoilcSTZRR//vGcI5EOVGsxhhJxUzo2qqweA==}
+    dependencies:
+      '@babel/runtime': 7.23.9
+    dev: false
+
+  /@chain-registry/types@0.17.0:
+    resolution: {integrity: sha512-lavACU4oDxioUy8lZOFZN0Vrr2qR+Dg2yEh/mkrPfOldcioavREXJou0elDyyXwq4pGLC5YQ+IISCtQ4Du0bdw==}
     dependencies:
       '@chain-registry/types': 0.43.8
       '@keplr-wallet/cosmos': 0.12.28
@@ -1586,6 +1603,21 @@ packages:
 
   /@chain-registry/utils@1.44.8:
     resolution: {integrity: sha512-doX3dlwl+ifdCIYSPmanOoV3fGbFOhA3hdWf3MxpFwdMMWCS90j+NCmmm4vOLXk6xFkd/r5SwSl5wXz0WMS7Kw==}
+  /@chain-registry/types@0.25.1:
+    resolution: {integrity: sha512-AbsJ2peoi9EjmdScFCLMqNhthJpLQUlEg3aiqSEonoqbKs6y1AuHqice2BuGBFGiAGQuAwUZR8HQDN46cIII3A==}
+    dev: false
+
+  /@chain-registry/utils@1.13.1:
+    resolution: {integrity: sha512-BV8XoZGGlfeF3d5p06y4w2uDggAxtWa5g5zEDRgcyi6V+iJUSlPwu5PL7IKB5qJvAq7J1Vgw8x+Jqj1TVxjpvA==}
+    dependencies:
+      '@babel/runtime': 7.23.9
+      '@chain-registry/types': 0.16.0
+      bignumber.js: 9.1.1
+      sha.js: 2.4.11
+    dev: false
+
+  /@chain-registry/utils@1.18.0:
+    resolution: {integrity: sha512-FAPyP1FN1jr88GfiBWnppe5S1ddgbK9TfwkyKuNSKHlk9Q+fhdC4nPM552bEz76AuFyfv7SFHg3kDuQSgYYZBw==}
     dependencies:
       '@chain-registry/types': 0.43.8
       bignumber.js: 9.1.2
@@ -5936,6 +5968,20 @@ packages:
     resolution: {integrity: sha512-RefjXB3d5Ub1I3GoIf/mfgTsvmAneWoeQwpmiuXYx1NmmSdbtBxDUk4POtSWUCnvoiJP0Y2frATnYMV30J1b1A==}
     dev: false
 
+  /@osmonauts/math@1.15.1:
+    resolution: {integrity: sha512-huvgJly1ZVT9bc6r2MMiRbCzb1bVUfdDGcWnuRzHCm4Pb+zDs8gkWedt6zhKpIIqBJnjf70TcLEy50t0l+NL7w==}
+    dependencies:
+      '@chain-registry/types': 0.16.0
+      '@chain-registry/utils': 1.13.1
+      bignumber.js: 9.1.2
+      decimal.js-light: 2.5.1
+      osmojs: 16.12.1
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
+    dev: false
+    
   /@parcel/watcher-android-arm64@2.4.1:
     resolution: {integrity: sha512-LOi/WTbbh3aTn2RYddrO8pnapixAziFl6SMxHM69r3tvdSm94JtCenaKgk1GRg5FJ5wpMCpHeW+7yqPlvZv7kg==}
     engines: {node: '>= 10.0.0'}
@@ -15136,6 +15182,24 @@ packages:
 
   /osmojs@16.14.0:
     resolution: {integrity: sha512-m4A5X0ZYanQ/u4/Xlz6nU9QqZEQbAKSD8SAKaDR/mIQYB6g3JkzWLgQgLMzMxDNJZKFTJCjWxHBp7al502x2aw==}
+
+  /osmojs@16.12.1:
+    resolution: {integrity: sha512-3Crv2Du70felladlGbK2q/3vh4e/Cgp+PNMcicL7Pr9DPoRx6E+tjDbemCPES2J1BJlHodK1BEFowr/85BILVA==}
+    dependencies:
+      '@cosmjs/amino': 0.32.2
+      '@cosmjs/proto-signing': 0.32.2
+      '@cosmjs/stargate': 0.32.2
+      '@cosmjs/tendermint-rpc': 0.32.2
+      '@cosmology/lcd': 0.13.3
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
+    dev: false
+
+  /osmojs@16.9.0:
+    resolution: {integrity: sha512-/gcPAuMfhUGwbwG7/OcTzBCxhj+7EAXhsdoqAHoC6ztYX0b9HMvmwGgSFuec1UEiRc57oQX85uO62acV5k+XIw==}
+
     dependencies:
       '@cosmjs/amino': 0.32.3
       '@cosmjs/proto-signing': 0.32.3

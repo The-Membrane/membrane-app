@@ -1,4 +1,4 @@
-import { Stack, Text } from '@chakra-ui/react'
+import { HStack, Stack, Text } from '@chakra-ui/react'
 import React, { useMemo } from 'react'
 import Divider from './Divider'
 import { useBasket } from '@/hooks/useCDP'
@@ -14,11 +14,11 @@ export const Stats = ({ label, value }) => (
       letterSpacing="unset"
       textTransform="none"
       textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)"
-      fontSize="lg"
+      fontSize="4xl"
     >
       {label}
     </Text>
-    <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)">
+    <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize="4xl">
       {value}
     </Text>
   </Stack>
@@ -34,11 +34,20 @@ export const StatsCard = () => {
     return getProjectTVL({ basket, prices })
   }, [basket, prices])
 
-  return (
-    <Stack mt="auto" gap="3">
+  const [titleToggle, setTitleToggle] = React.useState(true)
+
+  return (    
+    <Stack gap={3}>
+      <HStack mt="auto" gap="24" justifyContent={"center"} onClick={()=>setTitleToggle(!titleToggle)}>
+      {titleToggle ? 
+      <Text fontWeight="bold" fontSize="33px" fontFamily="monospace">
+        The Membrane for Stablecoin Laboratories on Osmosis
+      </Text>        
+           :
+        <><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
+        <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></>}
+      </HStack>
       <Divider mx="0" mb="5" />
-      <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
-      <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
     </Stack>
   )
 }

@@ -4,6 +4,8 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
+import { Coin } from '@cosmjs/stargate'
+
 export type Uint128 = string;
 export type AssetInfo = {
   token: {
@@ -34,11 +36,6 @@ export interface Deposit {
 }
 export interface ClaimsResponse {
   claims: Coin[];
-}
-export interface Coin {
-  amount: Uint128;
-  denom: string;
-  [k: string]: unknown;
 }
 export interface Config {
   incentive_rate: Decimal;

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getBasket, getBasketPositions, getCollateralInterest, getCreditRate } from '@/services/cdp'
+import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions } from '@/services/cdp'
 import useWallet from './useWallet'
 
 export const useBasket = () => {
@@ -29,16 +29,29 @@ export const useCreditRate = () => {
   })
 }
 
-export const useBasketPositions = () => {
+export const useUserPositions = () => {
   const { address } = useWallet()
-  // mock address
-  // const address = 'osmo1988s5h45qwkaqch8km4ceagw2e08vdw28mwk4n'
+
   return useQuery({
-    queryKey: ['baseket positions', address],
+    queryKey: ['positions', address],
     queryFn: async () => {
       if (!address) return
-      return getBasketPositions(address)
+      return getUserPositions(address)
     },
     enabled: !!address,
   })
 }
+
+
+export const useBasketPositions = () => {
+  const { address } = useWallet()
+
+  return useQuery({
+    queryKey: [' all positions'],
+    queryFn: async () => {
+      return getBasketPositions()
+    },
+    enabled: !!address,
+  })
+}
+

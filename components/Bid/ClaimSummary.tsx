@@ -1,13 +1,9 @@
+import { Coin } from '@cosmjs/stargate'
+import { getAssetByDenom } from '@/helpers/chain'
+import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
-import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Asset } from '@chain-registry/types'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
-import useStakeState from './hooks/useStakeState'
-import { getAssetByDenom, getAssetLogo } from '@/helpers/chain'
-import { ClaimsResponse } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.types'
-import { shiftDigits } from '@/helpers/math'
-// import { AssetWithBalance } from './hooks/useCombinBalance'
-// import useMintState from './hooks/useMintState'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -62,29 +58,23 @@ const SummaryItem = ({
 )
 
 type Props = {
-  claims?: ClaimsResponse[]
+  claims?: Coin[]
 }
 
 export const ClaimSummary = ({ claims = [] }: Props) => {
-  // const { stakeState } = useStakeState()
-  // const { asset, amount } = stakeState
-  // const logo = getAssetLogo(asset!)
-
-  // const txType = num(amount).isGreaterThan(0) ? 'Stake' : 'Unstake'
-
   return (
     <Stack h="max-content" overflow="auto" w="full">
       {claims
-        .filter((a) => num(a.pending_liquidated_collateral).isGreaterThan(0))
+        .filter((a) => num(a.amount).isGreaterThan(0))
         .map((claim) => {
-          const asset = getAssetByDenom(claim.bid_for)
+          const asset = getAssetByDenom(claim.denom)
           const amount = shiftDigits(
-            claim.pending_liquidated_collateral,
+            claim.amount,
             -asset?.decimal!,
           ).toNumber()
           return (
             <SummaryItem
-              key={claim.bid_for}
+              key={claim.denom}
               label={asset?.symbol!}
               amount={amount}
               badge="Claim"

@@ -1,3 +1,5 @@
+import { BidResponse } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.types'
+import { shiftDigits } from '@/helpers/math'
 import {
   Button,
   Card,
@@ -8,15 +10,12 @@ import {
   SliderTrack,
   Text,
 } from '@chakra-ui/react'
-import useUserBids from './hooks/useUserBids'
-import { shiftDigits } from '@/helpers/math'
-import { BidResponse } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.types'
-import useBidState from './hooks/useBidState'
 import { GrPowerReset } from 'react-icons/gr'
 import ConfirmModal from '../ConfirmModal'
-import useUpdateBid from './hooks/useUpdateBid'
-import TxError from '../TxError'
 import UpdateBidSummary from './UpdateBidSummary'
+import useBidState from './hooks/useBidState'
+import useUpdateBid from './hooks/useUpdateBid'
+import useUserBids from './hooks/useUserBids'
 
 type MyBidItemProps = {
   bid: BidResponse
@@ -82,7 +81,7 @@ const MyBidItem = ({ bid }: MyBidItemProps) => {
 
 const MyBid = () => {
   const { data: bids = [] } = useUserBids()
-  const { setBidState } = useBidState()
+  const { setBidState, bidState } = useBidState()
 
   const txSuccess = () => {
     setBidState({ placeBid: { cdt: 0, premium: 0 }, updateBids: [] })
@@ -95,11 +94,13 @@ const MyBid = () => {
     })
   }
 
+  const isDisabled = !bidState?.updateBids?.length
+
   if (bids.length === 0) {
     return (
       <Card p="8" alignItems="center" gap={5}>
-        <Text variant="title" fontSize="24px">
-          My Bid
+        <Text variant="title" fontSize="24px" textAlign={"center"}>
+          My {bidState?.selectedAsset?.symbol ?? ""} Bids
         </Text>
         <Text color="gray">No active bids</Text>
       </Card>
@@ -107,8 +108,8 @@ const MyBid = () => {
   }
   return (
     <Card p="8" alignItems="center" gap={5}>
-      <Text variant="title" fontSize="24px">
-        My Bid
+      <Text variant="title" fontSize="24px" textAlign={"center"}>
+          My {bidState?.selectedAsset?.symbol ?? ""} Bids
       </Text>
 
       {bids?.map((bid) => <MyBidItem key={bid?.id} bid={bid} />)}
@@ -118,13 +119,10 @@ const MyBid = () => {
           Reset
         </Button>
 
-        {/* <Button>Confrim Bid</Button> */}
-        <ConfirmModal label="Update Bid" action={updateBid}>
+        <ConfirmModal label="Update Bid" action={updateBid} isDisabled={isDisabled}>
           <UpdateBidSummary />
-          <TxError action={updateBid} />
         </ConfirmModal>
       </HStack>
-      <TxError action={updateBid} />
     </Card>
   )
 }

@@ -1,12 +1,8 @@
 import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-// import { Asset } from '@chain-registry/types'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
-// import useStakeState from './hooks/useStakeState'
 import { Asset, getAssetLogo } from '@/helpers/chain'
 import useBidState from './hooks/useBidState'
-// import { AssetWithBalance } from './hooks/useCombinBalance'
-// import useMintState from './hooks/useMintState'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -30,17 +26,16 @@ const SummaryItem = ({
   <Stack gap="10">
     <Stack alignSelf="center">
       <Text variant="value" textTransform="unset" fontSize="md">
-        Bidding on
+        Bidding on {premium === 10 ? 'All Assets' : null}
       </Text>
       <HStack>
-        <Image src={selectedAsset?.logo} w="30px" h="30px" />
+        {premium !== 10 ? <><Image src={selectedAsset?.logo} w="30px" h="30px" /> 
         <Text variant="value" textTransform="unset">
           {selectedAsset?.symbol}
-        </Text>
+        </Text></>
+        : null}
       </HStack>
     </Stack>
-
-    {/* 5 CDT BID on ATOM at 5% premium */}
 
     <HStack
       key={label}
@@ -73,15 +68,11 @@ const SummaryItem = ({
 )
 
 const Summary = () => {
-  // const { stakeState } = useStakeState()
-  // const { asset, amount } = stakeState
   const cdtAsset = useAssetBySymbol('CDT')
   const logo = getAssetLogo(cdtAsset!)
-  const { bidState, setBidState } = useBidState()
+  const { bidState } = useBidState()
   const selectedAsset = bidState?.selectedAsset
   const { premium, cdt: amount } = bidState?.placeBid
-
-  // const txType = num(amount).isGreaterThan(0) ? 'Stake' : 'Unstake'
 
   return (
     <Stack h="max-content" overflow="auto" w="full">

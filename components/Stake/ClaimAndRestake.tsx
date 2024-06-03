@@ -3,42 +3,63 @@ import { shiftDigits } from '@/helpers/math'
 import { isGreaterThanZero, num } from '@/helpers/num'
 import { HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { useMemo } from 'react'
-import useClaim from './hooks/useClaim'
+import useStakingClaim from './hooks/useStakingClaim'
 import useStaked from './hooks/useStaked'
+import { useAssetBySymbol } from '@/hooks/useAssets'
 
 type Props = {}
 
-const RestakeButton = ({ reward }: any) => {
-  const claim = useClaim(true)
-
-  if (reward?.asset?.symbol !== 'MBRN') return null
+const RestakeButton = (reward: any) => {
+  const claim = useStakingClaim(true).action
 
   return (
     <TxButton
       variant="ghost"
       size="sm"
       px="2"
-      isDisabled={Number(reward?.amount) <= 0}
-      isLoading={claim.isPending}
-      onClick={() => claim.mutate()}
+      isDisabled={Number(reward) <= 0}
+      isLoading={claim.simulate.isLoading || claim.tx.isPending}      
+      onClick={() => claim.tx.mutate()}
     >
       Restake
     </TxButton>
   )
 }
 
-const ClaimAndRestake = (props: Props) => {
+export const ClaimAndRestake = (props: Props) => {
   const { data } = useStaked()
   const { rewards = [] } = data || {}
-  const claim = useClaim()
+  const claim = useStakingClaim().action
 
-  const claimable = useMemo(() => {
-    const rewardsAmount = rewards.reduce((acc, reward) => {
-      return acc.plus(reward?.amount)
-    }, num(0))
+  const CDT = useAssetBySymbol('CDT')
+  const MBRN = useAssetBySymbol('MBRN')
 
-    return shiftDigits(rewardsAmount.toNumber(), -6).toString()
+  //MBRN claims
+  const mbrnClaims = useMemo(() => 
+    {
+      const reward = rewards.reduce((acc, reward) => {
+        if (reward?.asset?.symbol === 'MBRN') {
+          return acc.plus(reward?.amount)
+        }
+        return acc.plus(0)
+      }, num(0))
+
+    return reward
   }, [rewards])
+
+  ///CDT claims
+  const cdtClaims = useMemo(() => 
+    {
+      const reward = rewards.reduce((acc, reward) => {
+        if (reward?.asset?.symbol === 'CDT') {
+          return acc.plus(reward?.amount)
+        }
+        return acc.plus(0)
+      }, num(0))
+    
+    return reward
+  }, [rewards])
+  
 
   if (!rewards.length)
     return (
@@ -52,28 +73,43 @@ const ClaimAndRestake = (props: Props) => {
   return (
     <Stack gap="10" pt="5">
       <Stack>
-        {rewards.map((reward, index) => (
-          <HStack justifyContent="space-between" key={reward?.asset?.base}>
+        {/* MBRN Claim */}
+        {MBRN && mbrnClaims > num(1) ? 
+          <HStack justifyContent="space-between">
             <HStack>
               <Image
-                src={reward?.asset?.logo}
+                src={MBRN.logo}
                 w="20px"
                 h="20px"
-                transform={reward?.asset?.symbol === 'MBRN' ? 'scale(1.2)' : 'none'}
+                transform={'scale(1.2)'}
               />
-              <Text>{reward?.asset?.symbol}</Text>
+              <Text>{MBRN.symbol}</Text>
             </HStack>
             <HStack>
-              <Text>{shiftDigits(reward?.amount, -6).toString()}</Text>
-              <RestakeButton reward={reward} />
+              <Text>{shiftDigits(mbrnClaims.toNumber(), -6).toString()}</Text>
+              <RestakeButton reward={mbrnClaims} />
             </HStack>
-          </HStack>
-        ))}
+          </HStack> :  null}
+          {/* CDT Claim */}
+          {CDT && cdtClaims > num(1) ? <HStack justifyContent="space-between">
+            <HStack>
+              <Image
+                src={CDT.logo}
+                w="20px"
+                h="20px"
+                transform={'none'}
+              />
+              <Text>{CDT.symbol}</Text>
+            </HStack>
+            <HStack>
+              <Text>{shiftDigits(cdtClaims.toNumber(), -6).toString()}</Text>
+            </HStack>
+          </HStack> : null}
       </Stack>
       <TxButton
-        isDisabled={!isGreaterThanZero(claimable)}
-        isLoading={claim.isPending}
-        onClick={() => claim.mutate()}
+        isDisabled={!isGreaterThanZero(cdtClaims.toNumber()) && !isGreaterThanZero(mbrnClaims.toNumber())}
+        isLoading={claim.simulate.isLoading || claim.tx.isPending}
+        onClick={() => claim.tx.mutate()}
       >
         Claim
       </TxButton>

@@ -6,10 +6,11 @@ import useStaked from './hooks/useStaked'
 import { TxButton } from '../TxButton'
 import dayjs from 'dayjs'
 import useClaimUnstake from './hooks/useClaimUnstake'
+import useWallet from '@/hooks/useWallet'
 
 type Props = {}
 
-const getTimeLeft = (unstakeStartDate) => {
+export const getTimeLeft = (unstakeStartDate: number) => {
   const unstakingDate = dayjs.unix(unstakeStartDate).add(4, 'day')
   const daysLeft = unstakingDate.diff(dayjs(), 'day')
   const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
@@ -22,7 +23,7 @@ const getTimeLeft = (unstakeStartDate) => {
   }
 }
 
-const DaysLeft = ({ unstakeStartDate }) => {
+const DaysLeft = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
   const { daysLeft, hoursLeft, minutesLeft } = getTimeLeft(unstakeStartDate)
 
   if (minutesLeft <= 0) {
@@ -40,9 +41,8 @@ const DaysLeft = ({ unstakeStartDate }) => {
   }
 }
 
-const ClaimButton = ({ unstakeStartDate }) => {
+const ClaimButton = ({ unstakeStartDate, action }: { unstakeStartDate: number, action: any }) => {
   const { minutesLeft } = getTimeLeft(unstakeStartDate)
-  const claim = useClaimUnstake()
 
   const isReadyToClaim = minutesLeft <= 0
 
@@ -52,9 +52,9 @@ const ClaimButton = ({ unstakeStartDate }) => {
       variant="ghost"
       size="sm"
       px="2"
-      isLoading={claim.isPending}
-      isDisabled={!isReadyToClaim}
-      onClick={() => claim.mutate()}
+      isLoading={action.simulate.isLoading || action.tx.isPending}
+      isDisabled={action.simulate.isError || !isReadyToClaim}
+      onClick={() => action.tx.mutate()}
     >
       Claim
     </TxButton>
@@ -65,6 +65,8 @@ const Unstaking = (props: Props) => {
   const mbrn = useAssetBySymbol('MBRN')
   const { data } = useStaked()
   const { unstaking = [] } = data || {}
+  const { address } = useWallet()
+  const { action: claim } = useClaimUnstake({address: address})
 
   if (!unstaking?.length)
     return (
@@ -81,12 +83,12 @@ const Unstaking = (props: Props) => {
         <Image src={mbrn?.logo} w="40px" h="40px" />
         <Text>{mbrn?.symbol}</Text>
       </HStack>
-      {unstaking?.map((unstake, index) => (
+      {unstaking?.map((unstake: any, index: number) => (
         <HStack key={'unstake' + index} justifyContent="space-between">
           <Text w="full">{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
           <DaysLeft unstakeStartDate={unstake?.unstake_start_time} />
 
-          <ClaimButton unstakeStartDate={unstake?.unstake_start_time} />
+          <ClaimButton unstakeStartDate={unstake?.unstake_start_time} action={claim} />
         </HStack>
       ))}
     </Stack>

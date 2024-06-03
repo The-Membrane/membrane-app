@@ -1,17 +1,16 @@
-import TxError from '@/components/TxError'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { Button, HStack, Link, Stack, Text } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
+import { GrPowerReset } from 'react-icons/gr'
 import ConfirmModal from '../ConfirmModal'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { Summary } from './Summary'
 import useStakeing from './hooks/useStake'
 import useStakeState from './hooks/useStakeState'
 import useStaked from './hooks/useStaked'
-import { GrPowerReset } from 'react-icons/gr'
 
 const Stakeing = () => {
   const [stakeAmount, setStakeAmount] = useState(0)
@@ -52,8 +51,13 @@ const Stakeing = () => {
 
   const onRest = () => {
     setStakeAmount(stakedBalance)
-    setStakeState({})
+    setStakeState({
+      amount: '0',
+      txType: undefined,
+    })
   }
+
+  const isDisabled = num(stakeState.amount).isLessThanOrEqualTo(0)
 
   if (num(totalBalance).isLessThanOrEqualTo(0)) {
     return (
@@ -78,8 +82,8 @@ const Stakeing = () => {
     <Stack gap="10" pt="5">
       <Stack>
         <HStack justifyContent="space-between">
-          <Text>Stake</Text>
-          <Text>{stakeAmount} MBRN</Text>
+          <Text>Your Stake</Text>
+          <Text>{stakeAmount} MBRN {parseInt(stakeState.amount) > 0 ? <>{stakeState?.txType === 'Stake' ? " (+" : " (-"}{stakeState.amount} MBRN{")"}</> : null}</Text>
         </HStack>
 
         <SliderWithState
@@ -94,13 +98,10 @@ const Stakeing = () => {
           Reset
         </Button>
 
-        <ConfirmModal label={stakeState.txType || 'Stake'} action={stake}>
+        <ConfirmModal label={stakeState.txType || 'Stake'} action={stake} isDisabled={isDisabled}>
           <Summary />
-          <TxError action={stake} />
         </ConfirmModal>
       </HStack>
-
-      <TxError action={stake} />
     </Stack>
   )
 }

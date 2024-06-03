@@ -39,7 +39,7 @@ const NoProposals = ({ show }: { show: boolean }) => {
   return (
     <Box p="3" bg="whiteAlpha.200" borderRadius="lg" textAlign="center">
       <Text fontSize="md" color="gray.300">
-        No active proposals
+        No proposals fit this filter
       </Text>
     </Box>
   )
@@ -72,8 +72,8 @@ const Proposals = ({ proposals = [] }: { proposals: ProposalResponse[] }) => {
   return (
     <Stack>
       {proposals?.map((proposal) => (
-        <ProposalDetails proposal={proposal}>
-          <HStack key={proposal.proposal_id} px="4" py="3" bg="#191a2d" borderRadius="lg" gap="4">
+        <ProposalDetails key={proposal.proposal_id} proposal={proposal}>
+          <HStack px="4" py="3" bg="#191a2d" borderRadius="lg" gap="4">
             <Badge badge={proposal?.badge} />
             <Stack gap="0" m="none" p="none" flexGrow={1} alignItems="flex-start">
               <Text noOfLines={1}>{proposal.title}</Text>

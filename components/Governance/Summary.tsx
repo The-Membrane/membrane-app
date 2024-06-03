@@ -2,11 +2,7 @@ import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Asset } from '@chain-registry/types'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
-// import useStakeState from './hooks/useStakeState'
-import { getAssetLogo } from '@/helpers/chain'
 import useDelegateState from './hooks/useDelegateState'
-// import { AssetWithBalance } from './hooks/useCombinBalance'
-// import useMintState from './hooks/useMintState'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string

@@ -9,7 +9,7 @@ export const useCountdown = (timestamp: number | null | undefined) => {
     if (!timestamp) return
     const intervalId = setInterval(() => {
       const currentTime = dayjs()
-      const endTime = dayjs.unix(timestamp)
+      const endTime = dayjs.unix(timestamp + 86400) //86400s is the SP's unstake period
       const remainingTime = endTime.diff(currentTime, 'second')
 
       if (remainingTime <= 0) {

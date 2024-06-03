@@ -1,11 +1,9 @@
 import { Box, Image } from '@chakra-ui/react'
 import React from 'react'
 
-type Props = {}
-
-const Logo = (props: Props) => {
+const Logo = () => {
   return (
-    <Box alignItems="center">
+    <Box alignItems="center" display={"flex"} justifyContent={"center"}>
       <Image src="/images/logo_with_name.svg" alt="Logo" />
     </Box>
   )

@@ -1,4 +1,5 @@
 FROM node:18-alpine AS builder
+RUN npm install -g pnpm
 ENV NODE_ENV production
 
 # Add a work directory
@@ -13,7 +14,7 @@ RUN npm i
 COPY . .
 
 # Build the app
-RUN npm run build
+RUN pnpm run build
 
 # Expose port
 EXPOSE 3000

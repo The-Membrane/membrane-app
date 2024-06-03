@@ -3,7 +3,6 @@ import {
   GovernanceClient,
   GovernanceQueryClient,
 } from '@/contracts/codegen/governance/Governance.client'
-import { GovernanceMsgComposer } from '@/contracts/codegen/governance/Governance.message-composer'
 import {
   Addr,
   Config,
@@ -13,7 +12,6 @@ import {
 } from '@/contracts/codegen/governance/Governance.types'
 import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { num } from '@/helpers/num'
-import { coin } from '@cosmjs/amino'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import dayjs from 'dayjs'
 
@@ -25,105 +23,6 @@ export const getGovernanceClient = async () => {
 export const getSigningGovernanceClient = (signingClient: SigningCosmWasmClient, address: Addr) => {
   return new GovernanceClient(signingClient, address, contracts.governance)
 }
-
-const mockProposal = [
-  {
-    proposal_id: '9945',
-    submitter: 'osmo1988s5h45qwkaqch8km4ceagw2e08vdw28mwk4n',
-    status: 'active',
-    aligned_power: '786875',
-    for_power: '4289864',
-    against_power: '0',
-    amendment_power: '0',
-    removal_power: '0',
-    start_block: 13590102,
-    start_time: 1706905814,
-    end_block: 13633302,
-    delayed_end_block: 13633303,
-    expiration_block: 13834903,
-    title: 'Add Axelar ETH to the Oracle',
-    description: 'Add ETHaxl to the oracle',
-    messages: [
-      {
-        order: '1',
-        msg: {
-          wasm: {
-            execute: {
-              contract_addr: 'osmo16sgcpe0hcs42qk5vumk06jzmstkpka9gjda9tfdelwn65ksu3l7s7d4ggs',
-              msg: 'ewogICJhZGRfYXNzZXQiOiB7CiAgICAiYXNzZXRfaW5mbyI6IHsKICAgICAgIm5hdGl2ZV90b2tlbiI6IHsKICAgICAgICAiZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiCiAgICAgIH0KICAgIH0sCiAgICAib3JhY2xlX2luZm8iOiB7CiAgICAgICJiYXNrZXRfaWQiOiAiMSIsCiAgICAgICJkZWNpbWFscyI6IDE4LAogICAgICAibHBfcG9vbF9pbmZvIjogbnVsbCwKICAgICAgInBvb2xzX2Zvcl9vc21vX3R3YXAiOiBbCiAgICAgICAgewogICAgICAgICAgImJhc2VfYXNzZXRfZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiLAogICAgICAgICAgInBvb2xfaWQiOiA3MDQsCiAgICAgICAgICAicXVvdGVfYXNzZXRfZGVub20iOiAidW9zbW8iCiAgICAgICAgfQogICAgICBdLAogICAgICAiaXNfdXNkX3BhciI6IGZhbHNlCiAgICB9CiAgfQp9',
-              funds: [],
-            },
-          },
-        },
-      },
-    ],
-    link: 'https://discord.com/channels/1060217330258432010/1194692158549151764',
-  },
-  {
-    proposal_id: '29495',
-    submitter: 'osmo1988s5h45qwkaqch8km4ceagw2e08vdw28mwk4n',
-    status: 'passed',
-    aligned_power: '786875',
-    for_power: '4289864',
-    against_power: '0',
-    amendment_power: '0',
-    removal_power: '0',
-    start_block: 13590102,
-    start_time: 1706905814,
-    end_block: 13633302,
-    delayed_end_block: 13633303,
-    expiration_block: 13834903,
-    title: 'Add Axelar ETH to the Oracle',
-    description: 'Add ETHaxl to the oracle',
-    messages: [
-      {
-        order: '1',
-        msg: {
-          wasm: {
-            execute: {
-              contract_addr: 'osmo16sgcpe0hcs42qk5vumk06jzmstkpka9gjda9tfdelwn65ksu3l7s7d4ggs',
-              msg: 'ewogICJhZGRfYXNzZXQiOiB7CiAgICAiYXNzZXRfaW5mbyI6IHsKICAgICAgIm5hdGl2ZV90b2tlbiI6IHsKICAgICAgICAiZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiCiAgICAgIH0KICAgIH0sCiAgICAib3JhY2xlX2luZm8iOiB7CiAgICAgICJiYXNrZXRfaWQiOiAiMSIsCiAgICAgICJkZWNpbWFscyI6IDE4LAogICAgICAibHBfcG9vbF9pbmZvIjogbnVsbCwKICAgICAgInBvb2xzX2Zvcl9vc21vX3R3YXAiOiBbCiAgICAgICAgewogICAgICAgICAgImJhc2VfYXNzZXRfZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiLAogICAgICAgICAgInBvb2xfaWQiOiA3MDQsCiAgICAgICAgICAicXVvdGVfYXNzZXRfZGVub20iOiAidW9zbW8iCiAgICAgICAgfQogICAgICBdLAogICAgICAiaXNfdXNkX3BhciI6IGZhbHNlCiAgICB9CiAgfQp9',
-              funds: [],
-            },
-          },
-        },
-      },
-    ],
-    link: 'https://discord.com/channels/1060217330258432010/1194692158549151764',
-  },
-  {
-    proposal_id: '294895',
-    submitter: 'osmo1feygna5jhurw8m53ze9z2deqrwm36tksxj8r3g',
-    status: 'pending',
-    aligned_power: '786875',
-    for_power: '4289864',
-    against_power: '0',
-    amendment_power: '0',
-    removal_power: '0',
-    start_block: 13590102,
-    start_time: 1706905814,
-    end_block: 13633302,
-    delayed_end_block: 13633303,
-    expiration_block: 13834903,
-    title: 'Add Axelar ETH to the Oracle',
-    description: 'Add ETHaxl to the oracle',
-    messages: [
-      {
-        order: '1',
-        msg: {
-          wasm: {
-            execute: {
-              contract_addr: 'osmo16sgcpe0hcs42qk5vumk06jzmstkpka9gjda9tfdelwn65ksu3l7s7d4ggs',
-              msg: 'ewogICJhZGRfYXNzZXQiOiB7CiAgICAiYXNzZXRfaW5mbyI6IHsKICAgICAgIm5hdGl2ZV90b2tlbiI6IHsKICAgICAgICAiZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiCiAgICAgIH0KICAgIH0sCiAgICAib3JhY2xlX2luZm8iOiB7CiAgICAgICJiYXNrZXRfaWQiOiAiMSIsCiAgICAgICJkZWNpbWFscyI6IDE4LAogICAgICAibHBfcG9vbF9pbmZvIjogbnVsbCwKICAgICAgInBvb2xzX2Zvcl9vc21vX3R3YXAiOiBbCiAgICAgICAgewogICAgICAgICAgImJhc2VfYXNzZXRfZGVub20iOiAiaWJjL0VBMUQ0Mzk4MUQ1QzlBMUM0QUFFQTlDMjNCQjFENEZBMTI2QkE5QkM3MDIwQTI1RTBBRTRBQTg0MUVBMjVEQzUiLAogICAgICAgICAgInBvb2xfaWQiOiA3MDQsCiAgICAgICAgICAicXVvdGVfYXNzZXRfZGVub20iOiAidW9zbW8iCiAgICAgICAgfQogICAgICBdLAogICAgICAiaXNfdXNkX3BhciI6IGZhbHNlCiAgICB9CiAgfQp9',
-              funds: [],
-            },
-          },
-        },
-      },
-    ],
-    link: 'https://discord.com/channels/1060217330258432010/1194692158549151764',
-  },
-]
 
 type Ratio = {
   forRatio: number
@@ -139,14 +38,6 @@ export type ProposalResponse = ProposalResponseType & {
   result: string
   ratio: Ratio
 }
-
-// const totalVotes = Math.max(
-//   parseInt(proposal.for_power) +
-//     parseInt(proposal.against_power) +
-//     parseInt(proposal.amendment_power) +
-//     parseInt(proposal.removal_power),
-//   1
-// );
 
 export const calcuateRatio = (proposal: ProposalResponse, config: Config) => {
   const { for_power, amendment_power, removal_power, against_power, aligned_power } = proposal
@@ -278,8 +169,8 @@ export const getProposals = async () => {
   // const requiredQuorum = parseFloat(config.proposal_required_quorum)
   const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
-  const start = 0
-  const limit = 30
+  const start = 50
+  const limit = 30 //Contract's max limit is 30 so we'll need to move the start point every 30 proposals
 
   const activeProposals = client.activeProposals({ start, limit }).then((res) => res.proposal_list)
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
@@ -300,7 +191,8 @@ export const getProposals = async () => {
       }),
     )
 
-  return allProposals.map((proposal) => ({
+  return allProposals.filter((prop) => prop.proposal_id != "61")
+  .map((proposal) => ({
     ...proposal,
     result: calculateProposalResult(proposal, config),
     ratio: calcuateRatio(proposal, config),
@@ -346,17 +238,23 @@ const getTotalVotingPower = async (proposal: Proposal) => {
 }
 
 const getQuorum = async (proposal: Proposal) => {
+  const config = await getConfig()
   const { against_power, for_power, aligned_power, amendment_power, removal_power } = proposal
 
   const totalVotingPower = await getTotalVotingPower(proposal)
 
+  var standardized_align_power =  num(aligned_power)
+        .minus(config.proposal_required_stake)
+        .plus(num(config.proposal_required_stake).sqrt())
+        
+  
   const power = num(against_power)
     .plus(for_power)
-    .plus(aligned_power)
+    .plus(standardized_align_power)
     .plus(amendment_power)
     .plus(removal_power)
 
-  const multiplier = num(100).div(totalVotingPower)
+  // const multiplier = num(100).div(totalVotingPower)
 
   const q = power.div(totalVotingPower).dp(2).toNumber()
   return num(q).isLessThan(1) ? num(q).times(100).toNumber() : q

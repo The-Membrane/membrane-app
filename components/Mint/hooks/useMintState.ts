@@ -18,7 +18,9 @@ type MintState = {
   summary?: Summary[]
   mint?: number
   repay?: number
+  newDebtAmount?: number
   overdraft?: boolean
+  belowMinDebt?: boolean
 }
 
 type Store = {
@@ -30,10 +32,7 @@ type Store = {
 const initialState: MintState = {
   assets: [],
   ltvSlider: 0,
-}
-
-type Config = {
-  name: string
+  isTakeAction: true,
 }
 
 // @ts-ignore

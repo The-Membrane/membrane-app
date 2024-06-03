@@ -1,31 +1,42 @@
 import { Tabs, TabList, Tab, TabPanels, TabPanel, HStack } from '@chakra-ui/react'
-import React, { PropsWithChildren } from 'react'
+import React, { PropsWithChildren, useState } from 'react'
 import PlaceBid from './PlaceBid'
 import MyBid from './MyBid'
 import ClaimLiqudation from './ClaimLiqudation'
 import StabilityPool from './StabilityPool'
 
-type Props = {}
+type TabProps = PropsWithChildren & {
+  onClick: any
+}
 
-const CustomTab = ({ children }: PropsWithChildren) => (
+const CustomTab = ({ onClick, children }: TabProps) => (
   <Tab
     color="white"
     fontWeight="normal"
     border="1px solid white"
+    width={"40%"}
+    onClick={onClick}
     _selected={{ fontWeight: 'normal', color: 'white', bg: 'primary.200', border: 'none' }}
   >
     {children}
   </Tab>
 )
 
-const BidAction = (props: Props) => {
+const BidAction = () => {
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+
+  const handleTabClick = (index: number) => {
+    setActiveTabIndex(index);
+    console.log(activeTabIndex)
+  };
+  
   return (
-    <Tabs variant="soft-rounded" size="sm" colorScheme="primary">
+    <Tabs variant="soft-rounded" size="sm" colorScheme="primary" index={activeTabIndex}>
       <HStack w="full">
         <TabList gap="2" w="full">
-          <CustomTab>Place Bid</CustomTab>
-          <CustomTab>My Bid</CustomTab>
-          <CustomTab>Omni-Asset</CustomTab>
+          <CustomTab onClick={() => handleTabClick(0)}>Place Bid</CustomTab>
+          <CustomTab onClick={() => handleTabClick(1)}>Single-Asset Bids</CustomTab>
+          <CustomTab onClick={() => handleTabClick(2)}>Omni-Bids</CustomTab>
         </TabList>
         <ClaimLiqudation />
       </HStack>
@@ -37,7 +48,7 @@ const BidAction = (props: Props) => {
           <MyBid />
         </TabPanel>
         <TabPanel px="0">
-          <StabilityPool />
+          <StabilityPool setActiveTabIndex={setActiveTabIndex}/>
         </TabPanel>
       </TabPanels>
     </Tabs>

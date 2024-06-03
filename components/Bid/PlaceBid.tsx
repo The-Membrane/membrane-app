@@ -1,35 +1,15 @@
-import { Button, Card, FormControl, FormLabel, HStack, Input, Stack, Text } from '@chakra-ui/react'
-import { SliderWithState } from '../Mint/SliderWithState'
-import useQueue from './hooks/useQueue'
-import useBidState from './hooks/useBidState'
+import ConfirmModal from '@/components/ConfirmModal'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { shiftDigits } from '@/helpers/math'
-import ConfirmModal from '@/components/ConfirmModal'
+import { Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
+import { SliderWithState } from '../Mint/SliderWithState'
 import Summary from './Summary'
-import TxError from '@/components/TxError'
 import useBid from './hooks/useBid'
-
-type BidInputProps = {
-  label: string
-}
-
-const BidInput = ({ label }: BidInputProps) => {
-  return (
-    <FormControl
-      display="flex"
-      justifyContent="space-between"
-      gap={2}
-      w="310px"
-      alignItems="center"
-    >
-      <Input type="number" placeholder="0.00" />
-      <FormLabel fontSize="24px" fontWeight="700" w="full">
-        {label}{' '}
-      </FormLabel>
-    </FormControl>
-  )
-}
+import useBidState from './hooks/useBidState'
+import useQueue from './hooks/useQueue'
+import { ChangeEvent, useMemo, useState } from 'react'
+import { num } from '@/helpers/num'
+import { delayTime } from '@/config/defaults'
 
 const PlaceBid = () => {
   const { bidState, setBidState } = useBidState()
@@ -40,11 +20,40 @@ const PlaceBid = () => {
 
   const bid = useBid({ txSuccess })
   const { data: queue } = useQueue(bidState?.selectedAsset)
-
   const cdt = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdt)
+  const [ inputAmount, setInputAmount ] = useState(0);
+  const [ premiuminputAmount, setPremiumInputAmount ] = useState(0);
 
   const maxPremium = queue?.max_premium
+  
+  //CDT Input
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const newAmount = e.target.value
+
+    if (num(newAmount).isGreaterThan(cdtBalance)) setInputAmount(parseInt(cdtBalance))
+      else setInputAmount(parseInt(e.target.value))
+    
+    setTimeout(() => {
+      if (num(newAmount).isGreaterThan(cdtBalance)) setBidState({placeBid: {...bidState?.placeBid, cdt: parseInt(cdtBalance)}})
+        else setBidState({placeBid: {...bidState?.placeBid, cdt: parseInt(e.target.value)}})
+    }, delayTime);        
+  }
+  //Premium Input
+  const handlePremiumInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const newAmount = e.target.value
+
+    if (num(newAmount).isGreaterThan(maxPremium??10)) setPremiumInputAmount(parseInt(maxPremium??'10'))
+      else setPremiumInputAmount(parseInt(e.target.value))
+    
+    setTimeout(() => {
+      if (num(newAmount).isGreaterThan(maxPremium??10)) setBidState({placeBid: {...bidState?.placeBid, premium: parseInt(maxPremium??'10')}})
+        else setBidState({placeBid: {...bidState?.placeBid, premium: parseInt(e.target.value)}})
+    }, delayTime);        
+  }
+
 
   const onCDTChange = (value: number) => {
     const existingBid = bidState?.placeBid || {}
@@ -53,6 +62,7 @@ const PlaceBid = () => {
       cdt: value,
     }
     setBidState({ ...bidState, placeBid })
+    setInputAmount(value)
   }
 
   const onPremiumChange = (value: number) => {
@@ -63,6 +73,11 @@ const PlaceBid = () => {
     }
     setBidState({ ...bidState, placeBid })
   }
+  //Instead of changing the premium input amount on the slider, we useMemo to account for premium x-axis clicks
+  useMemo(() => {setPremiumInputAmount(bidState?.placeBid.premium)}, [bidState?.placeBid.premium])
+
+
+  const isDisabled = (bidState?.placeBid?.cdt) === 0
 
   return (
     <Card p="8" alignItems="center" gap={5}>
@@ -72,12 +87,17 @@ const PlaceBid = () => {
 
       <HStack w="full" gap="10" mb="2">
         <Stack w="full" gap="1">
-          <HStack justifyContent="space-between">
+          <HStack justifyContent="space-between">          
+            <Input 
+              width={"49%"} 
+              textAlign={"center"} 
+              placeholder="0" 
+              type="number" 
+              value={inputAmount} 
+              onChange={handleInputChange}
+             />
             <Text fontSize="16px" fontWeight="700">
               CDT with
-            </Text>
-            <Text fontSize="16px" fontWeight="700">
-              {bidState?.placeBid?.cdt}
             </Text>
           </HStack>
           <SliderWithState
@@ -90,18 +110,23 @@ const PlaceBid = () => {
 
         <Stack w="full" gap="1">
           <HStack justifyContent="space-between">
+            <Input 
+              width={"38%"} 
+              textAlign={"center"} 
+              placeholder="0" 
+              type="number" 
+              value={premiuminputAmount} 
+              onChange={handlePremiumInputChange}
+             />
             <Text fontSize="16px" fontWeight="700">
               % Premium
-            </Text>
-            <Text fontSize="16px" fontWeight="700">
-              {bidState?.placeBid?.premium}
             </Text>
           </HStack>
           <SliderWithState
             value={bidState?.placeBid?.premium}
             onChange={onPremiumChange}
             min={0}
-            max={Number(maxPremium)}
+            max={10}
           />
         </Stack>
       </HStack>
@@ -141,11 +166,9 @@ const PlaceBid = () => {
         </Stack>
       </Stack>
 
-      <ConfirmModal label="Place Bid" action={bid}>
+      <ConfirmModal label="Place Bid" action={bid} isDisabled={isDisabled}>
         <Summary />
-        <TxError action={bid} />
       </ConfirmModal>
-      <TxError action={bid} />
     </Card>
   )
 }

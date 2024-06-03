@@ -7,15 +7,16 @@ import { Asset } from '@/contracts/codegen/positions/Positions.types'
 import { Coin, coin } from '@cosmjs/stargate'
 import { shiftDigits } from './math'
 import { getAssetBySymbol } from './chain'
+import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 
-const getDeposited = (deposited = 0, newDeposit: string) => {
-  const diff = num(newDeposit).minus(deposited).dp(6).toNumber()
-  return diff !== 0 ? diff : 0
-}
+// const getDeposited = (deposited = 0, newDeposit: string) => {
+//   const diff = num(newDeposit).minus(deposited).dp(6).toNumber()
+//   return diff !== 0 ? diff : 0
+// }
 
-const calculateNewDeposit = (sliderValue: number, combinUsdValue: number, price: number) => {
-  return num(sliderValue).times(combinUsdValue).dividedBy(100).dividedBy(price).toFixed(6)
-}
+// const calculateNewDeposit = (sliderValue: number, combinUsdValue: number, price: number) => {
+//   return num(sliderValue).times(combinUsdValue).dividedBy(100).dividedBy(price).toFixed(6)
+// }
 
 export const getSummary = (assets: AssetWithBalance[]) => {
   const summary = assets
@@ -98,7 +99,7 @@ export const setInitialMintState = ({
 
   const assetsWithValuesGreaterThanZero = combinBalance
     ?.filter((asset) => {
-      return num(asset.combinUsdValue || 0).isGreaterThan(0)
+      return num(asset.combinUsdValue || 0).isGreaterThan(1)
     })
     .map((asset) => ({
       ...asset,
@@ -117,6 +118,7 @@ export const setInitialMintState = ({
     summary: [],
     totalUsdValue: 0,
     overdraft: false,
+    newDebtAmount: 0,
   })
 }
 
@@ -124,11 +126,12 @@ type GetDepostAndWithdrawMsgs = {
   summary?: Summary[]
   address: string
   positionId: string
+  hasPosition?: boolean
 }
 
 const getAsset = (asset: any): Asset => {
   return {
-    amount: shiftDigits(Math.abs(asset.amount), 6).dp(0).toString(),
+    amount: shiftDigits(Math.abs(asset.amount), asset.decimal).dp(0).toString(),
     info: {
       native_token: {
         denom: asset.base,
@@ -141,6 +144,7 @@ export const getDepostAndWithdrawMsgs = ({
   summary,
   address,
   positionId,
+  hasPosition = true,
 }: GetDepostAndWithdrawMsgs) => {
   const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
 
@@ -161,13 +165,19 @@ export const getDepostAndWithdrawMsgs = ({
   const depositFunds = deposit
     .sort((a, b) => (a.base < b.base ? -1 : 1))
     .map((asset) => {
-      const amount = shiftDigits(asset.amount, 6).dp(0).toString()
+      const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toString()
       return coin(amount, asset.base)
     })
 
   if (depositFunds.length > 0) {
-    const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
-    msgs.push(depositMsg)
+    if (hasPosition) {
+      const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
+      msgs.push(depositMsg)
+    } else {
+      //Don't use positionID, deposit into new position
+      const depositMsg = messageComposer.deposit({ positionOwner: address }, depositFunds)
+      msgs.push(depositMsg)
+    }
   }
 
   if (withdraw.length > 0) {
@@ -195,7 +205,7 @@ export const getMintAndRepayMsgs = ({
 }: GetMintAndRepayMsgs) => {
   const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
   const msgs = []
-
+  
   if (num(mintAmount).isGreaterThan(0)) {
     const mintMsg = messageComposer.increaseDebt({
       positionId,
@@ -208,9 +218,32 @@ export const getMintAndRepayMsgs = ({
     const cdt = getAssetBySymbol('CDT')
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
     const funds = [coin(microAmount, cdt?.base!)]
-    const repayMsg = messageComposer.repay({ positionId }, funds)
+    const repayMsg = messageComposer.repay({ positionId, sendExcessTo: address }, funds)
     msgs.push(repayMsg)
   }
 
   return msgs
 }
+
+type GetLiqMsgs = {
+  address: string
+  liq_info: any[]
+} 
+export const getLiquidationMsgs = ({
+  address,
+  liq_info
+}: GetLiqMsgs) => {
+  const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
+  const msgs = [] as MsgExecuteContractEncodeObject[]
+
+  liq_info.map((liq) => {
+    const liqMsg = messageComposer.liquidate({
+      positionId: liq.id,
+      positionOwner: liq.address
+    })
+    msgs.push(liqMsg)
+  })
+
+  return msgs
+}
+

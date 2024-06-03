@@ -1,5 +1,5 @@
 import { getDepostAndWithdrawMsgs, getMintAndRepayMsgs } from '@/helpers/mint'
-import { useBasketPositions } from '@/hooks/useCDP'
+import { useBasket, useUserPositions } from '@/hooks/useCDP'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
@@ -11,8 +11,17 @@ const useMint = () => {
   const { mintState } = useMintState()
   const { summary = [] } = mintState
   const { address } = useWallet()
-  const { data: basketPositions } = useBasketPositions()
-  const positionId = basketPositions?.[0]?.positions?.[0]?.position_id
+  const { data: basketPositions, ...basketErrors } = useUserPositions()
+  const { data: basket } = useBasket()
+
+  //Use first position id or use the basket's next position ID (for new positions)
+  var positionId = "";
+  if (basketPositions !== undefined) {
+    positionId = basketPositions?.[0]?.positions?.[0]?.position_id
+  } else {
+    //Use the next position ID
+    positionId = basket?.current_position_id ?? ""    
+  }
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: [
@@ -24,8 +33,8 @@ const useMint = () => {
       mintState?.repay,
     ],
     queryFn: () => {
-      if (!address || !positionId) return
-      const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, positionId })
+      if (!address) return
+      const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
       const mintAndRepay = getMintAndRepayMsgs({
         address,
         positionId,
@@ -34,11 +43,12 @@ const useMint = () => {
       })
       return [...depositAndWithdraw, ...mintAndRepay] as MsgExecuteContractEncodeObject[]
     },
-    enabled: !!address && !!positionId && !mintState.overdraft,
+    enabled: !!address && !mintState.overdraft,
   })
 
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['baseket positions'] })
+  const onSuccess = () => {    
+    queryClient.invalidateQueries({ queryKey: ['positions'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
 
   return useSimulateAndBroadcast({

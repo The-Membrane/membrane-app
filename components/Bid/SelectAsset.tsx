@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react'
 import Select from '@/components/Select'
-import useAssets from '@/hooks/useAssets'
+import { useEffect } from 'react'
 import useBidState from './hooks/useBidState'
 import useCollateralAssets from './hooks/useCollateralAssets'
 
@@ -11,7 +10,6 @@ const SelectAsset = (props: Props) => {
   const { bidState, setBidState } = useBidState()
 
   const assetsWithOptions = assets
-    ?.filter((asset) => !asset?.isLP)
     ?.map((asset) => ({
       ...asset,
       value: asset?.symbol,

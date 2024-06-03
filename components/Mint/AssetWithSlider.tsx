@@ -16,12 +16,13 @@ export const AssetWithSlider = ({ asset, label }: AssetWithSliderProps) => {
   const onChange = (value: number) => {
     let updatedAssets = mintState.assets.map((asset) => {
       const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
-      const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).dp(2).toNumber()
-      const newDepoist = num(asset.depositUsdValue).minus(diffInUsd).dp(2).toNumber()
+      
+      const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
+      const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
       const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
-        ? newDepoist
+        ? newDeposit
         : -diffInUsd
-      const amount = num(amountValue).dividedBy(asset.price).dp(6).toNumber()
+      const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
       return {
         ...asset,
         amount,

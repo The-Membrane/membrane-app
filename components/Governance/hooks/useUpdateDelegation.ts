@@ -30,6 +30,7 @@ const useUpdateDelegation = () => {
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['delegations'] })
+    queryClient.invalidateQueries({ queryKey: ['delegator'] })
   }
 
   return useSimulateAndBroadcast({

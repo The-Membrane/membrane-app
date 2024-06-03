@@ -3,6 +3,7 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { AssetWithBalance } from './hooks/useCombinBalance'
 import useMintState from './hooks/useMintState'
+import useVaultSummary from './hooks/useVaultSummary'
 
 type SummaryItemProps = Partial<AssetWithBalance> & {
   label: string
@@ -60,8 +61,10 @@ const SummaryItem = ({
 
 export const Summary = () => {
   const { mintState } = useMintState()
+  const { debtAmount } = useVaultSummary()
   const { summary } = mintState
   const cdt = useAssetBySymbol('CDT')
+  console.log(mintState.repay??0, debtAmount)
 
   if (!mintState.isTakeAction) return null
 
@@ -71,7 +74,7 @@ export const Summary = () => {
         const badge = num(asset.amount).isGreaterThan(0) ? 'Deposit' : 'Withdraw'
         return (
           <SummaryItem
-            key={asset?.label}
+            key={asset?.label + asset?.amount}
             label={asset?.label}
             amount={asset?.amount}
             logo={asset?.logo}
@@ -95,7 +98,7 @@ export const Summary = () => {
         <SummaryItem
           badge="Repay"
           label="CDT"
-          amount={mintState.repay?.toFixed(2)}
+          amount={Math.min(debtAmount, mintState.repay??0).toFixed(2)}
           logo={cdt?.logo}
         />
       )}

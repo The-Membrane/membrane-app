@@ -16,7 +16,7 @@ type Simulate = {
 const useSimulate = ({ msgs, amount, enabled = true, queryKey = [], chain_id }: Simulate) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet(chain_id)
-
+console.log("SIM", enabled, (msgs?.length || 0) > 0, isWalletConnected)
   // clear error message when amount is changed
   useEffect(() => {
     if (amount === '' && !!errorMessage) setErrorMessage(null)

@@ -35,7 +35,6 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 
 const LiveAuction = () => {
     const { data: liveNFTAuction } = useLiveNFTAuction()
-    console.log("live", liveNFTAuction)
     const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
     // const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
     
@@ -60,7 +59,7 @@ const LiveAuction = () => {
         setNFTState({ nftBidAmount: value })
     }
 
-    console.log(!isGreaterThanZero(NFTState.nftBidAmount), bid?.action.simulate.isError, !bid?.action.simulate.data)
+    console.log(!isGreaterThanZero(NFTState.nftBidAmount), bid?.action.simulate.errorMessage, !bid?.action.simulate.data)
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}

@@ -2,7 +2,7 @@ import { Box, Button, HStack, Stack, Text, Image } from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { useMemo, useState } from 'react'
-import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon } from './Icons'
+import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon } from './Icons'
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
@@ -30,6 +30,7 @@ const navItems: NavItems[] = [
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
+  { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
 ]
 
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {

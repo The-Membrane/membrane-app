@@ -37,6 +37,7 @@ export const getSPTimeLeft = (unstakeStartDate: number) => {
 }
 
 const UnstakeButton = ({ amount }: { amount: string }) => {
+  console.log("unstake", amount)
   const withdraw = useWithdrawStabilityPool(amount)
   return (
     <TxButton

@@ -10,7 +10,7 @@ import {
   ProposalResponse as ProposalResponseType,
   ProposalStatus,
 } from '@/contracts/codegen/governance/Governance.types'
-import getCosmWasmClient from '@/helpers/comswasmClient'
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { num } from '@/helpers/num'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import dayjs from 'dayjs'

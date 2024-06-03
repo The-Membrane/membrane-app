@@ -1,7 +1,7 @@
 import { useChain } from '@cosmos-kit/react'
 
-const useWallet = () => {
-  return useChain('osmosis')
+const useWallet = (chainID: string = "osmosis") => {
+  return useChain(chainID)
 }
 
 export default useWallet

@@ -10,11 +10,12 @@ type Simulate = {
   amount: string | undefined
   enabled?: boolean
   queryKey?: string[]
+  chain_id: string
 }
 
-const useSimulate = ({ msgs, amount, enabled = true, queryKey = [] }: Simulate) => {
+const useSimulate = ({ msgs, amount, enabled = true, queryKey = [], chain_id }: Simulate) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet()
+  const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet(chain_id)
 
   // clear error message when amount is changed
   useEffect(() => {

@@ -6,10 +6,11 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Auction, Bid, SubmissionItem, SubmissionInfo, Uint128, BidAssetAuction, Coin, Decimal, Config, ExecuteMsg, Timestamp, Uint64, InstantiateMsg, CollectionParams, CollectionInfoForRoyaltyInfoResponse, RoyaltyInfoResponse, PendingAuctionResponse, QueryMsg, SubmissionsResponse, Votes } from "./BraneAuction.types";
+import { Coin } from "@cosmjs/stargate";
+import { Addr, Auction, Bid, SubmissionItem, SubmissionInfo, Uint128, BidAssetAuction, Decimal, Config, ExecuteMsg, Timestamp, Uint64, InstantiateMsg, CollectionParams, CollectionInfoForRoyaltyInfoResponse, RoyaltyInfoResponse, PendingAuctionResponse, QueryMsg, SubmissionsResponse, Votes } from "./BraneAuction.types";
 export interface BraneAuctionReadOnlyInterface {
   contractAddress: string;
-  config: () => Promise<ConfigResponse>;
+  config: () => Promise<Config>;
   submissions: ({
     limit,
     startAfter,
@@ -25,9 +26,9 @@ export interface BraneAuctionReadOnlyInterface {
   }: {
     limit?: number;
     startAfter?: number;
-  }) => Promise<PendingAuctionsResponse>;
-  liveNftAuction: () => Promise<LiveNftAuctionResponse>;
-  liveBidAssetAuction: () => Promise<LiveBidAssetAuctionResponse>;
+  }) => Promise<PendingAuctionResponse>;
+  liveNftAuction: () => Promise<Auction>;
+  liveBidAssetAuction: () => Promise<BidAssetAuction>;
 }
 export class BraneAuctionQueryClient implements BraneAuctionReadOnlyInterface {
   client: CosmWasmClient;
@@ -43,7 +44,7 @@ export class BraneAuctionQueryClient implements BraneAuctionReadOnlyInterface {
     this.liveBidAssetAuction = this.liveBidAssetAuction.bind(this);
   }
 
-  config = async (): Promise<ConfigResponse> => {
+  config = async (): Promise<Config> => {
     return this.client.queryContractSmart(this.contractAddress, {
       config: {}
     });
@@ -71,7 +72,7 @@ export class BraneAuctionQueryClient implements BraneAuctionReadOnlyInterface {
   }: {
     limit?: number;
     startAfter?: number;
-  }): Promise<PendingAuctionsResponse> => {
+  }): Promise<PendingAuctionResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       pending_auctions: {
         limit,
@@ -79,12 +80,12 @@ export class BraneAuctionQueryClient implements BraneAuctionReadOnlyInterface {
       }
     });
   };
-  liveNftAuction = async (): Promise<LiveNftAuctionResponse> => {
+  liveNftAuction = async (): Promise<Auction> => {
     return this.client.queryContractSmart(this.contractAddress, {
       live_nft_auction: {}
     });
   };
-  liveBidAssetAuction = async (): Promise<LiveBidAssetAuctionResponse> => {
+  liveBidAssetAuction = async (): Promise<BidAssetAuction> => {
     return this.client.queryContractSmart(this.contractAddress, {
       live_bid_asset_auction: {}
     });

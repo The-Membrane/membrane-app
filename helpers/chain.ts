@@ -10,6 +10,24 @@ export type Asset = RegistryAsset & {
 }
 
 const defaultChain = 'osmosis'
+const supportedAssets = [
+  'OSMO',
+  'ATOM',
+  'TIA',
+  'CDT',
+  'MBRN',
+  'stOSMO',
+  'stATOM',
+  'USDT',
+  'USDC',
+  'milkTIA',
+  'USDC.axl',
+  'stTIA',
+  'ETH',
+  'ETH.axl',
+  'WBTC',
+  'WBTC.axl',
+]
 
 //For swaps
 export interface exported_supportedAssets {

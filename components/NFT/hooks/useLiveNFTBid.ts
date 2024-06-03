@@ -33,10 +33,14 @@ const useLiveNFTBid = () => {
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
   }
 
+  console.log(msgs)
+
   return {action: useSimulateAndBroadcast({
     msgs,
     enabled: !!msgs,
     onSuccess,
+    amount: "0",
+    queryKey: ['msg ibc', (msgs?.toString()??"0")],
   }), msgs}
 }
 

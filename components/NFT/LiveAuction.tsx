@@ -60,7 +60,7 @@ const LiveAuction = () => {
         setNFTState({ nftBidAmount: value })
     }
 
-    
+    console.log(!isGreaterThanZero(NFTState.nftBidAmount), bid?.action.simulate.isError, !bid?.action.simulate.data)
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}

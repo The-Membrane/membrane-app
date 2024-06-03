@@ -6,13 +6,11 @@ import { Auction, BidAssetAuction } from '@/contracts/codegen/brane_auction/Bran
 
 export const NFTAuctionClient = async () => {
   const cosmWasmClient = await getSGCosmwasmClient()
-  console.log(cosmWasmClient)
   return new BraneAuctionQueryClient(cosmWasmClient, contracts.brane_auction)
 }
 
 export const getLiveNFTAuction = async () => {
   const client = await NFTAuctionClient()
-  console.log(client)
   return client.liveNftAuction().then((res) => res) as Promise<Auction>    
 }
 

@@ -11,7 +11,7 @@ export const NFTAuctionClient = async () => {
 
 export const getLiveNFTAuction = async () => {
   const client = await NFTAuctionClient()
-  return client.liveNftAuction().then((res) => res.auction) as Promise<Auction>    
+  return client.liveNftAuction().then((res) => res) as Promise<Auction>    
 }
 
 

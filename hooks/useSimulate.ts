@@ -16,7 +16,7 @@ type Simulate = {
 const useSimulate = ({ msgs, amount, enabled = true, queryKey = [], chain_id }: Simulate) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet(chain_id)
-console.log("SIM", enabled, (msgs?.length || 0) > 0, isWalletConnected)
+
   // clear error message when amount is changed
   useEffect(() => {
     if (amount === '' && !!errorMessage) setErrorMessage(null)
@@ -26,6 +26,7 @@ console.log("SIM", enabled, (msgs?.length || 0) > 0, isWalletConnected)
     queryKey: ['simulate', amount, address, chain.chain_id, ...queryKey],
     queryFn: async () => {
       if (!isWalletConnected || !address || !msgs) return undefined
+      console.log("SIM", !isWalletConnected, !address,  !msgs)
 
       const signingClient = await getSigningStargateClient()
       setErrorMessage(null)
@@ -35,6 +36,7 @@ console.log("SIM", enabled, (msgs?.length || 0) > 0, isWalletConnected)
     retry: false,
     staleTime: 30000, // data considered "fresh" for 30 seconds
   })
+  console.log("SIM", simulate)
 
   return {
     ...simulate,

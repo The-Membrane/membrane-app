@@ -17,7 +17,7 @@ const NFTBid = () => {
                     Current Bid
                     </Text>
                     <Text fontSize="16px" fontWeight="700">
-                    {shiftDigits(currentBid?.amount??0, -6).toString()}
+                    {shiftDigits(currentBid?.amount??0, -6).toString()} CDT
                     </Text>
                 </Stack>                
                 <Stack w="full" gap="1">

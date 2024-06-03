@@ -95,7 +95,7 @@ const Action = ({ deposit, amount }: { deposit: Deposit; amount: string }) => {
 
 const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) => {
   const amount = shiftDigits(deposit.amount, -6).toString()
-  const { isEnded, timeString } = useCountdown((deposit.unstake_time? + 86400) : undefined)//86400s is the SP's unstake period)
+  const { isEnded, timeString } = useCountdown(deposit.unstake_time ? (deposit.unstake_time + 86400) : undefined)//86400s is the SP's unstake period)
   const cdt = useAssetBySymbol('CDT')
   const [inputAmount, setInputAmount] = useState('')
 

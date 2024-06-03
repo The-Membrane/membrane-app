@@ -1,7 +1,7 @@
 import contracts from '@/config/contracts.json'
 import { VestingQueryClient, VestingClient } from '@/contracts/codegen/vesting/Vesting.client'
 import { Addr } from '@/contracts/generated/positions/Positions.types'
-import getCosmWasmClient from '@/helpers/comswasmClient'
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
 export const vestingClient = async () => {

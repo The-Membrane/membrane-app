@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import dayjs from 'dayjs'
 
-const useCountdown = (timestamp: number | null | undefined) => {
+export const useCountdown = (timestamp: number | null | undefined) => {
   const [isEnded, setIsEnded] = useState(false)
-  const [timeString, setTimeString] = useState('')
+  const [timeString, setTimeString] = useState('00:00:00')
 
   useEffect(() => {
     if (!timestamp) return

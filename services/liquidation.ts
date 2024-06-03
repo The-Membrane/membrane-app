@@ -6,8 +6,10 @@ import {
 import { LiquidationQueueMsgComposer } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.message-composer'
 import { ClaimsResponse } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.types'
 import { Addr } from '@/contracts/generated/positions/Positions.types'
-import { Asset } from '@/helpers/chain'
-import getCosmWasmClient from '@/helpers/comswasmClient'
+
+import { Asset, getAssetBySymbol } from '@/helpers/chain'
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
+import { shiftDigits } from '@/helpers/math'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { Coin } from '@cosmjs/stargate'
 

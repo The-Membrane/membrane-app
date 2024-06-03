@@ -11,17 +11,18 @@ type Transaction = {
   msgs: MsgExecuteContractEncodeObject[] | undefined | null
   onSuccess?: () => void
   fee?: StdFee | undefined
+  chain_id: string
 }
 
 const mock = {
   transactionHash: '455C577EBCACEA50D9E8E9A0E621B1121E05D97974DFD9EDFFFB367B2F13BC24',
 } as DeliverTxResponse
 
-const useTransaction = ({ msgs, onSuccess, fee }: Transaction) => {
+const useTransaction = ({ msgs, onSuccess, fee, chain_id }: Transaction) => {
   const [isApproved, setIsApproved] = useState(false)
   const toaster = useToaster()
 
-  const { isWalletConnected, address, sign, broadcast } = useWallet()
+  const { isWalletConnected, address, sign, broadcast } = useWallet(chain_id)
 
   const tx = useMutation<DeliverTxResponse, Error>({
     mutationFn: async () => {

@@ -11,6 +11,7 @@ import { wallets as keplrWallets } from '@cosmos-kit/keplr'
 import { wallets as leapWallets } from '@cosmos-kit/leap'
 import { wallets as ledgerWallets } from '@cosmos-kit/ledger'
 import { wallets as stationWallets } from '@cosmos-kit/station'
+import { wallets as tailwindWallets } from '@cosmos-kit/tailwind'
 import { Chain } from '@chain-registry/types'
 import WalletModal from '@/components/WalletModal'
 import { aminoTypes, registry, rpcUrl } from '@/config/defaults'
@@ -77,6 +78,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             ...ledgerWallets?.slice(0, 1),
             ...leapWallets?.slice(0, 1),
             ...stationWallets?.slice(0, 1),
+            ...tailwindWallets?.slice(0, 1),
           ]}
           walletModal={WalletModal}
           signerOptions={signerOptions}

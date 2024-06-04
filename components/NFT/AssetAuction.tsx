@@ -8,6 +8,7 @@ import { TxButton } from "../TxButton"
 import { useLiveAssetAuction, useLiveNFTAuction } from "./hooks/useBraneAuction"
 import useCountdown from "@/hooks/useCountdown"
 import useLiveAssetBid from "./hooks/useLiveAssetBid"
+import { shiftDigits } from "@/helpers/math"
 
 const AssetAuction = () => {
     const { NFTState, setNFTState } = useNFTState()
@@ -33,11 +34,11 @@ const AssetAuction = () => {
         <Text variant="title">ASSET AUCTION</Text>
         <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="28%" justifyContent="space-between">            
             <Stack w="full" gap="1">
-                <Text fontSize="16px" fontWeight="700">
-                Auction for {auctionAmount??0} CDT
+                <Text fontSize="16px" fontWeight="700">                    
+                Auction for {shiftDigits(auctionAmount??0, -6).toString()} CDT
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
-                Current Bid: {currentBid??0} MBRN
+                Current Bid: {shiftDigits(currentBid??0, -6).toString()} MBRN
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
                 Time Left: {timeLeft}

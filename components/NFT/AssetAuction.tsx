@@ -44,7 +44,7 @@ const AssetAuction = () => {
     const [mbrnPrice, setmbrnPrice ] = useState('0')
     const MBRNprice = getMBRNPrice()
     if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
-    
+    console.log("Prices:", cdtPrice, mbrnPrice, "fn prices:", MBRNprice, CDTprice)
 
     const onBidChange = (value: number) => {
         setNFTState({ assetBidAmount: value })

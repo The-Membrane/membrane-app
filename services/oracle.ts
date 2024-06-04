@@ -17,6 +17,7 @@ export type Price = {
 }
 
 export const parsePrice = (prices: PriceResponse[], assetInfos: AssetInfo[]): Price[] => {
+  console.log("PR:", prices, assetInfos)
   return prices.flatMap((price, index) => {
     const asset = assetInfos[index]
     return {

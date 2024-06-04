@@ -61,7 +61,7 @@ const AssetAuction = () => {
                     marginTop={"3%"}
                     w="100%"
                     px="10"
-                    isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
+                    isDisabled={!isGreaterThanZero(NFTState.assetBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
                     isLoading={bid.simulate.isPending && !bid.simulate.isError && bid.simulate.data}
                     onClick={() => bid.tx.mutate()}
                     chain_name="stargaze"

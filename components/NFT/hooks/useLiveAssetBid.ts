@@ -36,8 +36,11 @@ const useLiveAssetBid = () => {
 
   return useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    enabled: true,
     onSuccess,
+    amount: "0",
+    queryKey: ['sim asset auction', (msgs?.toString()??"0")],
+    chain_id: 'stargaze'
   })
 }
 

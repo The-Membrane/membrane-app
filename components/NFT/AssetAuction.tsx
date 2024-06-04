@@ -13,6 +13,7 @@ import { use, useEffect, useState } from "react"
 import { Asset, getAssetBySymbol } from "@/helpers/chain"
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Price } from "@/services/oracle"
+import Countdown from "../Countdown"
 
 
 const getMBRNPrice = (prices: Price[] | undefined, MBRN: Asset) => {
@@ -36,7 +37,6 @@ const AssetAuction = () => {
     const currentBid = liveAssetAuction?.highest_bid.amount
     const { data: liveNFTAuction } = useLiveNFTAuction()
     //Bid Auctions end when the current NFT auction does
-    const timeLeft = useCountdown(liveNFTAuction?.auction_end_time).timeString
 
     const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
     const stargazeMBRNBalance = useBalanceByAsset(stargazeMBRN, 'stargaze')
@@ -53,6 +53,7 @@ const AssetAuction = () => {
         const MBRNprice = getMBRNPrice(prices, MBRN!)
         if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
         console.log("Prices:", cdtPrice, mbrnPrice, "fn prices:", MBRNprice, CDTprice)
+        console.log("Prices::", prices)
 
     }, [prices, cdt, MBRN])
 
@@ -73,9 +74,7 @@ const AssetAuction = () => {
                 <Text fontSize="16px" fontWeight="700">
                 Current Bid: {shiftDigits(currentBid??0, -6).toString()} MBRN
                 </Text>
-                <Text fontSize="16px" fontWeight="700">
-                Time Left: {timeLeft}
-                </Text>
+                <Countdown timestamp={liveNFTAuction?.auction_end_time}/>
                 <HStack justifyContent="space-between">
                     <Text fontSize="16px" fontWeight="700">
                     MBRN

@@ -71,13 +71,12 @@ const LiveAuction = () => {
             {/* Need to add pagination for submissions so we can curate */}
             {isLoading === "Loading image from IPFS......" && <div>{isLoading}</div>}
             <Image
-                // src="https://ipfs-gw.stargaze-apis.com/ipfs/bafybeib4p32yqheuhnounizgizaho66g2ypk6gocg7xzxais5tuyz42gym/1.png"
                 src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
-                onLoad={handleImageLoaded}
+                onLoad={handleImageLoaded}                
                 style={{ display: isLoading === "Loading image from IPFS......" ? 'none' : 'block' }}
-            width="36%"
-            height="auto"
+                width="36%"
+                height="auto"
             />
             <Stack w="full" gap="1">
             <HStack justifyContent="space-between">

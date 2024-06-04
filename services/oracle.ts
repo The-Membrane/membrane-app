@@ -46,7 +46,7 @@ const getAssetsInfo = (basket: Basket) => {
 
   const collateralAssets = basket.collateral_types.map((collateral) => collateral.asset.info)
 
-  return [mbrnAssetInfo, cdtAssetInfo, ...collateralAssets] as AssetInfo[]
+  return [cdtAssetInfo, ...collateralAssets] as AssetInfo[]
 }
 
 export const getOraclePrices = async (basket: Basket) => {
@@ -60,7 +60,7 @@ export const getOraclePrices = async (basket: Basket) => {
     oracleTimeLimit,
     twapTimeframe,
   }
-  
+
   console.log("right before query & parse")
   return client.prices(params).then((prices) => parsePrice(prices, assetInfos))
 }

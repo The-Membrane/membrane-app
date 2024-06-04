@@ -2,7 +2,7 @@ import { Text} from "@chakra-ui/react"
 import useCountdown from "@/hooks/useCountdown"
 
 type Props = {
-    timestamp: number
+    timestamp: number | undefined
 }
 
 const Countdown = ({ timestamp }: Props) => {    

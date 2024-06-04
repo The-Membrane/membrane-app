@@ -17,14 +17,14 @@ const useConcludeAuction = () => {
       const messageComposer = new BraneAuctionMsgComposer(address, contracts.brane_auction)
 
       //Conclude Msg
-      const submitNFT = messageComposer.submitNft({
-        proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
-        tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Mummy Brane",
-      })
-    //   const curate = messageComposer.voteToCurate({submissionIds: [0]})
-    //   const msg = messageComposer.concludeAuction()
+    //   const submitNFT = messageComposer.submitNft({
+    //     proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
+    //     tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Mummy Brane",
+    //   })
+      const curate = messageComposer.voteToCurate({submissionIds: [0]})
+      const msg = messageComposer.concludeAuction()
 
-      return [submitNFT] as MsgExecuteContractEncodeObject[]
+      return [curate, msg] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
   })

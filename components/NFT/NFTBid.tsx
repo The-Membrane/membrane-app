@@ -40,6 +40,7 @@ const NFTBid = () => {
                     isDisabled={conclude?.action.simulate.isError || !conclude?.action.simulate.data}
                     isLoading={conclude.action.simulate.isPending && !conclude.action.simulate.isError && conclude.action.simulate.data}
                     onClick={() => conclude.action.tx.mutate()}
+                    chain_name="stargaze"
                     >
                     Conclude Auction
                 </TxButton>}

@@ -64,6 +64,7 @@ const BridgeToStargaze = () => {
                     isDisabled={(!isGreaterThanZero(NFTState.mbrnBridgeAmount) && !isGreaterThanZero(NFTState.cdtBridgeAmount)) || ibc?.simulate.isError || !ibc?.simulate.data}
                     isLoading={ibc.simulate.isPending && !ibc.simulate.isError && ibc.simulate.data}
                     onClick={() => ibc.tx.mutate()}
+                    chain_name="stargaze"
                     >
                     Bridge to Stargaze
                 </TxButton>

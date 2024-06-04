@@ -63,6 +63,7 @@ const AssetAuction = () => {
                     isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
                     isLoading={bid.simulate.isPending && !bid.simulate.isError && bid.simulate.data}
                     onClick={() => bid.tx.mutate()}
+                    chain_name="stargaze"
                     >
                     Bid
                 </TxButton>

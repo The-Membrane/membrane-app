@@ -101,6 +101,7 @@ const LiveAuction = () => {
                 isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
                 isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
                 onClick={() => bid.action.tx.mutate()}
+                chain_name="stargaze"
                 >
                 Bid
             </TxButton>

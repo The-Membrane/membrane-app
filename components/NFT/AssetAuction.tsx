@@ -10,20 +10,18 @@ import useCountdown from "@/hooks/useCountdown"
 import useLiveAssetBid from "./hooks/useLiveAssetBid"
 import { shiftDigits } from "@/helpers/math"
 import { use, useEffect, useState } from "react"
-import { getAssetBySymbol } from "@/helpers/chain"
+import { Asset, getAssetBySymbol } from "@/helpers/chain"
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Price } from "@/services/oracle"
 
 
-const getMBRNPrice = (prices: Price[] | undefined) => {
-    const MBRN = getAssetBySymbol('MBRN')
+const getMBRNPrice = (prices: Price[] | undefined, MBRN: Asset) => {
     console.log("MBRN asset", MBRN)
     const price = prices?.find((price) => price.denom === MBRN?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)
 }
-const getCDTPrice = (prices: Price[] | undefined) => {
-    const cdt = getAssetBySymbol('CDT')
+const getCDTPrice = (prices: Price[] | undefined, cdt: Asset) => {
     console.log("CDT asset", cdt)
     const price = prices?.find((price) => price.denom === cdt?.base)
     if (!price) return '0'
@@ -46,13 +44,14 @@ const AssetAuction = () => {
     const { data: prices } = useOraclePrice()
     useEffect(() => {      
 
+        const cdt = getAssetBySymbol('CDT')
         const [cdtPrice, setcdtPrice ] = useState('0')
-        const CDTprice = getCDTPrice(prices)
+        const CDTprice = getCDTPrice(prices, cdt)
         if (CDTprice != cdtPrice && CDTprice != '0') setcdtPrice(CDTprice)
             
-        
+        const MBRN = getAssetBySymbol('MBRN')        
         const [mbrnPrice, setmbrnPrice ] = useState('0')
-        const MBRNprice = getMBRNPrice(prices)
+        const MBRNprice = getMBRNPrice(prices, MBRN)
         if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
         console.log("Prices:", cdtPrice, mbrnPrice, "fn prices:", MBRNprice, CDTprice)
 

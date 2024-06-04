@@ -6,7 +6,6 @@ import useNFTState from "./hooks/useNFTState"
 import { isGreaterThanZero, num } from "@/helpers/num"
 import { TxButton } from "../TxButton"
 import { useLiveAssetAuction, useLiveNFTAuction } from "./hooks/useBraneAuction"
-import useCountdown from "@/hooks/useCountdown"
 import useLiveAssetBid from "./hooks/useLiveAssetBid"
 import { shiftDigits } from "@/helpers/math"
 import { use, useEffect, useState } from "react"
@@ -17,13 +16,11 @@ import Countdown from "../Countdown"
 
 
 const getMBRNPrice = (prices: Price[] | undefined, MBRN: Asset) => {
-    console.log("MBRN asset", MBRN)
     const price = prices?.find((price) => price.denom === MBRN?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)
 }
 const getCDTPrice = (prices: Price[] | undefined, cdt: Asset) => {
-    console.log("CDT asset", cdt)
     const price = prices?.find((price) => price.denom === cdt?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)
@@ -53,7 +50,6 @@ const AssetAuction = () => {
             
         const MBRNprice = getMBRNPrice(prices, MBRN!)
         if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
-        console.log("Prices:", cdtPrice, mbrnPrice, "fn prices:", MBRNprice, CDTprice)
 
     }, [prices, cdt, MBRN])
 
@@ -69,7 +65,8 @@ const AssetAuction = () => {
         <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="28%" justifyContent="space-between">            
             <Stack w="full" gap="1">
                 <Text fontSize="16px" fontWeight="700">                    
-                Auction for {shiftDigits(auctionAmount??0, -6).toString()} CDT —— equivalent to {num(cdtPrice).dividedBy(num(mbrnPrice)).toString()} MBRN
+                Auction for {shiftDigits(auctionAmount??0, -6).toString()} CDT 
+                {/* —— equivalent to {num(cdtPrice).dividedBy(num(mbrnPrice)).toString()} MBRN */}
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
                 Current Bid: {shiftDigits(currentBid??0, -6).toString()} MBRN

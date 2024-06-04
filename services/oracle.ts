@@ -17,7 +17,6 @@ export type Price = {
 }
 
 export const parsePrice = (prices: PriceResponse[], assetInfos: AssetInfo[]): Price[] => {
-  console.log("HELLLLLLLLO")
   return prices.flatMap((price, index) => {
     const asset = assetInfos[index]
     return {
@@ -46,7 +45,7 @@ const getAssetsInfo = (basket: Basket) => {
 
   const collateralAssets = basket.collateral_types.map((collateral) => collateral.asset.info)
 
-  return [mbrnAssetInfo, ...collateralAssets] as AssetInfo[]
+  return [cdtAssetInfo, ...collateralAssets] as AssetInfo[]
 }
 
 
@@ -62,6 +61,5 @@ export const getOraclePrices = async (basket: Basket) => {
     twapTimeframe,
   }
 
-  console.log("right before query & parse")
   return client.prices(params).then((prices) => parsePrice(prices, assetInfos))
 }

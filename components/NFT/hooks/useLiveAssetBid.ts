@@ -11,7 +11,7 @@ import { shiftDigits } from '@/helpers/math'
 
 const useLiveAssetBid = () => {
   const { address } = useWallet('stargaze')
-  const { NFTState } = useNFTState()
+  const { NFTState, setNFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg liveAssetbid', address, NFTState.assetBidAmount],
@@ -32,6 +32,7 @@ const useLiveAssetBid = () => {
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['live asset auction'] })
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
+    setNFTState({ assetBidAmount: 0 })
   }
 
   return useSimulateAndBroadcast({

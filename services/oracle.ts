@@ -60,6 +60,7 @@ export const getOraclePrices = async (basket: Basket) => {
     oracleTimeLimit,
     twapTimeframe,
   }
+  console.log("PR:", assetInfos)
 
   return client.prices(params).then((prices) => parsePrice(prices, assetInfos))
 }

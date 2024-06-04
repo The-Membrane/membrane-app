@@ -17,7 +17,7 @@ export type Price = {
 }
 
 export const parsePrice = (prices: PriceResponse[], assetInfos: AssetInfo[]): Price[] => {
-  console.log("PR:", prices, assetInfos)
+  console.log("HELLLLLLLLO")
   return prices.flatMap((price, index) => {
     const asset = assetInfos[index]
     return {
@@ -60,7 +60,7 @@ export const getOraclePrices = async (basket: Basket) => {
     oracleTimeLimit,
     twapTimeframe,
   }
-  console.log("PR:", assetInfos)
-
+  
+  console.log("right before query & parse")
   return client.prices(params).then((prices) => parsePrice(prices, assetInfos))
 }

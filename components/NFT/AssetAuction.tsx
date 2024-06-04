@@ -9,19 +9,24 @@ import { useLiveAssetAuction, useLiveNFTAuction } from "./hooks/useBraneAuction"
 import useCountdown from "@/hooks/useCountdown"
 import useLiveAssetBid from "./hooks/useLiveAssetBid"
 import { shiftDigits } from "@/helpers/math"
-import { useState } from "react"
-import { getCDTPrice } from "../SideNav"
+import { use, useEffect, useState } from "react"
 import { getAssetBySymbol } from "@/helpers/chain"
 import { useOraclePrice } from "@/hooks/useOracle"
+import { Price } from "@/services/oracle"
 
 
-export const getMBRNPrice = () => {
+const getMBRNPrice = (prices: Price[] | undefined) => {
     const MBRN = getAssetBySymbol('MBRN')
-    const { data: prices } = useOraclePrice()
     const price = prices?.find((price) => price.denom === MBRN?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)
 }
+const getCDTPrice = (prices: Price[] | undefined) => {
+    const cdt = getAssetBySymbol('CDT')
+    const price = prices?.find((price) => price.denom === cdt?.base)
+    if (!price) return '0'
+    return parseFloat((price.price)).toFixed(4)
+  }
 
 const AssetAuction = () => {
     const { NFTState, setNFTState } = useNFTState()
@@ -35,16 +40,21 @@ const AssetAuction = () => {
 
     const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
     const stargazeMBRNBalance = useBalanceByAsset(stargazeMBRN, 'stargaze')
-    
-    const [cdtPrice, setcdtPrice ] = useState('0')
-    const CDTprice = getCDTPrice()
-    if (CDTprice != cdtPrice && CDTprice != '0') setcdtPrice(CDTprice)
         
-    
-    const [mbrnPrice, setmbrnPrice ] = useState('0')
-    const MBRNprice = getMBRNPrice()
-    if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
-    console.log("Prices:", cdtPrice, mbrnPrice, "fn prices:", MBRNprice, CDTprice)
+    const { data: prices } = useOraclePrice()
+    useEffect(() => {      
+
+        const [cdtPrice, setcdtPrice ] = useState('0')
+        const CDTprice = getCDTPrice(prices)
+        if (CDTprice != cdtPrice && CDTprice != '0') setcdtPrice(CDTprice)
+            
+        
+        const [mbrnPrice, setmbrnPrice ] = useState('0')
+        const MBRNprice = getMBRNPrice(prices)
+        if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
+        console.log("Prices:", cdtPrice, mbrnPrice, "fn prices:", MBRNprice, CDTprice)
+
+    }, [prices])
 
     const onBidChange = (value: number) => {
         setNFTState({ assetBidAmount: value })

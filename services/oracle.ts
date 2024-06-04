@@ -37,11 +37,17 @@ const getAssetsInfo = (basket: Basket) => {
       denom: 'factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt',
     },
   }
+  const mbrnAssetInfo = {
+    native_token: {
+      denom: 'factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/umbrn',
+    },
+  }
 
   const collateralAssets = basket.collateral_types.map((collateral) => collateral.asset.info)
 
   return [cdtAssetInfo, ...collateralAssets] as AssetInfo[]
 }
+
 
 export const getOraclePrices = async (basket: Basket) => {
   const assetInfos = getAssetsInfo(basket)

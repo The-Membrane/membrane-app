@@ -1,4 +1,4 @@
-import { Card, HStack, Text, Stack } from "@chakra-ui/react"
+import { Card, HStack, Text, Stack, Checkbox } from "@chakra-ui/react"
 import { SliderWithState } from "../Mint/SliderWithState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import { useBalanceByAsset } from "@/hooks/useBalance"
@@ -6,6 +6,7 @@ import useNFTState from "./hooks/useNFTState"
 import { isGreaterThanZero } from "@/helpers/num"
 import { TxButton } from "../TxButton"
 import useIBCToStargaze from "./hooks/useIBCToStargaze"
+import { useState } from "react"
 
 const BridgeToStargaze = () => {
     const { NFTState, setNFTState } = useNFTState()
@@ -24,9 +25,14 @@ const BridgeToStargaze = () => {
         setNFTState({ mbrnBridgeAmount: value })
     }
 
+    const [swapToggle, setSwapTopggle] = useState(false)
+
     return (
         <Stack w="full" gap="5">
         <Text variant="title">Bridge From Osmosis To Stargaze</Text>
+        {/* <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setSwapTopggle(!swapToggle)}> 
+              Swap & Bridge
+        </Checkbox> */}
         <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="28%" justifyContent="space-between">            
             <Stack w="full" gap="1">
                 <HStack justifyContent="space-between">
@@ -64,6 +70,7 @@ const BridgeToStargaze = () => {
                     isDisabled={(!isGreaterThanZero(NFTState.mbrnBridgeAmount) && !isGreaterThanZero(NFTState.cdtBridgeAmount)) || ibc?.simulate.isError || !ibc?.simulate.data}
                     isLoading={ibc.simulate.isPending && !ibc.simulate.isError && ibc.simulate.data}
                     onClick={() => ibc.tx.mutate()}
+                    chain_name="stargaze"
                     >
                     Bridge to Stargaze
                 </TxButton>

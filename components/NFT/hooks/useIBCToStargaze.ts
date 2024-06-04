@@ -28,7 +28,7 @@ const useIBCToStargaze = () => {
   const osmosisCDT = useAssetBySymbol('CDT')  
   const osmosisMBRN = useAssetBySymbol('MBRN')
 
-  const { NFTState } = useNFTState()
+  const { NFTState, setNFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg ibc to stargaze', data, osmosisClient, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
@@ -88,7 +88,8 @@ const useIBCToStargaze = () => {
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })    
+    setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0})
   }
 
   return useSimulateAndBroadcast({

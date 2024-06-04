@@ -47,10 +47,10 @@ const AssetAuction = () => {
     const [cdtPrice, setcdtPrice ] = useState('0')
     const [mbrnPrice, setmbrnPrice ] = useState('0')
     useEffect(() => {      
-        const CDTprice = getCDTPrice(prices, cdt)
+        const CDTprice = getCDTPrice(prices, cdt!)
         if (CDTprice != cdtPrice && CDTprice != '0') setcdtPrice(CDTprice)
             
-        const MBRNprice = getMBRNPrice(prices, MBRN)
+        const MBRNprice = getMBRNPrice(prices, MBRN!)
         if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
         console.log("Prices:", cdtPrice, mbrnPrice, "fn prices:", MBRNprice, CDTprice)
 

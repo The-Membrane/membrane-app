@@ -11,6 +11,8 @@ const NFTBid = () => {
     const currentBid = liveNFTAuction?.highest_bid    
     const timeLeft = useCountdown(liveNFTAuction?.auction_end_time).timeString
 
+    console.log(conclude?.action.simulate.isError, conclude?.action.simulate.errorMessage, !conclude?.action.simulate.data)
+
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             

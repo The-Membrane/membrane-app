@@ -3,12 +3,25 @@ import { SliderWithState } from "../Mint/SliderWithState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import { useBalanceByAsset } from "@/hooks/useBalance"
 import useNFTState from "./hooks/useNFTState"
-import { isGreaterThanZero } from "@/helpers/num"
+import { isGreaterThanZero, num } from "@/helpers/num"
 import { TxButton } from "../TxButton"
 import { useLiveAssetAuction, useLiveNFTAuction } from "./hooks/useBraneAuction"
 import useCountdown from "@/hooks/useCountdown"
 import useLiveAssetBid from "./hooks/useLiveAssetBid"
 import { shiftDigits } from "@/helpers/math"
+import { useState } from "react"
+import { getCDTPrice } from "../SideNav"
+import { getAssetBySymbol } from "@/helpers/chain"
+import { useOraclePrice } from "@/hooks/useOracle"
+
+
+export const getMBRNPrice = () => {
+    const MBRN = getAssetBySymbol('MBRN')
+    const { data: prices } = useOraclePrice()
+    const price = prices?.find((price) => price.denom === MBRN?.base)
+    if (!price) return '0'
+    return parseFloat((price.price)).toFixed(4)
+}
 
 const AssetAuction = () => {
     const { NFTState, setNFTState } = useNFTState()
@@ -23,6 +36,16 @@ const AssetAuction = () => {
     const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
     const stargazeMBRNBalance = useBalanceByAsset(stargazeMBRN, 'stargaze')
     
+    const [cdtPrice, setcdtPrice ] = useState('0')
+    const CDTprice = getCDTPrice()
+    if (CDTprice != cdtPrice && CDTprice != '0') setcdtPrice(CDTprice)
+        
+    
+    const [mbrnPrice, setmbrnPrice ] = useState('0')
+    const MBRNprice = getMBRNPrice()
+    if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
+    
+
     const onBidChange = (value: number) => {
         setNFTState({ assetBidAmount: value })
     }
@@ -35,7 +58,7 @@ const AssetAuction = () => {
         <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="28%" justifyContent="space-between">            
             <Stack w="full" gap="1">
                 <Text fontSize="16px" fontWeight="700">                    
-                Auction for {shiftDigits(auctionAmount??0, -6).toString()} CDT
+                Auction for {shiftDigits(auctionAmount??0, -6).toString()} CDT —— equivalent to {num(cdtPrice).dividedBy(num(mbrnPrice)).toString()} MBRN
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
                 Current Bid: {shiftDigits(currentBid??0, -6).toString()} MBRN

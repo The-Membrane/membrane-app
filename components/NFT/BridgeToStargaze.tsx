@@ -30,9 +30,9 @@ const BridgeToStargaze = () => {
     return (
         <Stack w="full" gap="5">
         <Text variant="title">Bridge From Osmosis To Stargaze</Text>
-        <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setSwapTopggle(!swapToggle)}> 
+        {/* <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setSwapTopggle(!swapToggle)}> 
               Swap & Bridge
-        </Checkbox>
+        </Checkbox> */}
         <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="28%" justifyContent="space-between">            
             <Stack w="full" gap="1">
                 <HStack justifyContent="space-between">

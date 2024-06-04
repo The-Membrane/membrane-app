@@ -62,7 +62,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
   )
 }
 
-const getCDTPrice = () => {
+export const getCDTPrice = () => {
   const cdt = getAssetBySymbol('CDT')
   const { data: prices } = useOraclePrice()
   const price = prices?.find((price) => price.denom === cdt?.base)

@@ -17,12 +17,14 @@ import { Price } from "@/services/oracle"
 
 const getMBRNPrice = (prices: Price[] | undefined) => {
     const MBRN = getAssetBySymbol('MBRN')
+    console.log("MBRN asset", MBRN)
     const price = prices?.find((price) => price.denom === MBRN?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)
 }
 const getCDTPrice = (prices: Price[] | undefined) => {
     const cdt = getAssetBySymbol('CDT')
+    console.log("CDT asset", cdt)
     const price = prices?.find((price) => price.denom === cdt?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)

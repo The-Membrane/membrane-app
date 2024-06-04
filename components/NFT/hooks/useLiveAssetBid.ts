@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { coin } from '@cosmjs/stargate'
 import useNFTState from "./useNFTState";
 import { queryClient } from '@/pages/_app'
+import { shiftDigits } from '@/helpers/math'
 
 const useLiveAssetBid = () => {
   const { address } = useWallet('stargaze')
@@ -19,7 +20,7 @@ const useLiveAssetBid = () => {
 
       const messageComposer = new BraneAuctionMsgComposer(address, contracts.brane_auction)
 
-      const funds = coin(NFTState.assetBidAmount, "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/umbrn")
+      const funds = coin(shiftDigits(NFTState.assetBidAmount, 6).toString(), "ibc/E94BB144B818CB8061F43E202BEA1E9273B87D6326C8C6F4E6AE71C62FD37854")
       const msg = messageComposer.bidForAssets([funds])
 
       return [msg] as MsgExecuteContractEncodeObject[]

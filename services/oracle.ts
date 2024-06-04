@@ -46,8 +46,9 @@ const getAssetsInfo = (basket: Basket) => {
 
   const collateralAssets = basket.collateral_types.map((collateral) => collateral.asset.info)
 
-  return [cdtAssetInfo, ...collateralAssets] as AssetInfo[]
+  return [mbrnAssetInfo, ...collateralAssets] as AssetInfo[]
 }
+
 
 export const getOraclePrices = async (basket: Basket) => {
   const assetInfos = getAssetsInfo(basket)

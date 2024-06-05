@@ -19,10 +19,22 @@ import Divider from '../Divider'
 import QASelect from '../QuickActionSelect'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
 
-const QuickActionWidget = () => {
-  const { isWalletConnected, address } = useWallet()
-  const { data: walletBalances } = useBalance()
+type QuickActionWidgetProps = {
+  actionMenuOptions: any[]
+  bridgeCardToggle: boolean
+}
+
+const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionWidgetProps) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
+  
+  const [chainName, setChainName] = useState("osmosis")
+  useEffect(() => {
+    if (quickActionState.action.value === "Bridge to Osmosis") setChainName("stargaze")
+    if (quickActionState.action.value === "Bridge to Stargaze") setChainName("osmosis")
+  }, [quickActionState.action.value])
+  const { isWalletConnected, address } = useWallet(chainName)
+
+  const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
@@ -95,7 +107,7 @@ const QuickActionWidget = () => {
     if (value.value === "Loop") {
       setQuickActionState({
         action: value,
-        swapInsteadofMint: false,
+        swapInsteadof: false,
       })
     } else {
       setQuickActionState({
@@ -117,23 +129,104 @@ const QuickActionWidget = () => {
 
   
   useEffect(() => {
-    if (!quickActionState?.swapInsteadofMint) {
+    if (!quickActionState?.swapInsteadof) {
       setQuickActionState({
         mint: 0,
       })
     }
     
-  }, [quickActionState?.swapInsteadofMint])
+  }, [quickActionState?.swapInsteadof])
 
+
+
+  ///////////Bridge to Stargaze Card////////
+  ////The action for this card will be in useIBC.ts
+  if (bridgeCardToggle) {
+    return (
+      <HStack justifyContent="center">
+      <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
+          <HStack justifyContent="space-between">
+          <Text variant="title" fontSize="16px">
+              {quickActionState.swapInsteadof ? "Swap &" : quickActionState.swapInsteadof ? "Mint &" : null}
+          </Text>        
+          <QASelect 
+              options={actionMenuOptions}
+              onChange={onActionMenuChange}
+              value={quickActionState?.action} 
+          />
+          </HStack>
+          {!isWalletConnected ? 
+          <ConnectButton marginTop={6}/>
+          : quickActionState.assets.length === 0 ? 
+          <Text variant="body" fontSize="16px" marginTop={6}>
+              Loading your available collateral assets...
+          </Text>
+          : 
+          <>
+          {/* //Action */}
+          {/* Asset Menu + Input Box/Slider*/}        
+          <Stack py="5" w="full" gap="2">  
+            <HStack justifyContent="space-between">
+              <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof})}> 
+                Swap & Bridge
+              </Checkbox >
+              <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({addMintSection: !quickActionState.addMintSection})}> 
+                Mint & Bridge
+              </Checkbox >
+            </HStack>
+          <SliderWithInputBox
+              max={quickActionState?.selectedAsset?.combinUsdValue??0}
+              inputBoxWidth='42%'
+              QAState={quickActionState}
+              setQAState={setQuickActionState}
+              onMenuChange={onAssetMenuChange}
+              inputAmount={inputAmount}
+              setInputAmount={setInputAmount}
+          />                   
+  
+  
+          {quickActionState.addMintSection ? <><Stack w="full">
+              <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
+              Mint CDT to { quickActionState.action.value }
+              </Text> 
+              <Divider mx="0" mt="0" mb="4%"/>
+              <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
+              { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+              Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
+              </Text>
+              : null }
+              
+          </Stack></> : null}
+  
+  
+          {quickActionState.swapInsteadof ?
+          <><Text fontSize="sm" color="white" mt="2" minH="21px">
+              max slippage: {SWAP_SLIPPAGE}%
+          </Text></> : null }
+          </Stack>
+  
+          {/* Action Button */}
+          <ConfirmModal 
+          action={quickAction}
+          label={quickActionState.action.value}
+          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
+          <QASummary newPositionValue={0} newLTV={0}/>
+          </ConfirmModal></>}
+      </Card>
+      </HStack>
+    )
+  }
+
+  ///////Basic Onboarding Card///////
   return (
     <HStack justifyContent="center">
     <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
         <HStack justifyContent="space-between">
         <Text variant="title" fontSize="16px">
-            {quickActionState.swapInsteadofMint ? "Swap" : "Mint"} & 
+            {quickActionState.swapInsteadof ? "Swap" : "Mint"} & 
         </Text>        
         <QASelect 
-            options={[{value: "LP", label: "LP"}, {value: "Bid", label: "Bid"}, {value: "Loop", label: "Loop"}]}
+            options={actionMenuOptions}
             onChange={onActionMenuChange}
             value={quickActionState?.action} 
         />
@@ -142,14 +235,14 @@ const QuickActionWidget = () => {
         <ConnectButton marginTop={6}/>
         : quickActionState.assets.length === 0 ? 
         <Text variant="body" fontSize="16px" marginTop={6}>
-            Loading your available collateral...
+            Loading your available collateral assets...
         </Text>
         : 
         <>
         {/* //Action */}
         {/* Asset Menu + Input Box/Slider*/}        
         <Stack py="5" w="full" gap="2">            
-        {quickActionState.action.value !== "Loop" ? <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadofMint: !quickActionState.swapInsteadofMint})}> 
+        {quickActionState.action.value !== "Loop" ? <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof})}> 
             Swap Instead of Mint
         </Checkbox > : null}
         <SliderWithInputBox
@@ -161,18 +254,22 @@ const QuickActionWidget = () => {
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
         />                   
-        <Stack w="full" opacity={quickActionState.swapInsteadofMint ? "22%" : "100%"}>
+
+
+        {!quickActionState.swapInsteadof ? <><Stack w="full">
             <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
             Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}
             </Text> 
             <Divider mx="0" mt="0" mb="4%"/>
             <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
-            { maxMint < 100 && !quickActionState.swapInsteadofMint ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+            { maxMint < 100 && !quickActionState.swapInsteadof ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
             </Text>
             : null }
             
-        </Stack>
+        </Stack></> : null}
+
+
         {quickActionState.action.value === "LP" || quickActionState.action.value === "Loop" ?
         <><Text fontSize="sm" color="white" mt="2" minH="21px">
             max slippage: {SWAP_SLIPPAGE}%

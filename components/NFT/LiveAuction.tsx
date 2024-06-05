@@ -7,7 +7,7 @@ import { TxButton } from "../TxButton";
 import { isGreaterThanZero } from "@/helpers/num";
 import useLiveNFTBid from "./hooks/useLiveNFTBid";
 import { useLiveNFT, useLiveNFTAuction } from "./hooks/useBraneAuction";
-import useIBCToStargaze from "./hooks/useIBCToStargaze";
+import useIBCToStargaze from "./hooks/useIBC";
 import { useMemo, useState } from "react";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png

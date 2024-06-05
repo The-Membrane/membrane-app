@@ -22,6 +22,9 @@ import { set } from 'react-hook-form'
 
 const useQuickAction = () => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
+  //Quick return when using the Bridge Card
+  if (quickActionState.action.value === "Bridge to Stargaze" || quickActionState.action.value === "Bridge to Osmosis") return {action: useSimulateAndBroadcast({msgs: [], enabled: false}), newPositionLTV: 0, newPositionValue: 0}
+
   const { summary = [] } = quickActionState
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
@@ -59,7 +62,7 @@ const useQuickAction = () => {
       quickActionState?.mint,
       quickActionState?.selectedAsset,
       quickActionState?.action,
-      quickActionState?.swapInsteadofMint,
+      quickActionState?.swapInsteadof,
       usdcAsset,
       prices,
       cdtAsset, basketPositions, tvl, debtAmount, summary
@@ -73,7 +76,7 @@ const useQuickAction = () => {
       //Deposit or Swap to CDT
       if (num(quickActionState?.selectedAsset?.amount??"0") > num(0)){
         //Deposit
-        if (!quickActionState.swapInsteadofMint){
+        if (!quickActionState.swapInsteadof){
           const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
           msgs = msgs.concat(deposit)
         } else {
@@ -125,7 +128,7 @@ const useQuickAction = () => {
             msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
             newPositionValue = loops!.newValue
             newPositionLTV = loops!.newLTV
-          } else if (!quickActionState.swapInsteadofMint) {
+          } else if (!quickActionState.swapInsteadof) {
 
             //Mint
             const mint = getMintAndRepayMsgs({
@@ -151,7 +154,7 @@ const useQuickAction = () => {
           var tokenOutAmount = tokenOutMinAmount
           var cdtInAmount = shiftDigits(quickActionState?.mint, 6).dp(0).div(2)
           //Swap here if its not a redundant swap
-          if (quickActionState?.selectedAsset?.symbol !== "USDC" || quickActionState?.action.value !== "LP" || !quickActionState.swapInsteadofMint) {
+          if (quickActionState?.selectedAsset?.symbol !== "USDC" || quickActionState?.action.value !== "LP" || !quickActionState.swapInsteadof) {
             msgs.push(swap as MsgExecuteContractEncodeObject)
           }           
           //If we are LPing USDC & the input asset is USDC & we are not swapping instead of minting, then we don't swap again. 
@@ -204,7 +207,7 @@ const useQuickAction = () => {
       String(quickActionState?.mint) || '0',
       String(quickActionState?.selectedAsset?.amount) || '0',
       quickActionState?.action?.value,
-      String(quickActionState?.swapInsteadofMint),
+      String(quickActionState?.swapInsteadof),
     ],
     enabled: !!msgs && ((quickActionState?.mint??0) > 0),
     onSuccess,

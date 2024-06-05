@@ -5,8 +5,9 @@ import { useBalanceByAsset } from "@/hooks/useBalance"
 import useNFTState from "./hooks/useNFTState"
 import { isGreaterThanZero } from "@/helpers/num"
 import { TxButton } from "../TxButton"
-import useIBCToStargaze from "./hooks/useIBCToStargaze"
+import useIBCToStargaze from "./hooks/useIBC"
 import { useState } from "react"
+import QuickActionWidget from "../Home/QuickActionWidget"
 
 const BridgeToStargaze = () => {
     const { NFTState, setNFTState } = useNFTState()
@@ -30,9 +31,8 @@ const BridgeToStargaze = () => {
     return (
         <Stack w="full" gap="5">
         <Text variant="title">Bridge From Osmosis To Stargaze</Text>
-        {/* <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setSwapTopggle(!swapToggle)}> 
-              Swap & Bridge
-        </Checkbox> */}
+        <QuickActionWidget actionMenuOptions={[{ value: "Bridge to Stargaze", label: "Bridge to Stargaze" }, { value: "Bridge to Osmosis", label: "Bridge to Osmosis"}]} bridgeCardToggle={true}/>
+        {/**/}
         <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="28%" justifyContent="space-between">            
             <Stack w="full" gap="1">
                 <HStack justifyContent="space-between">

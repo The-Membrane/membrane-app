@@ -7,7 +7,7 @@ const Home = () => {
   return (
     <Stack >
       <StatsCard />
-      <QuickActionWidget />
+      <QuickActionWidget actionMenuOptions={[{value: "LP", label: "LP"}, {value: "Bid", label: "Bid"}, {value: "Loop", label: "Loop"}]}/>
     </Stack>
   )
 }

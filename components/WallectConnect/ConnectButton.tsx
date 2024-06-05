@@ -12,7 +12,7 @@ const ConnectButton = ({chain_name = 'osmosis', ...props}: Props) => {
 
   return (
     <Button leftIcon={<WalletIcon />} onClick={props.onClick??connect} {...props}>
-      Connect Wallet
+      Connect to {chain_name.toUpperCase()}
     </Button>
   )
 }

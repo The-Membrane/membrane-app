@@ -5,13 +5,13 @@ import { useBalanceByAsset } from "@/hooks/useBalance"
 import useNFTState from "./hooks/useNFTState"
 import { isGreaterThanZero } from "@/helpers/num"
 import { TxButton } from "../TxButton"
-import useIBCToStargaze from "./hooks/useIBC"
+import useIBC from "./hooks/useIBC"
 import { useState } from "react"
 import QuickActionWidget from "../Home/QuickActionWidget"
 
 const BridgeToStargaze = () => {
     const { NFTState, setNFTState } = useNFTState()
-    const ibc = useIBCToStargaze()
+    const ibc = useIBC()
 
     const mbrn = useAssetBySymbol('MBRN')
     const osmosisMBRNBalance = useBalanceByAsset(mbrn)

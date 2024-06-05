@@ -16,7 +16,7 @@ import { useOsmosisBlockInfo, useOsmosisClient } from './useBraneAuction'
 
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
-const useIBCToStargaze = () => {
+const useIBC = () => {
   const { address: stargazeAddress } = useWallet('stargaze')
   const { address: osmosisAddress } = useWallet('osmosis')
 
@@ -101,4 +101,4 @@ const useIBCToStargaze = () => {
   })
 }
 
-export default useIBCToStargaze
+export default useIBC

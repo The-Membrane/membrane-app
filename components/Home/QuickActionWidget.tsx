@@ -26,6 +26,7 @@ type QuickActionWidgetProps = {
 
 const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionWidgetProps) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
+  if(quickActionState.action.value === "") setQuickActionState({action: actionMenuOptions[0]})
   
   const [chainName, setChainName] = useState("osmosis")
   useEffect(() => {

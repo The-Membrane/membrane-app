@@ -22,8 +22,6 @@ import { set } from 'react-hook-form'
 
 const useQuickAction = () => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  //Quick return when using the Bridge Card
-  if (quickActionState.action.value === "Bridge to Stargaze" || quickActionState.action.value === "Bridge to Osmosis") return {action: useSimulateAndBroadcast({msgs: [], enabled: false}), newPositionLTV: 0, newPositionValue: 0}
 
   const { summary = [] } = quickActionState
   const { address } = useWallet()
@@ -33,6 +31,7 @@ const useQuickAction = () => {
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
   const { borrowLTV, maxMint, debtAmount, tvl } = useQuickActionVaultSummary()
+  
 
   /////First we'll do 1 position, but these actions will be usable by multiple per user in the future//////
 
@@ -45,6 +44,10 @@ const useQuickAction = () => {
       return basket?.current_position_id ?? ""
     }
   }, [basket, basketPositions])
+
+  
+  //Quick return when using the Bridge Card
+  if (quickActionState.action.value === "Bridge to Stargaze" || quickActionState.action.value === "Bridge to Osmosis") return {action: useSimulateAndBroadcast({msgs: [], enabled: false}), newPositionLTV: 0, newPositionValue: 0}
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined

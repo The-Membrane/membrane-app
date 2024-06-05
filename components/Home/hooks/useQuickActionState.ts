@@ -29,7 +29,7 @@ const initialState: QuickActionState = {
   assets: [],
   swapInsteadof: false,
   addMintSection: false,
-  action: {value: "LP", label: "LP"},
+  action: {value: "", label: ""},
 }
 
 // @ts-ignore

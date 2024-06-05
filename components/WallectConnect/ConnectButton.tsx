@@ -3,10 +3,12 @@ import React from 'react'
 import WalletIcon from '../Icons/WalletIcon'
 import useWallet from '@/hooks/useWallet'
 
-type Props = ButtonProps & {}
+type Props = ButtonProps & {
+  chain_name?: string
+}
 
-const ConnectButton = (props: Props) => {
-  const { connect } = useWallet()
+const ConnectButton = ({chain_name = 'osmosis', ...props}: Props) => {
+  const { connect } = useWallet(chain_name)
 
   return (
     <Button leftIcon={<WalletIcon />} onClick={props.onClick??connect} {...props}>

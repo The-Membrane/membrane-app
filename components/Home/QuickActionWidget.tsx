@@ -233,7 +233,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
         />
         </HStack>
         {!isWalletConnected ? 
-        <ConnectButton marginTop={6}/>
+        <ConnectButton chain_name={chainName} marginTop={6}/>
         : quickActionState.assets.length === 0 ? 
         <Text variant="body" fontSize="16px" marginTop={6}>
             Loading your available collateral assets...
@@ -282,7 +282,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
         action={quickAction}
         label={quickActionState.action.value}
         isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
-        <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
+          <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
         </ConfirmModal></>}
     </Card>
     </HStack>

@@ -1,4 +1,4 @@
-import { Card, HStack, Stack, Text, Checkbox } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text, Checkbox, CheckboxGroup } from '@chakra-ui/react'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
@@ -202,12 +202,14 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
             {/* Asset Menu + Input Box/Slider*/}        
             <Stack py="5" w="full" gap="2">  
               <HStack justifyContent="space-between">
-                <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof, addMintSection: false})}> 
-                  Swap & Bridge
-                </Checkbox >
-                <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({addMintSection: !quickActionState.addMintSection, swapInsteadof: false})}> 
-                  Mint & Bridge
-                </Checkbox >
+                <CheckboxGroup>
+                  <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: true, addMintSection: false})}> 
+                    Swap & Bridge
+                  </Checkbox >
+                  <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({addMintSection: true, swapInsteadof: false})}> 
+                    Mint & Bridge
+                  </Checkbox >
+                </CheckboxGroup>
               </HStack>
             {(quickActionState.addMintSection || quickActionState.swapInsteadof) ? <SliderWithInputBox
                 max={quickActionState?.selectedAsset?.combinUsdValue??0}

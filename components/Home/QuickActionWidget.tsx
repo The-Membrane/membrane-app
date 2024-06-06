@@ -87,6 +87,8 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
           else return -1
         })
 
+        console.log(chainName, assetsWithBalance)
+
         setQuickActionState({
           assets: (assetsWithBalance??[])
         })

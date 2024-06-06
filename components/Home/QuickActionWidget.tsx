@@ -179,7 +179,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
               Loading swap or mint options...
           </Text> 
           :
-          quickActionState.action.value === "Bridge to Stargaze" && (quickActionState.addMintSection || quickActionState.swapInsteadof) ? <>
+          quickActionState.action.value === "Bridge to Stargaze" ? <>
             <HStack justifyContent="space-between">
               <Text variant="title" fontSize="16px">
                   {quickActionState.swapInsteadof ? "Swap &" : quickActionState.addMintSection ? "Mint &" : null}
@@ -202,7 +202,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
                   Mint & Bridge
                 </Checkbox >
               </HStack>
-            <SliderWithInputBox
+            {(quickActionState.addMintSection || quickActionState.swapInsteadof) ? <SliderWithInputBox
                 max={quickActionState?.selectedAsset?.combinUsdValue??0}
                 inputBoxWidth='42%'
                 QAState={quickActionState}
@@ -211,7 +211,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
                 inputAmount={inputAmount}
                 setInputAmount={setInputAmount}
                 bridgeCardToggle={bridgeCardToggle}
-            />
+            /> : null}
     
             {/* Mint Section */}
             {quickActionState.addMintSection ? <><Stack w="full">

@@ -32,7 +32,7 @@ const useIBC = () => {
   const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')  
   const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
 
-  const { currentHeight, currentBlock, sourceChannel, sender, receiver, cdtDenom, mbrnDenom, memo} = useMemo(() => {
+  const { currentHeight, currentBlock, sourceChannel, sender, receiver, cdtDenom, mbrnDenom, memo, chainName} = useMemo(() => {
     return quickActionState.action.value === "Bridge to Stargaze" ? { 
       currentHeight: osmosisData?.currentHeight, 
       currentBlock: osmosisData?.currentBlock,
@@ -42,6 +42,7 @@ const useIBC = () => {
       cdtDenom: osmosisCDT === null ? "" : osmosisCDT.base,
       mbrnDenom: osmosisMBRN === null ? "" : osmosisMBRN.base,
       memo: "IBC Transfer from Osmosis to Stargaze",
+      chainName: "osmosis"
     } : { 
       currentHeight: stargazeData?.currentHeight, 
       currentBlock: stargazeData?.currentBlock,
@@ -51,6 +52,7 @@ const useIBC = () => {
       cdtDenom: stargazeCDT === null ? "" : stargazeCDT.base,
       mbrnDenom: stargazeMBRN === null ? "" : stargazeMBRN.base,
       memo: "IBC Transfer from Stargaze to Osmosis",
+      chainName: "stargaze"
     }
   }, [quickActionState.action.value, osmosisData, stargazeData, osmosisCDT, osmosisMBRN, stargazeCDT, stargazeMBRN, osmosisAddress, stargazeAddress])
 
@@ -123,6 +125,7 @@ const useIBC = () => {
     amount: "0",
     queryKey: ['msg ibc', (msgs?.toString()??"0")],
     onSuccess,
+    chain_id: chainName
   })
 }
 

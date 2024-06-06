@@ -118,7 +118,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
           assets: (assetsWithBalance??[])
         })
       }
-  }, [assets, walletBalances, prices, address])
+  }, [assets, walletBalances, prices, address, chainName])
 
   useEffect(() => {
     if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {

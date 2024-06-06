@@ -245,7 +245,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
               />: null}
 
           {/* Bridge Sliders */}
-          <Stack>
+          <Stack width={"100%"}>
             <Text fontSize="14px" fontWeight="700">
               {quickActionState.action.value}
             </Text> 
@@ -284,7 +284,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
           <ConfirmModal 
           action={ibc}
           label={quickActionState.action.value}
-          isDisabled={ibc?.simulate.isError || !ibc?.simulate.data || !quickActionState?.mint}>
+          isDisabled={ibc?.simulate.isError || !ibc?.simulate.data}>
           <QASummary newPositionValue={0} newLTV={0}/>
           </ConfirmModal>
       </Card>

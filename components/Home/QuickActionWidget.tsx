@@ -183,8 +183,8 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
       <HStack justifyContent="center">
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
           {quickActionState.assets.length === 0 && quickActionState.action.value === "Bridge to Stargaze" ? 
-          <Text variant="body" fontSize="16px" marginTop={6} mb="2%">
-              Loading swap or mint options...
+          <Text variant="body" fontSize="16px" marginTop={6} mb="2">
+              Loading options to swap or mint...
           </Text> 
           :
           quickActionState.action.value === "Bridge to Stargaze" ? <>

@@ -13,6 +13,7 @@ import { shiftDigits } from '@/helpers/math'
 import useLiveNFTBid from './useLiveNFTBid'
 import useLiveAssetBid from './useLiveAssetBid'
 import { useOsmosisBlockInfo, useOsmosisClient } from './useBraneAuction'
+import { useBlockInfo, useClient } from './useClientInfo';
 
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
@@ -20,10 +21,10 @@ const useIBC = () => {
   const { address: stargazeAddress } = useWallet('stargaze')
   const { address: osmosisAddress } = useWallet('osmosis')
 
-  const { data: osmosisClient } = useOsmosisClient()
-  const { data: data } = useOsmosisBlockInfo()
-  const currentHeight = data?.currentHeight
-  const currentBlock = data?.currentBlock
+  const { data: osmosisClient } = useClient('osmosis')
+  const { data: osmosisData } = useBlockInfo('osmosis')
+  const currentHeight = osmosisData?.currentHeight
+  const currentBlock = osmosisData?.currentBlock
   
   const osmosisCDT = useAssetBySymbol('CDT')  
   const osmosisMBRN = useAssetBySymbol('MBRN')
@@ -31,7 +32,7 @@ const useIBC = () => {
   const { NFTState, setNFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg ibc to stargaze', data, osmosisClient, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
+    queryKey: ['msg ibc to/from stargaze', osmosisData, osmosisClient, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
     queryFn: () => {
       if (!stargazeAddress || !osmosisAddress || !osmosisClient) return [] as MsgExecuteContractEncodeObject[]
       const msgs: MsgExecuteContractEncodeObject[] = []

@@ -1,7 +1,7 @@
 import { Card, HStack, Stack, Text, Checkbox } from '@chakra-ui/react'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
-import useBalance from '@/hooks/useBalance'
+import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
 import useQuickActionState from './hooks/useQuickActionState'
 import { useEffect, useState } from 'react'
 import { num, shiftDigits } from '@/helpers/num'
@@ -18,6 +18,9 @@ import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
 import QASelect from '../QuickActionSelect'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
+import useNFTState from '../NFT/hooks/useNFTState'
+import { useAssetBySymbol } from '@/hooks/useAssets'
+import { SliderWithState } from '../Mint/SliderWithState'
 
 type QuickActionWidgetProps = {
   actionMenuOptions: any[]
@@ -35,7 +38,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
   }, [quickActionState.action.value])
   const { isWalletConnected, address } = useWallet(chainName)
 
-  const { data: walletBalances } = useBalance()
+  const { data: walletBalances } = useBalance(chainName)
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
@@ -140,6 +143,26 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
 
 
 
+  const { NFTState, setNFTState } = useNFTState()
+
+  const mbrn = useAssetBySymbol('MBRN')
+  const osmosisMBRNBalance = useBalanceByAsset(mbrn)
+  const cdt = useAssetBySymbol('CDT')
+  const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
+
+  
+  const mbrnSG = useAssetBySymbol('MBRN', 'stargaze')
+  const stargazeMBRNBalance = useBalanceByAsset(mbrnSG, 'stargaze')
+  const cdtSG = useAssetBySymbol('CDT', 'stargaze')
+  const stargazeCDTBalance = useBalanceByAsset(cdtSG, 'stargaze')
+
+  const onCDTChange = (value: number) => {
+      setNFTState({ cdtBridgeAmount: value })
+  }
+  const onMBRNChange = (value: number) => {
+      setNFTState({ mbrnBridgeAmount: value })
+  }
+
   ///////////Bridge to Stargaze Card////////
   ////The action for this card will be in useIBC.ts
   if (bridgeCardToggle) {
@@ -148,7 +171,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
           <HStack justifyContent="space-between">
           <Text variant="title" fontSize="16px">
-              {quickActionState.swapInsteadof ? "Swap &" : quickActionState.swapInsteadof ? "Mint &" : null}
+              {quickActionState.swapInsteadof ? "Swap &" : quickActionState.addMintSection ? "Mint &" : null}
           </Text>        
           <QASelect 
               options={actionMenuOptions}
@@ -183,9 +206,9 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
               onMenuChange={onAssetMenuChange}
               inputAmount={inputAmount}
               setInputAmount={setInputAmount}
-          />                   
+          />
   
-  
+          {/* Mint Section */}
           {quickActionState.addMintSection ? <><Stack w="full">
               <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
               Mint CDT to { quickActionState.action.value }
@@ -204,6 +227,36 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
           <><Text fontSize="sm" color="white" mt="2" minH="21px">
               max slippage: {SWAP_SLIPPAGE}%
           </Text></> : null }
+
+          {/* Bridge Sliders */}
+          <HStack justifyContent="space-between">
+              <Text fontSize="16px" fontWeight="700">
+              CDT
+              </Text>
+              <Text fontSize="16px" fontWeight="700">
+              {NFTState.cdtBridgeAmount}
+              </Text>
+          </HStack>
+          <SliderWithState
+              value={NFTState.cdtBridgeAmount}
+              onChange={onCDTChange}
+              min={0}
+              max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) : Number(stargazeCDTBalance)}
+          />
+          <HStack justifyContent="space-between">
+              <Text fontSize="16px" fontWeight="700">
+              MBRN
+              </Text>
+              <Text fontSize="16px" fontWeight="700">
+              {NFTState.mbrnBridgeAmount}
+              </Text>
+          </HStack>
+          <SliderWithState
+              value={NFTState.mbrnBridgeAmount}
+              onChange={onMBRNChange}
+              min={0}
+              max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisMBRNBalance) : Number(stargazeMBRNBalance)}
+          />
           </Stack>
   
           {/* Action Button */}

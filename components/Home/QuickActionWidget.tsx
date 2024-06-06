@@ -21,7 +21,7 @@ import { SWAP_SLIPPAGE } from '@/config/defaults'
 import useNFTState from '../NFT/hooks/useNFTState'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { SliderWithState } from '../Mint/SliderWithState'
-import { Asset } from '@/helpers/chain'
+import useIBC from '../NFT/hooks/useIBC'
 
 type QuickActionWidgetProps = {
   actionMenuOptions: any[]

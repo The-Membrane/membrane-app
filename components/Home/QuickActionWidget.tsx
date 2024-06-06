@@ -4,7 +4,7 @@ import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
 import useQuickActionState from './hooks/useQuickActionState'
 import { use, useEffect, useMemo, useState } from 'react'
-import { num, shiftDigits } from '@/helpers/num'
+import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
 import { calcSliderValue } from '../Mint/TakeAction'
 import { useOraclePrice } from '@/hooks/useOracle'
@@ -22,6 +22,7 @@ import useNFTState from '../NFT/hooks/useNFTState'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { SliderWithState } from '../Mint/SliderWithState'
 import useIBC from '../NFT/hooks/useIBC'
+import { TxButton } from '../TxButton'
 
 type QuickActionWidgetProps = {
   actionMenuOptions: any[]
@@ -173,14 +174,12 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
     return (
       <HStack justifyContent="center">
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-          {!isWalletConnected ? 
-          <ConnectButton marginTop={6}/>
-          : quickActionState.assets.length === 0 ? 
+          {quickActionState.assets.length === 0 && quickActionState.action.value === "Bridge to Stargaze" ? 
           <Text variant="body" fontSize="16px" marginTop={6}>
-              Loading your available collateral assets...
+              Loading swap or mint options...
           </Text> 
           :
-          quickActionState.action.value === "Bridge to Stargaze" ? <>
+          quickActionState.action.value === "Bridge to Stargaze" && (quickActionState.addMintSection || quickActionState.swapInsteadof) ? <>
             <HStack justifyContent="space-between">
               <Text variant="title" fontSize="16px">
                   {quickActionState.swapInsteadof ? "Swap &" : quickActionState.addMintSection ? "Mint &" : null}
@@ -194,12 +193,12 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
 
             {/* //Action */}
             {/* Asset Menu + Input Box/Slider*/}        
-            <Stack py="5" w="full" gap="2">  
+            <Stack py="5" pb="0" mb="0" w="full" gap="2">  
               <HStack justifyContent="space-between">
-                <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof})}> 
+                <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof, addMintSection: false})}> 
                   Swap & Bridge
                 </Checkbox >
-                <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({addMintSection: !quickActionState.addMintSection})}> 
+                <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({addMintSection: !quickActionState.addMintSection, swapInsteadof: false})}> 
                   Mint & Bridge
                 </Checkbox >
               </HStack>
@@ -230,7 +229,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
     
     
             {quickActionState.swapInsteadof ?
-            <><Text fontSize="sm" color="white" mt="2" minH="21px">
+            <><Text fontSize="sm" color="white" mb="2" minH="21px">
                 max slippage: {SWAP_SLIPPAGE}%
             </Text></> : null }
             </Stack>
@@ -281,12 +280,17 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
           </Stack>
   
           {/* Action Button */}
-          <ConfirmModal 
-          action={action}
-          label={quickActionState.action.value}
-          isDisabled={action?.simulate.isError || !action?.simulate.data}>
-          <QASummary newPositionValue={0} newLTV={0}/>
-          </ConfirmModal>
+          <TxButton
+              marginTop={"3%"}
+              w="100%"
+              px="10"
+              isDisabled={(!isGreaterThanZero(NFTState.cdtBridgeAmount) && !isGreaterThanZero(NFTState.mbrnBridgeAmount)) || action?.simulate.isError || !action?.simulate.data}
+              isLoading={action.simulate.isPending && !action.simulate.isError && action.simulate.data}
+              onClick={() => action.tx.mutate()}
+              chain_name={chainName}
+              >
+              {quickActionState.action.value}
+          </TxButton>
       </Card>
       </HStack>
     )

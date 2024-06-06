@@ -53,7 +53,7 @@ const useIBC = () => {
       memo: "IBC Transfer from Stargaze to Osmosis",
     }
   }, [quickActionState.action.value, osmosisData, stargazeData, osmosisCDT, osmosisMBRN, stargazeCDT, stargazeMBRN, osmosisAddress, stargazeAddress])
-
+  console.log(memo, sender, receiver)
   const { NFTState, setNFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({

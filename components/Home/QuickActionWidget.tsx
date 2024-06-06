@@ -3,7 +3,7 @@ import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
 import useQuickActionState from './hooks/useQuickActionState'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
 import { calcSliderValue } from '../Mint/TakeAction'
@@ -62,7 +62,10 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
   const { isWalletConnected, address } = useWallet(chainName)
 
   const { data: walletBalances } = useBalance(chainName)
-  const assets = quickActionState.action.value === "Bridge to Osmosis" ? [mbrnSG, cdtSG] as Asset[] : useCollateralAssets()
+  const stargazeAssets = useMemo(() => 
+    [mbrnSG, cdtSG] as Asset[], [mbrnSG, cdtSG])
+  const assets = quickActionState.action.value === "Bridge to Osmosis" ? stargazeAssets : useCollateralAssets()
+  console.log(assets)
   const { data: prices } = useOraclePrice()
   const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
   const { debtAmount, maxMint } = useQuickActionVaultSummary()

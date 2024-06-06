@@ -62,10 +62,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
   const { isWalletConnected, address } = useWallet(chainName)
 
   const { data: walletBalances } = useBalance(chainName)
-  const stargazeAssets = useMemo(() => 
-    [mbrnSG, cdtSG] as Asset[], [mbrnSG, cdtSG])
-  const assets = quickActionState.action.value === "Bridge to Osmosis" ? stargazeAssets : useCollateralAssets()
-  console.log(assets)
+  const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
   const { debtAmount, maxMint } = useQuickActionVaultSummary()
@@ -112,13 +109,13 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
           else return -1
         })
 
-        console.log(chainName, assetsWithBalance)
+        // console.log(chainName, assetsWithBalance)
 
         setQuickActionState({
           assets: (assetsWithBalance??[])
         })
       }
-  }, [assets, walletBalances, prices, address, chainName])
+  }, [assets, walletBalances, prices, address])
 
   useEffect(() => {
     if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
@@ -175,99 +172,104 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
     return (
       <HStack justifyContent="center">
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-          <HStack justifyContent="space-between">
-          <Text variant="title" fontSize="16px">
-              {quickActionState.swapInsteadof ? "Swap &" : quickActionState.addMintSection ? "Mint &" : null}
-          </Text>        
-          <QASelect 
-              options={actionMenuOptions}
-              onChange={onActionMenuChange}
-              value={quickActionState?.action} 
-          />
-          </HStack>
           {!isWalletConnected ? 
           <ConnectButton marginTop={6}/>
           : quickActionState.assets.length === 0 ? 
           <Text variant="body" fontSize="16px" marginTop={6}>
               Loading your available collateral assets...
-          </Text>
-          : 
-          <>
-          {/* //Action */}
-          {/* Asset Menu + Input Box/Slider*/}        
-          <Stack py="5" w="full" gap="2">  
-            <HStack justifyContent="space-between">
-              <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof})}> 
-                Swap & Bridge
-              </Checkbox >
-              <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({addMintSection: !quickActionState.addMintSection})}> 
-                Mint & Bridge
-              </Checkbox >
-            </HStack>
-          <SliderWithInputBox
-              max={quickActionState?.selectedAsset?.combinUsdValue??0}
-              inputBoxWidth='42%'
-              QAState={quickActionState}
-              setQAState={setQuickActionState}
-              onMenuChange={onAssetMenuChange}
-              inputAmount={inputAmount}
-              setInputAmount={setInputAmount}
-              bridgeCardToggle={bridgeCardToggle}
-          />
-  
-          {/* Mint Section */}
-          {quickActionState.addMintSection ? <><Stack w="full">
-              <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
-              Mint CDT to { quickActionState.action.value }
-              </Text> 
-              <Divider mx="0" mt="0" mb="4%"/>
-              <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
-              { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-              Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
-              </Text>
-              : null }
-              
-          </Stack></> : null}
-  
-  
-          {quickActionState.swapInsteadof ?
-          <><Text fontSize="sm" color="white" mt="2" minH="21px">
-              max slippage: {SWAP_SLIPPAGE}%
-          </Text></> : null }
-
-          {/* Bridge Sliders */}    
-          <Text fontSize="14px" fontWeight="700">
-            {quickActionState.action.value}
           </Text> 
-          <Divider mx="0" mt="0" mb="5"/>
-          <HStack justifyContent="space-between">
-              <Text fontSize="16px" fontWeight="700">
-              CDT
-              </Text>
-              <Text fontSize="16px" fontWeight="700">
-              {NFTState.cdtBridgeAmount}
-              </Text>
-          </HStack>
-          <SliderWithState
-              value={NFTState.cdtBridgeAmount}
-              onChange={onCDTChange}
-              min={0}
-              max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) : Number(stargazeCDTBalance)}
-          />
-          <HStack justifyContent="space-between">
-              <Text fontSize="16px" fontWeight="700">
-              MBRN
-              </Text>
-              <Text fontSize="16px" fontWeight="700">
-              {NFTState.mbrnBridgeAmount}
-              </Text>
-          </HStack>
-          <SliderWithState
-              value={NFTState.mbrnBridgeAmount}
-              onChange={onMBRNChange}
-              min={0}
-              max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisMBRNBalance) : Number(stargazeMBRNBalance)}
-          />
+          :
+          quickActionState.action.value === "Bridge to Stargaze" ? <>
+            <HStack justifyContent="space-between">
+              <Text variant="title" fontSize="16px">
+                  {quickActionState.swapInsteadof ? "Swap &" : quickActionState.addMintSection ? "Mint &" : null}
+              </Text>        
+              <QASelect 
+                  options={actionMenuOptions}
+                  onChange={onActionMenuChange}
+                  value={quickActionState?.action} 
+              />
+            </HStack>
+
+            {/* //Action */}
+            {/* Asset Menu + Input Box/Slider*/}        
+            <Stack py="5" w="full" gap="2">  
+              <HStack justifyContent="space-between">
+                <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof})}> 
+                  Swap & Bridge
+                </Checkbox >
+                <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({addMintSection: !quickActionState.addMintSection})}> 
+                  Mint & Bridge
+                </Checkbox >
+              </HStack>
+            <SliderWithInputBox
+                max={quickActionState?.selectedAsset?.combinUsdValue??0}
+                inputBoxWidth='42%'
+                QAState={quickActionState}
+                setQAState={setQuickActionState}
+                onMenuChange={onAssetMenuChange}
+                inputAmount={inputAmount}
+                setInputAmount={setInputAmount}
+                bridgeCardToggle={bridgeCardToggle}
+            />
+    
+            {/* Mint Section */}
+            {quickActionState.addMintSection ? <><Stack w="full">
+                <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
+                Mint CDT to { quickActionState.action.value }
+                </Text> 
+                <Divider mx="0" mt="0" mb="4%"/>
+                <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
+                { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+                Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
+                </Text>
+                : null }
+                
+            </Stack></> : null}
+    
+    
+            {quickActionState.swapInsteadof ?
+            <><Text fontSize="sm" color="white" mt="2" minH="21px">
+                max slippage: {SWAP_SLIPPAGE}%
+            </Text></> : null }
+            </Stack>
+            </>
+          : null}
+
+          {/* Bridge Sliders */}
+          <Stack>
+            <Text fontSize="14px" fontWeight="700">
+              {quickActionState.action.value}
+            </Text> 
+            <Divider mx="0" mt="0" mb="5"/>
+            <HStack justifyContent="space-between">
+                <Text fontSize="16px" fontWeight="700">
+                CDT
+                </Text>
+                <Text fontSize="16px" fontWeight="700">
+                {NFTState.cdtBridgeAmount}
+                </Text>
+            </HStack>
+            <SliderWithState
+                value={NFTState.cdtBridgeAmount}
+                onChange={onCDTChange}
+                min={0}
+                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) : Number(stargazeCDTBalance)}
+            />
+            <HStack justifyContent="space-between">
+                <Text fontSize="16px" fontWeight="700">
+                MBRN
+                </Text>
+                <Text fontSize="16px" fontWeight="700">
+                {NFTState.mbrnBridgeAmount}
+                </Text>
+            </HStack>
+            <SliderWithState
+                value={NFTState.mbrnBridgeAmount}
+                onChange={onMBRNChange}
+                min={0}
+                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisMBRNBalance) : Number(stargazeMBRNBalance)}
+            />
           </Stack>
   
           {/* Action Button */}
@@ -276,7 +278,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
           label={quickActionState.action.value}
           isDisabled={action?.simulate.isError || !action?.simulate.data || !quickActionState?.mint}>
           <QASummary newPositionValue={0} newLTV={0}/>
-          </ConfirmModal></>}
+          </ConfirmModal>
       </Card>
       </HStack>
     )

@@ -78,7 +78,7 @@ const useIBC = () => {
             revisionHeight: BigInt(currentHeight!) + BigInt(1000),
           },
           timeoutTimestamp: BigInt(0),
-          memo: "",
+          memo,
         })
 
         msgs.push(msg as MsgExecuteContractEncodeObject)

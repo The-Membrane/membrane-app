@@ -178,6 +178,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
   ///////////Bridge to Stargaze Card////////
   ////The action for this card will be in useIBC.ts
   if (bridgeCardToggle) {
+    console.log((!isGreaterThanZero(NFTState.cdtBridgeAmount) && !isGreaterThanZero(NFTState.mbrnBridgeAmount)), action?.simulate.isError, !action?.simulate.data)
     return (
       <HStack justifyContent="center">
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
@@ -247,6 +248,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
 
           {quickActionState.action.value === "Bridge to Osmosis" ?  
               <QASelect 
+                  mb="2%"
                   options={actionMenuOptions}
                   onChange={onActionMenuChange}
                   value={quickActionState?.action} 

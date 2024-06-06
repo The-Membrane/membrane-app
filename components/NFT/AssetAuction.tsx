@@ -44,7 +44,6 @@ const AssetAuction = () => {
     const [cdtPrice, setcdtPrice ] = useState('0')
     const [mbrnPrice, setmbrnPrice ] = useState('0')
     useEffect(() => {      
-        console.log("Protocol prices::", prices)
         const CDTprice = getCDTPrice(prices, cdt!)
         if (CDTprice != cdtPrice && CDTprice != '0') setcdtPrice(CDTprice)
             

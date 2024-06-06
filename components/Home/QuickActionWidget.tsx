@@ -25,9 +25,10 @@ import { SliderWithState } from '../Mint/SliderWithState'
 type QuickActionWidgetProps = {
   actionMenuOptions: any[]
   bridgeCardToggle: boolean
+  action?: any
 }
 
-const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionWidgetProps) => {
+const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: QuickActionWidgetProps) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
   if(quickActionState.action.value === "") setQuickActionState({action: actionMenuOptions[0]})
   
@@ -206,6 +207,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
               onMenuChange={onAssetMenuChange}
               inputAmount={inputAmount}
               setInputAmount={setInputAmount}
+              bridgeCardToggle={bridgeCardToggle}
           />
   
           {/* Mint Section */}
@@ -228,7 +230,11 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
               max slippage: {SWAP_SLIPPAGE}%
           </Text></> : null }
 
-          {/* Bridge Sliders */}
+          {/* Bridge Sliders */}    
+          <Text fontSize="14px" fontWeight="700">
+            {quickActionState.action.value}
+          </Text> 
+          <Divider mx="0" mt="0" mb="5"/>
           <HStack justifyContent="space-between">
               <Text fontSize="16px" fontWeight="700">
               CDT
@@ -261,9 +267,9 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
   
           {/* Action Button */}
           <ConfirmModal 
-          action={quickAction}
+          action={action}
           label={quickActionState.action.value}
-          isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
+          isDisabled={action?.simulate.isError || !action?.simulate.data || !quickActionState?.mint}>
           <QASummary newPositionValue={0} newLTV={0}/>
           </ConfirmModal></>}
       </Card>

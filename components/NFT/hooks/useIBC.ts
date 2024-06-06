@@ -14,40 +14,65 @@ import useLiveNFTBid from './useLiveNFTBid'
 import useLiveAssetBid from './useLiveAssetBid'
 import { useOsmosisBlockInfo, useOsmosisClient } from './useBraneAuction'
 import { useBlockInfo, useClient } from './useClientInfo';
+import useQuickActionState from '@/components/Home/hooks/useQuickActionState';
+import { useMemo } from 'react';
 
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
 const useIBC = () => {
+  const { quickActionState } = useQuickActionState()
   const { address: stargazeAddress } = useWallet('stargaze')
   const { address: osmosisAddress } = useWallet('osmosis')
 
-  const { data: osmosisClient } = useClient('osmosis')
   const { data: osmosisData } = useBlockInfo('osmosis')
-  const currentHeight = osmosisData?.currentHeight
-  const currentBlock = osmosisData?.currentBlock
+  const { data: stargazeData } = useBlockInfo('stargaze')
   
   const osmosisCDT = useAssetBySymbol('CDT')  
   const osmosisMBRN = useAssetBySymbol('MBRN')
+  const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')  
+  const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
+
+  const { currentHeight, currentBlock, sourceChannel, sender, receiver, cdtDenom, mbrnDenom, memo} = useMemo(() => {
+    return quickActionState.action.value === "Bridge to Stargaze" ? { 
+      currentHeight: osmosisData?.currentHeight, 
+      currentBlock: osmosisData?.currentBlock,
+      sourceChannel: "channel-75",
+      sender: osmosisAddress!,
+      receiver: stargazeAddress!,
+      cdtDenom: osmosisCDT!.base,
+      mbrnDenom: osmosisMBRN!.base,
+      memo: "IBC Transfer from Osmosis to Stargaze",
+    } : { 
+      currentHeight: stargazeData?.currentHeight, 
+      currentBlock: stargazeData?.currentBlock,
+      sourceChannel: "channel-0",
+      sender: stargazeAddress!,
+      receiver: osmosisAddress!,
+      cdtDenom: stargazeCDT!.base,
+      mbrnDenom: stargazeMBRN!.base,
+      memo: "IBC Transfer from Stargaze to Osmosis",
+    }
+  }, [quickActionState.action.value, osmosisData, stargazeData, osmosisCDT, osmosisMBRN, stargazeCDT, stargazeMBRN, osmosisAddress, stargazeAddress])
 
   const { NFTState, setNFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg ibc to/from stargaze', osmosisData, osmosisClient, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
+    queryKey: ['msg ibc to/from stargaze', currentHeight, currentBlock, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
     queryFn: () => {
-      if (!stargazeAddress || !osmosisAddress || !osmosisClient) return [] as MsgExecuteContractEncodeObject[]
+      if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock) return [] as MsgExecuteContractEncodeObject[]
       const msgs: MsgExecuteContractEncodeObject[] = []
 
       // Transfer CDT thru IBC
       if (NFTState.cdtBridgeAmount > Number(0)) {
         var msg = transfer({
           sourcePort: "transfer",
-          sourceChannel: "channel-75",
+          sourceChannel,
           token: {
-            denom: osmosisCDT!.base,
+            denom: cdtDenom,
             amount: shiftDigits(NFTState.cdtBridgeAmount, 6).toString(),
           },
-          sender: osmosisAddress,
-          receiver: stargazeAddress,
+          sender,
+          receiver,
           timeoutHeight: {
             revisionNumber: BigInt(currentBlock!.header.version.block),
             revisionHeight: BigInt(currentHeight!) + BigInt(1000),
@@ -55,7 +80,6 @@ const useIBC = () => {
           timeoutTimestamp: BigInt(0),
           memo: "",
         })
-        // msg.typeUrl = "cosmos-sdk/MsgTransfer"
 
         msgs.push(msg as MsgExecuteContractEncodeObject)
       }
@@ -63,19 +87,19 @@ const useIBC = () => {
       if (NFTState.mbrnBridgeAmount > Number(0)) {
         var msg = transfer({
           sourcePort: "transfer",
-          sourceChannel: "channel-75",
+          sourceChannel,
           token: {
-            denom: osmosisMBRN!.base,
+            denom: mbrnDenom,
             amount: shiftDigits(NFTState.mbrnBridgeAmount, 6).toString(),
           },
-          sender: osmosisAddress,
-          receiver: stargazeAddress,
+          sender,
+          receiver,
           timeoutHeight: {
             revisionNumber: BigInt(currentBlock?.header.version.block??0),
             revisionHeight: BigInt(currentHeight??0) + BigInt(1000),
           },
           timeoutTimestamp: BigInt(0),
-          memo: "IBC Transfer from Osmosis to Stargaze",
+          memo
         })
 
         msgs.push(msg as MsgExecuteContractEncodeObject)

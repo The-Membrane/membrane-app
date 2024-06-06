@@ -236,6 +236,13 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
             </>
           : null}
 
+          {quickActionState.action.value === "Bridge to Osmosis" ?  
+              <QASelect 
+                  options={actionMenuOptions}
+                  onChange={onActionMenuChange}
+                  value={quickActionState?.action} 
+              />: null}
+
           {/* Bridge Sliders */}
           <Stack>
             <Text fontSize="14px" fontWeight="700">

@@ -39,8 +39,8 @@ const useIBC = () => {
       sourceChannel: "channel-75",
       sender: osmosisAddress!,
       receiver: stargazeAddress!,
-      cdtDenom: osmosisCDT!.base,
-      mbrnDenom: osmosisMBRN!.base,
+      cdtDenom: osmosisCDT === null ? "" : osmosisCDT.base,
+      mbrnDenom: osmosisMBRN === null ? "" : osmosisMBRN.base,
       memo: "IBC Transfer from Osmosis to Stargaze",
     } : { 
       currentHeight: stargazeData?.currentHeight, 
@@ -48,8 +48,8 @@ const useIBC = () => {
       sourceChannel: "channel-0",
       sender: stargazeAddress!,
       receiver: osmosisAddress!,
-      cdtDenom: stargazeCDT!.base,
-      mbrnDenom: stargazeMBRN!.base,
+      cdtDenom: stargazeCDT === null ? "" : stargazeCDT.base,
+      mbrnDenom: stargazeMBRN === null ? "" : stargazeMBRN.base,
       memo: "IBC Transfer from Stargaze to Osmosis",
     }
   }, [quickActionState.action.value, osmosisData, stargazeData, osmosisCDT, osmosisMBRN, stargazeCDT, stargazeMBRN, osmosisAddress, stargazeAddress])

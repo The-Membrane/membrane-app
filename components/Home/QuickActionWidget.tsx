@@ -29,6 +29,27 @@ type QuickActionWidgetProps = {
 }
 
 const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: QuickActionWidgetProps) => {
+
+  const { NFTState, setNFTState } = useNFTState()
+
+  const mbrn = useAssetBySymbol('MBRN')
+  const osmosisMBRNBalance = useBalanceByAsset(mbrn)
+  const cdt = useAssetBySymbol('CDT')
+  const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
+
+  
+  const mbrnSG = useAssetBySymbol('MBRN', 'stargaze')
+  const stargazeMBRNBalance = useBalanceByAsset(mbrnSG, 'stargaze')
+  const cdtSG = useAssetBySymbol('CDT', 'stargaze')
+  const stargazeCDTBalance = useBalanceByAsset(cdtSG, 'stargaze')
+
+  const onCDTChange = (value: number) => {
+      setNFTState({ cdtBridgeAmount: value })
+  }
+  const onMBRNChange = (value: number) => {
+      setNFTState({ mbrnBridgeAmount: value })
+  }
+
   const { quickActionState, setQuickActionState } = useQuickActionState()
   if(quickActionState.action.value === "") setQuickActionState({action: actionMenuOptions[0]})
   
@@ -40,7 +61,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
   const { isWalletConnected, address } = useWallet(chainName)
 
   const { data: walletBalances } = useBalance(chainName)
-  const assets = useCollateralAssets()
+  const assets = quickActionState.action.value === "Bridge to Osmosis" ? [mbrnSG, cdtSG] : useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
   const { debtAmount, maxMint } = useQuickActionVaultSummary()
@@ -143,28 +164,6 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
     }
     
   }, [quickActionState?.swapInsteadof])
-
-
-
-  const { NFTState, setNFTState } = useNFTState()
-
-  const mbrn = useAssetBySymbol('MBRN')
-  const osmosisMBRNBalance = useBalanceByAsset(mbrn)
-  const cdt = useAssetBySymbol('CDT')
-  const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
-
-  
-  const mbrnSG = useAssetBySymbol('MBRN', 'stargaze')
-  const stargazeMBRNBalance = useBalanceByAsset(mbrnSG, 'stargaze')
-  const cdtSG = useAssetBySymbol('CDT', 'stargaze')
-  const stargazeCDTBalance = useBalanceByAsset(cdtSG, 'stargaze')
-
-  const onCDTChange = (value: number) => {
-      setNFTState({ cdtBridgeAmount: value })
-  }
-  const onMBRNChange = (value: number) => {
-      setNFTState({ mbrnBridgeAmount: value })
-  }
 
   ///////////Bridge to Stargaze Card////////
   ////The action for this card will be in useIBC.ts

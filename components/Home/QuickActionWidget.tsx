@@ -282,9 +282,9 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
   
           {/* Action Button */}
           <ConfirmModal 
-          action={ibc}
+          action={action}
           label={quickActionState.action.value}
-          isDisabled={ibc?.simulate.isError || !ibc?.simulate.data}>
+          isDisabled={action?.simulate.isError || !action?.simulate.data}>
           <QASummary newPositionValue={0} newLTV={0}/>
           </ConfirmModal>
       </Card>

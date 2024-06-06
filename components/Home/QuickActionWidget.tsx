@@ -3,7 +3,7 @@ import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
 import useQuickActionState from './hooks/useQuickActionState'
-import { useEffect, useMemo, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import { num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
 import { calcSliderValue } from '../Mint/TakeAction'
@@ -32,6 +32,7 @@ type QuickActionWidgetProps = {
 const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: QuickActionWidgetProps) => {
 
   const { NFTState, setNFTState } = useNFTState()
+  const ibc = useIBC()
 
   const mbrn = useAssetBySymbol('MBRN')
   const osmosisMBRNBalance = useBalanceByAsset(mbrn)
@@ -281,9 +282,9 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
   
           {/* Action Button */}
           <ConfirmModal 
-          action={action}
+          action={ibc}
           label={quickActionState.action.value}
-          isDisabled={action?.simulate.isError || !action?.simulate.data || !quickActionState?.mint}>
+          isDisabled={ibc?.simulate.isError || !ibc?.simulate.data || !quickActionState?.mint}>
           <QASummary newPositionValue={0} newLTV={0}/>
           </ConfirmModal>
       </Card>

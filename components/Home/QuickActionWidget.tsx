@@ -21,6 +21,7 @@ import { SWAP_SLIPPAGE } from '@/config/defaults'
 import useNFTState from '../NFT/hooks/useNFTState'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { SliderWithState } from '../Mint/SliderWithState'
+import { Asset } from '@/helpers/chain'
 
 type QuickActionWidgetProps = {
   actionMenuOptions: any[]
@@ -61,7 +62,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
   const { isWalletConnected, address } = useWallet(chainName)
 
   const { data: walletBalances } = useBalance(chainName)
-  const assets = quickActionState.action.value === "Bridge to Osmosis" ? [mbrnSG, cdtSG] : useCollateralAssets()
+  const assets = quickActionState.action.value === "Bridge to Osmosis" ? [mbrnSG, cdtSG] as Asset[] : useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
   const { debtAmount, maxMint } = useQuickActionVaultSummary()

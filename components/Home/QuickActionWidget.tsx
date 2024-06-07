@@ -35,6 +35,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
   const { NFTState, setNFTState } = useNFTState()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const ibc = useIBC()
+  const [ inputAmount, setInputAmount ] = useState(0);
   const [swapAmount, setswapAmount] = useState(0)
   useMemo(() => {
     if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount) setswapAmount(ibc.swapMinAmount)
@@ -74,8 +75,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
   const { debtAmount, maxMint } = useQuickActionVaultSummary()
   const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
   
-  const [ inputAmount, setInputAmount ] = useState(0);
-  
+ 
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
   const walletDenoms = (walletBalances??[]).map((coin: Coin) => {

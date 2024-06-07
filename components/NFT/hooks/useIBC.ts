@@ -114,7 +114,7 @@ const useIBC = () => {
 
 
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
+    queryClient.invalidateQueries({ queryKey: ['stargaze'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0})
   }

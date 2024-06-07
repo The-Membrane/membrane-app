@@ -37,6 +37,7 @@ const AssetAuction = () => {
 
     const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
     const stargazeMBRNBalance = useBalanceByAsset(stargazeMBRN, 'stargaze')
+    console.log(stargazeMBRNBalance)
         
     const { data: prices } = useOraclePrice()
     const cdt = getAssetBySymbol('CDT')

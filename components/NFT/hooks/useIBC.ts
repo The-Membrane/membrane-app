@@ -117,7 +117,6 @@ const useIBC = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
     setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0})
-    console.log("refreshed")
   }
 
   return useSimulateAndBroadcast({

@@ -1,9 +1,13 @@
 import { Text, Stack } from "@chakra-ui/react"
 import useIBC from "./hooks/useIBC"
+import { queryClient } from '@/pages/_app'
 import QuickActionWidget from "../Home/QuickActionWidget"
 
 const BridgeTo = () => {
     const ibc = useIBC()
+
+    console.log(queryClient.getQueryCache().findAll().map(query => query.queryKey));
+
 
     // const mbrn = useAssetBySymbol('MBRN')
     // const osmosisMBRNBalance = useBalanceByAsset(mbrn)

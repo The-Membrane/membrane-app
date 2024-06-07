@@ -33,11 +33,12 @@ type QuickActionWidgetProps = {
 const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionWidgetProps) => {
 
   const { NFTState, setNFTState } = useNFTState()
+  const { quickActionState, setQuickActionState } = useQuickActionState()
   const ibc = useIBC()
   const [swapAmount, setswapAmount] = useState(0)
   useMemo(() => {
     if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount) setswapAmount(ibc.swapMinAmount)
-  }, [ibc.swapMinAmount])
+  }, [quickActionState?.selectedAsset?.amount])
 
   const mbrn = useAssetBySymbol('MBRN')
   const osmosisMBRNBalance = useBalanceByAsset(mbrn)
@@ -57,7 +58,6 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
       setNFTState({ mbrnBridgeAmount: value })
   }
 
-  const { quickActionState, setQuickActionState } = useQuickActionState()
   if(quickActionState.action.value === "") setQuickActionState({action: actionMenuOptions[0]})
   
   const [chainName, setChainName] = useState("osmosis")

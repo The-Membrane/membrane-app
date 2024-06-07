@@ -114,7 +114,7 @@ const useIBC = () => {
     setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
       queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    }, 3000);
+    }, 7000);
     setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0})
   }
 

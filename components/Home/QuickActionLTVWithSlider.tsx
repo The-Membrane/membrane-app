@@ -62,7 +62,7 @@ export const QuickActionLTVWithSlider = ({ label, value = 100 }: LTVWithSliderPr
           <Text variant="value">${value}</Text>
         </HStack>
       </HStack>
-      <SliderWithState value={quickActionState.swapInsteadofMint ? 0 : value} onChange={onChange} min={0} max={maxSlider} walletCDT={parseFloat(walletCDT)} summary={[quickActionState?.selectedAsset]}/>
+      <SliderWithState value={quickActionState.swapInsteadof ? 0 : value} onChange={onChange} min={0} max={maxSlider} walletCDT={parseFloat(walletCDT)} summary={[quickActionState?.selectedAsset]}/>
     </Stack>
   )
 }

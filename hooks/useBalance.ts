@@ -11,7 +11,7 @@ export const useBalance = (chainID: string = "osmosis") => {
   const { getRpcClient } = useRpcClient(chain.chain_name)
 
   return useQuery<QueryAllBalancesResponse['balances'] | null>({
-    queryKey: [chainID + ' balances', 'balances', address, chain.chain_id],
+    queryKey: [chainID + ' balances', address, chain.chain_id],
     queryFn: async () => {
       const client = await getRpcClient()
       if (!address) return null
@@ -47,7 +47,7 @@ export const useBalanceByAsset = (asset: Asset | null, chainID: string = "osmosi
     const decimals = asset.decimal || 6
 
     if (!balance || !decimals || !denom) return '0'
-
+    if(chainID === "stargaze") console.log(balance)
     return shiftDigits(balance, -decimals).toString()
   }, [balances, asset, address])
 }

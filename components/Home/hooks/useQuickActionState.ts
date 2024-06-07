@@ -15,7 +15,8 @@ export type QuickActionState = {
   summary?: Summary[]
   totalUsdValue?: number
   mint?: number
-  swapInsteadofMint: boolean
+  swapInsteadof: boolean
+  addMintSection: boolean
   action: ActionMenu
 }
 
@@ -26,8 +27,9 @@ type Store = {
 
 const initialState: QuickActionState = {  
   assets: [],
-  swapInsteadofMint: false,
-  action: {value: "LP", label: "LP"},
+  swapInsteadof: false,
+  addMintSection: false,
+  action: {value: "", label: ""},
 }
 
 // @ts-ignore

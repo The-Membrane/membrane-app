@@ -27,9 +27,10 @@ type Props = {
     onMenuChange: (value: string) => void
     inputAmount: number
     setInputAmount: (value: number) => void
+    bridgeCardToggle?: boolean
   }
   
-  export const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount }: SliderWithInputProps) => {
+  export const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount, bridgeCardToggle = false }: SliderWithInputProps) => {
       
       const { data: basketPositions } = useUserPositions()
 
@@ -59,9 +60,9 @@ type Props = {
   
   
       return (
-      <Stack py="5" w="full" gap="3" mb="8">     
+      <Stack py="5" w="full" gap="3" mb={bridgeCardToggle ? "0" : "8"} pb={bridgeCardToggle ? "0" : "5"} >     
         <Text fontSize="14px" fontWeight="700">
-          {QAState.swapInsteadofMint ? "Choose Asset" : basketPositions ? "Add collateral to your existing vault (optional)" : "Choose Collateral"}
+          {QAState.swapInsteadof || bridgeCardToggle ? "Choose Asset" : basketPositions ? "Add collateral to your existing vault (optional)" : "Choose Collateral"}
         </Text> 
         <Divider mx="0" mt="0" mb="5"/>
         {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">

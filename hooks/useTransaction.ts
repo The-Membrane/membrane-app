@@ -44,7 +44,7 @@ const useTransaction = ({ msgs, onSuccess, fee, chain_id }: Transaction) => {
         txHash: transactionHash,
       })
 
-      queryClient.invalidateQueries({ queryKey: ['balances'] })
+      // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
 
       onSuccess?.()
     },

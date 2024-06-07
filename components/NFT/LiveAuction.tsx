@@ -79,33 +79,33 @@ const LiveAuction = () => {
                 height="auto"
                 borderRadius="50%"
             />
-                <HStack justifyContent="space-between">
+                <HStack justifyContent="space-between" marginRight={"2"}>
                     <Text fontSize="16px" fontWeight="700">
                     {NFTState.nftBidAmount}
                     </Text>
                     <Text fontSize="16px" fontWeight="700">
                     CDT
                     </Text>
-                    <SliderWithState
-                        value={NFTState.nftBidAmount}
-                        onChange={onBidChange}
-                        min={0}
-                        max={Number(stargazeCDTBalance)}
-                    />
-                    <TxButton
-                        // marginTop={"3%"}
-                        w="64px"
-                        height="74px"
-                        borderRadius="50%"
-                        px="10"
-                        isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
-                        isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
-                        onClick={() => bid.action.tx.mutate()}
-                        chain_name="stargaze"
-                        >
-                        Bid
-                    </TxButton>
                 </HStack>
+                <SliderWithState
+                    value={NFTState.nftBidAmount}
+                    onChange={onBidChange}
+                    min={0}
+                    max={Number(stargazeCDTBalance)}
+                />
+                <TxButton
+                    // marginTop={"3%"}
+                    w="64px"
+                    height="64px"
+                    borderRadius="50%"
+                    px="10"
+                    isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
+                    isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
+                    onClick={() => bid.action.tx.mutate()}
+                    chain_name="stargaze"
+                    >
+                    Bid
+                </TxButton>
             </HStack>
         </Card>
     )

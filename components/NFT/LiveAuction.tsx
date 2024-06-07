@@ -69,23 +69,21 @@ const LiveAuction = () => {
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}
             {isLoading === "Loading image from IPFS......" && <div>{isLoading}</div>}
+            <HStack justifyContent="space-between">
             <Image
                 src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
                 onLoad={handleImageLoaded}                
                 style={{ display: isLoading === "Loading image from IPFS......" ? 'none' : 'block' }}
-                width="36%"
+                width="18%"
                 height="auto"
             />
-            <Stack w="full" gap="1">
-            <HStack justifyContent="space-between">
                 <Text fontSize="16px" fontWeight="700">
                 CDT
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
                 {NFTState.nftBidAmount}
                 </Text>
-            </HStack>
             <SliderWithState
                 value={NFTState.nftBidAmount}
                 onChange={onBidChange}
@@ -95,6 +93,7 @@ const LiveAuction = () => {
             <TxButton
                 marginTop={"3%"}
                 w="100%"
+                borderRadius="50%"
                 px="10"
                 isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
                 isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
@@ -103,7 +102,7 @@ const LiveAuction = () => {
                 >
                 Bid
             </TxButton>
-            </Stack>
+            </HStack>
         </Card>
     )
 }

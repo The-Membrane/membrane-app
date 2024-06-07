@@ -30,10 +30,14 @@ type QuickActionWidgetProps = {
   action?: any
 }
 
-const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: QuickActionWidgetProps) => {
+const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionWidgetProps) => {
 
   const { NFTState, setNFTState } = useNFTState()
   const ibc = useIBC()
+  const [swapAmount, setswapAmount] = useState(0)
+  useMemo(() => {
+    if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount) setswapAmount(ibc.swapMinAmount)
+  }, [ibc.swapMinAmount])
 
   const mbrn = useAssetBySymbol('MBRN')
   const osmosisMBRNBalance = useBalanceByAsset(mbrn)
@@ -184,7 +188,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
           {quickActionState.assets.length === 0 && quickActionState.action.value === "Bridge to Stargaze" ? 
           <Text variant="body" fontSize="16px" marginTop={4} mb={4}>
-              Loading options to swap or mint...
+              Loading options to swap...
           </Text> 
           :
           quickActionState.action.value === "Bridge to Stargaze" ? <>
@@ -267,7 +271,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
                 value={NFTState.cdtBridgeAmount}
                 onChange={onCDTChange}
                 min={0}
-                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) + ibc.swapMinAmount : Number(stargazeCDTBalance)}
+                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) + swapAmount : Number(stargazeCDTBalance)}
             />
             <HStack justifyContent="space-between">
                 <Text fontSize="16px" fontWeight="700">

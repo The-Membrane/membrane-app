@@ -103,6 +103,7 @@ const LiveAuction = () => {
                     isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
                     onClick={() => bid.action.tx.mutate()}
                     chain_name="stargaze"
+                    toggleConnectLabel={false}
                     >
                     Bid
                 </TxButton>

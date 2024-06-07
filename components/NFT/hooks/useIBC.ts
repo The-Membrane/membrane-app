@@ -104,25 +104,25 @@ const useIBC = () => {
       }
 
       //Deposit + Mint msgs to bridge
-      if (num(quickActionState?.selectedAsset?.amount??"0") > num(0),quickActionState.action.value === "Bridge to Stargaze" && quickActionState?.addMintSection && quickActionState?.selectedAsset && quickActionState?.mint && quickActionState?.mint > 0){ 
-          //Deposit
-          const deposit = getDepostAndWithdrawMsgs({ 
-            summary: [quickActionState?.selectedAsset as any], 
-            address: osmosisAddress, 
-            positionId, 
-            hasPosition: basketPositions !== undefined 
-          })
-          msgs = msgs.concat(deposit)
-          //Mint
-          const mint = getMintAndRepayMsgs({
-            address: osmosisAddress, 
-            positionId,
-            mintAmount: quickActionState?.mint,
-            repayAmount: 0,
-          })
-          swapMinAmount = quickActionState?.mint??0
-          msgs = msgs.concat(mint)
-      }
+      // if (num(quickActionState?.selectedAsset?.amount??"0") > num(0),quickActionState.action.value === "Bridge to Stargaze" && quickActionState?.addMintSection && quickActionState?.selectedAsset && quickActionState?.mint && quickActionState?.mint > 0){ 
+      //     //Deposit
+      //     const deposit = getDepostAndWithdrawMsgs({ 
+      //       summary: [quickActionState?.selectedAsset as any], 
+      //       address: osmosisAddress, 
+      //       positionId, 
+      //       hasPosition: basketPositions !== undefined 
+      //     })
+      //     msgs = msgs.concat(deposit)
+      //     //Mint
+      //     const mint = getMintAndRepayMsgs({
+      //       address: osmosisAddress, 
+      //       positionId,
+      //       mintAmount: quickActionState?.mint,
+      //       repayAmount: 0,
+      //     })
+      //     swapMinAmount = quickActionState?.mint??0
+      //     msgs = msgs.concat(mint)
+      // }
 
       // Transfer CDT thru IBC
       if (NFTState.cdtBridgeAmount > Number(0)) {

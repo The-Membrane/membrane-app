@@ -124,7 +124,7 @@ const useIBC = () => {
     msgs,
     enabled: true,
     amount: "0",
-    queryKey: ['msg ibc', (msgs?.toString()??"0")],
+    queryKey: ['sim ibc', (msgs?.toString()??"0")],
     onSuccess,
     chain_id: chainName
   })

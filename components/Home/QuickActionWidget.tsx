@@ -1,4 +1,4 @@
-import { Card, HStack, Stack, Text, Checkbox, CheckboxGroup, Radio, RadioGroup } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text, Checkbox, CheckboxGroup } from '@chakra-ui/react'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
@@ -178,7 +178,6 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
   ///////////Bridge to Stargaze Card////////
   ////The action for this card will be in useIBC.ts
   if (bridgeCardToggle) {
-    console.log(quickActionState.swapInsteadof, quickActionState.addMintSection)
     return (
       <HStack justifyContent="center">
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
@@ -203,14 +202,14 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
             {/* Asset Menu + Input Box/Slider*/}        
             <Stack py="5" w="full" gap="2">  
               <HStack justifyContent="space-between">
-                <RadioGroup>
-                  <Radio paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: true, addMintSection: false})}> 
+                <CheckboxGroup>
+                  <Checkbox isChecked={quickActionState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: true, addMintSection: false})}> 
                     Swap & Bridge
-                  </Radio >
-                  <Radio paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({addMintSection: true, swapInsteadof: false})}> 
+                  </Checkbox >
+                  <Checkbox isChecked={quickActionState.addMintSection} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({addMintSection: true, swapInsteadof: false})}> 
                     Mint & Bridge
-                  </Radio >
-                </RadioGroup>
+                  </Checkbox >
+                </CheckboxGroup>
               </HStack>
             {(quickActionState.addMintSection || quickActionState.swapInsteadof) ? <SliderWithInputBox
                 max={quickActionState?.selectedAsset?.combinUsdValue??0}

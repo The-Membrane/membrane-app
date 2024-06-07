@@ -99,7 +99,7 @@ const useIBC = () => {
           prices,
           cdtPrice,
         })
-        swapMinAmount = tokenOutMinAmount
+        swapMinAmount = shiftDigits(tokenOutMinAmount, -6).toNumber()
         msgs.push(swap as MsgExecuteContractEncodeObject)
       }
 
@@ -120,6 +120,7 @@ const useIBC = () => {
             mintAmount: quickActionState?.mint,
             repayAmount: 0,
           })
+          swapMinAmount = quickActionState?.mint??0
           msgs = msgs.concat(mint)
       }
 

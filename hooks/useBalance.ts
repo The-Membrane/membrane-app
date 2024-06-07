@@ -13,7 +13,7 @@ export const useBalance = (chainID: string = "osmosis") => {
   return useQuery<QueryAllBalancesResponse['balances'] | null>({
     queryKey: [chainID + ' balances', address, chain.chain_id],
     queryFn: async () => {
-      console.log(chainID + ' balances')
+      console.log(chainID + ' balances', address, chain.chain_id)
       const client = await getRpcClient()
       if (!address) return null
 

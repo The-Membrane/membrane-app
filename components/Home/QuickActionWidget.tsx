@@ -38,7 +38,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
   const [swapAmount, setswapAmount] = useState(0)
   useMemo(() => {
     if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount) setswapAmount(ibc.swapMinAmount)
-  }, [quickActionState?.selectedAsset?.amount])
+  }, [inputAmount])
 
   const mbrn = useAssetBySymbol('MBRN')
   const osmosisMBRNBalance = useBalanceByAsset(mbrn)

@@ -64,17 +64,6 @@ const useIBC = () => {
 
   //Data for deposit/mint/swap
   const { data: prices } = useOraclePrice()
-  const { data: basketPositions } = useUserPositions()
-  const { data: basket } = useBasket()
-
-  const positionId = useMemo(() => {
-    if (basketPositions !== undefined) {
-      return basketPositions?.[0]?.positions?.[0]?.position_id
-    } else {
-      //Use the next position ID
-      return basket?.current_position_id ?? ""
-    }
-  }, [basket, basketPositions])
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined

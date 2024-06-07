@@ -32,12 +32,14 @@ type QuickActionWidgetProps = {
 
 const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionWidgetProps) => {
 
+  const { quickActionState, setQuickActionState } = useQuickActionState()
   const { NFTState, setNFTState } = useNFTState()
   const ibc = useIBC()
   const [swapAmount, setswapAmount] = useState(0)
   useMemo(() => {
-    if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount) setswapAmount(ibc.swapMinAmount)
-  }, [ibc.swapMinAmount])
+    if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount && quickActionState.swapInsteadof) setswapAmount(ibc.swapMinAmount)
+      else if (!quickActionState.swapInsteadof) setswapAmount(0)
+  }, [ibc.swapMinAmount, quickActionState.swapInsteadof])
 
   const mbrn = useAssetBySymbol('MBRN')
   const osmosisMBRNBalance = useBalanceByAsset(mbrn)
@@ -57,7 +59,6 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
       setNFTState({ mbrnBridgeAmount: value })
   }
 
-  const { quickActionState, setQuickActionState } = useQuickActionState()
   if(quickActionState.action.value === "") setQuickActionState({action: actionMenuOptions[0]})
   
   const [chainName, setChainName] = useState("osmosis")
@@ -182,7 +183,6 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
   ///////////Bridge to Stargaze Card////////
   ////The action for this card will be in useIBC.ts
   if (bridgeCardToggle) {
-    console.log(!isGreaterThanZero(NFTState.cdtBridgeAmount), !isGreaterThanZero(NFTState.mbrnBridgeAmount), ibc.action?.simulate.isError, !ibc.action?.simulate.data )
     return (
       <HStack justifyContent="center">
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
@@ -207,7 +207,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
             {/* Asset Menu + Input Box/Slider*/}        
             <Stack py="5" w="full" gap="2">  
               <HStack justifyContent="space-between">
-                  <Checkbox isChecked={quickActionState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof, addMintSection: false})}> 
+                  <Checkbox isChecked={quickActionState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof})}> 
                     Swap & Bridge
                   </Checkbox >
               </HStack>

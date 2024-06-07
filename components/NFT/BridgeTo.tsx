@@ -3,8 +3,6 @@ import useIBC from "./hooks/useIBC"
 import QuickActionWidget from "../Home/QuickActionWidget"
 
 const BridgeTo = () => {
-    const ibc = useIBC()
-
     // const mbrn = useAssetBySymbol('MBRN')
     // const osmosisMBRNBalance = useBalanceByAsset(mbrn)
 
@@ -21,7 +19,7 @@ const BridgeTo = () => {
     return (
         <Stack w="full" gap="5">
             <Text variant="title">Bridge</Text>
-            <QuickActionWidget action={ibc} actionMenuOptions={[{ value: "Bridge to Stargaze", label: "Bridge to Stargaze" }, { value: "Bridge to Osmosis", label: "Bridge to Osmosis"}]} bridgeCardToggle={true}/>
+            <QuickActionWidget actionMenuOptions={[{ value: "Bridge to Stargaze", label: "Bridge to Stargaze" }, { value: "Bridge to Osmosis", label: "Bridge to Osmosis"}]} bridgeCardToggle={true}/>
         </Stack>
     )
 }

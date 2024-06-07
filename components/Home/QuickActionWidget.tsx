@@ -272,7 +272,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
                 value={NFTState.cdtBridgeAmount}
                 onChange={onCDTChange}
                 min={0}
-                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) : Number(stargazeCDTBalance)}
+                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) + ibc.swapMinAmount : Number(stargazeCDTBalance)}
             />
             <HStack justifyContent="space-between">
                 <Text fontSize="16px" fontWeight="700">
@@ -295,9 +295,9 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle, action }: Quic
               marginTop={"3%"}
               w="100%"
               px="10"
-              isDisabled={(!isGreaterThanZero(NFTState.cdtBridgeAmount) && !isGreaterThanZero(NFTState.mbrnBridgeAmount)) || action?.simulate.isError || !action?.simulate.data}
-              isLoading={action.simulate.isPending && !action.simulate.isError && action.simulate.data}
-              onClick={() => action.tx.mutate()}
+              isDisabled={(!isGreaterThanZero(NFTState.cdtBridgeAmount) && !isGreaterThanZero(NFTState.mbrnBridgeAmount)) || ibc.action?.simulate.isError || !ibc.action?.simulate.data}
+              isLoading={ibc.action.simulate.isPending && !ibc.action.simulate.isError && ibc.action.simulate.data}
+              onClick={() => ibc.action.tx.mutate()}
               chain_name={chainName}
               >
               {quickActionState.action.value}

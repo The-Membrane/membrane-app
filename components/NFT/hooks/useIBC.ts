@@ -14,6 +14,11 @@ import useQuickActionState from '@/components/Home/hooks/useQuickActionState';
 import { useMemo } from 'react';
 import { delayTime } from '@/config/defaults';
 import useToaster from '@/hooks/useToaster';
+import { swapToCDTMsg } from '@/helpers/osmosis';
+import { num } from '@/helpers/num';
+import { useOraclePrice } from '@/hooks/useOracle';
+import { getDepostAndWithdrawMsgs, getMintAndRepayMsgs } from '@/helpers/mint';
+import { useBasket, useUserPositions } from '@/hooks/useCDP';
 
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
@@ -57,11 +62,66 @@ const useIBC = () => {
 
   const { NFTState, setNFTState } = useNFTState()
 
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg ibc to/from stargaze', currentHeight, currentBlock, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
+  //Data for deposit/mint/swap
+  const { data: prices } = useOraclePrice()
+  const { data: basketPositions } = useUserPositions()
+  const { data: basket } = useBasket()
+
+  const positionId = useMemo(() => {
+    if (basketPositions !== undefined) {
+      return basketPositions?.[0]?.positions?.[0]?.position_id
+    } else {
+      //Use the next position ID
+      return basket?.current_position_id ?? ""
+    }
+  }, [basket, basketPositions])
+
+  type QueryData = {
+    msgs: MsgExecuteContractEncodeObject[] | undefined
+    swapMinAmount: number
+  }
+  const { data: queryData } = useQuery<QueryData>({
+    queryKey: ['msg ibc to/from stargaze', prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
     queryFn: () => {
-      if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock) return [] as MsgExecuteContractEncodeObject[]
-      const msgs: MsgExecuteContractEncodeObject[] = []
+      if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock) return { msgs: undefined, swapMinAmount: 0 }
+      var msgs: MsgExecuteContractEncodeObject[] = []
+      var swapMinAmount = 0
+
+      //Swap to CDT to bridge
+      if (osmosisCDT && prices && quickActionState.action.value === "Bridge to Stargaze" && quickActionState?.swapInsteadof && quickActionState?.selectedAsset){
+        const swapFromAmount = num(quickActionState?.selectedAsset?.amount).toNumber()
+        const cdtPrice = parseFloat(prices?.find((price) => price.denom === osmosisCDT.base)?.price ?? "0")
+        //Swap
+        const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
+          address: osmosisAddress, 
+          swapFromAmount,
+          swapFromAsset: quickActionState?.selectedAsset,
+          prices,
+          cdtPrice,
+        })
+        swapMinAmount = tokenOutMinAmount
+        msgs.push(swap as MsgExecuteContractEncodeObject)
+      }
+
+      //Deposit + Mint msgs to bridge
+      if (num(quickActionState?.selectedAsset?.amount??"0") > num(0),quickActionState.action.value === "Bridge to Stargaze" && quickActionState?.addMintSection && quickActionState?.selectedAsset && quickActionState?.mint && quickActionState?.mint > 0){ 
+          //Deposit
+          const deposit = getDepostAndWithdrawMsgs({ 
+            summary: [quickActionState?.selectedAsset as any], 
+            address: osmosisAddress, 
+            positionId, 
+            hasPosition: basketPositions !== undefined 
+          })
+          msgs = msgs.concat(deposit)
+          //Mint
+          const mint = getMintAndRepayMsgs({
+            address: osmosisAddress, 
+            positionId,
+            mintAmount: quickActionState?.mint,
+            repayAmount: 0,
+          })
+          msgs = msgs.concat(mint)
+      }
 
       // Transfer CDT thru IBC
       if (NFTState.cdtBridgeAmount > Number(0)) {
@@ -106,11 +166,16 @@ const useIBC = () => {
         msgs.push(msg as MsgExecuteContractEncodeObject)
       } 
       console.log(msgs)
-      return msgs as MsgExecuteContractEncodeObject[]
+
+      return { msgs, swapMinAmount }
     },
     enabled: !!stargazeAddress && !!osmosisAddress,
   })
 
+  const { msgs, swapMinAmount } = useMemo(() => {
+    if (!queryData) return { msgs: undefined, swapMinAmount: 0 }
+    else return queryData
+  }, [queryData])
 
   const onSuccess = () => {
     //Change 
@@ -127,14 +192,14 @@ const useIBC = () => {
     setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0})
   }
 
-  return useSimulateAndBroadcast({
+  return {action: useSimulateAndBroadcast({
     msgs,
     enabled: true,
     amount: "0",
     queryKey: ['sim ibc', (msgs?.toString()??"0")],
     onSuccess,
     chain_id: chainName
-  })
+  }), swapMinAmount}
 }
 
 export default useIBC

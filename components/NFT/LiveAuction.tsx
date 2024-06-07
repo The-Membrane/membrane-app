@@ -69,7 +69,7 @@ const LiveAuction = () => {
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}
             {isLoading === "Loading image from IPFS......" && <div>{isLoading}</div>}
-            <HStack width="100%" justifyContent="space-between" border="1px solid black">
+            <HStack width="100%" justifyContent="space-between" backgroundColor="black" border="7px solid black">
             <Image
                 src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
@@ -77,6 +77,7 @@ const LiveAuction = () => {
                 style={{ display: isLoading === "Loading image from IPFS......" ? 'none' : 'block' }}
                 width="18%"
                 height="auto"
+                borderRadius="50%"
             />
                 <HStack justifyContent="space-between">
                     <Text fontSize="16px" fontWeight="700">
@@ -85,26 +86,26 @@ const LiveAuction = () => {
                     <Text fontSize="16px" fontWeight="700">
                     CDT
                     </Text>
+                    <SliderWithState
+                        value={NFTState.nftBidAmount}
+                        onChange={onBidChange}
+                        min={0}
+                        max={Number(stargazeCDTBalance)}
+                    />
+                    <TxButton
+                        // marginTop={"3%"}
+                        w="64px"
+                        height="74px"
+                        borderRadius="50%"
+                        px="10"
+                        isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
+                        isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
+                        onClick={() => bid.action.tx.mutate()}
+                        chain_name="stargaze"
+                        >
+                        Bid
+                    </TxButton>
                 </HStack>
-            <SliderWithState
-                value={NFTState.nftBidAmount}
-                onChange={onBidChange}
-                min={0}
-                max={Number(stargazeCDTBalance)}
-            />
-            <TxButton
-                // marginTop={"3%"}
-                w="64px"
-                height="74px"
-                borderRadius="50%"
-                px="10"
-                isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
-                isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
-                onClick={() => bid.action.tx.mutate()}
-                chain_name="stargaze"
-                >
-                Bid
-            </TxButton>
             </HStack>
         </Card>
     )

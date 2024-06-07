@@ -182,7 +182,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
   ///////////Bridge to Stargaze Card////////
   ////The action for this card will be in useIBC.ts
   if (bridgeCardToggle) {
-    console.log(ibc.swapMinAmount)
+    console.log("amounts", ibc.swapMinAmount, swapAmount)
     return (
       <HStack justifyContent="center">
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">

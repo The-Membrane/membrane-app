@@ -207,7 +207,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
             {/* Asset Menu + Input Box/Slider*/}        
             <Stack py="5" w="full" gap="2">  
               <HStack justifyContent="space-between">
-                  <Checkbox isChecked={quickActionState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: true, addMintSection: false})}> 
+                  <Checkbox isChecked={quickActionState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof, addMintSection: false})}> 
                     Swap & Bridge
                   </Checkbox >
               </HStack>

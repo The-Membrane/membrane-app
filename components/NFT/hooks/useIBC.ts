@@ -8,14 +8,11 @@ import { queryClient } from '@/pages/_app'
 
 import { ibc } from "osmojs";
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import { useBalanceByAsset } from '@/hooks/useBalance'
 import { shiftDigits } from '@/helpers/math'
-import useLiveNFTBid from './useLiveNFTBid'
-import useLiveAssetBid from './useLiveAssetBid'
-import { useOsmosisBlockInfo, useOsmosisClient } from './useBraneAuction'
-import { useBlockInfo, useClient } from './useClientInfo';
+import { useBlockInfo } from './useClientInfo';
 import useQuickActionState from '@/components/Home/hooks/useQuickActionState';
 import { useMemo } from 'react';
+import { delayTime } from '@/config/defaults';
 
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
@@ -114,8 +111,10 @@ const useIBC = () => {
 
 
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
+      queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    }, delayTime);
     setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0})
   }
 

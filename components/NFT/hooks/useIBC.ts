@@ -90,6 +90,7 @@ const useIBC = () => {
       //Swap to CDT to bridge
       if (osmosisCDT && prices && quickActionState.action.value === "Bridge to Stargaze" && quickActionState?.swapInsteadof && quickActionState?.selectedAsset){
         const swapFromAmount = num(quickActionState?.selectedAsset?.amount).toNumber()
+        console.log(swapFromAmount)
         const cdtPrice = parseFloat(prices?.find((price) => price.denom === osmosisCDT.base)?.price ?? "0")
         //Swap
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({

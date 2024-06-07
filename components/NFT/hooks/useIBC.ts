@@ -81,7 +81,7 @@ const useIBC = () => {
     swapMinAmount: number
   }
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg ibc to/from stargaze', prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
+    queryKey: ['msg ibc to/from stargaze', quickActionState?.selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
     queryFn: () => {
       if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock) return { msgs: undefined, swapMinAmount: 0 }
       var msgs: MsgExecuteContractEncodeObject[] = []
@@ -90,7 +90,6 @@ const useIBC = () => {
       //Swap to CDT to bridge
       if (osmosisCDT && prices && quickActionState.action.value === "Bridge to Stargaze" && quickActionState?.swapInsteadof && quickActionState?.selectedAsset){
         const swapFromAmount = num(quickActionState?.selectedAsset?.amount).toNumber()
-        console.log(swapFromAmount)
         const cdtPrice = parseFloat(prices?.find((price) => price.denom === osmosisCDT.base)?.price ?? "0")
         //Swap
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({

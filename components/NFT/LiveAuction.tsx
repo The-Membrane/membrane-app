@@ -69,7 +69,7 @@ const LiveAuction = () => {
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}
             {isLoading === "Loading image from IPFS......" && <div>{isLoading}</div>}
-            <HStack justifyContent="space-between">
+            <HStack width="100%" justifyContent="space-between" border="1px solid black">
             <Image
                 src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
@@ -78,12 +78,14 @@ const LiveAuction = () => {
                 width="18%"
                 height="auto"
             />
-                <Text fontSize="16px" fontWeight="700">
-                CDT
-                </Text>
-                <Text fontSize="16px" fontWeight="700">
-                {NFTState.nftBidAmount}
-                </Text>
+                <HStack justifyContent="space-between">
+                    <Text fontSize="16px" fontWeight="700">
+                    {NFTState.nftBidAmount}
+                    </Text>
+                    <Text fontSize="16px" fontWeight="700">
+                    CDT
+                    </Text>
+                </HStack>
             <SliderWithState
                 value={NFTState.nftBidAmount}
                 onChange={onBidChange}
@@ -91,8 +93,9 @@ const LiveAuction = () => {
                 max={Number(stargazeCDTBalance)}
             />
             <TxButton
-                marginTop={"3%"}
-                w="100%"
+                // marginTop={"3%"}
+                w="64px"
+                height="74px"
                 borderRadius="50%"
                 px="10"
                 isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}

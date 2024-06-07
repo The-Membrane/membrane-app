@@ -115,13 +115,13 @@ const useIBC = () => {
   const onSuccess = () => {
     //Change 
     toaster.success({
-      message: 'Balances refreshing in 7 seconds',
+      message: 'Balances refreshing soon...',
     })
     setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
       queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
       toaster.success({
-        message: 'Balances refreshed',
+        message: 'Balances refreshed!',
       })
     }, 7000);
     setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0})

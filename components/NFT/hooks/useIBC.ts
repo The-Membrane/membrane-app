@@ -13,10 +13,12 @@ import { useBlockInfo } from './useClientInfo';
 import useQuickActionState from '@/components/Home/hooks/useQuickActionState';
 import { useMemo } from 'react';
 import { delayTime } from '@/config/defaults';
+import useToaster from '@/hooks/useToaster';
 
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
 const useIBC = () => {
+  const toaster = useToaster()
   const { quickActionState } = useQuickActionState()
   const { address: stargazeAddress } = useWallet('stargaze')
   const { address: osmosisAddress } = useWallet('osmosis')
@@ -111,9 +113,16 @@ const useIBC = () => {
 
 
   const onSuccess = () => {
+    //Change 
+    toaster.success({
+      message: 'Balances refreshing in 7 seconds',
+    })
     setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
       queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+      toaster.success({
+        message: 'Balances refreshed',
+      })
     }, 7000);
     setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0})
   }

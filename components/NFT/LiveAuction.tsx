@@ -7,7 +7,7 @@ import { TxButton } from "../TxButton";
 import { isGreaterThanZero } from "@/helpers/num";
 import useLiveNFTBid from "./hooks/useLiveNFTBid";
 import { useLiveNFT, useLiveNFTAuction } from "./hooks/useBraneAuction";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
 //ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm
@@ -59,16 +59,18 @@ const LiveAuction = () => {
         if (liveNFT) setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/" +  removeSegmentAndBefore(liveNFT.image, "ipfs://") )
     }, [liveNFT])
 
-    const img: HTMLImageElement = new Image();
-    img.src = 'https://example.com/image.jpg';
-    img.onload = () => {
-      setIsLoading(false);
-    };
+    useEffect(() => {
+        const img: HTMLImageElement = new Image();
+        img.src = imgSRC;
+        img.onload = () => {
+            setIsLoading("");
+        };
+    }, [imgSRC]);
 
-    // Handle when the image loads successfully
-    const handleImageLoaded = () => {
-      setIsLoading("");
-    };
+    // // Handle when the image loads successfully
+    // const handleImageLoaded = () => {
+    //   setIsLoading("");
+    // };
 
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
@@ -86,7 +88,7 @@ const LiveAuction = () => {
             /> : <Image
                 src={imgSRC}
                 alt="Current Auctioned NFT Image"
-                onLoad={handleImageLoaded}                
+                // onLoad={handleImageLoaded}                
                 style={{ display: 'block' }}
                 width="18%"
                 height="auto"

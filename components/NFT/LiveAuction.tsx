@@ -53,6 +53,7 @@ const LiveAuction = () => {
             else "bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
     }, [liveNFT])
 
+    console.log(imageIPFSString)
     
     const onBidChange = (value: number) => {
         setNFTState({ nftBidAmount: value })

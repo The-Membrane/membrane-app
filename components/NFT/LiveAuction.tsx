@@ -47,19 +47,17 @@ const LiveAuction = () => {
     const ipfsString = removeSegmentAndBefore(currentNFTIPFS, "ipfs://")
     //Get JSON metadata from IPFS
     const { data: liveNFT } = useLiveNFT(ipfsString)
-    //Remove ipfs portion of link for image
-    const imageIPFSString = useMemo(() => {
-        if (liveNFT) return removeSegmentAndBefore(liveNFT.image, "ipfs://")
-            else "bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
-    }, [liveNFT])
-
-    console.log(imageIPFSString)
     
     const onBidChange = (value: number) => {
         setNFTState({ nftBidAmount: value })
     }
 
     const [isLoading, setIsLoading] = useState("Loading image from IPFS......");
+    const [imgSRC, setIMGsrc] = useState("/images/brane_wave.jpg");
+    //Remove ipfs portion of link for image
+    useMemo(() => {
+        if (liveNFT) setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/" +  removeSegmentAndBefore(liveNFT.image, "ipfs://") )
+    }, [liveNFT])
 
     // Handle when the image loads successfully
     const handleImageLoaded = () => {
@@ -72,7 +70,7 @@ const LiveAuction = () => {
             {isLoading === "Loading image from IPFS......" && <div>{isLoading}</div>}
             <HStack width="100%" justifyContent="space-between" backgroundColor="black" border="7px solid black">
             <Image
-                src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
+                src={imgSRC}
                 alt="Current Auctioned NFT Image"
                 onLoad={handleImageLoaded}                
                 style={{ display: 'block' }}

@@ -53,7 +53,7 @@ const LiveAuction = () => {
     }
 
     const [isLoading, setIsLoading] = useState("Loading image from IPFS......");
-    const [imgSRC, setIMGsrc] = useState("/images/brane_wave.jpg");
+    const [imgSRC, setIMGsrc] = useState("");
     //Remove ipfs portion of link for image
     useMemo(() => {
         if (liveNFT) setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/" +  removeSegmentAndBefore(liveNFT.image, "ipfs://") )
@@ -69,7 +69,15 @@ const LiveAuction = () => {
             {/* Need to add pagination for submissions so we can curate */}
             {isLoading === "Loading image from IPFS......" && <div>{isLoading}</div>}
             <HStack width="100%" justifyContent="space-between" backgroundColor="black" border="7px solid black">
-            <Image
+            {isLoading === "Loading image from IPFS......" ? <Image
+                src={"/images/brane_wave.jpg"}
+                alt="Current Auctioned NFT Image"
+                onLoad={handleImageLoaded}                
+                style={{ display: 'block' }}
+                width="18%"
+                height="auto"
+                borderRadius="50%"
+            /> : <Image
                 src={imgSRC}
                 alt="Current Auctioned NFT Image"
                 onLoad={handleImageLoaded}                
@@ -77,7 +85,7 @@ const LiveAuction = () => {
                 width="18%"
                 height="auto"
                 borderRadius="50%"
-            />
+            />}
                 <HStack justifyContent="space-between" marginRight={"2"}>
                     <Text fontSize="16px" fontWeight="700">
                     {NFTState.nftBidAmount}

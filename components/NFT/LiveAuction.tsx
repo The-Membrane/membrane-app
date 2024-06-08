@@ -60,7 +60,7 @@ const LiveAuction = () => {
     }, [liveNFT])
 
     useEffect(() => {
-        const img: HTMLImageElement = new Image();
+        const img: HTMLImageElement = document.createElement('img');
         img.src = imgSRC;
         img.onload = () => {
             setIsLoading("");

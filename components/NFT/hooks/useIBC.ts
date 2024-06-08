@@ -134,7 +134,6 @@ const useIBC = () => {
 
         msgs.push(msg as MsgExecuteContractEncodeObject)
       } 
-      console.log(msgs)
 
       return { msgs, swapMinAmount }
     },

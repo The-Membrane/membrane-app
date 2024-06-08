@@ -45,7 +45,7 @@ const getAssetsInfo = (basket: Basket) => {
 
   const collateralAssets = basket.collateral_types.map((collateral) => collateral.asset.info)
 
-  return [cdtAssetInfo, ...collateralAssets] as AssetInfo[]
+  return [mbrnAssetInfo, cdtAssetInfo, ...collateralAssets] as AssetInfo[]
 }
 
 

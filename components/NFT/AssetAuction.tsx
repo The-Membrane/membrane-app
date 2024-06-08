@@ -66,7 +66,7 @@ const AssetAuction = () => {
             <Stack w="full" gap="1">
                 <Text fontSize="16px" fontWeight="700">                    
                 Auction for {shiftDigits(auctionAmount??0, -6).toString()} CDT 
-                —— equivalent to {num(cdtPrice).dividedBy(num(mbrnPrice)).toString()} MBRN
+                —— equivalent to {num(cdtPrice).dividedBy(num(mbrnPrice)).toFixed(2)} MBRN
                 </Text>
                 <Text fontSize="16px" fontWeight="700">
                 Current Bid: {shiftDigits(currentBid??0, -6).toString()} MBRN

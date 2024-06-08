@@ -74,7 +74,7 @@ const LiveAuction = () => {
                 src={"https://ipfs-gw.stargaze-apis.com/ipfs/" + imageIPFSString}
                 alt="Current Auctioned NFT Image"
                 onLoad={handleImageLoaded}                
-                style={{ display: isLoading === "Loading image from IPFS......" ? 'none' : 'block' }}
+                style={{ display: 'block' }}
                 width="18%"
                 height="auto"
                 borderRadius="50%"

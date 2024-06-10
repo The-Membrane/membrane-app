@@ -41,10 +41,13 @@ const AssetAuction = React.memo(() => {
     console.log("asset auction balances", stargazeMBRNBalance)
         
     const { data: prices } = useOraclePrice()
+    console.log("after oracle price")
     const CDT = getAssetBySymbol('CDT')
     const MBRN = getAssetBySymbol('MBRN')        
+    console.log("after asset get")
     const [cdtPrice, setcdtPrice ] = useState('0')
     const [mbrnPrice, setmbrnPrice ] = useState('0')
+    console.log("aafter price state")
     useEffect(() => {      
         const CDTprice = getCDTPrice(prices, CDT!)
         if (CDTprice != cdtPrice && CDTprice != '0') setcdtPrice(CDTprice)
@@ -53,11 +56,13 @@ const AssetAuction = React.memo(() => {
         if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
 
     }, [prices, CDT, MBRN])
+    console.log("after useEffect")
 
     const onBidChange = (value: number) => {
         setNFTState({ assetBidAmount: value })
     }
 
+    console.log("return null")
     if (!liveAssetAuction) return null
     console.log("above asset auction return")
 

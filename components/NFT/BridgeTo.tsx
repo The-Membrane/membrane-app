@@ -127,12 +127,12 @@ const BridgeTo = () => {
     }
   
   
-    useEffect(() => {
-  
+    useEffect(() => {  
       if (NFTState?.assets && NFTState?.selectedAsset?.symbol != undefined) {
         setNFTState({
           selectedAsset: NFTState?.assets.find((asset) => asset.symbol === NFTState?.selectedAsset?.symbol),
         })
+        console.log("set selected asset")
       }
       
     }, [NFTState?.assets, NFTState?.selectedAsset?.symbol])

@@ -4,7 +4,6 @@ import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
 import { use, useEffect, useMemo, useState } from 'react'
 import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
-import { calcSliderValue } from '../Mint/TakeAction'
 import { useOraclePrice } from '@/hooks/useOracle'
 import useWallet from '@/hooks/useWallet'
 import Divider from '../Divider'
@@ -15,18 +14,16 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { SliderWithState } from '../Mint/SliderWithState'
 import useIBC from '../NFT/hooks/useIBC'
 import { TxButton } from '../TxButton'
-import useQuickActionState from '../Home/hooks/useQuickActionState'
 import { SliderWithInputBox } from '../Home/QuickActionSliderInput'
 
 const BridgeTo = () => {
-    const { quickActionState, setQuickActionState } = useQuickActionState()
     const { NFTState, setNFTState } = useNFTState()
     const ibc = useIBC()
     const [swapAmount, setswapAmount] = useState(0)
     useMemo(() => {
-      if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount && quickActionState.swapInsteadof) setswapAmount(ibc.swapMinAmount)
-        else if (!quickActionState.swapInsteadof) setswapAmount(0)
-    }, [ibc.swapMinAmount, quickActionState.swapInsteadof])
+      if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount && NFTState.swapInsteadof) setswapAmount(ibc.swapMinAmount)
+        else if (!NFTState.swapInsteadof) setswapAmount(0)
+    }, [ibc.swapMinAmount, NFTState.swapInsteadof])
   
     const mbrn = useAssetBySymbol('MBRN')
     const osmosisMBRNBalance = useBalanceByAsset(mbrn)
@@ -46,13 +43,13 @@ const BridgeTo = () => {
         setNFTState({ mbrnBridgeAmount: value })
     }
     
-    setQuickActionState({action: { value: "Bridge to Stargaze", label: "Bridge to Stargaze" }})
+    setNFTState({action: { value: "Bridge to Stargaze", label: "Bridge to Stargaze" }})
     
     const [chainName, setChainName] = useState("osmosis")
     useEffect(() => {
-      if (quickActionState.action.value === "Bridge to Osmosis") setChainName("stargaze")
-      if (quickActionState.action.value === "Bridge to Stargaze") setChainName("osmosis")
-    }, [quickActionState.action.value])
+      if (NFTState.action.value === "Bridge to Osmosis") setChainName("stargaze")
+      if (NFTState.action.value === "Bridge to Stargaze") setChainName("osmosis")
+    }, [NFTState.action.value])
     const { address } = useWallet(chainName)
   
     const { data: walletBalances } = useBalance(chainName)
@@ -101,29 +98,29 @@ const BridgeTo = () => {
           })
   
   
-          setQuickActionState({
+          setNFTState({
             assets: (assetsWithBalance??[])
           })
         }
     }, [assets, walletBalances, prices, address])
   
     useEffect(() => {
-      if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
-        setQuickActionState({
-          selectedAsset:  quickActionState?.assets[0], 
+      if (!NFTState?.selectedAsset && (NFTState?.assets??[]).length > 0) {
+        setNFTState({
+          selectedAsset:  NFTState?.assets[0], 
         })
       }
-    }, [quickActionState?.assets, walletBalances])
+    }, [NFTState?.assets, walletBalances])
     //
     
     const onAssetMenuChange = (value: string) => {
-      setQuickActionState({
+      setNFTState({
         selectedAsset: value
       })
     }
   
     const onActionMenuChange = (value: string) => {
-        setQuickActionState({
+        setNFTState({
             action: value,
             swapInsteadof: false,
         })
@@ -133,44 +130,34 @@ const BridgeTo = () => {
   
     useEffect(() => {
   
-      if (quickActionState?.assets && quickActionState?.selectedAsset?.symbol != undefined) {
-        setQuickActionState({
-          selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
+      if (NFTState?.assets && NFTState?.selectedAsset?.symbol != undefined) {
+        setNFTState({
+          selectedAsset: NFTState?.assets.find((asset) => asset.symbol === NFTState?.selectedAsset?.symbol),
         })
       }
       
-    }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])
+    }, [NFTState?.assets, NFTState?.selectedAsset?.symbol])
   
-    
-    useEffect(() => {
-      if (!quickActionState?.swapInsteadof) {
-        setQuickActionState({
-          mint: 0,
-        })
-      }
-      
-    }, [quickActionState?.swapInsteadof])
-
     return (
         <Stack w="full" gap="5">
             <Text variant="title">Bridge</Text>
             
       <HStack justifyContent="center">
       <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-          {quickActionState.assets.length === 0 && quickActionState.action.value === "Bridge to Stargaze" ? 
+          {NFTState.assets.length === 0 && NFTState.action.value === "Bridge to Stargaze" ? 
           <Text variant="body" fontSize="16px" marginTop={4} mb={4}>
               Loading options to swap...
           </Text> 
           :
-          quickActionState.action.value === "Bridge to Stargaze" ? <>
+          NFTState.action.value === "Bridge to Stargaze" ? <>
             <HStack justifyContent="space-between">
               <Text variant="title" fontSize="16px">
-                  {quickActionState.swapInsteadof ? "Swap &" : null}
+                  {NFTState.swapInsteadof ? "Swap &" : null}
               </Text>        
               <QASelect 
                   options={[{ value: "Bridge to Stargaze", label: "Bridge to Stargaze" }, { value: "Bridge to Osmosis", label: "Bridge to Osmosis"}]}
                   onChange={onActionMenuChange}
-                  value={quickActionState?.action} 
+                  value={NFTState?.action} 
               />
             </HStack>
 
@@ -178,22 +165,22 @@ const BridgeTo = () => {
             {/* Asset Menu + Input Box/Slider*/}        
             <Stack py="5" w="full" gap="2">  
               <HStack justifyContent="space-between">
-                  <Checkbox isChecked={quickActionState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => {setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof}); setNFTState({ cdtBridgeAmount: 0 });}}> 
+                  <Checkbox isChecked={NFTState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => {setNFTState({swapInsteadof: !NFTState.swapInsteadof}); setNFTState({ cdtBridgeAmount: 0 });}}> 
                     Swap & Bridge
                   </Checkbox >
               </HStack>
-            {quickActionState.swapInsteadof ? <SliderWithInputBox
-                max={quickActionState?.selectedAsset?.combinUsdValue??0}
+            {NFTState.swapInsteadof ? <SliderWithInputBox
+                max={NFTState?.selectedAsset?.combinUsdValue??0}
                 inputBoxWidth='42%'
-                QAState={quickActionState}
-                setQAState={setQuickActionState}
+                QAState={NFTState}
+                setQAState={setNFTState}
                 onMenuChange={onAssetMenuChange}
                 inputAmount={inputAmount}
                 setInputAmount={setInputAmount}
                 bridgeCardToggle={true}
             /> : null}
         
-            {quickActionState.swapInsteadof ?
+            {NFTState.swapInsteadof ?
             <><Text fontSize="sm" color="white" mb="2" minH="21px">
                 max slippage: {SWAP_SLIPPAGE}%
             </Text></> : null }
@@ -201,18 +188,18 @@ const BridgeTo = () => {
             </>
           : null}
 
-          {quickActionState.action.value === "Bridge to Osmosis" ?  
+          {NFTState.action.value === "Bridge to Osmosis" ?  
               <QASelect 
                   mb="2%"
                   options={[{ value: "Bridge to Stargaze", label: "Bridge to Stargaze" }, { value: "Bridge to Osmosis", label: "Bridge to Osmosis"}]}
                   onChange={onActionMenuChange}
-                  value={quickActionState?.action} 
+                  value={NFTState?.action} 
               />: null}
 
           {/* Bridge Sliders */}
           <Stack width={"100%"}>
             <Text fontSize="14px" fontWeight="700">
-              {quickActionState.action.value}
+              {NFTState.action.value}
             </Text> 
             <Divider mx="0" mt="0" mb="5"/>
             <HStack justifyContent="space-between">
@@ -227,7 +214,7 @@ const BridgeTo = () => {
                 value={NFTState.cdtBridgeAmount}
                 onChange={onCDTChange}
                 min={0}
-                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) + swapAmount : Number(stargazeCDTBalance)}
+                max={NFTState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) + swapAmount : Number(stargazeCDTBalance)}
             />
             <HStack justifyContent="space-between">
                 <Text fontSize="16px" fontWeight="700">
@@ -241,7 +228,7 @@ const BridgeTo = () => {
                 value={NFTState.mbrnBridgeAmount}
                 onChange={onMBRNChange}
                 min={0}
-                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisMBRNBalance) : Number(stargazeMBRNBalance)}
+                max={NFTState.action.value === "Bridge to Stargaze" ? Number(osmosisMBRNBalance) : Number(stargazeMBRNBalance)}
             />
           </Stack>
   
@@ -255,7 +242,7 @@ const BridgeTo = () => {
               onClick={() => ibc.action.tx.mutate()}
               chain_name={chainName}
               >
-              {quickActionState.action.value}
+              {NFTState.action.value}
           </TxButton>
       </Card>
       </HStack>

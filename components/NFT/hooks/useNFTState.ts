@@ -1,19 +1,22 @@
+import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
-// export type Summary = AssetWithBalance & {
-//   label: string
-//   value: string | number
-//   usdValue: string
-//   currentDeposit: string | number
-//   newDepositWillBe: string
-// }
+
+type ActionMenu = {
+  value: string
+  label: string
+}
 
 type NFTState = {
-    nftBidAmount: number
-    assetBidAmount: number
-    cdtBridgeAmount: number
-    mbrnBridgeAmount: number
+  nftBidAmount: number
+  assetBidAmount: number
+  cdtBridgeAmount: number
+  mbrnBridgeAmount: number
+  selectedAsset?: AssetWithBalance
+  assets: AssetWithBalance[]
+  swapInsteadof: boolean
+  action: ActionMenu
 }
 
 type Store = {
@@ -23,10 +26,13 @@ type Store = {
 }
 
 const initialState: NFTState = {
-    nftBidAmount: 0,
-    assetBidAmount: 0,
-    cdtBridgeAmount: 0,
-    mbrnBridgeAmount: 0,
+  nftBidAmount: 0,
+  assetBidAmount: 0,
+  cdtBridgeAmount: 0,
+  mbrnBridgeAmount: 0,
+  assets: [],
+  swapInsteadof: false,
+  action: {value: "", label: ""},
 }
 
 // @ts-ignore

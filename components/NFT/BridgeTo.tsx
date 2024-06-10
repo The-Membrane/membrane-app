@@ -1,7 +1,7 @@
 import { Card, HStack, Stack, Text, Checkbox, CheckboxGroup } from '@chakra-ui/react'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
-import { use, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
 import { useOraclePrice } from '@/hooks/useOracle'

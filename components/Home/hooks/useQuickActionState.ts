@@ -27,7 +27,7 @@ type Store = {
 const initialState: QuickActionState = {  
   assets: [],
   swapInsteadof: false,
-  action: {value: "", label: ""},
+  action: {value: "LP", label: "LP"},
 }
 
 // @ts-ignore

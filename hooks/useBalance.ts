@@ -47,9 +47,9 @@ export const useBalanceByAsset = (asset: Asset | null, chainID: string = "osmosi
     const decimals = asset.decimal || 6
 
     if (!balance || !decimals || !denom) return '0'
-    if(chainID === "stargaze") console.log(balance)
+    console.log("useBalanceByAsset", chainID, balances, asset, address)
     return shiftDigits(balance, -decimals).toString()
-  }, [balances, asset, address])
+  }, [balances, asset, address, chainID])
 }
 
 export default useBalance

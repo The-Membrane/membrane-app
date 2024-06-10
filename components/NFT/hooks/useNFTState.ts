@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
 
-type ActionMenu = {
+export type ActionMenu = {
   value: string
   label: string
 }

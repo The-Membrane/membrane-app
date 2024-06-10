@@ -18,7 +18,13 @@ import { SliderWithInputBox } from '../Home/QuickActionSliderInput'
 
 const BridgeTo = () => {
     const { NFTState, setNFTState } = useNFTState()
-    const ibc = useIBC()
+    const ibc = useIBC(
+        NFTState.action,
+        NFTState.selectedAsset,
+        NFTState.cdtBridgeAmount,
+        NFTState.mbrnBridgeAmount,
+        NFTState.swapInsteadof
+    )
     const [swapAmount, setswapAmount] = useState(0)
     useMemo(() => {
       if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount && NFTState.swapInsteadof) setswapAmount(ibc.swapMinAmount)

@@ -9,19 +9,19 @@ import useNFTState from "./useNFTState";
 import { queryClient } from '@/pages/_app'
 import { shiftDigits } from '@/helpers/math'
 
-const useLiveNFTBid = () => {
+const useLiveNFTBid = (nftBidAmount: number) => {
   const { address } = useWallet('stargaze')
-  const { NFTState, setNFTState } = useNFTState()
+  const { setNFTState } = useNFTState()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg liveNFTbid', address, NFTState.nftBidAmount],
+    queryKey: ['msg liveNFTbid', address, nftBidAmount],
     queryFn: () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
 
       const messageComposer = new BraneAuctionMsgComposer(address, contracts.brane_auction)
 
       //Stargaze IBC CDT denom
-      const funds = coin(shiftDigits(NFTState.nftBidAmount, 6).toString(), "ibc/B0263C28B6F44651F4596413B41FDB749EA010BD1220816DAC0ABF9947C1E806")
+      const funds = coin(shiftDigits(nftBidAmount, 6).toString(), "ibc/B0263C28B6F44651F4596413B41FDB749EA010BD1220816DAC0ABF9947C1E806")
       const msg = messageComposer.bidForNft([funds])
 
       return [msg] as MsgExecuteContractEncodeObject[]
@@ -35,8 +35,6 @@ const useLiveNFTBid = () => {
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
     setNFTState({ nftBidAmount: 0 })
   }
-
-  console.log("NFT BID", msgs, address, NFTState.nftBidAmount)
 
   return {action: useSimulateAndBroadcast({
     msgs,

@@ -38,7 +38,7 @@ const LiveAuction = () => {
     // const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
     
     const { NFTState, setNFTState } = useNFTState()
-    const bid = useLiveNFTBid()
+    const bid = useLiveNFTBid(NFTState.nftBidAmount)
 
     const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')

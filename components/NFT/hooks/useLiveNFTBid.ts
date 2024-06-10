@@ -36,11 +36,11 @@ const useLiveNFTBid = () => {
     setNFTState({ nftBidAmount: 0 })
   }
 
-  console.log(msgs)
+  console.log("NFT BID", msgs, address, NFTState.nftBidAmount)
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: true,
+    enabled: !!msgs,
     onSuccess,
     amount: "0",
     queryKey: ['msg brane auction bid', (msgs?.toString()??"0")],

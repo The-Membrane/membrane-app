@@ -67,11 +67,6 @@ const LiveAuction = () => {
         };
     }, [imgSRC]);
 
-    // // Handle when the image loads successfully
-    // const handleImageLoaded = () => {
-    //   setIsLoading("");
-    // };
-
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}

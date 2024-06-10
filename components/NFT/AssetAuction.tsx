@@ -8,7 +8,7 @@ import { TxButton } from "../TxButton"
 import { useLiveAssetAuction, useLiveNFTAuction } from "./hooks/useBraneAuction"
 import useLiveAssetBid from "./hooks/useLiveAssetBid"
 import { shiftDigits } from "@/helpers/math"
-import { use, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Asset, getAssetBySymbol } from "@/helpers/chain"
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Price } from "@/services/oracle"
@@ -41,18 +41,18 @@ const AssetAuction = React.memo(() => {
     console.log("asset auction balances", stargazeMBRNBalance)
         
     const { data: prices } = useOraclePrice()
-    const cdt = getAssetBySymbol('CDT')
+    const CDT = getAssetBySymbol('CDT')
     const MBRN = getAssetBySymbol('MBRN')        
     const [cdtPrice, setcdtPrice ] = useState('0')
     const [mbrnPrice, setmbrnPrice ] = useState('0')
     useEffect(() => {      
-        const CDTprice = getCDTPrice(prices, cdt!)
+        const CDTprice = getCDTPrice(prices, CDT!)
         if (CDTprice != cdtPrice && CDTprice != '0') setcdtPrice(CDTprice)
             
         const MBRNprice = getMBRNPrice(prices, MBRN!)
         if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
 
-    }, [prices, cdt, MBRN])
+    }, [prices, CDT, MBRN])
 
     const onBidChange = (value: number) => {
         setNFTState({ assetBidAmount: value })

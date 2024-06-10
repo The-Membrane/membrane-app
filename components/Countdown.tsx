@@ -8,6 +8,7 @@ type Props = {
 
 const Countdown = memo(({ timestamp }: Props) => {    
   const timeLeft = useCountdown(timestamp).timeString
+  console.log("countdown rerender")
 
   return (
     <Text fontSize="16px" fontWeight="700">

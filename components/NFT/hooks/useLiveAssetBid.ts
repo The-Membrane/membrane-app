@@ -37,7 +37,7 @@ const useLiveAssetBid = () => {
 
   return useSimulateAndBroadcast({
     msgs,
-    enabled: true,
+    enabled: !!msgs,
     onSuccess,
     amount: "0",
     queryKey: ['sim asset auction', (msgs?.toString()??"0")],

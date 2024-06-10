@@ -10,7 +10,6 @@ import { ibc } from "osmojs";
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { shiftDigits } from '@/helpers/math'
 import { useBlockInfo } from './useClientInfo';
-import useQuickActionState from '@/components/Home/hooks/useQuickActionState';
 import { useMemo } from 'react';
 import useToaster from '@/hooks/useToaster';
 import { swapToCDTMsg } from '@/helpers/osmosis';
@@ -21,7 +20,7 @@ const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
 const useIBC = () => {
   const toaster = useToaster()
-  const { quickActionState } = useQuickActionState()
+  const { NFTState, setNFTState } = useNFTState()
   const { address: stargazeAddress } = useWallet('stargaze')
   const { address: osmosisAddress } = useWallet('osmosis')
 
@@ -34,7 +33,7 @@ const useIBC = () => {
   const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
 
   const { currentHeight, currentBlock, sourceChannel, sender, receiver, cdtDenom, mbrnDenom, memo, chainName} = useMemo(() => {
-    return quickActionState.action.value === "Bridge to Stargaze" ? { 
+    return NFTState.action.value === "Bridge to Stargaze" ? { 
       currentHeight: osmosisData?.currentHeight, 
       currentBlock: osmosisData?.currentBlock,
       sourceChannel: "channel-75",
@@ -55,9 +54,8 @@ const useIBC = () => {
       memo: "IBC Transfer from Stargaze to Osmosis",
       chainName: "stargaze"
     }
-  }, [quickActionState.action.value, osmosisData, stargazeData, osmosisCDT, osmosisMBRN, stargazeCDT, stargazeMBRN, osmosisAddress, stargazeAddress])
+  }, [NFTState.action.value, osmosisData, stargazeData, osmosisCDT, osmosisMBRN, stargazeCDT, stargazeMBRN, osmosisAddress, stargazeAddress])
 
-  const { NFTState, setNFTState } = useNFTState()
 
   //Data for deposit/mint/swap
   const { data: prices } = useOraclePrice()
@@ -67,21 +65,21 @@ const useIBC = () => {
     swapMinAmount: number
   }
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg ibc to/from stargaze', quickActionState?.selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
+    queryKey: ['msg ibc to/from stargaze', NFTState?.selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
     queryFn: () => {
-      if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock || (!isGreaterThanZero(NFTState.cdtBridgeAmount) && !isGreaterThanZero(NFTState.mbrnBridgeAmount) && !quickActionState?.swapInsteadof)) return { msgs: undefined, swapMinAmount: 0 }
+      if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock || (!isGreaterThanZero(NFTState.cdtBridgeAmount) && !isGreaterThanZero(NFTState.mbrnBridgeAmount) && !NFTState?.swapInsteadof)) return { msgs: undefined, swapMinAmount: 0 }
       var msgs: MsgExecuteContractEncodeObject[] = []
       var swapMinAmount = 0
 
       //Swap to CDT to bridge
-      if (osmosisCDT && prices && quickActionState.action.value === "Bridge to Stargaze" && quickActionState?.swapInsteadof && quickActionState?.selectedAsset){
-        const swapFromAmount = num(quickActionState?.selectedAsset?.amount).toNumber()
+      if (osmosisCDT && prices && NFTState.action.value === "Bridge to Stargaze" && NFTState?.swapInsteadof && NFTState?.selectedAsset){
+        const swapFromAmount = num(NFTState?.selectedAsset?.amount).toNumber()
         const cdtPrice = parseFloat(prices?.find((price) => price.denom === osmosisCDT.base)?.price ?? "0")
         //Swap
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
           address: osmosisAddress, 
           swapFromAmount,
-          swapFromAsset: quickActionState?.selectedAsset,
+          swapFromAsset: NFTState?.selectedAsset,
           prices,
           cdtPrice,
         })

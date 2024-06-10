@@ -1,7 +1,5 @@
-import useWallet from '@/hooks/useWallet'
 import { getLiveAssetAuction, getLiveNFTAuction, getLiveNFTJSON } from '@/services/nft_auction'
 import { useQuery } from '@tanstack/react-query'
-import { Block } from 'cosmwasm'
 
 export const useLiveNFTAuction = () => {
   return useQuery({

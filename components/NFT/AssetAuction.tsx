@@ -29,7 +29,7 @@ const getCDTPrice = (prices: Price[] | undefined, cdt: Asset) => {
 
 const AssetAuction = React.memo(() => {
     const { NFTState, setNFTState } = useNFTState()
-    const bid = useLiveAssetBid()
+    const bid = useLiveAssetBid(NFTState.assetBidAmount)
     const { data: liveAssetAuction } = useLiveAssetAuction()
     const auctionAmount = liveAssetAuction?.auctioned_asset.amount
     const currentBid = liveAssetAuction?.highest_bid.amount

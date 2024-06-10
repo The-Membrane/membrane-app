@@ -32,7 +32,7 @@ const initialState: NFTState = {
   mbrnBridgeAmount: 0,
   assets: [],
   swapInsteadof: false,
-  action: {value: "", label: ""},
+  action: { value: "Bridge to Stargaze", label: "Bridge to Stargaze" },
 }
 
 // @ts-ignore

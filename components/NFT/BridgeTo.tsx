@@ -46,7 +46,7 @@ const BridgeTo = () => {
         setNFTState({ mbrnBridgeAmount: value })
     }
     
-    if(quickActionState.action.value === "") setQuickActionState({action: { value: "Bridge to Stargaze", label: "Bridge to Stargaze" }})
+    setQuickActionState({action: { value: "Bridge to Stargaze", label: "Bridge to Stargaze" }})
     
     const [chainName, setChainName] = useState("osmosis")
     useEffect(() => {

@@ -12,13 +12,10 @@ import { shiftDigits } from '@/helpers/math'
 import { useBlockInfo } from './useClientInfo';
 import useQuickActionState from '@/components/Home/hooks/useQuickActionState';
 import { useMemo } from 'react';
-import { delayTime } from '@/config/defaults';
 import useToaster from '@/hooks/useToaster';
 import { swapToCDTMsg } from '@/helpers/osmosis';
-import { num } from '@/helpers/num';
+import { isGreaterThanZero, num } from '@/helpers/num';
 import { useOraclePrice } from '@/hooks/useOracle';
-import { getDepostAndWithdrawMsgs, getMintAndRepayMsgs } from '@/helpers/mint';
-import { useBasket, useUserPositions } from '@/hooks/useCDP';
 
 const { transfer } = ibc.applications.transfer.v1.MessageComposer.withTypeUrl;
 
@@ -72,7 +69,7 @@ const useIBC = () => {
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg ibc to/from stargaze', quickActionState?.selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, NFTState.cdtBridgeAmount, NFTState.mbrnBridgeAmount],
     queryFn: () => {
-      if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock) return { msgs: undefined, swapMinAmount: 0 }
+      if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock || (!isGreaterThanZero(NFTState.cdtBridgeAmount) && !isGreaterThanZero(NFTState.mbrnBridgeAmount) && !quickActionState?.swapInsteadof)) return { msgs: undefined, swapMinAmount: 0 }
       var msgs: MsgExecuteContractEncodeObject[] = []
       var swapMinAmount = 0
 
@@ -162,7 +159,7 @@ const useIBC = () => {
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: true,
+    enabled: !!msgs,
     amount: "0",
     queryKey: ['sim ibc', (msgs?.toString()??"0")],
     onSuccess,

@@ -23,7 +23,7 @@ const QuickActionWidget = () => {
 
   const { quickActionState, setQuickActionState } = useQuickActionState()
 
-  if(quickActionState.action.value === "") setQuickActionState({action: {value: "LP", label: "LP"}})
+  setQuickActionState({action: {value: "LP", label: "LP"}})
   const { isWalletConnected, address } = useWallet("osmosis")
 
   const { data: walletBalances } = useBalance("osmosis")

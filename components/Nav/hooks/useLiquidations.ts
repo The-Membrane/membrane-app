@@ -39,6 +39,7 @@ const useProtocolLiquidations = () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
         const liq = useMemo(() => {
+          console.log("doing calcs")
           return getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
         } , [allPositions, prices])
 

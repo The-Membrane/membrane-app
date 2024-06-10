@@ -1,20 +1,12 @@
 import { Card, HStack, Stack, Text, Checkbox, CheckboxGroup } from '@chakra-ui/react'
-import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
-import useQuickActionState from './hooks/useQuickActionState'
 import { use, useEffect, useMemo, useState } from 'react'
 import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
 import { calcSliderValue } from '../Mint/TakeAction'
 import { useOraclePrice } from '@/hooks/useOracle'
-import { QuickActionLTVWithSlider } from './QuickActionLTVWithSlider'
-import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
-import useQuickAction from './hooks/useQuickAction'
-import { QASummary } from './QASummary'
 import useWallet from '@/hooks/useWallet'
-import { ConnectButton } from '../WallectConnect'
-import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
 import QASelect from '../QuickActionSelect'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
@@ -23,6 +15,8 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { SliderWithState } from '../Mint/SliderWithState'
 import useIBC from '../NFT/hooks/useIBC'
 import { TxButton } from '../TxButton'
+import useQuickActionState from '../Home/hooks/useQuickActionState'
+import { SliderWithInputBox } from '../Home/QuickActionSliderInput'
 
 const BridgeTo = () => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -64,8 +58,6 @@ const BridgeTo = () => {
     const { data: walletBalances } = useBalance(chainName)
     const assets = useCollateralAssets()
     const { data: prices } = useOraclePrice()
-    const { debtAmount, maxMint } = useQuickActionVaultSummary()
-    const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
     
     const [ inputAmount, setInputAmount ] = useState(0);
     
@@ -77,7 +69,7 @@ const BridgeTo = () => {
     }).filter((asset: string) => asset != "");
   
     //Create an object of assets that only holds assets that have a walletBalance
-    useEffect(() => {    
+    useMemo(() => {    
       if (prices && walletBalances && assets){
           const assetsWithBalance = assets?.filter((asset) => {
             if (asset !== undefined) return walletDenoms.includes(asset.base)
@@ -134,7 +126,6 @@ const BridgeTo = () => {
         setQuickActionState({
             action: value,
             swapInsteadof: false,
-            addMintSection: false,
         })
         setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0 })
     }
@@ -174,7 +165,7 @@ const BridgeTo = () => {
           quickActionState.action.value === "Bridge to Stargaze" ? <>
             <HStack justifyContent="space-between">
               <Text variant="title" fontSize="16px">
-                  {quickActionState.swapInsteadof ? "Swap &" : quickActionState.addMintSection ? "Mint &" : null}
+                  {quickActionState.swapInsteadof ? "Swap &" : null}
               </Text>        
               <QASelect 
                   options={[{ value: "Bridge to Stargaze", label: "Bridge to Stargaze" }, { value: "Bridge to Osmosis", label: "Bridge to Osmosis"}]}
@@ -191,7 +182,7 @@ const BridgeTo = () => {
                     Swap & Bridge
                   </Checkbox >
               </HStack>
-            {(quickActionState.addMintSection || quickActionState.swapInsteadof) ? <SliderWithInputBox
+            {quickActionState.swapInsteadof ? <SliderWithInputBox
                 max={quickActionState?.selectedAsset?.combinUsdValue??0}
                 inputBoxWidth='42%'
                 QAState={quickActionState}
@@ -201,22 +192,7 @@ const BridgeTo = () => {
                 setInputAmount={setInputAmount}
                 bridgeCardToggle={true}
             /> : null}
-    
-            {/* Mint Section */}
-            {quickActionState.addMintSection ? <><Stack w="full">
-                <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
-                Mint CDT to { quickActionState.action.value }
-                </Text> 
-                <Divider mx="0" mt="0" mb="4%"/>
-                <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
-                { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-                Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
-                </Text>
-                : null }
-                
-            </Stack></> : null}
-    
-    
+        
             {quickActionState.swapInsteadof ?
             <><Text fontSize="sm" color="white" mb="2" minH="21px">
                 max slippage: {SWAP_SLIPPAGE}%

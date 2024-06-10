@@ -43,7 +43,7 @@ const QuickActionWidget = () => {
   }).filter((asset: string) => asset != "");
 
   //Create an object of assets that only holds assets that have a walletBalance
-  useEffect(() => {    
+  useMemo(() => {    
     if (prices && walletBalances && assets){
         const assetsWithBalance = assets?.filter((asset) => {
           if (asset !== undefined) return walletDenoms.includes(asset.base)
@@ -107,7 +107,6 @@ const QuickActionWidget = () => {
       })
     }
   }
-
 
   useEffect(() => {
 

@@ -59,6 +59,7 @@ const AssetAuction = React.memo(() => {
     }
 
     if (!liveAssetAuction) return null
+    console.log("above asset auction return")
 
     return (
         <Stack w="full" gap="5">

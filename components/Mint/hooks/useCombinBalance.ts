@@ -44,7 +44,7 @@ const useCombinBalance = () => {
       const walletsdValue = num(balanceInMicro).times(price).toNumber()
       const depositUsdValue = num(position?.usdValue || 0).toNumber()
       const combinUsdValue = num(combinBalance).times(price).toNumber()
-      console.log(asset.asset.symbol, balanceInMicro, position?.amount, combinBalance, price)
+      console.log("usecombinBalance", asset.asset.symbol, balanceInMicro, position?.amount, combinBalance, price)
       return {
         ...asset.asset,
         walletBalance: Number(balanceInMicro),

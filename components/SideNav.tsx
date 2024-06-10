@@ -70,7 +70,7 @@ const getCDTPrice = () => {
   return parseFloat((price.price)).toFixed(4)
 }
 
-const SideNav = () => {
+const SideNav = React.memo(() => {
   const [cdtPrice, setcdtPrice ] = useState(" ")
   const price = getCDTPrice()
   if (price != cdtPrice && price != '0') setcdtPrice(price)
@@ -120,6 +120,6 @@ const SideNav = () => {
       <BalanceCard />
     </Stack>
   )
-}
+})
 
 export default SideNav

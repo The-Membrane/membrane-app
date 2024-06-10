@@ -13,6 +13,7 @@ import { Asset, getAssetBySymbol } from "@/helpers/chain"
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Price } from "@/services/oracle"
 import Countdown from "../Countdown"
+import React from "react"
 
 
 const getMBRNPrice = (prices: Price[] | undefined, MBRN: Asset) => {
@@ -26,7 +27,7 @@ const getCDTPrice = (prices: Price[] | undefined, cdt: Asset) => {
     return parseFloat((price.price)).toFixed(4)
   }
 
-const AssetAuction = () => {
+const AssetAuction = React.memo(() => {
     const { NFTState, setNFTState } = useNFTState()
     const bid = useLiveAssetBid()
     const { data: liveAssetAuction } = useLiveAssetAuction()
@@ -101,6 +102,6 @@ const AssetAuction = () => {
         </Card>
         </Stack>
     )
-}
+})
 
 export default AssetAuction

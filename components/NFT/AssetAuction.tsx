@@ -5,7 +5,6 @@ import { useBalanceByAsset } from "@/hooks/useBalance"
 import useNFTState from "./hooks/useNFTState"
 import { isGreaterThanZero, num } from "@/helpers/num"
 import { TxButton } from "../TxButton"
-import { useLiveAssetAuction, useLiveNFTAuction } from "./hooks/useBraneAuction"
 import useLiveAssetBid from "./hooks/useLiveAssetBid"
 import { shiftDigits } from "@/helpers/math"
 import { useEffect, useState } from "react"
@@ -15,6 +14,12 @@ import { Price } from "@/services/oracle"
 import Countdown from "../Countdown"
 import React from "react"
 
+interface Prop {
+    currentBid: any, 
+    auctionAmount: any, 
+    auctionEndTime: number, 
+    assetBidAmount: number
+}
 
 const getMBRNPrice = (prices: Price[] | undefined, MBRN: Asset) => {
     const price = prices?.find((price) => price.denom === MBRN?.base)
@@ -27,13 +32,9 @@ const getCDTPrice = (prices: Price[] | undefined, cdt: Asset) => {
     return parseFloat((price.price)).toFixed(4)
   }
 
-const AssetAuction = React.memo(() => {
-    const { NFTState, setNFTState } = useNFTState()
-    const bid = useLiveAssetBid(NFTState.assetBidAmount)
-    const { data: liveAssetAuction } = useLiveAssetAuction()
-    const auctionAmount = liveAssetAuction?.auctioned_asset.amount
-    const currentBid = liveAssetAuction?.highest_bid.amount
-    const { data: liveNFTAuction } = useLiveNFTAuction()
+const AssetAuction = React.memo(({currentBid, auctionAmount, auctionEndTime, assetBidAmount}: Prop) => {
+    const { setNFTState } = useNFTState()
+    const bid = useLiveAssetBid(assetBidAmount)
     //Bid Auctions end when the current NFT auction does
 
     const stargazeMBRN = useAssetBySymbol('MBRN', 'stargaze')
@@ -57,17 +58,17 @@ const AssetAuction = React.memo(() => {
         setNFTState({ assetBidAmount: value })
     }
 
-    useEffect(() => { console.log("NFT State changed")}, [NFTState])
+    useEffect(() => { console.log("assetBidAmount changed")}, [assetBidAmount])
     useEffect(() => { console.log("bid changed")}, [bid])
 
-    useEffect(() => { console.log("liveAssetAuction changed")}, [liveAssetAuction])
+    useEffect(() => { console.log("liveAssetAuction changed")}, [auctionAmount])
 
-    useEffect(() => { console.log("liveAssetAuction changed")}, [liveAssetAuction])
+    useEffect(() => { console.log("liveNFTAuction changed")}, [auctionEndTime])
     useEffect(() => { console.log("prices changed")}, [prices])
 
 
 
-    if (!liveAssetAuction) return null
+    if (!auctionAmount) return null
 
     return (
         <Stack w="full" gap="5">
@@ -81,17 +82,17 @@ const AssetAuction = React.memo(() => {
                 <Text fontSize="16px" fontWeight="700">
                 Current Bid: {shiftDigits(currentBid??0, -6).toString()} MBRN
                 </Text>
-                <Countdown timestamp={liveNFTAuction?.auction_end_time}/>
+                <Countdown timestamp={auctionEndTime}/>
                 <HStack justifyContent="space-between">
                     <Text fontSize="16px" fontWeight="700">
                     MBRN
                     </Text>
                     <Text fontSize="16px" fontWeight="700">
-                    {NFTState.assetBidAmount}
+                    {assetBidAmount}
                     </Text>
                 </HStack>
                 <SliderWithState
-                    value={NFTState.assetBidAmount}
+                    value={assetBidAmount}
                     onChange={onBidChange}
                     min={0}
                     max={Number(stargazeMBRNBalance)}
@@ -100,7 +101,7 @@ const AssetAuction = React.memo(() => {
                     marginTop={"3%"}
                     w="100%"
                     px="10"
-                    isDisabled={!isGreaterThanZero(NFTState.assetBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
+                    isDisabled={!isGreaterThanZero(assetBidAmount) || bid?.simulate.isError || !bid?.simulate.data}
                     isLoading={bid.simulate.isPending && !bid.simulate.isError && bid.simulate.data}
                     onClick={() => bid.tx.mutate()}
                     chain_name="stargaze"

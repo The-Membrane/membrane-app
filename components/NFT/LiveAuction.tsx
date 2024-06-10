@@ -8,6 +8,7 @@ import { isGreaterThanZero } from "@/helpers/num";
 import useLiveNFTBid from "./hooks/useLiveNFTBid";
 import { useLiveNFT, useLiveNFTAuction } from "./hooks/useBraneAuction";
 import { useEffect, useMemo, useState } from "react";
+import { Auction } from "@/contracts/codegen/brane_auction/BraneAuction.types";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
 //ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm
@@ -32,19 +33,22 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 //todo: 
 {/* Curation pagination in v2*/}
 
-const LiveAuction = () => {
-    const { data: liveNFTAuction } = useLiveNFTAuction()
-    const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
+interface Prop {
+    tokenURI: string, 
+    nftBidAmount: number
+}
+
+const LiveAuction = ({tokenURI, nftBidAmount}: Prop) => {    
     // const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
     
-    const { NFTState, setNFTState } = useNFTState()
-    const bid = useLiveNFTBid(NFTState.nftBidAmount)
+    const { setNFTState } = useNFTState()
+    const bid = useLiveNFTBid(nftBidAmount)
 
     const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
 
     //Remove ipfs portion of link for metadata
-    const ipfsString = removeSegmentAndBefore(currentNFTIPFS, "ipfs://")
+    const ipfsString = removeSegmentAndBefore(tokenURI, "ipfs://")
     //Get JSON metadata from IPFS
     const { data: liveNFT } = useLiveNFT(ipfsString)
     
@@ -91,14 +95,14 @@ const LiveAuction = () => {
             />}
                 <HStack justifyContent="space-between" marginRight={"2"}>
                     <Text fontSize="16px" fontWeight="700">
-                    {NFTState.nftBidAmount}
+                    {nftBidAmount}
                     </Text>
                     <Text fontSize="16px" fontWeight="700">
                     CDT
                     </Text>
                 </HStack>
                 <SliderWithState
-                    value={NFTState.nftBidAmount}
+                    value={nftBidAmount}
                     onChange={onBidChange}
                     min={0}
                     max={Number(stargazeCDTBalance)}
@@ -109,7 +113,7 @@ const LiveAuction = () => {
                     height="64px"
                     borderRadius="50%"
                     px="10"
-                    isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
+                    isDisabled={!isGreaterThanZero(nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
                     isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
                     onClick={() => bid.action.tx.mutate()}
                     chain_name="stargaze"

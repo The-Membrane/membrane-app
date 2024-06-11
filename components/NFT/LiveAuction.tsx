@@ -6,9 +6,8 @@ import { useBalanceByAsset } from "@/hooks/useBalance";
 import { TxButton } from "../TxButton";
 import { isGreaterThanZero } from "@/helpers/num";
 import useLiveNFTBid from "./hooks/useLiveNFTBid";
-import { useLiveNFT, useLiveNFTAuction } from "./hooks/useBraneAuction";
+import { useLiveNFT } from "./hooks/useBraneAuction";
 import { useEffect, useMemo, useState } from "react";
-import { Auction } from "@/contracts/codegen/brane_auction/BraneAuction.types";
 import React from "react";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
@@ -66,7 +65,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
         if (liveNFT) setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/" +  removeSegmentAndBefore(liveNFT.image, "ipfs://") )
     }, [liveNFT])
 
-    useEffect(() => {
+    useMemo(() => {
         const img: HTMLImageElement = document.createElement('img');
         img.src = imgSRC;
         img.onload = () => {

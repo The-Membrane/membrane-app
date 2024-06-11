@@ -1,12 +1,10 @@
 import { Card, HStack, Text, Stack } from "@chakra-ui/react"
-import { useLiveNFTAuction } from "./hooks/useBraneAuction"
 import { shiftDigits } from "@/helpers/math"
 import { TxButton } from "../TxButton"
 import useConcludeAuction from "./hooks/useConcludeAuction"
 import Countdown from "../Countdown"
 import dayjs from "dayjs"
 import { useEffect, useState } from "react"
-import { Auction } from "@/contracts/codegen/brane_auction/BraneAuction.types"
 import React from "react"
 
 type Props = {
@@ -14,7 +12,6 @@ type Props = {
     auctionEndTime: number
 }
 const NFTBid = React.memo(({ currentBid, auctionEndTime }: Props) => {
-    console.log("NFTBid rerender")
     const conclude = useConcludeAuction()
 
     const currentTime = dayjs()

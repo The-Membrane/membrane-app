@@ -43,7 +43,6 @@ const useQuickActionVaultSummary = () => {
     })
   }, [
     basketPositions,
-    basket,
     collateralInterest,
     prices,
     quickActionState?.selectedAsset,

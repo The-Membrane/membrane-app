@@ -1,10 +1,10 @@
-import { Card, HStack, Stack, Text, Checkbox, CheckboxGroup } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text, Checkbox } from '@chakra-ui/react'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
-import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
+import useBalance from '@/hooks/useBalance'
 import useQuickActionState from './hooks/useQuickActionState'
-import { use, useEffect, useMemo, useState } from 'react'
-import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
+import { useEffect, useMemo, useState } from 'react'
+import { num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
 import { calcSliderValue } from '../Mint/TakeAction'
 import { useOraclePrice } from '@/hooks/useOracle'
@@ -163,7 +163,7 @@ const QuickActionWidget = () => {
             onMenuChange={onAssetMenuChange}
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
-        />                   
+        />          
 
 
         {!quickActionState.swapInsteadof ? <><Stack w="full">

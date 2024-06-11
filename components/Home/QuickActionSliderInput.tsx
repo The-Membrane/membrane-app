@@ -8,6 +8,8 @@ import QASelect from "../QuickActionSelect"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import { useUserPositions } from "@/hooks/useCDP"
 import Divider from "../Divider"
+import React from "react"
+import { NFTAssetSlider } from "../NFT/NFTAssetSlider"
 
 type Props = {
     value: string
@@ -30,15 +32,15 @@ type Props = {
     bridgeCardToggle?: boolean
   }
   
-  export const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount, bridgeCardToggle = false }: SliderWithInputProps) => {
+  export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount, bridgeCardToggle = false }: SliderWithInputProps) => {
       
       const { data: basketPositions } = useUserPositions()
 
       const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
 
-          if (num(value).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
-            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: value, sliderValue: value }})
+          // if (num(value).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
+          //   else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: value, sliderValue: value }})
       }
   
       const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -83,8 +85,12 @@ type Props = {
             onChange={handleInputChange}
           />
         </HStack>
-        <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
+        { bridgeCardToggle ? 
+          <NFTAssetSlider key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />
+        :
+          <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
+        }
         </> : null}
   
     </Stack>)
-  }
+  })

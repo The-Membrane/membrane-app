@@ -1,8 +1,9 @@
 import { HStack, Stack, Text } from '@chakra-ui/react'
 import ProposalsTable from './ProposalsTable'
 import SubmitProposal from './SubmitProposal'
+import React from "react"
 
-const Governance = () => {
+const Governance = React.memo(() => {
   return (
     <Stack w="full">
       <HStack justifyContent="space-between" w="full">
@@ -12,6 +13,6 @@ const Governance = () => {
       <ProposalsTable />
     </Stack>
   )
-}
+})
 
 export default Governance

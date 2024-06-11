@@ -15,6 +15,7 @@ import TakeAction from './TakeAction'
 import useMintState from './hooks/useMintState'
 import LPTab from './LPTab'
 import { useState } from 'react'
+import React from "react"
 
 type TabProps = {
   onClick: any
@@ -71,7 +72,7 @@ const MintTabsCard = () => {
   )
 }
 
-const Mint = () => {
+const Mint = React.memo(() => {
   return (
     <HStack alignItems="flex-start">
       <MintTabsCard />
@@ -79,6 +80,6 @@ const Mint = () => {
       {/* <BeakerScale /> */}
     </HStack>
   )
-}
+})
 
 export default Mint

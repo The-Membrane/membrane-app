@@ -2,7 +2,9 @@ import { Stack } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import QuickActionWidget from './QuickActionWidget'
 
-const Home = () => {
+import React from "react"
+
+const Home = React.memo(() => {
 
   return (
     <Stack >
@@ -10,6 +12,6 @@ const Home = () => {
       <QuickActionWidget />
     </Stack>
   )
-}
+})
 
 export default Home

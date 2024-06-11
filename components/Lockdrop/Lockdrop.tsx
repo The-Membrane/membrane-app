@@ -3,8 +3,9 @@ import Info from './Info'
 import LockChart from './LockChart'
 import LoackdropPane from './LockdropPane'
 import TokenAllocation from '@/components/Lockdrop/TokenAllocation'
+import React from "react"
 
-const Lockdrop = () => {
+const Lockdrop = React.memo(() => {
   return (
     <Stack gap="5">
       <Info />
@@ -13,6 +14,6 @@ const Lockdrop = () => {
       <TokenAllocation />
     </Stack>
   )
-}
+})
 
 export default Lockdrop

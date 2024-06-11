@@ -4,9 +4,10 @@ import NFTBid from './NFTBid'
 import AssetAuction from './AssetAuction'
 import BridgeTo from './BridgeTo'
 import { useLiveAssetAuction, useLiveNFTAuction } from './hooks/useBraneAuction'
+import React from "react"
 import useNFTState from './hooks/useNFTState'
 
-const NFT = () => {
+const NFT = React.memo(() => {
     const { data: liveNFTAuction } = useLiveNFTAuction()
     const { data: liveAssetAuction } = useLiveAssetAuction()
     const { NFTState } = useNFTState()
@@ -26,6 +27,6 @@ const NFT = () => {
             {/* Claim button for either the NFT or the Asset */}
         </HStack>
     )
-}
+})
 
 export default NFT

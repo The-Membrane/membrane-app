@@ -4,8 +4,6 @@ import { num } from '@/helpers/num'
 import useQuickActionState from './hooks/useQuickActionState'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 import { SliderWithState } from '../Mint/SliderWithState'
-import { delayTime } from '@/config/defaults'
-import { useEffect } from 'react'
 
 export type AssetWithSliderProps = {
   label: string

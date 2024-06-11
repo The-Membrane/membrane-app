@@ -164,6 +164,7 @@ const QuickActionWidget = () => {
             onMenuChange={onStableAssetMenuChange}
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
+            stable={true}
         /></> : null}
         <Text fontSize="sm" color="white" mt="2" minH="21px">
             max slippage: {SWAP_SLIPPAGE}%

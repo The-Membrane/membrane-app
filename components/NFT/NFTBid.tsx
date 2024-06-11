@@ -13,6 +13,7 @@ type Props = {
     auctionEndTime: number
 }
 const NFTBid = ({ currentBid, auctionEndTime }: Props) => {
+    console.log("NFTBid rerender")
     const conclude = useConcludeAuction()
 
     const currentTime = dayjs()

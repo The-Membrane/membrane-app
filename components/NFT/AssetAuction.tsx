@@ -33,6 +33,8 @@ const getCDTPrice = (prices: Price[] | undefined, cdt: Asset) => {
   }
 
 const AssetAuction = React.memo(({currentBid, auctionAmount, auctionEndTime, assetBidAmount}: Prop) => {
+    console.log("AssetAuction rerender")
+
     const { setNFTState } = useNFTState()
     const bid = useLiveAssetBid(assetBidAmount)
     //Bid Auctions end when the current NFT auction does
@@ -57,16 +59,6 @@ const AssetAuction = React.memo(({currentBid, auctionAmount, auctionEndTime, ass
     const onBidChange = (value: number) => {
         setNFTState({ assetBidAmount: value })
     }
-
-    useEffect(() => { console.log("assetBidAmount changed")}, [assetBidAmount])
-    useEffect(() => { console.log("bid changed")}, [bid])
-
-    useEffect(() => { console.log("liveAssetAuction changed")}, [auctionAmount])
-
-    useEffect(() => { console.log("liveNFTAuction changed")}, [auctionEndTime])
-    useEffect(() => { console.log("prices changed")}, [prices])
-
-
 
     if (!auctionAmount) return null
 

@@ -37,8 +37,8 @@ type Props = {
       const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
 
-          if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
-            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
+          if (num(value).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
+            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: value, sliderValue: value }})
       }
   
       const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {

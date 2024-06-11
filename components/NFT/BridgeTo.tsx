@@ -17,6 +17,8 @@ import { TxButton } from '../TxButton'
 import { SliderWithInputBox } from '../Home/QuickActionSliderInput'
 
 const BridgeTo = () => {
+    console.log("BridgeTo rerender")
+
     const { NFTState, setNFTState } = useNFTState()
     const ibc = useIBC(
         NFTState.action,

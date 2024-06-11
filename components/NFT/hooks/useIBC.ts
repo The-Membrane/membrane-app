@@ -60,8 +60,10 @@ const useIBC = (action: ActionMenu, selectedAsset: AssetWithBalance | undefined,
   //Data for deposit/mint/swap
   const { data: prices } = useOraclePrice()
 
-  useEffect(() => {
-    console.log(selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, cdtBridgeAmount, mbrnBridgeAmount)}, [selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, cdtBridgeAmount, mbrnBridgeAmount])
+  //Can we use this to tell us the order of queries? And delete query keys changes for the early ones?
+  // useEffect(() => {
+  //   console.log(selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, cdtBridgeAmount, mbrnBridgeAmount)
+  // }, [selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, cdtBridgeAmount, mbrnBridgeAmount])
   
 
   type QueryData = {
@@ -69,7 +71,7 @@ const useIBC = (action: ActionMenu, selectedAsset: AssetWithBalance | undefined,
     swapMinAmount: number
   }
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg ibc to/from stargaze', selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, cdtBridgeAmount, mbrnBridgeAmount],
+    queryKey: ['msg ibc to/from stargaze', selectedAsset?.amount],
     queryFn: () => {
       if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock || (!isGreaterThanZero(cdtBridgeAmount) && !isGreaterThanZero(mbrnBridgeAmount) && !swapInsteadof)) return { msgs: undefined, swapMinAmount: 0 }
       var msgs: MsgExecuteContractEncodeObject[] = []

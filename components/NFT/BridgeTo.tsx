@@ -150,7 +150,7 @@ const BridgeTo = React.memo(() => {
             <Text variant="title">Bridge</Text>            
             <HStack justifyContent="center">
             <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-                {NFTState.assets.length === 0 && NFTState.action.value === "Bridge to Stargaze" ? 
+                {NFTState.assets.length === 0 ? 
                 <Text variant="body" fontSize="16px" marginTop={4} mb={4}>
                     Loading options to swap...
                 </Text> 

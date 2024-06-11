@@ -17,7 +17,7 @@ const NFT = React.memo(() => {
         <HStack gap="5" w="full" alignItems="flex-start">
             <Stack w="full" gap="5">
                 <Text variant="title">NFT AUCTION</Text>
-                <LiveAuction tokenURI={liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"} nftBidAmount={NFTState.nftBidAmount} />
+                <LiveAuction tokenURI={liveNFTAuction?.submission_info.submission.token_uri} nftBidAmount={NFTState.nftBidAmount} />
                 <NFTBid currentBid={liveNFTAuction?.highest_bid} auctionEndTime={liveNFTAuction?.auction_end_time??0}/>
             </Stack>
             <Stack w="full" gap="5">

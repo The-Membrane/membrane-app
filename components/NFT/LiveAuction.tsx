@@ -34,7 +34,7 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 {/* Curation pagination in v2*/}
 
 interface Prop {
-    tokenURI: string, 
+    tokenURI: string | undefined, 
     nftBidAmount: number
 }
 
@@ -50,7 +50,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
 
     //Remove ipfs portion of link for metadata
-    const ipfsString = removeSegmentAndBefore(tokenURI, "ipfs://")
+    const ipfsString = removeSegmentAndBefore(tokenURI??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png", "ipfs://")
     //Get JSON metadata from IPFS
     const { data: liveNFT } = useLiveNFT(ipfsString)
     
@@ -76,7 +76,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}
-            {isLoading === "Loading image from IPFS......" && <div>{isLoading}</div>}
+            {isLoading && tokenURI === "Loading image from IPFS......" && <div>{isLoading}</div>}
             <HStack width="100%" justifyContent="space-between" backgroundColor="black" border="7px solid black">
             {isLoading === "Loading image from IPFS......" ? <Image
                 src={"/images/brane_wave.jpg"}

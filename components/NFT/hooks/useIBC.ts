@@ -71,9 +71,9 @@ const useIBC = (action: ActionMenu, selectedAsset: AssetWithBalance | undefined,
     swapMinAmount: number
   }
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg ibc to/from stargaze', selectedAsset?.amount],
+    queryKey: ['msg ibc to/from stargaze', selectedAsset?.amount, mbrnBridgeAmount, cdtBridgeAmount ],
     queryFn: () => {
-      if (!stargazeAddress || !osmosisAddress || !currentHeight || !currentBlock || (!isGreaterThanZero(cdtBridgeAmount) && !isGreaterThanZero(mbrnBridgeAmount) && !swapInsteadof)) return { msgs: undefined, swapMinAmount: 0 }
+      if (!stargazeAddress || !osmosisAddress || !currentHeight || !prices || !currentBlock || (!isGreaterThanZero(cdtBridgeAmount) && !isGreaterThanZero(mbrnBridgeAmount) && !swapInsteadof)) return { msgs: undefined, swapMinAmount: 0 }
       var msgs: MsgExecuteContractEncodeObject[] = []
       var swapMinAmount = 0
 

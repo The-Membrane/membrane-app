@@ -51,8 +51,6 @@ const BridgeTo = () => {
         setNFTState({ mbrnBridgeAmount: value })
     }
     
-    useEffect(() => { console.log("NFTState changed")}, [NFTState])    
-    useEffect(() => { console.log("ibc changed")}, [ibc])
     
     const [chainName, setChainName] = useState("osmosis")
     useEffect(() => {
@@ -142,15 +140,13 @@ const BridgeTo = () => {
         setNFTState({
           selectedAsset: NFTState?.assets.find((asset) => asset.symbol === NFTState?.selectedAsset?.symbol),
         })
-        console.log("set selected asset")
       }
       
     }, [NFTState?.assets, NFTState?.selectedAsset?.symbol])
   
     return (
         <Stack w="full" gap="5">
-            <Text variant="title">Bridge</Text>
-            
+            <Text variant="title">Bridge</Text>            
             <HStack justifyContent="center">
             <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
                 {NFTState.assets.length === 0 && NFTState.action.value === "Bridge to Stargaze" ? 

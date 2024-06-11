@@ -49,6 +49,8 @@ const BridgeTo = () => {
         setNFTState({ mbrnBridgeAmount: value })
     }
     
+    useEffect(() => { console.log("NFTState changed")}, [NFTState])    
+    useEffect(() => { console.log("ibc changed")}, [ibc])
     
     const [chainName, setChainName] = useState("osmosis")
     useEffect(() => {

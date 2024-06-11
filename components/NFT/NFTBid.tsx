@@ -8,7 +8,11 @@ import dayjs from "dayjs"
 import { useEffect, useState } from "react"
 import { Auction } from "@/contracts/codegen/brane_auction/BraneAuction.types"
 
-const NFTBid = (currentBid: any, auctionEndTime: number) => {
+type Props = {
+    currentBid: any, 
+    auctionEndTime: number
+}
+const NFTBid = ({ currentBid, auctionEndTime }: Props) => {
     const conclude = useConcludeAuction()
 
     const currentTime = dayjs()

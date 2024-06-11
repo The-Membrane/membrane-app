@@ -1,15 +1,13 @@
 import { HStack, Input, Stack, Text} from "@chakra-ui/react"
-import { QuickActionAssetWithSlider } from "./QuickActionAssetSlider"
 import { ChangeEvent, useEffect } from "react"
 import { num } from "@/helpers/num"
 import { delayTime } from "@/config/defaults"
-import { QuickActionState } from "./hooks/useQuickActionState"
 import QASelect from "../QuickActionSelect"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
-import { useUserPositions } from "@/hooks/useCDP"
 import Divider from "../Divider"
 import React from "react"
 import { NFTAssetSlider } from "../NFT/NFTAssetSlider"
+import { NFTState } from "./hooks/useNFTState"
 
 type Props = {
     value: string
@@ -24,17 +22,15 @@ type Props = {
   type SliderWithInputProps = {
     max: number
     inputBoxWidth?: string
-    assets: AssetWithBalance[]
-    QAState: QuickActionState
-    setQAState: (partialState: Partial<QuickActionState>) => void
+    NFTState: NFTState
+    setNFTState: (partialState: Partial<NFTState>) => void
     onMenuChange: (value: string) => void
     inputAmount: number
     setInputAmount: (value: number) => void
-    bridgeCardToggle?: boolean
   }
   
   export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount, bridgeCardToggle = false }: SliderWithInputProps) => {
-      const onSliderChange = (value: number) => {      
+            const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
 
           if (bridgeCardToggle) {
@@ -65,12 +61,16 @@ type Props = {
   
   
       return (
-      <Stack py="5" w="full" gap="3" mb={"8"} pb={"5"} >     
-        {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
+      <Stack py="5" w="full" gap="3" mb={"0"} pb={"0"} >     
+        <Text fontSize="14px" fontWeight="700">
+          Choose Asset
+        </Text> 
+        <Divider mx="0" mt="0" mb="5"/>
+        <HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
             value={QAState?.selectedAsset} 
             onChange={onMenuChange}
-            assets={assets}
+            assets={QAState?.assets}
           />
           <Input 
             width={inputBoxWidth} 
@@ -81,9 +81,6 @@ type Props = {
             onChange={handleInputChange}
           />
         </HStack>
-        <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
-        
-        </> : null}
-  
+        <NFTAssetSlider key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />  
     </Stack>)
   })

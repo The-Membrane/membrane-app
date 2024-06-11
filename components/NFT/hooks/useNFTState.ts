@@ -8,7 +8,7 @@ export type ActionMenu = {
   label: string
 }
 
-type NFTState = {
+export type NFTState = {
   nftBidAmount: number
   assetBidAmount: number
   cdtBridgeAmount: number

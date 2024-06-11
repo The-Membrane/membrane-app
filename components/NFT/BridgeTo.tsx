@@ -15,7 +15,7 @@ import { SliderWithState } from '../Mint/SliderWithState'
 import useIBC from '../NFT/hooks/useIBC'
 import { TxButton } from '../TxButton'
 import React from "react"
-import { SliderWithInputBox } from '../Home/QuickActionSliderInput'
+import { SliderWithInputBox } from '../NFT/NFTSliderInput'
 
 const BridgeTo = React.memo(() => {
     console.log("BridgeTo rerender")
@@ -179,8 +179,8 @@ const BridgeTo = React.memo(() => {
                     {NFTState.swapInsteadof ? <SliderWithInputBox
                         max={NFTState?.selectedAsset?.combinUsdValue??0}
                         inputBoxWidth='42%'
-                        QAState={NFTState}
-                        setQAState={setNFTState}
+                        NFTState={NFTState}
+                        setNFTState={setNFTState}
                         onMenuChange={onAssetMenuChange}
                         inputAmount={inputAmount}
                         setInputAmount={setInputAmount}

@@ -27,7 +27,6 @@ const useCombinBalance = () => {
   const { data: balances } = useBalance()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
-  // const { mintState } = useMintState()
 
   return useMemo(() => {
     const basketAssets = getBasketAssets(basket!, collateralInterest!)
@@ -44,7 +43,6 @@ const useCombinBalance = () => {
       const walletsdValue = num(balanceInMicro).times(price).toNumber()
       const depositUsdValue = num(position?.usdValue || 0).toNumber()
       const combinUsdValue = num(combinBalance).times(price).toNumber()
-      console.log("usecombinBalance", asset.asset.symbol, balanceInMicro, position?.amount, combinBalance, price)
       return {
         ...asset.asset,
         walletBalance: Number(balanceInMicro),

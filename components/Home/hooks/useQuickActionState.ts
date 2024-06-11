@@ -10,13 +10,11 @@ type ActionMenu = {
 }
 
 export type QuickActionState = {
-  selectedAsset?: AssetWithBalance
+  levAsset?: AssetWithBalance
+  stableAsset?: AssetWithBalance
   assets: AssetWithBalance[]
   summary?: Summary[]
   totalUsdValue?: number
-  mint?: number
-  swapInsteadof: boolean
-  action: ActionMenu
 }
 
 type Store = {
@@ -26,8 +24,6 @@ type Store = {
 
 const initialState: QuickActionState = {  
   assets: [],
-  swapInsteadof: false,
-  action: {value: "LP", label: "LP"},
 }
 
 // @ts-ignore

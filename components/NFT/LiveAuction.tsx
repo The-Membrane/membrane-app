@@ -80,16 +80,14 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
             <HStack width="100%" justifyContent="space-between" backgroundColor="black" border="7px solid black">
             {isLoading === "Loading image from IPFS......" ? <Image
                 src={"/images/brane_wave.jpg"}
-                alt="Current Auctioned NFT Image"
-                // onLoad={handleImageLoaded}                
+                alt="Current Auctioned NFT Image"   
                 style={{ display: 'block' }}
                 width="18%"
                 height="auto"
                 borderRadius="50%"
             /> : <Image
                 src={imgSRC}
-                alt="Current Auctioned NFT Image"
-                // onLoad={handleImageLoaded}                
+                alt="Current Auctioned NFT Image"        
                 style={{ display: 'block' }}
                 width="18%"
                 height="auto"

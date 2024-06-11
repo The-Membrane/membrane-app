@@ -9,6 +9,7 @@ import useLiveNFTBid from "./hooks/useLiveNFTBid";
 import { useLiveNFT, useLiveNFTAuction } from "./hooks/useBraneAuction";
 import { useEffect, useMemo, useState } from "react";
 import { Auction } from "@/contracts/codegen/brane_auction/BraneAuction.types";
+import React from "react";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
 //ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm
@@ -38,7 +39,7 @@ interface Prop {
     nftBidAmount: number
 }
 
-const LiveAuction = ({tokenURI, nftBidAmount}: Prop) => {    
+const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {    
     console.log("LiveAuction rerender")
 
     // const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
@@ -126,6 +127,6 @@ const LiveAuction = ({tokenURI, nftBidAmount}: Prop) => {
             </HStack>
         </Card>
     )
-}
+})
 
 export default LiveAuction

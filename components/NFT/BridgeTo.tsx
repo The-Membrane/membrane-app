@@ -14,9 +14,10 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { SliderWithState } from '../Mint/SliderWithState'
 import useIBC from '../NFT/hooks/useIBC'
 import { TxButton } from '../TxButton'
+import React from "react"
 import { SliderWithInputBox } from '../Home/QuickActionSliderInput'
 
-const BridgeTo = () => {
+const BridgeTo = React.memo(() => {
     console.log("BridgeTo rerender")
 
     const { NFTState, setNFTState } = useNFTState()
@@ -253,6 +254,6 @@ const BridgeTo = () => {
             </HStack>
         </Stack>
     )
-}
+})
 
 export default BridgeTo

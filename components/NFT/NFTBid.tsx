@@ -7,12 +7,13 @@ import Countdown from "../Countdown"
 import dayjs from "dayjs"
 import { useEffect, useState } from "react"
 import { Auction } from "@/contracts/codegen/brane_auction/BraneAuction.types"
+import React from "react"
 
 type Props = {
     currentBid: any, 
     auctionEndTime: number
 }
-const NFTBid = ({ currentBid, auctionEndTime }: Props) => {
+const NFTBid = React.memo(({ currentBid, auctionEndTime }: Props) => {
     console.log("NFTBid rerender")
     const conclude = useConcludeAuction()
 
@@ -57,6 +58,6 @@ const NFTBid = ({ currentBid, auctionEndTime }: Props) => {
             </HStack>
         </Card>
     )
-}
+})
 
 export default NFTBid

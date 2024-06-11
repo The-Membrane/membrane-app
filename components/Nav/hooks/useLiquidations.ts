@@ -36,6 +36,7 @@ const useProtocolLiquidations = () => {
     queryFn: () => {
         if (!address || !allPositions || !prices || !basket || !interest) return {msgs: undefined, liquidating_positions: []}
 
+        console.log("liq fn")
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
         const liq = useMemo(() => {

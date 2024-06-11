@@ -10,7 +10,7 @@ import { ibc } from "osmojs";
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { shiftDigits } from '@/helpers/math'
 import { useBlockInfo } from './useClientInfo';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import useToaster from '@/hooks/useToaster';
 import { swapToCDTMsg } from '@/helpers/osmosis';
 import { isGreaterThanZero, num } from '@/helpers/num';
@@ -56,10 +56,13 @@ const useIBC = (action: ActionMenu, selectedAsset: AssetWithBalance | undefined,
       chainName: "stargaze"
     }
   }, [action.value, osmosisData, stargazeData, osmosisCDT, osmosisMBRN, stargazeCDT, stargazeMBRN, osmosisAddress, stargazeAddress])
-
-
+  
   //Data for deposit/mint/swap
   const { data: prices } = useOraclePrice()
+
+  useEffect(() => {
+    console.log(selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, cdtBridgeAmount, mbrnBridgeAmount)}, [selectedAsset?.amount, prices, currentHeight, currentBlock, stargazeAddress, osmosisAddress, cdtBridgeAmount, mbrnBridgeAmount])
+  
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined

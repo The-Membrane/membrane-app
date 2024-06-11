@@ -1,4 +1,4 @@
-import { Card, HStack, Stack, Text, Checkbox, CheckboxGroup, Button } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text, Checkbox, CheckboxGroup } from '@chakra-ui/react'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
 import { useEffect, useMemo, useState } from 'react'
@@ -145,10 +145,9 @@ const BridgeTo = React.memo(() => {
       
     }, [NFTState?.assets, NFTState?.selectedAsset?.symbol])
   
-    const [useBridge, setUseBridge] = useState(false)
     return (
         <Stack w="full" gap="5">
-            {useBridge ? <>
+            {}
             <Text variant="title">Bridge</Text>            
             <HStack justifyContent="center">
             <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
@@ -156,7 +155,8 @@ const BridgeTo = React.memo(() => {
                 <Text variant="body" fontSize="16px" marginTop={4} mb={4}>
                     Loading options to swap...
                 </Text> 
-                :<>
+                :
+                NFTState.action.value === "Bridge to Stargaze" ? <>
                     <HStack justifyContent="space-between">
                     <Text variant="title" fontSize="16px">
                         {NFTState.swapInsteadof ? "Swap &" : null}
@@ -249,21 +249,10 @@ const BridgeTo = React.memo(() => {
                     >
                     {NFTState.action.value}
                 </TxButton>
-                </>}
+                </>
+                : null}
             </Card>
-            </HStack></> 
-            :
-            <Button 
-                onClick={() => setUseBridge(true)}
-                variant="secondary"
-                w="full"
-                h="60px"
-                borderRadius="20px"
-                fontSize="20px"
-                fontWeight="700"
-                color="white"
-            > Use Osmosis{"<>"}Stargaze Bridge</Button>
-            }
+            </HStack>
         </Stack>
     )
 })

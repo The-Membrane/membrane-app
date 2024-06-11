@@ -10,6 +10,7 @@ import { num } from "@/helpers/num"
 import { ChangeEvent, useRef, useState } from "react"
 import { useOraclePrice } from "@/hooks/useOracle"
 import { delayTime } from "@/config/defaults"
+import React from "react"
 
 
 
@@ -22,7 +23,7 @@ const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolea
 }
 
 
-const LPTab = () => {
+const LPTab = React.memo(() => {
     const cdt = useAssetBySymbol('CDT')
     const cdtBalance = useBalanceByAsset(cdt)
     const { LPState, setLPState } = useLPState()
@@ -92,6 +93,6 @@ const LPTab = () => {
         </Card>
         </TabPanel>
       )
-}
+})
 
 export default LPTab

@@ -52,7 +52,7 @@ const useQuickAction = () => {
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'mint',
+      'quick action widget',
       address,
       positionId, 
       borrowLTV, 

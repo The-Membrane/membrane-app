@@ -145,7 +145,7 @@ const useQuickAction = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
-
+  console.log(stableAsset, quickActionState?.levAsset?.amount)
   return {
     action: useSimulateAndBroadcast({
     msgs,
@@ -153,7 +153,7 @@ const useQuickAction = () => {
       String(stableAsset) || '0',
       String(quickActionState?.levAsset?.amount) || '0',
     ],
-    enabled: !!msgs && ((quickActionState?.levAsset?.amount as number??0) > 0),
+    enabled: !!msgs,
     onSuccess,
   }),
   newPositionValue,

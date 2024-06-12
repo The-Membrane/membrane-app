@@ -35,10 +35,10 @@ const useQuickActionVaultSummary = () => {
       newDeposit: (quickActionState?.levAsset?.sliderValue??0) || 0,
       summary: [quickActionState?.levAsset],
       mint: 0,
-      initialBorrowLTV,
-      initialLTV,
+      initialBorrowLTV: 0,
+      initialLTV: 0,
       debtAmount: 0,
-      initialTVL,
+      initialTVL: 0,
       basketAssets,
     })
   }, [

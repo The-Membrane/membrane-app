@@ -1,4 +1,4 @@
-import { getDepostAndWithdrawMsgs, getMintAndRepayMsgs } from '@/helpers/mint'
+import { getDepostAndWithdrawMsgs } from '@/helpers/mint'
 import { useBasket, useUserPositions } from '@/hooks/useCDP'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'

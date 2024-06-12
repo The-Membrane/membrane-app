@@ -595,6 +595,7 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
     //Get tokenOutAmount
     const tokenOutAmount = getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice);
+    console.log(tokenOutAmount, cdtPrice, CDTInAmount, tokenOutPrice)
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
 

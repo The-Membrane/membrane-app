@@ -118,7 +118,7 @@ const useQuickAction = () => {
       //4) Loop at 45%
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, basketPositions, prices)
-      const loops = loopPosition(
+      const { msgs: loops, newValue, newLTV } = loopPosition(
         cdtPrice,
         mintLTV.toNumber(),
         positionId, 
@@ -131,9 +131,9 @@ const useQuickAction = () => {
         borrowLTV, 
         positions
       )
-      msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
-      newPositionValue = loops?.newValue??0
-      newPositionLTV = loops?.newLTV??0
+      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
+      newPositionValue = newValue
+      newPositionLTV = newLTV
       
       return { msgs, newPositionValue, newPositionLTV }
     },

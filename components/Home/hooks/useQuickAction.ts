@@ -12,7 +12,7 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { loopPosition } from '@/services/osmosis'
 import useQuickActionVaultSummary from './useQuickActionVaultSummary'
-import { num } from '@/helpers/num'
+import { num, shiftDigits } from '@/helpers/num'
 import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
@@ -88,7 +88,7 @@ const useQuickAction = () => {
       //2) Swap CDT to stableAsset
       const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
         address,
-        cdtAmount: tokenOutMinAmount,
+        cdtAmount: shiftDigits(tokenOutMinAmount, -6),
         swapToAsset: stableAsset,
         prices,
         cdtPrice,

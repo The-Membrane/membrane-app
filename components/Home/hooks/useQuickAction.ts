@@ -95,6 +95,7 @@ const useQuickAction = () => {
       })
       msgs.push(CDTswap as MsgExecuteContractEncodeObject)
 
+      console.log(stableAsset.amount, stableOutMinAmount)
       //Set stableAsset deposit amount - Add swapAmount to the stableAsset
       const stableAmount = num(stableAsset.amount).plus(num(stableOutMinAmount));
 

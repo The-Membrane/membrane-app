@@ -176,7 +176,7 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !isGreaterThanZero(quickActionState.levAsset?.amount)}>
+        isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data }>
           <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
         </ConfirmModal></>}
     </Card>

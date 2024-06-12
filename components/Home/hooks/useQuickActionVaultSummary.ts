@@ -38,7 +38,7 @@ const useQuickActionVaultSummary = () => {
       initialBorrowLTV,
       initialLTV,
       debtAmount: 0,
-      initialTVL,
+      initialTVL: 0,
       basketAssets,
     })
   }, [

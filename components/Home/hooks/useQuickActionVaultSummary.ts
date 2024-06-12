@@ -12,7 +12,7 @@ const useQuickActionVaultSummary = () => {
   const { data: prices } = useOraclePrice()
   const { quickActionState } = useQuickActionState()
   const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary()
-
+console.log("initialBorrowLTV", initialBorrowLTV)
   return useMemo(() => {
     
     if (!quickActionState?.levAsset){
@@ -30,7 +30,7 @@ const useQuickActionVaultSummary = () => {
     return calculateVaultSummary({
       basket,
       collateralInterest,
-      basketPositions: undefined,
+      basketPositions,
       prices,
       newDeposit: ((quickActionState?.levAsset?.sliderValue??0) || 0) + ((quickActionState?.stableAsset?.amount as number) || 0),
       summary: [quickActionState?.levAsset, quickActionState?.stableAsset],
@@ -38,7 +38,7 @@ const useQuickActionVaultSummary = () => {
       initialBorrowLTV,
       initialLTV,
       debtAmount: 0,
-      initialTVL: 0,
+      initialTVL,
       basketAssets,
     })
   }, [

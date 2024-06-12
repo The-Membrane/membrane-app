@@ -131,7 +131,7 @@ const useQuickAction = () => {
         borrowLTV, 
         positions
       )
-      // msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
+      msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
       newPositionValue = loops?.newValue??0
       newPositionLTV = loops?.newLTV??0
       

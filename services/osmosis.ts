@@ -251,11 +251,12 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     let cAsset_ratios = getAssetRatio(tvl, positions);
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
+    console.log(LTV, currentLTV)
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
-    console.log(LTV, currentLTV)
+    console.log("afteR", LTV, currentLTV)
     //Repeat until CDT to mint is under 1 or Loops are done
     var mintAmount = 0;
     var iter = 0;

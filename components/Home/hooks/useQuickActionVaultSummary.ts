@@ -30,14 +30,14 @@ const useQuickActionVaultSummary = () => {
     return calculateVaultSummary({
       basket,
       collateralInterest,
-      basketPositions,
+      basketPositions: undefined,
       prices,
       newDeposit: (quickActionState?.levAsset?.sliderValue??0) || 0,
       summary: [quickActionState?.levAsset],
       mint: 0,
       initialBorrowLTV,
       initialLTV,
-      debtAmount,
+      debtAmount: 0,
       initialTVL,
       basketAssets,
     })

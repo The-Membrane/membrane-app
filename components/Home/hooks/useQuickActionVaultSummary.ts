@@ -15,7 +15,7 @@ const useQuickActionVaultSummary = () => {
 console.log("initialBorrowLTV", initialBorrowLTV)
   return useMemo(() => {
     
-    if (!quickActionState?.levAsset){
+    if (!quickActionState?.levAsset || !quickActionState?.stableAsset){
       return {
         debtAmount: 0,
         cost: 0,

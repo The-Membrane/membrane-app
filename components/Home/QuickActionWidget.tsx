@@ -121,7 +121,7 @@ const QuickActionWidget = () => {
     
   }, [quickActionState?.assets, quickActionState?.levAsset?.symbol])
 
-  console.log(quickAction?.simulate.errorMessage, !quickAction?.simulate.data, !isGreaterThanZero(quickActionState.levAsset?.amount))
+  console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
 
   ///////Basic Onboarding Card///////
   return (
@@ -176,7 +176,7 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data }>
+        isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data}>
           <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
         </ConfirmModal></>}
     </Card>

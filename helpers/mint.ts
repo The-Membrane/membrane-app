@@ -159,7 +159,6 @@ export const getDepostAndWithdrawMsgs = ({
       withdraw.push(asset)
     }
   })
-  console.log("summaries", summary, deposit)
 
   // user_coins.sort((a, b) => a.denom < b.denom ? -1 : 1,);
 
@@ -170,13 +169,11 @@ export const getDepostAndWithdrawMsgs = ({
       return coin(amount, asset.base)
     })
   
-    console.log(depositFunds)
   if (depositFunds.length > 0) {
     if (hasPosition) {
       const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
       msgs.push(depositMsg)
     } else {
-      console.log(depositFunds)
       //Don't use positionID, deposit into new position
       const depositMsg = messageComposer.deposit({ positionOwner: address }, depositFunds)
       msgs.push(depositMsg)

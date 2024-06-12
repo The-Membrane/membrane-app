@@ -253,7 +253,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         console.log("Desired LTV is under the Position's current LTV")
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
-
+    console.log(LTV, currentLTV)
     //Repeat until CDT to mint is under 1 or Loops are done
     var mintAmount = 0;
     var iter = 0;
@@ -319,6 +319,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             iter += 1;
         }
     }
+    console.log("loop msgs", all_msgs)
 
     return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 }

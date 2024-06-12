@@ -95,7 +95,7 @@ const QuickActionWidget = () => {
       if (asset.symbol === "USDC" || asset.symbol === "USDT") return true
       else return false
     })
-
+    console.log(levAssets, "stable", stableAssets)
     return { levAssets, stableAssets }
 
   }, [quickActionState?.assets])

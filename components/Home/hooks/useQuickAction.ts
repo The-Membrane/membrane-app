@@ -18,7 +18,7 @@ import { loopMax } from '@/config/defaults'
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 
 const useQuickAction = () => {
-  const { quickActionState } = useQuickActionState()
+  const { quickActionState, setQuickActionState } = useQuickActionState()
 
   // const { summary = [] } = quickActionState
   const { address } = useWallet()
@@ -106,6 +106,10 @@ const useQuickAction = () => {
         {...quickActionState?.levAsset as any, amount: shiftDigits(levAmount, -quickActionState?.levAsset?.decimal)},
         {...stableAsset as any, amount: shiftDigits(stableAmount.toNumber(), -stableAsset.decimal)}
       ]
+      //Set QAState
+      setQuickActionState({ summary })
+      quickActionState.summary = summary
+
       console.log("summary", summary)
       const deposit = getDepostAndWithdrawMsgs({ 
         summary,

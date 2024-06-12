@@ -21,7 +21,7 @@ const useSimulate = ({ msgs, amount, enabled = true, queryKey = [], chain_id }: 
   useEffect(() => {
     if (amount === '' && !!errorMessage) setErrorMessage(null)
   }, [amount, errorMessage])
-console.log(enabled, (msgs?.length || 0) > 0, isWalletConnected)
+
   const simulate = useQuery<[StdFee, number] | undefined, Error>({
     queryKey: ['simulate', amount, address, chain.chain_id, ...queryKey],
     queryFn: async () => {

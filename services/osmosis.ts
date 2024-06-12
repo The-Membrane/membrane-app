@@ -242,7 +242,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     //Confirm desired LTV isn't over the borrowable LTV
     if (LTV >= borrowLTV / 100) {
         console.log("Desired LTV is over the Position's borrowable LTV")
-        return;
+        return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
@@ -251,7 +251,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
-        return;
+        return { msgs: [], newValue: 0, newLTV: 0 };
     }
 
     //Repeat until CDT to mint is under 1 or Loops are done
@@ -320,7 +320,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         }
     }
 
-    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV }
+    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 }
 // export const exitCLPools = (poolId: number) => {
 //     console.log("exit_cl_attempt")

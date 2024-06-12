@@ -15,7 +15,7 @@ const useQuickActionVaultSummary = () => {
 
   return useMemo(() => {
     
-    if (!quickActionState?.selectedAsset){
+    if (!quickActionState?.levAsset){
       return {
         debtAmount: 0,
         cost: 0,

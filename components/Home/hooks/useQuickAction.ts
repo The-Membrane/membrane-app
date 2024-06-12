@@ -103,6 +103,7 @@ const useQuickAction = () => {
         {...quickActionState?.levAsset as any, amount: levAmount.toNumber()},
         {...stableAsset as any, amount: stableAmount.toNumber()}
       ]
+      console.log("summary", summary)
       const deposit = getDepostAndWithdrawMsgs({ 
         summary,
         address,

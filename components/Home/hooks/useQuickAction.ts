@@ -103,8 +103,8 @@ const useQuickAction = () => {
 
       //3) Deposit both lev & stable assets to a new position
       const summary = [
-        {...quickActionState?.levAsset as any, amount: levAmount},
-        {...stableAsset as any, amount: stableAmount.toNumber()}
+        {...quickActionState?.levAsset as any, amount: shiftDigits(levAmount, -quickActionState?.levAsset?.decimal)},
+        {...stableAsset as any, amount: shiftDigits(stableAmount.toNumber(), -stableAsset.decimal)}
       ]
       console.log("summary", summary)
       const deposit = getDepostAndWithdrawMsgs({ 

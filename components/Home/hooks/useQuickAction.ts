@@ -109,7 +109,7 @@ const useQuickAction = () => {
         positionId,
         hasPosition: false
       })
-      msgs = msgs.concat(deposit)
+      // msgs = msgs.concat(deposit)
 
       //4) Loop at 45%
       const mintLTV = num(.45)
@@ -127,7 +127,7 @@ const useQuickAction = () => {
         borrowLTV, 
         positions
       )
-      msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
+      // msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
       newPositionValue = loops!.newValue
       newPositionLTV = loops!.newLTV
       

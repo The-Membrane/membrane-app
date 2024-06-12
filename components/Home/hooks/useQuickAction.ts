@@ -76,7 +76,7 @@ const useQuickAction = () => {
 
       //1) Swap 85% of the levAsset to CDT
       const swapFromAmount = num(quickActionState?.levAsset?.amount).times(0.85).toNumber()
-      const levAmount = num(quickActionState?.levAsset?.amount).minus(swapFromAmount)
+      const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)
       const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
         address, 
         swapFromAmount,
@@ -84,6 +84,7 @@ const useQuickAction = () => {
         prices,
         cdtPrice,
       })
+      console.log(swap, tokenOutMinAmount)
       msgs.push(swap as MsgExecuteContractEncodeObject)
       //2) Swap CDT to stableAsset
       const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
@@ -93,7 +94,7 @@ const useQuickAction = () => {
         prices,
         cdtPrice,
       })
-      msgs.push(CDTswap as MsgExecuteContractEncodeObject)
+      // msgs.push(CDTswap as MsgExecuteContractEncodeObject)
 
       console.log(stableAsset.amount, stableOutMinAmount)
       //Set stableAsset deposit amount - Add swapAmount to the stableAsset
@@ -101,7 +102,7 @@ const useQuickAction = () => {
 
       //3) Deposit both lev & stable assets to a new position
       const summary = [
-        {...quickActionState?.levAsset as any, amount: levAmount.toNumber()},
+        {...quickActionState?.levAsset as any, amount: levAmount},
         {...stableAsset as any, amount: stableAmount.toNumber()}
       ]
       console.log("summary", summary)

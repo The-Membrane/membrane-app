@@ -44,7 +44,7 @@ const useConcludeAuction = () => {
       const curate = messageComposer.voteToCurate({submissionIds: [6,7,8,9,10,11]})
       const msg = messageComposer.concludeAuction()
 
-      return [submitNFT, submitNFT1, submitNFT2] as MsgExecuteContractEncodeObject[]
+      return [submitNFT3, submitNFT4, submitNFT5] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
   })

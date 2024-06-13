@@ -322,7 +322,8 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             //Increment iter
             iter += 1;
         }
-        return { msgs: [], newValue: 0, newLTV: 0 };
+        console.log("loop msgs", all_msgs)
+        return { msgs: all_msgs, newValue: 0, newLTV: 0 };
     }
     console.log("loop msgs", all_msgs)
 

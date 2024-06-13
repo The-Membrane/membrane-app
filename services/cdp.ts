@@ -280,6 +280,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any) 
 
   //If no initial position, return a summary using the summary from the mint state
   if (!basketPositions){
+    console.log("bp")
 
     return summary.map((position) => {
       if (!position) return
@@ -293,11 +294,14 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any) 
       }
     })
   }
+  console.log("positions")
 
   const positions = getPositions(basketPositions, prices)
+  console.log("positions.map")
 
   return positions.map((position) => {
     if (!position) return
+  console.log("updatedPosition")
     const updatedPosition = summary.find((p: any) => p.symbol === position.symbol)
     const price = prices?.find((p) => p.denom === position.denom)?.price || 0
     const amount = num(position.amount)
@@ -329,6 +333,7 @@ export const calculateVaultSummary = ({
   basketAssets,
 }: VaultSummary) => {
   if (!basket || !collateralInterest || (!basketPositions && summary.length === 0) || !prices) {
+    console.log("early return")
     return {
       debtAmount: 0,
       cost: 0,
@@ -339,6 +344,7 @@ export const calculateVaultSummary = ({
       liqudationLTV: 0,
     }
   }
+  console.log("pre-sum")
 
   const positions = updatedSummary(summary, basketPositions, prices)
   console.log("positions: ", positions)

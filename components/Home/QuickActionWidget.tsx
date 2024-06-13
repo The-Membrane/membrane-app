@@ -122,7 +122,7 @@ const QuickActionWidget = () => {
   }, [quickActionState?.assets, quickActionState?.levAsset?.symbol])
 
   console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
-  console.log(quickActionState.levAsset?.sliderValue??0, (quickActionState.stableAsset?.sliderValue??0))
+  console.log(quickActionState.levAsset?.sliderValue??0, (quickActionState.stableAsset?.sliderValue??0), quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0))
   ///////Basic Onboarding Card///////
   return (
     <HStack justifyContent="center">
@@ -167,7 +167,7 @@ const QuickActionWidget = () => {
             setInputAmount={setInputAmount}
             stable={true}
         /></> : null}
-         {quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0) < 222 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+         {(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
           </Text>
           : null }

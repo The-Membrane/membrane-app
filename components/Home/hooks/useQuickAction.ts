@@ -40,6 +40,7 @@ const useQuickAction = () => {
 
   const stableAsset = useMemo(() => {
     //Use USDC as the default if they don't choose an asset
+    console.log("lol")
     return quickActionState?.stableAsset ?? usdcAsset! as AssetWithBalance
 }, [quickActionState?.stableAsset, usdcAsset])
 
@@ -60,7 +61,7 @@ const useQuickAction = () => {
       quickActionState?.levAsset,
       stableAsset,
       prices,
-      cdtAsset, basketPositions, debtAmount,
+      cdtAsset, basketPositions, tvl, debtAmount,
     ],
     queryFn: () => {
       if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, newPositionLTV: 0, newPositionValue: 0 }

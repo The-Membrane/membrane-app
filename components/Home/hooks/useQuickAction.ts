@@ -56,7 +56,7 @@ const useQuickAction = () => {
       'quick action widget',
       address,
       positionId, 
-      borrowLTV, 
+      // borrowLTV, 
       maxMint,
       quickActionState?.levAsset,
       stableAsset,
@@ -135,7 +135,7 @@ const useQuickAction = () => {
         basket,
         tvl, 
         debtAmount, 
-        borrowLTV, 
+        mintLTV.toNumber(),
         positions
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])

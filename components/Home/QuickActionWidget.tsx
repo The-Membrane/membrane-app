@@ -14,6 +14,7 @@ import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
+import useInitialVaultSummary from '../Mint/hooks/useInitialVaultSummary'
 
 const QuickActionWidget = () => {
 
@@ -25,6 +26,7 @@ const QuickActionWidget = () => {
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
+  const { basketAssets } = useInitialVaultSummary()
   
   const [ inputAmount, setInputAmount ] = useState(0);
   
@@ -87,6 +89,8 @@ const QuickActionWidget = () => {
     const levAssets = (quickActionState?.assets??[]).filter((asset) => {
       if (asset === undefined) return false
       if (asset.symbol === "USDC" || asset.symbol === "USDT" || asset.symbol === "USDC.axl") return false
+      //Find asset in basketAssets
+      if(basketAssets.find((bAsset) => bAsset.asset.symbol === asset.symbol)?.maxBorrowLTV??0 < 0.45) return false
       else return true
     })
 

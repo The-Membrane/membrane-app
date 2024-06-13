@@ -16,6 +16,7 @@ console.log("initialBorrowLTV", initialBorrowLTV)
   return useMemo(() => {
     
     if (!quickActionState?.levAsset || !quickActionState?.stableAsset){
+      console.log("stuck on lev", quickActionState?.levAsset, quickActionState?.stableAsset)
       return {
         debtAmount: 0,
         cost: 0,

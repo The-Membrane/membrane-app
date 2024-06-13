@@ -146,7 +146,7 @@ const useQuickAction = () => {
         basket,
         0, 
         0, 
-        mintLTV.toNumber(),
+        num(45).toNumber(),
         positions
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])

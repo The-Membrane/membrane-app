@@ -60,7 +60,7 @@ const useQuickAction = () => {
       quickActionState?.levAsset,
       stableAsset,
       prices,
-      cdtAsset, basketPositions, tvl, debtAmount,
+      cdtAsset, basketPositions, debtAmount,
     ],
     queryFn: () => {
       if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, newPositionLTV: 0, newPositionValue: 0 }

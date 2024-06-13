@@ -122,7 +122,7 @@ const QuickActionWidget = () => {
   }, [quickActionState?.assets, quickActionState?.levAsset?.symbol])
 
   console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
-
+  console.log(quickActionState.levAsset?.sliderValue??0, (quickActionState.stableAsset?.sliderValue??0))
   ///////Basic Onboarding Card///////
   return (
     <HStack justifyContent="center">

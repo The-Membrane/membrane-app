@@ -14,7 +14,6 @@ import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
-import useInitialVaultSummary from '../Mint/hooks/useInitialVaultSummary'
 
 const QuickActionWidget = () => {
 
@@ -26,7 +25,6 @@ const QuickActionWidget = () => {
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
-  const { basketAssets } = useInitialVaultSummary()
   
   const [ inputAmount, setInputAmount ] = useState(0);
   
@@ -89,8 +87,6 @@ const QuickActionWidget = () => {
     const levAssets = (quickActionState?.assets??[]).filter((asset) => {
       if (asset === undefined) return false
       if (asset.symbol === "USDC" || asset.symbol === "USDT" || asset.symbol === "USDC.axl") return false
-      //Find asset in basketAssets
-      if(basketAssets.find((bAsset) => bAsset.asset.symbol === asset.symbol)?.maxBorrowLTV??0 < 0.45) return false
       else return true
     })
 
@@ -171,6 +167,10 @@ const QuickActionWidget = () => {
             setInputAmount={setInputAmount}
             stable={true}
         /></> : null}
+         {quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0) < 222 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+            Minimum to leverage: $222. Please add more collateral.
+          </Text>
+          : null }
         <Text fontSize="sm" color="white" mt="2" minH="21px">
             max slippage: {SWAP_SLIPPAGE}%
         </Text>

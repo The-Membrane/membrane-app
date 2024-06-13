@@ -11,7 +11,7 @@ import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { loopPosition } from '@/services/osmosis'
-import useQuickActionVaultSummary from './useQuickActionVaultSummary'
+// import useQuickActionVaultSummary from './useQuickActionVaultSummary'
 import { num, shiftDigits } from '@/helpers/num'
 import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
@@ -27,7 +27,7 @@ const useQuickAction = () => {
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
   const usdcAsset = useAssetBySymbol('USDC')
-  const { borrowLTV, maxMint, debtAmount, tvl } = useQuickActionVaultSummary()
+  // const { borrowLTV, maxMint, debtAmount, tvl } = useQuickActionVaultSummary()
   
 
   /////First we'll do 1 position, but these actions will be usable by multiple per user in the future//////
@@ -56,12 +56,10 @@ const useQuickAction = () => {
       'quick action widget',
       address,
       positionId, 
-      // borrowLTV, 
-      maxMint,
       quickActionState?.levAsset,
       stableAsset,
       prices,
-      cdtAsset, basketPositions, tvl, debtAmount,
+      cdtAsset, basketPositions
     ],
     queryFn: () => {
       if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, newPositionLTV: 0, newPositionValue: 0 }
@@ -76,6 +74,9 @@ const useQuickAction = () => {
       //4) Loop the levAsset
 
       //1) Swap 85% of the levAsset to CDT
+
+      // IF STABLES ARE ADDED, SUBTRACT IT FROM THE PERCENT TO SWAP
+
       const swapFromAmount = num(quickActionState?.levAsset?.amount).times(0.85).toNumber()
       const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)
       const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
@@ -133,8 +134,8 @@ const useQuickAction = () => {
         address, 
         prices, 
         basket,
-        tvl, 
-        debtAmount, 
+        0, 
+        0, 
         mintLTV.toNumber(),
         positions
       )

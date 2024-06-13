@@ -281,7 +281,6 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             return [asset.base, (asset.ratio * mintAmount), asset.symbol];
         });
 
-        return { msgs: [], newValue: 0, newLTV: 0 };
         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs = [] as MsgExecuteContractEncodeObject[];
         var tokenOutMins: Coin[] = [];
@@ -295,6 +294,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
                 tokenOutMins.push(coin(swap_output.tokenOutMinAmount, amount[0] as string));
             }
         });
+        return { msgs: [], newValue: 0, newLTV: 0 };
         //If there are no swaps, don't add mint or deposit msgs
         if (swap_msgs.length !== 0) {
         

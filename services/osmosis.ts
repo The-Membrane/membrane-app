@@ -263,7 +263,6 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     var iter = 0;
     var all_msgs: EncodeObject[] = [];
     while ((mintAmount > 1_000_000 || iter == 0) && iter < loops) {
-        return { msgs: [], newValue: 0, newLTV: 0 };
         //Set LTV range
         let LTV_range = LTV - currentLTV;
         //Set value to mint
@@ -282,6 +281,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             return [asset.base, (asset.ratio * mintAmount), asset.symbol];
         });
 
+        return { msgs: [], newValue: 0, newLTV: 0 };
         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs = [] as MsgExecuteContractEncodeObject[];
         var tokenOutMins: Coin[] = [];

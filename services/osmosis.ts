@@ -263,12 +263,15 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     var iter = 0;
     var all_msgs: EncodeObject[] = [];
     while ((mintAmount > 1_000_000 || iter == 0) && iter < loops) {
+        console.log("iter", iter)
         //Set LTV range
         let LTV_range = LTV - currentLTV;
+        console.log("LTV_range", LTV_range)
         //Set value to mint
         var mintValue = positionValue * LTV_range;
         //Set amount to mint
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
+        console.log("mintValue", mintValue, "mintAmount", mintAmount, "pos", positionValue)
 
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
@@ -280,6 +283,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             if (!asset) return;
             return [asset.base, (asset.ratio * mintAmount), asset.symbol];
         });
+        console.log("cAsset_amounts", cAsset_amounts)
 
         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs = [] as MsgExecuteContractEncodeObject[];

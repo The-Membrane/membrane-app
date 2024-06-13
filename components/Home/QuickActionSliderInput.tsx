@@ -69,7 +69,7 @@ type Props = {
   if (stable){
     return (
       <Stack py="5" w="full" gap="3" mb={"8"} pb={"5"} >     
-        {QAState?.stableAsset != undefined ? <><HStack justifyContent="space-between">
+        <HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
             value={QAState?.stableAsset} 
             onChange={onMenuChange}
@@ -84,8 +84,7 @@ type Props = {
             onChange={handleInputChange}
           />
         </HStack>
-        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.stableAsset} label={QAState?.stableAsset?.symbol} />        
-        </> : null}  
+        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.stableAsset} label={QAState?.stableAsset?.symbol} />
       </Stack>
     )
   }

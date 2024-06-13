@@ -137,7 +137,7 @@ const QuickActionWidget = () => {
         <>
         {/* //Action */}
         {/* Asset Menu + Input Box/Sliders*/}        
-        <Stack py="5" w="full" gap="2">
+        <Stack py="5" w="full" gap="2" mb="0">
         <Text fontSize="14px" fontWeight="700">
           Choose Collateral to Leverage
         </Text> 
@@ -169,6 +169,11 @@ const QuickActionWidget = () => {
         /></> : null}
          {(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
+          </Text>
+          : levAssets.length === 0 ?
+          <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+            No available collateral assets in your wallet. 
+            {/* Add Onboarding Button here */}
           </Text>
           : null }
         <Text fontSize="sm" color="white" mt="2" minH="21px">

@@ -21,7 +21,7 @@ const useQuickActionVaultSummary = () => {
   }, [quickActionState?.summary])
 
   return useMemo(() => {
-    
+    console.log("new summ:", quickActionState?.summary)
     if (!quickActionState?.levAsset || !quickActionState?.stableAsset){
       console.log("stuck on lev", quickActionState?.levAsset, quickActionState?.stableAsset)
       return {

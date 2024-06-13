@@ -107,7 +107,7 @@ const useQuickAction = () => {
       const newStableAsset = {...stableAsset as any, amount: shiftDigits(stableAmount.toNumber(), -stableAsset.decimal)}
       const summary = [ levAsset, newStableAsset ]
       //Set QAState
-      setQuickActionState({ summary, levAsset, stableAsset: newStableAsset })
+      setQuickActionState({ summary })
       quickActionState.summary = summary
       quickActionState.levAsset = levAsset
       quickActionState.stableAsset = newStableAsset

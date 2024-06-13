@@ -241,11 +241,11 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     //Set credit amount
     var creditAmount = debtAmount;
     //Confirm desired LTV isn't over the borrowable LTV
-    if (LTV >= borrowLTV / 100) {
-        console.log("Desired LTV is over the Position's borrowable LTV")
-        console.log(LTV, borrowLTV / 100)
-        return { msgs: [], newValue: 0, newLTV: 0 };
-    }
+    // if (LTV >= borrowLTV / 100) {
+    //     console.log("Desired LTV is over the Position's borrowable LTV")
+    //     console.log(LTV, borrowLTV / 100)
+    //     return { msgs: [], newValue: 0, newLTV: 0 };
+    // }
     console.log("here1")
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop

@@ -144,7 +144,7 @@ const useQuickAction = () => {
         address, 
         prices, 
         basket,
-        0, 
+        levAsset.sliderValue??0, 
         0, 
         45,
         positions

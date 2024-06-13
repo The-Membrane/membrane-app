@@ -38,7 +38,7 @@ const useQuickActionVaultSummary = () => {
     return calculateVaultSummary({
       basket,
       collateralInterest,
-      basketPositions,
+      basketPositions: undefined,
       prices,
       newDeposit: totalUsdValue,
       summary: quickActionState?.summary,
@@ -46,7 +46,7 @@ const useQuickActionVaultSummary = () => {
       initialBorrowLTV,
       initialLTV,
       debtAmount: 0,
-      initialTVL,
+      initialTVL: 0,
       basketAssets,
     })
   }, [

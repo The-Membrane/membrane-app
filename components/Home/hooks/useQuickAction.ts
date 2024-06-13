@@ -75,9 +75,19 @@ const useQuickAction = () => {
 
       //1) Swap 85% of the levAsset to CDT
 
+      //////Calculate the % to swap/////
+      var swapPercent = 0.85
       // IF STABLES ARE ADDED, SUBTRACT IT FROM THE PERCENT TO SWAP
+      //Get the % of assets already in stables
+      const stableRatio = num(stableAsset.sliderValue).dividedBy(num(quickActionState?.levAsset?.sliderValue).plus(num(stableAsset.sliderValue))).toNumber()
+      //Get the % of assets in lev
+      const levRatio = 1 - stableRatio
+      //Get the % of assets to swap to acheive 85% lev
+      //ex: 20% in stables, 80% in levAsset, means we need to get 65% of the total Value to be stables which is 81.25% of the remaining levAsset
+      const swapRatio = (0.85 - stableRatio) / levRatio
+      console.log(swapRatio, stableRatio, levRatio)
 
-      const swapFromAmount = num(quickActionState?.levAsset?.amount).times(0.85).toNumber()
+      const swapFromAmount = num(quickActionState?.levAsset?.amount).times(swapRatio).toNumber()
       const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)
       const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
         address, 
@@ -105,7 +115,7 @@ const useQuickAction = () => {
 
       //3) Deposit both lev & stable assets to a new position
       const levAsset = {...quickActionState?.levAsset as any, amount: shiftDigits(levAmount, -quickActionState?.levAsset?.decimal)}
-      const newStableAsset = {...stableAsset as any, amount: shiftDigits(stableAmount.toNumber(), -stableAsset.decimal)}
+      const newStableAsset = {...stableAsset as any, amount: (stableAsset.amount??0) + shiftDigits(stableAmount.toNumber(), -stableAsset.decimal)}
       const summary = [ levAsset, newStableAsset ]
       //Set QAState
       setQuickActionState({ summary })

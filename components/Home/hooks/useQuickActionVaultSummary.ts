@@ -47,7 +47,8 @@ console.log("initialBorrowLTV", initialBorrowLTV)
     collateralInterest,
     prices,
     quickActionState?.summary,
-    quickActionState?.levAsset, quickActionState?.stableAsset
+    quickActionState?.levAsset, 
+    quickActionState?.stableAsset,
   ])
 }
 

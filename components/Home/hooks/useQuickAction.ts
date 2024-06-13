@@ -146,7 +146,7 @@ const useQuickAction = () => {
         basket,
         0, 
         0, 
-        num(45).toNumber(),
+        45,
         positions
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])

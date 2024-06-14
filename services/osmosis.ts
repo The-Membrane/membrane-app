@@ -294,7 +294,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             if (amount[1] as number > 0) {
                 //Get price for denom 
                 let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
-                console.log("swap past return", amount)
+                console.log("swap price", price)
                 let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[2] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
                 console.log("swap output", swap_output)
                 swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
@@ -610,12 +610,13 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
     //Get tokenOutAmount
     const tokenOutAmount = getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice);
-    console.log(tokenOutAmount, cdtPrice, CDTInAmount, tokenOutPrice)
+    console.log("handling swap", tokenOutAmount, cdtPrice, CDTInAmount, tokenOutPrice)
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
-
+    console.log("routes", routes)
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
+    console.log("tokenOutMinAmount", tokenOutMinAmount)
     const msg = swapExactAmountIn({
         sender: address! as string,
         routes,

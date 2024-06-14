@@ -88,7 +88,11 @@ export const denoms = {
 export const cdtRoutes = {
   "OSMO": [
     {
-      poolId: BigInt(1226),
+      poolId: BigInt(1263),
+      tokenOutDenom: denoms.USDC[0],
+    },
+    {
+      poolId: BigInt(1268),
       tokenOutDenom: denoms.CDT[0],
     },
   ],

@@ -251,6 +251,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(tvl, positions);
+    console.log("cAsset_ratios::", cAsset_ratios)
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
@@ -279,6 +280,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             if (!asset) return;
             return [asset.base, (asset.ratio * mintAmount), asset.symbol];
         });
+        console.log("cAsset_amounts::", cAsset_amounts)
 
         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs = [] as MsgExecuteContractEncodeObject[];

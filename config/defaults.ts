@@ -36,7 +36,7 @@ export const delayTime = 1200; // State update Delay time in millisecond
 export const loopMax = 5;
 
 ////Specifics for Osmosis services//////
-export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
+export const SWAP_SLIPPAGE = 1; //1% slippage
 export const USDC_CL_RATIO = 0.115; //11.5% CL
 
 

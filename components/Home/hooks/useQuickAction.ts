@@ -134,7 +134,7 @@ const useQuickAction = () => {
 
       //4) Loop at 45%
       const mintLTV = num(.45)
-      const positions = updatedSummary(summary, basketPositions, prices)
+      const positions = updatedSummary(summary, undefined, prices)
   console.log("lev Value", quickActionState?.levAsset?.sliderValue??0)
   const { msgs: loops, newValue, newLTV } = loopPosition(
         cdtPrice,

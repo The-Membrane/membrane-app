@@ -290,10 +290,13 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         var tokenOutMins: Coin[] = [];
         cAsset_amounts.forEach((amount) => {
             if (!amount || !address) return;
+            console.log("swap past return", amount)
             if (amount[1] as number > 0) {
                 //Get price for denom 
                 let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
+                console.log("swap past return", amount)
                 let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[2] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
+                console.log("swap output", swap_output)
                 swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
                 tokenOutMins.push(coin(swap_output.tokenOutMinAmount, amount[0] as string));
             }

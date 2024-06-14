@@ -238,7 +238,6 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address, mainnetAddrs.positions);
 
-    console.log("here", LTV, borrowLTV)
     //Set Position value
     var positionValue = tvl;
     //Set credit amount
@@ -249,32 +248,26 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         console.log(LTV, borrowLTV / 100)
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
-    console.log("here1")
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(tvl, positions);
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
-    console.log(LTV, currentLTV)
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
-    console.log("afteR", LTV, currentLTV)
     //Repeat until CDT to mint is under 1 or Loops are done
     var mintAmount = 0;
     var iter = 0;
     var all_msgs: EncodeObject[] = [];
     while ((mintAmount > 1_000_000 || iter == 0) && iter < loops) {
-        console.log("iter", iter)
         //Set LTV range
         let LTV_range = LTV - currentLTV;
-        console.log("LTV_range", LTV_range)
         //Set value to mint
         var mintValue = positionValue * LTV_range;
         //Set amount to mint
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
-        console.log("mintValue", mintValue, "mintAmount", mintAmount, "pos", positionValue)
 
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
@@ -286,25 +279,20 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             if (!asset) return;
             return [asset.base, (asset.ratio * mintAmount), asset.symbol];
         });
-        console.log("cAsset_amounts", cAsset_amounts)
 
         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs = [] as MsgExecuteContractEncodeObject[];
         var tokenOutMins: Coin[] = [];
         cAsset_amounts.forEach((amount) => {
             if (!amount || !address) return;
-            console.log("swap past return", amount)
             if (amount[1] as number > 0) {
                 //Get price for denom 
                 let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
-                console.log("swap price", price)
                 let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[2] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
-                console.log("swap output", swap_output)
                 swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
                 tokenOutMins.push(coin(swap_output.tokenOutMinAmount, amount[0] as string));
             }
         });
-        console.log("swap msgs", swap_msgs)
         //If there are no swaps, don't add mint or deposit msgs
         if (swap_msgs.length !== 0) {
         
@@ -333,10 +321,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
             //Increment iter
             iter += 1;
         }
-        console.log("loop msgs", all_msgs)
-        return { msgs: all_msgs, newValue: 0, newLTV: 0 };
     }
-    console.log("loop msgs", all_msgs)
 
     return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 }
@@ -584,10 +569,8 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
 
 //Parse through saved Routes until we reach CDT
 const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap routes
-    console.log("in route fn")
     const temp_routes: SwapAmountInRoute[] = getCDTRoute(tokenOut);
 
-    console.log("in route fn 2:", temp_routes)
     //Reverse the route
     var routes = temp_routes.reverse();
     //Swap tokenOutdenom of the route to the key of the route
@@ -601,7 +584,6 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
             tokenOutDenom: keyDenom,
         }
     });
-    console.log("in route fn 3:"    , routes)
 
 
     return routes;

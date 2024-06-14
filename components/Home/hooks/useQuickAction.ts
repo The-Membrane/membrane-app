@@ -40,7 +40,6 @@ const useQuickAction = () => {
 
   const stableAsset = useMemo(() => {
     //Use USDC as the default if they don't choose an asset
-    console.log("lol")
     return quickActionState?.stableAsset ?? usdcAsset! as AssetWithBalance
 }, [quickActionState?.stableAsset, usdcAsset])
 
@@ -74,7 +73,6 @@ const useQuickAction = () => {
       //4) Loop the levAsset
 
       //1) Swap 85% of the levAsset to CDT
-
       //////Calculate the % to swap/////
       var swapPercent = 0.85
       // IF STABLES ARE ADDED, SUBTRACT IT FROM THE PERCENT TO SWAP
@@ -85,7 +83,6 @@ const useQuickAction = () => {
       //Get the % of assets to swap to acheive 85% lev
       //ex: 20% in stables, 80% in levAsset, means we need to get 65% of the total Value to be stables which is 81.25% of the remaining levAsset
       const swapRatio = (0.85 - stableRatio) / levRatio
-      console.log(swapRatio, stableRatio, levRatio)
 
       const swapFromAmount = num(quickActionState?.levAsset?.amount).times(swapRatio).toNumber()
       const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)
@@ -96,9 +93,7 @@ const useQuickAction = () => {
         prices,
         cdtPrice,
       })
-      console.log(swap, tokenOutMinAmount)
       msgs.push(swap as MsgExecuteContractEncodeObject)
-      console.log("msgs:", msgs)
       //2) Swap CDT to stableAsset
       const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
         address,
@@ -109,7 +104,6 @@ const useQuickAction = () => {
       })
       msgs.push(CDTswap as MsgExecuteContractEncodeObject)
 
-      console.log(stableAsset.amount, stableOutMinAmount)
       //Set stableAsset deposit amount - Add swapAmount to the stableAsset
       const stableAmount = num(stableAsset.amount).plus(num(stableOutMinAmount));
 
@@ -123,7 +117,6 @@ const useQuickAction = () => {
       quickActionState.levAsset = levAsset
       quickActionState.stableAsset = newStableAsset
 
-      console.log("summary", summary)
       const deposit = getDepostAndWithdrawMsgs({ 
         summary,
         address,
@@ -135,8 +128,7 @@ const useQuickAction = () => {
       //4) Loop at 45%
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, undefined, prices)
-  console.log("lev Value", quickActionState?.levAsset?.sliderValue??0)
-  const { msgs: loops, newValue, newLTV } = loopPosition(
+      const { msgs: loops, newValue, newLTV } = loopPosition(
         cdtPrice,
         mintLTV.toNumber(),
         positionId, 
@@ -149,9 +141,9 @@ const useQuickAction = () => {
         45,
         positions
       )
-      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
-      newPositionValue = newValue
-      newPositionLTV = newLTV
+      // msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
+      // newPositionValue = newValue
+      // newPositionLTV = newLTV
       
       return { msgs, newPositionValue, newPositionLTV }
     },

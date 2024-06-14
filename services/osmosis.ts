@@ -624,11 +624,13 @@ export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOu
 
     console.log("tokenOutMinAmount", tokenOutMinAmount)
     const msg = swapExactAmountIn({
-        sender: address! as string,
+        sender: address as string,
         routes,
         tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
         tokenOutMinAmount
     });
+    console.log("collat. swap msg", msg)
+
     // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };

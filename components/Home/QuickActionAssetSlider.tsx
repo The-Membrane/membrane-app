@@ -21,6 +21,7 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
       
       const newDeposit = num(sliderValue).toNumber()
       const amount = num(newDeposit).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
+      console.log(asset.symbol, amount, asset.decimal, asset.price, sliderValue)
 
       return {
         ...asset,

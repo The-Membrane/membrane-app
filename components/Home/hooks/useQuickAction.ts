@@ -128,7 +128,7 @@ const useQuickAction = () => {
       //4) Loop at 45%
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, undefined, prices)
-      console.log("positions::", positions)
+      console.log("positions::", positions, positionId)
       const { msgs: loops, newValue, newLTV } = loopPosition(
         cdtPrice,
         mintLTV.toNumber(),

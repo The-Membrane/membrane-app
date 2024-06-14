@@ -110,7 +110,7 @@ const useQuickAction = () => {
       //3) Deposit both lev & stable assets to a new position
       const levAsset = {...quickActionState?.levAsset as any, amount: shiftDigits(levAmount, -quickActionState?.levAsset?.decimal)}
       const newStableAsset = {...stableAsset as any, amount: (stableAsset.amount??0) + shiftDigits(stableAmount.toNumber(), -stableAsset.decimal)}
-      const summary = [ levAsset ]
+      const summary = [ levAsset, newStableAsset ]
       //Set QAState
       setQuickActionState({ summary })
       quickActionState.summary = summary
@@ -130,6 +130,7 @@ const useQuickAction = () => {
       const positions = updatedSummary(summary, undefined, prices)
       console.log("positions::", positions, positionId)
       const { msgs: loops, newValue, newLTV } = loopPosition(
+        true,
         cdtPrice,
         mintLTV.toNumber(),
         positionId, 

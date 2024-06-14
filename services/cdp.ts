@@ -12,6 +12,7 @@ import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
 import { useBasket, useCollateralInterest } from '@/hooks/useCDP'
+import { stableSymbols } from '@/config/defaults'
 
 export const cdpClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -141,10 +142,10 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
   }) as Positions[]
 }
 
-export const getAssetRatio = (tvl: number, positions: Positions[]) => {
+export const getAssetRatio = (skipStable: boolean, tvl: number, positions: Positions[]) => {
   if (!positions) return []
   return positions.map((position) => {
-    if (!position) return 
+    if (!position || (skipStable && stableSymbols.includes(position.symbol))) return 
     return {
     ...position,
     ratio: num(position.usdValue).div(tvl).toNumber(),

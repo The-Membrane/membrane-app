@@ -233,7 +233,7 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 // }
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
-export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
+export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
 
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address, mainnetAddrs.positions);
@@ -250,7 +250,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
-    let cAsset_ratios = getAssetRatio(tvl, positions);
+    let cAsset_ratios = getAssetRatio(skipStable, tvl, positions);
     console.log("cAsset_ratios::", cAsset_ratios)
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);

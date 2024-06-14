@@ -84,6 +84,8 @@ export const denoms = {
   WBTCaxl: ["ibc/D1542AA8762DB13087D8364F3EA6509FD6F009A34F00426AF9E4F9FA85CBBF1F", 8],
 };
 
+export const stableSymbols = ["USDC", "USDT", "USDC.axl"];
+
 //all CDT pairs
 export const cdtRoutes = {
   "OSMO": [

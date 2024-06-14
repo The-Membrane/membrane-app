@@ -531,7 +531,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
     var route = cdtRoutes[tokenIn];
     //to protect against infinite loops
     var iterations = 0;
-
+    console.log("all routes:", cdtRoutes)
     console.log("ROUTE CHECK:", tokenIn, route, route[route.length - 1].tokenOutDenom)
 
     while (route != undefined && route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] && iterations < 5) {

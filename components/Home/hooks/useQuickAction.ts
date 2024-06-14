@@ -164,7 +164,7 @@ const useQuickAction = () => {
     action: useSimulateAndBroadcast({
     msgs,
     amount: "0",
-    queryKey: ['quick action lev', (msgs?.toString()??"0")],
+    queryKey: ['quick action lev', (msgs?.toString()??"0"), quickActionState?.levAsset?.amount?.toString()??"0"],
     enabled: true,
     onSuccess,
   }),

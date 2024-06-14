@@ -5,7 +5,6 @@ import { Coin, coin, coins } from "@cosmjs/amino";
 import { calcAmountWithSlippage, calcShareOutAmount, convertGeckoPricesToDenomPriceHash, LiquidityPoolCalculator } from "@osmonauts/math";
 
 import { osmosis } from 'osmojs';
-import { SwapAmountInRoute } from "osmojs/dist/codegen/osmosis/poolmanager/v1beta1/swap_route";
 import { getAssetBySymbol, exported_supportedAssets } from "@/helpers/chain";
 import { PositionsMsgComposer } from "@/contracts/codegen/positions/Positions.message-composer";
 
@@ -31,6 +30,7 @@ import { shiftDigits } from "@/helpers/math";
 
 
 const secondsInADay = 24 * 60 * 60;
+type SwapAmountInRoute = typeof osmosis.poolmanager.v1beta1.SwapAmountInRoute;
 
 export interface swapRoutes {
     OSMO: SwapAmountInRoute[],

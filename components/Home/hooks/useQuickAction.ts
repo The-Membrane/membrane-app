@@ -128,7 +128,6 @@ const useQuickAction = () => {
       //4) Loop at 45%
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, undefined, prices)
-      console.log("positions::", positions, positionId)
       const { msgs: loops, newValue, newLTV } = loopPosition(
         true,
         cdtPrice,
@@ -146,6 +145,7 @@ const useQuickAction = () => {
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
       newPositionValue = newValue
       newPositionLTV = newLTV
+    console.log("LOGGED VALUES",  newPositionValue, newPositionLTV)
       
       return { msgs, newPositionValue, newPositionLTV }
     },

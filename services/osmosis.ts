@@ -251,7 +251,6 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(skipStable, tvl, positions);
-    console.log("cAsset_ratios::", cAsset_ratios)
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
@@ -280,7 +279,6 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
             if (!asset) return;
             return [asset.base, (asset.ratio * mintAmount), asset.symbol];
         });
-        console.log("cAsset_amounts::", cAsset_amounts)
 
         //Create Swap msgs from CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs = [] as MsgExecuteContractEncodeObject[];
@@ -533,8 +531,6 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
     var route = cdtRoutes[tokenIn];
     //to protect against infinite loops
     var iterations = 0;
-    console.log("all routes:", cdtRoutes)
-    console.log("ROUTE CHECK:", tokenIn, route, route[route.length - 1].tokenOutDenom)
 
     while (route != undefined && route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] && iterations < 5) {
         //Find the key from this denom
@@ -574,10 +570,8 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
 //Parse through saved Routes until we reach CDT
 const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap routes
     const temp_routes: SwapAmountInRoute[] = getCDTRoute(tokenOut);
-console.log("temp route:", temp_routes, tokenOut)
     //Reverse the route
     var routes = temp_routes.reverse();
-    console.log("reverse route:", routes)
     //Swap tokenOutdenom of the route to the key of the route
     routes = routes.map((route) => {
         let routeDenom = route.tokenOutDenom as string;
@@ -589,7 +583,6 @@ console.log("temp route:", temp_routes, tokenOut)
             tokenOutDenom: keyDenom,
         }
     });
-    console.log("swapped route:", routes)
 
 
     return routes;
@@ -604,20 +597,16 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
     //Get tokenOutAmount
     const tokenOutAmount = getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice);
-    console.log("handling swap", tokenOutAmount, cdtPrice, CDTInAmount, tokenOutPrice)
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
-    console.log("routes", routes)
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
-    console.log("tokenOutMinAmount", tokenOutMinAmount)
     const msg = swapExactAmountIn({
         sender: address as string,
         routes,
         tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
         tokenOutMinAmount
     });
-    console.log("collat. swap msg", msg)
 
     // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};

@@ -90,10 +90,6 @@ export const cdtRoutes = {
     {
       poolId: BigInt(1263),
       tokenOutDenom: denoms.USDC[0],
-    },
-    {
-      poolId: BigInt(1268),
-      tokenOutDenom: denoms.CDT[0],
     }
   ],
   "ATOM": [

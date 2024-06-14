@@ -30,7 +30,10 @@ import { shiftDigits } from "@/helpers/math";
 
 
 const secondsInADay = 24 * 60 * 60;
-type SwapAmountInRoute = typeof osmosis.poolmanager.v1beta1.SwapAmountInRoute;
+type SwapAmountInRoute = {
+    poolId: any,
+    tokenOutDenom: string,
+}
 
 export interface swapRoutes {
     OSMO: SwapAmountInRoute[],

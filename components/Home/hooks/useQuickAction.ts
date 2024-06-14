@@ -110,7 +110,7 @@ const useQuickAction = () => {
       //3) Deposit both lev & stable assets to a new position
       const levAsset = {...quickActionState?.levAsset as any, amount: shiftDigits(levAmount, -quickActionState?.levAsset?.decimal)}
       const newStableAsset = {...stableAsset as any, amount: (stableAsset.amount??0) + shiftDigits(stableAmount.toNumber(), -stableAsset.decimal)}
-      const summary = [ levAsset, newStableAsset ]
+      const summary = [ levAsset ]
       //Set QAState
       setQuickActionState({ summary })
       quickActionState.summary = summary

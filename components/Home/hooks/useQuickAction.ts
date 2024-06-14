@@ -141,9 +141,9 @@ const useQuickAction = () => {
         45,
         positions
       )
-      // msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
-      // newPositionValue = newValue
-      // newPositionLTV = newLTV
+      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
+      newPositionValue = newValue
+      newPositionLTV = newLTV
       
       return { msgs, newPositionValue, newPositionLTV }
     },

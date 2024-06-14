@@ -584,8 +584,10 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
 
 //Parse through saved Routes until we reach CDT
 const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap routes
+    console.log("in route fn")
     const temp_routes: SwapAmountInRoute[] = getCDTRoute(tokenOut);
 
+    console.log("in route fn 2:", temp_routes)
     //Reverse the route
     var routes = temp_routes.reverse();
     //Swap tokenOutdenom of the route to the key of the route
@@ -599,6 +601,7 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
             tokenOutDenom: keyDenom,
         }
     });
+    console.log("in route fn 3:"    , routes)
 
 
     return routes;

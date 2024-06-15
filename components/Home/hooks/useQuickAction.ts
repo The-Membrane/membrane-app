@@ -161,7 +161,7 @@ const useQuickAction = () => {
     else return queryData
   }, [queryData])
 
-  setQuickActionState({ levSwapRatio: swapRatio, summary })
+  setQuickActionState({ summary })
 
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })

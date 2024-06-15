@@ -48,7 +48,8 @@ const useQuickAction = () => {
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
     newPositionValue: number
-    newPositionLTV: number
+    swapRatio: number
+    summary: AssetWithBalance[]
   }
   console.log("SV:", quickActionState?.stableAsset?.sliderValue)
   const { data: queryData } = useQuery<QueryData>({
@@ -63,7 +64,7 @@ const useQuickAction = () => {
       cdtAsset, basketPositions
     ],
     queryFn: () => {
-      if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, newPositionLTV: 0, newPositionValue: 0 }
+      if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
       var newPositionLTV = 0
@@ -153,15 +154,17 @@ const useQuickAction = () => {
       newPositionLTV = newLTV
     console.log("LOGGED VALUES",  newPositionValue, newPositionLTV)
       
-      return { msgs, newPositionValue, newPositionLTV }
+      return { msgs, newPositionValue, swapRatio, summary }
     },
     enabled: !!address,
   })
 
-  const { msgs, newPositionLTV, newPositionValue } = useMemo(() => {
-    if (!queryData) return { msgs: undefined, newPositionLTV: 0, newPositionValue: 0 }
+  const { msgs, newPositionValue, swapRatio, summary } = useMemo(() => {
+    if (!queryData) return { msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
     else return queryData
   }, [queryData])
+
+  setQuickActionState({ summary, levSwapRatio: swapRatio})
 
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })
@@ -175,7 +178,7 @@ const useQuickAction = () => {
     onSuccess,
   }),
   newPositionValue,
-  newPositionLTV}
+  newPositionLTV: 0}
 }
 
 export default useQuickAction

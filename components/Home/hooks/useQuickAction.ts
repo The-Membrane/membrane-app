@@ -67,7 +67,6 @@ const useQuickAction = () => {
       if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
-      var newPositionLTV = 0
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
 
       //1) Swap to CDT
@@ -151,7 +150,6 @@ const useQuickAction = () => {
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
       newPositionValue = newValue
-      newPositionLTV = newLTV
       
       return { msgs, newPositionValue, swapRatio, summary }
     },

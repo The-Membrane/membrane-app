@@ -54,13 +54,13 @@ type Props = {
   
       useEffect(() => {
         //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
-        if (QAState?.stableAsset?.sliderValue != inputAmount) {
+        if (stable && QAState?.stableAsset?.sliderValue != inputAmount) {
           setInputAmount(QAState?.stableAsset?.sliderValue??0)
         }
       }, [QAState?.stableAsset?.sliderValue])
       useEffect(() => {
         //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
-        if (QAState?.levAsset?.sliderValue != inputAmount) {
+        if (!stable && QAState?.levAsset?.sliderValue != inputAmount) {
           setInputAmount(QAState?.levAsset?.sliderValue??0)
         }
       }, [QAState?.levAsset?.sliderValue])

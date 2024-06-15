@@ -49,7 +49,7 @@ const useQuickAction = () => {
     msgs: MsgExecuteContractEncodeObject[] | undefined
     newPositionValue: number
     swapRatio: number
-    summary: AssetWithBalance[]
+    summary: any[]
   }
   console.log("SV:", quickActionState?.stableAsset?.sliderValue)
   const { data: queryData } = useQuery<QueryData>({
@@ -150,7 +150,6 @@ const useQuickAction = () => {
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[])
       newPositionValue = newValue
       newPositionLTV = newLTV
-    console.log("LOGGED VALUES",  newPositionValue, newPositionLTV)
       
       return { msgs, newPositionValue, swapRatio, summary }
     },
@@ -162,7 +161,7 @@ const useQuickAction = () => {
     else return queryData
   }, [queryData])
 
-  setQuickActionState({ levSwapRatio: swapRatio})
+  setQuickActionState({ levSwapRatio: swapRatio, summary })
 
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })

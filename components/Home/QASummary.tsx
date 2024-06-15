@@ -60,7 +60,7 @@ const SummaryItem = ({
       {badge === "SWAP" ? <Text variant="value" textTransform="unset">
       to USDC
       </Text> : badge === "LOOP" ? <Text variant="value" textTransform="unset">
-       for {num(startingValue??0).div(newValue??0).multipliedBy(100).toFixed(0)}% leverage on {label} at a ${newValue} new position value
+       for {num(newValue??0).div(startingValue??0).multipliedBy(100).toFixed(0)}% leverage on {label} at a ${newValue} new position value
       </Text>
       : null}
     </HStack>
@@ -109,6 +109,7 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
         isLP={quickActionState?.levAsset?.isLP}
         badge={"LOOP"}
         startingValue={quickActionState?.levAsset?.sliderValue??0}
+        newValue={newPositionValue}
       />
     </Stack>
   )

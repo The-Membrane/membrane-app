@@ -60,7 +60,7 @@ const SummaryItem = ({
       {badge === "SWAP" ? <Text variant="value" textTransform="unset">
       to USDC
       </Text> : badge === "LOOP" ? <Text variant="value" textTransform="unset">
-       for {parseInt((newValue??0/(startingValue??0)).toFixed(0))}% leverage on {label} at a ${newValue} new position value
+       for {(newValue??0)}{(startingValue??0)} , {parseInt((newValue??0/(startingValue??0)).toFixed(0))}% leverage on {label} at a ${newValue} new position value
       </Text>
       : null}
     </HStack>

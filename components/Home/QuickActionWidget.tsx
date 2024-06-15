@@ -109,7 +109,7 @@ const QuickActionWidget = () => {
   }
   const onStableAssetMenuChange = (value: string) => {
     setQuickActionState({
-      levAsset: value
+      stableAsset: value
     })
   }
 

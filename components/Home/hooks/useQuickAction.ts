@@ -87,7 +87,7 @@ const useQuickAction = () => {
       //Get the % of assets to swap to acheive 85% lev
       //ex: 20% in stables, 80% in levAsset, means we need to get 65% of the total Value to be stables which is 81.25% of the remaining levAsset
       const swapRatio = (swapPercent - stableRatio) / levRatio
-      setQuickActionState({ levSwapRatio: swapRatio })
+      // setQuickActionState({ levSwapRatio: swapRatio })
 
       const swapFromAmount = num(quickActionState?.levAsset?.amount).times(swapRatio).toNumber()
       const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)

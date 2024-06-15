@@ -171,7 +171,7 @@ const QuickActionWidget = () => {
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
         />
-        {quickActionState.levAsset?.amount as number !== 0 && stableAssets.length !== 0 ? <><Text fontSize="14px" fontWeight="700">
+        {quickActionState.levAsset?.amount && quickActionState.levAsset?.amount !== 0 && stableAssets.length !== 0 ? <><Text fontSize="14px" fontWeight="700">
           Add Stables to Increase Leverage up to 900%
         </Text> 
         <Divider mx="0" mt="0" mb="5"/>

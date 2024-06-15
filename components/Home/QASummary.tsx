@@ -72,8 +72,8 @@ const SummaryItem = ({
 
 export const QASummary = ({ newPositionValue, swapRatio, summary } : {newPositionValue: number, swapRatio: number, summary: any[]}) => {
   const { quickActionState } = useQuickActionState()
-  const cdt = useAssetBySymbol('CDT')
-  const usdc = useAssetBySymbol('USDC')
+  // const cdt = useAssetBySymbol('CDT')
+  // const usdc = useAssetBySymbol('USDC')
 
   return (
     <Stack h="max-content" overflow="auto" w="full">

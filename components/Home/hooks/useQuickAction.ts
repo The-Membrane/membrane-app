@@ -42,7 +42,7 @@ const useQuickAction = () => {
   const stableAsset = useMemo(() => {
     //Use USDC as the default if they don't choose an asset
     return quickActionState?.stableAsset ?? usdcAsset! as AssetWithBalance
-}, [quickActionState?.stableAsset, usdcAsset])
+  }, [quickActionState?.stableAsset, usdcAsset])
 
   
   type QueryData = {
@@ -162,7 +162,7 @@ const useQuickAction = () => {
     else return queryData
   }, [queryData])
 
-  setQuickActionState({ summary, levSwapRatio: swapRatio})
+  // setQuickActionState({ summary, levSwapRatio: swapRatio})
 
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })

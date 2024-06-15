@@ -32,7 +32,7 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
 
     const { summary, totalUsdValue } = getSummary(updatedAssets)
 
-    setQuickActionState({ assets: updatedAssets, summary, totalUsdValue })
+    setQuickActionState({ assets: updatedAssets, totalUsdValue })
   }
 
 

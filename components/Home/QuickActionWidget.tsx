@@ -27,6 +27,7 @@ const QuickActionWidget = () => {
   const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
   
   const [ inputAmount, setInputAmount ] = useState(0);
+  const [ stableInputAmount, setStableInputAmount ] = useState(0);
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -164,8 +165,8 @@ const QuickActionWidget = () => {
             QAState={quickActionState}
             setQAState={setQuickActionState}
             onMenuChange={onStableAssetMenuChange}
-            inputAmount={inputAmount}
-            setInputAmount={setInputAmount}
+            inputAmount={stableInputAmount}
+            setInputAmount={setStableInputAmount}
             stable={true}
         /></> : null}
          {(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">

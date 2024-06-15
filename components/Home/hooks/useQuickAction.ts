@@ -57,7 +57,8 @@ const useQuickAction = () => {
       address,
       positionId, 
       quickActionState?.levAsset,
-      stableAsset,
+      quickActionState?.stableAsset,
+      usdcAsset,
       prices,
       cdtAsset, basketPositions
     ],

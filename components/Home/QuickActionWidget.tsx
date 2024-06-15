@@ -140,7 +140,7 @@ const QuickActionWidget = () => {
   }, [quickActionState?.assets, quickActionState?.levAsset?.symbol])
 
   console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
-  console.log("lev asset", quickActionState.levAsset?.amount)
+  console.log("lev asset", quickActionState.levAsset?.amount, quickActionState.levAsset?.amount !== 0)
 
   ///////Basic Onboarding Card///////
   return (

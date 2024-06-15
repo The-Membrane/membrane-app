@@ -121,14 +121,14 @@ const QuickActionWidget = () => {
     })
   }
 
-  useEffect(() => {
-    if (quickActionState?.assets && quickActionState?.stableAsset?.symbol != undefined) {
-      setQuickActionState({
-        stableAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.stableAsset?.symbol),
-      })
-    }
+  // useEffect(() => {
+  //   if (quickActionState?.assets && quickActionState?.stableAsset?.symbol != undefined) {
+  //     setQuickActionState({
+  //       stableAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.stableAsset?.symbol),
+  //     })
+  //   }
     
-  }, [quickActionState?.assets, quickActionState?.stableAsset?.symbol])
+  // }, [quickActionState?.assets, quickActionState?.stableAsset?.symbol])
 
   useEffect(() => {
     if (quickActionState?.assets && quickActionState?.levAsset?.symbol != undefined) {

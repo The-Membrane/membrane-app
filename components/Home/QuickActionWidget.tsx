@@ -122,6 +122,7 @@ const QuickActionWidget = () => {
   }, [quickActionState?.assets, quickActionState?.levAsset?.symbol])
 
   console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
+  console.log(quickActionState?.levAsset?.sliderValue, newPositionValue)
 
   ///////Basic Onboarding Card///////
   return (
@@ -186,7 +187,7 @@ const QuickActionWidget = () => {
         action={quickAction}
         label={"Begin Degeneracy"}
         isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}>
-          <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
+          <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} newLTV={newPositionLTV}/>
         </ConfirmModal></>}
     </Card>
     </HStack>

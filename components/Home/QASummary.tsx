@@ -74,7 +74,7 @@ export const QASummary = ({ newPositionValue } : {newPositionValue: number, newL
   const { quickActionState } = useQuickActionState()
   const cdt = useAssetBySymbol('CDT')
   const usdc = useAssetBySymbol('USDC')
-
+  console.log(num(quickActionState?.levAsset?.sliderValue??0), newPositionValue??0, num(quickActionState?.levAsset?.sliderValue??0).div(newPositionValue??0).toFixed(0))
   return (
     <Stack h="max-content" overflow="auto" w="full">
 

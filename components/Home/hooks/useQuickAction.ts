@@ -50,14 +50,14 @@ const useQuickAction = () => {
     newPositionValue: number
     newPositionLTV: number
   }
-
+  console.log("SV:", quickActionState?.stableAsset?.sliderValue)
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
       'quick action widget',
       address,
       positionId, 
       quickActionState?.levAsset,
-      quickActionState?.stableAsset,
+      quickActionState?.stableAsset?.sliderValue,
       usdcAsset,
       prices,
       cdtAsset, basketPositions

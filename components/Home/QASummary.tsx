@@ -14,8 +14,8 @@ type SummaryItemProps = Partial<AssetWithBalance> & {
   logo?: string
   logos?: string[]
   isLP?: boolean
-  newValue?: string
-  newLTV?: string
+  newValue?: number
+  startingValue?: number
 }
 
 const SummaryItem = ({
@@ -27,7 +27,7 @@ const SummaryItem = ({
   logos,
   isLP,
   newValue,
-  newLTV,
+  startingValue,
 }: SummaryItemProps) => (
   <HStack
     key={label}
@@ -57,14 +57,10 @@ const SummaryItem = ({
           {badge}
         </Badge>
       )}
-      {badge === "SWAP" ? label !== "CDT" ? <Text variant="value" textTransform="unset">
-      to CDT
-      </Text> : <Text variant="value" textTransform="unset">
+      {badge === "SWAP" ? <Text variant="value" textTransform="unset">
       to USDC
-      </Text> : badge === "BID" ? <Text variant="value" textTransform="unset">
-       on all assets at a 10% premium
       </Text> : badge === "LOOP" ? <Text variant="value" textTransform="unset">
-       to a {newLTV}% LTV & ${newValue} position value
+       for {num(newValue??0).div(startingValue??0).toFixed(0)}% leverage on {label} at a ${newValue} new position value
       </Text>
       : null}
     </HStack>
@@ -74,18 +70,24 @@ const SummaryItem = ({
   </HStack>
 )
 
-export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: number, newLTV: number}) => {
+export const QASummary = ({ newPositionValue } : {newPositionValue: number, newLTV: number}) => {
   const { quickActionState } = useQuickActionState()
-  const summary = useMemo(() => {
-    if (quickActionState?.selectedAsset && num(quickActionState?.selectedAsset?.amount).isGreaterThan(0)) return [quickActionState?.selectedAsset]
-    else return []
-  }, [quickActionState?.selectedAsset?.amount])
   const cdt = useAssetBySymbol('CDT')
   const usdc = useAssetBySymbol('USDC')
 
   return (
     <Stack h="max-content" overflow="auto" w="full">
-      {!quickActionState.swapInsteadofMint ? summary?.map((asset) => {
+
+      <SummaryItem
+        key={quickActionState?.levAsset?.symbol??"" + quickActionState?.levAsset?.amount}
+        label={quickActionState?.levAsset?.symbol??""}
+        amount={num(quickActionState?.levAsset?.amount).times(quickActionState?.levSwapRatio??0).toNumber()}
+        logo={quickActionState?.levAsset?.logo}
+        isLP={quickActionState?.levAsset?.isLP}
+        badge={"Swap"}
+      />
+
+      {quickActionState?.summary?.map((asset) => {
         const badge = 'Deposit'
         return (
           <SummaryItem
@@ -93,62 +95,22 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
             label={asset?.label}
             amount={asset?.amount}
             logo={asset?.logo}
-            logos={asset?.logos}
             isLP={asset?.isLP}
             badge={badge}
           />
         )
-      }) : null}
+      })}
 
-        {num(quickActionState.mint).isGreaterThan(0) ? <>
-        
-        {!quickActionState.swapInsteadofMint ? <SummaryItem
-          label="CDT"
-          badge="Mint"
-          amount={quickActionState.mint?.toFixed(2)}
-          logo={cdt?.logo}
-        /> : <SummaryItem
-          label={quickActionState.selectedAsset?.label}
-          badge="SWAP"
-          amount={num(quickActionState.selectedAsset?.amount??0).toFixed(2)}
-          logo={quickActionState.selectedAsset?.logo}
-        />}
-
-        {quickActionState.action.value === "LP" ? <>
-          {(quickActionState?.selectedAsset?.symbol === "USDC" && quickActionState?.action.value === "LP" && quickActionState.swapInsteadofMint) ? null : <SummaryItem
-            label="CDT"
-            badge="SWAP"
-            amount={num(quickActionState.mint).div(2).toNumber().toFixed(2)}
-            logo={cdt?.logo}
-          />}
-          
-          <SummaryItem
-            label="CDT/USDC"
-            badge="LP"
-            amount={num(quickActionState.mint).toFixed(2)}
-            isLP={true}
-            logos={[cdt!.logo, usdc!.logo]}
-          />
-        </> : quickActionState.action.value === "Bid" ? <>
-          <SummaryItem
-            label="CDT"
-            badge="BID"
-            amount={num(quickActionState.mint).toFixed(2)}
-            logo={cdt?.logo}
-          />
-        </>        
-        : quickActionState.action.value === "Loop" ? <>
-        <SummaryItem
-          label="CDT"
-          badge="LOOP"
-          newValue={newPositionValue.toFixed(0)}
-          newLTV={(newLTV * 100).toFixed(0)}
-          logo={cdt?.logo}
-        />
-      </> 
-        : null}
-        
-        </> : null}
+      <SummaryItem
+        key={quickActionState?.levAsset?.symbol??"" + quickActionState?.levAsset?.amount}
+        label={quickActionState?.levAsset?.symbol??""}
+        // amount={num(quickActionState?.levAsset?.amount).times(quickActionState?.levSwapRatio??0).toNumber()}
+        logo={quickActionState?.levAsset?.logo}
+        isLP={quickActionState?.levAsset?.isLP}
+        badge={"LOOP"}
+        startingValue={quickActionState?.levAsset?.sliderValue??0}
+        newValue={newPositionValue}
+      />
     </Stack>
   )
 }

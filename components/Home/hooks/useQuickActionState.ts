@@ -15,6 +15,7 @@ export type QuickActionState = {
   assets: AssetWithBalance[]
   summary?: Summary[]
   totalUsdValue?: number
+  levSwapRatio?: number
 }
 
 type Store = {

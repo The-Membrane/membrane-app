@@ -86,7 +86,7 @@ const QuickActionWidget = () => {
 
     const levAssets = (quickActionState?.assets??[]).filter((asset) => {
       if (asset === undefined) return false
-      if (asset.symbol === "USDC" || asset.symbol === "USDT" || asset.symbol === "USDC.axl") return false
+      if (asset.isLP || asset.symbol === "USDC" || asset.symbol === "USDT" || asset.symbol === "USDC.axl") return false
       else return true
     })
 

@@ -107,12 +107,12 @@ const useQuickAction = () => {
       msgs.push(CDTswap as MsgExecuteContractEncodeObject)
 
       //Set stableAsset deposit amount - Add swapAmount to the stableAsset
-      const stableAmount = num(stableAsset.amount).plus(num(stableOutMinAmount));
-      console.log("STABLE AMOUNT", stableAmount, stableOutMinAmount, stableAsset.amount)
+      const stableAmount = num(stableAsset.amount).plus(shiftDigits(stableOutMinAmount, -stableAsset.decimal)).toNumber();
+      console.log("STABLE AMOUNT", stableAmount, shiftDigits(stableOutMinAmount, -stableAsset.decimal), stableAsset.amount)
 
       //3) Deposit both lev & stable assets to a new position
       const levAsset = {...quickActionState?.levAsset as any, amount: shiftDigits(levAmount, -quickActionState?.levAsset?.decimal)}
-      const newStableAsset = {...stableAsset as any, amount: shiftDigits(stableAmount.toNumber(), -stableAsset.decimal)}
+      const newStableAsset = {...stableAsset as any, amount: stableAmount}
       const summary = [ levAsset, newStableAsset ]
       //Set QAState
       setQuickActionState({ summary })

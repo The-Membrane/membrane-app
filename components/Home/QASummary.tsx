@@ -60,7 +60,7 @@ const SummaryItem = ({
       {badge === "SWAP" ? <Text variant="value" textTransform="unset">
       to USDC
       </Text> : badge === "LOOP" ? <Text variant="value" textTransform="unset">
-       for {num(newValue??0).div(startingValue??0).toFixed(0)}% leverage on {label} at a ${newValue} new position value
+       for {parseInt((newValue??0/(startingValue??0)).toFixed(0))}% leverage on {label} at a ${newValue} new position value
       </Text>
       : null}
     </HStack>
@@ -74,7 +74,7 @@ export const QASummary = ({ newPositionValue } : {newPositionValue: number, newL
   const { quickActionState } = useQuickActionState()
   const cdt = useAssetBySymbol('CDT')
   const usdc = useAssetBySymbol('USDC')
-  console.log(num(quickActionState?.levAsset?.sliderValue??0), newPositionValue??0, num(quickActionState?.levAsset?.sliderValue??0).div(newPositionValue??0).toFixed(0))
+  // console.log(parseInt((newValue??0/(startingValue??0)).toFixed(0)), num(??0), newPositionValue??0, num(quickActionState?.levAsset?.sliderValue??0).div(newPositionValue??0).toFixed(0))
   return (
     <Stack h="max-content" overflow="auto" w="full">
 

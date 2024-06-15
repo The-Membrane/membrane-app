@@ -60,7 +60,7 @@ const SummaryItem = ({
       {badge === "SWAP" ? <Text variant="value" textTransform="unset">
       to USDC
       </Text> : badge === "LOOP" ? <Text variant="value" textTransform="unset">
-       for {(newValue??0)}{(startingValue??0)} , {parseInt((newValue??0/(startingValue??0)).toFixed(0))}% leverage on {label} at a ${newValue} new position value
+       for {num(startingValue??0).div(newValue??0).multipliedBy(100).toFixed(0)}% leverage on {label} at a ${newValue} new position value
       </Text>
       : null}
     </HStack>
@@ -70,11 +70,11 @@ const SummaryItem = ({
   </HStack>
 )
 
-export const QASummary = ({ newPositionValue } : {newPositionValue: number, newLTV: number}) => {
+export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: number, newLTV: number}) => {
   const { quickActionState } = useQuickActionState()
   const cdt = useAssetBySymbol('CDT')
   const usdc = useAssetBySymbol('USDC')
-  // console.log(parseInt((newValue??0/(startingValue??0)).toFixed(0)), num(??0), newPositionValue??0, num(quickActionState?.levAsset?.sliderValue??0).div(newPositionValue??0).toFixed(0))
+
   return (
     <Stack h="max-content" overflow="auto" w="full">
 
@@ -104,12 +104,11 @@ export const QASummary = ({ newPositionValue } : {newPositionValue: number, newL
       <SummaryItem
         key={quickActionState?.levAsset?.symbol??"" + quickActionState?.levAsset?.amount}
         label={quickActionState?.levAsset?.symbol??""}
-        // amount={num(quickActionState?.levAsset?.amount).times(quickActionState?.levSwapRatio??0).toNumber()}
+        amount={num(quickActionState?.levAsset?.amount).times(quickActionState?.levSwapRatio??0).toNumber()}
         logo={quickActionState?.levAsset?.logo}
         isLP={quickActionState?.levAsset?.isLP}
         badge={"LOOP"}
         startingValue={quickActionState?.levAsset?.sliderValue??0}
-        newValue={newPositionValue}
       />
     </Stack>
   )

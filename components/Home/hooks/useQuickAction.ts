@@ -161,8 +161,6 @@ const useQuickAction = () => {
     else return queryData
   }, [queryData])
 
-  setQuickActionState({ summary })
-
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
@@ -174,8 +172,7 @@ const useQuickAction = () => {
     queryKey: ['quick action lev', (msgs?.toString()??"0")],
     onSuccess,
   }),
-  newPositionValue,
-  newPositionLTV: 0}
+  newPositionValue, swapRatio, summary}
 }
 
 export default useQuickAction

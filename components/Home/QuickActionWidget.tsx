@@ -24,7 +24,7 @@ const QuickActionWidget = () => {
   const { data: walletBalances } = useBalance("osmosis")
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
+  const { action: quickAction, newPositionValue, swapRatio, summary} = useQuickAction()
   
   const [ inputAmount, setInputAmount ] = useState(0);
   const [ stableInputAmount, setStableInputAmount ] = useState(0);
@@ -205,7 +205,7 @@ const QuickActionWidget = () => {
         action={quickAction}
         label={"Begin Degeneracy"}
         isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}>
-          <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} newLTV={newPositionLTV}/>
+          <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/>
         </ConfirmModal></>}
     </Card>
     </HStack>

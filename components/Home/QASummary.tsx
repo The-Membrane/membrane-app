@@ -70,7 +70,7 @@ const SummaryItem = ({
   </HStack>
 )
 
-export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: number, newLTV: number}) => {
+export const QASummary = ({ newPositionValue, swapRatio, summary } : {newPositionValue: number, swapRatio: number, summary: any[]}) => {
   const { quickActionState } = useQuickActionState()
   const cdt = useAssetBySymbol('CDT')
   const usdc = useAssetBySymbol('USDC')
@@ -81,13 +81,13 @@ export const QASummary = ({ newPositionValue, newLTV } : {newPositionValue: numb
       <SummaryItem
         key={quickActionState?.levAsset?.symbol??"" + quickActionState?.levAsset?.amount}
         label={quickActionState?.levAsset?.symbol??""}
-        amount={num(quickActionState?.levAsset?.amount).times(quickActionState?.levSwapRatio??0).toNumber()}
+        amount={num(quickActionState?.levAsset?.amount).times(swapRatio).toNumber()}
         logo={quickActionState?.levAsset?.logo}
         isLP={quickActionState?.levAsset?.isLP}
         badge={"Swap"}
       />
 
-      {quickActionState?.summary?.map((asset) => {
+      {summary.map((asset) => {
         const badge = 'Deposit'
         return (
           <SummaryItem

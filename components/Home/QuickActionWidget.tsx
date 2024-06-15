@@ -74,13 +74,6 @@ const QuickActionWidget = () => {
       }
   }, [assets, walletBalances, prices, address])
 
-  useEffect(() => {
-    if (!quickActionState?.levAsset && (quickActionState?.assets??[]).length > 0) {
-      setQuickActionState({
-        levAsset:  quickActionState?.assets[0], 
-      })
-    }
-  }, [quickActionState?.assets, walletBalances])
 
   //Split assets w/ balance into leveraged and stable assets
   const { levAssets, stableAssets } = useMemo(() => {
@@ -101,6 +94,21 @@ const QuickActionWidget = () => {
 
   }, [quickActionState?.assets])
   //
+  useEffect(() => {
+    if (!quickActionState?.levAsset && (quickActionState?.assets??[]).length > 0) {
+      setQuickActionState({
+        levAsset:  quickActionState?.assets[0], 
+      })
+    }
+  }, [quickActionState?.assets, walletBalances])
+  
+  useEffect(() => {
+    if (!quickActionState?.stableAsset && (stableAssets??[]).length > 0) {
+      setQuickActionState({
+        stableAsset:  stableAssets[0], 
+      })
+    }
+  }, [stableAssets])
   
   const onLevAssetMenuChange = (value: string) => {
     setQuickActionState({
@@ -114,6 +122,15 @@ const QuickActionWidget = () => {
   }
 
   useEffect(() => {
+    if (quickActionState?.assets && quickActionState?.stableAsset?.symbol != undefined) {
+      setQuickActionState({
+        stableAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.stableAsset?.symbol),
+      })
+    }
+    
+  }, [quickActionState?.assets, quickActionState?.stableAsset?.symbol])
+
+  useEffect(() => {
     if (quickActionState?.assets && quickActionState?.levAsset?.symbol != undefined) {
       setQuickActionState({
         levAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAsset?.symbol),
@@ -123,7 +140,7 @@ const QuickActionWidget = () => {
   }, [quickActionState?.assets, quickActionState?.levAsset?.symbol])
 
   console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
-  console.log(quickActionState?.levAsset?.sliderValue, newPositionValue)
+  console.log("stable asset", quickActionState?.stableAsset?.sliderValue)
 
   ///////Basic Onboarding Card///////
   return (

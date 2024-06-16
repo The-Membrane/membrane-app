@@ -159,7 +159,7 @@ export const getRateCost = (
   basketAssets: BasketAsset[] = [],
 ): { cost: number, ratios: any } => {
   if (!positions) return {cost: 0, ratios: []}
-  const positionsWithRatio = getAssetRatio(tvl, positions)
+  const positionsWithRatio = getAssetRatio(false, tvl, positions)
   const cost = positionsWithRatio.reduce((acc, position) => {    
     if (!position) return acc
     const rate =
@@ -199,7 +199,7 @@ export const getBorrowLTV = (
   basketAssets: BasketAsset[] = [],
   ratios?: any[],
 ) => {  
-  const positionsWithRatio = ratios??getAssetRatio(tvl, positions);
+  const positionsWithRatio = ratios??getAssetRatio(false, tvl, positions);
   const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => { 
     if (!position) return acc
     const ltv =
@@ -225,7 +225,7 @@ export const getLiqudationLTV = (
   basketAssets: BasketAsset[] = [],
   ratios?: any[],
 ) => {
-  const positionsWithRatio = ratios??getAssetRatio(tvl, positions);
+  const positionsWithRatio = ratios??getAssetRatio(false, tvl, positions);
 
   const maxLTV = positionsWithRatio.reduce((acc, position) => { 
     if (!position) return acc
@@ -431,7 +431,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     const debt = getDebt([basketPosition])
     const debtValue = num(debt).times(basket.credit_price.price).toNumber()
     const ltv = getLTV(tvl, debtValue)
-    const positionsWithRatio = getAssetRatio(tvl, positions)
+    const positionsWithRatio = getAssetRatio(false, tvl, positions)
     const liquidationLTV = getLiqudationLTV(
       tvl,
       positions,

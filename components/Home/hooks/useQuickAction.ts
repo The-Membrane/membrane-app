@@ -121,7 +121,7 @@ const useQuickAction = () => {
       console.log("summary:", summary)
       quickActionState.summary = summary
       quickActionState.levAsset = levAsset
-      quickActionState.stableAsset = newStableAsset
+      // quickActionState.stableAsset = newStableAsset
 
       const deposit = getDepostAndWithdrawMsgs({ 
         summary,
@@ -143,7 +143,7 @@ const useQuickAction = () => {
         address, 
         prices, 
         basket,
-        quickActionState?.levAsset?.sliderValue??0, 
+        quickActionState?.levAsset?.sliderValue??0 + (quickActionState?.stableAsset?.sliderValue??0), 
         0, 
         45,
         positions

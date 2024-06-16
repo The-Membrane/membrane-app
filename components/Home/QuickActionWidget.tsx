@@ -154,7 +154,7 @@ const QuickActionWidget = () => {
         </Text>
         : levAssets.length === 0 ?
         <Text fontSize="sm" color="white" mt="2" minH="21px">
-          No available collateral assets in your wallet. 
+          No available non-stable collateral assets in your wallet. Use stables in the Mint tab.
           {/* Add Onboarding Button here */}
         </Text>
         : 

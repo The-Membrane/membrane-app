@@ -147,9 +147,9 @@ const QuickActionWidget = () => {
     <HStack justifyContent="center">
     <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
         {!isWalletConnected ? 
-        <ConnectButton marginTop={6}/>
+        <ConnectButton marginTop={1}/>
         : quickActionState.assets.length === 0 ? 
-        <Text variant="body" fontSize="16px" marginTop={6}>
+        <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...
         </Text>
         : 

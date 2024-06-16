@@ -12,6 +12,7 @@ import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
 import { useBasket, useCollateralInterest } from '@/hooks/useCDP'
+import { stableSymbols } from '@/config/defaults'
 
 export const cdpClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -141,10 +142,10 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
   }) as Positions[]
 }
 
-export const getAssetRatio = (tvl: number, positions: Positions[]) => {
+export const getAssetRatio = (skipStable: boolean, tvl: number, positions: Positions[]) => {
   if (!positions) return []
   return positions.map((position) => {
-    if (!position) return 
+    if (!position || (skipStable && stableSymbols.includes(position.symbol))) return 
     return {
     ...position,
     ratio: num(position.usdValue).div(tvl).toNumber(),
@@ -280,6 +281,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any) 
 
   //If no initial position, return a summary using the summary from the mint state
   if (!basketPositions){
+    console.log("bp")
 
     return summary.map((position) => {
       if (!position) return
@@ -293,11 +295,14 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any) 
       }
     })
   }
+  console.log("positions")
 
   const positions = getPositions(basketPositions, prices)
+  console.log("positions.map")
 
   return positions.map((position) => {
     if (!position) return
+  console.log("updatedPosition")
     const updatedPosition = summary.find((p: any) => p.symbol === position.symbol)
     const price = prices?.find((p) => p.denom === position.denom)?.price || 0
     const amount = num(position.amount)
@@ -329,6 +334,7 @@ export const calculateVaultSummary = ({
   basketAssets,
 }: VaultSummary) => {
   if (!basket || !collateralInterest || (!basketPositions && summary.length === 0) || !prices) {
+    console.log("early return")
     return {
       debtAmount: 0,
       cost: 0,
@@ -339,8 +345,10 @@ export const calculateVaultSummary = ({
       liqudationLTV: 0,
     }
   }
+  console.log("pre-sum")
 
   const positions = updatedSummary(summary, basketPositions, prices)
+  console.log("positions: ", positions)
   if (!positions) return {
     debtAmount: 0,
     cost: 0,
@@ -357,6 +365,7 @@ export const calculateVaultSummary = ({
   const creditPrice = Number(basket?.credit_price.price) || 1
   const liqudationLTV = getLiqudationLTV(tvl, positions, basketAssets, ratios)
   const borrowLTV = getBorrowLTV(tvl, positions, basketAssets, ratios)
+  console.log("borrowLTV", borrowLTV, tvl, positions, ratios)
   const maxMint = getMaxMint(tvl, borrowLTV, creditPrice)
   
 

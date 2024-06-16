@@ -1,4 +1,4 @@
-import { HStack, Input, Stack, Text} from "@chakra-ui/react"
+import { HStack, Input, Stack } from "@chakra-ui/react"
 import { QuickActionAssetWithSlider } from "./QuickActionAssetSlider"
 import { ChangeEvent, useEffect } from "react"
 import { num } from "@/helpers/num"
@@ -6,8 +6,7 @@ import { delayTime } from "@/config/defaults"
 import { QuickActionState } from "./hooks/useQuickActionState"
 import QASelect from "../QuickActionSelect"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
-import { useUserPositions } from "@/hooks/useCDP"
-import Divider from "../Divider"
+import React from "react"
 
 type Props = {
     value: string
@@ -22,18 +21,16 @@ type Props = {
   type SliderWithInputProps = {
     max: number
     inputBoxWidth?: string
+    assets: AssetWithBalance[]
     QAState: QuickActionState
     setQAState: (partialState: Partial<QuickActionState>) => void
     onMenuChange: (value: string) => void
     inputAmount: number
     setInputAmount: (value: number) => void
-    bridgeCardToggle?: boolean
+    stable?: boolean
   }
   
-  export const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount, bridgeCardToggle = false }: SliderWithInputProps) => {
-      
-      const { data: basketPositions } = useUserPositions()
-
+  export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", assets, QAState, setQAState, onMenuChange, inputAmount, setInputAmount, stable = false }: SliderWithInputProps) => {
       const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
       }
@@ -45,31 +42,38 @@ type Props = {
           else setInputAmount(parseInt(e.target.value))
   
         setTimeout(() => {
-          if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
-            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
+          if (stable){
+            if (num(newAmount).isGreaterThan(max)) setQAState({ stableAsset: { ...QAState?.stableAsset, amount: max, sliderValue: max }})
+              else setQAState({ stableAsset: { ...QAState?.stableAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
+          } else {
+            if (num(newAmount).isGreaterThan(max)) setQAState({ levAsset: { ...QAState?.levAsset, amount: max, sliderValue: max }})
+              else setQAState({ levAsset: { ...QAState?.levAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
+          }
         }, delayTime);  
       }
   
       useEffect(() => {
         //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
-        if (QAState?.selectedAsset?.sliderValue != inputAmount) {
-          setInputAmount(QAState?.selectedAsset?.sliderValue??0)
+        if (stable && QAState?.stableAsset?.sliderValue != inputAmount) {
+          setInputAmount(QAState?.stableAsset?.sliderValue??0)
         }
-      }, [QAState?.selectedAsset?.sliderValue])
+      }, [QAState?.stableAsset?.sliderValue])
+      useEffect(() => {
+        //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
+        if (!stable && QAState?.levAsset?.sliderValue != inputAmount) {
+          setInputAmount(QAState?.levAsset?.sliderValue??0)
+        }
+      }, [QAState?.levAsset?.sliderValue])
       
   
-  
-      return (
-      <Stack py="5" w="full" gap="3" mb={bridgeCardToggle ? "0" : "8"} pb={bridgeCardToggle ? "0" : "5"} >     
-        <Text fontSize="14px" fontWeight="700">
-          {QAState.swapInsteadof || bridgeCardToggle ? "Choose Asset" : basketPositions ? "Add collateral to your existing vault (optional)" : "Choose Collateral"}
-        </Text> 
-        <Divider mx="0" mt="0" mb="5"/>
-        {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
+  if (stable){
+    return (
+      <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >     
+        {QAState?.levAsset && QAState?.stableAsset && (QAState?.levAsset?.sliderValue??0 > 0) ? <><HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
-            value={QAState?.selectedAsset} 
+            value={QAState?.stableAsset} 
             onChange={onMenuChange}
-            assets={QAState?.assets}
+            assets={assets}
           />
           <Input 
             width={inputBoxWidth} 
@@ -80,8 +84,30 @@ type Props = {
             onChange={handleInputChange}
           />
         </HStack>
-        <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
-        </> : null}
-  
-    </Stack>)
+        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.stableAsset} label={QAState?.stableAsset?.symbol} />        
+        </> : null}  
+      </Stack>
+    )
   }
+      return (
+      <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >     
+        {QAState?.levAsset != undefined ? <><HStack justifyContent="space-between">
+          <AssetsWithBalanceMenu 
+            value={QAState?.levAsset} 
+            onChange={onMenuChange}
+            assets={assets}
+          />
+          <Input 
+            width={inputBoxWidth} 
+            textAlign={"center"} 
+            placeholder="0" 
+            type="number" 
+            value={inputAmount} 
+            onChange={handleInputChange}
+          />
+        </HStack>
+        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.levAsset} label={QAState?.levAsset?.symbol} />        
+        </> : null}  
+      </Stack>
+    )
+  })

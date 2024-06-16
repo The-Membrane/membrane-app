@@ -2,8 +2,9 @@ import { HStack, Stack } from '@chakra-ui/react'
 import BidAction from './BidAction'
 import Filtration from './Filtration'
 import Risk from './Risk'
+import React from "react"
 
-const Bid = () => {
+const Bid = React.memo(() => {
   return (
     <HStack spacing="5" alignItems="flex-start">
       <Stack gap="5" minW="500px">
@@ -13,6 +14,6 @@ const Bid = () => {
       <Filtration />
     </HStack>
   )
-}
+})
 
 export default Bid

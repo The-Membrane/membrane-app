@@ -4,6 +4,9 @@ import { num } from '@/helpers/num'
 import useQuickActionState from './hooks/useQuickActionState'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 import { SliderWithState } from '../Mint/SliderWithState'
+import { delayTime } from '@/config/defaults'
+import { useEffect } from 'react'
+import useNFTState from './hooks/useNFTState'
 
 export type AssetWithSliderProps = {
   label: string
@@ -11,31 +14,7 @@ export type AssetWithSliderProps = {
   onChangeExt: (value: number) => void
 }
 
-export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetWithSliderProps) => {
-  const { quickActionState, setQuickActionState } = useQuickActionState()
-
-  const onChange = (value: number) => {
-    onChangeExt(value)
-    let updatedAssets = quickActionState.assets.map((asset) => {
-      const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
-      
-      const newDeposit = num(sliderValue).toNumber()
-      const amount = num(newDeposit).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
-      console.log(asset.symbol, amount, asset.decimal, asset.price, sliderValue)
-
-      return {
-        ...asset,
-        amount,
-        sliderValue,
-      }
-    })
-
-    const { summary, totalUsdValue } = getSummary(updatedAssets)
-
-    setQuickActionState({ assets: updatedAssets, totalUsdValue })
-  }
-
-
+export const NFTAssetSlider = ({ asset, label, onChangeExt }: AssetWithSliderProps) => {
   
   return (
     <Stack gap="0">
@@ -49,7 +28,7 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
       </HStack>
       <SliderWithState
         value={asset?.sliderValue}
-        onChange={onChange}
+        onChange={onChangeExt}
         min={0}
         max={asset?.combinUsdValue}
       />

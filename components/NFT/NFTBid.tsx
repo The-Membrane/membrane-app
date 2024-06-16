@@ -1,24 +1,26 @@
 import { Card, HStack, Text, Stack } from "@chakra-ui/react"
-import { useLiveNFTAuction } from "./hooks/useBraneAuction"
 import { shiftDigits } from "@/helpers/math"
 import { TxButton } from "../TxButton"
 import useConcludeAuction from "./hooks/useConcludeAuction"
 import Countdown from "../Countdown"
 import dayjs from "dayjs"
 import { useEffect, useState } from "react"
+import React from "react"
 
-const NFTBid = () => {
-    const { data: liveNFTAuction } = useLiveNFTAuction()
+type Props = {
+    currentBid: any, 
+    auctionEndTime: number
+}
+const NFTBid = React.memo(({ currentBid, auctionEndTime }: Props) => {
     const conclude = useConcludeAuction()
-    const currentBid = liveNFTAuction?.highest_bid    
 
     const currentTime = dayjs()
     const [remainingTime, setremainingTime] = useState(0)
     useEffect(() => {
-        const endTime = dayjs.unix(liveNFTAuction?.auction_end_time??0)
+        const endTime = dayjs.unix(auctionEndTime)
         setremainingTime(endTime.diff(currentTime, 'second'))
 
-    }, [liveNFTAuction])
+    }, [auctionEndTime])
 
 
     return (
@@ -37,7 +39,7 @@ const NFTBid = () => {
                     <Text fontSize="16px" fontWeight="700" width="118%">
                     Time Remaining
                     </Text>
-                    <Countdown timestamp={liveNFTAuction?.auction_end_time}/>
+                    <Countdown timestamp={auctionEndTime}/>
                 </Stack> : 
                 <TxButton
                     marginTop={"3%"}
@@ -53,6 +55,6 @@ const NFTBid = () => {
             </HStack>
         </Card>
     )
-}
+})
 
 export default NFTBid

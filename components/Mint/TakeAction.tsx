@@ -8,6 +8,7 @@ import { LTVWithSlider } from './LTVWithSlider'
 import useCombinBalance from './hooks/useCombinBalance'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
+import React from 'react'
 
 const OverDraftMessage = ({ overdraft = false, minDebt = false}: { overdraft?: boolean, minDebt?: boolean }) => {
   return (
@@ -21,7 +22,7 @@ export const calcSliderValue = (debtAmount: number, mint: number = 0, repay: num
   return num(debtAmount).plus(mint).minus(repay).dp(2).toNumber()
 }
 
-const TakeAction = () => {
+const TakeAction = React.memo(() => {
   const { mintState, setMintState } = useMintState()
   const combinBalance = useCombinBalance()
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = useVaultSummary()
@@ -61,6 +62,6 @@ const TakeAction = () => {
       <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt}/>
     </TabPanel>
   )
-}
+})
 
 export default TakeAction

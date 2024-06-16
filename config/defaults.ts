@@ -36,7 +36,7 @@ export const delayTime = 1200; // State update Delay time in millisecond
 export const loopMax = 5;
 
 ////Specifics for Osmosis services//////
-export const SWAP_SLIPPAGE = 0.5; //0.5% slippage
+export const SWAP_SLIPPAGE = 1; //1% slippage
 export const USDC_CL_RATIO = 0.115; //11.5% CL
 
 
@@ -84,13 +84,15 @@ export const denoms = {
   WBTCaxl: ["ibc/D1542AA8762DB13087D8364F3EA6509FD6F009A34F00426AF9E4F9FA85CBBF1F", 8],
 };
 
+export const stableSymbols = ["USDC", "USDT", "USDC.axl"];
+
 //all CDT pairs
 export const cdtRoutes = {
   "OSMO": [
     {
-      poolId: BigInt(1226),
-      tokenOutDenom: denoms.CDT[0],
-    },
+      poolId: BigInt(1263),
+      tokenOutDenom: denoms.USDC[0],
+    }
   ],
   "ATOM": [
     {

@@ -27,7 +27,7 @@ const BidAction = () => {
 
   const handleTabClick = (index: number) => {
     setActiveTabIndex(index);
-    console.log(activeTabIndex)
+    console.log("tab log", activeTabIndex)
   };
   
   return (

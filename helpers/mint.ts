@@ -168,7 +168,7 @@ export const getDepostAndWithdrawMsgs = ({
       const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toString()
       return coin(amount, asset.base)
     })
-
+  
   if (depositFunds.length > 0) {
     if (hasPosition) {
       const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)

@@ -1,81 +1,33 @@
-import { Card, HStack, Stack, Text, Checkbox, CheckboxGroup } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text, Checkbox } from '@chakra-ui/react'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
-import useBalance, { useBalanceByAsset } from '@/hooks/useBalance'
+import useBalance from '@/hooks/useBalance'
 import useQuickActionState from './hooks/useQuickActionState'
-import { use, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
-import { calcSliderValue } from '../Mint/TakeAction'
 import { useOraclePrice } from '@/hooks/useOracle'
-import { QuickActionLTVWithSlider } from './QuickActionLTVWithSlider'
-import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
 import useQuickAction from './hooks/useQuickAction'
 import { QASummary } from './QASummary'
 import useWallet from '@/hooks/useWallet'
 import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
-import QASelect from '../QuickActionSelect'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
-import useNFTState from '../NFT/hooks/useNFTState'
-import { useAssetBySymbol } from '@/hooks/useAssets'
-import { SliderWithState } from '../Mint/SliderWithState'
-import useIBC from '../NFT/hooks/useIBC'
-import { TxButton } from '../TxButton'
 
-type QuickActionWidgetProps = {
-  actionMenuOptions: any[]
-  bridgeCardToggle: boolean
-  action?: any
-}
-
-const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionWidgetProps) => {
+const QuickActionWidget = () => {
 
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  const { NFTState, setNFTState } = useNFTState()
-  const ibc = useIBC()
-  const [swapAmount, setswapAmount] = useState(0)
-  useMemo(() => {
-    if (ibc.swapMinAmount && ibc.swapMinAmount != swapAmount && quickActionState.swapInsteadof) setswapAmount(ibc.swapMinAmount)
-      else if (!quickActionState.swapInsteadof) setswapAmount(0)
-  }, [ibc.swapMinAmount, quickActionState.swapInsteadof])
 
-  const mbrn = useAssetBySymbol('MBRN')
-  const osmosisMBRNBalance = useBalanceByAsset(mbrn)
-  const cdt = useAssetBySymbol('CDT')
-  const osmosisCDTBalance = useBalanceByAsset(cdt, 'osmosis')
+  const { isWalletConnected, address } = useWallet("osmosis")
 
-  
-  const mbrnSG = useAssetBySymbol('MBRN', 'stargaze')
-  const stargazeMBRNBalance = useBalanceByAsset(mbrnSG, 'stargaze')
-  const cdtSG = useAssetBySymbol('CDT', 'stargaze')
-  const stargazeCDTBalance = useBalanceByAsset(cdtSG, 'stargaze')
-
-  const onCDTChange = (value: number) => {
-      setNFTState({ cdtBridgeAmount: value })
-  }
-  const onMBRNChange = (value: number) => {
-      setNFTState({ mbrnBridgeAmount: value })
-  }
-
-  if(quickActionState.action.value === "") setQuickActionState({action: actionMenuOptions[0]})
-  
-  const [chainName, setChainName] = useState("osmosis")
-  useEffect(() => {
-    if (quickActionState.action.value === "Bridge to Osmosis") setChainName("stargaze")
-    if (quickActionState.action.value === "Bridge to Stargaze") setChainName("osmosis")
-  }, [quickActionState.action.value])
-  const { isWalletConnected, address } = useWallet(chainName)
-
-  const { data: walletBalances } = useBalance(chainName)
+  const { data: walletBalances } = useBalance("osmosis")
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { action: quickAction, newPositionLTV, newPositionValue} = useQuickAction()
-  const { debtAmount, maxMint } = useQuickActionVaultSummary()
-  const sliderValue = calcSliderValue(debtAmount, quickActionState.mint, 0)
+  const { action: quickAction, newPositionValue, swapRatio, summary} = useQuickAction()
   
   const [ inputAmount, setInputAmount ] = useState(0);
+  const [ stableInputAmount, setStableInputAmount ] = useState(0);
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -85,7 +37,7 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
   }).filter((asset: string) => asset != "");
 
   //Create an object of assets that only holds assets that have a walletBalance
-  useEffect(() => {    
+  useMemo(() => {    
     if (prices && walletBalances && assets){
         const assetsWithBalance = assets?.filter((asset) => {
           if (asset !== undefined) return walletDenoms.includes(asset.base)
@@ -116,261 +68,149 @@ const QuickActionWidget = ({ actionMenuOptions, bridgeCardToggle }: QuickActionW
           else return -1
         })
 
-        // console.log(chainName, assetsWithBalance)
-
         setQuickActionState({
           assets: (assetsWithBalance??[])
         })
       }
   }, [assets, walletBalances, prices, address])
 
+
+  //Split assets w/ balance into leveraged and stable assets
+  const { levAssets, stableAssets } = useMemo(() => {
+
+    const levAssets = (quickActionState?.assets??[]).filter((asset) => {
+      if (asset === undefined) return false
+      if (asset.isLP || asset.symbol === "USDC" || asset.symbol === "USDT" || asset.symbol === "USDC.axl") return false
+      else return true
+    })
+
+    const stableAssets = (quickActionState?.assets??[]).filter((asset) => {
+      if (asset === undefined) return false
+      if (asset.symbol === "USDC" || asset.symbol === "USDT") return true
+      else return false
+    })
+
+    return { levAssets, stableAssets }
+
+  }, [quickActionState?.assets])
+  //
   useEffect(() => {
-    if (!quickActionState?.selectedAsset && (quickActionState?.assets??[]).length > 0) {
+    if (!quickActionState?.levAsset && (quickActionState?.assets??[]).length > 0) {
       setQuickActionState({
-        selectedAsset:  quickActionState?.assets[0], 
+        levAsset:  quickActionState?.assets[0], 
       })
     }
   }, [quickActionState?.assets, walletBalances])
-  //
   
-  const onAssetMenuChange = (value: string) => {
+  useEffect(() => {
+    if (!quickActionState?.stableAsset && stableAssets.length > 0) {
+      setQuickActionState({
+        stableAsset:  stableAssets[0], 
+      })
+    }
+  }, [quickActionState?.assets, walletBalances])
+  
+  const onLevAssetMenuChange = (value: string) => {
     setQuickActionState({
-      selectedAsset: value
+      levAsset: value
+    })
+  }
+  const onStableAssetMenuChange = (value: string) => {
+    setQuickActionState({
+      stableAsset: value
     })
   }
 
-  const onActionMenuChange = (value: string) => {
-    if (value.value === "Loop") {
+  useEffect(() => {
+    if (quickActionState?.assets && quickActionState?.stableAsset?.symbol != undefined) {
       setQuickActionState({
-        action: value,
-        swapInsteadof: false,
-      })
-    } else {
-      setQuickActionState({
-        action: value,
+        stableAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.stableAsset?.symbol),
       })
     }
-    if (value.value === "Bridge to Stargaze" || value.value === "Bridge to Osmosis") {
-      setQuickActionState({
-        swapInsteadof: false,
-        addMintSection: false,
-      })
-      setNFTState({ cdtBridgeAmount: 0, mbrnBridgeAmount: 0 })
-    }
-  }
-
+    
+  }, [quickActionState?.assets, quickActionState?.stableAsset?.symbol])
 
   useEffect(() => {
-
-    if (quickActionState?.assets && quickActionState?.selectedAsset?.symbol != undefined) {
+    if (quickActionState?.assets && quickActionState?.levAsset?.symbol != undefined) {
       setQuickActionState({
-        selectedAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.selectedAsset?.symbol),
+        levAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAsset?.symbol),
       })
     }
     
-  }, [quickActionState?.assets, quickActionState?.selectedAsset?.symbol])
+  }, [quickActionState?.assets, quickActionState?.levAsset?.symbol])
 
-  
-  useEffect(() => {
-    if (!quickActionState?.swapInsteadof) {
-      setQuickActionState({
-        mint: 0,
-      })
-    }
-    
-  }, [quickActionState?.swapInsteadof])
-
-  ///////////Bridge to Stargaze Card////////
-  ////The action for this card will be in useIBC.ts
-  if (bridgeCardToggle) {
-    return (
-      <HStack justifyContent="center">
-      <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-          {quickActionState.assets.length === 0 && quickActionState.action.value === "Bridge to Stargaze" ? 
-          <Text variant="body" fontSize="16px" marginTop={4} mb={4}>
-              Loading options to swap...
-          </Text> 
-          :
-          quickActionState.action.value === "Bridge to Stargaze" ? <>
-            <HStack justifyContent="space-between">
-              <Text variant="title" fontSize="16px">
-                  {quickActionState.swapInsteadof ? "Swap &" : quickActionState.addMintSection ? "Mint &" : null}
-              </Text>        
-              <QASelect 
-                  options={actionMenuOptions}
-                  onChange={onActionMenuChange}
-                  value={quickActionState?.action} 
-              />
-            </HStack>
-
-            {/* //Action */}
-            {/* Asset Menu + Input Box/Slider*/}        
-            <Stack py="5" w="full" gap="2">  
-              <HStack justifyContent="space-between">
-                  <Checkbox isChecked={quickActionState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => {setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof}); setNFTState({ cdtBridgeAmount: 0 });}}> 
-                    Swap & Bridge
-                  </Checkbox >
-              </HStack>
-            {(quickActionState.addMintSection || quickActionState.swapInsteadof) ? <SliderWithInputBox
-                max={quickActionState?.selectedAsset?.combinUsdValue??0}
-                inputBoxWidth='42%'
-                QAState={quickActionState}
-                setQAState={setQuickActionState}
-                onMenuChange={onAssetMenuChange}
-                inputAmount={inputAmount}
-                setInputAmount={setInputAmount}
-                bridgeCardToggle={bridgeCardToggle}
-            /> : null}
-    
-            {/* Mint Section */}
-            {quickActionState.addMintSection ? <><Stack w="full">
-                <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
-                Mint CDT to { quickActionState.action.value }
-                </Text> 
-                <Divider mx="0" mt="0" mb="4%"/>
-                <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
-                { maxMint < 100 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-                Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
-                </Text>
-                : null }
-                
-            </Stack></> : null}
-    
-    
-            {quickActionState.swapInsteadof ?
-            <><Text fontSize="sm" color="white" mb="2" minH="21px">
-                max slippage: {SWAP_SLIPPAGE}%
-            </Text></> : null }
-            </Stack>
-            </>
-          : null}
-
-          {quickActionState.action.value === "Bridge to Osmosis" ?  
-              <QASelect 
-                  mb="2%"
-                  options={actionMenuOptions}
-                  onChange={onActionMenuChange}
-                  value={quickActionState?.action} 
-              />: null}
-
-          {/* Bridge Sliders */}
-          <Stack width={"100%"}>
-            <Text fontSize="14px" fontWeight="700">
-              {quickActionState.action.value}
-            </Text> 
-            <Divider mx="0" mt="0" mb="5"/>
-            <HStack justifyContent="space-between">
-                <Text fontSize="16px" fontWeight="700">
-                CDT
-                </Text>
-                <Text fontSize="16px" fontWeight="700">
-                {NFTState.cdtBridgeAmount}
-                </Text>
-            </HStack>
-            <SliderWithState
-                value={NFTState.cdtBridgeAmount}
-                onChange={onCDTChange}
-                min={0}
-                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisCDTBalance) + swapAmount : Number(stargazeCDTBalance)}
-            />
-            <HStack justifyContent="space-between">
-                <Text fontSize="16px" fontWeight="700">
-                MBRN
-                </Text>
-                <Text fontSize="16px" fontWeight="700">
-                {NFTState.mbrnBridgeAmount}
-                </Text>
-            </HStack>
-            <SliderWithState
-                value={NFTState.mbrnBridgeAmount}
-                onChange={onMBRNChange}
-                min={0}
-                max={quickActionState.action.value === "Bridge to Stargaze" ? Number(osmosisMBRNBalance) : Number(stargazeMBRNBalance)}
-            />
-          </Stack>
-  
-          {/* Action Button */}
-          <TxButton
-              marginTop={"3%"}
-              w="100%"
-              px="10"
-              isDisabled={(!isGreaterThanZero(NFTState.cdtBridgeAmount) && !isGreaterThanZero(NFTState.mbrnBridgeAmount)) || ibc.action?.simulate.isError || !ibc.action?.simulate.data}
-              isLoading={ibc.action.simulate.isPending && !ibc.action.simulate.isError && ibc.action.simulate.data}
-              onClick={() => ibc.action.tx.mutate()}
-              chain_name={chainName}
-              >
-              {quickActionState.action.value}
-          </TxButton>
-      </Card>
-      </HStack>
-    )
-  }
+  console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
+  console.log("lev asset", quickActionState.levAsset?.amount, quickActionState.levAsset?.amount !== 0)
 
   ///////Basic Onboarding Card///////
   return (
     <HStack justifyContent="center">
     <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-        <HStack justifyContent="space-between">
-        <Text variant="title" fontSize="16px">
-            {quickActionState.swapInsteadof ? "Swap" : "Mint"} & 
-        </Text>        
-        <QASelect 
-            options={actionMenuOptions}
-            onChange={onActionMenuChange}
-            value={quickActionState?.action} 
-        />
-        </HStack>
         {!isWalletConnected ? 
-        <ConnectButton chain_name={chainName} marginTop={6}/>
+        <ConnectButton marginTop={1}/>
         : quickActionState.assets.length === 0 ? 
-        <Text variant="body" fontSize="16px" marginTop={6}>
+        <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...
+        </Text>
+        : levAssets.length === 0 ?
+        <Text fontSize="sm" color="white" mt="2" minH="21px">
+          No available collateral assets in your wallet. 
+          {/* Add Onboarding Button here */}
         </Text>
         : 
         <>
         {/* //Action */}
-        {/* Asset Menu + Input Box/Slider*/}        
-        <Stack py="5" w="full" gap="2">            
-        {quickActionState.action.value !== "Loop" ? <Checkbox paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => setQuickActionState({swapInsteadof: !quickActionState.swapInsteadof})}> 
-            Swap Instead of Mint
-        </Checkbox > : null}
+        {/* Asset Menu + Input Box/Sliders*/}        
+        <Stack py="5" w="full" gap="2" mb="0">
+        <Text fontSize="14px" fontWeight="700">
+          Choose Collateral to Leverage
+        </Text> 
+        <Divider mx="0" mt="0" mb="5"/>
         <SliderWithInputBox
-            max={quickActionState?.selectedAsset?.combinUsdValue??0}
+            max={quickActionState?.levAsset?.combinUsdValue??0}
             inputBoxWidth='42%'
+            assets={levAssets}
             QAState={quickActionState}
             setQAState={setQuickActionState}
-            onMenuChange={onAssetMenuChange}
+            onMenuChange={onLevAssetMenuChange}
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
-        />                   
-
-
-        {!quickActionState.swapInsteadof ? <><Stack w="full">
-            <Text fontSize="14px" fontWeight="700" marginBottom={"1%"}>
-            Mint CDT to  {quickActionState.action.value === "LP" ? <a style={{textDecoration: "underline"}} href="https://app.osmosis.zone/pool/1268">LP</a> : quickActionState.action.value === "Loop" ? "Loop" : "Bid"}
-            </Text> 
-            <Divider mx="0" mt="0" mb="4%"/>
-            <QuickActionLTVWithSlider label="Your Debt" value={sliderValue}/>
-            { maxMint < 100 && !quickActionState.swapInsteadof ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-            Minimum debt is 100, deposit more to increase your available mint amount: ${(maxMint??0).toFixed(2)}
-            </Text>
-            : null }
-            
-        </Stack></> : null}
-
-
-        {quickActionState.action.value === "LP" || quickActionState.action.value === "Loop" ?
-        <><Text fontSize="sm" color="white" mt="2" minH="21px">
+        />
+        {quickActionState.levAsset?.amount && quickActionState.levAsset?.amount !== 0 && stableAssets.length !== 0 ? <><Text fontSize="14px" fontWeight="700">
+          Add Stables to Increase Leverage up to 900%
+        </Text> 
+        <Divider mx="0" mt="0" mb="5"/>
+        <SliderWithInputBox
+            max={quickActionState?.stableAsset?.combinUsdValue??0}
+            inputBoxWidth='42%'
+            assets={stableAssets}
+            QAState={quickActionState}
+            setQAState={setQuickActionState}
+            onMenuChange={onStableAssetMenuChange}
+            inputAmount={stableInputAmount}
+            setInputAmount={setStableInputAmount}
+            stable={true}
+        /></> : null}
+         {(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+            Minimum to leverage: $222. Please add more collateral.
+          </Text>
+          : levAssets.length === 0 ?
+          <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+            No available collateral assets in your wallet. 
+            {/* Add Onboarding Button here */}
+          </Text>
+          : null }
+        <Text fontSize="sm" color="white" mt="2" minH="21px">
             max slippage: {SWAP_SLIPPAGE}%
-        </Text></> : null }
+        </Text>
         </Stack>
 
-        {/* Deposit-Mint-LP Button */}
+        {/* Leverage Button */}
         <ConfirmModal 
         action={quickAction}
-        label={quickActionState.action.value}
-        isDisabled={quickAction?.simulate.isError || !quickAction?.simulate.data || !quickActionState?.mint}>
-          <QASummary newPositionValue={newPositionValue} newLTV={newPositionLTV}/>
+        label={"Begin Degeneracy"}
+        isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}>
+          <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/>
         </ConfirmModal></>}
     </Card>
     </HStack>

@@ -36,9 +36,13 @@ const useProtocolLiquidations = () => {
     queryFn: () => {
         if (!address || !allPositions || !prices || !basket || !interest) return {msgs: undefined, liquidating_positions: []}
 
+        console.log("liq fn")
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
-        const liq = getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
+        const liq = useMemo(() => {
+          console.log("doing calcs")
+          return getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
+        } , [allPositions, prices])
 
         if (liq.length > 0) {
             const liq_msgs = getLiquidationMsgs({address, liq_info: liq})

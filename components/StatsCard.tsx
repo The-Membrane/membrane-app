@@ -24,7 +24,7 @@ export const Stats = ({ label, value }) => (
   </Stack>
 )
 
-export const StatsCard = () => {
+export const StatsCard = React.memo(() => {
   const { data: basket } = useBasket()
   const { data: prices } = useOraclePrice()
   const cdtAmount = basket?.credit_asset?.amount || 0
@@ -50,4 +50,4 @@ export const StatsCard = () => {
       <Divider mx="0" mb="5" />
     </Stack>
   )
-}
+})

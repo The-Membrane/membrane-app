@@ -4,6 +4,7 @@ import { calculateVaultSummary } from '@/services/cdp'
 import { useMemo } from 'react'
 import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSummary'
 import useQuickActionState from './useQuickActionState'
+import { Summary } from '@/components/Mint/hooks/useMintState'
 
 const useQuickActionVaultSummary = () => {
   const { data: basket } = useBasket()
@@ -13,9 +14,16 @@ const useQuickActionVaultSummary = () => {
   const { quickActionState } = useQuickActionState()
   const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary()
 
+  //Calc totalvalue with an assumption that the second asset in the summary is a stable
+  const totalUsdValue = useMemo(() => {
+    if (!quickActionState?.summary) return 0
+    return quickActionState?.summary[0].sliderValue??0 + (quickActionState?.summary[1].amount as number)??0
+  }, [quickActionState?.summary])
+
   return useMemo(() => {
-    
-    if (!quickActionState?.selectedAsset){
+    console.log("new summ:", quickActionState?.summary)
+    if (!quickActionState?.levAsset){
+      console.log("stuck on lev", quickActionState?.levAsset, quickActionState?.stableAsset)
       return {
         debtAmount: 0,
         cost: 0,
@@ -30,24 +38,23 @@ const useQuickActionVaultSummary = () => {
     return calculateVaultSummary({
       basket,
       collateralInterest,
-      basketPositions,
+      basketPositions: undefined,
       prices,
-      newDeposit: (quickActionState?.selectedAsset?.sliderValue??0) || 0,
-      summary: [quickActionState?.selectedAsset],
-      mint: quickActionState?.mint,
+      newDeposit: totalUsdValue,
+      summary: quickActionState?.summary,
+      mint: 0,
       initialBorrowLTV,
       initialLTV,
-      debtAmount,
-      initialTVL,
+      debtAmount: 0,
+      initialTVL: 0,
       basketAssets,
     })
   }, [
     basketPositions,
-    basket,
     collateralInterest,
     prices,
-    quickActionState?.selectedAsset,
-    quickActionState?.mint,
+    quickActionState?.summary,
+    totalUsdValue
   ])
 }
 

@@ -10,14 +10,12 @@ type ActionMenu = {
 }
 
 export type QuickActionState = {
-  selectedAsset?: AssetWithBalance
+  levAsset?: AssetWithBalance
+  stableAsset?: AssetWithBalance
   assets: AssetWithBalance[]
   summary?: Summary[]
   totalUsdValue?: number
-  mint?: number
-  swapInsteadof: boolean
-  addMintSection: boolean
-  action: ActionMenu
+  levSwapRatio?: number
 }
 
 type Store = {
@@ -27,9 +25,6 @@ type Store = {
 
 const initialState: QuickActionState = {  
   assets: [],
-  swapInsteadof: false,
-  addMintSection: false,
-  action: {value: "", label: ""},
 }
 
 // @ts-ignore

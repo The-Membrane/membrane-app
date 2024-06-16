@@ -5,7 +5,6 @@ import { Coin, coin, coins } from "@cosmjs/amino";
 import { calcAmountWithSlippage, calcShareOutAmount, convertGeckoPricesToDenomPriceHash, LiquidityPoolCalculator } from "@osmonauts/math";
 
 import { osmosis } from 'osmojs';
-import { SwapAmountInRoute } from "osmojs/dist/codegen/osmosis/poolmanager/v1beta1/swap_route";
 import { getAssetBySymbol, exported_supportedAssets } from "@/helpers/chain";
 import { PositionsMsgComposer } from "@/contracts/codegen/positions/Positions.message-composer";
 
@@ -31,6 +30,10 @@ import { shiftDigits } from "@/helpers/math";
 
 
 const secondsInADay = 24 * 60 * 60;
+type SwapAmountInRoute = {
+    poolId: any,
+    tokenOutDenom: string,
+}
 
 export interface swapRoutes {
     OSMO: SwapAmountInRoute[],
@@ -230,7 +233,7 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 // }
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
-export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
+export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
 
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address, mainnetAddrs.positions);
@@ -240,20 +243,20 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     //Set credit amount
     var creditAmount = debtAmount;
     //Confirm desired LTV isn't over the borrowable LTV
-    if (LTV >= borrowLTV / 100) {
+    if (LTV > borrowLTV / 100) {
         console.log("Desired LTV is over the Position's borrowable LTV")
-        return;
+        console.log(LTV, borrowLTV / 100)
+        return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
-    let cAsset_ratios = getAssetRatio(tvl, positions);
+    let cAsset_ratios = getAssetRatio(skipStable, tvl, positions);
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
-        return;
+        return { msgs: [], newValue: 0, newLTV: 0 };
     }
-
     //Repeat until CDT to mint is under 1 or Loops are done
     var mintAmount = 0;
     var iter = 0;
@@ -320,7 +323,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         }
     }
 
-    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV }
+    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 }
 // export const exitCLPools = (poolId: number) => {
 //     console.log("exit_cl_attempt")
@@ -567,7 +570,6 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
 //Parse through saved Routes until we reach CDT
 const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap routes
     const temp_routes: SwapAmountInRoute[] = getCDTRoute(tokenOut);
-
     //Reverse the route
     var routes = temp_routes.reverse();
     //Swap tokenOutdenom of the route to the key of the route
@@ -597,15 +599,15 @@ export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOu
     const tokenOutAmount = getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice);
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
-
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
     const msg = swapExactAmountIn({
-        sender: address! as string,
+        sender: address as string,
         routes,
         tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
         tokenOutMinAmount
     });
+
     // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };

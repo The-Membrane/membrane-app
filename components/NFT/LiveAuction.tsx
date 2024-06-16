@@ -6,8 +6,9 @@ import { useBalanceByAsset } from "@/hooks/useBalance";
 import { TxButton } from "../TxButton";
 import { isGreaterThanZero } from "@/helpers/num";
 import useLiveNFTBid from "./hooks/useLiveNFTBid";
-import { useLiveNFT, useLiveNFTAuction } from "./hooks/useBraneAuction";
+import { useLiveNFT } from "./hooks/useBraneAuction";
 import { useEffect, useMemo, useState } from "react";
+import React from "react";
 
 //ipfs://bafybeibyujxdq5bzf7m5fadbn3vysh3b32fvontswmxqj6rxj5o6mi3wvy/0.png
 //ipfs://bafybeid2chlkhoknrlwjycpzkiipqypo3x4awnuttdx6sex3kisr3rgfsm
@@ -32,19 +33,24 @@ function removeSegmentAndBefore(input: string, segment: string): string {
 //todo: 
 {/* Curation pagination in v2*/}
 
-const LiveAuction = () => {
-    const { data: liveNFTAuction } = useLiveNFTAuction()
-    const currentNFTIPFS = liveNFTAuction?.submission_info.submission.token_uri??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png"
+interface Prop {
+    tokenURI: string | undefined, 
+    nftBidAmount: number
+}
+
+const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {    
+    console.log("LiveAuction rerender")
+
     // const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
     
-    const { NFTState, setNFTState } = useNFTState()
-    const bid = useLiveNFTBid()
+    const { setNFTState } = useNFTState()
+    const bid = useLiveNFTBid(nftBidAmount)
 
     const stargazeCDT = useAssetBySymbol('CDT', 'stargaze')
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
 
     //Remove ipfs portion of link for metadata
-    const ipfsString = removeSegmentAndBefore(currentNFTIPFS, "ipfs://")
+    const ipfsString = removeSegmentAndBefore(tokenURI??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png", "ipfs://")
     //Get JSON metadata from IPFS
     const { data: liveNFT } = useLiveNFT(ipfsString)
     
@@ -59,7 +65,7 @@ const LiveAuction = () => {
         if (liveNFT) setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/" +  removeSegmentAndBefore(liveNFT.image, "ipfs://") )
     }, [liveNFT])
 
-    useEffect(() => {
+    useMemo(() => {
         const img: HTMLImageElement = document.createElement('img');
         img.src = imgSRC;
         img.onload = () => {
@@ -67,28 +73,21 @@ const LiveAuction = () => {
         };
     }, [imgSRC]);
 
-    // // Handle when the image loads successfully
-    // const handleImageLoaded = () => {
-    //   setIsLoading("");
-    // };
-
     return (
         <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
             {/* Need to add pagination for submissions so we can curate */}
-            {isLoading === "Loading image from IPFS......" && <div>{isLoading}</div>}
+            {isLoading && tokenURI === "Loading image from IPFS......" && <div>{isLoading}</div>}
             <HStack width="100%" justifyContent="space-between" backgroundColor="black" border="7px solid black">
             {isLoading === "Loading image from IPFS......" ? <Image
                 src={"/images/brane_wave.jpg"}
-                alt="Current Auctioned NFT Image"
-                // onLoad={handleImageLoaded}                
+                alt="Current Auctioned NFT Image"   
                 style={{ display: 'block' }}
                 width="18%"
                 height="auto"
                 borderRadius="50%"
             /> : <Image
                 src={imgSRC}
-                alt="Current Auctioned NFT Image"
-                // onLoad={handleImageLoaded}                
+                alt="Current Auctioned NFT Image"        
                 style={{ display: 'block' }}
                 width="18%"
                 height="auto"
@@ -96,14 +95,14 @@ const LiveAuction = () => {
             />}
                 <HStack justifyContent="space-between" marginRight={"2"}>
                     <Text fontSize="16px" fontWeight="700">
-                    {NFTState.nftBidAmount}
+                    {nftBidAmount}
                     </Text>
                     <Text fontSize="16px" fontWeight="700">
                     CDT
                     </Text>
                 </HStack>
                 <SliderWithState
-                    value={NFTState.nftBidAmount}
+                    value={nftBidAmount}
                     onChange={onBidChange}
                     min={0}
                     max={Number(stargazeCDTBalance)}
@@ -114,7 +113,7 @@ const LiveAuction = () => {
                     height="64px"
                     borderRadius="50%"
                     px="10"
-                    isDisabled={!isGreaterThanZero(NFTState.nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
+                    isDisabled={!isGreaterThanZero(nftBidAmount) || bid?.action.simulate.isError || !bid?.action.simulate.data}
                     isLoading={bid.action.simulate.isPending && !bid.action.simulate.isError && bid.action.simulate.data}
                     onClick={() => bid.action.tx.mutate()}
                     chain_name="stargaze"
@@ -125,6 +124,6 @@ const LiveAuction = () => {
             </HStack>
         </Card>
     )
-}
+})
 
 export default LiveAuction

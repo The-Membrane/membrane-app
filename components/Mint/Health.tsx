@@ -10,6 +10,7 @@ const Health = (props: Props) => {
 
   const health = useMemo(() => {
     if (ltv === 0) return 100
+    console.log(ltv, liqudationLTV)
     return num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
   }, [ltv, liqudationLTV])
 

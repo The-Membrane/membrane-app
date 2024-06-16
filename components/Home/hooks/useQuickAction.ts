@@ -80,7 +80,8 @@ const useQuickAction = () => {
       // IF STABLES ARE ADDED, SUBTRACT IT FROM THE PERCENT TO SWAP
       //Get the % of assets already in stables
       const stableRatio = num(stableAsset.sliderValue).dividedBy(num(quickActionState?.levAsset?.sliderValue).plus(num(stableAsset.sliderValue))).toNumber()
-      console.log("stable ratios:", stableRatio, stableAsset.sliderValue)
+      const stableValue = stableAsset.sliderValue
+      console.log("stable ratios:", stableRatio, stableAsset.sliderValue, stableValue??0)
       //Get the % of assets in lev
       const levRatio = 1 - stableRatio
       //Get the % of assets to swap to acheive 85% lev
@@ -135,7 +136,7 @@ const useQuickAction = () => {
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, undefined, prices)
       console.log("tvl", quickActionState?.levAsset?.sliderValue??0 + (quickActionState?.stableAsset?.sliderValue??0))
-      console.log(quickActionState?.levAsset?.sliderValue??0 + (stableAsset.sliderValue??0))
+      console.log(quickActionState?.levAsset?.sliderValue??0 + (stableValue??0))
       const { msgs: loops, newValue, newLTV } = loopPosition(
         true,
         cdtPrice,
@@ -145,7 +146,7 @@ const useQuickAction = () => {
         address, 
         prices, 
         basket,
-        quickActionState?.levAsset?.sliderValue??0 + (quickActionState?.stableAsset?.sliderValue??0), 
+        quickActionState?.levAsset?.sliderValue??0 + (stableValue??0), 
         0, 
         45,
         positions

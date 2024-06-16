@@ -160,7 +160,7 @@ const QuickActionWidget = () => {
         <Text fontSize="14px" fontWeight="700">
           Choose Collateral to Leverage
         </Text> 
-        <Divider mx="0" mt="0" mb="0"/>
+        <Divider mx="0" mt="0" mb="5"/>
         <SliderWithInputBox
             max={quickActionState?.levAsset?.combinUsdValue??0}
             inputBoxWidth='42%'

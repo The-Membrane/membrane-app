@@ -68,7 +68,7 @@ type Props = {
   
   if (stable){
     return (
-      <Stack py="5" w="full" gap="3" mb={"8"} pb={"5"} >     
+      <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >     
         {QAState?.levAsset && QAState?.stableAsset && (QAState?.levAsset?.sliderValue??0 > 0) ? <><HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
             value={QAState?.stableAsset} 
@@ -90,7 +90,7 @@ type Props = {
     )
   }
       return (
-      <Stack py="5" w="full" gap="3" mb={"8"} pb={"5"} >     
+      <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >     
         {QAState?.levAsset != undefined ? <><HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
             value={QAState?.levAsset} 

@@ -152,6 +152,11 @@ const QuickActionWidget = () => {
         <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...
         </Text>
+        : levAssets.length === 0 ?
+        <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+          No available collateral assets in your wallet. 
+          {/* Add Onboarding Button here */}
+        </Text>
         : 
         <>
         {/* //Action */}

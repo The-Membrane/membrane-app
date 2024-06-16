@@ -154,10 +154,10 @@ const QuickActionWidget = () => {
         </Text>
         : levAssets.length === 0 ?
         <Text fontSize="sm" color="white" mt="2" minH="21px">
-          No available non-stable collateral assets in your wallet. Use stables in the Mint tab.
+          This tool only accepts volatile assets as collateral. Check the Mint tab to use stablecoins & bundles.
           {/* Add Onboarding Button here */}
-        </Text>
-        : 
+        </Text> 
+        :  - Add Leverage label on card b4 modal open - Test with larger USDC balance - Fix presentation of product
         <>
         {/* //Action */}
         {/* Asset Menu + Input Box/Sliders*/}        
@@ -201,7 +201,7 @@ const QuickActionWidget = () => {
           </Text>
           : null }
         <Text fontSize="sm" color="white" mt="2" minH="21px">
-            max slippage: {SWAP_SLIPPAGE}%
+            {quickActionState.levAsset?.symbol} leverage: {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% --- max slippage: {SWAP_SLIPPAGE}%
         </Text>
         </Stack>
 

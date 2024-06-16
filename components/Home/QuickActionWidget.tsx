@@ -157,7 +157,7 @@ const QuickActionWidget = () => {
           This tool only accepts volatile assets as collateral. Check the Mint tab to use stablecoins & bundles.
           {/* Add Onboarding Button here */}
         </Text> 
-        :  - Add Leverage label on card b4 modal open - Test with larger USDC balance - Fix presentation of product
+        :  
         <>
         {/* //Action */}
         {/* Asset Menu + Input Box/Sliders*/}        

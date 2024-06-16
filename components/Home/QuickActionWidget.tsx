@@ -201,7 +201,7 @@ const QuickActionWidget = () => {
           </Text>
           : null }
         <Text fontSize="sm" color="white" mt="2" minH="21px">
-            {quickActionState.levAsset?.symbol} leverage: {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% --- max slippage: {SWAP_SLIPPAGE}%
+        {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol} --- max slippage: {SWAP_SLIPPAGE}%
         </Text>
         </Stack>
 

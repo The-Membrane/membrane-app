@@ -137,7 +137,7 @@ const useQuickAction = () => {
       const positions = updatedSummary(summary, undefined, prices)
       console.log("tvl", quickActionState?.levAsset?.sliderValue??0 + (stableValue??0))
       console.log(quickActionState?.levAsset?.sliderValue??0, (stableValue??0))
-      console.log(num(quickActionState?.levAsset?.sliderValue).plus(stableValue??0))
+      console.log(num(quickActionState?.levAsset?.sliderValue).plus(stableValue??0).toNumber())
       const { msgs: loops, newValue, newLTV } = loopPosition(
         true,
         cdtPrice,
@@ -147,7 +147,7 @@ const useQuickAction = () => {
         address, 
         prices, 
         basket,
-        quickActionState?.levAsset?.sliderValue??0 + (stableValue??0), 
+        num(quickActionState?.levAsset?.sliderValue).plus(stableValue??0).toNumber(), 
         0, 
         45,
         positions

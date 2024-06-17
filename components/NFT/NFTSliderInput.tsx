@@ -29,13 +29,13 @@ type Props = {
     setInputAmount: (value: number) => void
   }
   
-  export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount, bridgeCardToggle = false }: SliderWithInputProps) => {
-            const onSliderChange = (value: number) => {      
+  export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", NFTState, setNFTState, onMenuChange, inputAmount, setInputAmount}: SliderWithInputProps) => {
+        const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
 
           if (bridgeCardToggle) {
-            if (num(value).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
-            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: value, sliderValue: value }})
+            if (num(value).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: max, sliderValue: max }})
+            else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: value, sliderValue: value }})
           }
       }
   
@@ -46,31 +46,31 @@ type Props = {
           else setInputAmount(parseInt(e.target.value))
   
         setTimeout(() => {
-          if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
-            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
+          if (num(newAmount).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: max, sliderValue: max }})
+            else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
         }, delayTime);  
       }
   
       useEffect(() => {
         //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
-        if (QAState?.selectedAsset?.sliderValue != inputAmount) {
-          setInputAmount(QAState?.selectedAsset?.sliderValue??0)
+        if (NFTState?.selectedAsset?.sliderValue != inputAmount) {
+          setInputAmount(NFTState?.selectedAsset?.sliderValue??0)
         }
-      }, [QAState?.selectedAsset?.sliderValue])
+      }, [NFTState?.selectedAsset?.sliderValue])
       
   
   
       return (
       <Stack py="5" w="full" gap="3" mb={"0"} pb={"0"} >     
-        <Text fontSize="14px" fontWeight="700">
+        {NFTState?.selectedAsset ? <><Text fontSize="14px" fontWeight="700">
           Choose Asset
         </Text> 
         <Divider mx="0" mt="0" mb="5"/>
         <HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
-            value={QAState?.selectedAsset} 
+            value={NFTState?.selectedAsset} 
             onChange={onMenuChange}
-            assets={QAState?.assets}
+            assets={NFTState?.assets}
           />
           <Input 
             width={inputBoxWidth} 
@@ -81,6 +81,8 @@ type Props = {
             onChange={handleInputChange}
           />
         </HStack>
-        <NFTAssetSlider key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />  
+        <NFTAssetSlider key={NFTState?.selectedAsset?.base} asset={NFTState?.selectedAsset} label={NFTState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />  
+        </>
+      : null}
     </Stack>)
   })

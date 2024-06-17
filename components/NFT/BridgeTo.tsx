@@ -182,7 +182,6 @@ const BridgeTo = React.memo(() => {
                         onMenuChange={onAssetMenuChange}
                         inputAmount={inputAmount}
                         setInputAmount={setInputAmount}
-                        bridgeCardToggle={true}
                     /> : null}
                 
                     {NFTState.swapInsteadof ?
@@ -190,6 +189,7 @@ const BridgeTo = React.memo(() => {
                         max slippage: {SWAP_SLIPPAGE}%
                     </Text></> : null }
                     </Stack>
+                    </>: null}
 
                 {NFTState.action.value === "Bridge to Osmosis" ?  
                     <QASelect 
@@ -247,8 +247,6 @@ const BridgeTo = React.memo(() => {
                     >
                     {NFTState.action.value}
                 </TxButton>
-                </>
-                : null}
             </Card>
             </HStack>
         </Stack>

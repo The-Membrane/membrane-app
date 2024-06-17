@@ -91,12 +91,6 @@ const BridgeTo = React.memo(() => {
               price: Number(prices?.find((p: any) => p.denom === asset.base)?.price??"0"),
               combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount??0), -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base)?.price??"0"))).toNumber()
             }
-          }).filter((asset) => {
-            if (!asset) return false
-             //This helps us decrease the menu size by removing dust
-             //Technically we could do anything under $110 as that's the minimum but for new users that adds confusion
-            if (asset.combinUsdValue < 5) return false
-            else return true
           })
   
           //Sort assets by USD value
@@ -113,6 +107,7 @@ const BridgeTo = React.memo(() => {
     }, [assets, walletBalances, prices, address])
   
     useEffect(() => {
+      console.log("asset set:", NFTState?.assets)
       if (!NFTState?.selectedAsset && (NFTState?.assets??[]).length > 0) {
         setNFTState({
           selectedAsset:  NFTState?.assets[0], 
@@ -144,10 +139,9 @@ const BridgeTo = React.memo(() => {
       }
       
     }, [NFTState?.assets, NFTState?.selectedAsset?.symbol])
-  console.log("assets: ", NFTState.assets,assets, walletBalances)
+  console.log("assets: ", NFTState.assets, NFTState?.selectedAsset)
     return (
         <Stack w="full" gap="5">
-            {}
             <Text variant="title">Bridge</Text>            
             <HStack justifyContent="center">
             <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
@@ -189,7 +183,6 @@ const BridgeTo = React.memo(() => {
                         onMenuChange={onAssetMenuChange}
                         inputAmount={inputAmount}
                         setInputAmount={setInputAmount}
-                        bridgeCardToggle={true}
                     /> : null}
                 
                     {NFTState.swapInsteadof ?
@@ -197,6 +190,7 @@ const BridgeTo = React.memo(() => {
                         max slippage: {SWAP_SLIPPAGE}%
                     </Text></> : null }
                     </Stack>
+                    </>: null}
 
                 {NFTState.action.value === "Bridge to Osmosis" ?  
                     <QASelect 
@@ -204,7 +198,7 @@ const BridgeTo = React.memo(() => {
                         options={[{ value: "Bridge to Stargaze", label: "Bridge to Stargaze" }, { value: "Bridge to Osmosis", label: "Bridge to Osmosis"}]}
                         onChange={onActionMenuChange}
                         value={NFTState?.action} 
-                    />: null}
+                    /> : null}
 
                 {/* Bridge Sliders */}
                 <Stack width={"100%"}>
@@ -254,8 +248,6 @@ const BridgeTo = React.memo(() => {
                     >
                     {NFTState.action.value}
                 </TxButton>
-                </>
-                : null}
             </Card>
             </HStack>
         </Stack>

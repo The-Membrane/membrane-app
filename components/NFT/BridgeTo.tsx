@@ -138,7 +138,7 @@ const BridgeTo = React.memo(() => {
       }
       
     }, [NFTState?.assets, NFTState?.selectedAsset?.symbol])
-  console.log("assets: ", NFTState.assets,assets, walletBalances)
+  console.log("assets: ", NFTState.assets,assets, walletBalances, walletDenoms)
     return (
         <Stack w="full" gap="5">
             <Text variant="title">Bridge</Text>            

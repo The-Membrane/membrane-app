@@ -33,10 +33,9 @@ type Props = {
         const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
 
-          if (bridgeCardToggle) {
-            if (num(value).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: max, sliderValue: max }})
-            else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: value, sliderValue: value }})
-          }
+        if (num(value).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: max, sliderValue: max }})
+        else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: value, sliderValue: value }})
+          
       }
   
       const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {

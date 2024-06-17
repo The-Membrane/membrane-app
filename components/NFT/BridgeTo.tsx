@@ -138,7 +138,7 @@ const BridgeTo = React.memo(() => {
       }
       
     }, [NFTState?.assets, NFTState?.selectedAsset?.symbol])
-  console.log("assets: ", NFTState.assets,assets, walletBalances, walletDenoms)
+  console.log("assets: ", NFTState.assets, NFTState?.selectedAsset)
     return (
         <Stack w="full" gap="5">
             <Text variant="title">Bridge</Text>            
@@ -197,7 +197,7 @@ const BridgeTo = React.memo(() => {
                         options={[{ value: "Bridge to Stargaze", label: "Bridge to Stargaze" }, { value: "Bridge to Osmosis", label: "Bridge to Osmosis"}]}
                         onChange={onActionMenuChange}
                         value={NFTState?.action} 
-                    />: null}
+                    /> : null}
 
                 {/* Bridge Sliders */}
                 <Stack width={"100%"}>

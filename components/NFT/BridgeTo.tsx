@@ -107,6 +107,7 @@ const BridgeTo = React.memo(() => {
     }, [assets, walletBalances, prices, address])
   
     useEffect(() => {
+      console.log("asset set:", NFTState?.assets)
       if (!NFTState?.selectedAsset && (NFTState?.assets??[]).length > 0) {
         setNFTState({
           selectedAsset:  NFTState?.assets[0], 

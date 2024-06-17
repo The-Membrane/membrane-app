@@ -39,10 +39,16 @@ export const StatsCard = React.memo(() => {
   return (    
     <Stack gap={3}>
       <HStack mt="auto" gap="24" justifyContent={"center"} onClick={()=>setTitleToggle(!titleToggle)}>
-      {titleToggle ? 
-      <Text fontWeight="bold" fontSize="33px" fontFamily="monospace">
-        The Membrane for Stablecoin Laboratories on Osmosis
-      </Text>        
+      {titleToggle ?
+      
+      <Stack gap={3}>
+        <Text fontWeight="bold" fontSize="33px" fontFamily="monospace">
+          900%+ leverage. No Liquidations.*
+        </Text>                
+        <Text fontSize="sm" color="white" mt="2" minH="21px">
+          *unless USDC depegs or rates accrue by 6%. Sub 1% interest in normal market conditions.
+        </Text>        
+      </Stack>
            :
         <><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
         <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></>}

@@ -201,6 +201,8 @@ const QuickActionWidget = () => {
           <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             No available collateral assets in your wallet. 
             {/* Add Onboarding Button here */}
+            {/* Add position pagination */}
+            {/* Add cookies to track performance */}
           </Text>
           : null }
         </Stack>

@@ -144,17 +144,22 @@ const BridgeTo = React.memo(() => {
       }
       
     }, [NFTState?.assets, NFTState?.selectedAsset?.symbol])
-  
+  console.log("assets: ", NFTState.assets,assets, walletBalances)
     return (
         <Stack w="full" gap="5">
             {}
             <Text variant="title">Bridge</Text>            
             <HStack justifyContent="center">
             <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-                {NFTState.assets.length === 0 ? 
-                <Text variant="body" fontSize="16px" marginTop={4} mb={4}>
-                    Loading options to swap...
-                </Text> 
+                {NFTState.assets.length === 0 && NFTState.swapInsteadof ? 
+                <Stack>
+                  <Checkbox isChecked={NFTState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => {setNFTState({swapInsteadof: !NFTState.swapInsteadof}); setNFTState({ cdtBridgeAmount: 0 });}}> 
+                      Swap & Bridge
+                  </Checkbox >
+                  <Text variant="body" fontSize="16px" marginTop={4} mb={4}>
+                      Loading options to swap...
+                  </Text>
+                </Stack> 
                 :
                 NFTState.action.value === "Bridge to Stargaze" ? <>
                     <HStack justifyContent="space-between">

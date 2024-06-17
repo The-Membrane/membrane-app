@@ -54,13 +54,14 @@ const QuickActionWidget = () => {
             price: Number(prices?.find((p: any) => p.denom === asset.base)?.price??"0"),
             combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount??0), -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base)?.price??"0"))).toNumber()
           }
-        }).filter((asset) => {
-          if (!asset) return false
-           //This helps us decrease the menu size by removing dust
-           //Technically we could do anything under $110 as that's the minimum but for new users that adds confusion
-          if (asset.combinUsdValue < 5) return false
-          else return true
         })
+        // .filter((asset) => {
+        //   if (!asset) return false
+        //    //This helps us decrease the menu size by removing dust
+        //    //Technically we could do anything under $110 as that's the minimum but for new users that adds confusion
+        //   if (asset.combinUsdValue < 5) return false
+        //   else return true
+        // })
 
         //Sort assets by USD value
         assetsWithBalance.sort((a, b) => {

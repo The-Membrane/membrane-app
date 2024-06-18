@@ -86,32 +86,36 @@ const useQuickAction = () => {
       const levRatio = 1 - stableRatio
       //Get the % of assets to swap to acheive 85% lev
       //ex: 20% in stables, 80% in levAsset, means we need to get 65% of the total Value to be stables which is 81.25% of the remaining levAsset
-      const swapRatio = (swapPercent - stableRatio) / levRatio
+      const swapRatio = Math.max(swapPercent - stableRatio, 0) / levRatio
       // setQuickActionState({ levSwapRatio: swapRatio })
 
       const swapFromAmount = num(quickActionState?.levAsset?.amount).times(swapRatio).toNumber()
       const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)
-      const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
-        address, 
-        swapFromAmount,
-        swapFromAsset: quickActionState?.levAsset,
-        prices,
-        cdtPrice,
-      })
-      msgs.push(swap as MsgExecuteContractEncodeObject)
-      //2) Swap CDT to stableAsset
-      const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
-        address,
-        cdtAmount: shiftDigits(tokenOutMinAmount, -6),
-        swapToAsset: stableAsset,
-        prices,
-        cdtPrice,
-      })
-      msgs.push(CDTswap as MsgExecuteContractEncodeObject)
+      var stableOutAmount = 0
+      if (swapFromAmount != 0){
+        const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
+          address, 
+          swapFromAmount,
+          swapFromAsset: quickActionState?.levAsset,
+          prices,
+          cdtPrice,
+        })
+        msgs.push(swap as MsgExecuteContractEncodeObject)
+        //2) Swap CDT to stableAsset
+        const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
+          address,
+          cdtAmount: shiftDigits(tokenOutMinAmount, -6),
+          swapToAsset: stableAsset,
+          prices,
+          cdtPrice,
+        })
+        msgs.push(CDTswap as MsgExecuteContractEncodeObject)
+        stableOutAmount = stableOutMinAmount
+      }
 
       //Set stableAsset deposit amount - Add swapAmount to the stableAsset
-      const stableAmount = num(stableAsset.amount).plus(shiftDigits(stableOutMinAmount, -stableAsset.decimal)).toNumber();
-      console.log("STABLE AMOUNT", stableAmount, shiftDigits(stableOutMinAmount, -stableAsset.decimal), stableAsset.amount)
+      const stableAmount = num(stableAsset.amount).plus(shiftDigits(stableOutAmount, -stableAsset.decimal)).toNumber();
+      console.log("STABLE AMOUNT", stableAmount, shiftDigits(stableOutAmount, -stableAsset.decimal), stableAsset.amount)
 
       //3) Deposit both lev & stable assets to a new position
       const levAsset = {...quickActionState?.levAsset as any, amount: shiftDigits(levAmount, -quickActionState?.levAsset?.decimal)}

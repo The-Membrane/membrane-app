@@ -11,6 +11,7 @@ const Stake = React.memo(() => {
         <Text variant="title">Governance</Text>
         <ManageStake />
         <Delegate />
+        <AuctionClaim />
       </Stack>
       <Governance />
     </HStack>

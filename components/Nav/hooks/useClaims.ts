@@ -21,7 +21,6 @@ import { Coin } from '@cosmjs/stargate'
 import { denoms } from '@/config/defaults'
 import { claimstoCoins } from '@/services/liquidation'
 import useAllocation from '@/components/Lockdrop/hooks/useAllocation'
-import { m } from 'framer-motion'
 
 type ClaimsSummary = {
   liquidation: Coin[]

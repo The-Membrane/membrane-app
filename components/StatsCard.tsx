@@ -42,7 +42,7 @@ export const StatsCard = React.memo(() => {
       {titleToggle ?
       
       <Stack gap={3}>
-        <Text fontWeight="bold" fontSize="33px" fontFamily="monospace">
+        <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex">
         ∞ leverage. No Liquidations.*
         </Text>                
         <Text fontSize="sm" color="white" mt="2" minH="21px">

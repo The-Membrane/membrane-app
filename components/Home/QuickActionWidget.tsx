@@ -195,7 +195,7 @@ const QuickActionWidget = () => {
         <Text fontSize="sm" color="white" mt="2" minH="21px">
         {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol} --- max slippage: {SWAP_SLIPPAGE}%
         </Text>
-         {(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+         {((quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
           </Text>
           : levAssets.length === 0 ?

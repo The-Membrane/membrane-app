@@ -9,6 +9,7 @@ import { useBalanceByAsset } from '@/hooks/useBalance'
 import { isGreaterThanZero } from '@/helpers/num'
 import { coins } from 'cosmwasm'
 import { getLiveFeeAuction } from '@/services/asset_auction'
+import useWallet from '@/hooks/useWallet'
 
 
 export const useLiveFeeAuction = () => {
@@ -57,7 +58,3 @@ export const useAuction = () => {
 }
 
 export default useAuction
-
-function useWallet(): { address: any } {
-    throw new Error('Function not implemented.')
-}

@@ -11,7 +11,7 @@ const useVaultSummary = () => {
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
   const { mintState } = useMintState()
-  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary(mintState.positionIndex)
+  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary(mintState.positionNumber)
 
   return useMemo(() => {
     return calculateVaultSummary({

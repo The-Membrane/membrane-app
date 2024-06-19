@@ -44,17 +44,17 @@ type PaginationProps = {
 
 const nextPage = (setMintState: any, currentPage: number, totalPages: number) => {
   if (currentPage < totalPages) {
-    setMintState({ currentPage: currentPage + 1 })
+    setMintState({ positionNumber: currentPage + 1 })
   }
 }
 const previousPage = (setMintState: any, currentPage: number) => {
-  if (currentPage > 0) {
-    setMintState({ currentPage: currentPage - 1 })
+  if (currentPage > 1) {
+    setMintState({ positionNumber: currentPage - 1 })
   }
 }
 
 const PaginationBar = ({ pagination }: PaginationProps) => {
-  if (pagination.totalPages <= 0) return null
+  if (pagination.totalPages <= 1) return null
   return (
     <HStack w="100%" justifyContent="flex-end">
       <Pagination {...pagination} />
@@ -67,8 +67,8 @@ const MintTabsCard = () => {
   const { data: basketPositions } = useUserPositions()
 
   const totalPages = useMemo(() => {
-    if (!basketPositions) return 0
-    return basketPositions[0].positions.length - 1
+    if (!basketPositions) return 1
+    return basketPositions[0].positions.length
   }, [basketPositions])
 
   const onTabChange = (index: number) => {
@@ -110,11 +110,11 @@ const MintTabsCard = () => {
         {/* For position pagination */}
         <PaginationBar pagination={{
           totalPages: totalPages,
-          currentPage: mintState.positionIndex,
-          nextPage: () => nextPage(setMintState, mintState.positionIndex, totalPages),
-          previousPage: () => previousPage(setMintState, mintState.positionIndex),
-          isFirst: mintState.positionIndex === 0,
-          isLast: mintState.positionIndex === totalPages,
+          currentPage: mintState.positionNumber,
+          nextPage: () => nextPage(setMintState, mintState.positionNumber, totalPages),
+          previousPage: () => previousPage(setMintState, mintState.positionNumber),
+          isFirst: mintState.positionNumber === 1,
+          isLast: mintState.positionNumber === totalPages,
         
         }}/>
       </VStack>

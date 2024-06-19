@@ -122,9 +122,9 @@ export interface Prices {
   [key: string]: number
 }
 
-export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], positionIndex: number = 0) => {
+export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], positionNumber: number = 0) => {
   if (!basketPositions) return []
-  const positions = basketPositions?.[0]?.positions?.[positionIndex]
+  const positions = basketPositions?.[0]?.positions?.[positionNumber]
 
   return positions?.collateral_assets.map((asset) => {
     const denom = asset.asset.info.native_token.denom
@@ -277,7 +277,7 @@ type VaultSummary = {
   basketAssets: BasketAsset[]
 }
 
-export const updatedSummary = (summary: any, basketPositions: any, prices: any, positionIndex: number = 0) => {
+export const updatedSummary = (summary: any, basketPositions: any, prices: any, positionNumber: number = 0) => {
 
   //If no initial position, return a summary using the summary from the mint state
   if (!basketPositions){
@@ -297,7 +297,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
   }
   console.log("positions")
 
-  const positions = getPositions(basketPositions, prices, positionIndex)
+  const positions = getPositions(basketPositions, prices, positionNumber)
   console.log("positions.map")
 
   return positions.map((position) => {
@@ -321,7 +321,7 @@ export const calculateVaultSummary = ({
   basket,
   collateralInterest,
   basketPositions,
-  positionIndex = 0,
+  positionNumber = 0,
   prices,
   newDeposit,
   summary = [],
@@ -348,7 +348,7 @@ export const calculateVaultSummary = ({
   }
   console.log("pre-sum")
 
-  const positions = updatedSummary(summary, basketPositions, prices, positionIndex)
+  const positions = updatedSummary(summary, basketPositions, prices, positionNumber)
   console.log("positions: ", positions)
   if (!positions) return {
     debtAmount: 0,

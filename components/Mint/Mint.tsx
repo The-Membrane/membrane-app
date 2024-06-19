@@ -54,7 +54,7 @@ const previousPage = (setMintState: any, currentPage: number) => {
 }
 
 const PaginationBar = ({ pagination }: PaginationProps) => {
-  // if (pagination.totalPages <= 1) return null
+  if (pagination.totalPages <= 0) return null
   return (
     <HStack w="100%" justifyContent="flex-end">
       <Pagination {...pagination} />
@@ -111,10 +111,10 @@ const MintTabsCard = () => {
         <PaginationBar pagination={{
           totalPages: totalPages,
           currentPage: mintState.positionIndex,
-          nextPage,
-          previousPage,
-          isFirst: activeTabIndex === 0,
-          isLast: activeTabIndex === totalPages,
+          nextPage: () => nextPage(setMintState, mintState.positionIndex, totalPages),
+          previousPage: () => previousPage(setMintState, mintState.positionIndex),
+          isFirst: mintState.positionIndex === 0,
+          isLast: mintState.positionIndex === totalPages,
         
         }}/>
       </VStack>

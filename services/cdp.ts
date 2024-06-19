@@ -98,9 +98,9 @@ export const getBasketPositions = async () => {
   })
 }
 
-export const getDebt = (basketPositions: BasketPositionsResponse[] | undefined) => {
+export const getDebt = (basketPositions: BasketPositionsResponse[] | undefined, positionIndex: number = 0) => {
   if (!basketPositions) return 0
-  const debt = basketPositions?.[0]?.positions?.[0]?.credit_amount
+  const debt = basketPositions?.[0]?.positions?.[positionIndex]?.credit_amount
   return shiftDigits(debt, -6).toNumber()
 }
 
@@ -337,6 +337,7 @@ export const calculateVaultSummary = ({
   debtAmount,
   basketAssets,
 }: VaultSummary) => {
+  console.log("vault sum", positionIndex)
   if (!basket || !collateralInterest || (!basketPositions && summary.length === 0) || !prices) {
     console.log("early return")
     return {

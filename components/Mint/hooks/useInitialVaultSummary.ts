@@ -19,7 +19,7 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
       initialTVL: 0, 
       basketAssets: []
     }
-    const calc_debtAmount = getDebt(basketPositions)
+    const calc_debtAmount = getDebt(basketPositions, positionIndex)
     const calc_basketAssets = getBasketAssets(basket!, collateralInterest!)
     const calc_initialTVL = getTVL(calc_initialPositions)
     const calc_initialBorrowLTV = getBorrowLTV(calc_initialTVL, calc_initialPositions, calc_basketAssets)

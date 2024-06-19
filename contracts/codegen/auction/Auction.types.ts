@@ -4,6 +4,8 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
+import { AssetInfo } from "@/contracts/generated/positions/Positions.types";
+
 export type Decimal = string;
 export type Addr = string;
 export interface Config {
@@ -57,15 +59,6 @@ export type ExecuteMsg = {
   remove_auction: {};
 } | {
   update_config: UpdateConfig;
-};
-export type AssetInfo = {
-  token: {
-    address: Addr;
-  };
-} | {
-  native_token: {
-    denom: string;
-  };
 };
 export interface Asset {
   amount: Uint128;

@@ -27,7 +27,7 @@ const Stake = React.memo(() => {
     return Math.max(discount, 0.99) * 100
   }, [feeAuctions])
   
-  console.log(!isGreaterThanZero(MBRNBalance), claim?.simulate.isError, !claim?.simulate.data)
+  console.log(!isGreaterThanZero(MBRNBalance), claim?.simulate.errorMessage, claim?.simulate.isError, !claim?.simulate.data)
   return (
     <TxButton
         // marginTop={"3%"}

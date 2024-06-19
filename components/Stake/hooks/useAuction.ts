@@ -40,6 +40,7 @@ export const useAuction = () => {
       //Subsequent executions can handle the next auction, this allows the user to only execute for discounts they like 
       //+ we don't have to do calculations for how much MBRN needs to be sent
 
+      console.log(msgs)
       return [msgs] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,

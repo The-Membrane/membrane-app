@@ -10,7 +10,6 @@ import dayjs from "dayjs"
 const auctionDiscount = 0.01
 const auctionDiscountIncreaseTimeframe = 36
 
-
 const Stake = React.memo(() => {
   const mbrn = useAssetBySymbol('MBRN')
   const MBRNBalance = useBalanceByAsset(mbrn)
@@ -23,7 +22,7 @@ const Stake = React.memo(() => {
     const startTime = dayjs.unix(feeAuctions[0].auction_start_time)
     const currentTime = dayjs()
     const timeElapsed = startTime.diff(currentTime, 'second')
-    const discount = parseInt((timeElapsed / 36).toFixed(0)) * auctionDiscount
+    const discount = parseInt((timeElapsed / auctionDiscountIncreaseTimeframe).toFixed(0)) * auctionDiscount
 
     return discount
   }, [feeAuctions])

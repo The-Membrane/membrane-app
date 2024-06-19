@@ -3,6 +3,7 @@ import { HStack, Stack, Text } from '@chakra-ui/react'
 import ManageStake from './ManageStake'
 import Delegate from '@/components/Governance/Delegate'
 import React from "react"
+import AuctionClaim from './AuctionClaim'
 
 const Stake = React.memo(() => {
   return (

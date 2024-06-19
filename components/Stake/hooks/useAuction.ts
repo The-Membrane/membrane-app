@@ -39,7 +39,7 @@ export const useAuction = () => {
       console.log("here:", feeAuctions[0])
       //Create msgs for the first Auction which has the lowest discount
       // const msgs = messageComposer.swapForFee({auctionAsset: {native_token: {denom:""}}}, [] )
-      const msgs = messageComposer.swapForFee({auctionAsset: feeAuctions[0].auction_asset.info}, coins(MBRNBalance, mbrn.base) )
+      const msgs = messageComposer.swapForFee({auctionAsset: feeAuctions[0].auction_asset.info}, []] )
       console.log("here2")
       //Subsequent executions can handle the next auction, this allows the user to only execute for discounts they like 
       //+ we don't have to do calculations for how much MBRN needs to be sent

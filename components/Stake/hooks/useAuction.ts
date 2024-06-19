@@ -52,7 +52,7 @@ export const useAuction = () => {
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    // enabled: !!msgs,
+    enabled: !!msgs,
     queryKey: ['sim fee auction claim', (msgs?.toString()??"0")],
     onSuccess,
   }), msgs}

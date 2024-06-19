@@ -21,7 +21,7 @@ const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
 const CollateralAssets = () => {
   const [toggle, setToggle] = useState<boolean>(false)
   const { mintState, setMintState } = useMintState()
-  const combinBalance = useCombinBalance()
+  const combinBalance = useCombinBalance(mintState.positionIndex)
   const { assets } = mintState
 
   useEffect(() => {

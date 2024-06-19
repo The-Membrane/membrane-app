@@ -19,6 +19,7 @@ import React from "react"
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { Pagination } from '../Governance/Pagination'
 import { useUserPositions } from '@/hooks/useCDP'
+import { MAX_CDP_POSITIONS } from '@/config/defaults'
 
 type TabProps = {
   onClick: any
@@ -68,7 +69,7 @@ const MintTabsCard = () => {
 
   const totalPages = useMemo(() => {
     if (!basketPositions) return 1
-    return basketPositions[0].positions.length
+    return Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS)
   }, [basketPositions])
 
   const onTabChange = (index: number) => {

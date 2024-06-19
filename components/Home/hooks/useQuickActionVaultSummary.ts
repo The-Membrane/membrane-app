@@ -4,7 +4,6 @@ import { calculateVaultSummary } from '@/services/cdp'
 import { useMemo } from 'react'
 import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSummary'
 import useQuickActionState from './useQuickActionState'
-import { Summary } from '@/components/Mint/hooks/useMintState'
 
 const useQuickActionVaultSummary = () => {
   const { data: basket } = useBasket()

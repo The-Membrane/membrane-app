@@ -6,6 +6,7 @@ import { TxButton } from "../TxButton"
 import { isGreaterThanZero } from "@/helpers/num"
 import useAuction, { useLiveFeeAuction } from "./hooks/useAuction"
 import dayjs from "dayjs"
+import ConfirmModal from "../ConfirmModal"
 
 const auctionDiscount = 0.01
 const auctionDiscountIncreaseTimeframe = 36
@@ -29,18 +30,24 @@ const Stake = React.memo(() => {
   
   console.log(!isGreaterThanZero(MBRNBalance), claim?.simulate.errorMessage, claim?.simulate.isError, !claim?.simulate.data)
   return (
-    <TxButton
-        // marginTop={"3%"}
-        w="full"
-        height="64px"
-        px="10"
-        isDisabled={!isGreaterThanZero(MBRNBalance) }//|| claim?.simulate.isError || !claim?.simulate.data}
-        isLoading={claim.simulate.isPending && !claim.simulate.isError && claim.simulate.data}
-        onClick={() => claim.tx.mutate()}
-        toggleConnectLabel={false}
-        >
-        {discount}% Discount on Fee Auction
-    </TxButton>
+    <ConfirmModal 
+        action={claim}
+        label={"Begin Degeneracy"}
+        isDisabled={!isGreaterThanZero(MBRNBalance) }>
+          {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
+        </ConfirmModal>
+    //   <TxButton
+    //     // marginTop={"3%"}
+    //     w="full"
+    //     height="64px"
+    //     px="10"
+    //     isDisabled={!isGreaterThanZero(MBRNBalance) }//|| claim?.simulate.isError || !claim?.simulate.data}
+    //     isLoading={claim.simulate.isPending && !claim.simulate.isError && claim.simulate.data}
+    //     onClick={() => claim.tx.mutate()}
+    //     toggleConnectLabel={false}
+    //     >
+    //     {discount}% Discount on Fee Auction
+    // </TxButton>
   )
 })
 

@@ -21,10 +21,10 @@ export const useLiveFeeAuction = () => {
 }
 
 export const useAuction = () => {
-    const { address } = useWallet()
-    const cdt = useAssetBySymbol('CDT')
-    const mbrn = useAssetBySymbol('MBRN')
-    const MBRNBalance = useBalanceByAsset(mbrn)    
+  const { address } = useWallet()
+  const cdt = useAssetBySymbol('CDT')
+  const mbrn = useAssetBySymbol('MBRN')
+  const MBRNBalance = useBalanceByAsset(mbrn)    
   const { data: feeAuctions } = useLiveFeeAuction()
   
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
@@ -34,12 +34,10 @@ export const useAuction = () => {
         
       const messageComposer = new AuctionMsgComposer(address, contracts.auction)
       
-      //Create msgs for every asset that has a ongoing auction
-      const msgs = messageComposer.swapForFee({auctionAsset: {
-        native_token: {
-          denom: cdt.base
-        }
-      }}, coins(MBRNBalance, mbrn.base) )
+      //Create msgs for the first Auction which has the lowest discount
+      const msgs = messageComposer.swapForFee({auctionAsset: feeAuctions[0].auction_asset.info}, coins(MBRNBalance, mbrn.base) )
+      //Subsequent executions can handle the next auction, this allows the user to only execute for discounts they like 
+      //+ we don't have to do calculations for how much MBRN needs to be sent
 
       return [msgs] as MsgExecuteContractEncodeObject[]
     },

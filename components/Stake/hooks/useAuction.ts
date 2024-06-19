@@ -29,7 +29,7 @@ export const useAuction = () => {
   const { data: feeAuctions } = useLiveFeeAuction()
   
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg auction claim', address],
+    queryKey: ['msg auction claim', address, feeAuctions, MBRNBalance, cdt, mbrn],
     queryFn: () => {
       if (!address || !cdt || !mbrn || !feeAuctions || !isGreaterThanZero(MBRNBalance)) return [] as MsgExecuteContractEncodeObject[]
         

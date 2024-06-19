@@ -18,6 +18,7 @@ const useVaultSummary = () => {
       basket,
       collateralInterest,
       basketPositions,
+      positionIndex: mintState.positionNumber-1,
       prices,
       newDeposit: mintState?.totalUsdValue || 0,
       summary: mintState?.summary,
@@ -40,6 +41,7 @@ const useVaultSummary = () => {
     mintState?.mint,
     mintState?.repay,
     mintState?.newDebtAmount,
+    mintState.positionNumber
   ])
 }
 

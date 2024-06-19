@@ -8,6 +8,7 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
   const { data: collateralInterest } = useCollateralInterest()
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
+  console.log("initial vault sum", positionIndex)
 
   return useMemo(() => {
     const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
@@ -36,6 +37,7 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
     basket,
     collateralInterest,
     prices,
+    positionIndex
   ])
 }
 

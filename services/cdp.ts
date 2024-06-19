@@ -266,6 +266,7 @@ type VaultSummary = {
   basket?: Basket
   collateralInterest?: CollateralInterestResponse
   basketPositions?: BasketPositionsResponse[]
+  positionIndex: number
   prices?: Price[]
   newDeposit: number
   summary?: any[]

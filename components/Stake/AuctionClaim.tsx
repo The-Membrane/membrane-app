@@ -24,13 +24,13 @@ const Stake = React.memo(() => {
     const timeElapsed = startTime.diff(currentTime, 'second')
     const discount = parseInt((timeElapsed / auctionDiscountIncreaseTimeframe).toFixed(0)) * auctionDiscount
 
-    return discount
+    return Math.max(discount, 1)
   }, [feeAuctions])
   
   return (
     <TxButton
         // marginTop={"3%"}
-        w="64px"
+        w="full"
         height="64px"
         borderRadius="50%"
         px="10"

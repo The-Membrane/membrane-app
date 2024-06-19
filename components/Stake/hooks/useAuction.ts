@@ -31,6 +31,7 @@ export const useAuction = () => {
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['msg auction claim', address, feeAuctions, MBRNBalance, cdt, mbrn],
     queryFn: () => {
+      console.log("boom", !address, !cdt, !mbrn, !feeAuctions, !isGreaterThanZero(MBRNBalance))
       if (!address || !cdt || !mbrn || !feeAuctions || !isGreaterThanZero(MBRNBalance)) return [] as MsgExecuteContractEncodeObject[]
         
       const messageComposer = new AuctionMsgComposer(address, contracts.auction)
@@ -40,7 +41,7 @@ export const useAuction = () => {
       //Subsequent executions can handle the next auction, this allows the user to only execute for discounts they like 
       //+ we don't have to do calculations for how much MBRN needs to be sent
 
-      console.log(msgs)
+      console.log("msgs:", msgs)
       return [msgs] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,

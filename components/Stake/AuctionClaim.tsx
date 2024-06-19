@@ -34,7 +34,7 @@ const Stake = React.memo(() => {
         w="full"
         height="64px"
         px="10"
-        isDisabled={!isGreaterThanZero(MBRNBalance) || claim?.simulate.isError || !claim?.simulate.data}
+        isDisabled={!isGreaterThanZero(MBRNBalance) }//|| claim?.simulate.isError || !claim?.simulate.data}
         isLoading={claim.simulate.isPending && !claim.simulate.isError && claim.simulate.data}
         onClick={() => claim.tx.mutate()}
         toggleConnectLabel={false}

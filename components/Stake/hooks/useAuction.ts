@@ -6,10 +6,10 @@ import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { isGreaterThanZero } from '@/helpers/num'
-import { coins } from 'cosmwasm'
+import { isGreaterThanZero, shiftDigits } from '@/helpers/num'
 import { getLiveFeeAuction } from '@/services/asset_auction'
 import useWallet from '@/hooks/useWallet'
+import { coin } from '@cosmjs/stargate'
 
 
 export const useLiveFeeAuction = () => {
@@ -38,8 +38,9 @@ export const useAuction = () => {
       
       console.log("here:", feeAuctions[0])
       //Create msgs for the first Auction which has the lowest discount
-      // const msgs = messageComposer.swapForFee({auctionAsset: {native_token: {denom:""}}}, [] )
-      const msgs = messageComposer.swapForFee({auctionAsset: feeAuctions[0].auction_asset.info}, [])
+      console.log(shiftDigits(MBRNBalance, 6))
+      const funds = coin(shiftDigits(MBRNBalance, 6).toString(), mbrn.base)
+      const msgs = messageComposer.swapForFee({auctionAsset: feeAuctions[0].auction_asset.info}, [funds])
       console.log("here2")
       //Subsequent executions can handle the next auction, this allows the user to only execute for discounts they like 
       //+ we don't have to do calculations for how much MBRN needs to be sent

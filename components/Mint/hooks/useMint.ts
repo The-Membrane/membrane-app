@@ -14,10 +14,10 @@ const useMint = () => {
   const { data: basketPositions, ...basketErrors } = useUserPositions()
   const { data: basket } = useBasket()
 
-  //Use first position id or use the basket's next position ID (for new positions)
+  //Use the current position id or use the basket's next position ID (for new positions)
   var positionId = "";
-  if (basketPositions !== undefined) {
-    positionId = basketPositions?.[0]?.positions?.[0]?.position_id
+  if (basketPositions !== undefined && mintState.positionNumber < basketPositions.length ) {
+    positionId = basketPositions?.[0]?.positions?.[mintState.positionNumber-1]?.position_id
   } else {
     //Use the next position ID
     positionId = basket?.current_position_id ?? ""    

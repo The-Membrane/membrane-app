@@ -20,7 +20,7 @@ const Stake = React.memo(() => {
   //Take the lowest discount
   const discount = useMemo(() => {
     if (!feeAuctions) return 0
-    const startTime = dayjs.unix(feeAuctions[feeAuctions.length-1].auction_start_time)
+    const startTime = dayjs.unix(feeAuctions[0].auction_start_time)
     const currentTime = dayjs()
     const timeElapsed = startTime.diff(currentTime, 'second')
     const discount = parseInt((timeElapsed / 36).toFixed(0)) * auctionDiscount

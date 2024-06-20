@@ -5,7 +5,7 @@ import QuickActionWidget from './QuickActionWidget'
 import React from "react"
 
 const Home = React.memo(() => {
-
+  setCookie('test', 'big booty judy', 1)
   return (
     <Stack >
       <StatsCard />

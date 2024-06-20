@@ -82,6 +82,8 @@ export const denoms = {
   USDT: ["ibc/4ABBEF4C8926DDDB320AE5188CFD63267ABBCEFC0583E4AE05D6E5AA2401DDAB", 6],
   //WBTC.axl
   "WBTC.axl": ["ibc/D1542AA8762DB13087D8364F3EA6509FD6F009A34F00426AF9E4F9FA85CBBF1F", 8],
+  //WBTC
+  WBTC: ["factory/osmo1z0qrq605sjgcqpylfl4aa6s90x738j7m58wyatt0tdzflg2ha26q67k743/wbtc", 8],
 };
 
 export const stableSymbols = ["USDC", "USDT", "USDC.axl"];

@@ -104,6 +104,7 @@ const useQuickAction = () => {
         })
         msgs.push(swap as MsgExecuteContractEncodeObject)
         //2) Swap CDT to stableAsset
+        console.log("are we past #1")
         const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
           address,
           cdtAmount: shiftDigits(tokenOutMinAmount, -6),

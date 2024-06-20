@@ -46,6 +46,7 @@ export const swapToCDTMsg = ({
 
     //Swap to CDT from Asset
     const swapFromPrice = prices?.find((price) => price.denom === swapFromAsset.base)
+    console.log("swapFromPrice", swapFromPrice, swapFromAsset.symbol)
     const scaledSwapFromAmount = num(microAmount).toNumber()
 
     return handleCDTswaps(address, cdtPrice, Number(swapFromPrice!.price), swapFromAsset.symbol as keyof exported_supportedAssets, scaledSwapFromAmount)

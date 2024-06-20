@@ -17,7 +17,7 @@ const useMint = () => {
 
   //Use the current position id or use the basket's next position ID (for new positions)
   const positionId = useMemo(() => {
-    console.log(mintState.positionNumber < (basketPositions?.length??0))
+    console.log("ID", mintState.positionNumber, (basketPositions?.length??0))
   if (basketPositions !== undefined && mintState.positionNumber <= basketPositions.length) {
     return basketPositions?.[0]?.positions?.[mintState.positionNumber-1]?.position_id
   } else {

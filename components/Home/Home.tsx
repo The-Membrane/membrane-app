@@ -17,10 +17,10 @@ const Home = React.memo(() => {
       templateColumns='repeat(3, 1fr)'
       gap={4}
     >
-        <GridItem colSpan={1} h='10' bg='tomato'> 
+        <GridItem colSpan={1} h='10'> 
           {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}
         </GridItem>
-        <GridItem colSpan={1} h='10' bg='tomato'> 
+        <GridItem colSpan={1} h='10' > 
           <QuickActionWidget />
         </GridItem>
         </Grid>

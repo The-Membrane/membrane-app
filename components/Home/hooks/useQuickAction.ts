@@ -94,6 +94,7 @@ const useQuickAction = () => {
       const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)
       var stableOutAmount = 0
       if (swapFromAmount != 0){
+        console.log("are we in here")
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
           address, 
           swapFromAmount,

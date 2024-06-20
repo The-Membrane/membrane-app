@@ -530,7 +530,6 @@ const getCDTtokenOutAmount = (tokenInAmount: number, cdtPrice: number, swapFromP
 const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
     console.log(tokenIn)
     var route = cdtRoutes[tokenIn];
-    console.log(route)
     //to protect against infinite loops
     var iterations = 0;
 
@@ -543,7 +542,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
         route = route.concat(cdtRoutes[routeKey as keyof exported_supportedAssets]);
 
         //output to test
-        console.log(route)
+        // console.log(route)
         iterations += 1;
     }
 
@@ -562,13 +561,14 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
     console.log("boom3")
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
-    console.log("boom4")
+    console.log("boom4", address, denoms[tokenIn][0] as string)
     const msg = swapExactAmountIn({
         sender: address! as string,
         routes,
         tokenIn: coin(tokenInAmount, denoms[tokenIn][0] as string),
         tokenOutMinAmount
     });
+    console.log("boom5", msg)
 
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };

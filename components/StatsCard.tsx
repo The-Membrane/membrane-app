@@ -45,7 +45,7 @@ export const StatsCard = React.memo(() => {
         <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex">
         Shielded Leverage: ∞ leverage. No Liquidations.*
         </Text>                
-        <Text fontSize="sm" color="white" mt="2" minH="21px" justifyContent="center" display="flex">>
+        <Text fontSize="sm" color="white" mt="2" minH="21px" justifyContent="center" display="flex">
           *unless USDC depegs or rates accrue by 6%. Sub 1% interest in normal market conditions.
         </Text>        
       </Stack>

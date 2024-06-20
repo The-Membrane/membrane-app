@@ -14,8 +14,12 @@ import CurrentPositions from './CurrentPositions'
 import TakeAction from './TakeAction'
 import useMintState from './hooks/useMintState'
 import LPTab from './LPTab'
-import { useState } from 'react'
+import { use, useMemo, useState } from 'react'
 import React from "react"
+import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
+import { Pagination } from '../Governance/Pagination'
+import { useUserPositions } from '@/hooks/useCDP'
+import { MAX_CDP_POSITIONS } from '@/config/defaults'
 
 type TabProps = {
   onClick: any
@@ -28,8 +32,45 @@ const CustomTab = ({ onClick, label }: TabProps) => (
   </Tab>
 )
 
+type PaginationProps = {
+  pagination: {
+    totalPages: number
+    currentPage: number
+    nextPage: any
+    previousPage: any
+    isFirst: boolean
+    isLast: boolean
+  }
+}
+
+const nextPage = (setMintState: any, currentPage: number, totalPages: number) => {
+  if (currentPage < totalPages) {
+    setMintState({ positionNumber: currentPage + 1 })
+  }
+}
+const previousPage = (setMintState: any, currentPage: number) => {
+  if (currentPage > 1) {
+    setMintState({ positionNumber: currentPage - 1 })
+  }
+}
+
+const PaginationBar = ({ pagination }: PaginationProps) => {
+  if (pagination.totalPages <= 1) return null
+  return (
+    <HStack w="100%" justifyContent="flex-end">
+      <Pagination {...pagination} />
+    </HStack>
+  )
+}
+
 const MintTabsCard = () => {
-  const { setMintState } = useMintState()
+  const { mintState, setMintState } = useMintState()
+  const { data: basketPositions } = useUserPositions()
+
+  const totalPages = useMemo(() => {
+    if (!basketPositions) return 1
+    return Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS)
+  }, [basketPositions])
 
   const onTabChange = (index: number) => {
     setMintState({ isTakeAction: index === 1 })
@@ -67,6 +108,16 @@ const MintTabsCard = () => {
             <LPTab />
           </TabPanels>
         </Tabs>
+        {/* For position pagination */}
+        <PaginationBar pagination={{
+          totalPages: totalPages,
+          currentPage: mintState.positionNumber,
+          nextPage: () => nextPage(setMintState, mintState.positionNumber, totalPages),
+          previousPage: () => previousPage(setMintState, mintState.positionNumber),
+          isFirst: mintState.positionNumber === 1,
+          isLast: mintState.positionNumber === totalPages,
+        
+        }}/>
       </VStack>
     </Card>
   )

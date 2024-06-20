@@ -85,6 +85,7 @@ export const denoms = {
 };
 
 export const stableSymbols = ["USDC", "USDT", "USDC.axl"];
+export const MAX_CDP_POSITIONS = 3;
 
 //all CDT pairs
 export const cdtRoutes = {

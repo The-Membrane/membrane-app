@@ -3,14 +3,15 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { getBasketAssets, getBorrowLTV, getDebt, getLTV, getPositions, getTVL } from '@/services/cdp'
 import { useMemo } from 'react'
 
-const useInitialVaultSummary = () => {
+const useInitialVaultSummary = (positionIndex: number = 0) => {
   const { data: basket } = useBasket()
   const { data: collateralInterest } = useCollateralInterest()
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
+  console.log("initial vault sum", positionIndex)
 
   return useMemo(() => {
-    const calc_initialPositions = getPositions(basketPositions, prices)
+    const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
     if (!calc_initialPositions) return { 
       initialBorrowLTV: 0, 
       initialLTV: 0, 
@@ -18,7 +19,7 @@ const useInitialVaultSummary = () => {
       initialTVL: 0, 
       basketAssets: []
     }
-    const calc_debtAmount = getDebt(basketPositions)
+    const calc_debtAmount = getDebt(basketPositions, positionIndex)
     const calc_basketAssets = getBasketAssets(basket!, collateralInterest!)
     const calc_initialTVL = getTVL(calc_initialPositions)
     const calc_initialBorrowLTV = getBorrowLTV(calc_initialTVL, calc_initialPositions, calc_basketAssets)
@@ -36,6 +37,7 @@ const useInitialVaultSummary = () => {
     basket,
     collateralInterest,
     prices,
+    positionIndex
   ])
 }
 

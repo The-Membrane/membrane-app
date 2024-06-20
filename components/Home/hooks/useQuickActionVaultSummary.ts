@@ -4,7 +4,6 @@ import { calculateVaultSummary } from '@/services/cdp'
 import { useMemo } from 'react'
 import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSummary'
 import useQuickActionState from './useQuickActionState'
-import { Summary } from '@/components/Mint/hooks/useMintState'
 
 const useQuickActionVaultSummary = () => {
   const { data: basket } = useBasket()
@@ -12,7 +11,7 @@ const useQuickActionVaultSummary = () => {
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
   const { quickActionState } = useQuickActionState()
-  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary()
+  const { basketAssets } = useInitialVaultSummary()
 
   //Calc totalvalue with an assumption that the second asset in the summary is a stable
   const totalUsdValue = useMemo(() => {
@@ -43,8 +42,8 @@ const useQuickActionVaultSummary = () => {
       newDeposit: totalUsdValue,
       summary: quickActionState?.summary,
       mint: 0,
-      initialBorrowLTV,
-      initialLTV,
+      initialBorrowLTV: 0,
+      initialLTV: 0,
       debtAmount: 0,
       initialTVL: 0,
       basketAssets,

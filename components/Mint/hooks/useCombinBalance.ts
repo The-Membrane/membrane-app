@@ -21,16 +21,17 @@ export type AssetWithBalance = Asset & {
   inputAmount?: number
 }
 
-const useCombinBalance = () => {
+const useCombinBalance = (positionIndex: number = 0) => {
   const { data: collateralInterest } = useCollateralInterest()
   const { data: prices } = useOraclePrice()
   const { data: balances } = useBalance()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
+  console.log("combin", positionIndex)
 
   return useMemo(() => {
     const basketAssets = getBasketAssets(basket!, collateralInterest!)
-    const positions = getPositions(basketPositions, prices)
+    const positions = getPositions(basketPositions, prices, positionIndex)
 
     return basketAssets?.map((asset) => {
       const position = positions.find((p) => p.denom === asset.asset.base)
@@ -54,7 +55,7 @@ const useCombinBalance = () => {
         price,
       }
     }) as AssetWithBalance[]
-  }, [balances, basketPositions, basket, prices])
+  }, [balances, basketPositions, basket, prices, positionIndex])
 }
 
 export default useCombinBalance

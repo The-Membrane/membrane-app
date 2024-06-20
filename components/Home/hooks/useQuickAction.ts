@@ -17,6 +17,7 @@ import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 import { set } from 'react-hook-form'
+import { setCookie } from '@/helpers/cookies'
 
 const useQuickAction = () => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -170,8 +171,9 @@ const useQuickAction = () => {
   }, [queryData])
 
   const onSuccess = () => {    
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['positions'] })    
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
   }
   console.log(msgs, stableAsset, quickActionState?.levAsset?.amount)
   return {

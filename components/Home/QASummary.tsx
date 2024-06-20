@@ -1,6 +1,6 @@
 import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
+import { Badge, Checkbox, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import useQuickActionState from './hooks/useQuickActionState'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 import { useMemo } from 'react'
@@ -71,7 +71,7 @@ const SummaryItem = ({
 )
 
 export const QASummary = ({ newPositionValue, swapRatio, summary } : {newPositionValue: number, swapRatio: number, summary: any[]}) => {
-  const { quickActionState } = useQuickActionState()
+  const { quickActionState, setQuickActionState } = useQuickActionState()
   // const cdt = useAssetBySymbol('CDT')
   // const usdc = useAssetBySymbol('USDC')
 
@@ -111,6 +111,9 @@ export const QASummary = ({ newPositionValue, swapRatio, summary } : {newPositio
         startingValue={quickActionState?.levAsset?.sliderValue??0}
         newValue={newPositionValue}
       />
-    </Stack>
+      <Checkbox isChecked={quickActionState.useCookies} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => {setQuickActionState({useCookies: !quickActionState.useCookies})}}> 
+        Use cookies to track performance
+      </Checkbox >
+    </Stack>    
   )
 }

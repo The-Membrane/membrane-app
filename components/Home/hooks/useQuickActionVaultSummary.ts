@@ -38,6 +38,7 @@ const useQuickActionVaultSummary = () => {
       basket,
       collateralInterest,
       basketPositions: undefined,
+      positionIndex: 0,
       prices,
       newDeposit: totalUsdValue,
       summary: quickActionState?.summary,

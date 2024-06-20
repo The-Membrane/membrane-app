@@ -554,7 +554,7 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
     //Get tokenOutAmount
     console.log("boom1")
     const decimalDiff = denoms[tokenIn][1] as number - 6;
-    const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -2);
+    const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -decimalDiff);
     //Swap routes
     console.log("boom2")
     const routes: SwapAmountInRoute[] = getCDTRoute(tokenIn);

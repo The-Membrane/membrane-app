@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import useMintState from './useMintState'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
+import { MAX_CDP_POSITIONS } from '@/config/defaults'
 
 const useMint = () => {
   const { mintState } = useMintState()
@@ -18,7 +19,7 @@ const useMint = () => {
   //Use the current position id or use the basket's next position ID (for new positions)
   const positionId = useMemo(() => {
     console.log("ID", mintState.positionNumber, (basketPositions?.length??0))
-  if (basketPositions !== undefined && mintState.positionNumber <= basketPositions.length) {
+  if (basketPositions !== undefined && (mintState.positionNumber < Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS) || (basketPositions[0].positions.length === MAX_CDP_POSITIONS))) {
     return basketPositions?.[0]?.positions?.[mintState.positionNumber-1]?.position_id
   } else {
     //Use the next position ID

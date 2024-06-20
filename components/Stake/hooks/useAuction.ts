@@ -52,7 +52,7 @@ export const useAuction = () => {
   })
   
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return {

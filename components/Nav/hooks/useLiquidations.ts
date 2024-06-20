@@ -68,7 +68,7 @@ const useProtocolLiquidations = () => {
   
 
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return {action: useSimulateAndBroadcast({

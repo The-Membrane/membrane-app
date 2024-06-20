@@ -37,6 +37,7 @@ const useUnstake = ({ amount }: UseUnstake) => {
     msgs: unstakeMsgs,
     amount: amount,
     queryKey: [mbrnAsset?.base!],
+    chain_id: 'osmosis',
   })
 
   const tx = useTransaction({

@@ -206,7 +206,7 @@ const useProtocolClaims = () => {
     queryClient.invalidateQueries({ queryKey: ['staked'] })
     queryClient.invalidateQueries({ queryKey: ['allocation claim fees'] })
     queryClient.invalidateQueries({ queryKey: ['stability pool claims'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   

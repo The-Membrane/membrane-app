@@ -16,7 +16,7 @@ const useMint = () => {
 
   //Use the current position id or use the basket's next position ID (for new positions)
   var positionId = "";
-  if (basketPositions !== undefined && mintState.positionNumber < basketPositions.length ) {
+  if (basketPositions !== undefined && mintState.positionNumber < basketPositions.length) {
     positionId = basketPositions?.[0]?.positions?.[mintState.positionNumber-1]?.position_id
   } else {
     //Use the next position ID
@@ -34,7 +34,7 @@ const useMint = () => {
     ],
     queryFn: () => {
       if (!address) return
-      const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined })
+      const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, positionId, hasPosition: basketPositions !== undefined && mintState.positionNumber < basketPositions.length })
       const mintAndRepay = getMintAndRepayMsgs({
         address,
         positionId,

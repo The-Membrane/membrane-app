@@ -165,7 +165,7 @@ export const cdtRoutes = {
   "WBTC": [
     {
       poolId: BigInt(1422), 
-      tokenOutDenom: denoms.WBTCaxl[0],
+      tokenOutDenom: denoms["WBTC.axl"][0],
     }
   ],
   "MBRN": [

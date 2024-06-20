@@ -33,11 +33,11 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     //Get performance 
     const sign = parseFloat(initialTVL) > currentTVL ? "-" : "+"
     const performance = sign + Math.abs((parseFloat(initialTVL) - currentTVL) / parseFloat(initialTVL) * 100).toFixed(4) + "%"
-
+    const fontColor = parseFloat(initialTVL) > currentTVL ? "red" : "green"
   return (
     <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-      <Text variant="title" fontSize="16px">
-      {levAsset} {performance}
+      <Text style={{color: fontColor}} variant="title" fontSize="16px">
+      {levAsset} {performance} | {initialTVL} {"->"} {currentTVL}
       </Text>
     </Card>
   )

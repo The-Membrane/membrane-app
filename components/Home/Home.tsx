@@ -1,4 +1,4 @@
-import { HStack, Stack } from '@chakra-ui/react'
+import { Grid, GridItem, HStack, Stack } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import QuickActionWidget from './QuickActionWidget'
 
@@ -11,10 +11,19 @@ const Home = React.memo(() => {
   return (
     <Stack >
       <StatsCard />
-      <HStack>
-        {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}
-        <QuickActionWidget />
-      </HStack>
+      <Grid
+      h='200px'
+      templateRows='repeat(1, 1fr)'
+      templateColumns='repeat(3, 1fr)'
+      gap={4}
+    >
+        <GridItem colSpan={1} h='10' bg='tomato'> 
+          {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}
+        </GridItem>
+        <GridItem colSpan={1} h='10' bg='tomato'> 
+          <QuickActionWidget />
+        </GridItem>
+        </Grid>
     </Stack>
   )
 })

@@ -43,10 +43,10 @@ export const StatsCard = React.memo(() => {
       
       <Stack gap={3}>
         <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex">
-        ∞ leverage. No Liquidations.*
+        Shielded Leverage: ∞ leverage. No Liquidations.*
         </Text>                
-        <Text fontSize="sm" color="white" mt="2" minH="21px">
-          *unless USDC depegs or rates accrue by 6%. Sub 1% interest in normal market conditions.
+        <Text fontSize="sm" color="white" mt="2" minH="21px" justifyContent="center" display="flex">
+          *unless USDC depegs by or rates accrue by 6%. Sub 1% interest in normal market conditions.
         </Text>        
       </Stack>
            :

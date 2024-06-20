@@ -17,6 +17,7 @@ import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 import { set } from 'react-hook-form'
+import { setCookie } from '@/helpers/cookies'
 
 const useQuickAction = () => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -93,6 +94,7 @@ const useQuickAction = () => {
       const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)
       var stableOutAmount = 0
       if (swapFromAmount != 0){
+        console.log("are we in here")
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
           address, 
           swapFromAmount,
@@ -102,6 +104,7 @@ const useQuickAction = () => {
         })
         msgs.push(swap as MsgExecuteContractEncodeObject)
         //2) Swap CDT to stableAsset
+        console.log("are we past #1")
         const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
           address,
           cdtAmount: shiftDigits(tokenOutMinAmount, -6),
@@ -170,8 +173,9 @@ const useQuickAction = () => {
   }, [queryData])
 
   const onSuccess = () => {    
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['positions'] })    
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
   }
   console.log(msgs, stableAsset, quickActionState?.levAsset?.amount)
   return {

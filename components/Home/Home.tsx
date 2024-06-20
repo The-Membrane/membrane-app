@@ -18,7 +18,9 @@ const Home = React.memo(() => {
       gap={4}
     >
         <GridItem colSpan={1} h='10'> 
-          {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}
+        <Stack >
+          {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}          
+        </Stack>
         </GridItem>
         <GridItem colSpan={1} h='10' > 
           <QuickActionWidget />

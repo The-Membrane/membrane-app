@@ -18,7 +18,6 @@ const useMint = () => {
 
   //Use the current position id or use the basket's next position ID (for new positions)
   const positionId = useMemo(() => {
-    console.log("ID", mintState.positionNumber, (basketPositions?.length??0))
   if (basketPositions !== undefined && (mintState.positionNumber < Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS) || (basketPositions[0].positions.length === MAX_CDP_POSITIONS))) {
     return basketPositions?.[0]?.positions?.[mintState.positionNumber-1]?.position_id
   } else {
@@ -51,7 +50,7 @@ const useMint = () => {
 
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return useSimulateAndBroadcast({

@@ -558,7 +558,7 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
     console.log("boom2")
     const routes: SwapAmountInRoute[] = getCDTRoute(tokenIn);
 
-    console.log("boom3")
+    console.log("boom3", tokenOutAmount )
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
     console.log("boom4", address, denoms[tokenIn][0] as string)

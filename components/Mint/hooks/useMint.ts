@@ -6,6 +6,8 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useMintState from './useMintState'
 import { queryClient } from '@/pages/_app'
+import { useMemo } from 'react'
+import { MAX_CDP_POSITIONS } from '@/config/defaults'
 
 const useMint = () => {
   const { mintState } = useMintState()
@@ -15,13 +17,13 @@ const useMint = () => {
   const { data: basket } = useBasket()
 
   //Use the current position id or use the basket's next position ID (for new positions)
-  var positionId = "";
-  if (basketPositions !== undefined && mintState.positionNumber < basketPositions.length) {
-    positionId = basketPositions?.[0]?.positions?.[mintState.positionNumber-1]?.position_id
+  const positionId = useMemo(() => {
+  if (basketPositions !== undefined && (mintState.positionNumber < Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS) || (basketPositions[0].positions.length === MAX_CDP_POSITIONS))) {
+    return basketPositions?.[0]?.positions?.[mintState.positionNumber-1]?.position_id
   } else {
     //Use the next position ID
-    positionId = basket?.current_position_id ?? ""    
-  }
+    return basket?.current_position_id ?? ""    
+  }}, [basketPositions, mintState.positionNumber, basket])
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: [
@@ -48,7 +50,7 @@ const useMint = () => {
 
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return useSimulateAndBroadcast({

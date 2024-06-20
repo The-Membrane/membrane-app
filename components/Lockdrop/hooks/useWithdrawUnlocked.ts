@@ -15,6 +15,7 @@ const useWithdrawUnlocked = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allocations'] })
+      queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     },
   })
 }

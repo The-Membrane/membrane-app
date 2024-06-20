@@ -23,7 +23,7 @@ export const useWithdrawStabilityPool = (amount: string) => {
   
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return {

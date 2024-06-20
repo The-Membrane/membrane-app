@@ -49,7 +49,7 @@ const useBid = ({ txSuccess }: Props) => {
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
     queryClient.invalidateQueries({ queryKey: ['user bids'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     txSuccess?.()
   }
 

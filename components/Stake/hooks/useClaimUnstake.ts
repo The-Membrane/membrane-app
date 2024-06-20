@@ -23,7 +23,7 @@ export const useClaimUnstake = ({ address } : { address: string | undefined}) =>
   
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return {

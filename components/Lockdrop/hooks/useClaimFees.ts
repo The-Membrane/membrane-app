@@ -24,6 +24,7 @@ const useClaimFees = () => {
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['allocations'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return {action: useSimulateAndBroadcast({

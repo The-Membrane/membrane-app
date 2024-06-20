@@ -45,7 +45,7 @@ const useStakeing = ({}: UseStake) => {
     queryKey: [mbrnAsset?.base!],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staked'] })
-      queryClient.invalidateQueries({ queryKey: ['balances'] })
+      queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     },
   })
 }

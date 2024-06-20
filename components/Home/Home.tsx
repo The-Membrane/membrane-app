@@ -5,7 +5,6 @@ import QuickActionWidget from './QuickActionWidget'
 import React from "react"
 
 const Home = React.memo(() => {
-
   return (
     <Stack >
       <StatsCard />

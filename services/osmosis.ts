@@ -551,12 +551,16 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
 export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
     
     //Get tokenOutAmount
+    console.log("boom1")
     const tokenOutAmount = getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice);
     //Swap routes
+    console.log("boom2")
     const routes: SwapAmountInRoute[] = getCDTRoute(tokenIn);
 
+    console.log("boom3")
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
+    console.log("boom4")
     const msg = swapExactAmountIn({
         sender: address! as string,
         routes,

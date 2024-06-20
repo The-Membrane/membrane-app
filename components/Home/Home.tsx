@@ -1,6 +1,7 @@
 import { Stack } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import QuickActionWidget from './QuickActionWidget'
+import { setCookie } from '@/helpers/cookies'
 
 import React from "react"
 

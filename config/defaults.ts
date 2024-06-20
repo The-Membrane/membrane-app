@@ -33,7 +33,7 @@ export const stargazeRPCUrl = 'https://rpc.cosmos.directory/stargaze'
 export const rpcUrl = 'https://rpc.osmosis.zone/'
 
 export const delayTime = 1200; // State update Delay time in millisecond
-export const loopMax = 3;
+export const loopMax = 1;
 
 ////Specifics for Osmosis services//////
 export const SWAP_SLIPPAGE = 1; //1% slippage

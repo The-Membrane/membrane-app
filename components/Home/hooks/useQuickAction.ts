@@ -156,7 +156,7 @@ const useQuickAction = () => {
         basket,
         num(quickActionState?.levAsset?.sliderValue).plus(stableValue??0).toNumber(), 
         0, 
-        45,
+        54,
         positions
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 

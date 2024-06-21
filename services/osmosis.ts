@@ -256,6 +256,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(skipStable, tvl, positions);
+    console.log(cAsset_ratios)
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {

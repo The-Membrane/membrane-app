@@ -27,7 +27,7 @@ const signerOptions: SignerOptions = {
     return {
       aminoTypes,
       registry,
-      gasPrice: GasPrice.fromString('0.0175uosmo'),
+      gasPrice: GasPrice.fromString('0.0075uosmo'),
     }
   },
   signingCosmwasm: (chain: Chain) => {
@@ -35,7 +35,7 @@ const signerOptions: SignerOptions = {
       case 'osmosis':
       case 'osmosistestnet5':
         return {
-          gasPrice: GasPrice.fromString('0.0175uosmo'),
+          gasPrice: GasPrice.fromString('0.0075uosmo'),
         }
     }
   },

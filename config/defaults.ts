@@ -86,6 +86,7 @@ export const denoms = {
   WBTC: ["factory/osmo1z0qrq605sjgcqpylfl4aa6s90x738j7m58wyatt0tdzflg2ha26q67k743/wbtc", 8],
   //ETH, //This is ETH.axl that Osmosis is using as canonical denom rn
   ETH: ["ibc/EA1D43981D5C9A1C4AAEA9C23BB1D4FA126BA9BC7020A25E0AE4AA841EA25DC5", 18],
+  INJ: ["ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273", 18],
 };
 
 export const stableSymbols = ["USDC", "USDT", "USDC.axl"];
@@ -172,6 +173,12 @@ export const cdtRoutes = {
       tokenOutDenom: denoms["WBTC.axl"][0],
     }
   ],
+  "INJ": [
+    {
+      poolId: BigInt(1319), 
+      tokenOutDenom: denoms.USDC[0],
+    }
+  ]
   "MBRN": [
     {
       poolId: BigInt(1225),

@@ -51,6 +51,7 @@ export interface swapRoutes {
     ETH: SwapAmountInRoute[],
     WBTC: SwapAmountInRoute[],
     "WBTC.axl": SwapAmountInRoute[],
+    INJ: SwapAmountInRoute[],
 };
 
 const {

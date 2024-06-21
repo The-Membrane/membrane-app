@@ -43,7 +43,7 @@ export const StatsCard = React.memo(() => {
       
       <Stack gap={3}>
         <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex">
-        Come One. Bundle All.
+        80/20 Bundle. Let the 20% Bolster Your Foundation.
         </Text>
       </Stack>
            :

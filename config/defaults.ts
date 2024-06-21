@@ -178,7 +178,7 @@ export const cdtRoutes = {
       poolId: BigInt(1319), 
       tokenOutDenom: denoms.USDC[0],
     }
-  ]
+  ],
   "MBRN": [
     {
       poolId: BigInt(1225),

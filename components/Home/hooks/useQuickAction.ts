@@ -133,7 +133,7 @@ const useQuickAction = () => {
       console.log("summary:", summary)
       quickActionState.summary = summary
       quickActionState.levAsset = levAsset
-      // quickActionState.stableAsset = newStableAsset
+      quickActionState.stableAsset = newStableAsset
 
       const deposit = getDepostAndWithdrawMsgs({ 
         summary,

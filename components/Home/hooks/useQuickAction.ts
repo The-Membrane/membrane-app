@@ -77,7 +77,7 @@ const useQuickAction = () => {
 
       //1) Swap 85% of the levAsset to CDT
       //////Calculate the % to swap/////
-      const swapPercent = 0.50
+      const swapPercent = 0.20
       // IF STABLES ARE ADDED, SUBTRACT IT FROM THE PERCENT TO SWAP
       //Get the % of assets already in stables
       const stableRatio = num(stableAsset.sliderValue).dividedBy(num(quickActionState?.levAsset?.sliderValue).plus(num(stableAsset.sliderValue))).toNumber()
@@ -144,7 +144,7 @@ const useQuickAction = () => {
       msgs = msgs.concat(deposit)
 
       //4) Loop at 54%
-      const mintLTV = num(.54)
+      const mintLTV = num(.45)
       const positions = updatedSummary(summary, undefined, prices)
       const { msgs: loops, newValue, newLTV } = loopPosition(
         true,
@@ -157,7 +157,7 @@ const useQuickAction = () => {
         basket,
         num(quickActionState?.levAsset?.sliderValue).plus(stableValue??0).toNumber(), 
         0, 
-        54,
+        45,
         positions
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 

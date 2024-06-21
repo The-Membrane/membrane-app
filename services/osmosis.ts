@@ -547,7 +547,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, differentTokenOut?
         route = route.concat(cdtRoutes[routeKey as keyof exported_supportedAssets]);
 
         //output to test
-        // console.log(route)
+        console.log("HERE", differentTokenOut, route[route.length - 1].tokenOutDenom as string, denoms[differentTokenOut!][0])
         iterations += 1;
     }
 

@@ -18,6 +18,7 @@ import { loopMax } from '@/config/defaults'
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 import { set } from 'react-hook-form'
 import { setCookie } from '@/helpers/cookies'
+import { exported_supportedAssets } from '@/helpers/chain'
 
 const useQuickAction = () => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -101,19 +102,21 @@ const useQuickAction = () => {
           swapFromAsset: quickActionState?.levAsset,
           prices,
           cdtPrice,
+          differentTokenOut: stableAsset.symbol as keyof exported_supportedAssets,
         })
         msgs.push(swap as MsgExecuteContractEncodeObject)
+        stableOutAmount = tokenOutMinAmount
         //2) Swap CDT to stableAsset
         console.log("are we past #1")
-        const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
-          address,
-          cdtAmount: shiftDigits(tokenOutMinAmount, -6),
-          swapToAsset: stableAsset,
-          prices,
-          cdtPrice,
-        })
-        msgs.push(CDTswap as MsgExecuteContractEncodeObject)
-        stableOutAmount = stableOutMinAmount
+        // const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
+        //   address,
+        //   cdtAmount: shiftDigits(tokenOutMinAmount, -6),
+        //   swapToAsset: stableAsset,
+        //   prices,
+        //   cdtPrice,
+        // })
+        // msgs.push(CDTswap as MsgExecuteContractEncodeObject)
+        // stableOutAmount = stableOutMinAmount
       }
 
       //Set stableAsset deposit amount - Add swapAmount to the stableAsset

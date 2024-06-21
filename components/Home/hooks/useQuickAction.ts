@@ -77,7 +77,7 @@ const useQuickAction = () => {
 
       //1) Swap 85% of the levAsset to CDT
       //////Calculate the % to swap/////
-      const swapPercent = 0.85
+      const swapPercent = 0.20
       // IF STABLES ARE ADDED, SUBTRACT IT FROM THE PERCENT TO SWAP
       //Get the % of assets already in stables
       const stableRatio = num(stableAsset.sliderValue).dividedBy(num(quickActionState?.levAsset?.sliderValue).plus(num(stableAsset.sliderValue))).toNumber()
@@ -85,7 +85,7 @@ const useQuickAction = () => {
       console.log("stable ratios:", stableRatio, stableAsset.sliderValue, stableValue??0)
       //Get the % of assets in lev
       const levRatio = 1 - stableRatio
-      //Get the % of assets to swap to acheive 85% lev
+      //Get the % of assets to swap to acheive 20% stables
       //ex: 20% in stables, 80% in levAsset, means we need to get 65% of the total Value to be stables which is 81.25% of the remaining levAsset
       const swapRatio = Math.max(swapPercent - stableRatio, 0) / levRatio
       // setQuickActionState({ levSwapRatio: swapRatio })

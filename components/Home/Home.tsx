@@ -18,12 +18,15 @@ const Home = React.memo(() => {
       gap={4}
     >
         <GridItem colSpan={1} h='10'> 
-        <Stack >
-          {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}          
-        </Stack>
+          {/* List collateral types and their rates. LTVs arn't competitve so we dont' show */}
         </GridItem>
         <GridItem colSpan={1} h='10' > 
           <QuickActionWidget />
+        </GridItem>
+        <GridItem colSpan={1} h='10'> 
+        <Stack >
+          {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}          
+        </Stack>
         </GridItem>
         </Grid>
     </Stack>

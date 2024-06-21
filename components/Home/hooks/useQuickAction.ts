@@ -95,16 +95,19 @@ const useQuickAction = () => {
       var stableOutAmount = 0
       if (swapFromAmount != 0){
         console.log("are we in here")
-        const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
+        const { msg: swap, tokenOutMinAmount, foundToken } = swapToCDTMsg({
           address, 
           swapFromAmount,
           swapFromAsset: quickActionState?.levAsset,
           prices,
           cdtPrice,
+          tokenOut: 'USDC'
         })
         msgs.push(swap as MsgExecuteContractEncodeObject)
+        stableOutAmount = tokenOutMinAmount
         //2) Swap CDT to stableAsset
         console.log("are we past #1")
+        if (!foundToken){
         const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
           address,
           cdtAmount: shiftDigits(tokenOutMinAmount, -6),
@@ -114,6 +117,7 @@ const useQuickAction = () => {
         })
         msgs.push(CDTswap as MsgExecuteContractEncodeObject)
         stableOutAmount = stableOutMinAmount
+        }
       }
 
       //Set stableAsset deposit amount - Add swapAmount to the stableAsset

@@ -34,6 +34,7 @@ type GetSwapFromMsgs = {
     address: string
     prices: Price[]
     cdtPrice: number
+    tokenOut?: keyof exported_supportedAssets
 }
 export const swapToCDTMsg = ({
     address,
@@ -41,6 +42,7 @@ export const swapToCDTMsg = ({
     swapFromAsset,
     prices,
     cdtPrice,
+    tokenOut
 }: GetSwapFromMsgs) => {
     const microAmount = shiftDigits(swapFromAmount, swapFromAsset.decimal).dp(0).toString()
 
@@ -48,7 +50,7 @@ export const swapToCDTMsg = ({
     const swapFromPrice = prices?.find((price) => price.denom === swapFromAsset.base)
     const scaledSwapFromAmount = num(microAmount).toNumber()
 
-    return handleCDTswaps(address, cdtPrice, Number(swapFromPrice!.price), swapFromAsset.symbol as keyof exported_supportedAssets, scaledSwapFromAmount)
+    return handleCDTswaps(address, cdtPrice, Number(swapFromPrice!.price), swapFromAsset.symbol as keyof exported_supportedAssets, scaledSwapFromAmount, tokenOut)
 }
 
 type GetLPMsgs = {

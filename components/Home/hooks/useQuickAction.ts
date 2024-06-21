@@ -101,8 +101,7 @@ const useQuickAction = () => {
           swapFromAmount,
           swapFromAsset: quickActionState?.levAsset,
           prices,
-          cdtPrice,
-          differentTokenOut: stableAsset.symbol as keyof exported_supportedAssets,
+          cdtPrice
         })
         msgs.push(swap as MsgExecuteContractEncodeObject)
         stableOutAmount = tokenOutMinAmount

@@ -273,7 +273,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         var mintValue = positionValue * LTV_range;
         //Set amount to mint
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
-
+        console.log("mintAmount", mintAmount)
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
             positionId: positionId,
@@ -314,6 +314,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
             mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
             //Calc new TVL (w/ slippage calculated into the mintValue)
             positionValue = positionValue + mintValue;
+            console.log("positionValue", positionValue)
 
             //Set credit amount
             creditAmount += shiftDigits(mintAmount, -6).toNumber();
@@ -328,6 +329,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         }
     }
 
+    console.log("TOTAL CREDIT:", creditAmount)
     return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 }
 // export const exitCLPools = (poolId: number) => {

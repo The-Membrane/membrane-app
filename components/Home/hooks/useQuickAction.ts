@@ -143,7 +143,7 @@ const useQuickAction = () => {
       })
       msgs = msgs.concat(deposit)
 
-      //4) Loop at 54%
+      //4) Loop at 45%
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, undefined, prices)
       const { msgs: loops, newValue, newLTV } = loopPosition(

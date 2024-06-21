@@ -46,6 +46,11 @@ export interface swapRoutes {
     USDT: SwapAmountInRoute[],
     MBRN: SwapAmountInRoute[],
     CDT: SwapAmountInRoute[],
+    milkTIA: SwapAmountInRoute[],
+    stTIA: SwapAmountInRoute[],
+    ETH: SwapAmountInRoute[],
+    WBTC: SwapAmountInRoute[],
+    "WBTC.axl": SwapAmountInRoute[],
 };
 
 const {
@@ -527,13 +532,13 @@ const getCDTtokenOutAmount = (tokenInAmount: number, cdtPrice: number, swapFromP
     return tokenInAmount * (swapFromPrice / cdtPrice)
 }
 //Parse through saved Routes until we reach CDT
-const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
+const getCDTRoute = (tokenIn: keyof exported_supportedAssets, differentTokenOut?: keyof exported_supportedAssets) => {
     console.log(tokenIn)
     var route = cdtRoutes[tokenIn];
     //to protect against infinite loops
     var iterations = 0;
 
-    while (route != undefined && route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] && iterations < 5) {
+    while (route != undefined && (route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] || (differentTokenOut && route[route.length - 1].tokenOutDenom as string !== denoms[differentTokenOut][0])) && iterations < 5) {
         //Find the key from this denom
         let routeDenom = route[route.length - 1].tokenOutDenom as string;
         //Set the next node in the route path
@@ -548,8 +553,8 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
 
     return route;
 }
-//This is getting Swaps To CDT
-export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
+//This is getting Swaps To CDT w/ optional different tokenOut
+export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number, differentTokenOut?: keyof exported_supportedAssets) => {
     
     //Get tokenOutAmount
     console.log("boom1")
@@ -557,7 +562,7 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
     const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -decimalDiff);
     //Swap routes
     console.log("boom2")
-    const routes: SwapAmountInRoute[] = getCDTRoute(tokenIn);
+    const routes: SwapAmountInRoute[] = getCDTRoute(tokenIn, differentTokenOut);
 
     console.log("boom3", tokenOutAmount )
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();

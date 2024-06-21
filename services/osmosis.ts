@@ -303,7 +303,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         
             //Create deposit msgs for newly swapped assets
             var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
-                positionId: positionId,
+                positionId,
             });
             //Sort tokenOutMins alphabetically
             tokenOutMins.sort((a, b) => (a.denom > b.denom) ? 1 : -1);

@@ -36,7 +36,7 @@ export const delayTime = 1200; // State update Delay time in millisecond
 export const loopMax = 5;
 
 ////Specifics for Osmosis services//////
-export const SWAP_SLIPPAGE = 1; //1% slippage
+export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
 export const USDC_CL_RATIO = 0.115; //11.5% CL
 
 
@@ -84,6 +84,8 @@ export const denoms = {
   "WBTC.axl": ["ibc/D1542AA8762DB13087D8364F3EA6509FD6F009A34F00426AF9E4F9FA85CBBF1F", 8],
   //WBTC
   WBTC: ["factory/osmo1z0qrq605sjgcqpylfl4aa6s90x738j7m58wyatt0tdzflg2ha26q67k743/wbtc", 8],
+  //ETH, //This is ETH.axl that Osmosis is using as canonical denom rn
+  ETH: ["ibc/EA1D43981D5C9A1C4AAEA9C23BB1D4FA126BA9BC7020A25E0AE4AA841EA25DC5", 18],
 };
 
 export const stableSymbols = ["USDC", "USDT", "USDC.axl"];

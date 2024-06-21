@@ -147,11 +147,16 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
 export const getAssetRatio = (skipStable: boolean, tvl: number, positions: Positions[]) => {
   if (!positions) return []
   return positions.map((position) => {
-    if (!position || (skipStable && stableSymbols.includes(position.symbol))) return 
+    if (!position || (skipStable && stableSymbols.includes(position.symbol))) return
+    if (skipStable && positions.length === 2) return {
+      ...position,
+      ratio: 1,
+    }
+
     return {
-    ...position,
-    ratio: num(position.usdValue).div(tvl).toNumber(),
-  }
+      ...position,
+      ratio: num(position.usdValue).div(tvl).toNumber(),
+    }
   })
 }
 

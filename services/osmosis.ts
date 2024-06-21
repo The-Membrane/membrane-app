@@ -46,6 +46,11 @@ export interface swapRoutes {
     USDT: SwapAmountInRoute[],
     MBRN: SwapAmountInRoute[],
     CDT: SwapAmountInRoute[],
+    milkTIA: SwapAmountInRoute[],
+    stTIA: SwapAmountInRoute[],
+    ETH: SwapAmountInRoute[],
+    WBTC: SwapAmountInRoute[],
+    "WBTC.axl": SwapAmountInRoute[],
 };
 
 const {
@@ -251,6 +256,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(skipStable, tvl, positions);
+    console.log(cAsset_ratios)
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
@@ -268,7 +274,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         var mintValue = positionValue * LTV_range;
         //Set amount to mint
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
-
+        console.log("mintAmount", mintAmount)
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
             positionId: positionId,
@@ -298,7 +304,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         
             //Create deposit msgs for newly swapped assets
             var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
-                positionId: positionId,
+                positionId,
             });
             //Sort tokenOutMins alphabetically
             tokenOutMins.sort((a, b) => (a.denom > b.denom) ? 1 : -1);
@@ -309,6 +315,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
             mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
             //Calc new TVL (w/ slippage calculated into the mintValue)
             positionValue = positionValue + mintValue;
+            console.log("positionValue", positionValue)
 
             //Set credit amount
             creditAmount += shiftDigits(mintAmount, -6).toNumber();
@@ -323,6 +330,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         }
     }
 
+    console.log("TOTAL CREDIT:", creditAmount)
     return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 }
 // export const exitCLPools = (poolId: number) => {
@@ -527,7 +535,7 @@ const getCDTtokenOutAmount = (tokenInAmount: number, cdtPrice: number, swapFromP
     return tokenInAmount * (swapFromPrice / cdtPrice)
 }
 //Parse through saved Routes until we reach CDT
-const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
+const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof exported_supportedAssets) => {
     console.log(tokenIn)
     var route = cdtRoutes[tokenIn];
     //to protect against infinite loops
@@ -542,14 +550,15 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
         route = route.concat(cdtRoutes[routeKey as keyof exported_supportedAssets]);
 
         //output to test
-        // console.log(route)
+        console.log(route[route.length - 1].tokenOutDenom)
+        if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
         iterations += 1;
     }
 
-    return route;
+    return { route, foundToken: false };
 }
-//This is getting Swaps To CDT
-export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
+//This is getting Swaps To CDT w/ optional different tokenOut
+export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number, tokenOut?: keyof exported_supportedAssets) => {
     
     //Get tokenOutAmount
     console.log("boom1")
@@ -557,7 +566,7 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
     const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -decimalDiff);
     //Swap routes
     console.log("boom2")
-    const routes: SwapAmountInRoute[] = getCDTRoute(tokenIn);
+    const { route: routes, foundToken } = getCDTRoute(tokenIn, tokenOut);
 
     console.log("boom3", tokenOutAmount )
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
@@ -571,12 +580,12 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
     });
     console.log("boom5", msg)
 
-    return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
+    return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount), foundToken };
 };
 
 //Parse through saved Routes until we reach CDT
 const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap routes
-    const temp_routes: SwapAmountInRoute[] = getCDTRoute(tokenOut);
+    const { route: temp_routes, foundToken: _ } = getCDTRoute(tokenOut);
     //Reverse the route
     var routes = temp_routes.reverse();
     //Swap tokenOutdenom of the route to the key of the route
@@ -603,7 +612,9 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 //Swapping CDT to collateral
 export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
     //Get tokenOutAmount
-    const tokenOutAmount = getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice);
+    const decimalDiff = denoms[tokenOut][1] as number - 6;
+    // const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -decimalDiff);
+    const tokenOutAmount = shiftDigits(getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice), decimalDiff);
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();

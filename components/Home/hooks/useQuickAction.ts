@@ -139,12 +139,9 @@ const useQuickAction = () => {
       })
       msgs = msgs.concat(deposit)
 
-      //4) Loop at 45%
-      const mintLTV = num(.45)
+      //4) Loop at 54%
+      const mintLTV = num(.54)
       const positions = updatedSummary(summary, undefined, prices)
-      console.log("tvl", quickActionState?.levAsset?.sliderValue??0 + (stableValue??0))
-      console.log(quickActionState?.levAsset?.sliderValue??0, (stableValue??0))
-      console.log(num(quickActionState?.levAsset?.sliderValue).plus(stableValue??0).toNumber())
       const { msgs: loops, newValue, newLTV } = loopPosition(
         true,
         cdtPrice,

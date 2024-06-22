@@ -324,7 +324,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
             currentLTV = getPositionLTV(positionValue, creditAmount, basket);
 
             //Add msgs to all_msgs
-            all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs).concat([deposit_msg]);
+            all_msgs = all_msgs.concat([mint_msg]).concat(swap_msgs);//.concat([deposit_msg]);
 
             //Increment iter
             iter += 1;

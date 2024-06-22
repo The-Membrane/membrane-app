@@ -11,7 +11,6 @@ import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
-import { useBasket, useCollateralInterest } from '@/hooks/useCDP'
 import { stableSymbols } from '@/config/defaults'
 
 export const cdpClient = async () => {

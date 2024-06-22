@@ -10,7 +10,7 @@ import { useMemo } from 'react'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
 
 const useMint = () => {
-  const { mintState } = useMintState()
+  const { mintState, setMintState } = useMintState()
   const { summary = [] } = mintState
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useUserPositions()
@@ -51,6 +51,7 @@ const useMint = () => {
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    setMintState({positionNumber: 1})
   }
 
   return useSimulateAndBroadcast({

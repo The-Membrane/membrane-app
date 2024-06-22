@@ -141,7 +141,7 @@ const useQuickAction = () => {
         positionId,
         hasPosition: false
       })
-      // msgs = msgs.concat(deposit)
+      msgs = msgs.concat(deposit)
 
       //4) Loop at 45%
       const mintLTV = num(.45)

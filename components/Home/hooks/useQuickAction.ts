@@ -193,7 +193,7 @@ const useQuickAction = () => {
   console.log("loop_msgs", loop_msgs)
   const action = useSimulateAndBroadcast({
     msgs,
-    queryKey: ['quick action loop', (loop_msgs?.toString()??"0")],
+    queryKey: ['quick action loop', (loop_msgs?.toString()??"0"), String(quickActionState.readyToLoop)],
     onSuccess: onLoopSuccess,
   })
 

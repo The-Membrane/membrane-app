@@ -16,7 +16,7 @@ import { setCookie } from '@/helpers/cookies'
 import useMintState from '@/components/Mint/hooks/useMintState'
 import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSummary'
 
-const useLoop = (loop_msgs: MsgExecuteContractEncodeObject[]) => {
+const useLoop = () => {
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()

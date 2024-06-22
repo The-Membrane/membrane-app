@@ -303,7 +303,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
       }
     })
   }
-  console.log("positions")
+  console.log("positions again:", basketPositions, positionIndex)
 
   const positions = getPositions(basketPositions, prices, positionIndex)
   console.log("positions.map")

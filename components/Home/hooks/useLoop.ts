@@ -45,10 +45,11 @@ const useLoop = () => {
       address,
       positionId, 
       prices,
-      basketPositions
+      basketPositions,
+      quickActionState
     ],
     queryFn: () => {
-      if (!address || !basket || !prices || !positionId) return { msgs: undefined, newPositionValue: 0 }
+      if (!address || !basket || !prices || !positionId || !quickActionState) return { msgs: undefined, newPositionValue: 0 }
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
@@ -65,9 +66,9 @@ const useLoop = () => {
         address, 
         prices, 
         basket,
-        initialTVL,
-        debtAmount, 
-        initialBorrowLTV,
+        num(quickActionState?.levAsset?.sliderValue).toNumber(),
+        0, 
+        45,
         positions
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 

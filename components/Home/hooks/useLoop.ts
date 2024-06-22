@@ -31,7 +31,7 @@ const useLoop = () => {
 
   const positionId = useMemo(() => {
     if (basketPositions && basketPositions[0].positions) return basketPositions[0].positions[basketPositions[0].positions.length-1]?.position_id
-  }, [basket])
+  }, [basket, basketPositions])
   console.log("loop positionID", positionId)
 
   type QueryData = {
@@ -56,8 +56,7 @@ const useLoop = () => {
       //4) Loop at 45%
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, basketPositions, prices)
-    //   const { msgs: loops, newValue } = loopPosition
-      console.log(
+      const { msgs: loops, newValue } = loopPosition(
         true,
         cdtPrice,
         mintLTV.toNumber(),
@@ -71,8 +70,8 @@ const useLoop = () => {
         initialBorrowLTV,
         positions
       )
-    //   msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
-    //   newPositionValue = newValue
+      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
+      newPositionValue = newValue
       
       return { msgs, newPositionValue }
     },

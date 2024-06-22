@@ -160,7 +160,7 @@ const useQuickAction = () => {
         45,
         positions
       )
-      // msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
+      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue
       
       return { msgs, newPositionValue, swapRatio, summary }

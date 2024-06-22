@@ -3,7 +3,7 @@ import { num } from './num'
 import { Summary } from '@/components/Mint/hooks/useMintState'
 import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
 import contracts from '@/config/contracts.json'
-import { Asset } from '@/contracts/codegen/positions/Positions.types'
+import { Asset, BasketPositionsResponse } from '@/contracts/codegen/positions/Positions.types'
 import { Coin, coin } from '@cosmjs/stargate'
 import { shiftDigits } from './math'
 import { getAssetBySymbol } from './chain'
@@ -125,6 +125,7 @@ export const setInitialMintState = ({
 type GetDepostAndWithdrawMsgs = {
   summary?: Summary[]
   address: string
+  basketPositions: BasketPositionsResponse[] | undefined
   positionId: string
   hasPosition?: boolean
 }
@@ -143,6 +144,7 @@ const getAsset = (asset: any): Asset => {
 export const getDepostAndWithdrawMsgs = ({
   summary,
   address,
+  basketPositions,
   positionId,
   hasPosition = true,
 }: GetDepostAndWithdrawMsgs) => {
@@ -156,6 +158,11 @@ export const getDepostAndWithdrawMsgs = ({
     if (num(asset.amount).isGreaterThan(0)) {
       deposit.push(asset)
     } else {
+      if(asset.sliderValue == 0 && basketPositions){
+        //Find asset in basketPositions
+        const amount = basketPositions[0].positions.find((p: any) => p.position_id === positionId)?.collateral_assets.find((a: any) => a.base === asset.base)?.asset.amount
+        if(amount) asset.amount = amount
+      }
       withdraw.push(asset)
     }
   })

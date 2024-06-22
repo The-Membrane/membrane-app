@@ -147,6 +147,7 @@ const useQuickAction = () => {
       // //4) Loop at 45% to get Postion Value
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, undefined, prices)
+      console.log("QA positionID", positionId)
       const { msgs: loops, newValue, newLTV } = loopPosition(
         true,
         cdtPrice,

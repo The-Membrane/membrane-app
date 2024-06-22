@@ -9,14 +9,14 @@ import { useMemo } from 'react'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { loopPosition } from '@/services/osmosis'
 // import useQuickActionVaultSummary from './useQuickActionVaultSummary'
-import { num, shiftDigits } from '@/helpers/num'
+import { num } from '@/helpers/num'
 import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
 import { setCookie } from '@/helpers/cookies'
 import useMintState from '@/components/Mint/hooks/useMintState'
 import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSummary'
 
-const useLoop = () => {
+const useLoop = (loop_msgs: MsgExecuteContractEncodeObject[]) => {
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
@@ -32,6 +32,7 @@ const useLoop = () => {
   const positionId = useMemo(() => {
     if (basketPositions && basketPositions[0].positions) return basketPositions[0].positions[basketPositions[0].positions.length-1]?.position_id
   }, [basket])
+  console.log("loop positionID", positionId)
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -55,7 +56,8 @@ const useLoop = () => {
       //4) Loop at 45%
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, basketPositions, prices)
-      const { msgs: loops, newValue, newLTV } = loopPosition(
+    //   const { msgs: loops, newValue } = loopPosition
+      console.log(
         true,
         cdtPrice,
         mintLTV.toNumber(),
@@ -69,8 +71,8 @@ const useLoop = () => {
         initialBorrowLTV,
         positions
       )
-      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
-      newPositionValue = newValue
+    //   msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
+    //   newPositionValue = newValue
       
       return { msgs, newPositionValue }
     },
@@ -90,11 +92,11 @@ const useLoop = () => {
     setQuickActionState({ readyToLoop: false })
   }
 
-  console.log(msgs, newPositionValue)
+  console.log("loop", loop_msgs, newPositionValue)
   return {
     action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['quick action loops', (msgs?.toString()??"0")],
+    msgs: loop_msgs,
+    queryKey: ['quick action loops', (loop_msgs?.toString()??"0")],
     onSuccess: onLoopSuccess,
     }), newPositionValue}
 }

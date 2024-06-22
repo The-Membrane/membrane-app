@@ -14,6 +14,7 @@ import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
+import useLoop from './hooks/useLoop'
 
 const QuickActionWidget = () => {
 
@@ -24,7 +25,8 @@ const QuickActionWidget = () => {
   const { data: walletBalances } = useBalance("osmosis")
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { action: quickAction, loops, newPositionValue, swapRatio, summary} = useQuickAction()
+  const { action: quickAction, swapRatio, summary} = useQuickAction()
+  const { action: loops, newPositionValue } = useLoop()
   
   const [ inputAmount, setInputAmount ] = useState(0);
   const [ stableInputAmount, setStableInputAmount ] = useState(0);

@@ -124,7 +124,7 @@ export interface Prices {
 
 export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], positionIndex: number = 0) => {
   //This allows us to create a new position for users even if they have open positions
-  if (basketPositions && positionIndex >= basketPositions.length) return []
+  if (basketPositions && positionIndex === basketPositions[0].positions.length) return []
   if (!basketPositions) return []
   const positions = basketPositions?.[0]?.positions?.[positionIndex]
 

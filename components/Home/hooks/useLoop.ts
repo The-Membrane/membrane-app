@@ -92,11 +92,11 @@ const useLoop = () => {
     setQuickActionState({ readyToLoop: false })
   }
 
-  console.log("loop", loop_msgs, newPositionValue)
+  console.log("loop", msgs, newPositionValue)
   return {
     action: useSimulateAndBroadcast({
-    msgs: loop_msgs,
-    queryKey: ['quick action loops', (loop_msgs?.toString()??"0")],
+    msgs,
+    queryKey: ['quick action loops', (msgs?.toString()??"0")],
     onSuccess: onLoopSuccess,
     }), newPositionValue}
 }

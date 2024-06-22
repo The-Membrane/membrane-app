@@ -176,12 +176,27 @@ const useQuickAction = () => {
     else return queryData
   }, [queryData])
 
-  const onInitialSuccess = () => {    
+  const onInitialSuccess = (action: any) => {
+    action?.simulate.refetch()
+    action?.tx.mutate()
+    // queryClient.invalidateQueries({ queryKey: ['positions'] })    
+    // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    // setQuickActionState({ readyToLoop: true })    
+    // setQuickActionState({ stableAsset: summary[1] })
+  }
+
+  const onLoopSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })    
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    setQuickActionState({ readyToLoop: true })    
-    setQuickActionState({ stableAsset: summary[1] })
+    if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
+    // setQuickActionState({ readyToLoop: false })
   }
+
+  const action = useSimulateAndBroadcast({
+    msgs,
+    queryKey: ['quick action loop', (loop_msgs?.toString()??"0")],
+    onSuccess: onLoopSuccess,
+  })
 
 
   console.log(msgs, stableAsset, quickActionState?.levAsset?.amount)
@@ -189,7 +204,7 @@ const useQuickAction = () => {
     action: useSimulateAndBroadcast({
     msgs,
     queryKey: ['quick action lev', (msgs?.toString()??"0")],
-    onSuccess: onInitialSuccess,
+    onSuccess: () => onInitialSuccess(action),
   }), loop_msgs, newPositionValue, positionId, swapRatio, summary}
 }
 

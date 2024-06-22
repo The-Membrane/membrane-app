@@ -26,7 +26,7 @@ const QuickActionWidget = () => {
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, loop_msgs, newPositionValue, positionId, swapRatio, summary} = useQuickAction()
-  const { action: loops } = useLoop(loop_msgs, newPositionValue, positionId)
+  // const { action: loops } = useLoop(loop_msgs, newPositionValue, positionId)
   
   const [ inputAmount, setInputAmount ] = useState(0);
   const [ stableInputAmount, setStableInputAmount ] = useState(0);
@@ -151,14 +151,14 @@ const QuickActionWidget = () => {
     <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
         {!isWalletConnected ? 
         <ConnectButton marginTop={1}/>
-        : quickActionState.readyToLoop ?
-        <ConfirmModal 
-        action={loops}
-        label={"Loop"}
-        // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
-        >
-          {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
-        </ConfirmModal>
+        // : quickActionState.readyToLoop ?
+        // <ConfirmModal 
+        // action={loops}
+        // label={"Loop"}
+        // // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
+        // >
+        //   {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
+        // </ConfirmModal>
         : quickActionState.assets.length === 0 ? 
         <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...

@@ -162,7 +162,7 @@ const useQuickAction = () => {
         45,
         positions
       )
-      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
+      // msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue
       
       return { msgs, loops: loops as MsgExecuteContractEncodeObject[], newPositionValue, swapRatio, summary }
@@ -176,16 +176,17 @@ const useQuickAction = () => {
   }, [queryData])
 
   
-  // const onLoopSuccess = () => {    
-  //   queryClient.invalidateQueries({ queryKey: ['positions'] })    
-  //   queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-  //   if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
-  // }
+  const onLoopSuccess = () => {    
+    queryClient.invalidateQueries({ queryKey: ['positions'] })    
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
+  }
 
   const onInitialSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })    
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
+    setQuickActionState({ readyToLoop: true })
+    // if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
       // useSimulateAndBroadcast({
       //   msgs: loops,
       //   enabled: !!loops,
@@ -202,7 +203,11 @@ const useQuickAction = () => {
     queryKey: ['quick action lev', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
   }),
-  newPositionValue, swapRatio, summary}
+  loops: useSimulateAndBroadcast({
+    msgs: loops,
+    queryKey: ['quick action loops', (loops?.toString()??"0")],
+    onSuccess: onLoopSuccess,
+  }), newPositionValue, swapRatio, summary}
 }
 
 export default useQuickAction

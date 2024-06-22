@@ -162,7 +162,7 @@ const useQuickAction = () => {
         45,
         positions
       )
-      // msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
+      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue
       
       return { msgs, loops: loops as MsgExecuteContractEncodeObject[], newPositionValue, swapRatio, summary }
@@ -176,21 +176,22 @@ const useQuickAction = () => {
   }, [queryData])
 
   
-  const onLoopSuccess = () => {    
-    queryClient.invalidateQueries({ queryKey: ['positions'] })    
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
-  }
+  // const onLoopSuccess = () => {    
+  //   queryClient.invalidateQueries({ queryKey: ['positions'] })    
+  //   queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+  //   if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
+  // }
 
   const onInitialSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })    
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-      useSimulateAndBroadcast({
-        msgs: loops,
-        enabled: !!loops,
-        queryKey: ['quick action loops', (loops?.toString()??"0")],
-        onSuccess: onLoopSuccess,
-      }).tx.mutate()
+    if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
+      // useSimulateAndBroadcast({
+      //   msgs: loops,
+      //   enabled: !!loops,
+      //   queryKey: ['quick action loops', (loops?.toString()??"0")],
+      //   onSuccess: onLoopSuccess,
+      // }).tx.mutate()
   }
 
 

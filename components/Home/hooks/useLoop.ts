@@ -77,7 +77,7 @@ const useLoop = () => {
     enabled: !!address,
   })
 
-  const { msgs, newPositionValue} = useMemo(() => {
+  const { msgs, newPositionValue } = useMemo(() => {
     if (!queryData) return { msgs: undefined, newPositionValue: 0 }
     else return queryData
   }, [queryData])

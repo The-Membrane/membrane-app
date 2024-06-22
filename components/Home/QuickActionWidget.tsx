@@ -25,8 +25,8 @@ const QuickActionWidget = () => {
   const { data: walletBalances } = useBalance("osmosis")
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { action: quickAction, newPositionValue, swapRatio, summary} = useQuickAction()
-  const { action: loops } = useLoop()
+  const { action: quickAction, loop_msgs, newPositionValue, positionId, swapRatio, summary} = useQuickAction()
+  const { action: loops } = useLoop(loop_msgs, newPositionValue, positionId)
   
   const [ inputAmount, setInputAmount ] = useState(0);
   const [ stableInputAmount, setStableInputAmount ] = useState(0);

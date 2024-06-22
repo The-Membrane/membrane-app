@@ -48,6 +48,7 @@ const useQuickAction = () => {
   
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
+    loop_msgs: MsgExecuteContractEncodeObject[] | undefined
     newPositionValue: number
     swapRatio: number
     summary: any[]
@@ -65,7 +66,7 @@ const useQuickAction = () => {
       cdtAsset, basketPositions
     ],
     queryFn: () => {
-      if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
+      if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, loop_msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
@@ -165,13 +166,13 @@ const useQuickAction = () => {
       // msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue
       
-      return { msgs, newPositionValue, swapRatio, summary }
+      return { msgs, loop_msgs: loops as MsgExecuteContractEncodeObject[], newPositionValue, swapRatio, summary }
     },
     enabled: !!address,
   })
 
-  const { msgs, newPositionValue, swapRatio, summary } = useMemo(() => {
-    if (!queryData) return { msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
+  const { msgs, loop_msgs, newPositionValue, swapRatio, summary } = useMemo(() => {
+    if (!queryData) return { msgs: undefined, loop_msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
     else return queryData
   }, [queryData])
 
@@ -189,7 +190,7 @@ const useQuickAction = () => {
     msgs,
     queryKey: ['quick action lev', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-  }), newPositionValue, swapRatio, summary}
+  }), loop_msgs, newPositionValue, positionId, swapRatio, summary}
 }
 
 export default useQuickAction

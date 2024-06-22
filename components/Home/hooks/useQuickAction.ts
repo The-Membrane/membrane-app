@@ -177,8 +177,8 @@ const useQuickAction = () => {
   }, [queryData])
 
   const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['positions'] })    
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    // queryClient.invalidateQueries({ queryKey: ['positions'] })    
+    // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     setQuickActionState({ readyToLoop: true })    
     // setQuickActionState({ stableAsset: summary[1] })
   }

@@ -22,7 +22,7 @@ const useLoop = () => {
   const { data: basket } = useBasket()
   const { data: prices } = useOraclePrice()
   
-const { quickActionState } = useQuickActionState()
+  const { quickActionState, setQuickActionState } = useQuickActionState()
   const { mintState, setMintState } = useMintState()
   const { summary = [] } = mintState
 
@@ -30,7 +30,7 @@ const { quickActionState } = useQuickActionState()
  
 
   const positionId = useMemo(() => {
-      return basketPositions?.[0]?.positions?.[mintState.positionNumber-1]?.position_id
+    if (basketPositions && basketPositions[0].positions) return basketPositions[0].positions[basketPositions[0].positions.length-1]?.position_id
   }, [basket])
 
   type QueryData = {
@@ -87,6 +87,7 @@ const { quickActionState } = useQuickActionState()
     queryClient.invalidateQueries({ queryKey: ['positions'] })    
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
+    setQuickActionState({ readyToLoop: false })
   }
 
   console.log(msgs, newPositionValue)

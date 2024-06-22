@@ -48,6 +48,7 @@ const useQuickAction = () => {
   
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
+    loops: MsgExecuteContractEncodeObject[] | undefined
     newPositionValue: number
     swapRatio: number
     summary: any[]
@@ -65,7 +66,7 @@ const useQuickAction = () => {
       cdtAsset, basketPositions
     ],
     queryFn: () => {
-      if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
+      if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, loops: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
@@ -138,6 +139,7 @@ const useQuickAction = () => {
       const deposit = getDepostAndWithdrawMsgs({ 
         summary,
         address,
+        basketPositions,
         positionId,
         hasPosition: false
       })
@@ -160,30 +162,44 @@ const useQuickAction = () => {
         45,
         positions
       )
-      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
+      // msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue
       
-      return { msgs, newPositionValue, swapRatio, summary }
+      return { msgs, loops: loops as MsgExecuteContractEncodeObject[], newPositionValue, swapRatio, summary }
     },
     enabled: !!address,
   })
 
-  const { msgs, newPositionValue, swapRatio, summary } = useMemo(() => {
-    if (!queryData) return { msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
+  const { msgs, loops, newPositionValue, swapRatio, summary } = useMemo(() => {
+    if (!queryData) return { msgs: undefined, loops: undefined, newPositionValue: 0, swapRatio: 0, summary: []}
     else return queryData
   }, [queryData])
 
-  const onSuccess = () => {    
+  
+  const onLoopSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })    
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
   }
+
+  const onInitialSuccess = () => {    
+    queryClient.invalidateQueries({ queryKey: ['positions'] })    
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+      useSimulateAndBroadcast({
+        msgs: loops,
+        enabled: !!loops,
+        queryKey: ['quick action loops', (loops?.toString()??"0")],
+        onSuccess: onLoopSuccess,
+      }).tx.mutate()
+  }
+
+
   console.log(msgs, stableAsset, quickActionState?.levAsset?.amount)
   return {
     action: useSimulateAndBroadcast({
     msgs,
     queryKey: ['quick action lev', (msgs?.toString()??"0")],
-    onSuccess,
+    onSuccess: onInitialSuccess,
   }),
   newPositionValue, swapRatio, summary}
 }

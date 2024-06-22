@@ -32,6 +32,7 @@ const useCombinBalance = (positionIndex: number = 0) => {
   return useMemo(() => {
     const basketAssets = getBasketAssets(basket!, collateralInterest!)
     const positions = getPositions(basketPositions, prices, positionIndex)
+    if (!positions) return []
 
     return basketAssets?.map((asset) => {
       const position = positions.find((p) => p.denom === asset.asset.base)

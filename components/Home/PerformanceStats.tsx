@@ -36,7 +36,7 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     const fontColor = parseFloat(initialTVL) > currentTVL ? "red" : "green"
   return (
     <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-      <Text variant="body" textTransform={'uppercase'} fontWeight={"bold"}  fontSize="16px" textDecoration={"underline"}>
+      <Text variant="body" textTransform={'uppercase'} fontWeight={"bold"}  fontSize="16px" textDecoration={"underline"} mb="2">
       Performance
       </Text>
       <Text fontWeight="bold" fontSize="16px">

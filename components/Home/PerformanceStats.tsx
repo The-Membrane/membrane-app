@@ -43,10 +43,13 @@ const PerformanceStats = ({ positionIndex }: Props) => {
         </Text>
         <HStack>
           <Text fontWeight="bold" fontSize="16px">
-            {levAsset?.symbol??"N/A"} | 
+            {levAsset?.symbol??"N/A"} 
           </Text>
-          <Image src={levAsset?.logo} w="24px" h="24px" />       
-          <Stack>
+          <Image src={levAsset?.logo} w="24px" h="24px" />                 
+          <Text fontWeight="bold" fontSize="16px">
+            |
+          </Text>
+        <Stack>
         <Text fontWeight="bold" fontSize="16px">
         <span style={{ color: fontColor }}>{performance}</span>
         </Text>

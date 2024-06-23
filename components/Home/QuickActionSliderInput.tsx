@@ -7,6 +7,7 @@ import { QuickActionState } from "./hooks/useQuickActionState"
 import QASelect from "../QuickActionSelect"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import React from "react"
+import { shiftDigits } from "@/helpers/math"
 
 type Props = {
     value: string
@@ -43,11 +44,11 @@ type Props = {
   
         setTimeout(() => {
           if (stable){
-            if (num(newAmount).isGreaterThan(max)) setQAState({ stableAsset: { ...QAState?.stableAsset, amount: max, sliderValue: max }})
-              else setQAState({ stableAsset: { ...QAState?.stableAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
+            if (num(newAmount).isGreaterThan(max)) setQAState({ stableAsset: { ...QAState?.stableAsset, sliderValue: max }})
+              else setQAState({ stableAsset: { ...QAState?.stableAsset, sliderValue: (parseInt(e.target.value)) }})
           } else {
-            if (num(newAmount).isGreaterThan(max)) setQAState({ levAsset: { ...QAState?.levAsset, amount: max, sliderValue: max }})
-              else setQAState({ levAsset: { ...QAState?.levAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
+            if (num(newAmount).isGreaterThan(max)) setQAState({ levAsset: { ...QAState?.levAsset, sliderValue: max }})
+              else setQAState({ levAsset: { ...QAState?.levAsset, sliderValue: (parseInt(e.target.value)) }})
           }
         }, delayTime);  
       }

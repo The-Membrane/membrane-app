@@ -17,6 +17,7 @@ export type QuickActionState = {
   totalUsdValue?: number
   levSwapRatio?: number
   useCookies: boolean
+  readyToLoop: boolean
 }
 
 type Store = {
@@ -27,6 +28,7 @@ type Store = {
 const initialState: QuickActionState = {  
   assets: [],
   useCookies: false,
+  readyToLoop: false,
 }
 
 // @ts-ignore

@@ -11,7 +11,6 @@ import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
-import { useBasket, useCollateralInterest } from '@/hooks/useCDP'
 import { stableSymbols } from '@/config/defaults'
 
 export const cdpClient = async () => {
@@ -124,7 +123,7 @@ export interface Prices {
 
 export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], positionIndex: number = 0) => {
   //This allows us to create a new position for users even if they have open positions
-  if (basketPositions && positionIndex >= basketPositions.length) return []
+  if (basketPositions && positionIndex === basketPositions[0].positions.length) return []
   if (!basketPositions) return []
   const positions = basketPositions?.[0]?.positions?.[positionIndex]
 
@@ -303,7 +302,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
       }
     })
   }
-  console.log("positions")
+  console.log("positions again:", basketPositions, positionIndex)
 
   const positions = getPositions(basketPositions, prices, positionIndex)
   console.log("positions.map")

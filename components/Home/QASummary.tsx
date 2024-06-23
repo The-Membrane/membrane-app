@@ -109,7 +109,7 @@ export const QASummary = ({ newPositionValue, swapRatio, summary } : {newPositio
         isLP={quickActionState?.levAsset?.isLP}
         badge={"LOOP"}
         startingValue={quickActionState?.levAsset?.sliderValue??0}
-        newValue={num(newPositionValue).times(1-swapRatio).toNumber()}
+        newValue={num(newPositionValue).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio)).toNumber()}
       />
       <Checkbox isChecked={quickActionState.useCookies} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => {setQuickActionState({useCookies: !quickActionState.useCookies})}}> 
         Use cookies to track performance

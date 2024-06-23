@@ -14,6 +14,7 @@ import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
+import useLoop from './hooks/useLoop'
 
 const QuickActionWidget = () => {
 
@@ -24,7 +25,8 @@ const QuickActionWidget = () => {
   const { data: walletBalances } = useBalance("osmosis")
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { action: quickAction, newPositionValue, swapRatio, summary} = useQuickAction()
+  const { action: quickAction, loop, newPositionValue, positionId, swapRatio, summary} = useQuickAction()
+  // const { action: loops } = useLoop(loop_msgs, newPositionValue, positionId)
   
   const [ inputAmount, setInputAmount ] = useState(0);
   const [ stableInputAmount, setStableInputAmount ] = useState(0);
@@ -149,6 +151,14 @@ const QuickActionWidget = () => {
     <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
         {!isWalletConnected ? 
         <ConnectButton marginTop={1}/>
+        : quickActionState.readyToLoop ?
+        <ConfirmModal 
+        action={loop}
+        label={"Loop"}
+        // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
+        >
+          {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
+        </ConfirmModal>
         : quickActionState.assets.length === 0 ? 
         <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...
@@ -193,7 +203,7 @@ const QuickActionWidget = () => {
             stable={true}
         /></> : null}
         <Text fontSize="sm" color="white" mt="2" minH="21px">
-        {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).multipliedBy(1-swapRatio).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol} --- max slippage: {SWAP_SLIPPAGE}%
+        {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol} --- max slippage: {SWAP_SLIPPAGE}%
         </Text>
          {((quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
@@ -212,7 +222,7 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
+        // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
         >
           <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/>
         </ConfirmModal></>}

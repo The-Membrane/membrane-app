@@ -1,4 +1,5 @@
 import { stake } from "@/services/staking"
+import { position } from "@chakra-ui/react"
 
 export const parseError = (error: Error) => {
   const customErrors = [
@@ -16,6 +17,7 @@ export const parseError = (error: Error) => {
     { regex: /Makes position insolvent/i, message: 'Amount exceeds the maximum LTV' },
     { regex: /You don't have any voting power!/i, message: "You don't have any voting power!" },
     { regex: /Bid amount too small, minimum is 5000000/i, message: 'Minimum bid amount is 5 CDT' },
+    { regex: /Maximum position number/i, message: "You've reached the max position number for this wallet" },
     {
       regex: /Invalid withdrawal, can't leave less than the minimum bid/i,
       message: 'Minimum bid amount is 5 CDT',

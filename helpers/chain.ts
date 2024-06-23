@@ -85,5 +85,6 @@ export const getAssetBySymbol = (symbol: string, chainID: string = 'osmosis') =>
 
 export const getAssetByDenom = (denom: string, chainID: string = 'osmosis') => {
   const assets = getAssets(chainID)
+  console.log("assets", assets, denom)
   return assets?.find((asset) => asset.base === denom)
 }

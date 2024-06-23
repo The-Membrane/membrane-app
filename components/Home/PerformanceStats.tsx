@@ -42,11 +42,11 @@ const PerformanceStats = ({ positionIndex }: Props) => {
         </Text>
         <HStack>
           <Text fontWeight="bold" fontSize="16px">
-            {levAsset?.symbol??"N/A"}
+            {levAsset?.symbol??"N/A"} | 
           </Text>
           <Image src={levAsset?.logo} w="24px" h="24px" />          
           <Text fontWeight="bold" fontSize="16px">
-          <span style={{ color: fontColor }}>{performance}</span> |  <span style={{ color: fontColor }}>{sign === "+" ? "+" : null}${(currentTVL-parseInt(initialTVL)).toFixed(2)}</span>
+          <span style={{ color: fontColor }}>{performance}</span> - <span style={{ color: fontColor }}>{sign === "+" ? "+" : null}${(currentTVL-parseInt(initialTVL)).toFixed(2)}</span>
           </Text>
         </HStack>      
       </Stack>

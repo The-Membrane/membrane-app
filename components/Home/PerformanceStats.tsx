@@ -27,8 +27,8 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     if (initialTVL == null) return null
 
     //Get the volatile asset being leveraged
-    //Find the asset in the position that is not the stable asset
-    const levAsset = getAssetByDenom(position.collateral_assets.find(asset => !stableDenoms.includes(asset.asset.info.denom))?.asset.info.denom??"N/A")?.symbol??"N/A"
+    //We know its the first asset bc we deposit the stable second
+    const levAsset = getAssetByDenom(position.collateral_assets[0].asset.info.denom)?.symbol??"N/Symbol"
 
     //Get performance 
     const sign = parseFloat(initialTVL) > currentTVL ? "-" : "+"
@@ -36,8 +36,8 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     const fontColor = parseFloat(initialTVL) > currentTVL ? "red" : "green"
   return (
     <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
-      <Text style={{color: fontColor}} variant="title" fontSize="16px">
-      {levAsset} {performance} | {initialTVL} {"->"} {currentTVL}
+      <Text fontWeight="bold" fontSize="16px">
+      {levAsset} <span style={{ color: fontColor }}>{performance}</span> | {parseInt(initialTVL)} {"->"} {currentTVL.toFixed(0)}
       </Text>
     </Card>
   )

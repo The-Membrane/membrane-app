@@ -63,7 +63,8 @@ const useQuickAction = () => {
       quickActionState?.stableAsset?.sliderValue,
       usdcAsset,
       prices,
-      cdtAsset, basketPositions
+      cdtAsset, 
+      basketPositions,
     ],
     queryFn: () => {
       if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAsset) return { msgs: undefined, loop_msgs: undefined, newPositionValue: 0, swapRatio: 0, summary: []}

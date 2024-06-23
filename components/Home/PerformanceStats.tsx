@@ -36,6 +36,9 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     const fontColor = parseFloat(initialTVL) > currentTVL ? "red" : "green"
   return (
     <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
+      <Text variant="title" fontSize="16px" textDecoration={"underline"}>
+      Performance
+      </Text>
       <Text fontWeight="bold" fontSize="16px">
       {levAsset}  <span style={{ color: fontColor }}>{performance}</span> | {parseInt(initialTVL).toFixed(2)} {"->"} {currentTVL.toFixed(2)}
       </Text>

@@ -50,11 +50,11 @@ const PerformanceStats = ({ positionIndex }: Props) => {
             |
           </Text>
           <Stack>
-            <Text fontWeight="bold" fontSize="16px">
+            <Text fontWeight="bold" fontSize="16px" justifyContent={"center"} display={"flex"}>
             <span style={{ color: fontColor }}>{performance}</span>
             </Text>
-            <Divider mx="0" mt="0" mb="0"/>
-            <Text fontWeight="bold" fontSize="16px">
+            <Divider mx="0" mt="0" mb="0" justifyContent={"center"} display={"flex"}/>
+            <Text fontWeight="bold" fontSize="16px" justifyContent={"center"} display={"flex"}>
             <span style={{ color: fontColor }}>{sign === "+" ? "+" : null}${(currentTVL-parseInt(initialTVL)).toFixed(2)}</span>
             </Text>
           </Stack>   

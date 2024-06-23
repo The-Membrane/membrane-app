@@ -28,7 +28,7 @@ const PerformanceStats = ({ positionIndex }: Props) => {
 
     //Get the volatile asset being leveraged
     //We know its the first asset bc we deposit the stable second
-    const levAsset = getAssetByDenom(position.collateral_assets[0].asset.info.denom)?.symbol??"N/Symbol "
+    const levAsset = getAssetByDenom(position.collateral_assets[0].asset.info.native_token.denom)?.symbol??"N/Symbol "
 
     //Get performance 
     const sign = parseFloat(initialTVL) > currentTVL ? "-" : "+"

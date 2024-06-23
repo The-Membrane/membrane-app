@@ -5,6 +5,7 @@ import { useUserPositions } from '@/hooks/useCDP'
 import useInitialVaultSummary from '../Mint/hooks/useInitialVaultSummary'
 import { stableDenoms } from '@/config/defaults'
 import { getAssetByDenom } from '@/helpers/chain'
+import Divider from '../Divider'
 
 type Props = {
   positionIndex: number

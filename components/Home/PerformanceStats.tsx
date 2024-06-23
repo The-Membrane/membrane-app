@@ -38,7 +38,7 @@ const PerformanceStats = ({ positionIndex }: Props) => {
   return (
     <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
       <Stack>
-        <Text variant="body" textTransform={'uppercase'} fontWeight={"bold"}  fontSize="16px" textDecoration={"underline"} mb="2">
+        <Text variant="body" textTransform={'uppercase'} fontWeight={"bold"}  fontSize="16px" textDecoration={"underline"} mb="2" justifyContent={"center"} display={"flex"}>
         Performance
         </Text>
         <HStack>
@@ -49,14 +49,14 @@ const PerformanceStats = ({ positionIndex }: Props) => {
           <Text fontWeight="bold" fontSize="16px">
             |
           </Text>
-        <Stack>
-        <Text fontWeight="bold" fontSize="16px">
-        <span style={{ color: fontColor }}>{performance}</span>
-        </Text>
-        <Divider mx="0" mt="0" mb="0"/>
-        <Text fontWeight="bold" fontSize="16px">
-        <span style={{ color: fontColor }}>{sign === "+" ? "+" : null}${(currentTVL-parseInt(initialTVL)).toFixed(2)}</span>
-        </Text>
+          <Stack>
+            <Text fontWeight="bold" fontSize="16px">
+            <span style={{ color: fontColor }}>{performance}</span>
+            </Text>
+            <Divider mx="0" mt="0" mb="0"/>
+            <Text fontWeight="bold" fontSize="16px">
+            <span style={{ color: fontColor }}>{sign === "+" ? "+" : null}${(currentTVL-parseInt(initialTVL)).toFixed(2)}</span>
+            </Text>
           </Stack>   
         </HStack>      
       </Stack>

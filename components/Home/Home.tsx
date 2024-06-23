@@ -26,7 +26,7 @@ const Home = React.memo(() => {
           <QuickActionWidget />
         </GridItem>
         <GridItem colSpan={1} h='10'> 
-          {/* List collateral types and their rates. LTVs arn't competitve so we dont' show */}
+          {/* scatter collateral icons & hover to show symbol name */}
         </GridItem>
         </Grid>
     </Stack>

@@ -1,7 +1,5 @@
 import { HStack, Stack, Text } from '@chakra-ui/react'
-import { getSummary } from '@/helpers/mint'
 import { num } from '@/helpers/num'
-import useQuickActionState from './hooks/useQuickActionState'
 import { AssetWithBalance } from '../Mint/hooks/useCombinBalance'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { delayTime } from '@/config/defaults'
@@ -15,6 +13,26 @@ export type AssetWithSliderProps = {
 }
 
 export const NFTAssetSlider = ({ asset, label, onChangeExt }: AssetWithSliderProps) => {
+  const { NFTState, setNFTState } = useNFTState()
+
+  const onChange = (value: number) => {
+    onChangeExt(value)
+    let updatedAssets = NFTState.assets.map((asset) => {
+      const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
+      
+      const newDeposit = num(sliderValue).toNumber()
+      const amount = num(newDeposit).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
+      console.log(asset.symbol, amount, asset.decimal, asset.price, sliderValue)
+
+      return {
+        ...asset,
+        amount,
+        sliderValue,
+      }
+    })
+
+    setNFTState({ assets: updatedAssets })
+  }
   
   return (
     <Stack gap="0">

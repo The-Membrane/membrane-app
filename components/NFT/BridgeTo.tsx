@@ -170,7 +170,7 @@ const BridgeTo = React.memo(() => {
                     {/* Asset Menu + Input Box/Slider*/}        
                     <Stack py="5" w="full" gap="2">  
                     <HStack justifyContent="space-between">
-                        <Checkbox isChecked={NFTState.swapInsteadof} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => {setNFTState({swapInsteadof: !NFTState.swapInsteadof}); setNFTState({ cdtBridgeAmount: 0 });}}> 
+                        <Checkbox isChecked={NFTState.swapInsteadof} borderColor={"#00A3F9"} onChange={() => {setNFTState({swapInsteadof: !NFTState.swapInsteadof}); setNFTState({ cdtBridgeAmount: 0 });}}> 
                             Swap & Bridge
                         </Checkbox >
                     </HStack>
@@ -201,7 +201,7 @@ const BridgeTo = React.memo(() => {
 
                 {/* Bridge Sliders */}
                 <Stack width={"100%"}>
-                    <Text fontSize="14px" fontWeight="700">
+                    <Text fontSize="14px" fontWeight="700" paddingTop={"4%"} >
                     {NFTState.action.value}
                     </Text> 
                     <Divider mx="0" mt="0" mb="5"/>

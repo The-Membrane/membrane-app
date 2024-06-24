@@ -153,8 +153,11 @@ const QuickActionWidget = () => {
         <ConnectButton marginTop={1}/>
         : quickActionState.readyToLoop ?
         <Stack> 
+          <Text variant="title" fontSize="16px" marginTop={1} textAlign={"center"}>
+            Collateral deposited! Ready to loop your position?
+          </Text>
           <Text variant="body" fontSize="16px" marginTop={1} textAlign={"center"}>
-            Now that you've deposited your collateral as a bundle with 20% swapped to stables, you can increase the leverage of your volatile asset by looping your position.
+            Click the button below to begin the loop process.
           </Text>
           <ConfirmModal 
           action={loop}

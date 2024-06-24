@@ -28,7 +28,7 @@ type Store = {
 const initialState: QuickActionState = {  
   assets: [],
   useCookies: false,
-  readyToLoop: true,
+  readyToLoop: false,
 }
 
 // @ts-ignore

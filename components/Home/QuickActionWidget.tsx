@@ -153,11 +153,8 @@ const QuickActionWidget = () => {
         <ConnectButton marginTop={1}/>
         : quickActionState.readyToLoop ?
         <Stack> 
-          <Text variant="title" fontSize="16px" marginTop={1} textAlign={"center"}>
+          <Text variant="title" fontSize="16px" marginTop={1} marginBottom={1} textAlign={"center"} letterSpacing={"1px"}>
             Collateral deposited! Ready to loop your position?
-          </Text>
-          <Text variant="body" fontSize="16px" marginTop={1} marginBottom={1} textAlign={"center"}>
-            Click the button below to begin the loop process.
           </Text>
           <ConfirmModal 
           action={loop}
@@ -230,7 +227,7 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
+        isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
         >
           <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/>
         </ConfirmModal></>}

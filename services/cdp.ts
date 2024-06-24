@@ -432,10 +432,33 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
 
   if (!basketPositions || !prices || !basket || !interest) return []
 
+  const bundles: string[][] = []
+  const tally: number[] = []
+
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   return basketPositions?.map((basketPosition) => {
     const positions = getPositions([basketPosition], prices)
+
+    // Create a list of the position's assets and sort alphabetically
+    const assetList = positions.map((position) => position.symbol).sort()
+    // If the asset list is already in the bundles, increment the tallu array of the same index
+    // Otherwise, add the asset list to the bundles and add 1 to the tally
+    const index = bundles.findIndex((bundle) => bundle.join('') === assetList.join(''))
+    if (index !== -1) {
+      tally[index] += 1
+    } else {
+      bundles.push(assetList)
+      tally.push(1)
+    }
+
+    //Log the top 5 most common asset bundles
+    const topBundles = tally.map((count, i) => {
+      return { bundle: bundles[i], count }
+    }).sort((a, b) => b.count - a.count).slice(0, 5)
+    console.log(topBundles)
+    
+
     const tvl = getTVL(positions)
     const debt = getDebt([basketPosition])
     const debtValue = num(debt).times(basket.credit_price.price).toNumber()

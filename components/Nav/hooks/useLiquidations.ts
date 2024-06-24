@@ -34,15 +34,14 @@ const useProtocolLiquidations = () => {
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
     queryFn: () => {
-        if (!address || !allPositions || !prices || !basket || !interest) return {msgs: undefined, liquidating_positions: []}
+        if (!address || !allPositions || !prices || !basket || !interest) return { msgs: undefined, liquidating_positions: [] }
 
         console.log("liq fn")
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
-        const liq = useMemo(() => {
-          console.log("doing calcs")
-          return getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
-        } , [allPositions, prices])
+        const liq = getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
+        //} , [allPositions, prices])
+        console.log("post calcs")
 
         if (liq.length > 0) {
             const liq_msgs = getLiquidationMsgs({address, liq_info: liq})

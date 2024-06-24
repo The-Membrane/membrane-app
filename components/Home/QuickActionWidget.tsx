@@ -156,7 +156,7 @@ const QuickActionWidget = () => {
           <Text variant="title" fontSize="16px" marginTop={1} textAlign={"center"}>
             Collateral deposited! Ready to loop your position?
           </Text>
-          <Text variant="body" fontSize="16px" marginTop={1} textAlign={"center"}>
+          <Text variant="body" fontSize="16px" marginTop={1} marginBottom={1} textAlign={"center"}>
             Click the button below to begin the loop process.
           </Text>
           <ConfirmModal 

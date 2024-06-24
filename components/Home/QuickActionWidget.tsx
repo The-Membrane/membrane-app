@@ -152,13 +152,18 @@ const QuickActionWidget = () => {
         {!isWalletConnected ? 
         <ConnectButton marginTop={1}/>
         : quickActionState.readyToLoop ?
-        <ConfirmModal 
-        action={loop}
-        label={"Loop"}
-        // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
-        >
-          {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
-        </ConfirmModal>
+        <Stack> 
+          <Text variant="body" fontSize="16px" marginTop={1} textAlign={"center"}>
+            Now that you've deposited your collateral as a bundle with 20% swapped to stables, you can increase the leverage of your volatile asset by looping your position.
+          </Text>
+          <ConfirmModal 
+          action={loop}
+          label={"Loop"}
+          // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
+          >
+            {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
+          </ConfirmModal>
+        </Stack>
         : quickActionState.assets.length === 0 ? 
         <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...

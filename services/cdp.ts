@@ -455,7 +455,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     //Log the top 5 most common asset bundles
     const topBundles = tally.map((count, i) => {
       return { bundle: bundles[i], count }
-    }).sort((a, b) => b.count - a.count).slice(0, 5)
+    }).sort((a, b) => b.count - a.count)//.slice(0, 5)
     console.log(topBundles)
     
 

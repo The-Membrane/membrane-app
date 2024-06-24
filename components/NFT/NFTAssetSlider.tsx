@@ -46,7 +46,7 @@ export const NFTAssetSlider = ({ asset, label, onChangeExt }: AssetWithSliderPro
       </HStack>
       <SliderWithState
         value={asset?.sliderValue}
-        onChange={onChangeExt}
+        onChange={onChange}
         min={0}
         max={asset?.combinUsdValue}
       />

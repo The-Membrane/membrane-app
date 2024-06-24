@@ -434,6 +434,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
 
   const bundles: string[][] = []
   const tally: number[] = []
+  const totalValue: number[] = []
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
@@ -442,14 +443,22 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
 
     // Create a list of the position's assets and sort alphabetically
     const assetList = positions.map((position) => position.symbol).sort()
-    // If the asset list is already in the bundles, increment the tallu array of the same index
-    // Otherwise, add the asset list to the bundles and add 1 to the tally
+    // If the asset list is already in the bundles, increment the tally array of the same index & add the total value of the position to the totalValue array
+    // Otherwise, add the asset list to the bundles, add 1 to the tally & add the total value of the position to the totalValue array
     const index = bundles.findIndex((bundle) => bundle.join('') === assetList.join(''))
     if (index !== -1) {
       tally[index] += 1
+      totalValue[index] += positions.reduce((acc, position) => { 
+        if (!position) return acc
+        return acc + position.usdValue
+      }, 0)
     } else {
       bundles.push(assetList)
       tally.push(1)
+      totalValue.push(positions.reduce((acc, position) => { 
+        if (!position) return acc
+        return acc + position.usdValue
+      }, 0))
     }
 
     //Log the top 5 most common asset bundles
@@ -457,6 +466,11 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
       return { bundle: bundles[i], count }
     }).sort((a, b) => b.count - a.count)//.slice(0, 5)
     console.log(topBundles)
+    //Log the highest value bundles
+    const topValue = totalValue.map((value, i) => {
+      return { bundle: bundles[i], value }
+    }).sort((a, b) => b.value - a.value)//.slice(0, 5)
+    console.log(topValue)
     
 
     const tvl = getTVL(positions)

@@ -171,7 +171,7 @@ const BridgeTo = React.memo(() => {
                     <Stack py="5" w="full" gap="2">  
                     <HStack justifyContent="space-between">
                         <Checkbox isChecked={NFTState.swapInsteadof} borderColor={"#00A3F9"} onChange={() => {setNFTState({swapInsteadof: !NFTState.swapInsteadof}); setNFTState({ cdtBridgeAmount: 0 });}}> 
-                            Swap & Bridge
+                            Swap to CDT & Bridge
                         </Checkbox >
                     </HStack>
                     {NFTState.swapInsteadof ? <SliderWithInputBox

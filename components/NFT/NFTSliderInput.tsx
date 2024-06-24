@@ -33,8 +33,8 @@ type Props = {
         const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
 
-        if (num(value).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: max, sliderValue: max }})
-        else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: value, sliderValue: value }})
+        if (num(value).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: max }})
+        else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: value }})
           
       }
   
@@ -45,8 +45,8 @@ type Props = {
           else setInputAmount(parseInt(e.target.value))
   
         setTimeout(() => {
-          if (num(newAmount).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: max, sliderValue: max }})
-            else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
+          if (num(newAmount).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: max }})
+            else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: (parseInt(e.target.value)) }})
         }, delayTime);  
       }
   

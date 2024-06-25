@@ -30,7 +30,7 @@ const QuickActionWidget = () => {
   //Set QAState summary
   // setQuickActionState({ summary })
   const { cost, liqudationLTV } = useQuickActionVaultSummary()
-// const liqudationLTV = 70
+  
   const drawdown = useMemo(() => {
     //new ratio post max vol drawdown
     const volRatio = num(45).dividedBy(num(liqudationLTV)).times(358).dividedBy(
@@ -234,7 +234,7 @@ const QuickActionWidget = () => {
           Drawdown: {drawdown}%
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-          Cost: {cost}%
+          Cost: {cost.toFixed(4)}%
           </Text>
         </Card>
          {((quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">

@@ -166,6 +166,7 @@ export const getRateCost = (
 ): { cost: number, ratios: any } => {
   if (!positions) return {cost: 0, ratios: []}
   const positionsWithRatio = getAssetRatio(false, tvl, positions)
+  console.log(basketAssets)
   const cost = positionsWithRatio.reduce((acc, position) => {    
     if (!position) return acc
     const rate =

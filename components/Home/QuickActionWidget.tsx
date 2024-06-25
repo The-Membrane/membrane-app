@@ -213,7 +213,7 @@ const QuickActionWidget = () => {
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
         />
-        {quickActionState.levAsset?.amount && quickActionState.levAsset?.amount !== 0 && stableAssets.length !== 0 ? <><Text fontSize="14px" fontWeight="700">
+        {/* {quickActionState.levAsset?.amount && quickActionState.levAsset?.amount !== 0 && stableAssets.length !== 0 ? <><Text fontSize="14px" fontWeight="700">
           Add Stables to Increase Leverage
         </Text> 
         <Divider mx="0" mt="0" mb="5"/>
@@ -227,7 +227,7 @@ const QuickActionWidget = () => {
             inputAmount={stableInputAmount}
             setInputAmount={setStableInputAmount}
             stable={true}
-        /></> : null}
+        /></> : null} */}
         <Card>
           <HStack>
             <Text fontWeight="bold" fontSize="16px">

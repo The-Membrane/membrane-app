@@ -173,9 +173,6 @@ const useQuickAction = () => {
     else return queryData
   }, [queryData])
 
-  //Set QAState summary
-  setQuickActionState({ summary })
-
   const onInitialSuccess = () => {
     setQuickActionState({ readyToLoop: true })
   }

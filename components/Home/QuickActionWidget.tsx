@@ -26,6 +26,9 @@ const QuickActionWidget = () => {
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, loop, newPositionValue, swapRatio, summary } = useQuickAction()
+  
+  //Set QAState summary
+  // setQuickActionState({ summary })
   const { cost, liqudationLTV } = useQuickActionVaultSummary()
 
   const drawdown = useMemo(() => {

@@ -11,12 +11,10 @@ import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { loopPosition } from '@/services/osmosis'
-// import useQuickActionVaultSummary from './useQuickActionVaultSummary'
 import { num, shiftDigits } from '@/helpers/num'
 import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
-import { set } from 'react-hook-form'
 import { setCookie } from '@/helpers/cookies'
 
 const useQuickAction = () => {
@@ -29,7 +27,6 @@ const useQuickAction = () => {
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
   const usdcAsset = useAssetBySymbol('USDC')
-  // const { borrowLTV, maxMint, debtAmount, tvl } = useQuickActionVaultSummary()
   
 
   /////First we'll do 1 position, but these actions will be usable by multiple per user in the future//////
@@ -131,7 +128,6 @@ const useQuickAction = () => {
       const newStableAsset = {...stableAsset as any, amount: stableAmount}
       const summary = [ levAsset, newStableAsset ]
       //Set QAState
-      setQuickActionState({ summary })
       console.log("summary:", summary)
       quickActionState.summary = summary
       quickActionState.levAsset = levAsset
@@ -177,11 +173,11 @@ const useQuickAction = () => {
     else return queryData
   }, [queryData])
 
+  //Set QAState summary
+  setQuickActionState({ summary })
+
   const onInitialSuccess = () => {
-    // queryClient.invalidateQueries({ queryKey: ['positions'] })    
-    // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    setQuickActionState({ readyToLoop: true })    
-    // setQuickActionState({ stableAsset: summary[1] })
+    setQuickActionState({ readyToLoop: true })
   }
 
   const onLoopSuccess = () => {    

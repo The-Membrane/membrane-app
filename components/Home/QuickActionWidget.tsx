@@ -1,10 +1,10 @@
-import { Card, HStack, Stack, Text, Checkbox } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text } from '@chakra-ui/react'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance from '@/hooks/useBalance'
 import useQuickActionState from './hooks/useQuickActionState'
 import { useEffect, useMemo, useState } from 'react'
-import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
+import { num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
 import { useOraclePrice } from '@/hooks/useOracle'
 import useQuickAction from './hooks/useQuickAction'
@@ -13,8 +13,8 @@ import useWallet from '@/hooks/useWallet'
 import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
+import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
-import useLoop from './hooks/useLoop'
 
 const QuickActionWidget = () => {
 
@@ -26,7 +26,20 @@ const QuickActionWidget = () => {
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { action: quickAction, loop, newPositionValue, positionId, swapRatio, summary} = useQuickAction()
-  // const { action: loops } = useLoop(loop_msgs, newPositionValue, positionId)
+  const { cost, liqudationLTV } = useQuickActionVaultSummary()
+
+  const drawdown = useMemo(() => {
+    //new ratio post max vol drawdown
+    const volRatio = num(45).dividedBy(num(liqudationLTV)).times(358).dividedBy(
+      num(45).dividedBy(num(liqudationLTV)).times(358).plus(44.4)
+    )
+    const stableRatio = volRatio.minus(1).abs()
+
+    //Calc new LTV post drawdown
+    const newLTV = volRatio.times(liqudationLTV).plus(stableRatio.times(96))
+    console.log( "drawdown:", volRatio, stableRatio, newLTV)
+    return num(45).dividedBy(newLTV).minus(1).abs().times(100).toFixed(1)
+  }, [liqudationLTV])
   
   const [ inputAmount, setInputAmount ] = useState(0);
   const [ stableInputAmount, setStableInputAmount ] = useState(0);
@@ -207,9 +220,20 @@ const QuickActionWidget = () => {
             setInputAmount={setStableInputAmount}
             stable={true}
         /></> : null}
-        <Text fontSize="sm" color="white" mt="2" minH="21px">
-        {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol} --- max slippage: {SWAP_SLIPPAGE}%
-        </Text>
+        <Card>
+          <Text fontSize="sm" color="white" mt="2" minH="21px">
+          {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol} --- max slippage: {SWAP_SLIPPAGE}%
+          </Text>
+          <Text fontSize="sm" color="white" mt="2" minH="21px">
+          max slippage: {SWAP_SLIPPAGE}%
+          </Text>
+          <Text fontSize="sm" color="white" mt="2" minH="21px">
+          Drawdown: {drawdown}%
+          </Text>
+          <Text fontSize="sm" color="white" mt="2" minH="21px">
+          Cost: {cost}%
+          </Text>
+        </Card>
          {((quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
           </Text>
@@ -217,8 +241,6 @@ const QuickActionWidget = () => {
           <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             No available collateral assets in your wallet. 
             {/* Add Onboarding Button here */}
-            {/* Add position pagination */}
-            {/* Add cookies to track performance */}
           </Text>
           : null }
         </Stack>

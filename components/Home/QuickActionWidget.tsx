@@ -28,7 +28,12 @@ const QuickActionWidget = () => {
   const { action: quickAction, loop, newPositionValue, swapRatio, summary } = useQuickAction()
   
   //Set QAState summary within a Memo
-  // setQuickActionState({ summary })
+  useEffect(() => {
+    if (quickActionState.summary && quickActionState.summary != summary){
+      console.log("BANG BANG BANG")
+      setQuickActionState({ summary })
+    }
+  },[summary])
   const { cost, liqudationLTV } = useQuickActionVaultSummary()
   
   const drawdown = useMemo(() => {
@@ -228,7 +233,7 @@ const QuickActionWidget = () => {
           {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol}
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-          Drawdown: {drawdown}%
+          Drawdown Safety: ~{drawdown}%
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
           Cost: {cost.toFixed(4)}%

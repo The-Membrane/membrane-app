@@ -25,7 +25,7 @@ const QuickActionWidget = () => {
   const { data: walletBalances } = useBalance("osmosis")
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { action: quickAction, loop, newPositionValue, positionId, swapRatio, summary} = useQuickAction()
+  const { action: quickAction, loop, newPositionValue, swapRatio, summary } = useQuickAction()
   const { cost, liqudationLTV } = useQuickActionVaultSummary()
 
   const drawdown = useMemo(() => {
@@ -222,7 +222,7 @@ const QuickActionWidget = () => {
         /></> : null}
         <Card>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-          {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol} --- max slippage: {SWAP_SLIPPAGE}%
+          {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol}
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
           max slippage: {SWAP_SLIPPAGE}%

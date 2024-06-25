@@ -234,15 +234,15 @@ const QuickActionWidget = () => {
               {quickActionState.levAsset?.symbol??"N/A"} 
             </Text>
             <Image src={quickActionState.levAsset?.logo} w="24px" h="24px" />    
-            <Text fontSize="sm" color="white" mt="2" minH="21px">
+            <Text fontSize="sm" color="white" mt="0" minH="21px">
               : {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage
             </Text>
           </HStack>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-            Drawdown Safety: {drawdown === "NaN" ? 0 : `~${drawdown}`}%
+              <span fontWeight="bold">Drawdown Safety:</span> {drawdown === "NaN" ? 0 : `~${drawdown}`}%
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-            Cost: {cost.toFixed(4)}%
+            <span fontWeight="bold">Cost:</span> {cost.toFixed(4)}%
           </Text>
           <Divider mx="0" mt="2" mb="2"/>
           <Text fontSize="sm" color="white" mt="2" minH="21px">

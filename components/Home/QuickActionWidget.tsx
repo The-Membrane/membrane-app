@@ -246,7 +246,7 @@ const QuickActionWidget = () => {
           </Text>
           <Divider mx="0" mt="2" mb="2"/>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-            max slippage: {SWAP_SLIPPAGE}%
+          {SWAP_SLIPPAGE}% max slippage for collateral swap to USDC
           </Text>
         </Card>
          {((quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">

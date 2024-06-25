@@ -1,4 +1,4 @@
-import { Card, HStack, Stack, Text } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text, Image } from '@chakra-ui/react'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance from '@/hooks/useBalance'
@@ -229,18 +229,24 @@ const QuickActionWidget = () => {
             stable={true}
         /></> : null}
         <Card>
+          <HStack>
+            <Text fontWeight="bold" fontSize="16px">
+              {quickActionState.levAsset?.symbol??"N/A"} 
+            </Text>
+            <Image src={quickActionState.levAsset?.logo} w="24px" h="24px" />    
+            <Text fontSize="sm" color="white" mt="2" minH="21px">
+              : {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage
+            </Text>
+          </HStack>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-          {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol}
+            Drawdown Safety: {drawdown === "NaN" ? 0 : `~${drawdown}`}%
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-          Drawdown Safety: ~{drawdown}%
-          </Text>
-          <Text fontSize="sm" color="white" mt="2" minH="21px">
-          Cost: {cost.toFixed(4)}%
+            Cost: {cost.toFixed(4)}%
           </Text>
           <Divider mx="0" mt="2" mb="2"/>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-          max slippage: {SWAP_SLIPPAGE}%
+            max slippage: {SWAP_SLIPPAGE}%
           </Text>
         </Card>
          {((quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">

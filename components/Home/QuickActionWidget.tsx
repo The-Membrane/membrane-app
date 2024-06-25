@@ -29,8 +29,8 @@ const QuickActionWidget = () => {
   
   //Set QAState summary
   // setQuickActionState({ summary })
-  // const { cost, liqudationLTV } = useQuickActionVaultSummary()
-const liqudationLTV = 70
+  const { cost, liqudationLTV } = useQuickActionVaultSummary()
+// const liqudationLTV = 70
   const drawdown = useMemo(() => {
     //new ratio post max vol drawdown
     const volRatio = num(45).dividedBy(num(liqudationLTV)).times(358).dividedBy(

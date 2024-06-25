@@ -239,10 +239,10 @@ const QuickActionWidget = () => {
             </Text>
           </HStack>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-              <span fontWeight="bold">Drawdown Safety:</span> {drawdown === "NaN" ? 0 : `~${drawdown}`}%
+              <span style={{fontWeight:"bold"}}>Drawdown Safety:</span> {drawdown === "NaN" ? 0 : `~${drawdown}`}%
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-            <span fontWeight="bold">Cost:</span> {cost.toFixed(4)}%
+            <span style={{fontWeight:"bold"}}>Cost:</span> {cost.toFixed(4)}%
           </Text>
           <Divider mx="0" mt="2" mb="2"/>
           <Text fontSize="sm" color="white" mt="2" minH="21px">

@@ -128,6 +128,7 @@ const useQuickAction = () => {
       const newStableAsset = {...stableAsset as any, amount: stableAmount}
       const summary = [ levAsset, newStableAsset ]
       //Set QAState
+    setQuickActionState({ summary })
       console.log("summary:", summary)
       quickActionState.summary = summary
       quickActionState.levAsset = levAsset

@@ -170,7 +170,7 @@ export const getRateCost = (
   const cost = positionsWithRatio.reduce((acc, position) => {    
     if (!position) return acc
     const rate =
-      basketAssets.find((asset) => asset?.asset?.base === position.denom)?.interestRate || 0
+      basketAssets.find((asset) => asset?.asset?.base === position.base)?.interestRate || 0
     return acc.plus(num(position.ratio).times(rate))
   }, num(0))
 

@@ -27,7 +27,7 @@ const QuickActionWidget = () => {
   const { data: prices } = useOraclePrice()
   const { action: quickAction, loop, newPositionValue, swapRatio, summary } = useQuickAction()
   
-  //Set QAState summary
+  //Set QAState summary within a Memo
   // setQuickActionState({ summary })
   const { cost, liqudationLTV } = useQuickActionVaultSummary()
   
@@ -228,13 +228,14 @@ const QuickActionWidget = () => {
           {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol}
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-          max slippage: {SWAP_SLIPPAGE}%
-          </Text>
-          <Text fontSize="sm" color="white" mt="2" minH="21px">
           Drawdown: {drawdown}%
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
           Cost: {cost.toFixed(4)}%
+          </Text>
+          <Divider mx="0" mt="2" mb="2"/>
+          <Text fontSize="sm" color="white" mt="2" minH="21px">
+          max slippage: {SWAP_SLIPPAGE}%
           </Text>
         </Card>
          {((quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">

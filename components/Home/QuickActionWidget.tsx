@@ -28,8 +28,8 @@ const QuickActionWidget = () => {
   const { action: quickAction, loop, newPositionValue, swapRatio, summary } = useQuickAction()
   
   //Set QAState summary
-  // setQuickActionState({ summary })
-  const { cost, liqudationLTV } = useQuickActionVaultSummary()
+  setQuickActionState({ summary })
+  // const { cost, liqudationLTV } = useQuickActionVaultSummary()
 
   const drawdown = useMemo(() => {
     //new ratio post max vol drawdown

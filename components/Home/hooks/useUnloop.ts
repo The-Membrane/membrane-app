@@ -30,7 +30,7 @@ const useUnLoop = (positionIndex: number) => {
   const { mintState, setMintState } = useMintState()
   const { summary = [] } = mintState
 
-  const { initialTVL, initialBorrowLTV, debtAmount} = useInitialVaultSummary()
+  const { initialTVL, initialBorrowLTV, debtAmount } = useInitialVaultSummary()
  
 
   const positionId = useMemo(() => {
@@ -49,7 +49,8 @@ const useUnLoop = (positionIndex: number) => {
       address,
       positionId, 
       prices,
-      basketPositions
+      basketPositions,
+      debtAmount, initialTVL, initialBorrowLTV
     ],
     queryFn: () => {
       if (!address || !basket || !prices || !positionId) return { msgs: undefined, newPositionValue: 0, newLTV: 0 }
@@ -59,6 +60,7 @@ const useUnLoop = (positionIndex: number) => {
       
       //4) Unloop 5 times
       const positions = updatedSummary(summary, basketPositions, prices)
+      console.log(debtAmount)
       const { msgs: loops, newValue, newLTV } = unloopPosition(
         cdtPrice,
         parseFloat(walletCDT),

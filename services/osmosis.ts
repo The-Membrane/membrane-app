@@ -225,7 +225,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
         }
 
         //Calc new LTV
-        currentLTV = getPositionLTV(positionValue, creditAmount, basket);
+        currentLTV = getPositionLTV(positionValue, num(shiftDigits(creditAmount, -6)).toNumber(), basket);
 
         console.log("current LTV", currentLTV)
         //Add msgs to all_msgs

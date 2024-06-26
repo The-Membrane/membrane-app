@@ -129,7 +129,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
     //Repeat until no more CDT or Loops are done
     var iter = 0;
     var all_msgs: EncodeObject[] = [];
-    while ((creditAmount > 0 || iter == 0) && (iter < loops && !loopToZero)) {
+    while ((creditAmount > 0 || iter == 0) && (iter < loops || loopToZero)) {
         //Set LTV range
         //We can withdraw value up to the borrowable LTV
         //Or the current LTV, whichever is lower

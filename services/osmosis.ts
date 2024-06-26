@@ -196,13 +196,15 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
 
         //Subtract slippage to mint value
         withdrawValue = parseFloat(calcAmountWithSlippage(withdrawValue.toString(), SWAP_SLIPPAGE));
+        console.log("here we")
         //Calc new TVL (w/ slippage calculated into the mintValue)
         positionValue = positionValue - withdrawValue;
-
+        console.log("here we we")
 
         //Repayments under 100 CDT will fail unless fully repaid
         //NOTE: This will leave the user with leftover CDT in their wallet, maximum 50 CDT
         if ((creditAmount - repay_msg.value.funds[0].amount) < 100_000_000 && (creditAmount - repay_msg.value.funds[0].amount) > 0) {
+            console.log("inside here")
             //Set repay amount so that credit amount is 100
             repay_msg.value.funds = [coin((creditAmount - 100_000_000).toString(), denoms.CDT[0] as string)];
             //break loop
@@ -211,11 +213,13 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
 
         //Attempted full repay
         if (LTV_range === currentLTV) {
+            console.log("full repay")
             //Set credit amount to 0
             creditAmount = 0;
             //Add any walletCDT to the repay amount to account for interest & slippage
             repay_msg.value.funds = [coin((creditAmount + (walletCDT * 1_000_000)).toFixed(0), denoms.CDT[0] as string)];
         } else {
+            console.log("minus credit", creditAmount)
             //Set credit amount including slippage
             creditAmount -= repay_msg.value.funds[0].amount;
         }
@@ -223,8 +227,10 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
         //Calc new LTV
         currentLTV = getPositionLTV(positionValue, creditAmount, basket);
 
+        console.log("current LTV", currentLTV)
         //Add msgs to all_msgs
         all_msgs = all_msgs.concat([withdraw_msg]).concat(swap_msgs).concat([repay_msg]);
+        console.log("right before iter", all_msgs)
 
         //Increment iter
         iter += 1;

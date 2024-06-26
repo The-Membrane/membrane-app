@@ -51,7 +51,7 @@ const useUnLoop = (positionIndex: number) => {
       basketPositions
     ],
     queryFn: () => {
-      if (!address || !basket || !prices || !positionId) return { msgs: undefined, newPositionValue: 0, newLTV: 0 }
+      if (!address || !basket || !prices || !positionId || !basketPositions) return { msgs: undefined, newPositionValue: 0, newLTV: 0 }
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")

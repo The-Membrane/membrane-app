@@ -102,141 +102,137 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 // let calculator = new LiquidityPoolCalculator({ assets: osmosisAssets });
 
 /////functions/////
-// export const unloopPosition = (positionId: string, loops: number) => {
-//     const { address } = useWallet()
-//     const { mintState } = useMintState()
-//     const { data: prices } = useOraclePrice()
-//     const cdtAsset = useAssetBySymbol('CDT')
-//     const walletCDT = useBalanceByAsset(cdtAsset)
-//     const { initialTVL, debtAmount, initialBorrowLTV } = useVaultSummary();
+export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositions: any, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any, positionId: string, loops: number, positionIndex: number = 0) => {
+    //Create CDP Message Composer
+    const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
 
-//     //Create CDP Message Composer
-//     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
-//     //getPosition
-//     const { data: basketPositions } = useUserPositions()
+    //Set Position value
+    var positionValue = tvl;
+    //Set credit amount
+    var creditAmount = debtAmount;
+    //set borrowLTV
+    var borrowLTV = borrowLTV / 100;
 
-//     //Set Position value
-//     var positionValue = initialTVL!;
-//     //Set credit amount
-//     var creditAmount = debtAmount;
-//     //set borrowLTV
-//     var borrowLTV = initialBorrowLTV! / 100;
+    //Get Position's LTV
+    var currentLTV = getPositionLTV(positionValue, creditAmount, basket!);
+    //If current LTV is over the borrowable LTV, we can't withdraw anything
+    if (currentLTV > borrowLTV) {
+        console.log("Current LTV is over the Position's borrowable LTV, we can't withdraw collateral")
+        return { msgs: [], newValue: 0, newLTV: 0 };
+    }
+    //Get position cAsset ratios 
+    //Ratios won't change in btwn loops so we can set them outside the loop
+    let cAsset_ratios = getAssetRatio(false, tvl, getPositions(basketPositions, prices, positionIndex));
 
-//     //Get Position's LTV
-//     var currentLTV = getPositionLTV(positionValue, creditAmount);
-//     //If current LTV is over the borrowable LTV, we can't withdraw anything
-//     if (currentLTV > borrowLTV) {
-//         console.log("Current LTV is over the Position's borrowable LTV, we can't withdraw collateral")
-//         return;
-//     }
-//     //Get position cAsset ratios 
-//     //Ratios won't change in btwn loops so we can set them outside the loop
-//     let cAsset_ratios = getAssetRatio(initialTVL!, getPositionAssets(mintState.index, basketPositions, prices));
+    //Repeat until no more CDT or Loops are done
+    var iter = 0;
+    var all_msgs: EncodeObject[] = [];
+    while ((creditAmount > 0 || iter == 0) && iter < loops) {
+        //Set LTV range
+        //We can withdraw value up to the borrowable LTV
+        //Or the current LTV, whichever is lower
+        let LTV_range = Math.min(borrowLTV - currentLTV, currentLTV);
+        //Set value to withdraw
+        var withdrawValue = positionValue * LTV_range;
 
-//     //Repeat until no more CDT or Loops are done
-//     var iter = 0;
-//     var all_msgs: EncodeObject[] = [];
-//     while ((creditAmount > 0 || iter == 0) && iter < loops) {
-//         //Set LTV range
-//         //We can withdraw value up to the borrowable LTV
-//         //Or the current LTV, whichever is lower
-//         let LTV_range = Math.min(borrowLTV - currentLTV, currentLTV);
-//         //Set value to withdraw
-//         var withdrawValue = positionValue * LTV_range;
+        //.Divvy withdraw value to the cAssets based on ratio
+        //Transform the value to the cAsset's amount using its price & decimals
+        var cAsset_prices: number[] = []
+        let cAsset_amounts = cAsset_ratios.map((asset) => {
+            if (!asset) return;
+            const assetPrice = prices?.find((price) => price.denom === asset.denom)?.price || '0'
+            cAsset_prices.push(parseFloat(assetPrice))
 
-//         //.Divvy withdraw value to the cAssets based on ratio
-//         //Transform the value to the cAsset's amount using its price & decimals
-//         let cAsset_amounts = cAsset_ratios.map((asset) => {
-//             const assetPrice = prices?.find((price) => price.denom === asset.denom)?.price || '0'
-
-//             return [asset.symbol, parseInt(((asset.ratio * withdrawValue) / parseFloat(assetPrice) * Math.pow(10, denoms[asset.symbol as keyof exported_supportedAssets][1] as number)).toFixed(0))];
-//         });
-//         //Save amounts as assets for withdraw msg
-//         var assets: Asset[] = [];
-//         cAsset_amounts.forEach((amount) => {
-//             if (amount[1] as number != 0) {
-//                 assets.push(
-//                     {
-//                         amount: amount[1].toString(),
-//                         //@ts-ignore
-//                         info: {
-//                             //@ts-ignore
-//                             native_token: {
-//                                 denom: denoms[amount[0] as keyof exported_supportedAssets][0] as string
-//                             }
-//                         }
-//                     });
-//             }
-//         });
+            return [asset.symbol, parseInt(((asset.ratio * withdrawValue) / parseFloat(assetPrice) * Math.pow(10, denoms[asset.symbol as keyof exported_supportedAssets][1] as number)).toFixed(0))];
+        });
+        //Save amounts as assets for withdraw msg
+        var assets: CDPAsset[] = [];
+        cAsset_amounts.forEach((amount) => {
+            if (!amount) return;
+            if (amount[1] as number != 0) {
+                assets.push(
+                    {
+                        amount: amount[1].toString(),
+                        //@ts-ignore
+                        info: {
+                            //@ts-ignore
+                            native_token: {
+                                denom: denoms[amount[0] as keyof exported_supportedAssets][0] as string
+                            }
+                        }
+                    });
+            }
+        });
 
 
-//         //Create withdraw msg for assets
-//         var withdraw_msg: MsgExecuteContractEncodeObject = cdp_composer.withdraw({
-//             positionId: positionId,
-//             assets,
-//         });
+        //Create withdraw msg for assets
+        var withdraw_msg: MsgExecuteContractEncodeObject = cdp_composer.withdraw({
+            positionId: positionId,
+            assets,
+        });
 
-//         //Create Swap msgs to CDT for each cAsset & save tokenOutMinAmount
-//         var swap_msgs: EncodeObject[] = [];
-//         var tokenOutMin = 0;
-//         cAsset_amounts.forEach((amount) => {
-//             if (amount[1] as number != 0) {
-//                 let swap_output = handleCDTswaps(amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number)!;
-//                 swap_msgs.push(swap_output);
-//                 tokenOutMin += parseInt((swap_output.value as MsgSwapExactAmountIn).tokenOutMinAmount);
-//             }
-//         });
+        //Create Swap msgs to CDT for each cAsset & save tokenOutMinAmount
+        var swap_msgs: EncodeObject[] = [];
+        var tokenOutMin = 0;
+        cAsset_amounts.forEach((amount, index) => {
+            if (!amount) return;
+            if (amount[1] as number != 0) {
+                let swap_output = handleCDTswaps(address!, cdtPrice, cAsset_prices[index], amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number)!;
+                swap_msgs.push(swap_output.msg);
+                tokenOutMin += swap_output.tokenOutMinAmount;
+            }
+        });
 
-//         //Create repay msg with newly swapped CDT
-//         var repay_msg: EncodeObject = cdp_composer.repay({
-//             positionId: positionId,
-//         });
-//         repay_msg.value.funds = [coin(tokenOutMin.toString(), denoms.CDT[0] as string)];
+        //Create repay msg with newly swapped CDT
+        var repay_msg: EncodeObject = cdp_composer.repay({
+            positionId: positionId,
+        });
+        repay_msg.value.funds = [coin(tokenOutMin.toString(), denoms.CDT[0] as string)];
 
-//         console.log(repay_msg.value.funds)
-
-
-//         //Subtract slippage to mint value
-//         withdrawValue = parseFloat(calcAmountWithSlippage(withdrawValue.toString(), SWAP_SLIPPAGE));
-//         //Calc new TVL (w/ slippage calculated into the mintValue)
-//         positionValue = positionValue - withdrawValue;
+        console.log(repay_msg.value.funds)
 
 
-//         //Repayments under 100 CDT will fail unless fully repaid
-//         //NOTE: This will leave the user with leftover CDT in their wallet, maximum 50 CDT
-//         if ((creditAmount - repay_msg.value.funds[0].amount) < 100_000_000 && (creditAmount - repay_msg.value.funds[0].amount) > 0) {
-//             //Set repay amount so that credit amount is 100
-//             repay_msg.value.funds = [coin((creditAmount - 100_000_000).toString(), denoms.CDT[0] as string)];
-//             //break loop
-//             iter = loops;
-//         }
+        //Subtract slippage to mint value
+        withdrawValue = parseFloat(calcAmountWithSlippage(withdrawValue.toString(), SWAP_SLIPPAGE));
+        //Calc new TVL (w/ slippage calculated into the mintValue)
+        positionValue = positionValue - withdrawValue;
 
-//         //Attempted full repay
-//         if (LTV_range === currentLTV) {
-//             //Set credit amount to 0
-//             creditAmount = 0;
-//             //Add any walletCDT to the repay amount to account for interest & slippage
-//             repay_msg.value.funds = [coin((creditAmount + (parseFloat(walletCDT) * 1_000_000)).toFixed(0), denoms.CDT[0] as string)];
-//         } else {
-//             //Set credit amount including slippage
-//             creditAmount -= repay_msg.value.funds[0].amount;
-//         }
 
-//         //Calc new LTV
-//         currentLTV = getPositionLTV(positionValue, creditAmount);
+        //Repayments under 100 CDT will fail unless fully repaid
+        //NOTE: This will leave the user with leftover CDT in their wallet, maximum 50 CDT
+        if ((creditAmount - repay_msg.value.funds[0].amount) < 100_000_000 && (creditAmount - repay_msg.value.funds[0].amount) > 0) {
+            //Set repay amount so that credit amount is 100
+            repay_msg.value.funds = [coin((creditAmount - 100_000_000).toString(), denoms.CDT[0] as string)];
+            //break loop
+            iter = loops;
+        }
 
-//         //Add msgs to all_msgs
-//         all_msgs = all_msgs.concat([withdraw_msg]).concat(swap_msgs).concat([repay_msg]);
+        //Attempted full repay
+        if (LTV_range === currentLTV) {
+            //Set credit amount to 0
+            creditAmount = 0;
+            //Add any walletCDT to the repay amount to account for interest & slippage
+            repay_msg.value.funds = [coin((creditAmount + (walletCDT * 1_000_000)).toFixed(0), denoms.CDT[0] as string)];
+        } else {
+            //Set credit amount including slippage
+            creditAmount -= repay_msg.value.funds[0].amount;
+        }
 
-//         //Increment iter
-//         iter += 1;
-//     }
+        //Calc new LTV
+        currentLTV = getPositionLTV(positionValue, creditAmount, basket!);
 
-//     console.log(all_msgs, iter)
+        //Add msgs to all_msgs
+        all_msgs = all_msgs.concat([withdraw_msg]).concat(swap_msgs).concat([repay_msg]);
 
-//     return all_msgs
+        //Increment iter
+        iter += 1;
+    }
 
-// }
+    console.log(all_msgs, iter)
+
+    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
+
+}
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
 export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {

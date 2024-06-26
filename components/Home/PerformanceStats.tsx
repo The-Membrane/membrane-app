@@ -3,15 +3,19 @@ import { Text, Card, HStack, Image, Stack } from '@chakra-ui/react'
 import { getCookie } from '@/helpers/cookies'
 import { useUserPositions } from '@/hooks/useCDP'
 import useInitialVaultSummary from '../Mint/hooks/useInitialVaultSummary'
-import { stableDenoms } from '@/config/defaults'
 import { getAssetByDenom } from '@/helpers/chain'
 import Divider from '../Divider'
+import ConfirmModal from '../ConfirmModal'
+import useUnLoop from './hooks/useUnloop'
+import { SWAP_SLIPPAGE } from '@/config/defaults'
+import { num } from '@/helpers/num'
 
 type Props = {
   positionIndex: number
 }
 
 const PerformanceStats = ({ positionIndex }: Props) => {
+    const { action: unloop, newPositionValue, newLTV } = useUnLoop()
     const { data: basketPositions } = useUserPositions()
     //Get the current position's value
     const { initialTVL: currentTVL } = useInitialVaultSummary( positionIndex )
@@ -33,7 +37,7 @@ const PerformanceStats = ({ positionIndex }: Props) => {
 
     //Get performance 
     const sign = parseFloat(initialTVL) > currentTVL ? "-" : "+"
-    const performance = sign + Math.abs((parseFloat(initialTVL) - currentTVL) / parseFloat(initialTVL) * 100).toFixed(4) + "%"
+    const performance = sign + num(Math.abs((parseFloat(initialTVL) - currentTVL) / parseFloat(initialTVL) * 100)).times(1-(SWAP_SLIPPAGE/100)).toFixed(4) + "%"
     const fontColor = parseFloat(initialTVL) > currentTVL ? "red" : "green"
   return (
     <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
@@ -58,7 +62,15 @@ const PerformanceStats = ({ positionIndex }: Props) => {
             <span style={{ color: fontColor }}>{sign === "+" ? "+" : "-"}${Math.abs(currentTVL-parseInt(initialTVL)).toFixed(2)}</span>
             </Text>
           </Stack>   
-        </HStack>      
+        </HStack>    
+        {/* Close Position Button */}
+        <ConfirmModal 
+        action={unloop}
+        label={"Close"}
+        // isDisabled={}
+        >
+          {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
+        </ConfirmModal>  
       </Stack>
     </Card>
   )

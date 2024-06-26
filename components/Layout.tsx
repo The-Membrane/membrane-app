@@ -31,7 +31,7 @@ const Layout = ({ children }: Props) => {
 
   return (
     <Fragment>
-      <Mobile />
+      {/* <Mobile /> */}
 
       <HStack w="100vw" h="100vh" display={['none', 'flex']} position="relative">
         <HexagonBackground />

@@ -102,7 +102,7 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 // let calculator = new LiquidityPoolCalculator({ assets: osmosisAssets });
 
 /////functions/////
-export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositions: any, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any, positionId: string, loops: number, positionIndex: number = 0) => {
+export const unloopPosition = (cdtPrice: number, walletCDT: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any, positionId: string, loops: number, positionIndex: number = 0) => {
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
 
@@ -123,7 +123,8 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositi
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
-    let cAsset_ratios = getAssetRatio(false, tvl, getPositions(basketPositions, prices, positionIndex));
+    let cAsset_ratios = getAssetRatio(false, tvl, positions);
+    console.log("ratios:", cAsset_ratios, "positions:", positions)
 
     //Repeat until no more CDT or Loops are done
     var iter = 0;

@@ -62,7 +62,6 @@ const useUnLoop = (positionIndex: number) => {
       const { msgs: loops, newValue, newLTV } = unloopPosition(
         cdtPrice,
         parseFloat(walletCDT),
-        basketPositions,
         address, 
         prices, 
         basket,

@@ -48,8 +48,7 @@ const useUnLoop = (positionIndex: number) => {
       address,
       positionId, 
       prices,
-      basketPositions,
-      positionIndex
+      basketPositions
     ],
     queryFn: () => {
       if (!address || !basket || !prices || !positionId) return { msgs: undefined, newPositionValue: 0, newLTV: 0 }

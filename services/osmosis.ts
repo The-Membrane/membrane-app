@@ -134,6 +134,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
         //We can withdraw value up to the borrowable LTV
         //Or the current LTV, whichever is lower
         let LTV_range = Math.min(borrowLTV - currentLTV, currentLTV);
+        console.log("LTV RANGE:", LTV_range, currentLTV, borrowLTV)
         //Set value to withdraw
         var withdrawValue = positionValue * LTV_range;
 

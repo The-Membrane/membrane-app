@@ -1,10 +1,10 @@
-import { Card, HStack, Stack, Text, Checkbox } from '@chakra-ui/react'
+import { Card, HStack, Stack, Text, Image } from '@chakra-ui/react'
 import ConfirmModal from '../ConfirmModal'
 import useCollateralAssets from '../Bid/hooks/useCollateralAssets'
 import useBalance from '@/hooks/useBalance'
 import useQuickActionState from './hooks/useQuickActionState'
 import { useEffect, useMemo, useState } from 'react'
-import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
+import { num, shiftDigits } from '@/helpers/num'
 import { Coin } from '@cosmjs/stargate'
 import { useOraclePrice } from '@/hooks/useOracle'
 import useQuickAction from './hooks/useQuickAction'
@@ -13,8 +13,8 @@ import useWallet from '@/hooks/useWallet'
 import { ConnectButton } from '../WallectConnect'
 import { SliderWithInputBox } from './QuickActionSliderInput'
 import Divider from '../Divider'
+import useQuickActionVaultSummary from './hooks/useQuickActionVaultSummary'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
-import useLoop from './hooks/useLoop'
 
 const QuickActionWidget = () => {
 
@@ -25,8 +25,29 @@ const QuickActionWidget = () => {
   const { data: walletBalances } = useBalance("osmosis")
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { action: quickAction, loop, newPositionValue, positionId, swapRatio, summary} = useQuickAction()
-  // const { action: loops } = useLoop(loop_msgs, newPositionValue, positionId)
+  const { action: quickAction, loop, newPositionValue, swapRatio, summary } = useQuickAction()
+  
+  //Set QAState summary within a Memo
+  useEffect(() => {
+    if (quickActionState.summary && quickActionState.summary != summary){
+      console.log("BANG BANG BANG")
+      setQuickActionState({ summary })
+    }
+  },[summary])
+  const { cost, liqudationLTV } = useQuickActionVaultSummary()
+  
+  const drawdown = useMemo(() => {
+    //new ratio post max vol drawdown
+    const volRatio = num(45).dividedBy(num(liqudationLTV)).times(358).dividedBy(
+      num(45).dividedBy(num(liqudationLTV)).times(358).plus(44.4)
+    )
+    const stableRatio = volRatio.minus(1).abs()
+
+    //Calc new LTV post drawdown
+    const newLTV = volRatio.times(liqudationLTV).plus(stableRatio.times(96))
+    console.log( "drawdown:", volRatio, stableRatio, newLTV)
+    return num(45).dividedBy(newLTV).minus(1).abs().times(100).toFixed(1)
+  }, [liqudationLTV])
   
   const [ inputAmount, setInputAmount ] = useState(0);
   const [ stableInputAmount, setStableInputAmount ] = useState(0);
@@ -152,13 +173,18 @@ const QuickActionWidget = () => {
         {!isWalletConnected ? 
         <ConnectButton marginTop={1}/>
         : quickActionState.readyToLoop ?
-        <ConfirmModal 
-        action={loop}
-        label={"Loop"}
-        // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
-        >
-          {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
-        </ConfirmModal>
+        <Stack> 
+          <Text variant="title" fontSize="16px" marginTop={1} marginBottom={1} textAlign={"center"} letterSpacing={"1px"}>
+            Collateral deposited! Ready to loop your position?
+          </Text>
+          <ConfirmModal 
+          action={loop}
+          label={"Loop"}
+          // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
+          >
+            {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
+          </ConfirmModal>
+        </Stack>
         : quickActionState.assets.length === 0 ? 
         <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...
@@ -187,7 +213,7 @@ const QuickActionWidget = () => {
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
         />
-        {quickActionState.levAsset?.amount && quickActionState.levAsset?.amount !== 0 && stableAssets.length !== 0 ? <><Text fontSize="14px" fontWeight="700">
+        {/* {quickActionState.levAsset?.amount && quickActionState.levAsset?.amount !== 0 && stableAssets.length !== 0 ? <><Text fontSize="14px" fontWeight="700">
           Add Stables to Increase Leverage
         </Text> 
         <Divider mx="0" mt="0" mb="5"/>
@@ -201,10 +227,28 @@ const QuickActionWidget = () => {
             inputAmount={stableInputAmount}
             setInputAmount={setStableInputAmount}
             stable={true}
-        /></> : null}
-        <Text fontSize="sm" color="white" mt="2" minH="21px">
-        {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage in {quickActionState.levAsset?.symbol} --- max slippage: {SWAP_SLIPPAGE}%
-        </Text>
+        /></> : null} */}
+        <Card>
+          <HStack>
+            <Text fontWeight="bold" fontSize="16px">
+              {quickActionState.levAsset?.symbol??"N/A"} 
+            </Text>
+            <Image src={quickActionState.levAsset?.logo} w="24px" h="24px" />    
+            <Text fontSize="sm" color="white" mt="0" minH="21px">
+              : {num(parseInt(newPositionValue.toFixed(0))??0).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio))).div(quickActionState.levAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage
+            </Text>
+          </HStack>
+          <Text fontSize="sm" color="white" mt="2" minH="21px">
+              <span style={{fontWeight:"bold"}}>Drawdown Safety:</span> {drawdown === "NaN" ? 0 : `~${drawdown}`}%
+          </Text>
+          <Text fontSize="sm" color="white" mt="2" minH="21px">
+            <span style={{fontWeight:"bold"}}>Cost:</span> {cost.toFixed(4)}%
+          </Text>
+          <Divider mx="0" mt="2" mb="2"/>
+          <Text fontSize="sm" color="white" mt="2" minH="21px">
+          {SWAP_SLIPPAGE}% max slippage for collateral swap to USDC
+          </Text>
+        </Card>
          {((quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
           </Text>
@@ -212,8 +256,6 @@ const QuickActionWidget = () => {
           <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             No available collateral assets in your wallet. 
             {/* Add Onboarding Button here */}
-            {/* Add position pagination */}
-            {/* Add cookies to track performance */}
           </Text>
           : null }
         </Stack>
@@ -222,7 +264,7 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        // isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
+        isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
         >
           <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/>
         </ConfirmModal></>}

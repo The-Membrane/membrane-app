@@ -228,7 +228,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositi
         iter += 1;
     }
 
-    console.log("unloop msgs:", all_msgs, iter)
+    console.log("unloop msgs:", all_msgs, iter, creditAmount)
 
     return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 

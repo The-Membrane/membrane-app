@@ -60,7 +60,8 @@ const useUnLoop = (positionIndex: number) => {
       
       //4) Unloop 5 times
       const positions = updatedSummary(summary, basketPositions, prices)
-      console.log("debtAmount", debtAmount)
+      console.log("debtAmount", 
+        shiftDigits(debtAmount, 6))
       const { msgs: loops, newValue, newLTV } = unloopPosition(
         cdtPrice,
         parseFloat(walletCDT),
@@ -69,7 +70,7 @@ const useUnLoop = (positionIndex: number) => {
         prices, 
         basket,
         initialTVL,
-        debtAmount, 
+        shiftDigits(debtAmount, 6), 
         initialBorrowLTV,
         positions,
         positionId, 

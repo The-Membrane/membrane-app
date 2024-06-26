@@ -15,7 +15,7 @@ type Props = {
 }
 
 const PerformanceStats = ({ positionIndex }: Props) => {
-    const { action: unloop, newPositionValue, newLTV } = useUnLoop()
+    const { action: unloop, newPositionValue, newLTV } = useUnLoop(positionIndex)
     const { data: basketPositions } = useUserPositions()
     //Get the current position's value
     const { initialTVL: currentTVL } = useInitialVaultSummary( positionIndex )

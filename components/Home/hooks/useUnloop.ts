@@ -18,7 +18,7 @@ import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSumma
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 
-const useUnLoop = () => {
+const useUnLoop = (positionIndex: number) => {
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
@@ -72,8 +72,7 @@ const useUnLoop = () => {
         positions,
         positionId, 
         loopMax,
-        //we need to set index on Close Button press
-        mintState.positionNumber
+        positionIndex
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue
@@ -82,6 +81,8 @@ const useUnLoop = () => {
     },
     enabled: !!address,
   })
+
+  
 
   const { msgs, newPositionValue, newLTV } = useMemo(() => {
     if (!queryData) return { msgs: undefined, newPositionValue: 0, newLTV: 0 }

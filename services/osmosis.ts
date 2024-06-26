@@ -114,7 +114,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositi
     var borrowLTV = borrowLTV / 100;
 
     //Get Position's LTV
-    var currentLTV = getPositionLTV(positionValue, creditAmount, basket!);
+    var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     //If current LTV is over the borrowable LTV, we can't withdraw anything
     if (currentLTV > borrowLTV) {
         console.log("Current LTV is over the Position's borrowable LTV, we can't withdraw collateral")
@@ -170,14 +170,14 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositi
             positionId: positionId,
             assets,
         });
-
+        console.log("CASSET LOGS:", cAsset_amounts, cAsset_prices)
         //Create Swap msgs to CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs: EncodeObject[] = [];
         var tokenOutMin = 0;
         cAsset_amounts.forEach((amount, index) => {
             if (!amount) return;
             if (amount[1] as number != 0) {
-                let swap_output = handleCDTswaps(address!, cdtPrice, cAsset_prices[index], amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number)!;
+                let swap_output = handleCDTswaps(address, cdtPrice, cAsset_prices[index], amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
                 swap_msgs.push(swap_output.msg);
                 tokenOutMin += swap_output.tokenOutMinAmount;
             }
@@ -189,7 +189,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositi
         });
         repay_msg.value.funds = [coin(tokenOutMin.toString(), denoms.CDT[0] as string)];
 
-        console.log(repay_msg.value.funds)
+        console.log("repay value:", repay_msg.value.funds)
 
 
         //Subtract slippage to mint value
@@ -219,7 +219,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositi
         }
 
         //Calc new LTV
-        currentLTV = getPositionLTV(positionValue, creditAmount, basket!);
+        currentLTV = getPositionLTV(positionValue, creditAmount, basket);
 
         //Add msgs to all_msgs
         all_msgs = all_msgs.concat([withdraw_msg]).concat(swap_msgs).concat([repay_msg]);
@@ -228,7 +228,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositi
         iter += 1;
     }
 
-    console.log(all_msgs, iter)
+    console.log("unloop msgs:", all_msgs, iter)
 
     return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 

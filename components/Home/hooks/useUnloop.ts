@@ -50,7 +50,6 @@ const useUnLoop = (positionIndex: number) => {
       positionId, 
       prices,
       basketPositions,
-      debtAmount, initialTVL, initialBorrowLTV
     ],
     queryFn: () => {
       if (!address || !basket || !prices || !positionId) return { msgs: undefined, newPositionValue: 0, newLTV: 0 }

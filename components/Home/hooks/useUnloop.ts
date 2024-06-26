@@ -70,7 +70,7 @@ const useUnLoop = (positionIndex: number) => {
         prices, 
         basket,
         initialTVL,
-        shiftDigits(debtAmount, 6), 
+        num(shiftDigits(debtAmount, 6)).toNumber(), 
         initialBorrowLTV,
         positions,
         positionId, 

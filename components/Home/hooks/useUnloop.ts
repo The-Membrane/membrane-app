@@ -26,8 +26,7 @@ const useUnLoop = (positionIndex: number) => {
   const cdtAsset = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(cdtAsset)
   
-  const { quickActionState, setQuickActionState } = useQuickActionState()
-  const { mintState, setMintState } = useMintState()
+  const { mintState } = useMintState()
   const { summary = [] } = mintState
 
   const { initialTVL, initialBorrowLTV, debtAmount } = useInitialVaultSummary()
@@ -59,7 +58,7 @@ const useUnLoop = (positionIndex: number) => {
       
       //4) Unloop 5 times
       const positions = updatedSummary(summary, basketPositions, prices)
-      console.log("debtAmount", debtAmount)
+      console.log("positions", positions)
       const { msgs: loops, newValue, newLTV } = unloopPosition(
         cdtPrice,
         parseFloat(walletCDT),

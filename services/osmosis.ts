@@ -102,7 +102,7 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 // let calculator = new LiquidityPoolCalculator({ assets: osmosisAssets });
 
 /////functions/////
-export const unloopPosition = (cdtPrice: number, walletCDT: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any, positionId: string, loops: number, positionIndex: number = 0) => {
+export const unloopPosition = (cdtPrice: number, walletCDT: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any, positionId: string, loops: number, loopToZero: boolean = true) => {
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
 
@@ -129,7 +129,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
     //Repeat until no more CDT or Loops are done
     var iter = 0;
     var all_msgs: EncodeObject[] = [];
-    while ((creditAmount > 0 || iter == 0) && iter < loops) {
+    while ((creditAmount > 0 || iter == 0) && (iter < loops && !loopToZero)) {
         //Set LTV range
         //We can withdraw value up to the borrowable LTV
         //Or the current LTV, whichever is lower

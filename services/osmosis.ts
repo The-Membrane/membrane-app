@@ -114,7 +114,8 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, basketPositi
     var borrowLTV = borrowLTV / 100;
 
     //Get Position's LTV
-    var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
+    var currentLTV = getPositionLTV(positionValue, num(shiftDigits(creditAmount, -6)).toNumber(), basket);
+    console.log("LTVS:", currentLTV, borrowLTV, positionValue, creditAmount)
     //If current LTV is over the borrowable LTV, we can't withdraw anything
     if (currentLTV > borrowLTV) {
         console.log("Current LTV is over the Position's borrowable LTV, we can't withdraw collateral")

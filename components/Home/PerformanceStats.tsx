@@ -66,7 +66,7 @@ const PerformanceStats = ({ positionIndex }: Props) => {
         {/* Close Position Button */}
         <ConfirmModal 
         action={unloop}
-        label={"Close"}
+        label={newLTV === 0 ? "Close" : "Partial Close"}
         // isDisabled={}
         >
           {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}

@@ -70,8 +70,7 @@ const useUnLoop = (positionIndex: number) => {
         initialBorrowLTV,
         positions,
         positionId, 
-        //Loop til 0 credit anyway
-        7, 
+        loopMax, 
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue

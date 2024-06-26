@@ -33,7 +33,7 @@ const useUnLoop = (positionIndex: number) => {
  
 
   const positionId = useMemo(() => {
-    if (basketPositions && basketPositions[0].positions) return basketPositions[0].positions[basketPositions[0].positions.length-1]?.position_id
+    if (basketPositions && basketPositions[0].positions) return basketPositions[0].positions[positionIndex]?.position_id
   }, [basketPositions])
 
   type QueryData = {
@@ -49,6 +49,7 @@ const useUnLoop = (positionIndex: number) => {
       positionId, 
       prices,
       basketPositions,
+      positionIndex
     ],
     queryFn: () => {
       if (!address || !basket || !prices || !positionId) return { msgs: undefined, newPositionValue: 0, newLTV: 0 }

@@ -15,7 +15,7 @@ const Header = () => {
       position="fixed"
       w="full"
       h="70px"
-      backdropFilter={{base: null, md: "blur(10px)"}}
+      backdropFilter={{base:  "blur(0px)", md: "blur(10px)"}}
       zIndex="100"
       maxW="1200px"
     >

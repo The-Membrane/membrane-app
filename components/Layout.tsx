@@ -19,7 +19,7 @@ const Mobile = () => (
 )
 
 const HexagonBackground = () => (
-  <Box position="absolute" top="0" right="0" zIndex={0} display={['none', 'block']}>
+  <Box position="absolute" top="0" right="0" zIndex={0} display={['block']}>
     <Image src="/images/backgrounds/right.svg" alt="Hexagon" />
   </Box>
 )
@@ -33,7 +33,7 @@ const Layout = ({ children }: Props) => {
     <Fragment>
       <Mobile />
 
-      <HStack w="100vw" h="100vh" display={['none', 'flex']} position="relative">
+      <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{base: "column", md: "row"}}>
         <HexagonBackground />
         <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
           <SideNav />
@@ -52,8 +52,8 @@ const Layout = ({ children }: Props) => {
             {children}
           </Stack>
         </Stack>
-      </HStack>
-    </Fragment>
+      </Stack>
+      </Fragment>
   )
 }
 

@@ -30,7 +30,10 @@ const Layout = ({ children }: Props) => {
   if (show) return <MembersRules />
 
   return (
-      <HStack w="100vw" h="100vh" display={['flex']} position="relative">
+    // <Fragment>
+      {/* <Mobile /> */}
+
+      <HStack w="100vw" h="100vh" display={['none']} position="relative">
         <HexagonBackground />
         <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
           <SideNav />
@@ -50,6 +53,7 @@ const Layout = ({ children }: Props) => {
           </Stack>
         </Stack>
       </HStack>
+    // </Fragment>
   )
 }
 

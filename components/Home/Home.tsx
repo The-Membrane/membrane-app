@@ -11,10 +11,11 @@ const Home = React.memo(() => {
   return (
     <Stack >
       <StatsCard />
-      <Grid
+      <Grid      
       h='200px'
-      templateRows='repeat(1, 1fr)'
-      templateColumns='repeat(3, 1fr)'
+      //Mobile has 3 rows and 1 column, Desktop has 1 row and 3 columns
+      templateRows={{base: 'repeat(3, 1fr)', md: 'repeat(1, 1fr)',}} 
+      templateColumns={{base: 'repeat(1, 1fr)', md: 'repeat(3, 1fr)',}}
       gap={4}
     >
         <GridItem colSpan={1} h='10'> 

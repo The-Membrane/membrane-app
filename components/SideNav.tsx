@@ -102,22 +102,7 @@ function SideNav(){
   setTimeout(() => setEnableMsgs(true), 2222);
   
   return (
-    <Flex
-      px={4}
-      py={2}
-      bg="rgba(0, 0, 0, 0.15)"
-      color="white"
-      width="100vw"
-      zIndex={1}
-      justifyContent="center"
-    >
-      <Flex
-        h={16}
-        alignItems={"center"}
-        justifyContent={"space-between"}
-        width="100vw"
-        maxW="7xl"
-      >
+    <>
     <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '85%'}} display={{ base: "none", md: "flex" }}>
       <Stack as="ul" gap="1">
         <Stack marginTop={"6%"}>
@@ -167,7 +152,6 @@ function SideNav(){
        />
      )}
     </HStack>
-  </Flex>
 
   {/* Mobile Menu Modal */}
   <Modal isOpen={isMobileMenuOpen} onClose={close}>
@@ -199,7 +183,7 @@ function SideNav(){
       </ModalBody>
     </ModalContent>
   </Modal>
- </Flex>
+  </>
   )
 }
 

@@ -1,5 +1,4 @@
 import { HStack, Heading } from '@chakra-ui/react'
-import { useRouter } from 'next/router'
 import React from 'react'
 
 const Header = () => {
@@ -15,7 +14,7 @@ const Header = () => {
       position="fixed"
       w="full"
       h="70px"
-      backdropFilter="blur(10px)"
+      backdropFilter={{base: null, md: "blur(10px)"}}
       zIndex="100"
       maxW="1200px"
     >

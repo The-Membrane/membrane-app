@@ -19,7 +19,7 @@ const Mobile = () => (
 )
 
 const HexagonBackground = () => (
-  <Box position="absolute" top="0" right="0" zIndex={0} display={['none', 'block']}>
+  <Box position="absolute" top="0" right="0" zIndex={0} display={['block']}>
     <Image src="/images/backgrounds/right.svg" alt="Hexagon" />
   </Box>
 )

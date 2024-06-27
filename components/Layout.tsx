@@ -50,7 +50,7 @@ const Layout = ({ children }: Props) => {
             {children}
           </Stack>
         </Stack>
-      </HStack>
+      </Stack>
   )
 }
 

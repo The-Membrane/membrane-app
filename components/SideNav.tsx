@@ -80,7 +80,7 @@ const getCDTPrice = () => {
   return parseFloat((price.price)).toFixed(4)
 }
 
-const SideNav = React.memo(() => {
+function SideNav(){
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleMobileMenuToggle = () => {
@@ -156,7 +156,7 @@ const SideNav = React.memo(() => {
     </Stack>
 
      {/* Mobile Menu */}
-     <HStack display={{ base: "flex", md: "none" }} spacing="0.5rem">
+     <HStack as="mobile" display={{ base: "flex", md: "none" }} spacing="0.5rem">
      {!isMobileMenuOpen && (
        <IconButton
          icon={<HamburgerIcon />}
@@ -166,49 +166,41 @@ const SideNav = React.memo(() => {
          onClick={handleMobileMenuToggle}
        />
      )}
-   </HStack>
- </Flex>
+    </HStack>
+  </Flex>
 
- {/* Mobile Menu Modal */}
- <Modal isOpen={isMobileMenuOpen} onClose={close}>
-   <ModalOverlay bg="rgba(0, 0, 0, 0.7)" />
-   <ModalContent bg="transparent" color="white" mt={4}>
-     <ModalCloseButton mr={2} />
-     <ModalBody mt={8}>
-       <VStack spacing={8} mt={12}>
-         <ChakraLink fontWeight="medium" href="#home" onClick={close}>
-           Home
-         </ChakraLink>
-         <ChakraLink fontWeight="medium" href="#protocol" onClick={close}>
-           Protocol Overview
-         </ChakraLink>
-         <ChakraLink
-           fontWeight="medium"
-           href="#governance"
-           onClick={close}
-         >
-           Governance
-         </ChakraLink>
-         <ChakraLink fontWeight="medium" href="#vision" onClick={close}>
-           The Vision
-         </ChakraLink>
-         <ChakraLink fontWeight="medium" href="#faqs" onClick={close}>
-           FAQs
-         </ChakraLink>
-         <ChakraLink
-           href="https://membrane-ui-mainnet.vercel.app/"
-           target="_blank"
-         >
-           <Button borderRadius="full" bg="#798eff">
-             Launch App
-           </Button>
-         </ChakraLink>
-       </VStack>
-     </ModalBody>
-   </ModalContent>
- </Modal>
+  {/* Mobile Menu Modal */}
+  <Modal isOpen={isMobileMenuOpen} onClose={close}>
+    <ModalOverlay bg="rgba(0, 0, 0, 0.7)" />
+    <ModalContent bg="transparent" color="white" mt={4}>
+      <ModalCloseButton mr={2} />
+      <ModalBody mt={8}>
+        <VStack spacing={8} mt={12}>
+          <ChakraLink fontWeight="medium" href="#home" onClick={close}>
+            Home
+          </ChakraLink>
+          <ChakraLink fontWeight="medium" href="#protocol" onClick={close}>
+            Protocol Overview
+          </ChakraLink>
+          <ChakraLink
+            fontWeight="medium"
+            href="#governance"
+            onClick={close}
+          >
+            Governance
+          </ChakraLink>
+          <ChakraLink fontWeight="medium" href="#vision" onClick={close}>
+            The Vision
+          </ChakraLink>
+          <ChakraLink fontWeight="medium" href="#faqs" onClick={close}>
+            FAQs
+          </ChakraLink>
+        </VStack>
+      </ModalBody>
+    </ModalContent>
+  </Modal>
  </Flex>
   )
-})
+}
 
 export default SideNav

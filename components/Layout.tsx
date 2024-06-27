@@ -31,7 +31,7 @@ const Layout = ({ children }: Props) => {
 
   return (
 
-      <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{base: "row", md: "column"}}>
+      <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{base: "column", md: "row"}}>
         <HexagonBackground />
         <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
           <SideNav />

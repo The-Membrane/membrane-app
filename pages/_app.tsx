@@ -77,7 +77,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             ...keplrWallets,
             ...cosmostationWallets,
             ...ledgerWallets,
-            ...leapWallets,
+            ...leapWallets?.slice(0,2),
             ...stationWallets,
             ...tailwindWallets,
           ]}

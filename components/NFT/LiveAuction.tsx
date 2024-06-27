@@ -86,7 +86,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
                 height="auto"
                 borderRadius="50%"
             /> : <Image
-                src={"https://ipfs-gw.stargaze-apis.com/ipfs/QmVop6YHZUrz9sJweZgrfGJY97c47dfHhEARuKcBxxyiuG"}
+                src={"https://ipfs-gw.stargaze-apis.com/ipfs/bafybeido64nj7ysgmpok7tpo4emos7vehfyq4rrt27cu5urdciick3ytfm"}
                 alt="Current Auctioned NFT Image"        
                 style={{ display: 'block' }}
                 width="18%"

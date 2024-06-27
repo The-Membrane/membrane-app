@@ -74,12 +74,12 @@ const App = ({ Component, pageProps }: AppProps) => {
           chains={chains}
           assetLists={assets}
           wallets={[
-            ...keplrWallets?.slice(0, 1),
-            ...cosmostationWallets?.slice(0, 1),
-            ...ledgerWallets?.slice(0, 1),
-            ...leapWallets?.slice(0, 1),
-            ...stationWallets?.slice(0, 1),
-            ...tailwindWallets?.slice(0, 1),
+            ...keplrWallets,
+            ...cosmostationWallets,
+            ...ledgerWallets,
+            ...leapWallets,
+            ...stationWallets,
+            ...tailwindWallets,
           ]}
           walletModal={WalletModal}
           signerOptions={signerOptions}

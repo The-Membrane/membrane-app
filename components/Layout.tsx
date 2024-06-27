@@ -30,8 +30,6 @@ const Layout = ({ children }: Props) => {
   if (show) return <MembersRules />
 
   return (
-    // <Fragment>
-      {/* <Mobile /> */}
 
       <HStack w="100vw" h="100vh" display={['none']} position="relative">
         <HexagonBackground />
@@ -53,7 +51,6 @@ const Layout = ({ children }: Props) => {
           </Stack>
         </Stack>
       </HStack>
-    // </Fragment>
   )
 }
 

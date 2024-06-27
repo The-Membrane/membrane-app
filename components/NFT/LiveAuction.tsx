@@ -41,7 +41,7 @@ interface Prop {
 const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {    
     console.log("LiveAuction rerender")
 
-    // const currentNFTIPFS = "ipfs://QmVop6YHZUrz9sJweZgrfGJY97c47dfHhEARuKcBxxyiuG
+    // const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
     
     const { setNFTState } = useNFTState()
     const bid = useLiveNFTBid(nftBidAmount)
@@ -63,6 +63,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
     //Remove ipfs portion of link for image
     useMemo(() => {
         if (liveNFT) setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/" +  removeSegmentAndBefore(liveNFT.image, "ipfs://") )
+            setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/bafybeido64nj7ysgmpok7tpo4emos7vehfyq4rrt27cu5urdciick3ytfm")
     }, [liveNFT])
 
     useMemo(() => {
@@ -86,7 +87,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
                 height="auto"
                 borderRadius="50%"
             /> : <Image
-                src={"https://ipfs-gw.stargaze-apis.com/ipfs/bafybeido64nj7ysgmpok7tpo4emos7vehfyq4rrt27cu5urdciick3ytfm"}
+                src={imgSRC}
                 alt="Current Auctioned NFT Image"        
                 style={{ display: 'block' }}
                 width="18%"

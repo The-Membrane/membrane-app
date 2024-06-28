@@ -6,9 +6,11 @@ import React from "react"
 import { range } from 'lodash'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import PerformanceStats from './PerformanceStats'
+import useWallet from '@/hooks/useWallet'
 
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false })
+  const { isWalletConnected } = useWallet()
   return (
     <Stack >
       <StatsCard />
@@ -19,7 +21,7 @@ const Home = React.memo(() => {
       templateColumns={{base: 'repeat(1, 1fr)', md: 'repeat(3, 1fr)'}}
       gap={{base: 56, md: 4}}
     >
-        {!isMobile ? <GridItem colSpan={{base: "auto", md: 1}} rowSpan={{base: 1, md: "auto"}} h='10'> 
+        {!isMobile && isWalletConnected ? <GridItem colSpan={{base: "auto", md: 1}} rowSpan={{base: 1, md: "auto"}} h='10'> 
         <Stack flexWrap="wrap" alignContent="center" >
           {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}          
         </Stack>

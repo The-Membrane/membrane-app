@@ -38,9 +38,9 @@ const navItems: NavItems[] = [
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
-  { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
   { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
+  { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
 ]
 
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {
@@ -160,25 +160,29 @@ function SideNav(){
       <ModalCloseButton mr={2} />
       <ModalBody mt={8}>
         <VStack spacing={8} mt={12}>
-          <ChakraLink fontWeight="medium" href="#home" onClick={close}>
+          <ChakraLink fontWeight="medium" href="" onClick={close}>
             Home
           </ChakraLink>
-          <ChakraLink fontWeight="medium" href="#protocol" onClick={close}>
-            Protocol Overview
+          <ChakraLink fontWeight="medium" href="mint" onClick={close}>
+            Mint
+          </ChakraLink>
+          <ChakraLink fontWeight="medium" href="bid" onClick={close}>
+            Bid
           </ChakraLink>
           <ChakraLink
             fontWeight="medium"
-            href="#governance"
+            href="stake"
             onClick={close}
           >
-            Governance
+            Stake
           </ChakraLink>
-          <ChakraLink fontWeight="medium" href="#vision" onClick={close}>
-            The Vision
+          <ChakraLink fontWeight="medium" href="nft" onClick={close}>
+            NFT Auction
           </ChakraLink>
-          <ChakraLink fontWeight="medium" href="#faqs" onClick={close}>
-            FAQs
+          <ChakraLink fontWeight="medium" href="lockdrop" onClick={close}>
+            Lockdrop
           </ChakraLink>
+          <WallectConnect />
         </VStack>
       </ModalBody>
     </ModalContent>

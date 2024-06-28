@@ -160,7 +160,7 @@ function SideNav(){
       <ModalCloseButton mr={2} />
       <ModalBody mt={8}>
         <VStack spacing={8} mt={12}>
-          <ChakraLink fontWeight="medium" href="" onClick={close}>
+          <ChakraLink fontWeight="medium" href="/" onClick={close}>
             Home
           </ChakraLink>
           <ChakraLink fontWeight="medium" href="mint" onClick={close}>

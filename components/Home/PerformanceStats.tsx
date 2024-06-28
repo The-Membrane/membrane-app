@@ -22,7 +22,7 @@ const PerformanceStats = ({ positionIndex }: Props) => {
 
     //Set positionID
     const { position, positionID } = useMemo(() => {
-      if (!basketPositions) return { position: undefined, positionID: undefined }
+      if (!basketPositions || !basketPositions[0].positions[positionIndex]) return { position: undefined, positionID: undefined }
       return { position: basketPositions[0].positions[positionIndex], positionID: basketPositions[0].positions[positionIndex].position_id }
     }, [basketPositions])
 

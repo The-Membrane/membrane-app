@@ -38,9 +38,8 @@ const useQuickAction = () => {
   }, [basket])
 
   const stableAsset = useMemo(() => {
-    //Use USDC as the default if they don't choose an asset
-    return quickActionState?.stableAsset ?? usdcAsset! as AssetWithBalance
-  }, [quickActionState?.stableAsset, usdcAsset])
+    return usdcAsset! as AssetWithBalance
+  }, [usdcAsset])
 
   
   type QueryData = {
@@ -76,18 +75,7 @@ const useQuickAction = () => {
 
       //1) Swap 85% of the levAsset to CDT
       //////Calculate the % to swap/////
-      const swapPercent = 0.20
-      // IF STABLES ARE ADDED, SUBTRACT IT FROM THE PERCENT TO SWAP
-      //Get the % of assets already in stables
-      const stableRatio = num(stableAsset.sliderValue).dividedBy(num(quickActionState?.levAsset?.sliderValue).plus(num(stableAsset.sliderValue))).toNumber()
-      const stableValue = stableAsset.sliderValue
-      console.log("stable ratios:", stableRatio, stableAsset.sliderValue, stableValue??0)
-      //Get the % of assets in lev
-      const levRatio = 1 - stableRatio
-      //Get the % of assets to swap to acheive 20% stables
-      //ex: 20% in stables, 80% in levAsset, means we need to get 65% of the total Value to be stables which is 81.25% of the remaining levAsset
-      const swapRatio = Math.max(swapPercent - stableRatio, 0) / levRatio
-      // setQuickActionState({ levSwapRatio: swapRatio })
+      const swapRatio = 0.20
 
       const swapFromAmount = num(quickActionState?.levAsset?.amount).times(swapRatio).toNumber()
       const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)
@@ -156,7 +144,7 @@ const useQuickAction = () => {
         address, 
         prices, 
         basket,
-        num(quickActionState?.levAsset?.sliderValue).plus(stableValue??0).toNumber(), 
+        num(quickActionState?.levAsset?.sliderValue).toNumber(), 
         0, 
         45,
         positions

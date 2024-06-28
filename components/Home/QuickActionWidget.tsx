@@ -50,7 +50,6 @@ const QuickActionWidget = () => {
   }, [liqudationLTV])
   
   const [ inputAmount, setInputAmount ] = useState(0);
-  const [ stableInputAmount, setStableInputAmount ] = useState(0);
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -139,20 +138,6 @@ const QuickActionWidget = () => {
       levAsset: value
     })
   }
-  const onStableAssetMenuChange = (value: string) => {
-    setQuickActionState({
-      stableAsset: value
-    })
-  }
-
-  useEffect(() => {
-    if (quickActionState?.assets && quickActionState?.stableAsset?.symbol != undefined) {
-      setQuickActionState({
-        stableAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.stableAsset?.symbol),
-      })
-    }
-    
-  }, [quickActionState?.assets, quickActionState?.stableAsset?.symbol])
 
   useEffect(() => {
     if (quickActionState?.assets && quickActionState?.levAsset?.symbol != undefined) {
@@ -213,21 +198,6 @@ const QuickActionWidget = () => {
             inputAmount={inputAmount}
             setInputAmount={setInputAmount}
         />
-        {/* {quickActionState.levAsset?.amount && quickActionState.levAsset?.amount !== 0 && stableAssets.length !== 0 ? <><Text fontSize="14px" fontWeight="700">
-          Add Stables to Increase Leverage
-        </Text> 
-        <Divider mx="0" mt="0" mb="5"/>
-        <SliderWithInputBox
-            max={quickActionState?.stableAsset?.combinUsdValue??0}
-            inputBoxWidth='42%'
-            assets={stableAssets}
-            QAState={quickActionState}
-            setQAState={setQuickActionState}
-            onMenuChange={onStableAssetMenuChange}
-            inputAmount={stableInputAmount}
-            setInputAmount={setStableInputAmount}
-            stable={true}
-        /></> : null} */}
         <Card>
           <HStack>
             <Text fontWeight="bold" fontSize="16px">
@@ -249,7 +219,7 @@ const QuickActionWidget = () => {
           max {SWAP_SLIPPAGE}% slippage when swapping 20% to USDC
           </Text>
         </Card>
-         {((quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222 && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+         {((quickActionState.levAsset?.sliderValue??0 < 222) && (quickActionState.levAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
           </Text>
           : levAssets.length === 0 ?
@@ -264,7 +234,7 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        isDisabled={(quickActionState.levAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
+        isDisabled={(quickActionState.levAsset?.sliderValue??0) < 222}
         >
           <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/>
         </ConfirmModal></>}

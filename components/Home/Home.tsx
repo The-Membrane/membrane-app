@@ -14,7 +14,7 @@ const Home = React.memo(() => {
       <Grid      
       h='200px'
       //Mobile has 3 rows and 1 column, Desktop has 1 row and 3 columns
-      templateRows={{base: 'repeat(3, 1fr)', md: 'repeat(1, 1fr)'}} 
+      templateRows={{base: 'repeat(3, 3fr)', md: 'repeat(1, 1fr)'}} 
       templateColumns={{base: 'repeat(1, 1fr)', md: 'repeat(3, 1fr)'}}
       gap={4}
     >

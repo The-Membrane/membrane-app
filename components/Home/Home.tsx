@@ -1,4 +1,4 @@
-import { Grid, GridItem, HStack, Stack } from '@chakra-ui/react'
+import { Grid, GridItem, Stack, useBreakpointValue } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import QuickActionWidget from './QuickActionWidget'
 
@@ -10,6 +10,8 @@ import useWallet from '@/hooks/useWallet'
 
 const Home = React.memo(() => {
   const { address } = useWallet()
+
+  const isMobile = useBreakpointValue({ base: true, md: false })
   return (
     <Stack >
       <StatsCard />
@@ -20,7 +22,7 @@ const Home = React.memo(() => {
       templateColumns={{base: 'repeat(1, 1fr)', md: 'repeat(3, 1fr)'}}
       gap={{base: 56, md: 4}}
     >
-        {address ? <GridItem colSpan={{base: "auto", md: 1}} rowSpan={{base: 1, md: "auto"}} h='10'> 
+        {address || !isMobile ? <GridItem colSpan={{base: "auto", md: 1}} rowSpan={{base: 1, md: "auto"}} h='10'> 
         <Stack flexWrap="wrap" alignContent="center" >
           {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}          
         </Stack>

@@ -1,6 +1,5 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Text, Card, HStack, Image, Stack } from '@chakra-ui/react'
-import { getCookie } from '@/helpers/cookies'
 import { useUserPositions } from '@/hooks/useCDP'
 import useInitialVaultSummary from '../Mint/hooks/useInitialVaultSummary'
 import { getAssetByDenom } from '@/helpers/chain'
@@ -22,12 +21,14 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     const { initialTVL: currentTVL } = useInitialVaultSummary( positionIndex )
 
     //Set positionID
-    const position = basketPositions![0].positions[positionIndex]
-    const positionID = position.position_id
+    const { position, positionID } = useMemo(() => {
+      if (!basketPositions) return { position: undefined, positionID: undefined }
+      return { position: basketPositions[0].positions[positionIndex], positionID: basketPositions[0].positions[positionIndex].position_id }
+    }, [basketPositions])
 
     //Get the position value saved in le cookie
     const { data: initialTVL } = useCookie("no liq leverage " + positionID)
-    if (initialTVL == null) return null
+    if (initialTVL == null || position == null) return null
 
     //Get the volatile asset being leveraged
     //We know its the first asset bc we deposit the stable second

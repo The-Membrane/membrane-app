@@ -160,28 +160,9 @@ function SideNav(){
       <ModalCloseButton mr={2} />
       <ModalBody mt={8}>
         <VStack spacing={8} mt={12}>
-          <ChakraLink fontWeight="medium" href="/" onClick={close}>
-            Home
-          </ChakraLink>
-          <ChakraLink fontWeight="medium" href="mint" onClick={close}>
-            Mint
-          </ChakraLink>
-          <ChakraLink fontWeight="medium" href="bid" onClick={close}>
-            Bid
-          </ChakraLink>
-          <ChakraLink
-            fontWeight="medium"
-            href="stake"
-            onClick={close}
-          >
-            Stake
-          </ChakraLink>
-          <ChakraLink fontWeight="medium" href="nft" onClick={close}>
-            NFT Auction
-          </ChakraLink>
-          <ChakraLink fontWeight="medium" href="lockdrop" onClick={close}>
-            Lockdrop
-          </ChakraLink>
+        {navItems.map((item, index) => (
+          <NavItem key={index} {...item} />
+        ))}
           <WallectConnect />
         </VStack>
       </ModalBody>

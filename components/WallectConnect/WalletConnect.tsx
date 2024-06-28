@@ -52,7 +52,7 @@ const WalletConnect = () => {
       as={Button}
       variant="unstyled"
       _hover={hoverStyles}
-      justifyContent="start"
+      justifyContent={{base: "center", md: "start"}}
       fontWeight="normal"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

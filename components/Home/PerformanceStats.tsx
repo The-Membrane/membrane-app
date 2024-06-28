@@ -9,6 +9,7 @@ import ConfirmModal from '../ConfirmModal'
 import useUnLoop from './hooks/useUnloop'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
 import { num } from '@/helpers/num'
+import useCookie from './hooks/useCookie'
 
 type Props = {
   positionIndex: number
@@ -20,15 +21,12 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     //Get the current position's value
     const { initialTVL: currentTVL } = useInitialVaultSummary( positionIndex )
 
-    if (!basketPositions) return null
-    if (!basketPositions[0].positions[positionIndex]) return null
-
     //Set positionID
-    const position = basketPositions[0].positions[positionIndex]
+    const position = basketPositions![0].positions[positionIndex]
     const positionID = position.position_id
+
     //Get the position value saved in le cookie
-    console.log("attempting to get cookie: no liq leverage " + positionID)
-    const initialTVL = getCookie("no liq leverage " + positionID)
+    const { data: initialTVL } = useCookie("no liq leverage " + positionID)
     if (initialTVL == null) return null
 
     //Get the volatile asset being leveraged

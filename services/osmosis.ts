@@ -281,6 +281,10 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         //Set amount to mint
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
         console.log("mintAmount", mintAmount)
+        if (!mintAmount) {
+            console.log("mintAmount please return us")
+            return { msgs: [], newValue: 0, newLTV: 0 };
+        }
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
             positionId: positionId,

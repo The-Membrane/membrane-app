@@ -32,8 +32,6 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
     maxMint: 0,
   }
 
-  useEffect(() => { console.log("debt amount changed") }, [debtAmount])
-
   const value = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
   const CDT = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(CDT)
@@ -96,7 +94,7 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
           <Text variant="value">${Math.max(value, 0)}</Text>
         </HStack>
       </HStack>
-      {/* <SliderWithState value={value} onChange={onChange} min={0} max={maxSlider} walletCDT={parseFloat(walletCDT)} summary={mintState.summary}/> */}
+      <SliderWithState value={value} onChange={onChange} min={0} max={maxSlider} walletCDT={parseFloat(walletCDT)} summary={mintState.summary}/>
     </Stack>
   )
 }

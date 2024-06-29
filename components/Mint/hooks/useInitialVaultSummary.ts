@@ -9,13 +9,10 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
   const { data: collateralInterest } = useCollateralInterest()
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
-  console.log("initial vault sum", positionIndex)
 
-  const Basket = useMemo(() => { return basket
-  }, [basket])
+  const Basket = useMemo(() => { return basket }, [basket])
   const CollateralInterest = useMemo(() => { return collateralInterest }, [collateralInterest])
-  const BasketPositions = useMemo(() => { return basketPositions 
-  }, [basketPositions])
+  const BasketPositions = useMemo(() => { return basketPositions }, [basketPositions])
   const Prices = useMemo(() => { return prices }, [prices])
 
   return useQuery({
@@ -28,7 +25,6 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
     ],
     queryFn: async () => {
       //High score 76 refreshes
-      console.log("inside initial vault sum", positionIndex)
       const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
       if (!calc_initialPositions) return { 
         initialBorrowLTV: 0, 

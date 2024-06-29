@@ -15,15 +15,11 @@ const useVaultSummary = () => {
   const { data } = useInitialVaultSummary(mintState.positionNumber-1)
   const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = data || {}
 
-  const Basket = useMemo(() => { 
-    console.log("basket changed"); return basket
-  }, [basket])
-  const CollateralInterest = useMemo(() => { console.log("collateralInterest changed"); return collateralInterest }, [collateralInterest])
-  const BasketPositions = useMemo(() => { 
-    console.log("basketPositions changed"); return basketPositions 
-  }, [basketPositions])
-  const Prices = useMemo(() => { console.log("prices changed"); return prices }, [prices])
-  const Summary = useMemo(() => { console.log("summary changed"); return mintState?.summary }, [mintState?.summary])
+  const Basket = useMemo(() => { return basket }, [basket])
+  const CollateralInterest = useMemo(() => { return collateralInterest }, [collateralInterest])
+  const BasketPositions = useMemo(() => { return basketPositions }, [basketPositions])
+  const Prices = useMemo(() => { return prices }, [prices])
+  const Summary = useMemo(() => {  return mintState?.summary }, [mintState?.summary])
 
   return useQuery({queryKey: ['vault summary',
     BasketPositions,

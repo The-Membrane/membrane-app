@@ -28,15 +28,14 @@ const useProtocolLiquidations = () => {
   const { data: allPositions } = useBasketPositions()
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
-  //For metric purposes
-  console.log("total # of CDPs: ", allPositions?.length)
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
     queryFn: () => {
         if (!address || !allPositions || !prices || !basket || !interest) return { msgs: undefined, liquidating_positions: [] }
 
-        console.log("liq fn")
+        //For metric purposes
+        console.log("total # of CDPs: ", allPositions?.length)
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
         const liq = getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]

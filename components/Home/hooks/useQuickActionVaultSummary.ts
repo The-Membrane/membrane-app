@@ -11,7 +11,8 @@ const useQuickActionVaultSummary = () => {
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
   const { quickActionState } = useQuickActionState()
-  const { basketAssets } = useInitialVaultSummary()
+  const { data } = useInitialVaultSummary()
+  const { basketAssets } = data || {}
 
   //Calc totalvalue with an assumption that the second asset in the summary is a stable
   const totalUsdValue = useMemo(() => {
@@ -47,7 +48,7 @@ const useQuickActionVaultSummary = () => {
       initialLTV: 0,
       debtAmount: 0,
       initialTVL: 0,
-      basketAssets,
+      basketAssets: basketAssets??[],
     })
   }, [
     basketPositions,

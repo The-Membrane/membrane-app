@@ -29,7 +29,8 @@ const useUnLoop = (positionIndex: number) => {
   const { mintState } = useMintState()
   const { summary = [] } = mintState
 
-  const { initialTVL, initialBorrowLTV, debtAmount } = useInitialVaultSummary()
+  const { data } = useInitialVaultSummary(mintState.positionNumber-1)
+  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = data || {}
  
 
   const positionId = useMemo(() => {

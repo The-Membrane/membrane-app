@@ -11,7 +11,8 @@ const useVaultSummary = () => {
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
   const { mintState } = useMintState()
-  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary(mintState.positionNumber-1)
+  const { data } = useInitialVaultSummary(mintState.positionNumber-1)
+  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = data || {}
 
   const Basket = useMemo(() => { 
     console.log("basket changed"); return basket
@@ -22,9 +23,6 @@ const useVaultSummary = () => {
   }, [basketPositions])
   const Prices = useMemo(() => { console.log("prices changed"); return prices }, [prices])
   const Summary = useMemo(() => { console.log("summary changed"); return mintState?.summary }, [mintState?.summary])
-  const Mint = useMemo(() => { console.log("mint changed"); return mintState?.mint }, [mintState.mint])
-  const Repay = useMemo(() => { console.log("repay changed"); return mintState?.repay }, [mintState.repay])
-  const PositionNumber = useMemo(() => { console.log("positionNumber changed"); return mintState?.positionNumber }, [mintState.positionNumber])
 
   return useMemo(() => {
       //Start: 86
@@ -44,10 +42,10 @@ const useVaultSummary = () => {
       repay: mintState?.repay,
       newDebtAmount: mintState?.newDebtAmount,
       initialBorrowLTV,
-      initialLTV,
-      debtAmount,
-      initialTVL,
-      basketAssets,
+      initialLTV: initialLTV??0,
+      debtAmount: debtAmount??0,
+      initialTVL: initialTVL??0,
+      basketAssets: basketAssets??[],
     })
   }, [
     BasketPositions,

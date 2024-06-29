@@ -18,7 +18,8 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     const { action: unloop, newPositionValue, newLTV } = useUnLoop(positionIndex)
     const { data: basketPositions } = useUserPositions()
     //Get the current position's value
-    const { initialTVL: currentTVL } = useInitialVaultSummary( positionIndex )
+  const { data } = useInitialVaultSummary(positionIndex)
+  const { initialBorrowLTV, initialLTV, initialTVL: currentTVL, basketAssets, debtAmount } = data || {}
 
     //Set positionID
     const { position, positionID } = useMemo(() => {
@@ -35,9 +36,9 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     const levAsset = getAssetByDenom(position.collateral_assets[0].asset.info.native_token.denom)
 
     //Get performance 
-    const sign = parseFloat(initialTVL) > currentTVL ? "-" : "+"
-    const performance = sign + num(Math.abs((parseFloat(initialTVL) - currentTVL) / parseFloat(initialTVL) * 100)).times(1-(SWAP_SLIPPAGE/100)).toFixed(4) + "%"
-    const fontColor = parseFloat(initialTVL) > currentTVL ? "red" : "green"
+    const sign = parseFloat(initialTVL) > (currentTVL??0) ? "-" : "+"
+    const performance = sign + num(Math.abs((parseFloat(initialTVL) - (currentTVL??0)) / parseFloat(initialTVL) * 100)).times(1-(SWAP_SLIPPAGE/100)).toFixed(4) + "%"
+    const fontColor = parseFloat(initialTVL) > (currentTVL??0) ? "red" : "green"
   return (
     <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
       <Stack>
@@ -58,7 +59,7 @@ const PerformanceStats = ({ positionIndex }: Props) => {
             </Text>
             <Divider mx="0" mt="0" mb="0" width="100%"/>
             <Text fontWeight="bold" fontSize="16px" justifyContent={"center"} display={"flex"}>
-            <span style={{ color: fontColor }}>{sign === "+" ? "+" : "-"}${Math.abs(currentTVL-parseInt(initialTVL)).toFixed(2)}</span>
+            <span style={{ color: fontColor }}>{sign === "+" ? "+" : "-"}${Math.abs((currentTVL??0)-parseInt(initialTVL)).toFixed(2)}</span>
             </Text>
           </Stack>   
         </HStack>    

@@ -27,6 +27,7 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
       positionIndex
     ],
     queryFn: async () => {
+      //High score 76 refreshes
       console.log("inside initial vault sum", positionIndex)
       const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
       if (!calc_initialPositions) return { 

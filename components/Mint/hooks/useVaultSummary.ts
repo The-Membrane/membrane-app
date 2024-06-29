@@ -17,17 +17,18 @@ const useVaultSummary = () => {
   const CollateralInterest = useMemo(() => { return collateralInterest }, [collateralInterest])
   const BasketPositions = useMemo(() => { return basketPositions }, [basketPositions])
   const Prices = useMemo(() => { return prices }, [prices])
-  const MintState = useMemo(() => { return mintState }, [mintState])
-  const Summary = useMemo(() => { return MintState.summary }, [MintState.summary])
-  const Mint = useMemo(() => { return MintState.mint }, [MintState.mint])
-  const Repay = useMemo(() => { return MintState.repay }, [MintState.repay])
-  const PositionNumber = useMemo(() => { return MintState.positionNumber }, [MintState.positionNumber])
+  const Summary = useMemo(() => { return mintState?.summary }, [mintState?.summary])
+  const Mint = useMemo(() => { return mintState?.mint }, [mintState?.mint])
+  const Repay = useMemo(() => { return mintState?.repay }, [mintState?.repay])
+  const PositionNumber = useMemo(() => { return mintState?.positionNumber }, [mintState?.positionNumber])
 
   return useMemo(() => {
     console.log("what changed:", basketPositions, basket, collateralInterest, prices, 
       mintState?.totalUsdValue, mintState?.summary, mintState?.mint, mintState?.repay, mintState?.newDebtAmount, mintState.positionNumber)
       //Start: 86
       //High Score: 61
+      //Minus Summary: 73
+
 
     return calculateVaultSummary({
       basket,

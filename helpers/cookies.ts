@@ -15,6 +15,9 @@ export function getCookie(name: string): string | null {
   const nameEQ = name + "=";
   const ca = document.cookie.split(';');
     console.log("getting cookie", document.cookie)
+    const date = new Date();
+    date.setTime(date.getTime() + (3650 * 24 * 60 * 60 * 1000));
+    console.log("date: ", date.toUTCString())
   for(let i=0;i < ca.length;i++) {
     let c = ca[i].trim();
     if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);

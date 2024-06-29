@@ -66,7 +66,7 @@ const TakeAction = React.memo(() => {
         mx="3"
       />
 
-      <LTVWithSlider label="Your Debt" value={sliderValue} />
+      {/* <LTVWithSlider label="Your Debt" value={sliderValue} /> */}
       {/* <ActionButtons onRest={onRest} /> */}
       <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt}/>
     </TabPanel>

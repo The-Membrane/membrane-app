@@ -1,12 +1,17 @@
 import { num } from '@/helpers/num'
 import { HStack, Stack, Text } from '@chakra-ui/react'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { SliderWithState } from './SliderWithState'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import { calcSliderValue } from './TakeAction'
+
+
+const calcSliderValue = (debtAmount: number, mint: number = 0, repay: number = 0) => {
+  console.log("calc slider value", debtAmount, mint, repay) //60
+  return num(debtAmount).plus(mint).minus(repay).dp(2).toNumber()
+}
 
 export type LTVWithSliderProps = {
   label: string
@@ -27,6 +32,8 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
     maxMint: 0,
   }
 
+  useEffect(() => { console.log("debt amount changed") }, [debtAmount])
+
   const value = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
   const CDT = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(CDT)
@@ -45,9 +52,7 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
   var mint = 0
   var repay = 0
   var ltvSlider = useMemo(() => {
-    console.log("mint state reset")
-    mint = 0
-    repay = 0
+    console.log("mint state reset") //55
     return num(debtAmount).times(100).dividedBy(maxMint??1).dp(2).toNumber()
   }, [debtAmount])
 

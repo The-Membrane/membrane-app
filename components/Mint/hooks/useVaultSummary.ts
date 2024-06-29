@@ -30,6 +30,7 @@ const useVaultSummary = () => {
     mintState.mint,
     mintState.repay,
     mintState.positionNumber,
+    mintState.newDebtAmount,
   ],
   queryFn: async () => {
       //Start: 86

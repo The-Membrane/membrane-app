@@ -34,7 +34,7 @@ const ConfirmModal = ({
   return (
     <>
       <Button
-        // isLoading={action?.simulate.isLoading || action?.tx.isPending}
+        isLoading={action?.simulate.isLoading || action?.tx.isPending}
         // isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
         isDisabled={isDisabled}
         onClick={() => {

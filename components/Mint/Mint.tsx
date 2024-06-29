@@ -104,9 +104,9 @@ const MintTabsCard = React.memo(() => {
             borderRadius="28px"
           />
           <TabPanels paddingBottom={activeTabIndex === 2 ? 0 : 4}>
-            {/* <CurrentPositions />
-            <TakeAction />
-            <LPTab /> */}
+            <CurrentPositions />
+            {/* <TakeAction /> */}
+            <LPTab />
           </TabPanels>
         </Tabs>
         {/* For position pagination */}

@@ -10,7 +10,15 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
   const { data: prices } = useOraclePrice()
   console.log("initial vault sum", positionIndex)
 
+  const Basket = useMemo(() => { return basket
+  }, [basket])
+  const CollateralInterest = useMemo(() => { return collateralInterest }, [collateralInterest])
+  const BasketPositions = useMemo(() => { return basketPositions 
+  }, [basketPositions])
+  const Prices = useMemo(() => { return prices }, [prices])
+
   return useMemo(() => {
+    console.log("inside initial vault sum", positionIndex)
     const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
     if (!calc_initialPositions) return { 
       initialBorrowLTV: 0, 
@@ -33,10 +41,10 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
       basketAssets: calc_basketAssets,
     }
   }, [
-    basketPositions,
-    basket,
-    collateralInterest,
-    prices,
+    BasketPositions,
+    Basket,
+    CollateralInterest,
+    Prices,
     positionIndex
   ])
 }

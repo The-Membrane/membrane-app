@@ -51,7 +51,7 @@ const useMint = () => {
   const onSuccess = () => {    
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    setMintState({positionNumber: 1})
+    setMintState({positionNumber: 1, mint: 0, repay: 0, summary: []})
   }
 
   return useSimulateAndBroadcast({

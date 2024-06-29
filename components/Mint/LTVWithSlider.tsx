@@ -48,7 +48,6 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
     console.log("mint state reset")
     mint = 0
     repay = 0
-    setMintState({ mint, repay})
     return num(debtAmount).times(100).dividedBy(maxMint??1).dp(2).toNumber()
   }, [debtAmount])
 

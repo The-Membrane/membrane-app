@@ -24,7 +24,7 @@ export const calcSliderValue = (debtAmount: number, mint: number = 0, repay: num
 
 const TakeAction = React.memo(() => {
   const { mintState, setMintState } = useMintState()
-  const combinBalance = useCombinBalance(mintState.positionNumber)
+  const combinBalance = useCombinBalance(mintState.positionNumber-1)
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = useVaultSummary()
 
   useEffect(() => {

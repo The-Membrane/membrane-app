@@ -1,6 +1,7 @@
 import { useBasket, useUserPositions, useCollateralInterest } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getBasketAssets, getBorrowLTV, getDebt, getLTV, getPositions, getTVL } from '@/services/cdp'
+import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 
 const useInitialVaultSummary = (positionIndex: number = 0) => {
@@ -17,36 +18,70 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
   }, [basketPositions])
   const Prices = useMemo(() => { return prices }, [prices])
 
-  return useMemo(() => {
-    console.log("inside initial vault sum", positionIndex)
-    const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
-    if (!calc_initialPositions) return { 
-      initialBorrowLTV: 0, 
-      initialLTV: 0, 
-      debtAmount: 0, 
-      initialTVL: 0, 
-      basketAssets: []
-    }
-    const calc_debtAmount = getDebt(basketPositions, positionIndex)
-    const calc_basketAssets = getBasketAssets(basket!, collateralInterest!)
-    const calc_initialTVL = getTVL(calc_initialPositions)
-    const calc_initialBorrowLTV = getBorrowLTV(calc_initialTVL, calc_initialPositions, calc_basketAssets)
-    const calc_initialLTV = getLTV(calc_initialTVL, calc_debtAmount)
+  return useQuery({
+    queryKey: ['collateral interest', 
+      BasketPositions,
+      Basket,
+      CollateralInterest,
+      Prices,
+      positionIndex
+    ],
+    queryFn: async () => {
+      console.log("inside initial vault sum", positionIndex)
+      const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
+      if (!calc_initialPositions) return { 
+        initialBorrowLTV: 0, 
+        initialLTV: 0, 
+        debtAmount: 0, 
+        initialTVL: 0, 
+        basketAssets: []
+      }
+      const calc_debtAmount = getDebt(basketPositions, positionIndex)
+      const calc_basketAssets = getBasketAssets(basket!, collateralInterest!)
+      const calc_initialTVL = getTVL(calc_initialPositions)
+      const calc_initialBorrowLTV = getBorrowLTV(calc_initialTVL, calc_initialPositions, calc_basketAssets)
+      const calc_initialLTV = getLTV(calc_initialTVL, calc_debtAmount)
+  
+      return {        
+        initialBorrowLTV: calc_initialBorrowLTV,
+        initialLTV: calc_initialLTV,
+        debtAmount: calc_debtAmount,
+        initialTVL: calc_initialTVL,
+        basketAssets: calc_basketAssets,
+      }
+    },
+  })
 
-    return {        
-      initialBorrowLTV: calc_initialBorrowLTV,
-      initialLTV: calc_initialLTV,
-      debtAmount: calc_debtAmount,
-      initialTVL: calc_initialTVL,
-      basketAssets: calc_basketAssets,
-    }
-  }, [
-    BasketPositions,
-    Basket,
-    CollateralInterest,
-    Prices,
-    positionIndex
-  ])
+  // return useMemo(() => {
+  //   console.log("inside initial vault sum", positionIndex)
+  //   const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
+  //   if (!calc_initialPositions) return { 
+  //     initialBorrowLTV: 0, 
+  //     initialLTV: 0, 
+  //     debtAmount: 0, 
+  //     initialTVL: 0, 
+  //     basketAssets: []
+  //   }
+  //   const calc_debtAmount = getDebt(basketPositions, positionIndex)
+  //   const calc_basketAssets = getBasketAssets(basket!, collateralInterest!)
+  //   const calc_initialTVL = getTVL(calc_initialPositions)
+  //   const calc_initialBorrowLTV = getBorrowLTV(calc_initialTVL, calc_initialPositions, calc_basketAssets)
+  //   const calc_initialLTV = getLTV(calc_initialTVL, calc_debtAmount)
+
+  //   return {        
+  //     initialBorrowLTV: calc_initialBorrowLTV,
+  //     initialLTV: calc_initialLTV,
+  //     debtAmount: calc_debtAmount,
+  //     initialTVL: calc_initialTVL,
+  //     basketAssets: calc_basketAssets,
+  //   }
+  // }, [
+  //   BasketPositions,
+  //   Basket,
+  //   CollateralInterest,
+  //   Prices,
+  //   positionIndex
+  // ])
 }
 
 export default useInitialVaultSummary

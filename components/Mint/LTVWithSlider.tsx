@@ -15,7 +15,7 @@ export type LTVWithSliderProps = {
 export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
   const { setMintState, mintState } = useMintState()
   const { data } = useVaultSummary()
-  const {debtAmount, maxMint } = data || {
+  const { debtAmount, maxMint } = data || {
     debtAmount: 0,
     cost: 0,
     tvl: 0,
@@ -29,13 +29,11 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
   const walletCDT = useBalanceByAsset(CDT)
 
   const maxMintLabel = useMemo(() => {
-    if (isNaN(maxMint)) return 0
     if (num(maxMint).minus(debtAmount).dp(0).toNumber() < 0) return 0
     return num(maxMint).minus(debtAmount).dp(0).toNumber()
   }, [maxMint, debtAmount])
 
   const maxSlider = useMemo(() => {
-    if (isNaN(maxMint)) return 0
     if (num(maxMint).minus(debtAmount).dp(0).toNumber() < 0) return debtAmount
     return num(maxMint).dp(0).toNumber()
   }, [maxMint, debtAmount]) 
@@ -47,7 +45,7 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     mint = 0
     repay = 0
     setMintState({ mint, repay})
-    return num(debtAmount).times(100).dividedBy(maxMint).dp(2).toNumber()
+    return num(debtAmount).times(100).dividedBy(maxMint??1).dp(2).toNumber()
   }, [debtAmount])
 
   const onChange = (value: number) => {
@@ -63,12 +61,12 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     const diff = num(debtAmount).minus(newValue).abs().toNumber()
     mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0
     repay = num(newValue).isLessThan(debtAmount) ? diff : 0
-    ltvSlider = num(newValue).times(100).dividedBy(maxMint).dp(2).toNumber()
+    ltvSlider = num(newValue).times(100).dividedBy(maxMint??1).dp(2).toNumber()
 
     //Repay stopper at wallet's CDT balance
     if (repay > parseFloat(walletCDT)) {
       repay = parseFloat(walletCDT)
-      ltvSlider = num(debtAmount).minus(repay).times(100).dividedBy(maxMint).dp(2).toNumber()
+      ltvSlider = num(debtAmount).minus(repay).times(100).dividedBy(maxMint??1).dp(2).toNumber()
     }
 
     //If repaying everything, use all the Wallet's CDT to get past the minimum debt barrier

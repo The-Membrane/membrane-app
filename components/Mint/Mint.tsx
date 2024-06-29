@@ -105,7 +105,7 @@ const MintTabsCard = React.memo(() => {
           />
           <TabPanels paddingBottom={activeTabIndex === 2 ? 0 : 4}>
             <CurrentPositions />
-            {/* <TakeAction /> */}
+            <TakeAction />
             <LPTab />
           </TabPanels>
         </Tabs>

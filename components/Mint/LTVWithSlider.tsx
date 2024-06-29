@@ -14,7 +14,17 @@ export type LTVWithSliderProps = {
 
 export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
   const { setMintState, mintState } = useMintState()
-  const { maxMint = 0, debtAmount } = useVaultSummary()
+  const { data } = useVaultSummary()
+  const {debtAmount, maxMint } = data || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+    maxMint: 0,
+  }
   const CDT = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(CDT)
 

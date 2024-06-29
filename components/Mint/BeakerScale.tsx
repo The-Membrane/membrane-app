@@ -8,7 +8,16 @@ import useVaultSummary from './hooks/useVaultSummary'
 export const BeakerLiquid = () => {
   const { mintState } = useMintState()
 
-  const { ltv, liqudationLTV, borrowLTV } = useVaultSummary()
+  const { data } = useVaultSummary()
+  const { ltv, borrowLTV, liqudationLTV } = data || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
 
   const health = num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
 

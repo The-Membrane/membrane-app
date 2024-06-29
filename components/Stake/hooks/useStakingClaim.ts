@@ -10,7 +10,7 @@ export const useStakingClaim = (restake: boolean) => {
   const { address } = useWallet()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg staking claims', address],
+    queryKey: ['msg staking claims', address, restake],
     queryFn: () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
         

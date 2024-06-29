@@ -14,6 +14,8 @@ const useVaultSummary = () => {
   const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary(mintState.positionNumber-1)
 
   return useMemo(() => {
+    console.log("what changed:", basketPositions, basket, collateralInterest, prices, mintState?.totalUsdValue, mintState?.summary, mintState?.mint, mintState?.repay, mintState?.newDebtAmount, mintState.positionNumber)
+
     return calculateVaultSummary({
       basket,
       collateralInterest,

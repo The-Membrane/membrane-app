@@ -66,8 +66,9 @@ const TakeAction = React.memo(() => {
         mx="3"
       />
 
+      //Minus Buttons w/ LTV Slider was still slow so see what no Slider looks like, that may be the big bunda?
       {/* <LTVWithSlider label="Your Debt" value={sliderValue} /> */}
-      {/* <ActionButtons onRest={onRest} /> */}
+      <ActionButtons onRest={onRest} />
       <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt}/>
     </TabPanel>
   )

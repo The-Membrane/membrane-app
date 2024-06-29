@@ -145,7 +145,7 @@ const QuickActionWidget = () => {
         stableAsset:  stableAssets[0], 
       })
     }
-  }, [QAAssets, walletBalances])
+  }, [QAAssets, WalletBalances])
   
   const onLevAssetMenuChange = (value: string) => {
     setQuickActionState({

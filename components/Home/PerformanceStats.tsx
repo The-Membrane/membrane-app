@@ -35,7 +35,7 @@ const PerformanceStats = ({ positionIndex }: Props) => {
 
     //Get the position value saved in le cookie
     const { data: initialTVL } = useCookie("no liq leverage " + positionID)
-    if (initialTVL == null || position == null){ console.log("cookie error", initialTVL, position); return null}
+    if (initialTVL == null || position == null) return null
 
     //Get the volatile asset being leveraged
     //We know its the first asset bc we deposit the stable second
@@ -45,7 +45,7 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     const sign = parseFloat(initialTVL) > (currentTVL??0) ? "-" : "+"
     const performance = sign + num(Math.abs((parseFloat(initialTVL) - (currentTVL??0)) / parseFloat(initialTVL) * 100)).times(1-(SWAP_SLIPPAGE/100)).toFixed(4) + "%"
     const fontColor = parseFloat(initialTVL) > (currentTVL??0) ? "red" : "green"
-
+    
   return (
     <Card w="256px" alignItems="center" justifyContent="space-between" p="8" gap="0">
       <Stack>

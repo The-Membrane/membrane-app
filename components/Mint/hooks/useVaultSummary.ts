@@ -13,21 +13,19 @@ const useVaultSummary = () => {
   const { mintState } = useMintState()
   const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary(mintState.positionNumber-1)
 
-  const Basket = useMemo(() => { return basket }, [basket])
-  const CollateralInterest = useMemo(() => { return collateralInterest }, [collateralInterest])
-  const BasketPositions = useMemo(() => { return basketPositions }, [basketPositions])
-  const Prices = useMemo(() => { return prices }, [prices])
-  const Summary = useMemo(() => { return mintState?.summary }, [mintState?.summary])
-  const Mint = useMemo(() => { return mintState?.mint }, [mintState?.mint])
-  const Repay = useMemo(() => { return mintState?.repay }, [mintState?.repay])
-  const PositionNumber = useMemo(() => { return mintState?.positionNumber }, [mintState?.positionNumber])
+  const Basket = useMemo(() => { console.log("basket changed"); return basket }, [basket])
+  const CollateralInterest = useMemo(() => { console.log("collateralInterest changed"); return collateralInterest }, [collateralInterest])
+  const BasketPositions = useMemo(() => { console.log("basketPositions changed"); return basketPositions }, [basketPositions])
+  const Prices = useMemo(() => { console.log("prices changed"); return prices }, [prices])
+  const Summary = useMemo(() => { console.log("summary changed"); return mintState?.summary }, [mintState?.summary])
+  const Mint = useMemo(() => { console.log("mint changed"); return mintState?.mint }, [mintState?.mint])
+  const Repay = useMemo(() => { console.log("repay changed"); return mintState?.repay }, [mintState?.repay])
+  const PositionNumber = useMemo(() => { console.log("positionNumber changed"); return mintState?.positionNumber }, [mintState?.positionNumber])
 
   return useMemo(() => {
-    console.log("what changed:", basketPositions, basket, collateralInterest, prices, 
-      mintState?.totalUsdValue, mintState?.summary, mintState?.mint, mintState?.repay, mintState?.newDebtAmount, mintState.positionNumber)
       //Start: 86
-      //High Score: 61
-      //Minus Summary: 73
+      //High Score (use mintState?.summary for dep): 61
+      //Using Memo'd mint state for MintState dep: 68-70
 
 
     return calculateVaultSummary({

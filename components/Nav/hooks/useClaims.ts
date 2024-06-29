@@ -115,9 +115,9 @@ const useProtocolClaims = () => {
             const { minutesLeft } = getTimeLeft(unstake.unstake_start_time)
             return minutesLeft <= 0
         })){          
-          console.log("made it here")
+          // console.log("made it here")
           if (!unstakeClaim.action.simulate.isError){
-            console.log("adding unstaking claim")
+            // console.log("adding unstaking claim")
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
           }
         }

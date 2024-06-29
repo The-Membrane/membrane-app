@@ -18,8 +18,14 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     const { action: unloop, newPositionValue, newLTV } = useUnLoop(positionIndex)
     const { data: basketPositions } = useUserPositions()
     //Get the current position's value
-  const { data } = useInitialVaultSummary(positionIndex)
-  const { initialBorrowLTV, initialLTV, initialTVL: currentTVL, basketAssets, debtAmount } = data || {}
+    const { data } = useInitialVaultSummary(positionIndex)
+    const { initialBorrowLTV, initialLTV, initialTVL: currentTVL, basketAssets, debtAmount } = data || {
+      initialBorrowLTV: 0, 
+      initialLTV: 0, 
+      debtAmount: 0, 
+      initialTVL: 0, 
+      basketAssets: []
+    }
 
     //Set positionID
     const { position, positionID } = useMemo(() => {

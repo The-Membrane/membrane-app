@@ -92,7 +92,7 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
           <Text variant="value">${Math.max(value, 0)}</Text>
         </HStack>
       </HStack>
-      <SliderWithState value={value} onChange={onChange} min={0} max={maxSlider} walletCDT={parseFloat(walletCDT)} summary={mintState.summary}/>
+      {/* <SliderWithState value={value} onChange={onChange} min={0} max={maxSlider} walletCDT={parseFloat(walletCDT)} summary={mintState.summary}/> */}
     </Stack>
   )
 }

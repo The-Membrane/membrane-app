@@ -22,9 +22,9 @@ const useVaultSummary = () => {
   }, [basketPositions])
   const Prices = useMemo(() => { console.log("prices changed"); return prices }, [prices])
   const Summary = useMemo(() => { console.log("summary changed"); return mintState?.summary }, [mintState?.summary])
-  const Mint = useMemo(() => { console.log("mint changed"); return mintState?.mint }, [mintState?.mint])
-  const Repay = useMemo(() => { console.log("repay changed"); return mintState?.repay }, [mintState?.repay])
-  const PositionNumber = useMemo(() => { console.log("positionNumber changed"); return mintState?.positionNumber }, [mintState?.positionNumber])
+  const Mint = useMemo(() => { console.log("mint changed"); return mintState?.mint }, [mintState.mint])
+  const Repay = useMemo(() => { console.log("repay changed"); return mintState?.repay }, [mintState.repay])
+  const PositionNumber = useMemo(() => { console.log("positionNumber changed"); return mintState?.positionNumber }, [mintState.positionNumber])
 
   return useMemo(() => {
       //Start: 86
@@ -55,9 +55,9 @@ const useVaultSummary = () => {
     CollateralInterest,
     Prices,
     Summary,
-    Mint,
-    Repay,
-    PositionNumber,
+    mintState.mint,
+    mintState.repay,
+    mintState.positionNumber,
   ])
 }
 

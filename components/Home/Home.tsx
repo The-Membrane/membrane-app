@@ -26,9 +26,9 @@ const Home = React.memo(() => {
           {range(0, MAX_CDP_POSITIONS).map((index) => <PerformanceStats key={index} positionIndex={index} />)}          
         </Stack>
         </GridItem> : null}
-        <GridItem colSpan={{base: "auto", md: 1}} rowSpan={{base: 1, md: "auto"}} h='10' > 
+        {/* <GridItem colSpan={{base: "auto", md: 1}} rowSpan={{base: 1, md: "auto"}} h='10' > 
           <QuickActionWidget />
-        </GridItem>
+        </GridItem> */}
         </Grid>
     </Stack>
   )

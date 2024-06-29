@@ -13,9 +13,15 @@ const useVaultSummary = () => {
   const { mintState } = useMintState()
   const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary(mintState.positionNumber-1)
 
-  const Basket = useMemo(() => { console.log("basket changed"); return basket }, [basket])
+  const Basket = useMemo(() => { 
+    console.log("basket changed"); 
+    if (basket != Basket??undefined) return basket
+  }, [basket])
   const CollateralInterest = useMemo(() => { console.log("collateralInterest changed"); return collateralInterest }, [collateralInterest])
-  const BasketPositions = useMemo(() => { console.log("basketPositions changed"); return basketPositions }, [basketPositions])
+  const BasketPositions = useMemo(() => { 
+    console.log("basketPositions changed"); 
+    if(basketPositions != BasketPositions??undefined) return basketPositions 
+  }, [basketPositions])
   const Prices = useMemo(() => { console.log("prices changed"); return prices }, [prices])
   const Summary = useMemo(() => { console.log("summary changed"); return mintState?.summary }, [mintState?.summary])
   const Mint = useMemo(() => { console.log("mint changed"); return mintState?.mint }, [mintState?.mint])

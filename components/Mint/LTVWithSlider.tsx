@@ -6,13 +6,14 @@ import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useAssetBySymbol } from '@/hooks/useAssets'
+import { calcSliderValue } from './TakeAction'
 
 export type LTVWithSliderProps = {
   label: string
   value?: number
 }
 
-export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
+export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
   const { setMintState, mintState } = useMintState()
   const { data } = useVaultSummary()
   const { debtAmount, maxMint } = data || {
@@ -25,6 +26,8 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     liqudationLTV: 0,
     maxMint: 0,
   }
+
+  const value = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
   const CDT = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(CDT)
 
@@ -42,6 +45,7 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
   var mint = 0
   var repay = 0
   var ltvSlider = useMemo(() => {
+    console.log("mint state reset")
     mint = 0
     repay = 0
     setMintState({ mint, repay})
@@ -74,7 +78,6 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
       repay = parseFloat(walletCDT)
       ltvSlider = 0
     }
-
 
     setMintState({ mint, repay, ltvSlider, newDebtAmount: newValue })
   }

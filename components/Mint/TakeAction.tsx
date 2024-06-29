@@ -19,6 +19,7 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false}: { overdraft?: b
 }
 
 export const calcSliderValue = (debtAmount: number, mint: number = 0, repay: number = 0) => {
+  console.log("calc slider value", debtAmount, mint, repay)
   return num(debtAmount).plus(mint).minus(repay).dp(2).toNumber()
 }
 
@@ -40,8 +41,6 @@ const TakeAction = React.memo(() => {
     const overdraft = ltv > borrowLTV
     setMintState({ overdraft })
   }, [ltv, borrowLTV])
-
-  const sliderValue = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
 
   const onRest = () => {
     setInitialMintState({
@@ -67,7 +66,7 @@ const TakeAction = React.memo(() => {
       />
 
       //Minus Buttons w/ LTV Slider was still slow so see what no Slider looks like, that may be the big bunda?
-      {/* <LTVWithSlider label="Your Debt" value={sliderValue} /> */}
+      <LTVWithSlider label="Your Debt" value={sliderValue} />
       <ActionButtons onRest={onRest} />
       <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt}/>
     </TabPanel>

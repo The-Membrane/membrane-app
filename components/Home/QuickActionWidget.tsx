@@ -30,7 +30,7 @@ const QuickActionWidget = () => {
   //Set QAState summary within a Memo
   useEffect(() => {
     if (quickActionState.summary && quickActionState.summary != summary){
-      console.log("BANG BANG BANG")
+      // console.log("BANG BANG BANG")
       setQuickActionState({ summary })
     }
   },[summary])
@@ -45,7 +45,7 @@ const QuickActionWidget = () => {
 
     //Calc new LTV post drawdown
     const newLTV = volRatio.times(liqudationLTV).plus(stableRatio.times(96))
-    console.log( "drawdown:", volRatio, stableRatio, newLTV)
+    // console.log( "drawdown:", volRatio, stableRatio, newLTV)
     return num(45).dividedBy(newLTV).minus(1).abs().times(100).toFixed(1)
   }, [liqudationLTV])
   
@@ -148,8 +148,8 @@ const QuickActionWidget = () => {
     
   }, [quickActionState?.assets, quickActionState?.levAsset?.symbol])
 
-  console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
-  console.log("lev asset", quickActionState.levAsset?.amount, quickActionState.levAsset?.amount !== 0)
+  // console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
+  // console.log("lev asset", quickActionState.levAsset?.amount, quickActionState.levAsset?.amount !== 0)
 
   ///////Basic Onboarding Card///////
   return (

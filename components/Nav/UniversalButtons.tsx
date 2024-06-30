@@ -8,12 +8,14 @@ import useProtocolLiquidations from './hooks/useLiquidations'
 
 function UniversalButtons(){
 
-const { action: claim, claims_summary } = useProtocolClaims()
-const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
+    const { action: claim, claims_summary } = useProtocolClaims()
+    const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
 
-//Disable claims for a time period to allow simulates to run
-const [enable_msgs, setEnableMsgs] = useState(false)
-setTimeout(() => setEnableMsgs(true), 2222);
+    //Disable claims for a time period to allow simulates to run
+    const [enable_msgs, setEnableMsgs] = useState(false)
+    setTimeout(() => setEnableMsgs(true), 2222);
+
+    if ((claim?.simulate.isError || !claim?.simulate.data || !enable_msgs || claims_summary.length === 0) && (liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs || liq_summ.length === 0)) return null
 
     return (
         <Stack as="uniButtons" gap="1">
@@ -34,7 +36,6 @@ setTimeout(() => setEnableMsgs(true), 2222);
             <LiqSummary liquidations={liq_summ}/>
             </ConfirmModal>  
         </Stack>
-
     )
 }
 

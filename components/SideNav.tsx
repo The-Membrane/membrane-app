@@ -107,7 +107,7 @@ function SideNav(){
         ))}
         <WallectConnect />
       </Stack>
-      {/* <UniversalButtons /> */}
+      <UniversalButtons />
 
       <BalanceCard />
     </Stack>

@@ -6,6 +6,8 @@ import RPCStatus from './RPCStatus'
 import SideNav from './SideNav'
 import MembersRules from './MembersRules'
 import useMembersRulesState from './MembersRules/useRules'
+import UniversalButtons from './Nav/UniversalButtons'
+import { BalanceCard } from './BalanceCard'
 
 type Props = PropsWithChildren & {}
 
@@ -37,6 +39,9 @@ const Layout = ({ children }: Props) => {
         <HexagonBackground />
         <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
           <SideNav />
+          <UniversalButtons />
+
+          <BalanceCard />
         </Stack>
         <Stack
           h="full"

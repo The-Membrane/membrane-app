@@ -196,7 +196,7 @@ const useProtocolClaims = () => {
   })
   
   const { msgs, claims: queryclaimsSummary } = useMemo(() => {
-    if (!queryData) return {msgs: undefined, claims: claims_summary}
+    if (!queryData) return { msgs: [], claims: claims_summary }
     else return queryData
   }, [queryData])
   

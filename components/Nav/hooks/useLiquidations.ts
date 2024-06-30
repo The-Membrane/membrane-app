@@ -32,7 +32,7 @@ const useProtocolLiquidations = () => {
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
     queryFn: () => {
-        if (!address || !allPositions || !prices || !basket || !interest) return { msgs: undefined, liquidating_positions: [] }
+        if (!address || !allPositions || !prices || !basket || !interest) return { msgs: [], liquidating_positions: [] }
 
         //For metric purposes
         console.log("total # of CDPs: ", allPositions?.length)
@@ -59,7 +59,7 @@ const useProtocolLiquidations = () => {
   })
   
   const { msgs, liquidating_positions: liq_pos } = useMemo(() => {
-    if (!queryData) return {msgs: undefined, liquidating_positions: liquidating_positions}
+    if (!queryData) return { msgs: [], liquidating_positions: liquidating_positions }
     else return queryData
   }, [queryData])
   

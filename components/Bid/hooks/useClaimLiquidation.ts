@@ -15,9 +15,9 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
   const claimKeys = claims.map((claim) => claim.bid_for)
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg claim liquidation', address, claimKeys],
+    queryKey: ['msg claim liquidation', address, claimKeys, sp_claims],
     queryFn: () => {
-      if (!address || claimKeys.length === 0) return [] as MsgExecuteContractEncodeObject[]
+      if (!address || (claimKeys.length === 0 && !sp_claims)) return [] as MsgExecuteContractEncodeObject[]
 
       const messageComposer = new LiquidationQueueMsgComposer(address, contracts.liquidation)
 

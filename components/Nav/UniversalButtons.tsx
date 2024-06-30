@@ -15,7 +15,7 @@ function UniversalButtons(){
     const [enable_msgs, setEnableMsgs] = useState(false)
     setTimeout(() => setEnableMsgs(true), 2222);
 
-    if ((claim?.simulate.isError || !claim?.simulate.data || !enable_msgs || claims_summary.length === 0) && (liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs || liq_summ.length === 0)) return null
+    // if ((claim?.simulate.isError || !claim?.simulate.data || !enable_msgs || claims_summary.length === 0) && (liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs || liq_summ.length === 0)) return null
 
     return (
         <Stack as="uniButtons" gap="1">

@@ -89,7 +89,7 @@ function SideNav(){
   
   return (
     <>
-    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '85%'}} display={{ base: "none", md: "flex" }}>
+    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" p="6" bg="whiteAlpha.100" style={{zoom: '85%'}} display={{ base: "none", md: "flex" }}>
       <Stack as="ul" gap="1">
         <Stack marginTop={"6%"}>
           <Logo />

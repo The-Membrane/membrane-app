@@ -54,8 +54,8 @@ const useProtocolClaims = () => {
   //Staking
   const { data } = useStaked()        
   const { staked = [], unstaking = [], rewards = []} = data || {}  
-  const stakingClaim = useStakingClaim(false)
-  const unstakeClaim = useClaimUnstake({address: address})
+  const stakingClaim = useStakingClaim(false, false)
+  const unstakeClaim = useClaimUnstake({ address: address, sim: false })
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {

@@ -31,7 +31,7 @@ const useProtocolLiquidations = () => {
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
-    queryFn: () => {
+    queryFn: async () => {
         if (!address || !allPositions || !prices || !basket || !interest) return { msgs: [], liquidating_positions: [] }
 
         //For metric purposes

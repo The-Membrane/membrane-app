@@ -93,9 +93,12 @@ const useProtocolClaims = () => {
   
   const Claimables = useMemo(() => { return claimables }, [claimables])
   const Deposits = useMemo(() => { return deposits }, [deposits])
+  const ClaimMsgs = useMemo(() => { return claimLiq.msgs }, [claimLiq.msgs])
+  const StakingMsgs = useMemo(() => { return  stakingClaim.msgs }, [ stakingClaim.msgs])
+  const UnstakeMsgs = useMemo(() => { return unstakeClaim.msgs }, [unstakeClaim.msgs])
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg all protocol claims', address, claimLiq.msgs, stakingClaim.msgs, unstakeClaim.msgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
+    queryKey: ['msg all protocol claims', address, ClaimMsgs, StakingMsgs, UnstakeMsgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
     queryFn: () => {
       console.log("claim attempt");
         var msgs = [] as MsgExecuteContractEncodeObject[]

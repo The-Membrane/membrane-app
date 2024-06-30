@@ -70,6 +70,7 @@ const useProtocolClaims = () => {
 
     return reward.toString()
   }, [rewards, staked, mbrnAsset])
+  //
   const cdtClaimable = useMemo(() => {
     if (!rewards || !mbrnAsset) return '0.00'
 
@@ -90,7 +91,7 @@ const useProtocolClaims = () => {
   const { claimables } = allocations || {}
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg all protocol claims', address, claims, SP_claims, unstaking, claimables, deposits, mbrnClaimable, cdtClaimable],
+    queryKey: ['msg all protocol claims', address, claimLiq.msgs, stakingClaim.msgs, unstakeClaim.msgs, claimables, deposits, mbrnClaimable, cdtClaimable],
     queryFn: () => {
       console.log("claim attempt");
         var msgs = [] as MsgExecuteContractEncodeObject[]

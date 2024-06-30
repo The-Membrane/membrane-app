@@ -70,7 +70,7 @@ const useProtocolLiquidations = () => {
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    queryKey: ['protocol liquidation sim', (msgs?.toString() ?? '0')],
     onSuccess,
   }), liquidating_positions: liq_pos}
 }

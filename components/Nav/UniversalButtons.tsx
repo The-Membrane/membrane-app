@@ -23,7 +23,7 @@ function UniversalButtons(){
             <ConfirmModal
             label={ 'Claim' }
             action={claim}
-            isDisabled={claim?.simulate.isError || !claim?.simulate.data || !enable_msgs || claims_summary.length === 0}
+            isDisabled={!enable_msgs || claims_summary.length === 0}
             // isLoading={false}
             >
             <ClaimSummary claims={claims_summary}/>
@@ -32,7 +32,7 @@ function UniversalButtons(){
             <ConfirmModal
             label={ 'Liquidate' }
             action={liquidate}
-            isDisabled={liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs || liq_summ.length === 0}
+            isDisabled={!enable_msgs || liq_summ.length === 0}
             // isLoading={false}
             >
             <LiqSummary liquidations={liq_summ}/>

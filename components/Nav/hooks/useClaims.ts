@@ -104,7 +104,7 @@ const useProtocolClaims = () => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
         /////Add Liquidation claims/////        
-        if (!claimLiq?.action.simulate.isError && (claims || SP_claims)){
+        if ((claims || SP_claims)){
           //If SP_claims is undefined, make sure LQ_claims aren't all 0
           let nonZeroClaims = claims?.filter((claim) => num(claim.pending_liquidated_collateral).isGreaterThan(0)) || []
           //add msg
@@ -115,9 +115,9 @@ const useProtocolClaims = () => {
         /////Add Staking reward and Stake Claims////
         //If there is anything to claim, claim
         if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
-          if (!stakingClaim?.action.simulate.isError){
+          // if (!stakingClaim?.action.simulate.isError){
             msgs = msgs.concat(stakingClaim.msgs ?? [])
-          }
+          // }
         }
         //If there is anything to unstake, unstake
         if (unstaking.find((unstake: any, index: number) => {            
@@ -125,13 +125,13 @@ const useProtocolClaims = () => {
             return minutesLeft <= 0
         })){          
           // console.log("made it here")
-          if (!unstakeClaim.action.simulate.isError){
+          // if (!unstakeClaim.action.simulate.isError){
             // console.log("adding unstaking claim")
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
-          }
+          // }
         }
         /////Add Vesting Claims////
-        if (!claimFees?.action.simulate.isError && (claimables?.length??0) > 0){
+        if ((claimables?.length??0) > 0){
           msgs = msgs.concat(claimFees.msgs ?? [])
         }
 
@@ -242,7 +242,7 @@ const useProtocolClaims = () => {
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    queryKey: ['protocol claim sim', (msgs?.toString() ?? '0')],
     onSuccess,
   }), claims_summary: agg_claims}
 }

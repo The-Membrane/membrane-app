@@ -55,7 +55,7 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    queryKey: ['claim liquidation sim', (msgs?.toString() ?? '0')],
     onSuccess,
   }), msgs}
 }

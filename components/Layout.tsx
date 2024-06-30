@@ -40,7 +40,6 @@ const Layout = ({ children }: Props) => {
         <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
           <SideNav />
           <UniversalButtons />
-
           <BalanceCard />
         </Stack>
         <Stack

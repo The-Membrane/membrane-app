@@ -4,8 +4,7 @@ import { Box, HStack, Stack, Text, Image, IconButton,
   ModalContent,
   ModalCloseButton,
   ModalBody,
-  VStack 
-} from '@chakra-ui/react'
+  VStack} from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { useState } from 'react'
@@ -107,6 +106,9 @@ function SideNav(){
         ))}
         <WallectConnect />
       </Stack>
+      <UniversalButtons />
+
+      <BalanceCard />
     </Stack>
 
      {/* Mobile Menu */}

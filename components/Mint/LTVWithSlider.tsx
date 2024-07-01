@@ -44,7 +44,8 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
   const maxSlider = useMemo(() => {
     if (num(maxMint).minus(debtAmount).dp(0).toNumber() < 0) return debtAmount
     return num(maxMint).dp(0).toNumber()
-  }, [maxMint, debtAmount]) 
+  }, [maxMint, debtAmount])
+  console.log("max slider", maxSlider, maxMint, debtAmount)
 
   //For refreshes on state updates (ex: successful tx)
   var mint = 0

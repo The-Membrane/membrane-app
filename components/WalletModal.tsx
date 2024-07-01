@@ -141,30 +141,28 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <Stack alignItems="flex-start">
-            (
-              <Fragment>
-                {extensionWallets?.map((wallet: any) => (
-                  <Wallet
-                    key={wallet.walletName}
-                    wallet={wallet}
-                    onConnect={() => onConnect(wallet.connect)}
-                  />
-                ))}
-              </Fragment>
-            )
+          <Stack alignItems="flex-start" display={{base: "none", md: undefined}}>
+            <Fragment>
+              {extensionWallets?.map((wallet: any) => (
+                <Wallet
+                  key={wallet.walletName}
+                  wallet={wallet}
+                  onConnect={() => onConnect(wallet.connect)}
+                />
+              ))}
+            </Fragment>
+          </Stack>
 
-            (
-              <Fragment>
-                {mobileWallets?.map((wallet: any) => (
-                  <Wallet
-                    key={wallet.walletName}
-                    wallet={wallet}
-                    onConnect={() => onConnect(wallet.connect)}
-                  />
-                ))}
-              </Fragment>
-            )
+          <Stack alignItems="flex-start" display={{base: undefined, md: "none"}}>
+            <Fragment>
+              {mobileWallets?.map((wallet: any) => (
+                <Wallet
+                  key={wallet.walletName}
+                  wallet={wallet}
+                  onConnect={() => onConnect(wallet.connect)}
+                />
+              ))}
+            </Fragment>            
           </Stack>
         </ModalBody>
       </Card>

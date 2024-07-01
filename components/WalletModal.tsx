@@ -116,7 +116,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
     return { mobileWallets, extensionWallets }
   }, [walletRepo?.wallets])
 
-  const [isWallectconnect, setIsWalletConnect] = useState(false)
+  // const [isWallectconnect, setIsWalletConnect] = useState(false)
 
   const onCloseModal = () => {
     setOpen(false)
@@ -142,7 +142,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
         <ModalCloseButton />
         <ModalBody>
           <Stack alignItems="flex-start">
-            {!isWallectconnect && (
+            (
               <Fragment>
                 {extensionWallets?.map((wallet: any) => (
                   <Wallet
@@ -152,9 +152,9 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
                   />
                 ))}
               </Fragment>
-            )}
+            )
 
-            {isWallectconnect && (
+            (
               <Fragment>
                 {mobileWallets?.map((wallet: any) => (
                   <Wallet
@@ -164,7 +164,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
                   />
                 ))}
               </Fragment>
-            )}
+            )
           </Stack>
         </ModalBody>
       </Card>

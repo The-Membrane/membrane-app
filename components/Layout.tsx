@@ -30,8 +30,8 @@ const Layout = ({ children }: Props) => {
   if (show) return <MembersRules />
 
   return (
-    <Fragment>
-      <Mobile />
+    //<Fragment>
+      //<Mobile />
 
       <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{base: "column", md: "row"}}>
         <HexagonBackground />
@@ -47,13 +47,13 @@ const Layout = ({ children }: Props) => {
           zIndex={1}
         >
           <Header />
-          <Stack as="main" p="10" maxW="1200px" w="full" flex={1} mt="70px">
+          <Stack as="main" p="10" maxW="1200px" w="full" flex={1} mt={{base: "0px", md: "70px"}}>
             <RPCStatus />
             {children}
           </Stack>
         </Stack>
       </Stack>
-      </Fragment>
+      //</Fragment>
   )
 }
 

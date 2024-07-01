@@ -29,7 +29,14 @@ const useUnLoop = (positionIndex: number) => {
   const { mintState } = useMintState()
   const { summary = [] } = mintState
 
-  const { initialTVL, initialBorrowLTV, debtAmount } = useInitialVaultSummary()
+  const { data } = useInitialVaultSummary(mintState.positionNumber-1)
+  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = data || {
+    initialBorrowLTV: 0, 
+    initialLTV: 0, 
+    debtAmount: 0, 
+    initialTVL: 0, 
+    basketAssets: [],
+  }
  
 
   const positionId = useMemo(() => {
@@ -58,7 +65,7 @@ const useUnLoop = (positionIndex: number) => {
       
       //4) Unloop 5 times
       const positions = updatedSummary(summary, basketPositions, prices)
-      console.log("positions", positions)
+      // console.log("positions", positions)
       const { msgs: loops, newValue, newLTV } = unloopPosition(
         cdtPrice,
         parseFloat(walletCDT),
@@ -93,7 +100,7 @@ const useUnLoop = (positionIndex: number) => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
-  console.log(msgs, newPositionValue)
+  // console.log(msgs, newPositionValue)
   return {
     action: useSimulateAndBroadcast({
     msgs,

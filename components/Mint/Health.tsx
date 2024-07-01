@@ -6,11 +6,19 @@ import useVaultSummary from './hooks/useVaultSummary'
 type Props = {}
 
 const Health = (props: Props) => {
-  const { ltv, liqudationLTV } = useVaultSummary()
+  const { data } = useVaultSummary()
+  const { ltv, liqudationLTV } = data || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
 
   const health = useMemo(() => {
     if (ltv === 0) return 100
-    console.log(ltv, liqudationLTV)
     return num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
   }, [ltv, liqudationLTV])
 

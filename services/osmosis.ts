@@ -115,16 +115,16 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
 
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, num(shiftDigits(creditAmount, -6)).toNumber(), basket);
-    console.log("LTVS:", currentLTV, borrowLTV, positionValue, creditAmount)
+    // console.log("LTVS:", currentLTV, borrowLTV, positionValue, creditAmount)
     //If current LTV is over the borrowable LTV, we can't withdraw anything
     if (currentLTV > borrowLTV) {
-        console.log("Current LTV is over the Position's borrowable LTV, we can't withdraw collateral")
+        // console.log("Current LTV is over the Position's borrowable LTV, we can't withdraw collateral")
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(false, tvl, positions);
-    console.log("ratios:", cAsset_ratios, "positions:", positions)
+    // console.log("ratios:", cAsset_ratios, "positions:", positions)
 
     //Repeat until no more CDT or Loops are done
     var iter = 0;
@@ -134,7 +134,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
         //We can withdraw value up to the borrowable LTV
         //Or the current LTV, whichever is lower
         let LTV_range = Math.min(borrowLTV - currentLTV, currentLTV);
-        console.log("LTV RANGE:", LTV_range, currentLTV, borrowLTV)
+        // console.log("LTV RANGE:", LTV_range, currentLTV, borrowLTV)
         //Set value to withdraw
         var withdrawValue = positionValue * LTV_range;
 
@@ -173,7 +173,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
             positionId: positionId,
             assets,
         });
-        console.log("CASSET LOGS:", cAsset_amounts, cAsset_prices)
+        // console.log("CASSET LOGS:", cAsset_amounts, cAsset_prices)
         //Create Swap msgs to CDT for each cAsset & save tokenOutMinAmount
         var swap_msgs: EncodeObject[] = [];
         var tokenOutMin = 0;
@@ -192,20 +192,20 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
         });
         repay_msg.value.funds = [coin(tokenOutMin.toString(), denoms.CDT[0] as string)];
 
-        console.log("repay value:", repay_msg.value.funds)
+        // console.log("repay value:", repay_msg.value.funds)
 
 
         //Subtract slippage to mint value
         withdrawValue = parseFloat(calcAmountWithSlippage(withdrawValue.toString(), SWAP_SLIPPAGE));
-        console.log("here we")
+        // console.log("here we")
         //Calc new TVL (w/ slippage calculated into the mintValue)
         positionValue = positionValue - withdrawValue;
-        console.log("here we we")
+        // console.log("here we we")
 
         //Repayments under 100 CDT will fail unless fully repaid
         //NOTE: This will leave the user with leftover CDT in their wallet, maximum 50 CDT
         if ((creditAmount - repay_msg.value.funds[0].amount) < 100_000_000 && (creditAmount - repay_msg.value.funds[0].amount) > 0) {
-            console.log("inside here")
+            // console.log("inside here")
             //Set repay amount so that credit amount is 100
             repay_msg.value.funds = [coin((creditAmount - 100_000_000).toString(), denoms.CDT[0] as string)];
             //break loop
@@ -214,13 +214,13 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
 
         //Attempted full repay
         if (LTV_range === currentLTV) {
-            console.log("full repay")
+            // console.log("full repay")
             //Set credit amount to 0
             creditAmount = 0;
             //Add any walletCDT to the repay amount to account for interest & slippage
             repay_msg.value.funds = [coin((creditAmount + (walletCDT * 1_000_000)).toFixed(0), denoms.CDT[0] as string)];
         } else {
-            console.log("minus credit", creditAmount)
+            // console.log("minus credit", creditAmount)
             //Set credit amount including slippage
             creditAmount -= repay_msg.value.funds[0].amount;
         }
@@ -228,16 +228,16 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
         //Calc new LTV
         currentLTV = getPositionLTV(positionValue, num(shiftDigits(creditAmount, -6)).toNumber(), basket);
 
-        console.log("current LTV", currentLTV)
+        // console.log("current LTV", currentLTV)
         //Add msgs to all_msgs
         all_msgs = all_msgs.concat([withdraw_msg]).concat(swap_msgs).concat([repay_msg]);
-        console.log("right before iter", all_msgs)
+        // console.log("right before iter", all_msgs)
 
         //Increment iter
         iter += 1;
     }
 
-    console.log("unloop msgs:", all_msgs, iter, creditAmount)
+    // console.log("unloop msgs:", all_msgs, iter, creditAmount)
 
     return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 
@@ -255,18 +255,18 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     var creditAmount = debtAmount;
     //Confirm desired LTV isn't over the borrowable LTV
     if (LTV > borrowLTV / 100) {
-        console.log("Desired LTV is over the Position's borrowable LTV")
-        console.log(LTV, borrowLTV / 100)
+        // console.log("Desired LTV is over the Position's borrowable LTV")
+        // console.log(LTV, borrowLTV / 100)
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(skipStable, tvl, positions);
-    console.log(cAsset_ratios)
+    // console.log(cAsset_ratios)
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
-        console.log("Desired LTV is under the Position's current LTV")
+        // console.log("Desired LTV is under the Position's current LTV")
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Repeat until CDT to mint is under 1 or Loops are done
@@ -280,7 +280,11 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         var mintValue = positionValue * LTV_range;
         //Set amount to mint
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
-        console.log("mintAmount", mintAmount)
+        // console.log("mintAmount", mintAmount)
+        if (!mintAmount) {
+            // console.log("mintAmount please return us")
+            return { msgs: [], newValue: 0, newLTV: 0 };
+        }
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
             positionId: positionId,
@@ -321,7 +325,6 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
             mintValue = parseFloat(calcAmountWithSlippage(mintValue.toString(), SWAP_SLIPPAGE));
             //Calc new TVL (w/ slippage calculated into the mintValue)
             positionValue = positionValue + mintValue;
-            console.log("positionValue", positionValue)
 
             //Set credit amount
             creditAmount += shiftDigits(mintAmount, -6).toNumber();
@@ -336,11 +339,10 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         }
     }
 
-    console.log("TOTAL CREDIT:", creditAmount)
     return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 }
 // export const exitCLPools = (poolId: number) => {
-//     console.log("exit_cl_attempt")
+//     // console.log("exit_cl_attempt")
 //     let msg = [] as EncodeObject[];
 //     const { address } = useWallet()
 
@@ -391,7 +393,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
 //         let shareAmount = new BigNumber(shareInAmount);
 //         let totalShareAmount = new BigNumber(totalShares.amount);
 //         let userShare = shareAmount.div(totalShareAmount);
-//         console.log(userShare)
+//         // console.log(userShare)
 //         //Calc user's share of poolAssets
 //         //@ts-ignore
 //         let tokenOutMins = poolAssets.map((asset) => {
@@ -401,7 +403,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
 //                     asset.token.denom);
 //             }
 //         });
-//         console.log(tokenOutMins)
+//         // console.log(tokenOutMins)
 
 //         //Exit pool
 //         msg.push(exitPool({
@@ -453,7 +455,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 //     var msg = [] as EncodeObject[];
 //     //@ts-ignore
 //     if (osmosisQueryClient !== null && cg_prices !== null && osmosisAssets !== undefined) {
-//         console.log("join_pool_attempt")
+//         // console.log("join_pool_attempt")
 //         const { address } = useWallet()
 //         //Query pool
 //         osmosisQueryClient!.osmosis.gamm.v1beta1.pool({
@@ -484,12 +486,12 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 //                 //Find the key for the denom
 //                 let tokenKey = Object.keys(denoms).find(key => denoms[key as keyof exported_supportedAssets][0] === tokenIn1.denom);
 //                 let tokenInValue = (parseFloat(tokenPrice) * parseFloat(tokenIn1.amount) / Math.pow(10, denoms[tokenKey as keyof exported_supportedAssets][1] as number));
-//                 // console.log(tokenInValue)
+//                 // // console.log(tokenInValue)
 //                 //@ts-ignore
 //                 const coinsNeeded = calculator.convertDollarValueToCoins(tokenInValue, pool, cg_prices);
-//                 // console.log(coinsNeeded)
+//                 // // console.log(coinsNeeded)
 //                 const shareOutAmount = calcShareOutAmount(pool, coinsNeeded);
-//                 // console.log(shareOutAmount)
+//                 // // console.log(shareOutAmount)
 
 //                 msg.push(joinSwapExternAmountIn({
 //                     poolId: BigInt(poolId),
@@ -505,7 +507,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 // }
 
 // export const lockGAMMPool = (shareInAmount: Coin) => {
-//     console.log("lock_pool_attempt")
+//     // console.log("lock_pool_attempt")
 //     let msg = [] as EncodeObject[];
 //     const { address } = useWallet()
 
@@ -522,7 +524,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 // }
 
 // export const unlockGAMMPool = (poolID: string, shareInAmount: Coin) => {
-//     console.log("unlock_pool_attempt")
+//     // console.log("unlock_pool_attempt")
 //     let msg = [] as EncodeObject[];
 //     const { address } = useWallet()
 
@@ -542,7 +544,7 @@ const getCDTtokenOutAmount = (tokenInAmount: number, cdtPrice: number, swapFromP
 }
 //Parse through saved Routes until we reach CDT
 const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof exported_supportedAssets) => {
-    console.log(tokenIn)
+    // console.log(tokenIn)
     var route = cdtRoutes[tokenIn];
     //to protect against infinite loops
     var iterations = 0;
@@ -556,7 +558,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
         route = route.concat(cdtRoutes[routeKey as keyof exported_supportedAssets]);
 
         //output to test
-        console.log(route[route.length - 1].tokenOutDenom)
+        // console.log(route[route.length - 1].tokenOutDenom)
         if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
         iterations += 1;
     }
@@ -567,24 +569,24 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
 export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number, tokenOut?: keyof exported_supportedAssets) => {
     
     //Get tokenOutAmount
-    console.log("boom1")
+    // console.log("boom1")
     const decimalDiff = denoms[tokenIn][1] as number - 6;
     const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -decimalDiff);
     //Swap routes
-    console.log("boom2")
+    // console.log("boom2")
     const { route: routes, foundToken } = getCDTRoute(tokenIn, tokenOut);
 
-    console.log("boom3", tokenOutAmount )
+    // console.log("boom3", tokenOutAmount )
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
-    console.log("boom4", address, denoms[tokenIn][0] as string)
+    // console.log("boom4", address, denoms[tokenIn][0] as string)
     const msg = swapExactAmountIn({
         sender: address! as string,
         routes,
         tokenIn: coin(tokenInAmount, denoms[tokenIn][0] as string),
         tokenOutMinAmount
     });
-    console.log("boom5", msg)
+    // console.log("boom5", msg)
 
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount), foundToken };
 };
@@ -632,6 +634,6 @@ export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOu
         tokenOutMinAmount
     });
 
-    // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
+    // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {// console.log(res)});
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };

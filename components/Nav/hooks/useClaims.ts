@@ -54,8 +54,8 @@ const useProtocolClaims = () => {
   //Staking
   const { data } = useStaked()        
   const { staked = [], unstaking = [], rewards = []} = data || {}  
-  const stakingClaim = useStakingClaim(false)
-  const unstakeClaim = useClaimUnstake({address: address})
+  const stakingClaim = useStakingClaim(false, false)
+  const unstakeClaim = useClaimUnstake({ address: address, sim: false })
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {
@@ -70,6 +70,7 @@ const useProtocolClaims = () => {
 
     return reward.toString()
   }, [rewards, staked, mbrnAsset])
+  //
   const cdtClaimable = useMemo(() => {
     if (!rewards || !mbrnAsset) return '0.00'
 
@@ -89,13 +90,21 @@ const useProtocolClaims = () => {
   const { data: allocations } = useAllocation()
   const { claimables } = allocations || {}
 
+  
+  const Claimables = useMemo(() => { return claimables }, [claimables])
+  const Deposits = useMemo(() => { return deposits }, [deposits])
+  const ClaimMsgs = useMemo(() => { return claimLiq.msgs }, [claimLiq.msgs])
+  const StakingMsgs = useMemo(() => { return  stakingClaim.msgs }, [ stakingClaim.msgs])
+  const UnstakeMsgs = useMemo(() => { return unstakeClaim.msgs }, [unstakeClaim.msgs])
+
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg all protocol claims', address, claims, SP_claims, unstaking, claimables, deposits, mbrnClaimable, cdtClaimable],
+    queryKey: ['msg all protocol claims', address, ClaimMsgs, StakingMsgs, UnstakeMsgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
     queryFn: () => {
+      console.log("claim attempt");
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
         /////Add Liquidation claims/////        
-        if (!claimLiq?.action.simulate.isError && (claims || SP_claims)){
+        if ((claims || SP_claims)){
           //If SP_claims is undefined, make sure LQ_claims aren't all 0
           let nonZeroClaims = claims?.filter((claim) => num(claim.pending_liquidated_collateral).isGreaterThan(0)) || []
           //add msg
@@ -106,23 +115,23 @@ const useProtocolClaims = () => {
         /////Add Staking reward and Stake Claims////
         //If there is anything to claim, claim
         if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
-          if (!stakingClaim?.action.simulate.isError){
+          // if (!stakingClaim?.action.simulate.isError){
             msgs = msgs.concat(stakingClaim.msgs ?? [])
-          }
+          // }
         }
         //If there is anything to unstake, unstake
         if (unstaking.find((unstake: any, index: number) => {            
             const { minutesLeft } = getTimeLeft(unstake.unstake_start_time)
             return minutesLeft <= 0
         })){          
-          console.log("made it here")
-          if (!unstakeClaim.action.simulate.isError){
-            console.log("adding unstaking claim")
+          // console.log("made it here")
+          // if (!unstakeClaim.action.simulate.isError){
+            // console.log("adding unstaking claim")
             msgs = msgs.concat(unstakeClaim.msgs ?? [])         
-          }
+          // }
         }
         /////Add Vesting Claims////
-        if (!claimFees?.action.simulate.isError && (claimables?.length??0) > 0){
+        if ((claimables?.length??0) > 0){
           msgs = msgs.concat(claimFees.msgs ?? [])
         }
 
@@ -190,13 +199,13 @@ const useProtocolClaims = () => {
         }
       }}))      
 
-      return {msgs, claims: claims_summary}
+      return { msgs, claims: claims_summary }
     },
     enabled: !!address,
   })
   
   const { msgs, claims: queryclaimsSummary } = useMemo(() => {
-    if (!queryData) return {msgs: undefined, claims: claims_summary}
+    if (!queryData) return { msgs: [], claims: claims_summary }
     else return queryData
   }, [queryData])
   
@@ -233,7 +242,7 @@ const useProtocolClaims = () => {
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    queryKey: ['protocol claim sim', (msgs?.toString() ?? '0')],
     onSuccess,
   }), claims_summary: agg_claims}
 }

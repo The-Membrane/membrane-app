@@ -40,6 +40,7 @@ type PaginationProps = {
     previousPage: any
     isFirst: boolean
     isLast: boolean
+    setPage: any
   }
 }
 
@@ -63,7 +64,7 @@ const PaginationBar = ({ pagination }: PaginationProps) => {
   )
 }
 
-const MintTabsCard = () => {
+const MintTabsCard = React.memo(() => {
   const { mintState, setMintState } = useMintState()
   const { data: basketPositions } = useUserPositions()
 
@@ -116,12 +117,12 @@ const MintTabsCard = () => {
           previousPage: () => previousPage(setMintState, mintState.positionNumber),
           isFirst: mintState.positionNumber === 1,
           isLast: mintState.positionNumber === totalPages,
-        
+          setPage: undefined
         }}/>
       </VStack>
     </Card>
   )
-}
+})
 
 const Mint = React.memo(() => {
   return (

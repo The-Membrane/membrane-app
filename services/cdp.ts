@@ -166,7 +166,6 @@ export const getRateCost = (
 ): { cost: number, ratios: any } => {
   if (!positions) return {cost: 0, ratios: []}
   const positionsWithRatio = getAssetRatio(false, tvl, positions)
-  console.log(basketAssets)
   const cost = positionsWithRatio.reduce((acc, position) => {    
     if (!position) return acc
     const rate =
@@ -289,7 +288,6 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
 
   //If no initial position, return a summary using the summary from the mint state
   if (!basketPositions){
-    console.log("bp")
 
     return summary.map((position) => {
       if (!position) return
@@ -303,14 +301,11 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
       }
     })
   }
-  console.log("positions again:", basketPositions, positionIndex)
 
   const positions = getPositions(basketPositions, prices, positionIndex)
-  console.log("positions.map")
 
   return positions.map((position) => {
     if (!position) return
-  console.log("updatedPosition")
     const updatedPosition = summary.find((p: any) => p.symbol === position.symbol)
     const price = prices?.find((p) => p.denom === position.denom)?.price || 0
     const amount = num(position.amount)
@@ -342,31 +337,31 @@ export const calculateVaultSummary = ({
   debtAmount,
   basketAssets,
 }: VaultSummary) => {
-  console.log("vault sum", positionIndex)
   if (!basket || !collateralInterest || (!basketPositions && summary.length === 0) || !prices) {
-    console.log("early return")
-    return {
-      debtAmount: 0,
+    {console.log("returning 0 debt")
+      return {
+      debtAmount,
       cost: 0,
-      tvl: 0,
-      ltv: 0,
-      borrowLTV: 0,
+      tvl: initialTVL,
+      ltv: initialLTV,
+      borrowLTV: initialBorrowLTV,
+      liquidValue: 0,
+      liqudationLTV: 0,
+    }}
+  }
+
+  const positions = updatedSummary(summary, basketPositions, prices, positionIndex)
+  if (!positions) {
+    console.log("returning 0 debt 2")
+    return {
+      debtAmount,
+      cost: 0,
+      tvl: initialTVL,
+      ltv: initialLTV,
+      borrowLTV: initialBorrowLTV,
       liquidValue: 0,
       liqudationLTV: 0,
     }
-  }
-  console.log("pre-sum")
-
-  const positions = updatedSummary(summary, basketPositions, prices, positionIndex)
-  console.log("positions: ", positions)
-  if (!positions) return {
-    debtAmount: 0,
-    cost: 0,
-    tvl: 0,
-    ltv: 0,
-    borrowLTV: 0,
-    liquidValue: 0,
-    liqudationLTV: 0,
   }
   const tvl = initialTVL + newDeposit
   const { cost, ratios} = getRateCost(positions, tvl, basketAssets)
@@ -375,7 +370,6 @@ export const calculateVaultSummary = ({
   const creditPrice = Number(basket?.credit_price.price) || 1
   const liqudationLTV = getLiqudationLTV(tvl, positions, basketAssets, ratios)
   const borrowLTV = getBorrowLTV(tvl, positions, basketAssets, ratios)
-  console.log("borrowLTV", borrowLTV, tvl, positions, ratios)
   const maxMint = getMaxMint(tvl, borrowLTV, creditPrice)
   
 

@@ -18,23 +18,27 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false}: { overdraft?: b
   )
 }
 
-export const calcSliderValue = (debtAmount: number, mint: number = 0, repay: number = 0) => {
-  return num(debtAmount).plus(mint).minus(repay).dp(2).toNumber()
-}
-
 const TakeAction = React.memo(() => {
   const { mintState, setMintState } = useMintState()
-  const combinBalance = useCombinBalance(mintState.positionNumber)
-  const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = useVaultSummary()
+  const combinBalance = useCombinBalance(mintState.positionNumber-1)
+  const { data } = useVaultSummary()
+  const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = data || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
 
   useEffect(() => {
     const overdraft = ltv > borrowLTV
     setMintState({ overdraft })
   }, [ltv, borrowLTV])
 
-  const sliderValue = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
-
   const onRest = () => {
+    console.log("onRest LTVS:", initialBorrowLTV, initialLTV)
     setInitialMintState({
       combinBalance,
       ltv: initialLTV,
@@ -57,7 +61,7 @@ const TakeAction = React.memo(() => {
         mx="3"
       />
 
-      <LTVWithSlider label="Your Debt" value={sliderValue} />
+      <LTVWithSlider label="Your Debt" />
       <ActionButtons onRest={onRest} />
       <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt}/>
     </TabPanel>

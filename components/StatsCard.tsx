@@ -43,7 +43,7 @@ export const StatsCard = React.memo(() => {
       
       <Stack gap={3}>
         <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
-        80/20 Bundled Leverage to Cushion Volatility
+        80/20 Fortified Leverage to Fight Volatility
         </Text>
       </Stack>
            :

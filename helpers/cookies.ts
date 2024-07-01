@@ -1,3 +1,5 @@
+
+
 export function setCookie(name: string, value: string, days: number): void {
     let expires = "";
     if (days) {
@@ -12,8 +14,8 @@ export function setCookie(name: string, value: string, days: number): void {
 export function getCookie(name: string): string | null {
   const nameEQ = name + "=";
   const ca = document.cookie.split(';');
-    console.log("getting cookie", document.cookie)
-for(let i=0;i < ca.length;i++) {
+  console.log("getting cookie", document.cookie)
+  for(let i=0;i < ca.length;i++) {
     let c = ca[i].trim();
     if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
   }

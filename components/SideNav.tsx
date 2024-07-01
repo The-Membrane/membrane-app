@@ -2,13 +2,9 @@ import { Box, HStack, Stack, Text, Image, IconButton,
   Modal,
   ModalOverlay,
   ModalContent,
-  ModalHeader,
   ModalCloseButton,
   ModalBody,
-  VStack,
-  Link as ChakraLink,
-  Button, 
-  Flex} from '@chakra-ui/react'
+  VStack} from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { useState } from 'react'
@@ -16,15 +12,11 @@ import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon } fro
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
-import useProtocolClaims from './Nav/hooks/useClaims'
-import ConfirmModal from './ConfirmModal'
-import { ClaimSummary } from './Bid/ClaimSummary'
-import useProtocolLiquidations from './Nav/hooks/useLiquidations'
-import { LiqSummary } from './Nav/LiqSummary'
 import { getAssetBySymbol } from '@/helpers/chain'
 import { useOraclePrice } from '@/hooks/useOracle'
 
 import { HamburgerIcon } from "@chakra-ui/icons";
+import UniversalButtons from './Nav/UniversalButtons'
 
 type NavItems = {
   label: string
@@ -38,9 +30,9 @@ const navItems: NavItems[] = [
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
-  { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
   { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
+  { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
 ]
 
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {
@@ -63,6 +55,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
       _hover={hoverStyles}
       {...(isActive && hoverStyles)}
       p={label === 'Home' ? '5px' : '0'}
+      pr={'5px'}
     >
       <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />
       <Text fontSize="lg" fontWeight="400">
@@ -93,17 +86,10 @@ function SideNav(){
   const [cdtPrice, setcdtPrice ] = useState(" ")
   const price = getCDTPrice()
   if (price != cdtPrice && price != '0') setcdtPrice(price)
-
-  const { action: claim, claims_summary } = useProtocolClaims()
-  const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
-
-  //Disable claims for a time period to allow simulates to run
-  const [enable_msgs, setEnableMsgs] = useState(false)
-  setTimeout(() => setEnableMsgs(true), 2222);
   
   return (
     <>
-    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '85%'}} display={{ base: "none", md: "flex" }}>
+    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" p="6" bg="whiteAlpha.100" style={{zoom: '85%'}} display={{ base: "none", md: "flex" }}>
       <Stack as="ul" gap="1">
         <Stack marginTop={"6%"}>
           <Logo />
@@ -120,22 +106,7 @@ function SideNav(){
         ))}
         <WallectConnect />
       </Stack>
-      {/* Claim Button */}
-      <ConfirmModal
-        label={ 'Claim' }
-        action={claim}
-        isDisabled={claim?.simulate.isError || !claim?.simulate.data || !enable_msgs || claims_summary.length === 0}
-      >
-        <ClaimSummary claims={claims_summary}/>
-      </ConfirmModal>
-      {/* Liquidate Button */}
-      <ConfirmModal
-        label={ 'Liquidate' }
-        action={liquidate}
-        isDisabled={liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs || liq_summ.length === 0}
-      >
-        <LiqSummary liquidations={liq_summ}/>
-      </ConfirmModal>
+      <UniversalButtons />
 
       <BalanceCard />
     </Stack>
@@ -160,25 +131,10 @@ function SideNav(){
       <ModalCloseButton mr={2} />
       <ModalBody mt={8}>
         <VStack spacing={8} mt={12}>
-          <ChakraLink fontWeight="medium" href="#home" onClick={close}>
-            Home
-          </ChakraLink>
-          <ChakraLink fontWeight="medium" href="#protocol" onClick={close}>
-            Protocol Overview
-          </ChakraLink>
-          <ChakraLink
-            fontWeight="medium"
-            href="#governance"
-            onClick={close}
-          >
-            Governance
-          </ChakraLink>
-          <ChakraLink fontWeight="medium" href="#vision" onClick={close}>
-            The Vision
-          </ChakraLink>
-          <ChakraLink fontWeight="medium" href="#faqs" onClick={close}>
-            FAQs
-          </ChakraLink>
+        {navItems.map((item, index) => (
+          <NavItem key={index} {...item} />
+        ))}
+          <WallectConnect />
         </VStack>
       </ModalBody>
     </ModalContent>

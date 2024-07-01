@@ -27,7 +27,6 @@ const useCombinBalance = (positionIndex: number = 0) => {
   const { data: balances } = useBalance()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
-  console.log("combin", positionIndex)
 
   return useMemo(() => {
     const basketAssets = getBasketAssets(basket!, collateralInterest!)

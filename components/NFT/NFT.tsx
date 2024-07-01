@@ -12,7 +12,7 @@ const NFT = React.memo(() => {
     const { data: liveAssetAuction } = useLiveAssetAuction()
     const { NFTState } = useNFTState()
 
-    console.log("Full page rerender")
+    
     return (
         <HStack gap="5" w="full" alignItems="flex-start">
             <Stack w="full" gap="5">

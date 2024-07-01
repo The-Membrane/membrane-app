@@ -63,6 +63,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
     //Remove ipfs portion of link for image
     useMemo(() => {
         if (liveNFT) setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/" +  removeSegmentAndBefore(liveNFT.image, "ipfs://") )
+            // setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/bafybeido64nj7ysgmpok7tpo4emos7vehfyq4rrt27cu5urdciick3ytfm")
     }, [liveNFT])
 
     useMemo(() => {

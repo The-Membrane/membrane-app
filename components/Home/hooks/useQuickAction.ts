@@ -38,9 +38,8 @@ const useQuickAction = () => {
   }, [basket])
 
   const stableAsset = useMemo(() => {
-    //Use USDC as the default if they don't choose an asset
-    return quickActionState?.stableAsset ?? usdcAsset! as AssetWithBalance
-  }, [quickActionState?.stableAsset, usdcAsset])
+    return usdcAsset! as AssetWithBalance
+  }, [usdcAsset])
 
   
   type QueryData = {
@@ -50,7 +49,7 @@ const useQuickAction = () => {
     swapRatio: number
     summary: any[]
   }
-  console.log("SV:", quickActionState?.stableAsset?.sliderValue)
+  // console.log("SV:", quickActionState?.stableAsset?.sliderValue)
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
       'quick action widget',
@@ -76,24 +75,13 @@ const useQuickAction = () => {
 
       //1) Swap 85% of the levAsset to CDT
       //////Calculate the % to swap/////
-      const swapPercent = 0.20
-      // IF STABLES ARE ADDED, SUBTRACT IT FROM THE PERCENT TO SWAP
-      //Get the % of assets already in stables
-      const stableRatio = num(stableAsset.sliderValue).dividedBy(num(quickActionState?.levAsset?.sliderValue).plus(num(stableAsset.sliderValue))).toNumber()
-      const stableValue = stableAsset.sliderValue
-      console.log("stable ratios:", stableRatio, stableAsset.sliderValue, stableValue??0)
-      //Get the % of assets in lev
-      const levRatio = 1 - stableRatio
-      //Get the % of assets to swap to acheive 20% stables
-      //ex: 20% in stables, 80% in levAsset, means we need to get 65% of the total Value to be stables which is 81.25% of the remaining levAsset
-      const swapRatio = Math.max(swapPercent - stableRatio, 0) / levRatio
-      // setQuickActionState({ levSwapRatio: swapRatio })
+      const swapRatio = 0.20
 
       const swapFromAmount = num(quickActionState?.levAsset?.amount).times(swapRatio).toNumber()
       const levAmount = shiftDigits(num(quickActionState?.levAsset?.amount).minus(swapFromAmount).toNumber(), quickActionState?.levAsset?.decimal)
       var stableOutAmount = 0
       if (swapFromAmount != 0){
-        console.log("are we in here")
+        // console.log("are we in here")
         const { msg: swap, tokenOutMinAmount, foundToken } = swapToCDTMsg({
           address, 
           swapFromAmount,
@@ -105,7 +93,7 @@ const useQuickAction = () => {
         msgs.push(swap as MsgExecuteContractEncodeObject)
         stableOutAmount = tokenOutMinAmount
         //2) Swap CDT to stableAsset
-        console.log("are we past #1")
+        // console.log("are we past #1")
         if (!foundToken){
         const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
           address,
@@ -121,7 +109,7 @@ const useQuickAction = () => {
 
       //Set stableAsset deposit amount - Add swapAmount to the stableAsset
       const stableAmount = num(stableAsset.amount).plus(shiftDigits(stableOutAmount, -stableAsset.decimal)).toNumber();
-      console.log("STABLE AMOUNT", stableAmount, shiftDigits(stableOutAmount, -stableAsset.decimal), stableAsset.amount)
+      // console.log("STABLE AMOUNT", stableAmount, shiftDigits(stableOutAmount, -stableAsset.decimal), stableAsset.amount)
 
       //3) Deposit both lev & stable assets to a new position
       const levAsset = {...quickActionState?.levAsset as any, amount: shiftDigits(levAmount, -quickActionState?.levAsset?.decimal)}
@@ -129,7 +117,7 @@ const useQuickAction = () => {
       const summary = [ levAsset, newStableAsset ]
       //Set QAState
     setQuickActionState({ summary })
-      console.log("summary:", summary)
+      // console.log("summary:", summary)
       quickActionState.summary = summary
       quickActionState.levAsset = levAsset
       quickActionState.stableAsset = newStableAsset
@@ -146,7 +134,7 @@ const useQuickAction = () => {
       // //4) Loop at 45% to get Postion Value
       const mintLTV = num(.45)
       const positions = updatedSummary(summary, undefined, prices)
-      console.log("QA positionID", positionId)
+      // console.log("QA positionID", positionId)
       const { msgs: loops, newValue, newLTV } = loopPosition(
         true,
         cdtPrice,
@@ -156,7 +144,7 @@ const useQuickAction = () => {
         address, 
         prices, 
         basket,
-        num(quickActionState?.levAsset?.sliderValue).plus(stableValue??0).toNumber(), 
+        num(quickActionState?.levAsset?.sliderValue).toNumber(), 
         0, 
         45,
         positions
@@ -185,7 +173,7 @@ const useQuickAction = () => {
     setQuickActionState({ readyToLoop: false })
   }
 
-  console.log("loop_msgs", loop_msgs)
+  // console.log("loop_msgs", loop_msgs)
   const action = useSimulateAndBroadcast({
     msgs: loop_msgs,
     queryKey: ['quick action loop', (loop_msgs?.toString()??"0"), String(quickActionState.readyToLoop)],
@@ -193,7 +181,7 @@ const useQuickAction = () => {
   })
 
 
-  console.log(msgs, stableAsset, quickActionState?.levAsset?.amount)
+  // console.log(msgs, stableAsset, quickActionState?.levAsset?.amount)
   return {
     action: useSimulateAndBroadcast({
     msgs,

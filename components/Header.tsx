@@ -12,7 +12,7 @@ const Header = () => {
       as="header"
       px="10"
       py="5"
-      position="fixed"
+      position={{base: undefined, md: "fixed"}}
       w="full"
       h="70px"
       backdropFilter={{base:  "blur(0px)", md: "blur(10px)"}}

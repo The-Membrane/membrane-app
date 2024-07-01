@@ -26,13 +26,15 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
     queryFn: async () => {
       //High score 76 refreshes
       const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
-      if (!calc_initialPositions) return { 
+      if (!calc_initialPositions) {
+        console.log("about to return 0 debt:", basketPositions, positionIndex)
+        return { 
         initialBorrowLTV: 0, 
         initialLTV: 0, 
         debtAmount: 0, 
         initialTVL: 0, 
         basketAssets: []
-      }
+      }}
       const calc_debtAmount = getDebt(basketPositions, positionIndex)
       const calc_basketAssets = getBasketAssets(basket!, collateralInterest!)
       const calc_initialTVL = getTVL(calc_initialPositions)

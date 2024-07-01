@@ -1,6 +1,6 @@
 import { num } from '@/helpers/num'
 import { HStack, Stack, Text } from '@chakra-ui/react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SliderWithState } from './SliderWithState'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
@@ -21,9 +21,10 @@ export type LTVWithSliderProps = {
 export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
   const { setMintState, mintState } = useMintState()
   const { data } = useVaultSummary()
+  const [ sumData, setSumData] = useState(data)
 
-  const SumData = useMemo(() => { if (data != undefined) return data }, [data])  
-  const { debtAmount, maxMint } = SumData || {
+  useEffect(() => { if (data != undefined) setSumData(data) }, [data])  
+  const { debtAmount, maxMint } = sumData || {
     debtAmount: 0,
     cost: 0,
     tvl: 0,
@@ -33,7 +34,7 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
     liqudationLTV: 0,
     maxMint: 0,
   }
-  console.log("LTV vault sum data:", data, SumData)
+  console.log("LTV vault sum data:", data, sumData)
 
   const value = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
   const CDT = useAssetBySymbol('CDT')

@@ -16,7 +16,7 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
   const Prices = useMemo(() => { return prices }, [prices])
 
   return useQuery({
-    queryKey: ['collateral interest', 
+    queryKey: ['initial vault summary', 
       BasketPositions,
       Basket,
       CollateralInterest,

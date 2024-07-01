@@ -13,6 +13,7 @@ const useVaultSummary = () => {
   const { data: prices } = useOraclePrice()
   const { mintState } = useMintState()
   const { data } = useInitialVaultSummary(mintState.positionNumber-1)
+  console.log("initial vault sum data:", data)
   const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = data || { 
     initialBorrowLTV: 0, 
     initialLTV: 0, 

@@ -34,7 +34,6 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
     liqudationLTV: 0,
     maxMint: 0,
   }
-  console.log("LTV vault sum data:", data, sumData)
 
   const value = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
   const CDT = useAssetBySymbol('CDT')
@@ -49,13 +48,11 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
     if (num(maxMint).minus(debtAmount).dp(0).toNumber() < 0) return debtAmount
     return num(maxMint).dp(0).toNumber()
   }, [maxMint, debtAmount])
-  console.log("max slider", maxSlider, maxMint, debtAmount)
 
   //For refreshes on state updates (ex: successful tx)
   var mint = 0
   var repay = 0
   var ltvSlider = useMemo(() => {
-    console.log("mint state reset") //55
     return num(debtAmount).times(100).dividedBy(maxMint??1).dp(2).toNumber()
   }, [debtAmount])
 

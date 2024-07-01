@@ -116,7 +116,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
     return { mobileWallets, extensionWallets }
   }, [walletRepo?.wallets])
 
-  const [isWallectconnect, setIsWalletConnect] = useState(false)
+  // const [isWallectconnect, setIsWalletConnect] = useState(false)
 
   const onCloseModal = () => {
     setOpen(false)
@@ -141,30 +141,28 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <Stack alignItems="flex-start">
-            {!isWallectconnect && (
-              <Fragment>
-                {extensionWallets?.map((wallet: any) => (
-                  <Wallet
-                    key={wallet.walletName}
-                    wallet={wallet}
-                    onConnect={() => onConnect(wallet.connect)}
-                  />
-                ))}
-              </Fragment>
-            )}
+          <Stack alignItems="flex-start" display={{base: "none", md: "flex"}}>
+            <Fragment>
+              {extensionWallets?.map((wallet: any) => (
+                <Wallet
+                  key={wallet.walletName}
+                  wallet={wallet}
+                  onConnect={() => onConnect(wallet.connect)}
+                />
+              ))}
+            </Fragment>
+          </Stack>
 
-            {isWallectconnect && (
-              <Fragment>
-                {mobileWallets?.map((wallet: any) => (
-                  <Wallet
-                    key={wallet.walletName}
-                    wallet={wallet}
-                    onConnect={() => onConnect(wallet.connect)}
-                  />
-                ))}
-              </Fragment>
-            )}
+          <Stack alignItems="flex-start" display={{base: "flex", md: "none"}}>
+            <Fragment>
+              {mobileWallets?.map((wallet: any) => (
+                <Wallet
+                  key={wallet.walletName}
+                  wallet={wallet}
+                  onConnect={() => onConnect(wallet.connect)}
+                />
+              ))}
+            </Fragment>            
           </Stack>
         </ModalBody>
       </Card>

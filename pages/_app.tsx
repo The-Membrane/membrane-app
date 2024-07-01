@@ -9,7 +9,7 @@ import { GasPrice } from 'cosmwasm'
 import { wallets as cosmostationWallets } from '@cosmos-kit/cosmostation'
 import { wallets as keplrWallets } from '@cosmos-kit/keplr'
 import { wallets as keplrMobile } from '@cosmos-kit/keplr-mobile'
-import { wallets as leapMobile } from '@cosmos-kit/leap-mobile'
+import { wallets as allWallets } from 'cosmos-kit'
 import { wallets as leapWallets } from '@cosmos-kit/leap'
 import { wallets as ledgerWallets } from '@cosmos-kit/ledger'
 // import { wallets as stationWallets } from '@cosmos-kit/station'
@@ -75,16 +75,7 @@ const App = ({ Component, pageProps }: AppProps) => {
           allowedIframeParentOrigins={['http://localhost:*', 'https://*.abstract.money']}
           chains={chains}
           assetLists={assets}
-          wallets={[
-            ...keplrWallets?.slice(0,1),
-            ...keplrMobile?.slice(0,1),
-            ...cosmostationWallets?.slice(0,1),
-            ...ledgerWallets?.slice(0,1),
-            ...leapWallets?.slice(0,1),
-            ...leapMobile?.slice(0,1),
-            // ...stationWallets?.slice(0,1),
-            // ...tailwindWallets?.slice(0,1),
-          ]}
+          wallets={allWallets}
           walletModal={WalletModal}
           signerOptions={signerOptions}
           endpointOptions={{

@@ -141,7 +141,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <Stack alignItems="flex-start" display={{base: "none", md: undefined}}>
+          <Stack alignItems="flex-start" display={{base: "none", md: "flex"}}>
             <Fragment>
               {extensionWallets?.map((wallet: any) => (
                 <Wallet
@@ -153,7 +153,7 @@ const WalletModal = ({ isOpen, setOpen, walletRepo }: WalletModalComponentProps)
             </Fragment>
           </Stack>
 
-          <Stack alignItems="flex-start" display={{base: undefined, md: "none"}}>
+          <Stack alignItems="flex-start" display={{base: "flex", md: "none"}}>
             <Fragment>
               {mobileWallets?.map((wallet: any) => (
                 <Wallet

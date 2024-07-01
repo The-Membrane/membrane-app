@@ -8,6 +8,7 @@ import {
   Stack,
   Text,
   UnorderedList,
+  useBreakpointValue,
   useDisclosure,
 } from '@chakra-ui/react'
 import useMembersRulesState from './useRules'
@@ -15,7 +16,8 @@ import { rules } from './MembersRules'
 
 export const RulesModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { setShow } = useMembersRulesState()
+  const { setShow } = useMembersRulesState()  
+  const isMobile = useBreakpointValue({ base: true, md: false })
 
   const handleAgree = () => {
     setShow(false)
@@ -47,7 +49,7 @@ export const RulesModal = () => {
         }}
       />
 
-      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
+      <Modal isOpen={isOpen || (isMobile??false)} onClose={onClose} size="xl" isCentered>
         <ModalContent
           p="0"
           border="none"

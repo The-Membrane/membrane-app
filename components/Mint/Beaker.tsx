@@ -7,7 +7,7 @@ type Props = {}
 
 const Beaker = (props: Props) => {
   return (
-    <Box w="full">
+    <Box w="full" display={{base: "none", md: "flex"}}>
       <Box w="full" position="relative">
         <Image
           src="/images/beaker.svg"

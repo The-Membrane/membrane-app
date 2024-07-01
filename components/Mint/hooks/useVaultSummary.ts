@@ -13,7 +13,13 @@ const useVaultSummary = () => {
   const { data: prices } = useOraclePrice()
   const { mintState } = useMintState()
   const { data } = useInitialVaultSummary(mintState.positionNumber-1)
-  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = data || {}
+  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = data || { 
+    initialBorrowLTV: 0, 
+    initialLTV: 0, 
+    debtAmount: 0, 
+    initialTVL: 0, 
+    basketAssets: []
+  }
 
   const Basket = useMemo(() => { return basket }, [basket])
   const CollateralInterest = useMemo(() => { return collateralInterest }, [collateralInterest])

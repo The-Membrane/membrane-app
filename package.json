@@ -45,6 +45,7 @@
     "bignumber.js": "^9.1.2",
     "chain-registry": "^1.63.10",
     "chakra-react-select": "^4.8.0",
+    "cosmos-kit": "^2.18.4",
     "cosmwasm": "^1.1.1",
     "dayjs": "^1.11.11",
     "framer-motion": "^11.2.12",

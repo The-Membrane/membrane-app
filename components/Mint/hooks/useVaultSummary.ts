@@ -42,7 +42,7 @@ const useVaultSummary = () => {
       //Start: 86
       //High Score (use mintState?.summary for dep): 61
       //Using Memo'd mint state for MintState dep: 68-70
-
+    console.log("LTVs", initialBorrowLTV, initialLTV, debtAmount, initialTVL)
 
     return calculateVaultSummary({
       basket,

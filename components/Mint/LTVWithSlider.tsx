@@ -31,6 +31,7 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
     liqudationLTV: 0,
     maxMint: 0,
   }
+  console.log("LTV vault sum data:", data)
 
   const value = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
   const CDT = useAssetBySymbol('CDT')

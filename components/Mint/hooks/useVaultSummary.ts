@@ -39,9 +39,6 @@ const useVaultSummary = () => {
     mintState.newDebtAmount,
   ],
   queryFn: async () => {
-      //Start: 86
-      //High Score (use mintState?.summary for dep): 61
-      //Using Memo'd mint state for MintState dep: 68-70
     console.log("LTVs", initialBorrowLTV, initialLTV, debtAmount, initialTVL, mintState.newDebtAmount,
       mintState.mint,
       mintState.repay)
@@ -58,10 +55,10 @@ const useVaultSummary = () => {
       repay: mintState?.repay,
       newDebtAmount: mintState?.newDebtAmount,
       initialBorrowLTV,
-      initialLTV: initialLTV??0,
-      debtAmount: debtAmount??0,
-      initialTVL: initialTVL??0,
-      basketAssets: basketAssets??[],
+      initialLTV: initialLTV,
+      debtAmount: debtAmount,
+      initialTVL: initialTVL,
+      basketAssets: basketAssets,
     })},
   })
 }

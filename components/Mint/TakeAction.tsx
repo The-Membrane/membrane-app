@@ -38,6 +38,7 @@ const TakeAction = React.memo(() => {
   }, [ltv, borrowLTV])
 
   const onRest = () => {
+    console.log("onRest LTVS:", initialBorrowLTV, initialLTV)
     setInitialMintState({
       combinBalance,
       ltv: initialLTV,

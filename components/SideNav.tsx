@@ -35,6 +35,11 @@ const navItems: NavItems[] = [
   { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
 ]
 
+const mobileNavItems: NavItems[] = [
+  { label: 'Home', href: '/', ItemIcon: HomeIcon },
+  { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
+]
+
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {
   const router = useRouter()
   const isActive = router.asPath === href
@@ -55,7 +60,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
       _hover={hoverStyles}
       {...(isActive && hoverStyles)}
       p={label === 'Home' ? '5px' : '0'}
-      pr={'5px'}
+      pr={'10px'}
     >
       <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />
       <Text fontSize="lg" fontWeight="400">
@@ -131,7 +136,7 @@ function SideNav(){
       <ModalCloseButton mr={2} />
       <ModalBody mt={8}>
         <VStack spacing={8} mt={12}>
-        {navItems.map((item, index) => (
+        {mobileNavItems.map((item, index) => (
           <NavItem key={index} {...item} />
         ))}
           <WallectConnect />

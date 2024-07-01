@@ -21,7 +21,8 @@ export type LTVWithSliderProps = {
 export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
   const { setMintState, mintState } = useMintState()
   const { data } = useVaultSummary()
-  const SumData = useMemo(() => { if (data) return data }, [data])  
+
+  const SumData = useMemo(() => { if (data != undefined) return data }, [data])  
   const { debtAmount, maxMint } = SumData || {
     debtAmount: 0,
     cost: 0,

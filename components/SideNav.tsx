@@ -24,6 +24,7 @@ type NavItems = {
   ItemIcon: React.FC<{
     color?: string
   }>
+  OnClick?: any
 }
 
 const navItems: NavItems[] = [
@@ -40,7 +41,7 @@ const mobileNavItems: NavItems[] = [
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
 ]
 
-const NavItem = ({ label, href, ItemIcon }: NavItems) => {
+const NavItem = ({ label, href, ItemIcon, OnClick }: NavItems) => {
   const router = useRouter()
   const isActive = router.asPath === href
   const [isHovered, setIsHovered] = useState(false)
@@ -61,6 +62,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
       {...(isActive && hoverStyles)}
       p={label === 'Home' ? '5px' : '0'}
       pr={'10px'}
+      onClick={OnClick ? () => OnClick() : undefined}
     >
       <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />
       <Text fontSize="lg" fontWeight="400">
@@ -137,7 +139,7 @@ function SideNav(){
       <ModalBody mt={8}>
         <VStack spacing={8} mt={12}>
         {mobileNavItems.map((item, index) => (
-          <NavItem key={index} {...item} />
+          <NavItem key={index} {...item} OnClick={close} />
         ))}
           <WallectConnect />
         </VStack>

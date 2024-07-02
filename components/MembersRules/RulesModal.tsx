@@ -49,7 +49,7 @@ export const RulesModal = () => {
         }}
       />
 
-      <Modal isOpen={isOpen || (isMobile??false)} onClose={onClose} size="xl" width="534px" isCentered>
+      <Modal isOpen={isOpen || (isMobile??false)} onClose={onClose} isCentered>
         <ModalContent
           p="0"
           border="none"
@@ -58,7 +58,7 @@ export const RulesModal = () => {
           boxShadow="none"
           h="493px"
           w="534px"
-          zoom="69%"
+          style={{zoom: "69%"}}
           backdropFilter="none"
           justifyContent={{base: "none", md: "center"}}
         >

@@ -14,7 +14,7 @@ const NFT = React.memo(() => {
 
     
     return (
-        <HStack gap="5" w="full" alignItems="flex-start">
+        <Stack direction={{base: "row", md: "column"}} gap="5" w="full" alignItems="flex-start">
             <Stack w="full" gap="5">
                 <Text variant="title">NFT AUCTION</Text>
                 <LiveAuction tokenURI={liveNFTAuction?.submission_info.submission.token_uri} nftBidAmount={NFTState.nftBidAmount} />
@@ -24,8 +24,7 @@ const NFT = React.memo(() => {
                 <BridgeTo />
                 <AssetAuction currentBid={liveAssetAuction?.highest_bid.amount} auctionAmount={liveAssetAuction?.auctioned_asset.amount} assetBidAmount={NFTState.assetBidAmount} auctionEndTime={liveNFTAuction?.auction_end_time??0}/>
             </Stack>
-            {/* Claim button for either the NFT or the Asset */}
-        </HStack>
+        </Stack>
     )
 })
 

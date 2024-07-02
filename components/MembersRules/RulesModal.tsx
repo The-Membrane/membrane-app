@@ -60,7 +60,7 @@ export const RulesModal = () => {
           w="534px"
           backdropFilter="none"
         >
-          <ModalBody bgImage="url('/images/rules_frame.svg')" p="58px 23px" bgRepeat="no-repeat">
+          <ModalBody bgImage="url('/images/rules_frame.svg')" p={{base: "23px", md: "58px 23px"}} bgRepeat="no-repeat">
             <Stack h="full">
               <Text variant="title" fontSize="45px" textAlign="center" py={4}>
                 MEMBRANE RULES

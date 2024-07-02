@@ -59,7 +59,7 @@ export const RulesModal = () => {
           h="493px"
           w="534px"
           backdropFilter="none"
-          style={{ zoom: "69%" }}
+          style={isMobile ? { zoom: "69%" } : { zoom: "90%" }}
         >
           <ModalBody bgImage="url('/images/rules_frame.svg')" p="58px 23px" bgRepeat="no-repeat">
             <Stack h="full">

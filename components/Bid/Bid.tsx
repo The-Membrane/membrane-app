@@ -8,7 +8,7 @@ const Bid = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false })
   return (
     <HStack spacing="5" alignItems="flex-start">
-      <Stack gap="5" minW="500px">
+      <Stack gap="5" minW="435px">
         <Risk />
         <BidAction />
       </Stack>

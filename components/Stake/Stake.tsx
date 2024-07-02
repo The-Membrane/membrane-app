@@ -14,8 +14,8 @@ const Stake = React.memo(() => {
         <Text variant="title">Governance</Text>
         <ManageStake />
         {!isMobile ? <>
-        <Delegate />
-        <AuctionClaim />
+          <Delegate />
+          <AuctionClaim />
         </>
       : null}
       </Stack>

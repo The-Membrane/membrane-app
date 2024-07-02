@@ -14,7 +14,7 @@ const NFT = React.memo(() => {
 
     
     return (
-        <Stack direction={{base: "row", md: "column"}} gap="5" w="full" alignItems="flex-start">
+        <Stack direction={{base: "column", md: "row"}} gap="5" w="full" alignItems="flex-start">
             <Stack w="full" gap="5">
                 <Text variant="title">NFT AUCTION</Text>
                 <LiveAuction tokenURI={liveNFTAuction?.submission_info.submission.token_uri} nftBidAmount={NFTState.nftBidAmount} />

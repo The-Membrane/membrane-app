@@ -24,9 +24,9 @@ const NFTBid = React.memo(({ currentBid, auctionEndTime }: Props) => {
 
 
     return (
-        <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
+        <Card w="full" p={{base: "4", md: "8"}} alignItems="center" gap={5} h="full" justifyContent="space-between">
             
-            <HStack justifyContent="space-between" gap="24">
+            <HStack justifyContent="space-between" gap={{base: "0", sm: "12", md:"24"}}>
                 <Stack w="full" gap="1">
                     <Text fontSize="16px" fontWeight="700">
                     Current Bid

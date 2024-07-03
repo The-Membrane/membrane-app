@@ -47,7 +47,7 @@ const Layout = ({ children }: Props) => {
           zIndex={1}
         >
           <Header />
-          <Stack as="main" p="10" maxW="1200px" w="full" flex={1} mt={{base: "0px", md: "70px"}}>
+          <Stack as="main" p={{base: "2"}} maxW="1200px" w="full" flex={1} mt={{base: "0px", md: "70px"}}>
             <RPCStatus />
             {children}
           </Stack>

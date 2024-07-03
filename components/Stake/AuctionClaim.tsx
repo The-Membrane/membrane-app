@@ -32,7 +32,7 @@ const Stake = React.memo(() => {
   return (
     // <ConfirmModal 
     //     action={claim}
-    //     label={"Begin Degeneracy"}
+    //     label={`${discount}% Discount on Fee Auction`}
     //     isDisabled={!isGreaterThanZero(MBRNBalance) }>
           
     //       {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}

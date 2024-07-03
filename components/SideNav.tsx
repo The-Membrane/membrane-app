@@ -38,6 +38,9 @@ const navItems: NavItems[] = [
 const mobileNavItems: NavItems[] = [
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
+  { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
+  { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
+  { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
 ]
 
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {
@@ -135,7 +138,7 @@ function SideNav(){
     <ModalContent bg="transparent" color="white" mt={4}>
       <ModalCloseButton mr={2} />
       <ModalBody mt={8}>
-        <VStack spacing={8} mt={12}>
+        <VStack spacing={8} mt={12} onClick={close}>
         {mobileNavItems.map((item, index) => (
           <NavItem key={index} {...item} />
         ))}

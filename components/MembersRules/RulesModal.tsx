@@ -59,8 +59,9 @@ export const RulesModal = () => {
           h="493px"
           w="534px"
           backdropFilter="none"
+          style={isMobile ? { zoom: "69%" } : { zoom: "90%" }}
         >
-          <ModalBody bgImage="url('/images/rules_frame.svg')" p="58px 23px">
+          <ModalBody bgImage="url('/images/rules_frame.svg')" p="58px 23px" bgRepeat="no-repeat">
             <Stack h="full">
               <Text variant="title" fontSize="45px" textAlign="center" py={4}>
                 MEMBRANE RULES

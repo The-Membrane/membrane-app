@@ -83,7 +83,7 @@ const MintTabsCard = React.memo(() => {
   };
 
   return (
-    <Card minW="400px" gap="12" h="max-content" px="2">
+    <Card minW="363px" gap="12" h="max-content" px="2">
       <VStack w="full" gap="5">
         <Text variant="title" fontSize="24px">
           Mint

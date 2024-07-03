@@ -65,7 +65,7 @@ const AssetAuction = React.memo(({currentBid, auctionAmount, auctionEndTime, ass
     return (
         <Stack w="full" gap="5">
         <Text variant="title">ASSET AUCTION</Text>
-        <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h="28%" justifyContent="space-between">            
+        <Card w="full" p="8" marginTop={"5.1%"} alignItems="center" gap={5} h={{base: "100%", md: "28%"}} justifyContent="space-between">            
             <Stack w="full" gap="1">
                 <Text fontSize="16px" fontWeight="700">                    
                 Auction for {shiftDigits(auctionAmount??0, -6).toString()} CDT 

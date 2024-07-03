@@ -168,7 +168,7 @@ const QuickActionWidget = () => {
   ///////Basic Onboarding Card///////
   return (
     <HStack justifyContent="center">
-    <Card w="384px" alignItems="center" justifyContent="space-between" p="8" gap="0">
+    <Card w="100%" alignItems="center" justifyContent="space-between" p="8" gap="0">
         {!isWalletConnected ? 
         <ConnectButton marginTop={1}/>
         : quickActionState.readyToLoop ?

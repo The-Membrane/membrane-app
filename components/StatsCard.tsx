@@ -1,4 +1,4 @@
-import { HStack, Stack, Text } from '@chakra-ui/react'
+import { Button, HStack, Stack, Text } from '@chakra-ui/react'
 import React, { useMemo, useState } from 'react'
 import Divider from './Divider'
 import { useBasket } from '@/hooks/useCDP'
@@ -6,6 +6,7 @@ import { shiftDigits } from '@/helpers/math'
 import { Formatter } from '@/helpers/formatter'
 import { getProjectTVL } from '@/services/cdp'
 import { useOraclePrice } from '@/hooks/useOracle'
+import OnboardModal from './Home/LeapOnboarding'
 
 
 export const Stats = ({ label, value }) => (

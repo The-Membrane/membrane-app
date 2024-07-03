@@ -7,21 +7,15 @@ import { range } from 'lodash'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import PerformanceStats from './PerformanceStats'
 import useWallet from '@/hooks/useWallet'
-import OnboardModal from './LeapOnboarding'
 
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false })
   const { isWalletConnected } = useWallet()
-  //Onboard Modal
-  const [ isOpen, setOpen ] = useState(false)
+
   return (
     <Stack>
       <Stack>
         <StatsCard />
-        <Button onClick={() => setOpen(true)}>
-          Add Funds
-        </Button>
-        <OnboardModal isOpen={isOpen} setOpen={setOpen}/>
       </Stack>
       <Grid      
       h='200px'

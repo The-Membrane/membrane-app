@@ -1,11 +1,12 @@
 import { HStack, Stack, Text } from '@chakra-ui/react'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import Divider from './Divider'
 import { useBasket } from '@/hooks/useCDP'
 import { shiftDigits } from '@/helpers/math'
 import { Formatter } from '@/helpers/formatter'
 import { getProjectTVL } from '@/services/cdp'
 import { useOraclePrice } from '@/hooks/useOracle'
+
 
 export const Stats = ({ label, value }) => (
   <Stack gap="1">
@@ -35,6 +36,8 @@ export const StatsCard = React.memo(() => {
   }, [basket, prices])
 
   const [titleToggle, setTitleToggle] = React.useState(true)
+  //Onboard Modal
+  const [ isOpen, setOpen ] = useState(false)
 
   return (    
     <Stack gap={3}>
@@ -45,6 +48,10 @@ export const StatsCard = React.memo(() => {
         <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
         80/20 Fortified Leverage to Fight Volatility
         </Text>
+        <Button width="20%" onClick={() => setOpen(true)}>
+          Add Funds
+        </Button>
+        <OnboardModal isOpen={isOpen} setOpen={setOpen}/>
       </Stack>
            :
         <><Stats label="TVL" value={Formatter.currency(tvl, 0)} />

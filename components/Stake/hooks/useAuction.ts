@@ -24,7 +24,7 @@ export const useLiveFeeAuction = () => {
 export const useAuction = () => {
   const { address } = useWallet()
   const cdt = useAssetBySymbol('CDT')
-  const mbrn = useAssetBySymbol('OSMO')
+  const mbrn = useAssetBySymbol('MBRN')
   const MBRNBalance = useBalanceByAsset(mbrn)    
   const { data: feeAuctions } = useLiveFeeAuction()
   

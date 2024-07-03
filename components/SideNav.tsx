@@ -38,6 +38,7 @@ const navItems: NavItems[] = [
 const mobileNavItems: NavItems[] = [
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
+  { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
   { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
 ]

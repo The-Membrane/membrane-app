@@ -1,19 +1,28 @@
-import { Grid, GridItem, Stack, useBreakpointValue } from '@chakra-ui/react'
+import { Button, Grid, GridItem, Stack, useBreakpointValue } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import QuickActionWidget from './QuickActionWidget'
 
-import React from "react"
+import React, { useState } from "react"
 import { range } from 'lodash'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import PerformanceStats from './PerformanceStats'
 import useWallet from '@/hooks/useWallet'
+import OnboardModal from './LeapOnboarding'
 
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false })
   const { isWalletConnected } = useWallet()
+  //Onboard Modal
+  const [ isOpen, setOpen ] = useState(false)
   return (
-    <Stack >
-      <StatsCard />
+    <Stack>
+      <Stack>
+        <StatsCard />
+        <Button onClick={() => setOpen(true)}>
+          Add Funds
+        </Button>
+        <OnboardModal isOpen={isOpen} setOpen={setOpen}/>
+      </Stack>
       <Grid      
       h='200px'
       //Mobile has 3 rows and 1 column, Desktop has 1 row and 3 columns

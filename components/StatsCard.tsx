@@ -49,15 +49,15 @@ export const StatsCard = React.memo(() => {
         <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
         80/20 Fortified Leverage to Fight Volatility
         </Text>
-        <Button width="20%" onClick={() => setOpen(true)}>
+        <div style={{justifyContent: "center"}}><Button width="20%" onClick={() => setOpen(true)}>
           Add Funds
-        </Button>
-        <OnboardModal isOpen={isOpen} setOpen={setOpen}/>
+        </Button></div>
       </Stack>
            :
         <><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
         <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></>}
       </HStack>
+      <OnboardModal isOpen={isOpen} setOpen={setOpen}/>
       <Divider mx="0" mb="5" />
     </Stack>
   )

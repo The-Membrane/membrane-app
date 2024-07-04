@@ -42,7 +42,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
                 connectedWalletType={walletType}
             >
                 <Swaps
-                className='leap-dialog'
+                className='leap-dialog-content'
                 showPoweredByBanner={true}
                 allowedSourceChains={{ chainTypes: ['cosmos', 'evm', 'svm'] }}
                 allowedDestinationChains={[{ chainId: 'osmosis-1' }]}

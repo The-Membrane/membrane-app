@@ -21,7 +21,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
 
   // leftIcon={<WalletIcon />} 
   return (
-    <Modal isOpen={isOpen} onClose={onCloseModal}>
+    <Modal isOpen={isOpen} onClose={onCloseModal} >
       <ModalOverlay backdropFilter="blur(50px)" />
       <Card as={ModalContent} bg="#141628">
       <ModalHeader w="full">
@@ -33,8 +33,8 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
           </HStack>
         </ModalHeader>
         <ModalCloseButton />
-        <ModalBody> 
-            <div className="leap-ui">
+        <ModalBody paddingInlineStart="0"> 
+            <div className="leap-ui" style={{borderRadius: ".75rem"}}>
             <ElementsProvider
                 primaryChainId="cosmoshub-4"
                 connectWallet={connect}

@@ -4,7 +4,6 @@ import useWallet from '@/hooks/useWallet'
 
 import { Swaps, ElementsProvider, WalletType } from '@leapwallet/elements'
 import '@leapwallet/elements/styles.css'
-import './overriding_styles.css'
 
 
 
@@ -36,7 +35,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody paddingInlineStart="0"> 
-            <div className="leap-ui" style={{borderRadius: ".75rem"}}>
+            <div className="leap-ui" style={{borderRadius: ".75rem", top: 0%, left: 0%}}>
             <ElementsProvider
                 primaryChainId="cosmoshub-4"
                 connectWallet={connect}

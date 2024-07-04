@@ -23,6 +23,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
   return (
     <Modal isOpen={isOpen} onClose={onCloseModal} >
       <ModalOverlay backdropFilter="blur(50px)" />
+      <ModalContent padding={"4"}>
       <Card as={ModalContent} bg="#141628">
       <ModalHeader w="full">
           <HStack justifyContent="space-between" w="full" alignItems="flex-end">
@@ -49,6 +50,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
             </div>
       </ModalBody>
       </Card>
+      </ModalContent>
     </Modal>
   )
 }

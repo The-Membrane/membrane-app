@@ -42,14 +42,14 @@ export const StatsCard = React.memo(() => {
 
   return (    
     <Stack gap={3}>
-      <HStack mt="auto" gap="24" justifyContent={"center"} onClick={()=>setTitleToggle(!titleToggle)}>
+      <HStack mt="auto" gap="24" justifyContent={"center"}>
       {titleToggle ?
       
       <Stack gap={3}>
-        <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
+        <Text  onClick={()=>setTitleToggle(!titleToggle)} fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
         80/20 Fortified Leverage to Fight Volatility
         </Text>
-        <Button alignSelf="center" width="20%" onClick={() => setOpen(true)}>
+        <Button alignSelf="center" width="20%" minWidth="130px" onClick={() => setOpen(true)}>
           Add Funds
         </Button>
       </Stack>

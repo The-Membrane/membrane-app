@@ -4,6 +4,8 @@ import useWallet from '@/hooks/useWallet'
 
 import { Swaps, ElementsProvider, WalletType } from '@leapwallet/elements'
 import '@leapwallet/elements/styles.css'
+import './overriding_styles.css'
+
 
 
 const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) => {

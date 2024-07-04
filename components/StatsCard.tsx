@@ -49,9 +49,9 @@ export const StatsCard = React.memo(() => {
         <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
         80/20 Fortified Leverage to Fight Volatility
         </Text>
-        <div style={{justifyContent: "center"}}><Button width="20%" onClick={() => setOpen(true)}>
+        <Button alignSelf="center" width="20%" onClick={() => setOpen(true)}>
           Add Funds
-        </Button></div>
+        </Button>
       </Stack>
            :
         <><Stats label="TVL" value={Formatter.currency(tvl, 0)} />

@@ -26,7 +26,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
       <Card as={ModalContent} bg="#141628">
       <ModalHeader w="full">
           <HStack justifyContent="space-between" w="full" alignItems="flex-end">
-            <Text variant="title" w="150px">
+            <Text variant="title" fontSize="md">
               Onboard to Osmosis
             </Text>
             <Stack></Stack>

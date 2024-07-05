@@ -1,0 +1,19 @@
+.leap-dialog-content {
+    top: 13% !important;
+    left: 6% !important;
+}
+
+/* Small devices (phones, 600px and below) */
+@media (max-width: 600px) {
+    .leap-ui {        
+        zoom: 85%;
+        position: relative;
+        top: 0%;
+        left: -2%;
+    }
+    
+}
+
+/* Medium devices (tablets, 600px to 768px) */
+@media (min-width: 601px) {    
+}

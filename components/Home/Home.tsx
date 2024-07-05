@@ -1,8 +1,8 @@
-import { Grid, GridItem, Stack, useBreakpointValue } from '@chakra-ui/react'
+import { Button, Grid, GridItem, Stack, useBreakpointValue } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import QuickActionWidget from './QuickActionWidget'
 
-import React from "react"
+import React, { useState } from "react"
 import { range } from 'lodash'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import PerformanceStats from './PerformanceStats'
@@ -11,9 +11,12 @@ import useWallet from '@/hooks/useWallet'
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false })
   const { isWalletConnected } = useWallet()
+
   return (
-    <Stack >
-      <StatsCard />
+    <Stack>
+      <Stack>
+        <StatsCard />
+      </Stack>
       <Grid      
       h='200px'
       //Mobile has 3 rows and 1 column, Desktop has 1 row and 3 columns

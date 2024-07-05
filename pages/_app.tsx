@@ -56,6 +56,7 @@ export const queryClient = new QueryClient({
   },
 })
 
+import '../styles/global.css';
 const App = ({ Component, pageProps }: AppProps) => {
   const [isLoaded, setIsLoaded] = useState(false)
 

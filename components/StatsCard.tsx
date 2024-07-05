@@ -1,11 +1,13 @@
-import { HStack, Stack, Text } from '@chakra-ui/react'
-import React, { useMemo } from 'react'
+import { Button, HStack, Stack, Text } from '@chakra-ui/react'
+import React, { useMemo, useState } from 'react'
 import Divider from './Divider'
 import { useBasket } from '@/hooks/useCDP'
 import { shiftDigits } from '@/helpers/math'
 import { Formatter } from '@/helpers/formatter'
 import { getProjectTVL } from '@/services/cdp'
 import { useOraclePrice } from '@/hooks/useOracle'
+import OnboardModal from './Home/LeapOnboarding'
+
 
 export const Stats = ({ label, value }) => (
   <Stack gap="1">
@@ -35,21 +37,27 @@ export const StatsCard = React.memo(() => {
   }, [basket, prices])
 
   const [titleToggle, setTitleToggle] = React.useState(true)
+  //Onboard Modal
+  const [ isOpen, setOpen ] = useState(false)
 
   return (    
     <Stack gap={3}>
-      <HStack mt="auto" gap="24" justifyContent={"center"} onClick={()=>setTitleToggle(!titleToggle)}>
+      <HStack mt="auto" gap="24" justifyContent={"center"}>
       {titleToggle ?
       
       <Stack gap={3}>
-        <Text fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
+        <Text  onClick={()=>setTitleToggle(!titleToggle)} fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
         80/20 Fortified Leverage to Fight Volatility
         </Text>
+        <Button alignSelf="center" width="20%" minWidth="130px" onClick={() => setOpen(true)}>
+          Add Funds
+        </Button>
       </Stack>
            :
         <><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
         <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></>}
       </HStack>
+      <OnboardModal isOpen={isOpen} setOpen={setOpen}/>
       <Divider mx="0" mb="5" />
     </Stack>
   )

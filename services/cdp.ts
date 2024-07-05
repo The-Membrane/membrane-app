@@ -467,7 +467,6 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     // }).sort((a, b) => b.value - a.value)//.slice(0, 5)
     // console.log(topValue)
     
-
     const tvl = getTVL(positions)
     const debt = getDebt([basketPosition])
     const debtValue = num(debt).times(basket.credit_price.price).toNumber()

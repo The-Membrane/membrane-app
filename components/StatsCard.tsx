@@ -54,8 +54,8 @@ export const StatsCard = React.memo(() => {
         </Button>
       </Stack>
            :
-        <div  onClick={()=>setTitleToggle(!titleToggle)} ><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
-        <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></div>}
+        <HStack gap={16} onClick={()=>setTitleToggle(!titleToggle)} ><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
+        <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></HStack>}
       </HStack>
       <OnboardModal isOpen={isOpen} setOpen={setOpen}/>
       <Divider mx="0" mb="5" />

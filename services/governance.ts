@@ -192,9 +192,10 @@ export const getProposals = async () => {
       }),
     )
 
+    console.log(allProposals)
   //Count the amount of times a delegate has voted for a proposal & save in an array
   const delegateVotes = delegates.map((delegate) => {
-    return [delegate.name, allProposals.filter((proposal) => proposal.for_voters?.includes(delegate.address) || proposal.against_voters?.includes(delegate.address) || proposal.aligned_voters?.includes(delegate.address) || proposal.removal_voters?.includes(delegate.address)).length]
+    return [delegate.name, allProposals.filter((proposal) => proposal.for_voters?.includes(delegate.address)).length]
   })
   console.log(delegateVotes)
 

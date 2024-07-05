@@ -248,26 +248,26 @@ export interface ProposalListResponse {
   proposal_count: Uint64;
   proposal_list: ProposalResponse[];
 }
-export interface ProposalResponse {
-  against_power: Uint128;
-  aligned_power: Uint128;
-  amendment_power: Uint128;
-  delayed_end_block: number;
-  description: string;
-  end_block: number;
-  expiration_block: number;
-  for_power: Uint128;
-  link?: string | null;
-  messages?: ProposalMessage[] | null;
-  proposal_id: Uint64;
-  removal_power: Uint128;
-  start_block: number;
-  start_time: number;
-  status: ProposalStatus;
-  submitter: Addr;
-  title: string;
-  voting_power: [Addr, Uint128][];
-}
+// export interface ProposalResponse {
+//   against_power: Uint128;
+//   aligned_power: Uint128;
+//   amendment_power: Uint128;
+//   delayed_end_block: number;
+//   description: string;
+//   end_block: number;
+//   expiration_block: number;
+//   for_power: Uint128;
+//   link?: string | null;
+//   messages?: ProposalMessage[] | null;
+//   proposal_id: Uint64;
+//   removal_power: Uint128;
+//   start_block: number;
+//   start_time: number;
+//   status: ProposalStatus;
+//   submitter: Addr;
+//   title: string;
+//   voting_power: [Addr, Uint128][];
+// }
 export interface ProposalVotesResponse {
   against_power: Uint128;
   aligned_power: Uint128;
@@ -276,7 +276,7 @@ export interface ProposalVotesResponse {
   proposal_id: number;
   removal_power: Uint128;
 }
-export interface Proposal {
+export interface ProposalResponse {
   against_power: Uint128;
   against_voters: Addr[];
   aligned_power: Uint128;

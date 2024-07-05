@@ -28,7 +28,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
       <ModalHeader w="full">
           <HStack justifyContent="space-between" w="full" alignItems="flex-end">
             <Text variant="title" fontSize="md">
-              Onboard to Osmosis
+            Onboard Collateral
             </Text>
             <Stack></Stack>
           </HStack>
@@ -45,8 +45,12 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
                 className='leap-dialog-content'
                 showPoweredByBanner={true}
                 allowedSourceChains={{ chainTypes: ['cosmos', 'evm', 'svm'] }}
-                allowedDestinationChains={[{ chainId: 'osmosis-1' }]}
+                allowedDestinationChains={[{ 
+                  chainId: 'osmosis-1',
+                  assetDenoms: [],
+                }]}
                 defaultValues={{ destinationChainId: 'osmosis-1' }}
+                
                 />
             </ElementsProvider>
             </div>

@@ -1,4 +1,5 @@
 import contracts from '@/config/contracts.json'
+import delegates from '@/config/delegates.json'
 import {
   GovernanceClient,
   GovernanceQueryClient,
@@ -114,6 +115,7 @@ const getDaysLeft = (proposal: any) => {
 }
 
 const parseProposal = (proposals: ProposalResponseType[]) => {
+  console.log("before parse", proposals)
   const activeProposals = proposals
     .filter(({ status }) => status === 'active')
     .map((proposal) => ({
@@ -149,7 +151,7 @@ const parseProposal = (proposals: ProposalResponseType[]) => {
       badge: 'executed',
     }))
   const pendingProposals = proposals
-    .filter(({ status }) => status === 'pending')
+    .filter(({ aligned_power }) => aligned_power < "1000000000")
     .map((proposal) => ({
       ...proposal,
       badge: 'pending',
@@ -190,6 +192,14 @@ export const getProposals = async () => {
         return statusOrder[a.status] - statusOrder[b.status]
       }),
     )
+
+  //   console.log(allProposals)
+  // //Count the amount of times a delegate has voted for a proposal & save in an array
+  // const delegateVotes = delegates.map((delegate) => {
+  //   return [delegate.name, allProposals.filter((proposal) => proposal.for_voters?.includes(delegate.address) || proposal.against_voters?.includes(delegate.address) || proposal.aligned_voters?.includes(delegate.address) || proposal.removal_voters?.includes(delegate.address)).length]
+  // })
+  // console.log(delegateVotes)
+
 
   return allProposals.filter((prop) => prop.proposal_id != "61")
   .map((proposal) => ({

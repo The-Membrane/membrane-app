@@ -17,7 +17,8 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
     initialTVL: 0, 
     basketAssets: []
   }
-  const basketDenoms = useMemo(() => { 
+  const basketDenoms = useMemo(() => {
+    if (!basketAssets) return []
     return basketAssets.map((asset) => asset.asset.base)
    }, [basketAssets])
 

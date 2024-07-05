@@ -57,7 +57,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
             >
                 <Swaps
                 className='leap-dialog-content'
-                showPoweredByBanner={true}
+                showPoweredByBanner={false}
                 allowedSourceChains={{ chainTypes: ['cosmos', 'evm', 'svm'] }}
                 allowedDestinationChains={[{ 
                   chainId: 'osmosis-1',

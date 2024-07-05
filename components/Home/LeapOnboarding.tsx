@@ -4,10 +4,23 @@ import useWallet from '@/hooks/useWallet'
 
 import { Swaps, ElementsProvider, WalletType } from '@leapwallet/elements'
 import '@leapwallet/elements/styles.css'
+import useInitialVaultSummary from '../Mint/hooks/useInitialVaultSummary'
 
 
 
 const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) => {
+  const { data } = useInitialVaultSummary()
+  const { basketAssets } = data || {
+    initialBorrowLTV: 0, 
+    initialLTV: 0, 
+    debtAmount: 0, 
+    initialTVL: 0, 
+    basketAssets: []
+  }
+  const basketDenoms = useMemo(() => { 
+    return basketAssets.map((asset) => asset.asset.base)
+   }, [basketAssets])
+
   const { connect,  wallet } = useWallet()
   const walletName = wallet?.prettyName
 
@@ -47,7 +60,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
                 allowedSourceChains={{ chainTypes: ['cosmos', 'evm', 'svm'] }}
                 allowedDestinationChains={[{ 
                   chainId: 'osmosis-1',
-                  assetDenoms: [],
+                  assetDenoms: basketDenoms,
                 }]}
                 defaultValues={{ destinationChainId: 'osmosis-1' }}
                 

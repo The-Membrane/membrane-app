@@ -467,7 +467,6 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     // }).sort((a, b) => b.value - a.value)//.slice(0, 5)
     // console.log(topValue)
     
-    if (basketPosition.positions[0].position_id === "185") console.log("FOUND", basketPosition.positions[0])
     const tvl = getTVL(positions)
     const debt = getDebt([basketPosition])
     const debtValue = num(debt).times(basket.credit_price.price).toNumber()

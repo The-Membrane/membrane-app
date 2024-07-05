@@ -1,7 +1,7 @@
 .leap-dialog-content {
     top: 0% !important;
     left: 0% !important;
-    scroll-behavior: smooth;
+    overflow: auto !important;
 }
 
 /* Small devices (phones, 600px and below) */

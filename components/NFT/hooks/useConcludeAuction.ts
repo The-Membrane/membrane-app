@@ -29,18 +29,18 @@ const useConcludeAuction = () => {
       //   proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
       //   tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Branda",
       // })
-      const submitNFT3 = messageComposer.submitNft({
-        proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
-        tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Cheeky Brane",
-      })
-      const submitNFT4 = messageComposer.submitNft({
-        proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
-        tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Chopper Brane",
-      })
-      const submitNFT5 = messageComposer.submitNft({
-        proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
-        tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Gigi Brane",
-      })
+      // const submitNFT3 = messageComposer.submitNft({
+      //   proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
+      //   tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Cheeky Brane",
+      // })
+      // const submitNFT4 = messageComposer.submitNft({
+      //   proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
+      //   tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Chopper Brane",
+      // })
+      // const submitNFT5 = messageComposer.submitNft({
+      //   proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
+      //   tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Gigi Brane",
+      // })
       const submitNFT6 = messageComposer.submitNft({
         proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
         tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Lumber Brane",
@@ -49,10 +49,10 @@ const useConcludeAuction = () => {
         proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",
         tokenUri: "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Steve Brane",
       })
-      // const curate = messageComposer.voteToCurate({submissionIds: [12, 13, 14,15,16,17,18,19]})
+      const curate = messageComposer.voteToCurate({submissionIds: [12, 13, 14,15,16,17,18,19]})
       // const msg = messageComposer.concludeAuction()
 
-      return [submitNFT3, submitNFT4, submitNFT5] as MsgExecuteContractEncodeObject[]
+      return [submitNFT6, submitNFT7] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address,
   })

@@ -50,7 +50,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
 
     //Remove ipfs portion of link for metadata
-    const ipfsString = removeSegmentAndBefore("ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane", "ipfs://")
+    const ipfsString = removeSegmentAndBefore("ipfs://bafybeib64m6rdz7ukydoze6qzneq76xlznalyfyw2w7d43brzuhekel4bu/", "ipfs://")
     //Get JSON metadata from IPFS
     const { data: liveNFT } = useLiveNFT(ipfsString)
     

@@ -19,7 +19,7 @@ const useConcludeAuction = () => {
       //Conclude Msg
       const submitNFT = messageComposer.submitNft({
         proceedRecipient: "stars18a9canxqrs9afxj68gcwvlkq2vzm58vjcuaarc",
-        tokenUri: "ipfs://bafybeibxevjnuubjg2utkcafbdn4wdngsdw2ueaftbnqvpbcs3naprhj3m/",
+        tokenUri: "ipfs://bafybeibxevjnuubjg2utkcafbdn4wdngsdw2ueaftbnqvpbcs3naprhj3m",
       })
       const submitNFT1 = messageComposer.submitNft({
         proceedRecipient: "stars1pyxg2vgej0e3dmpg44kz2us0efyctq94v6t2h7",

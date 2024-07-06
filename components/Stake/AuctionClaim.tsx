@@ -11,7 +11,7 @@ import ConfirmModal from "../ConfirmModal"
 const auctionDiscount = 0.01
 const auctionDiscountIncreaseTimeframe = 36
 
-const Stake = React.memo(() => {
+const AuctionClaim = React.memo(() => {
   const mbrn = useAssetBySymbol('MBRN')
   const MBRNBalance = useBalanceByAsset(mbrn)
   const { action: claim } = useAuction()
@@ -19,7 +19,7 @@ const Stake = React.memo(() => {
 
   //Take the lowest discount
   const discount = useMemo(() => {
-    if (!feeAuctions) return 0
+    if (!feeAuctions || !feeAuctions[0]) return 0
     const startTime = dayjs.unix(feeAuctions[0].auction_start_time)
     const currentTime = dayjs()
     const timeElapsed = startTime.diff(currentTime, 'second')
@@ -52,4 +52,4 @@ const Stake = React.memo(() => {
   )
 })
 
-export default Stake
+export default AuctionClaim

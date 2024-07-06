@@ -115,7 +115,7 @@ const getDaysLeft = (proposal: any) => {
 }
 
 const parseProposal = (proposals: ProposalResponseType[]) => {
-  console.log("before parse", proposals)
+  // console.log("before parse", proposals)
   const activeProposals = proposals
     .filter(({ status }) => status === 'active')
     .map((proposal) => ({

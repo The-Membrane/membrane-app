@@ -50,7 +50,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
     const stargazeCDTBalance = useBalanceByAsset(stargazeCDT, 'stargaze')
 
     //Remove ipfs portion of link for metadata
-    const ipfsString = removeSegmentAndBefore(tokenURI??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png", "ipfs://")
+    const ipfsString = removeSegmentAndBefore("ipfs://bafybeibxevjnuubjg2utkcafbdn4wdngsdw2ueaftbnqvpbcs3naprhj3m/"??"ipfs://bafybeidx45olni2oa4lq53s77vvvuuzsaalo3tlfsw7lsysvvpjl3ancfm/brane_wave.png", "ipfs://")
     //Get JSON metadata from IPFS
     const { data: liveNFT } = useLiveNFT(ipfsString)
     
@@ -62,7 +62,7 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
     const [imgSRC, setIMGsrc] = useState("");
     //Remove ipfs portion of link for image
     useMemo(() => {
-        if (liveNFT) setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/" +  removeSegmentAndBefore("ipfs://bafybeibxevjnuubjg2utkcafbdn4wdngsdw2ueaftbnqvpbcs3naprhj3m/", "ipfs://") )
+        if (liveNFT) setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/" +  removeSegmentAndBefore(liveNFT.image, "ipfs://") )
             // setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/bafybeido64nj7ysgmpok7tpo4emos7vehfyq4rrt27cu5urdciick3ytfm")
     }, [liveNFT])
 

@@ -27,7 +27,6 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
 
   const walletType = useMemo(() => {
     // based on the wallet you've connected, map it to the wallet type enum
-
     return walletName?.toLowerCase() as WalletType
   }, [walletName])
 

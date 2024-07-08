@@ -27,7 +27,13 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
 
   const walletType = useMemo(() => {
     // based on the wallet you've connected, map it to the wallet type enum
-    return WalletType.KEPLR
+    console.log(walletName)
+    console.log(wallet?.name)
+    // if (walletName === 'Keplr') return WalletType.KEPLR
+    // if (walletName === 'Leap') return WalletType.LEAP 
+    // if (walletName === 'Cosmostation') return WalletType.COSMOSTATION
+
+    return walletName
   }, [walletName])
 
   const onCloseModal = () => {
@@ -53,7 +59,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
             <ElementsProvider
                 primaryChainId="cosmoshub-4"
                 connectWallet={connect}
-                connectedWalletType={walletType}
+                connectedWalletType={walletType as WalletType}
             >
                 <Swaps
                 className='leap-dialog-content'

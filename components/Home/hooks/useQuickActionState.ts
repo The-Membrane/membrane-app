@@ -1,16 +1,11 @@
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 import { Summary } from '@/components/Mint/hooks/useMintState'
-import { Asset } from '@/helpers/chain'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
-type ActionMenu = {
-  value: string
-  label: string
-}
 
 export type QuickActionState = {
-  levAsset?: AssetWithBalance
+  levAsset?: AssetWithBalance[]
   stableAsset?: AssetWithBalance
   assets: AssetWithBalance[]
   summary?: Summary[]

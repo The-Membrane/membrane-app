@@ -197,7 +197,7 @@ const QuickActionWidget = () => {
     //Set new assets
     setQuickActionState({
       levAssets: quickActionState?.levAssets,
-      assets: newAssets,
+      // assets: newAssets,
     })
   }
 
@@ -241,7 +241,7 @@ const QuickActionWidget = () => {
         <SliderWithInputBox
             max={LevAssets?.[0].combinUsdValue??0}
             inputBoxWidth='42%'
-            assets={levAssets}
+            assets={levAssets.filter((asset) => asset.symbol != LevAssets?.[0].symbol)}
             QAState={quickActionState}
             setQAState={setQuickActionState}
             onMenuChange={onLevAssetMenuChange}
@@ -256,7 +256,7 @@ const QuickActionWidget = () => {
             key={asset.symbol}
             max={asset.combinUsdValue??0}
             inputBoxWidth='42%'
-            assets={levAssets}
+            assets={levAssets.filter((asset) => asset.symbol != LevAssets?.[index+1].symbol)}
             QAState={quickActionState}
             setQAState={setQuickActionState}
             onMenuChange={onLevAssetMenuChange}

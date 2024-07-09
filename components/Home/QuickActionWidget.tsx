@@ -159,16 +159,19 @@ const QuickActionWidget = () => {
   //We should jsut do this in the AssetSlider component
   useEffect(() => {
     if (quickActionState?.assets && quickActionState?.levAssets?.[0].symbol != undefined) {
-      
-      let found = quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAssets?.[0].symbol)
-      if(found) quickActionState.levAssets[0] = found
+      for (let i = 0; i < quickActionState?.levAssets?.length; i++) {
+        let found = quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAssets?.[i].symbol)
+        if(found) quickActionState.levAssets[i] = found
+      }
+      // let found = quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAssets?.[0].symbol)
+      // if(found) quickActionState.levAssets[0] = found
 
       setQuickActionState({
         levAssets: quickActionState.levAssets,
       })
     }
     
-  }, [QAAssets, LevAssets?.[0].symbol])
+  }, [QAAssets, LevAssets?.map((asset) => asset.symbol)])
 
 
   const [addAssetStyle, setAddAssetStyle] = useState({display: "flex"})

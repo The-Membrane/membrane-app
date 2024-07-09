@@ -33,7 +33,8 @@ const QuickActionWidget = () => {
   const Prices = useMemo(() => { return prices }, [prices])
   const Summary = useMemo(() => {  return summary }, [summary])
   const QAAssets = useMemo(() => { return quickActionState?.assets }, [quickActionState?.assets])
-  const LevAssets = useMemo(() => { return quickActionState?.levAssets }, [quickActionState?.levAssets])
+  const LevAssets = useMemo(() => { return quickActionState?.levAssets }, [quickActionState?.levAssets])  
+  const LevSymbols = useMemo(() => { return LevAssets?.map((asset) => asset.symbol) }, [LevAssets])
   
   //Set QAState summary within a Memo
   useEffect(() => {
@@ -171,7 +172,7 @@ const QuickActionWidget = () => {
       })
     }
     
-  }, [QAAssets, LevAssets?.[0].symbol])
+  }, [QAAssets, LevSymbols])
 
 
   const [addAssetStyle, setAddAssetStyle] = useState({display: "flex"})

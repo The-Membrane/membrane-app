@@ -23,9 +23,9 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
       const amount = num(newDeposit).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
       
       //Find the asset in quickActionState levAssets and update the sliderValue
-      let found = quickActionState?.assets.findIndex((levAsset) => asset.symbol === levAsset.symbol)
+      let found = quickActionState?.levAssets?.findIndex((levAsset) => asset.symbol === levAsset.symbol)
       // console.log(quickActionState.levAssets?.find((levAsset) => asset.symbol === levAsset.symbol), quickActionState.levAssets?.find((levAsset) => asset.symbol === levAsset.symbol) != undefined, asset.symbol, quickActionState.levAssets)
-      if(found > 0 && quickActionState.levAssets) quickActionState.levAssets[found] = asset
+      if((found??0) > 0 && quickActionState.levAssets) quickActionState.levAssets[found??0] = asset
       // && quickActionState.levAssets?.find((levAsset) => asset.symbol === levAsset.symbol) != undefined
 
       return {

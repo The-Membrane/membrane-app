@@ -25,77 +25,53 @@ type Props = {
     assets: AssetWithBalance[]
     QAState: QuickActionState
     setQAState: (partialState: Partial<QuickActionState>) => void
-    onMenuChange: (value: string) => void
-    inputAmount: number
-    setInputAmount: (value: number) => void
-    stable?: boolean
+    onMenuChange: (value: string, index: number) => void
+    inputAmounts: number[]
+    setInputAmounts: (value: number[]) => void
+    levAssetIndex: number
   }
   
-  export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", assets, QAState, setQAState, onMenuChange, inputAmount, setInputAmount, stable = false }: SliderWithInputProps) => {
+  export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", assets, QAState, setQAState, onMenuChange, inputAmounts, setInputAmounts, levAssetIndex }: SliderWithInputProps) => {
       const onSliderChange = (value: number) => {      
-        if (inputAmount != value) setInputAmount(value)
+        if (inputAmounts[levAssetIndex] != value) {
+          inputAmounts[levAssetIndex] = value
+          setInputAmounts(inputAmounts)
+        }
       }
   
       const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault()
         const newAmount = e.target.value
-        if (num(newAmount).isGreaterThan(max)) setInputAmount(max)
-          else setInputAmount(parseInt(e.target.value))
+        
+        if (num(newAmount).isGreaterThan(max)) inputAmounts[levAssetIndex] = max
+          else inputAmounts[levAssetIndex] = parseInt(e.target.value)
+        setInputAmounts(inputAmounts)
   
         setTimeout(() => {
-          if (stable){
-            if (num(newAmount).isGreaterThan(max)) setQAState({ stableAsset: { ...QAState?.stableAsset, sliderValue: max }})
-              else setQAState({ stableAsset: { ...QAState?.stableAsset, sliderValue: (parseInt(e.target.value)) }})
-          } else {
-            if (num(newAmount).isGreaterThan(max)) setQAState({ levAsset: { ...QAState?.levAsset, sliderValue: max }})
-              else setQAState({ levAsset: { ...QAState?.levAsset, sliderValue: (parseInt(e.target.value)) }})
-          }
+          if (!QAState?.levAssets) return
+          if (num(newAmount).isGreaterThan(max)) QAState.levAssets[levAssetIndex].sliderValue = max
+            else QAState.levAssets[levAssetIndex].sliderValue = parseInt(e.target.value)
+          setQAState({levAssets: QAState.levAssets})
+          
         }, delayTime);  
       }
   
       useEffect(() => {
+        if (!QAState?.levAssets) return
         //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
-        if (stable && QAState?.stableAsset?.sliderValue != inputAmount) {
-          setInputAmount(QAState?.stableAsset?.sliderValue??0)
+        if (QAState.levAssets[levAssetIndex].sliderValue != inputAmounts[levAssetIndex]) {
+          inputAmounts[levAssetIndex] = QAState.levAssets[levAssetIndex].sliderValue??0
+          setInputAmounts(inputAmounts)
         }
-      }, [QAState?.stableAsset?.sliderValue])
-      useEffect(() => {
-        //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
-        if (!stable && QAState?.levAsset?.sliderValue != inputAmount) {
-          setInputAmount(QAState?.levAsset?.sliderValue??0)
-        }
-      }, [QAState?.levAsset?.sliderValue])
+      }, [QAState?.levAssets?.[levAssetIndex].sliderValue])
       
   
-  if (stable){
-    return (
-      <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >     
-        {QAState?.levAsset && QAState?.stableAsset && (QAState?.levAsset?.sliderValue??0 > 0) ? <><HStack justifyContent="space-between">
-          <AssetsWithBalanceMenu 
-            value={QAState?.stableAsset} 
-            onChange={onMenuChange}
-            assets={assets}
-          />
-          <Input 
-            width={inputBoxWidth} 
-            textAlign={"center"} 
-            placeholder="0" 
-            type="number" 
-            value={inputAmount} 
-            onChange={handleInputChange}
-          />
-        </HStack>
-        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.stableAsset} label={QAState?.stableAsset?.symbol} />        
-        </> : null}  
-      </Stack>
-    )
-  }
       return (
       <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >     
-        {QAState?.levAsset != undefined ? <><HStack justifyContent="space-between">
+        {QAState?.levAssets?.[levAssetIndex] != undefined ? <><HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
-            value={QAState?.levAsset} 
-            onChange={onMenuChange}
+            value={QAState?.levAssets[levAssetIndex]} 
+            onChange={(value) => onMenuChange(value, levAssetIndex)}
             assets={assets}
           />
           <Input 
@@ -103,11 +79,11 @@ type Props = {
             textAlign={"center"} 
             placeholder="0" 
             type="number" 
-            value={inputAmount} 
+            value={inputAmounts[levAssetIndex]} 
             onChange={handleInputChange}
           />
         </HStack>
-        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.levAsset} label={QAState?.levAsset?.symbol} />        
+        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.levAssets[levAssetIndex]} label={QAState?.levAssets?.[levAssetIndex].symbol} />        
         </> : null}  
       </Stack>
     )

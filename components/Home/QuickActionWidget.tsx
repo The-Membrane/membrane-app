@@ -173,7 +173,6 @@ const QuickActionWidget = () => {
 
 
   const newLevAsset = () => {
-    console.log(assets, quickActionState?.levAssets)
     if (!assets || assets.length === 0 || !quickActionState?.levAssets) return
     //Get lev asset denoms
     let levDenoms = quickActionState?.levAssets?.map((asset) => asset.base)
@@ -189,6 +188,7 @@ const QuickActionWidget = () => {
       levAssets: quickActionState?.levAssets,
       assets: newAssets,
     })
+    console.log(assets, quickActionState?.levAssets, newAssets)
   }
 
   ///////Basic Onboarding Card///////
@@ -254,7 +254,7 @@ const QuickActionWidget = () => {
             setInputAmounts={setInputAmount} 
             levAssetIndex={index+1}/>
          })}</> : null}
-        <Text fontSize="14px" textDecoration={"underline"} onClick={newLevAsset} justifyContent={"center"} display={"flex"}>
+        <Text cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={newLevAsset} justifyContent={"center"} display={"flex"}>
           Add Asset
         </Text> 
         <Card>  

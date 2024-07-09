@@ -285,7 +285,7 @@ const QuickActionWidget = () => {
          {((LevAssets?.[0].sliderValue??0 < 222) && (LevAssets?.[0].sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
           </Text>
-          : levAssets.length === 0 ?
+          : levAssets.length === 0 && (LevAssets?.length??[]) === 0 ?
           <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             No available collateral assets in your wallet. 
             {/* Add Onboarding Button here */}

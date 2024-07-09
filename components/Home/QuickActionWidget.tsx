@@ -177,14 +177,17 @@ const QuickActionWidget = () => {
     if (!assets || assets.length === 0 || !quickActionState?.levAssets) return
     //Get lev asset denoms
     let levDenoms = quickActionState?.levAssets?.map((asset) => asset.base)
-    let newAssets = levAssets.filter((asset) => {
+    var newAssets = levAssets.filter((asset) => {
       if (!asset) return false
       if (levDenoms.includes(asset.base) ) return false
       else return true
     })
     //Add new levAssets
     if (newAssets.length > 0) quickActionState?.levAssets?.push(newAssets[0])
-    if (newAssets.length === 1) setAddAssetStyle({display: "none"})
+    if (newAssets.length === 1) {
+      setAddAssetStyle({display: "none"})
+      newAssets = []
+    }
     //Set new assets
     setQuickActionState({
       levAssets: quickActionState?.levAssets,

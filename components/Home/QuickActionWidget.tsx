@@ -171,6 +171,7 @@ const QuickActionWidget = () => {
   }, [QAAssets, LevAssets?.[0].symbol])
 
 
+  const [addAssetStyle, setAddAssetStyle] = useState({display: "flex"})
 
   const newLevAsset = () => {
     if (!assets || assets.length === 0 || !quickActionState?.levAssets) return
@@ -182,13 +183,16 @@ const QuickActionWidget = () => {
       else return true
     })
     //Add new levAssets
-    if (newAssets.length > 0) quickActionState?.levAssets?.push(newAssets[0]); else return
+    if (newAssets.length > 0) quickActionState?.levAssets?.push(newAssets[0])
+      else {
+      setAddAssetStyle({display: "none"})
+      return
+    }
     //Set new assets
     setQuickActionState({
       levAssets: quickActionState?.levAssets,
       assets: newAssets,
     })
-    console.log(assets, quickActionState?.levAssets, newAssets)
   }
 
   ///////Basic Onboarding Card///////
@@ -254,7 +258,7 @@ const QuickActionWidget = () => {
             setInputAmounts={setInputAmount} 
             levAssetIndex={index+1}/>
          })}</> : null}
-        <Text cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={newLevAsset} justifyContent={"center"} display={"flex"}>
+        <Text style={addAssetStyle} cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={newLevAsset} justifyContent={"center"}>
           Add Asset
         </Text> 
         <Card>  

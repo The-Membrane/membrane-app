@@ -24,6 +24,7 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
       
       //Find the asset in quickActionState levAssets and update the sliderValue
       let found = quickActionState?.assets.findIndex((levAsset) => asset.symbol === levAsset.symbol)
+      console.log(quickActionState.levAssets?.find((levAsset) => asset.symbol === levAsset.symbol), asset.symbol, quickActionState.levAssets)
       if(found > 0 && quickActionState.levAssets?.find((levAsset) => asset.symbol === levAsset.symbol)) quickActionState.levAssets[found] = asset
 
       return {

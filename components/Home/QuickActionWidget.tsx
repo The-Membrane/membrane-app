@@ -173,6 +173,7 @@ const QuickActionWidget = () => {
 
 
   const newLevAsset = () => {
+    console.log(assets, quickActionState?.levAssets)
     if (!assets || assets.length === 0 || !quickActionState?.levAssets) return
     //Get lev asset denoms
     let levDenoms = quickActionState?.levAssets?.map((asset) => asset.base)

@@ -33,7 +33,7 @@ const QuickActionWidget = () => {
   const Prices = useMemo(() => { return prices }, [prices])
   const Summary = useMemo(() => {  return summary }, [summary])
   const QAAssets = useMemo(() => { return quickActionState?.assets }, [quickActionState?.assets])
-  const LevAssets = useMemo(() => { return quickActionState?.levAssets }, [quickActionState?.levAssets])
+  const LevAssets = useMemo(() => { return quickActionState?.levAssets??[] }, [quickActionState?.levAssets])
   
   //Set QAState summary within a Memo
   useEffect(() => {
@@ -214,7 +214,7 @@ const QuickActionWidget = () => {
             {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
           </ConfirmModal>
         </Stack>
-        : QAAssets.length === 0 && LevAssets.length === 0 ? 
+        : QAAssets.length === 0 && LevAssets?.length === 0 ? 
         <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...
         </Text>

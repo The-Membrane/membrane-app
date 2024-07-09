@@ -160,9 +160,11 @@ const QuickActionWidget = () => {
   //We should jsut do this in the AssetSlider component
   useEffect(() => {
     if (quickActionState?.assets && quickActionState?.levAssets?.[0].symbol != undefined) {
+      console.log("attempting to find asset")
       for (let i = 0; i < quickActionState?.levAssets?.length; i++) {
         let found = quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAssets?.[i].symbol)
         if(found) quickActionState.levAssets[i] = found
+        console.log(found)
       }
       // let found = quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAssets?.[0].symbol)
       // if(found) quickActionState.levAssets[0] = found

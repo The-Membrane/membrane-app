@@ -214,11 +214,11 @@ const QuickActionWidget = () => {
             {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
           </ConfirmModal>
         </Stack>
-        : QAAssets.length === 0 && levAssets.length === 0 ? 
+        : QAAssets.length === 0 && (LevAssets?.length??[]) === 0 ? 
         <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...
         </Text>
-        : levAssets.length === 0 ?
+        : levAssets.length === 0 && (LevAssets?.length??[]) === 0 ?
         <Text fontSize="sm" color="white" mt="2" minH="21px">
           This tool only accepts volatile assets as collateral. Check the Mint tab to use stablecoins & bundles.
           {/* Add Onboarding Button here */}

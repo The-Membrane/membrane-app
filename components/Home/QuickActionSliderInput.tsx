@@ -30,6 +30,8 @@ type Props = {
     setInputAmounts: (value: number[]) => void
     levAssetIndex: number
   }
+
+  ////Remove menu options for assets that aren't the last 1
   
   export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", assets, QAState, setQAState, onMenuChange, inputAmounts, setInputAmounts, levAssetIndex }: SliderWithInputProps) => {
       const onSliderChange = (value: number) => {      

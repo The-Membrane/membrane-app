@@ -85,7 +85,7 @@ type Props = {
             onChange={handleInputChange}
           />
         </HStack>
-        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.levAssets[levAssetIndex]} label={QAState?.levAssets?.[levAssetIndex].symbol} />        
+        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.levAssets[levAssetIndex]} label={QAState?.levAssets?.[levAssetIndex].symbol} levAssetIndex={levAssetIndex} />        
         </> : null}  
       </Stack>
     )

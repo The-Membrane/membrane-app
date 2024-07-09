@@ -9,9 +9,10 @@ export type AssetWithSliderProps = {
   label: string
   asset: AssetWithBalance
   onChangeExt: (value: number) => void
+  levAssetIndex: number
 }
 
-export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetWithSliderProps) => {
+export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt, levAssetIndex }: AssetWithSliderProps) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
 
   const onChange = (value: number) => {
@@ -40,7 +41,7 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
     })
     //Find the asset in quickActionState levAssets and update the sliderValue
     let found = updatedAssets.find((asset) => asset.symbol === label)
-    if(found && quickActionState.levAssets) quickActionState.levAssets[0] = found
+    if(found && quickActionState.levAssets) quickActionState.levAssets[levAssetIndex] = found
 
     const { summary, totalUsdValue } = getSummary(updatedAssets)
 

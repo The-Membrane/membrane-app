@@ -171,7 +171,7 @@ const QuickActionWidget = () => {
       })
     }
     
-  }, [QAAssets, LevAssets?.map((asset) => asset.symbol)])
+  }, [QAAssets, LevAssets?.[0].symbol])
 
 
   const [addAssetStyle, setAddAssetStyle] = useState({display: "flex"})

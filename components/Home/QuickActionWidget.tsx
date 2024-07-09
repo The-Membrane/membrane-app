@@ -182,7 +182,7 @@ const QuickActionWidget = () => {
       else return true
     })
     //Add new levAssets
-    if (newAssets.length > 0) quickActionState?.levAssets?.push(newAssets[0])
+    if (newAssets.length > 0) quickActionState?.levAssets?.push(newAssets[0]); else return
     //Set new assets
     setQuickActionState({
       levAssets: quickActionState?.levAssets,

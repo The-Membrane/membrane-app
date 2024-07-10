@@ -33,8 +33,7 @@ const QuickActionWidget = () => {
   const Prices = useMemo(() => { return prices }, [prices])
   const Summary = useMemo(() => {  return summary }, [summary])
   const QAAssets = useMemo(() => { return quickActionState?.assets }, [quickActionState?.assets])
-  const LevAssets = useMemo(() => { return quickActionState?.levAssets }, [quickActionState?.levAssets])  
-  // const LevSymbols = useMemo(() => { console.log(LevAssets); return LevAssets?.map((asset) => asset.symbol) }, [quickActionState?.levAssets])
+  const { LevAssets, LevSymbols } = useMemo(() => { return { LevAssets: quickActionState?.levAssets, LevSymbols: quickActionState?.levAssets?.map((asset) => asset.symbol) } }, [quickActionState?.levAssets])  
   console.log("la", LevAssets, LevSymbols);
   
   //Set QAState summary within a Memo
@@ -243,7 +242,7 @@ const QuickActionWidget = () => {
         <SliderWithInputBox
             max={LevAssets?.[0].combinUsdValue??0}
             inputBoxWidth='42%'
-            assets={levAssets.filter((asset) => LevAssets?.map((asset) => asset.symbol)?.includes(asset.symbol) === false)}
+            assets={levAssets.filter((asset) => LevSymbols?.includes(asset.symbol) === false)}
             QAState={quickActionState}
             setQAState={setQuickActionState}
             onMenuChange={onLevAssetMenuChange}
@@ -258,7 +257,7 @@ const QuickActionWidget = () => {
             key={asset.symbol}
             max={asset.combinUsdValue??0}
             inputBoxWidth='42%'
-            assets={levAssets.filter((asset) => LevAssets?.map((asset) => asset.symbol)?.includes(asset.symbol) === false)}
+            assets={levAssets.filter((asset) => LevSymbols?.includes(asset.symbol) === false)}
             QAState={quickActionState}
             setQAState={setQuickActionState}
             onMenuChange={onLevAssetMenuChange}

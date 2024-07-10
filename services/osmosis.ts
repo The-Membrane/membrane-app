@@ -550,6 +550,8 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
     var iterations = 0;
 
     while (route != undefined && route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] && iterations < 5) {
+        if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
+
         //Find the key from this denom
         let routeDenom = route[route.length - 1].tokenOutDenom as string;
         //Set the next node in the route path
@@ -558,7 +560,6 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
         route = route.concat(cdtRoutes[routeKey as keyof exported_supportedAssets]);
 
         //output to test
-        console.log(route[route.length - 1].tokenOutDenom, denoms[tokenOut??"USDC"][0] as string)
         if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
         iterations += 1;
     }

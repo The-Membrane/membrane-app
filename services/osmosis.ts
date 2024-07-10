@@ -558,7 +558,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
         route = route.concat(cdtRoutes[routeKey as keyof exported_supportedAssets]);
 
         //output to test
-        // console.log(route[route.length - 1].tokenOutDenom)
+        console.log(route[route.length - 1].tokenOutDenom, denoms[tokenOut??"USDC"][0] as string)
         if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
         iterations += 1;
     }

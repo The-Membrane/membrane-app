@@ -33,7 +33,7 @@ const QuickActionWidget = () => {
   const Prices = useMemo(() => { return prices }, [prices])
   const Summary = useMemo(() => {  return summary }, [summary])
   const QAAssets = useMemo(() => { return quickActionState?.assets }, [quickActionState?.assets])
-  const { LevAssets, LevSymbols } = useMemo(() => { return { LevAssets: quickActionState?.levAssets, LevSymbols: quickActionState?.levAssets?.map((asset) => asset.symbol) } }, [quickActionState?.levAssets])  
+  const { LevAssets, LevSymbols } = useMemo(() => {console.log("lev changes"); return { LevAssets: quickActionState?.levAssets, LevSymbols: quickActionState?.levAssets?.map((asset) => asset.symbol) } }, [quickActionState?.levAssets])  
   console.log("la", LevAssets, LevSymbols, quickActionState?.levAssets?.map((asset) => asset.symbol), LevAssets?.map((asset) => asset.symbol));
   
   //Set QAState summary within a Memo

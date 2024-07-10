@@ -132,9 +132,9 @@ const QuickActionWidget = () => {
   }, [QAAssets])
   //
   useEffect(() => {
-    if (!quickActionState?.levAssets && (quickActionState?.assets??[]).length > 0) {
+    if (!quickActionState?.levAssets && (quickActionState?.assets??[]).length > 0 && LevAssets) {
       setQuickActionState({
-        levAssets:  [quickActionState?.assets[0]], 
+        levAssets:  [LevAssets[0]], 
       })
     }
   }, [QAAssets, WalletBalances])
@@ -176,7 +176,7 @@ const QuickActionWidget = () => {
       })
     }
     
-  }, [QAAssets, LevAssets?.[0].symbol])
+  }, [QAAssets])
 
 
   const [addAssetStyle, setAddAssetStyle] = useState({display: "flex"})

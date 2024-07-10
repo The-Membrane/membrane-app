@@ -132,9 +132,9 @@ const QuickActionWidget = () => {
   }, [QAAssets])
   //
   useEffect(() => {
-    if (!quickActionState?.levAssets && (quickActionState?.assets??[]).length > 0 && LevAssets) {
+    if (!quickActionState?.levAssets && (quickActionState?.assets??[]).length > 0) {
       setQuickActionState({
-        levAssets:  [LevAssets[0]], 
+        levAssets:  [levAssets[0]], 
       })
     }
   }, [QAAssets, WalletBalances])

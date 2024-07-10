@@ -276,7 +276,7 @@ const QuickActionWidget = () => {
             </Text>
             <Image src={LevAssets?.[0].logo} w="24px" h="24px" />    
             <Text fontSize="sm" color="white" mt="0" minH="21px">
-              : {num(parseInt(newPositionValue.toFixed(0))??0).div(LevAssets?.[0].sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(LevAssets?.[0].sliderValue).times(swapRatio))).div(LevAssets?.[0].sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage
+              : {num(parseInt(newPositionValue.toFixed(0))??0).div(LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(LevAssets?.[0].sliderValue).times(swapRatio))).div(LevAssets?.[0].sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage
             </Text>
           </HStack>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
@@ -305,7 +305,7 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        isDisabled={(LevAssets?.[0].sliderValue??0) < 222}
+        // isDisabled={(LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0) < 222}
         >
           <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={Summary}/>
         </ConfirmModal></>}

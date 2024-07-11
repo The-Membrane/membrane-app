@@ -17,7 +17,7 @@ const useQuickActionVaultSummary = () => {
   //Calc totalvalue with an assumption that the second asset in the summary is a stable
   const totalUsdValue = useMemo(() => {
     if (!quickActionState?.summary || quickActionState?.summary.length === 0 ) return 0
-    return quickActionState?.summary[0].sliderValue??0 + (quickActionState?.summary[1].amount as number)??0
+    return quickActionState?.summary.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0
   }, [quickActionState?.summary])
 
   return useMemo(() => {

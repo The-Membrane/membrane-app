@@ -67,6 +67,12 @@ type Props = {
         }
       }, [QAState?.levAssets?.[levAssetIndex].sliderValue])
       
+      const removeLevAsset = (index: number) => {
+        let newLevAssets = QAState.levAssets?.filter((_, i) => i != index)
+        setQAState({levAssets: newLevAssets})
+        let newInputAmounts = inputAmounts.filter((_, i) => i != index)
+        setInputAmounts(newInputAmounts)
+      }
   
       return (
       <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >     
@@ -76,7 +82,7 @@ type Props = {
             onChange={(value) => onMenuChange(value, levAssetIndex)}
             assets={assets}
           />          
-          <Button variant="ghost" leftIcon={<GrClose />} onClick={()=>{}}/>
+          <Button width={"0%"} minWidth={"0%"} variant="ghost" leftIcon={<GrClose style={{marginInlineEnd: 0}}/>} onClick={()=>{removeLevAsset(levAssetIndex)}}/>
           <Input 
             width={inputBoxWidth} 
             textAlign={"center"} 

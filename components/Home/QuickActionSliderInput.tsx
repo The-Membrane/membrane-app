@@ -82,7 +82,7 @@ type Props = {
             onChange={(value) => onMenuChange(value, levAssetIndex)}
             assets={assets}
           />          
-          { levAssetIndex != 0 ? <Button width={"0%"} minWidth={"0%"} variant="ghost" leftIcon={<GrClose style={{marginInlineEnd: "0rem"}}/>} onClick={()=>{removeLevAsset(levAssetIndex)}}/> : null}
+          { levAssetIndex != 0 ? <Button width={"0%"} minWidth={"0%"} variant="ghost" rightIcon={<GrClose/> } onClick={()=>{removeLevAsset(levAssetIndex)}}/> : null}
           <Input 
             width={inputBoxWidth} 
             textAlign={"center"} 

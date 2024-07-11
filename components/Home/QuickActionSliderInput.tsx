@@ -1,4 +1,4 @@
-import { HStack, Input, Stack } from "@chakra-ui/react"
+import { Button, HStack, Input, Stack } from "@chakra-ui/react"
 import { QuickActionAssetWithSlider } from "./QuickActionAssetSlider"
 import { ChangeEvent, useEffect } from "react"
 import { num } from "@/helpers/num"
@@ -7,7 +7,7 @@ import { QuickActionState } from "./hooks/useQuickActionState"
 import QASelect from "../QuickActionSelect"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import React from "react"
-import { shiftDigits } from "@/helpers/math"
+import { GrClose } from 'react-icons/gr'
 
 type Props = {
     value: string
@@ -75,7 +75,8 @@ type Props = {
             value={QAState?.levAssets[levAssetIndex]} 
             onChange={(value) => onMenuChange(value, levAssetIndex)}
             assets={assets}
-          />
+          />          
+          <Button variant="ghost" leftIcon={<GrClose />} onClick={()=>{}}/>
           <Input 
             width={inputBoxWidth} 
             textAlign={"center"} 

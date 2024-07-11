@@ -148,7 +148,7 @@ const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
         basket,
         TVL, 
         0, 
-        Math.max(borrowLTV, 45),
+        Math.min(borrowLTV, 45),
         positions
       )
       console.log("loop msgs", loops) 

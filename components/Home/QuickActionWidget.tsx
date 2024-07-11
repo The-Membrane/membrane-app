@@ -47,7 +47,7 @@ const QuickActionWidget = () => {
   },[Summary])
   
   const drawdown = useMemo(() => {
-      console.log("BOOM BOOM")
+      console.log("BOOM BOOM", borrowLTV, liqudationLTV)
     return num(Math.max(borrowLTV, 45)).dividedBy(liqudationLTV).minus(1).abs().times(100).toFixed(1)
   }, [borrowLTV, liqudationLTV])
   
@@ -270,7 +270,7 @@ const QuickActionWidget = () => {
             </Text>
           </HStack>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-              <span style={{fontWeight:"bold"}}>Drawdown Safety:</span> {drawdown === "NaN" ? 0 : `~${drawdown}`}%
+              <span style={{fontWeight:"bold"}}>Drawdown Safety:</span> {`~${drawdown}`}%
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
             <span style={{fontWeight:"bold"}}>Cost:</span> {cost.toFixed(4)}% / year

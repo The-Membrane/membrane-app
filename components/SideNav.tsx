@@ -123,6 +123,7 @@ function SideNav(){
         <Text cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
         Check For Claims
         </Text>
+        {enable_msgs ? <UniversalButtons /> : null}
         <Stack>          
             {/* Liquidate Button */}
             <ConfirmModal
@@ -133,7 +134,6 @@ function SideNav(){
             <LiqSummary liquidations={liq_summ}/>
             </ConfirmModal>  
         </Stack>
-      {enable_msgs ? <UniversalButtons /> : null}
 
       <BalanceCard />
     </Stack>

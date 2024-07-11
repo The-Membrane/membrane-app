@@ -48,7 +48,7 @@ const QuickActionWidget = () => {
   
   const drawdown = useMemo(() => {
       console.log("BOOM BOOM", borrowLTV, liqudationLTV)
-    if (borrowLTV === 0 || liqudationLTV === 0) return 0
+    if (borrowLTV === 0 || borrowLTV === "NaN" ||  liqudationLTV === 0 || liquidationLTV === "NaN") return 0
     return num(Math.min(borrowLTV, 45)).dividedBy(liqudationLTV).minus(1).abs().times(100).toFixed(1)
   }, [borrowLTV, liqudationLTV])
   

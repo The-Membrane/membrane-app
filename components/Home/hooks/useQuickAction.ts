@@ -138,7 +138,7 @@ const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
       const TVL = quickActionState?.levAssets.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)
       console.log("QA positionID", positionId)
       const { msgs: loops, newValue, newLTV } = loopPosition(
-        true,
+        false,
         cdtPrice,
         mintLTV.toNumber(),
         positionId, 
@@ -151,7 +151,7 @@ const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
         Math.max(borrowLTV, 45),
         positions
       )
-      // console.log("loop msgs", loops) 
+      console.log("loop msgs", loops) 
       // msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue
       

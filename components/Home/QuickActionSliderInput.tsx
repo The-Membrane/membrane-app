@@ -1,4 +1,4 @@
-import { Button, HStack, Input, Stack } from "@chakra-ui/react"
+import { Box, Button, HStack, Input, Stack } from "@chakra-ui/react"
 import { QuickActionAssetWithSlider } from "./QuickActionAssetSlider"
 import { ChangeEvent, useEffect } from "react"
 import { num } from "@/helpers/num"
@@ -82,7 +82,9 @@ type Props = {
             onChange={(value) => onMenuChange(value, levAssetIndex)}
             assets={assets}
           />          
-          { levAssetIndex != 0 ? <Button width={"0%"} minWidth={"0%"} variant="ghost" rightIcon={<GrClose/> } onClick={()=>{removeLevAsset(levAssetIndex)}}/> : null}
+          { levAssetIndex != 0 ? <Button width={"0%"} minWidth={"0%"} variant="ghost" rightIcon={
+            <Box as="span" sx={{marginInlineEnd: "0rem"}}>< GrClose/> </Box>
+            } onClick={()=>{removeLevAsset(levAssetIndex)}}/> : null}
           <Input 
             width={inputBoxWidth} 
             textAlign={"center"} 

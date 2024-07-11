@@ -39,12 +39,12 @@ const QuickActionWidget = () => {
   // console.log("la", LevAssets, LevSymbols);
   
   //Set QAState summary within a Memo
-  useEffect(() => {
-    if (quickActionState.summary && quickActionState.summary != summary){
-      console.log("BANG BANG BANG")
-      setQuickActionState({ summary })
-    }
-  },[Summary])
+  // useEffect(() => {
+  //   if (quickActionState.summary && quickActionState.summary != summary){
+  //     console.log("BANG BANG BANG")
+  //     setQuickActionState({ summary })
+  //   }
+  // },[Summary])
   
   const drawdown = useMemo(() => {
       console.log("BOOM BOOM", borrowLTV, liqudationLTV)

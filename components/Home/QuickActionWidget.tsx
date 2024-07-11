@@ -305,7 +305,7 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        isDisabled={(LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0) < 222}
+        isDisabled={TVL < 222}
         >
           <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} summary={Summary}/>
         </ConfirmModal></>}

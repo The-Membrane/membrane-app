@@ -35,8 +35,7 @@ const QuickActionWidget = () => {
   const Prices = useMemo(() => { return prices }, [prices])
   const Summary = useMemo(() => {  return summary }, [summary])
   const QAAssets = useMemo(() => { return quickActionState?.assets }, [quickActionState?.assets])
-  const LevAssets = useMemo(() => { return quickActionState?.levAssets }, [quickActionState?.levAssets])  
-  const TVL = useMemo(() => { return LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0 }, [LevAssets])
+  const LevAssets = useMemo(() => { return quickActionState?.levAssets }, [quickActionState?.levAssets])
   // console.log("la", LevAssets, LevSymbols);
   
   //Set QAState summary within a Memo
@@ -276,7 +275,7 @@ const QuickActionWidget = () => {
             </Text>
             <Image src={LevAssets?.[0].logo} w="24px" h="24px" />    
             <Text fontSize="sm" color="white" mt="0" minH="21px">
-              : {num(parseInt(newPositionValue.toFixed(0))??0).div(TVL).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : num(parseInt(newPositionValue.toFixed(0))??0).div(TVL).multipliedBy(100).toFixed(0)}% Leverage
+              : {num(parseInt(newPositionValue.toFixed(0))??0).div((LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0)).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : num(parseInt(newPositionValue.toFixed(0))??0).div((LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0)).multipliedBy(100).toFixed(0)}% Leverage
             </Text>
           </HStack>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
@@ -305,7 +304,7 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        isDisabled={TVL < 222}
+        isDisabled={(LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0) < 222}
         >
           <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} summary={Summary}/>
         </ConfirmModal></>}

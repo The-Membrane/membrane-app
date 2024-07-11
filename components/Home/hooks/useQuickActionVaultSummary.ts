@@ -18,7 +18,7 @@ const useQuickActionVaultSummary = () => {
   const totalUsdValue = useMemo(() => {
     if (!quickActionState?.levAssets || quickActionState?.levAssets.length === 0 ) return 0
     return quickActionState?.levAssets.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0
-  }, [quickActionState?.levAssets])
+  }, [quickActionState?.assets])
 
   return useMemo(() => {
     if (!quickActionState?.levAssets){
@@ -52,7 +52,7 @@ const useQuickActionVaultSummary = () => {
     basketPositions,
     collateralInterest,
     prices,
-    quickActionState?.levAssets,
+    quickActionState?.assets,
     totalUsdValue
   ])
 }

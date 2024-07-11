@@ -40,7 +40,7 @@ const useQuickActionVaultSummary = () => {
       positionIndex: 0,
       prices,
       newDeposit: totalUsdValue,
-      summary: quickActionState?.summary,
+      summary: quickActionState?.levAssets as any[],
       mint: 0,
       initialBorrowLTV: 0,
       initialLTV: 0,
@@ -52,7 +52,7 @@ const useQuickActionVaultSummary = () => {
     basketPositions,
     collateralInterest,
     prices,
-    quickActionState?.summary,
+    quickActionState?.levAssets,
     totalUsdValue
   ])
 }

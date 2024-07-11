@@ -257,7 +257,8 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     if (LTV > borrowLTV / 100) {
         // console.log("Desired LTV is over the Position's borrowable LTV")
         console.log(LTV, borrowLTV / 100)
-        return { msgs: [], newValue: 0, newLTV: 0 };
+        LTV = borrowLTV / 100;
+        // return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop

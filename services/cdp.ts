@@ -363,6 +363,7 @@ export const calculateVaultSummary = ({
       liqudationLTV: 0,
     }
   }
+  console.log("running summ")
   const tvl = initialTVL + newDeposit
   const { cost, ratios} = getRateCost(positions, tvl, basketAssets)
   const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).multipliedBy(basket.credit_price.price).toNumber())

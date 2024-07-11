@@ -14,11 +14,11 @@ const useQuickActionVaultSummary = () => {
   const { data } = useInitialVaultSummary()
   const { basketAssets } = data || {}
 
-  //Calc totalvalue with an assumption that the second asset in the summary is a stable
+  //Calc totalvalue
   const totalUsdValue = useMemo(() => {
-    if (!quickActionState?.summary || quickActionState?.summary.length === 0 ) return 0
-    return quickActionState?.summary.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0
-  }, [quickActionState?.summary])
+    if (!quickActionState?.levAssets || quickActionState?.levAssets.length === 0 ) return 0
+    return quickActionState?.levAssets.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0
+  }, [quickActionState?.levAssets])
 
   return useMemo(() => {
     if (!quickActionState?.levAssets){

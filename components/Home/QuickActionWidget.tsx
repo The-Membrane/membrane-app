@@ -48,17 +48,8 @@ const QuickActionWidget = () => {
   
   const drawdown = useMemo(() => {
       console.log("BOOM BOOM")
-    //new ratio post max vol drawdown
-    const volRatio = num(45).dividedBy(num(liqudationLTV)).times(358).dividedBy(
-      num(45).dividedBy(num(liqudationLTV)).times(358).plus(44.4)
-    )
-    const stableRatio = volRatio.minus(1).abs()
-
-    //Calc new LTV post drawdown
-    const newLTV = volRatio.times(liqudationLTV).plus(stableRatio.times(96))
-    // console.log( "drawdown:", volRatio, stableRatio, newLTV)
-    return num(45).dividedBy(newLTV).minus(1).abs().times(100).toFixed(1)
-  }, [liqudationLTV])
+    return num(Math.max(borrowLTV, 45)).dividedBy(liqudationLTV).minus(1).abs().times(100).toFixed(1)
+  }, [borrowLTV, liqudationLTV])
   
   const [ inputAmounts, setInputAmount ] = useState([0]);
   

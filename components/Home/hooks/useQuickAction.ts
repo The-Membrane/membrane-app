@@ -152,7 +152,7 @@ const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
         positions
       )
       console.log("loop msgs", loops) 
-      // msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
+      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue
       
       return { msgs, loop_msgs: loops as MsgExecuteContractEncodeObject[], newPositionValue, summary }
@@ -166,14 +166,17 @@ const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
   }, [queryData])
 
   const onInitialSuccess = () => {
-    setQuickActionState({ readyToLoop: true })
-  }
-
-  const onLoopSuccess = () => {    
+    // setQuickActionState({ readyToLoop: true })
     queryClient.invalidateQueries({ queryKey: ['positions'] })    
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
-    setQuickActionState({ readyToLoop: false })
+  }
+
+  const onLoopSuccess = () => {    
+    // queryClient.invalidateQueries({ queryKey: ['positions'] })    
+    // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    // if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
+    // setQuickActionState({ readyToLoop: false })
   }
 
   // console.log("loop_msgs", loop_msgs)

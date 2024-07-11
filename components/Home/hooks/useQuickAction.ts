@@ -61,7 +61,7 @@ const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
       basketPositions,
     ],
     queryFn: () => {
-      if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAssets) return { msgs: undefined, loop_msgs: undefined, newPositionValue: 0, summary: []}
+      if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAssets || borrowLTV === 0) return { msgs: undefined, loop_msgs: undefined, newPositionValue: 0, summary: []}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")

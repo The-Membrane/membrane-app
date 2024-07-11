@@ -256,7 +256,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Confirm desired LTV isn't over the borrowable LTV
     if (LTV > borrowLTV / 100) {
         // console.log("Desired LTV is over the Position's borrowable LTV")
-        // console.log(LTV, borrowLTV / 100)
+        console.log(LTV, borrowLTV / 100)
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Get position cAsset ratios 
@@ -266,7 +266,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
-        // console.log("Desired LTV is under the Position's current LTV")
+        console.log("Desired LTV is under the Position's current LTV")
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Repeat until CDT to mint is under 1 or Loops are done
@@ -282,7 +282,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
         // console.log("mintAmount", mintAmount)
         if (!mintAmount) {
-            // console.log("mintAmount please return us")
+            console.log("mintAmount please return us", mintAmount)
             return { msgs: [], newValue: 0, newLTV: 0 };
         }
         //Create mint msg

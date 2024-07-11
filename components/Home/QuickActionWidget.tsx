@@ -25,7 +25,9 @@ const QuickActionWidget = () => {
   const { data: walletBalances } = useBalance("osmosis")
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { action: quickAction, loop, newPositionValue, swapRatio, summary } = useQuickAction()
+
+  const { cost, liqudationLTV, borrowLTV } = useQuickActionVaultSummary()
+  const { action: quickAction, loop, newPositionValue, summary } = useQuickAction({ borrowLTV })
 
   
   const WalletBalances = useMemo(() => { return walletBalances }, [walletBalances])
@@ -44,8 +46,6 @@ const QuickActionWidget = () => {
       setQuickActionState({ summary })
     }
   },[Summary])
-
-  const { cost, liqudationLTV } = useQuickActionVaultSummary()
   
   const drawdown = useMemo(() => {
       console.log("BOOM BOOM")
@@ -287,7 +287,7 @@ const QuickActionWidget = () => {
           </Text>
           <Divider mx="0" mt="2" mb="2"/>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-          max {SWAP_SLIPPAGE}% slippage when swapping 20% to USDC
+          max {SWAP_SLIPPAGE}% slippage when looping
           </Text>
         </Card>
          {((LevAssets?.[0].sliderValue??0 < 222) && (LevAssets?.[0].sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
@@ -305,9 +305,9 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        // isDisabled={(LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0) < 222}
+        isDisabled={(LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0) < 222}
         >
-          <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={Summary}/>
+          <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} summary={Summary}/>
         </ConfirmModal></>}
     </Card>
     </HStack>

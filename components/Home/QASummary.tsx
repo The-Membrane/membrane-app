@@ -70,22 +70,12 @@ const SummaryItem = ({
   </HStack>
 )
 
-export const QASummary = ({ newPositionValue, swapRatio, summary } : {newPositionValue: number, swapRatio: number, summary: any[]}) => {
+export const QASummary = ({ newPositionValue, summary } : {newPositionValue: number, summary: any[]}) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  // const cdt = useAssetBySymbol('CDT')
-  // const usdc = useAssetBySymbol('USDC')
+  const TVL = (quickActionState?.levAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0)
 
   return (
     <Stack h="max-content" overflow="auto" w="full">
-
-      <SummaryItem
-        key={quickActionState?.levAsset?.symbol??"" + quickActionState?.levAsset?.amount}
-        label={quickActionState?.levAsset?.symbol??""}
-        amount={num(quickActionState?.levAsset?.amount).times(swapRatio).toNumber()}
-        logo={quickActionState?.levAsset?.logo}
-        isLP={quickActionState?.levAsset?.isLP}
-        badge={"Swap"}
-      />
 
       {summary.map((asset) => {
         const badge = 'Deposit'
@@ -102,14 +92,14 @@ export const QASummary = ({ newPositionValue, swapRatio, summary } : {newPositio
       })}
 
       <SummaryItem
-        key={quickActionState?.levAsset?.symbol??"" + quickActionState?.levAsset?.amount}
-        label={quickActionState?.levAsset?.symbol??""}
-        amount={num(quickActionState?.levAsset?.amount).times(quickActionState?.levSwapRatio??0).toNumber()}
-        logo={quickActionState?.levAsset?.logo}
-        isLP={quickActionState?.levAsset?.isLP}
+        key={""}
+        label={quickActionState?.levAssets?.[0].symbol??""}
+        amount={num(quickActionState?.levAssets?.[0].amount).toNumber()}
+        logo={quickActionState?.levAssets?.[0].logo}
+        isLP={quickActionState?.levAssets?.[0].isLP}
         badge={"LOOP"}
-        startingValue={quickActionState?.levAsset?.sliderValue??0}
-        newValue={num(newPositionValue).minus(num(quickActionState?.levAsset?.sliderValue).times(swapRatio)).toNumber()}
+        startingValue={TVL}
+        newValue={newPositionValue}
       />
       <Checkbox isChecked={quickActionState.useCookies} paddingBottom={"4%"} borderColor={"#00A3F9"} onChange={() => {setQuickActionState({useCookies: !quickActionState.useCookies})}}> 
         Use cookies to track performance

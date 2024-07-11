@@ -34,7 +34,7 @@ type QueryData = {
   claims: ClaimsSummary
 }
 
-const useProtocolClaims = () => {
+const useProtocolClaims = ({ enable_msgs }: { enable_msgs: boolean }) => {
   const claims_summary: ClaimsSummary = {
     liquidation: [],
     sp_unstaking: [],
@@ -98,9 +98,10 @@ const useProtocolClaims = () => {
   const UnstakeMsgs = useMemo(() => { return unstakeClaim.msgs }, [unstakeClaim.msgs])
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg all protocol claims', address, ClaimMsgs, StakingMsgs, UnstakeMsgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
+    queryKey: ['msg all protocol claims', enable_msgs, address, ClaimMsgs, StakingMsgs, UnstakeMsgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
     queryFn: () => {
       console.log("claim attempt");
+      if(!enable_msgs || !address) return { msgs: [], claims: claims_summary }
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
         /////Add Liquidation claims/////        

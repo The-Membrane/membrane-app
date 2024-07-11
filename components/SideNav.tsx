@@ -94,6 +94,8 @@ function SideNav(){
   const [cdtPrice, setcdtPrice ] = useState(" ")
   const price = getCDTPrice()
   if (price != cdtPrice && price != '0') setcdtPrice(price)
+    
+  const [enable_msgs, setEnableMsgs] = useState(false)
   
   return (
     <>
@@ -114,7 +116,10 @@ function SideNav(){
         ))}
         <WallectConnect />
       </Stack>
-      <UniversalButtons />
+        <Text cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={() => setEnableMsgs(true)} justifyContent={"center"}>
+        Check For Claims
+        </Text> 
+      {enable_msgs ? <UniversalButtons /> : null}
 
       <BalanceCard />
     </Stack>

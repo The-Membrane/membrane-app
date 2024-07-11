@@ -7,23 +7,16 @@ import useProtocolClaims from './hooks/useClaims'
 import useProtocolLiquidations from './hooks/useLiquidations'
 
 function UniversalButtons(){
-    //Disable claims for a time period to allow simulates to run
-    const [enable_msgs, setEnableMsgs] = useState(false)
-    // setTimeout(() => setEnableMsgs(true), 2222);
-
-    const { action: claim, claims_summary } = useProtocolClaims({ enable_msgs })
+    const { action: claim, claims_summary } = useProtocolClaims()
     const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
 
-
-    // if ((claim?.simulate.isError || !claim?.simulate.data || !enable_msgs || claims_summary.length === 0) && (liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs || liq_summ.length === 0)) return null
-
     return (
-        <Stack as="uniButtons" gap="1" onClick={() => setEnableMsgs(true)}>
+        <Stack as="uniButtons" gap="1">
             {/* Claim Button */}
             <ConfirmModal
-            label={ enable_msgs ? 'Claim' : 'Check 4 Claims' }
+            label={ 'Claim' }
             action={claim}
-            isDisabled={!enable_msgs || claims_summary.length === 0}
+            isDisabled={claims_summary.length === 0}
             // isLoading={false}
             >
             <ClaimSummary claims={claims_summary}/>
@@ -32,7 +25,7 @@ function UniversalButtons(){
             <ConfirmModal
             label={ 'Liquidate' }
             action={liquidate}
-            isDisabled={!enable_msgs || liq_summ.length === 0}
+            isDisabled={liq_summ.length === 0}
             // isLoading={false}
             >
             <LiqSummary liquidations={liq_summ}/>

@@ -17,6 +17,9 @@ import { useOraclePrice } from '@/hooks/useOracle'
 
 import { HamburgerIcon } from "@chakra-ui/icons";
 import UniversalButtons from './Nav/UniversalButtons'
+import useProtocolLiquidations from './Nav/hooks/useLiquidations'
+import ConfirmModal from './ConfirmModal'
+import { LiqSummary } from './Nav/LiqSummary'
 
 type NavItems = {
   label: string
@@ -96,6 +99,7 @@ function SideNav(){
   if (price != cdtPrice && price != '0') setcdtPrice(price)
     
   const [enable_msgs, setEnableMsgs] = useState(false)
+  const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
   
   return (
     <>
@@ -116,9 +120,19 @@ function SideNav(){
         ))}
         <WallectConnect />
       </Stack>
-        <Text cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={() => setEnableMsgs(true)} justifyContent={"center"}>
+        <Text cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
         Check For Claims
-        </Text> 
+        </Text>
+        <Stack>          
+            {/* Liquidate Button */}
+            <ConfirmModal
+            label={ 'Liquidate' }
+            action={liquidate}
+            isDisabled={liq_summ.length === 0}
+            >
+            <LiqSummary liquidations={liq_summ}/>
+            </ConfirmModal>  
+        </Stack>
       {enable_msgs ? <UniversalButtons /> : null}
 
       <BalanceCard />

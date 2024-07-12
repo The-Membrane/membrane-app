@@ -4,7 +4,8 @@ import { Box, HStack, Stack, Text, Image, IconButton,
   ModalContent,
   ModalCloseButton,
   ModalBody,
-  VStack} from '@chakra-ui/react'
+  VStack,
+  Button} from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { useState } from 'react'
@@ -119,9 +120,9 @@ function SideNav(){
         ))}
         <WallectConnect />
       </Stack>
-        <Text cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
+        <Button textAlign="center" fontSize="14px" textDecoration={"underline"} onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
         Check For Claims & Liquidations
-        </Text>
+        </Button>
         {enable_msgs ? 
             <UniversalButtons />    
         : null}

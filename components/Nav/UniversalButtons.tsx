@@ -4,6 +4,7 @@ import ConfirmModal from '../ConfirmModal'
 import { ClaimSummary } from '../Bid/ClaimSummary'
 import useProtocolClaims from './hooks/useClaims'
 import useProtocolLiquidations from './hooks/useLiquidations'
+import { LiqSummary } from './LiqSummary'
 
 function UniversalButtons(){
     const { action: claim, claims_summary } = useProtocolClaims()

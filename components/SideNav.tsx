@@ -99,7 +99,6 @@ function SideNav(){
   if (price != cdtPrice && price != '0') setcdtPrice(price)
     
   const [enable_msgs, setEnableMsgs] = useState(false)
-  const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
   
   return (
     <>
@@ -124,17 +123,7 @@ function SideNav(){
         Check For Claims & Liquidations
         </Text>
         {enable_msgs ? 
-        <Stack>       
             <UniversalButtons />    
-            {/* Liquidate Button */}
-            <ConfirmModal
-            label={ 'Liquidate' }
-            action={liquidate}
-            isDisabled={liq_summ.length === 0}
-            >
-            <LiqSummary liquidations={liq_summ}/>
-            </ConfirmModal>  
-        </Stack>
         : null}
 
       <BalanceCard />

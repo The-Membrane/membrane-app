@@ -121,10 +121,11 @@ function SideNav(){
         <WallectConnect />
       </Stack>
         <Text cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
-        Check For Claims
+        Check For Claims & Liquidations
         </Text>
-        {enable_msgs ? <UniversalButtons /> : null}
-        <Stack>          
+        {enable_msgs ? 
+        <Stack>       
+            <UniversalButtons />    
             {/* Liquidate Button */}
             <ConfirmModal
             label={ 'Liquidate' }
@@ -134,6 +135,7 @@ function SideNav(){
             <LiqSummary liquidations={liq_summ}/>
             </ConfirmModal>  
         </Stack>
+        : null}
 
       <BalanceCard />
     </Stack>

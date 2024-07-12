@@ -120,7 +120,7 @@ function SideNav(){
         ))}
         <WallectConnect />
       </Stack>
-        <Button textAlign="center" fontSize="12.5px" onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
+        <Button textAlign="center" whiteSpace={"prewrap"} fontSize="14px" onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
         Check For Claims & Liquidations
         </Button>
         {enable_msgs ? 

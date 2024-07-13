@@ -4,7 +4,8 @@ import { Box, HStack, Stack, Text, Image, IconButton,
   ModalContent,
   ModalCloseButton,
   ModalBody,
-  VStack} from '@chakra-ui/react'
+  VStack,
+  Button} from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { useState } from 'react'
@@ -17,6 +18,9 @@ import { useOraclePrice } from '@/hooks/useOracle'
 
 import { HamburgerIcon } from "@chakra-ui/icons";
 import UniversalButtons from './Nav/UniversalButtons'
+import useProtocolLiquidations from './Nav/hooks/useLiquidations'
+import ConfirmModal from './ConfirmModal'
+import { LiqSummary } from './Nav/LiqSummary'
 
 type NavItems = {
   label: string
@@ -94,6 +98,8 @@ function SideNav(){
   const [cdtPrice, setcdtPrice ] = useState(" ")
   const price = getCDTPrice()
   if (price != cdtPrice && price != '0') setcdtPrice(price)
+    
+  const [enable_msgs, setEnableMsgs] = useState(false)
   
   return (
     <>
@@ -114,7 +120,12 @@ function SideNav(){
         ))}
         <WallectConnect />
       </Stack>
-      <UniversalButtons />
+        <Button textAlign="center" whiteSpace={"prewrap"} fontSize="14px" onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
+        Check For Claims & Liquidations
+        </Button>
+        {enable_msgs ? 
+            <UniversalButtons />    
+        : null}
 
       <BalanceCard />
     </Stack>

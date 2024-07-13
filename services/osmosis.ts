@@ -256,8 +256,9 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Confirm desired LTV isn't over the borrowable LTV
     if (LTV > borrowLTV / 100) {
         // console.log("Desired LTV is over the Position's borrowable LTV")
-        // console.log(LTV, borrowLTV / 100)
-        return { msgs: [], newValue: 0, newLTV: 0 };
+        console.log(LTV, borrowLTV / 100)
+        LTV = borrowLTV / 100;
+        // return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
@@ -266,7 +267,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
-        // console.log("Desired LTV is under the Position's current LTV")
+        console.log("Desired LTV is under the Position's current LTV")
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Repeat until CDT to mint is under 1 or Loops are done
@@ -282,7 +283,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
         // console.log("mintAmount", mintAmount)
         if (!mintAmount) {
-            // console.log("mintAmount please return us")
+            console.log("mintAmount please return us", mintAmount)
             return { msgs: [], newValue: 0, newLTV: 0 };
         }
         //Create mint msg
@@ -550,6 +551,8 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
     var iterations = 0;
 
     while (route != undefined && route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] && iterations < 5) {
+        if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
+
         //Find the key from this denom
         let routeDenom = route[route.length - 1].tokenOutDenom as string;
         //Set the next node in the route path
@@ -558,7 +561,6 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
         route = route.concat(cdtRoutes[routeKey as keyof exported_supportedAssets]);
 
         //output to test
-        // console.log(route[route.length - 1].tokenOutDenom)
         if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
         iterations += 1;
     }

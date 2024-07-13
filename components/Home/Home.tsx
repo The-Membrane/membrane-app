@@ -9,7 +9,7 @@ import PerformanceStats from './PerformanceStats'
 import useWallet from '@/hooks/useWallet'
 
 const Home = React.memo(() => {
-  const isMobile = useBreakpointValue({ base: true, md: false })
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   const { isWalletConnected } = useWallet()
 
   return (

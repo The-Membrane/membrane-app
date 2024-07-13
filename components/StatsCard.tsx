@@ -47,7 +47,7 @@ export const StatsCard = React.memo(() => {
       
       <Stack gap={3}>
         <Text  onClick={()=>setTitleToggle(!titleToggle)} fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
-        80/20 Fortified Leverage to Fight Volatility
+        FortiFi your Leverage to Fight Volatility
         </Text>
         <Button alignSelf="center" width="20%" minWidth="130px" onClick={() => setOpen(true)}>
           Add Funds

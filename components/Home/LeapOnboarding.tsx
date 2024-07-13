@@ -22,13 +22,26 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
     return basketAssets.map((asset) => asset.asset.base)
    }, [basketAssets])
 
-  const { connect,  wallet } = useWallet()
-  const walletName = wallet?.prettyName
+  const { connect,  wallet, isWalletConnected } = useWallet()
 
-  const walletType = useMemo(() => {
-    // based on the wallet you've connected, map it to the wallet type enum
-    return walletName?.toLowerCase() as WalletType
-  }, [walletName])
+  const connectedWallet: WalletType | undefined = useMemo(() => {
+    if (!isWalletConnected) {
+      return undefined
+    }
+    switch (wallet?.name) {
+      case 'leap-extension':
+        return WalletType.LEAP
+      case 'keplr-extension':
+        return WalletType.KEPLR
+      case 'leap-cosmos-mobile':
+        return WalletType.WC_LEAP_MOBILE
+      case 'keplr-cosmos-mobile':
+        return WalletType.WC_KEPLR_MOBILE
+      default:
+        return undefined
+    }
+  }, [isWalletConnected, wallet])
+
 
   const onCloseModal = () => {
     setOpen(false)
@@ -53,7 +66,7 @@ const OnboardModal = ({ isOpen, setOpen } : { isOpen: boolean, setOpen: any }) =
             <ElementsProvider
                 primaryChainId="cosmoshub-4"
                 connectWallet={connect}
-                connectedWalletType={walletType}
+                connectedWalletType={connectedWallet}
             >
                 <Swaps
                 className='leap-dialog-content'

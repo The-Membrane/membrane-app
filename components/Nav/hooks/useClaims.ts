@@ -42,6 +42,7 @@ const useProtocolClaims = () => {
     vesting: []
   };
   const { address } = useWallet()
+  console.log("claim logic")
 
   //Liquidations
   const { data: claims } = useCheckClaims()

@@ -9,9 +9,10 @@ export type AssetWithSliderProps = {
   label: string
   asset: AssetWithBalance
   onChangeExt: (value: number) => void
+  levAssetIndex: number
 }
 
-export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetWithSliderProps) => {
+export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt, levAssetIndex }: AssetWithSliderProps) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
 
   const onChange = (value: number) => {
@@ -21,7 +22,16 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
       
       const newDeposit = num(sliderValue).toNumber()
       const amount = num(newDeposit).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
-      console.log(asset.symbol, amount, asset.decimal, asset.price, sliderValue)
+      
+      //Find the asset in quickActionState levAssets and update the sliderValue
+      // let found = quickActionState?.assets?.findIndex((levAsset) => asset.symbol === levAsset.symbol)
+      // // console.log(quickActionState.levAssets?.find((levAsset) => asset.symbol === levAsset.symbol), quickActionState.levAssets?.find((levAsset) => asset.symbol === levAsset.symbol) != undefined, asset.symbol, quickActionState.levAssets)
+      // if((found??0) > 0 && quickActionState.levAssets) quickActionState.levAssets[found??0] = {
+      //   ...asset,
+      //   amount,
+      //   sliderValue,
+      // }
+      // && quickActionState.levAssets?.find((levAsset) => asset.symbol === levAsset.symbol) != undefined
 
       return {
         ...asset,
@@ -29,6 +39,9 @@ export const QuickActionAssetWithSlider = ({ asset, label, onChangeExt }: AssetW
         sliderValue,
       }
     })
+    //Find the asset in updatedAssets and update the levAssets sliderValue
+    // let found = updatedAssets.find((asset) => asset.symbol === label)
+    // if(found && quickActionState.levAssets) quickActionState.levAssets[levAssetIndex] = found
 
     const { summary, totalUsdValue } = getSummary(updatedAssets)
 

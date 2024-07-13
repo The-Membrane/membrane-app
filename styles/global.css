@@ -3,6 +3,10 @@
     left: 6% !important;
 }
 
+/* .chakra-button__icon {
+    margin-inline-end: 0rem !important;
+} */
+
 /* Small devices (phones, 600px and below) */
 @media (max-width: 600px) {
     .leap-ui {        

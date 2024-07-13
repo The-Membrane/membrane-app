@@ -54,9 +54,9 @@ const PerformanceStats = ({ positionIndex }: Props) => {
         </Text>
         <HStack>
           <Text fontWeight="bold" fontSize="16px">
-            {levAsset?.symbol??"N/A"} 
+            Position {positionIndex + 1}
           </Text>
-          <Image src={levAsset?.logo} w="24px" h="24px" />                 
+          {/* <Image src={levAsset?.logo} w="24px" h="24px" /> */}
           <Text fontWeight="bold" fontSize="16px">
             |
           </Text>

@@ -25,7 +25,9 @@ const QuickActionWidget = () => {
   const { data: walletBalances } = useBalance("osmosis")
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { action: quickAction, loop, newPositionValue, swapRatio, summary } = useQuickAction()
+
+  const { cost, liqudationLTV, borrowLTV } = useQuickActionVaultSummary()
+  const { action: quickAction, loop, newPositionValue, summary } = useQuickAction({ borrowLTV })
 
   
   const WalletBalances = useMemo(() => { return walletBalances }, [walletBalances])
@@ -33,33 +35,24 @@ const QuickActionWidget = () => {
   const Prices = useMemo(() => { return prices }, [prices])
   const Summary = useMemo(() => {  return summary }, [summary])
   const QAAssets = useMemo(() => { return quickActionState?.assets }, [quickActionState?.assets])
-  const LevAsset = useMemo(() => { return quickActionState?.levAsset }, [quickActionState?.levAsset])
+  const LevAssets = useMemo(() => { return quickActionState?.levAssets }, [quickActionState?.levAssets])
+  // console.log("la", LevAssets, LevSymbols);
   
   //Set QAState summary within a Memo
-  useEffect(() => {
-    if (quickActionState.summary && quickActionState.summary != summary){
-      console.log("BANG BANG BANG")
-      setQuickActionState({ summary })
-    }
-  },[Summary])
-
-  const { cost, liqudationLTV } = useQuickActionVaultSummary()
+  // useEffect(() => {
+  //   if (quickActionState.summary && quickActionState.summary != summary){
+  //     console.log("BANG BANG BANG")
+  //     setQuickActionState({ summary })
+  //   }
+  // },[Summary])
   
   const drawdown = useMemo(() => {
-      console.log("BOOM BOOM")
-    //new ratio post max vol drawdown
-    const volRatio = num(45).dividedBy(num(liqudationLTV)).times(358).dividedBy(
-      num(45).dividedBy(num(liqudationLTV)).times(358).plus(44.4)
-    )
-    const stableRatio = volRatio.minus(1).abs()
-
-    //Calc new LTV post drawdown
-    const newLTV = volRatio.times(liqudationLTV).plus(stableRatio.times(96))
-    // console.log( "drawdown:", volRatio, stableRatio, newLTV)
-    return num(45).dividedBy(newLTV).minus(1).abs().times(100).toFixed(1)
-  }, [liqudationLTV])
+      console.log("BOOM BOOM", borrowLTV, liqudationLTV)
+    if (borrowLTV === 0 || borrowLTV === "NaN" ||  liqudationLTV === 0 || liqudationLTV === "NaN") return 0
+    return num(Math.min(borrowLTV, 45)).dividedBy(liqudationLTV).minus(1).abs().times(100).toFixed(1)
+  }, [borrowLTV, liqudationLTV])
   
-  const [ inputAmount, setInputAmount ] = useState(0);
+  const [ inputAmounts, setInputAmount ] = useState([0]);
   
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -130,16 +123,14 @@ const QuickActionWidget = () => {
   }, [QAAssets])
   //
   useEffect(() => {
-    console.log("here we go again")
-    if (!quickActionState?.levAsset && (quickActionState?.assets??[]).length > 0) {
+    if (!quickActionState?.levAssets && (quickActionState?.assets??[]).length > 0) {
       setQuickActionState({
-        levAsset:  quickActionState?.assets[0], 
+        levAssets:  [levAssets[0]], 
       })
     }
   }, [QAAssets, WalletBalances])
   
   useEffect(() => {
-    console.log("here we go agina agin")
     if (!quickActionState?.stableAsset && stableAssets.length > 0) {
       setQuickActionState({
         stableAsset:  stableAssets[0], 
@@ -147,23 +138,61 @@ const QuickActionWidget = () => {
     }
   }, [QAAssets, WalletBalances])
   
-  const onLevAssetMenuChange = (value: string) => {
+  const onLevAssetMenuChange = (value: string, index: number) => {
+    if (!quickActionState?.levAssets) return
+    //@ts-ignore
+    quickActionState.levAssets[index] = value
+    //
+    //Set
     setQuickActionState({
-      levAsset: value
+      levAssets: quickActionState?.levAssets
     })
   }
 
+  //This will likely need to be refactored to handle multiple assets
+  //We should jsut do this in the AssetSlider component
   useEffect(() => {
-    if (quickActionState?.assets && quickActionState?.levAsset?.symbol != undefined) {
+    if (quickActionState?.assets && quickActionState?.levAssets?.[0].symbol != undefined) {
+      console.log("attempting to find asset", quickActionState?.levAssets,  quickActionState?.assets)
+      for (let i = 0; i < quickActionState?.levAssets?.length; i++) {
+        let found = quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAssets?.[i].symbol)
+        if(found) quickActionState.levAssets[i] = found
+        console.log(i, found)
+      }
+      // let found = quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAssets?.[0].symbol)
+      // if(found) quickActionState.levAssets[0] = found
+
       setQuickActionState({
-        levAsset: quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAsset?.symbol),
+        levAssets: quickActionState.levAssets,
       })
     }
     
-  }, [QAAssets, LevAsset?.symbol])
+  }, [QAAssets])
 
-  // console.log(quickAction?.simulate.errorMessage, quickAction?.simulate.isError, !quickAction?.simulate.data)
-  // console.log("lev asset", LevAsset?.amount, LevAsset?.amount !== 0)
+
+  const [addAssetStyle, setAddAssetStyle] = useState({display: "flex"})
+
+  const newLevAsset = () => {
+    if (!assets || assets.length === 0 || !quickActionState?.levAssets) return
+    //Get lev asset denoms
+    let levDenoms = quickActionState?.levAssets?.map((asset) => asset.base)
+    var newAssets = levAssets.filter((asset) => {
+      if (!asset) return false
+      if (levDenoms.includes(asset.base) ) return false
+      else return true
+    })
+    //Add new levAssets
+    if (newAssets.length > 0) quickActionState?.levAssets?.push(newAssets[0])
+    if (newAssets.length === 1) {
+      setAddAssetStyle({display: "none"})
+      newAssets = []
+    }
+    //Set new assets
+    setQuickActionState({
+      levAssets: quickActionState?.levAssets,
+      // assets: newAssets,
+    })
+  }
 
   ///////Basic Onboarding Card///////
   return (
@@ -179,16 +208,16 @@ const QuickActionWidget = () => {
           <ConfirmModal 
           action={loop}
           label={"Loop"}
-          // isDisabled={(LevAsset?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
+          // isDisabled={(LevAssets?.sliderValue??0 + (quickActionState.stableAsset?.sliderValue??0)) < 222}
           >
             {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
           </ConfirmModal>
         </Stack>
-        : QAAssets.length === 0 ? 
+        : QAAssets.length === 0 && !LevAssets?.[0].symbol ? 
         <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...
         </Text>
-        : levAssets.length === 0 ?
+        : levAssets.length === 0 && (LevAssets?.length??[]) === 0 ?
         <Text fontSize="sm" color="white" mt="2" minH="21px">
           This tool only accepts volatile assets as collateral. Check the Mint tab to use stablecoins & bundles.
           {/* Add Onboarding Button here */}
@@ -203,40 +232,59 @@ const QuickActionWidget = () => {
         </Text> 
         <Divider mx="0" mt="0" mb="5"/>
         <SliderWithInputBox
-            max={LevAsset?.combinUsdValue??0}
+            max={LevAssets?.[0].combinUsdValue??0}
             inputBoxWidth='42%'
-            assets={levAssets}
+            assets={levAssets.filter((asset) => LevAssets?.map((asset) => asset.symbol)?.includes(asset.symbol) === false)}
             QAState={quickActionState}
             setQAState={setQuickActionState}
             onMenuChange={onLevAssetMenuChange}
-            inputAmount={inputAmount}
-            setInputAmount={setInputAmount}
+            inputAmounts={inputAmounts}
+            setInputAmounts={setInputAmount}
+            levAssetIndex={0}
         />
-        <Card>
+        {quickActionState?.levAssets && quickActionState?.levAssets?.length > 1 ? <>
+          {/* Map new sliders for new assets */}
+          {quickActionState?.levAssets?.slice(1).map((asset, index) => {
+            return <SliderWithInputBox
+            key={asset.symbol}
+            max={asset.combinUsdValue??0}
+            inputBoxWidth='42%'
+            assets={levAssets.filter((asset) => LevAssets?.map((asset) => asset.symbol)?.includes(asset.symbol) === false)}
+            QAState={quickActionState}
+            setQAState={setQuickActionState}
+            onMenuChange={onLevAssetMenuChange}
+            inputAmounts={inputAmounts}
+            setInputAmounts={setInputAmount} 
+            levAssetIndex={index+1}/>
+         })}</> : null}
+        <Text style={addAssetStyle} cursor="pointer" fontSize="14px" textDecoration={"underline"} onClick={newLevAsset} justifyContent={"center"}>
+          Add Asset
+        </Text> 
+        <Card>  
           <HStack>
             <Text fontWeight="bold" fontSize="16px">
-              {LevAsset?.symbol??"N/A"} 
+              {LevAssets?.[0].symbol??"N/A"} 
             </Text>
-            <Image src={LevAsset?.logo} w="24px" h="24px" />    
+            <Image src={LevAssets?.[0].logo} w="24px" h="24px" />    
             <Text fontSize="sm" color="white" mt="0" minH="21px">
-              : {num(parseInt(newPositionValue.toFixed(0))??0).div(LevAsset?.sliderValue??0).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : (num(parseInt(newPositionValue.toFixed(0))??0).minus(num(LevAsset?.sliderValue).times(swapRatio))).div(LevAsset?.sliderValue??0).multipliedBy(100).toFixed(0)}% Leverage
+              : {num(parseInt(newPositionValue.toFixed(0))??0).div((LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0)).multipliedBy(100).toFixed(0) === 'NaN' ? 0 : num(parseInt(newPositionValue.toFixed(0))??0).div((LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0)).multipliedBy(100).toFixed(0)}% Leverage
             </Text>
           </HStack>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-              <span style={{fontWeight:"bold"}}>Drawdown Safety:</span> {drawdown === "NaN" ? 0 : `~${drawdown}`}%
+              <span style={{fontWeight:"bold"}}>Drawdown Safety:</span> {`~${drawdown}`}%
           </Text>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-            <span style={{fontWeight:"bold"}}>Cost:</span> {cost.toFixed(4)}%
+            <span style={{fontWeight:"bold"}}>Cost:</span> {cost.toFixed(4)}% / year
           </Text>
           <Divider mx="0" mt="2" mb="2"/>
           <Text fontSize="sm" color="white" mt="2" minH="21px">
-          max {SWAP_SLIPPAGE}% slippage when swapping 20% to USDC
+          max {SWAP_SLIPPAGE}% slippage when looping
           </Text>
         </Card>
-         {((LevAsset?.sliderValue??0 < 222) && (LevAsset?.sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+         {((LevAssets?.[0].sliderValue??0 < 222) && (LevAssets?.[0].sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
           </Text>
-          : levAssets.length === 0 ?
+          : levAssets.length === 0 && (LevAssets?.length??[]) === 0 ?
           <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             No available collateral assets in your wallet. 
             {/* Add Onboarding Button here */}
@@ -248,9 +296,9 @@ const QuickActionWidget = () => {
         <ConfirmModal 
         action={quickAction}
         label={"Begin Degeneracy"}
-        isDisabled={(LevAsset?.sliderValue??0) < 222}
+        isDisabled={(LevAssets?.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0) < 222}
         >
-          <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={Summary}/>
+          <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} summary={Summary}/>
         </ConfirmModal></>}
     </Card>
     </HStack>

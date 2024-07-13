@@ -14,14 +14,14 @@ const useQuickActionVaultSummary = () => {
   const { data } = useInitialVaultSummary()
   const { basketAssets } = data || {}
 
-  //Calc totalvalue with an assumption that the second asset in the summary is a stable
+  //Calc totalvalue
   const totalUsdValue = useMemo(() => {
-    if (!quickActionState?.summary || quickActionState?.summary.length === 0 ) return 0
-    return quickActionState?.summary[0].sliderValue??0 + (quickActionState?.summary[1].amount as number)??0
-  }, [quickActionState?.summary])
+    if (!quickActionState?.levAssets || quickActionState?.levAssets.length === 0 ) return 0
+    return quickActionState?.levAssets.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0
+  }, [quickActionState?.assets])
 
   return useMemo(() => {
-    if (!quickActionState?.levAsset){
+    if (!quickActionState?.levAssets){
       return {
         debtAmount: 0,
         cost: 0,
@@ -40,7 +40,7 @@ const useQuickActionVaultSummary = () => {
       positionIndex: 0,
       prices,
       newDeposit: totalUsdValue,
-      summary: quickActionState?.summary,
+      summary: quickActionState?.levAssets as any[],
       mint: 0,
       initialBorrowLTV: 0,
       initialLTV: 0,
@@ -52,7 +52,7 @@ const useQuickActionVaultSummary = () => {
     basketPositions,
     collateralInterest,
     prices,
-    quickActionState?.summary,
+    quickActionState?.assets,
     totalUsdValue
   ])
 }

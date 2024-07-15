@@ -14,7 +14,7 @@ function SoloLeveling(){
 
     return (
       //@ts-ignore
-        <Stack as="solo-leveling" gap="1">
+        <Stack as="solo-leveling" gap="1" marginTop={1}>
             <Text fontSize="sm" color="whiteAlpha.700">
                 Level {level}: {points.stats.total_points} Joules
             </Text>

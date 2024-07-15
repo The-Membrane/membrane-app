@@ -19,7 +19,7 @@ export interface PointsReadOnlyInterface {
     limit?: number;
     startAfter?: string;
     user?: string;
-  }) => Promise<UserStatsResponse>;
+  }) => Promise<UserStatsResponse[]>;
 }
 export class PointsQueryClient implements PointsReadOnlyInterface {
   client: CosmWasmClient;
@@ -51,7 +51,7 @@ export class PointsQueryClient implements PointsReadOnlyInterface {
     limit?: number;
     startAfter?: string;
     user?: string;
-  }): Promise<UserStatsResponse> => {
+  }): Promise<UserStatsResponse[]> => {
     return this.client.queryContractSmart(this.contractAddress, {
       user_stats: {
         limit,

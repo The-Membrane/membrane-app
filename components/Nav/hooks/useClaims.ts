@@ -117,7 +117,7 @@ const useProtocolClaims = () => {
         //If there is anything to claim, claim
         if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
           // if (!stakingClaim?.action.simulate.isError){
-            // msgs = msgs.concat(stakingClaim.msgs ?? [])
+            msgs = msgs.concat(stakingClaim.msgs ?? [])
           // }
         }
         //If there is anything to unstake, unstake
@@ -128,12 +128,12 @@ const useProtocolClaims = () => {
           // console.log("made it here")
           // if (!unstakeClaim.action.simulate.isError){
             // console.log("adding unstaking claim")
-            // msgs = msgs.concat(unstakeClaim.msgs ?? [])         
+            msgs = msgs.concat(unstakeClaim.msgs ?? [])         
           // }
         }
         /////Add Vesting Claims////
         if ((claimables?.length??0) > 0){
-          // msgs = msgs.concat(claimFees.msgs ?? [])
+          msgs = msgs.concat(claimFees.msgs ?? [])
         }
 
         ///Add SP Unstaking////

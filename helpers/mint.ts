@@ -8,6 +8,7 @@ import { Coin, coin } from '@cosmjs/stargate'
 import { shiftDigits } from './math'
 import { getAssetBySymbol } from './chain'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import { PointsMsgComposer } from '@/contracts/codegen/points/Points.message-composer'
 
 // const getDeposited = (deposited = 0, newDeposit: string) => {
 //   const diff = num(newDeposit).minus(deposited).dp(6).toNumber()
@@ -222,11 +223,26 @@ export const getMintAndRepayMsgs = ({
   }
 
   if (num(repayAmount).isGreaterThan(0)) {
+    //Add points check/allocate before and after
+    const pointsMessageComposer = new PointsMsgComposer(address, contracts.points)
+    msgs.push(pointsMessageComposer.checkClaims({
+        cdpRepayment: true,
+        spClaims: false,
+        lqClaims: false,
+      }))
+
     const cdt = getAssetBySymbol('CDT')
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
     const funds = [coin(microAmount, cdt?.base!)]
     const repayMsg = messageComposer.repay({ positionId, sendExcessTo: address }, funds)
+    //Push repay msg
     msgs.push(repayMsg)
+    //Add points allocation after msgs    
+    msgs.push(pointsMessageComposer.givePoints({
+      cdpRepayment: true,
+      spClaims: false,
+      lqClaims: false,
+    }))
   }
 
   return msgs
@@ -240,7 +256,7 @@ export const getLiquidationMsgs = ({
   address,
   liq_info
 }: GetLiqMsgs) => {
-  const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
+  const messageComposer = new PointsMsgComposer(address, contracts.points)
   const msgs = [] as MsgExecuteContractEncodeObject[]
 
   liq_info.map((liq) => {

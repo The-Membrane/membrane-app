@@ -210,6 +210,7 @@ const useProtocolClaims = () => {
     else return queryData
   }, [queryData])
   
+  console.log("claims msgs:", msgs)
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })

@@ -15,7 +15,7 @@ function SoloLeveling(){
     return (
         <Stack as="solo-leveling" style={{marginTop: "6%"}}>
             <Text fontSize="sm" color="whiteAlpha.700">
-            <span style={{fontWeight: "bold"}}>Level {level}:</span> {points.stats.total_points} Joules
+            <span style={{fontWeight: "bold", color: "white"}}>Level {level}:</span> {points.stats.total_points} Joules
             </Text>
             <Slider
                 defaultValue={points_in_level}

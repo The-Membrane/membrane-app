@@ -11,8 +11,6 @@ export const PointsClient = async () => {
 export const getAllUserPoints = async () => {
   const client = await PointsClient()
   console.log("b4 query", client)
-  return client.userStats({ 
-    limit: 1024
-   })
+  return client.userStats({ })
 }
 

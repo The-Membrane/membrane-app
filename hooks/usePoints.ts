@@ -12,10 +12,11 @@ export const useAllUserPoints = () => {
 }
 
 export const useUserPoints = () => {
+  const { address } = useWallet()
+
     return useQuery({
-      queryKey: ['one_users_points'],
+      queryKey: ['one_users_points', address],
       queryFn: async () => {
-        const { address } = useWallet()
         const { data: points } = useAllUserPoints()
         if (!points) return
         return points.find((point) => point.user === address)

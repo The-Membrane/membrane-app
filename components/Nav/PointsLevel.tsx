@@ -9,7 +9,7 @@ function SoloLeveling(){
     const { level, points_in_level, levelup_max_points } = data || {
         level: 1,
         points_in_level: 0,
-        levelup_max_points: 0,
+        levelup_max_points: 1,
     }
 
     return (

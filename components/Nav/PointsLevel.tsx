@@ -13,8 +13,7 @@ function SoloLeveling(){
     }
 
     return (
-      //@ts-ignore
-        <Stack as="solo-leveling" gap="1" marginTop={1}>
+        <Stack as="solo-leveling" gap="1" marginTop={"1"} style={{marginTop: "1%"}}>
             <Text fontSize="sm" color="whiteAlpha.700">
                 Level {level}: {points.stats.total_points} Joules
             </Text>
@@ -23,8 +22,8 @@ function SoloLeveling(){
                 isReadOnly
                 cursor="default"
                 min={0}
-                max={100}
-                value={levelup_max_points}
+                max={levelup_max_points}
+                value={points_in_level}
               >
                 <SliderTrack h="1.5">
                   <SliderFilledTrack bg={'blue.400'} />

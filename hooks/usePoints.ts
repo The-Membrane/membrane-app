@@ -4,7 +4,7 @@ import useWallet from './useWallet'
 
 export const useAllUserPoints = () => {
   return useQuery({
-    queryKey: ['all users points'],
+    queryKey: ['all_users_points'],
     queryFn: async () => {
       return getAllUserPoints()
     },
@@ -13,7 +13,7 @@ export const useAllUserPoints = () => {
 
 export const useUserPoints = () => {
     return useQuery({
-      queryKey: ['one users points'],
+      queryKey: ['one_users_points'],
       queryFn: async () => {
         const { address } = useWallet()
         const { data: points } = useAllUserPoints()
@@ -25,7 +25,7 @@ export const useUserPoints = () => {
 
 export const useSoloLevel = () => {
     return useQuery({
-      queryKey: ['one users points level'],
+      queryKey: ['one_users_level'],
       queryFn: async () => {
         const { data: points } = useUserPoints()
         if (!points) return

@@ -26,6 +26,7 @@ const useCastVote = ({ proposalId, vote }: CastVoteParams) => {
       queryClient.invalidateQueries({ queryKey: ['proposal'] })
       queryClient.invalidateQueries({ queryKey: ['user voting power'] })
       queryClient.invalidateQueries({ queryKey: ['proposals'] })
+  
     },
   })
 }

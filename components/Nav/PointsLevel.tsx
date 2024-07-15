@@ -8,8 +8,8 @@ function SoloLeveling(){
     const { data: data } = useSoloLevel()
     const { level, points_in_level, levelup_max_points } = data || {
         level: 1,
-        points_in_level: 5,
-        levelup_max_points: 14,
+        points_in_level: 0,
+        levelup_max_points: 0,
     }
 
     return (

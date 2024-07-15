@@ -6,7 +6,7 @@ function SoloLeveling(){
     const { data: pointsData } = useUserPoints()
     const points = useMemo(() => {
       console.log("total p[oints", pointsData)
-      return pointsData || { stats: { total_points: 0 } }
+      return pointsData || { stats: { total_points: "0" } }
     }, [pointsData])
 
     const { data: data } = useSoloLevel()
@@ -21,7 +21,7 @@ function SoloLeveling(){
     return (
         <Stack as="solo-leveling" style={{marginTop: "6%"}}>
             <Text fontSize="sm" color="whiteAlpha.700">
-            <span style={{fontWeight: "bold", color: "white"}}>Level {level}:</span> {points.stats.total_points} Joules
+            <span style={{fontWeight: "bold", color: "white"}}>Level {level}:</span> {parseFloat(points.stats.total_points).toFixed(1)} Joules
             </Text>
             <Slider
                 defaultValue={points_in_level}

@@ -26,7 +26,7 @@ function SoloLeveling(){
                 value={points_in_level}
               >
                 <SliderTrack h="1.5">
-                  <SliderFilledTrack bg={'blue.400'} />
+                  <SliderFilledTrack bg={'rgb(196, 69, 240)'} />
                 </SliderTrack>
                 <SliderMark value={points_in_level}>
                   <Box bg="white" w="0.5" h="4" mt="-2" />

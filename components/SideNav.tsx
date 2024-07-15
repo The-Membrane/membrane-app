@@ -21,6 +21,7 @@ import UniversalButtons from './Nav/UniversalButtons'
 import useProtocolLiquidations from './Nav/hooks/useLiquidations'
 import ConfirmModal from './ConfirmModal'
 import { LiqSummary } from './Nav/LiqSummary'
+import SoloLeveling from './Nav/PointsLevel'
 
 type NavItems = {
   label: string
@@ -114,7 +115,9 @@ function SideNav(){
             </Text>
           </HStack>
         </Stack>
-        <Box h="10" />
+        {/* Put level here "D Rank Generator: 3403489 Juoules" */}
+        <SoloLeveling />
+        <Box h="3" />
         {navItems.map((item, index) => (
           <NavItem key={index} {...item} />
         ))}

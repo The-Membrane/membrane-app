@@ -14,11 +14,11 @@ export const useAllUserPoints = () => {
 
 export const useUserPoints = () => {
   const { address } = useWallet()
+  const { data: points } = useAllUserPoints()
 
     return useQuery({
-      queryKey: ['one users points', address],
+      queryKey: ['one users points', address, points],
       queryFn: async () => {
-        const { data: points } = useAllUserPoints()
         if (!points) return
         return points.find((point) => point.user === address)
       },
@@ -26,10 +26,11 @@ export const useUserPoints = () => {
 }
 
 export const useSoloLevel = () => {
+  const { data: points } = useUserPoints()
+  
     return useQuery({
-      queryKey: ['one users level'],
+      queryKey: ['one users level', points],
       queryFn: async () => {
-        const { data: points } = useUserPoints()
         if (!points) return
 
         //1 Level every 9 points + 1 per level, so Level 1 = 9 points, Level 2 = 19 points, etc.

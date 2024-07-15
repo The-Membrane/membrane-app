@@ -6,6 +6,7 @@ export const useAllUserPoints = () => {
   return useQuery({
     queryKey: ['all_users_points'],
     queryFn: async () => {
+      console.log("query all user points")
       return getAllUserPoints()
     },
   })

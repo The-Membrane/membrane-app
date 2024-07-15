@@ -3,6 +3,8 @@ import { getAllUserPoints } from '@/services/points'
 import useWallet from './useWallet'
 
 export const useAllUserPoints = () => {
+  console.log("run pls")
+  
   return useQuery({
     queryKey: ['all users points'],
     queryFn: async () => {
@@ -27,7 +29,7 @@ export const useUserPoints = () => {
 
 export const useSoloLevel = () => {
   const { data: points } = useUserPoints()
-  
+
     return useQuery({
       queryKey: ['one users level', points],
       queryFn: async () => {

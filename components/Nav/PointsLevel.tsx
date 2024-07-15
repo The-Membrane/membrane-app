@@ -1,16 +1,22 @@
 import { useUserPoints, useSoloLevel } from '@/hooks/usePoints'
 import { Stack, Text, Slider, SliderTrack, SliderFilledTrack, SliderMark, Box } from '@chakra-ui/react'
-import React  from 'react'
+import React, { useMemo }  from 'react'
 
 function SoloLeveling(){
     const { data: pointsData } = useUserPoints()
-    const points = pointsData || { stats: { total_points: 0 } }
+    const points = useMemo(() => {
+      console.log("total p[oints", pointsData)
+      return pointsData || { stats: { total_points: 0 } }
+    }, [pointsData])
+
     const { data: data } = useSoloLevel()
-    const { level, points_in_level, levelup_max_points } = data || {
+    const { level, points_in_level, levelup_max_points } = useMemo(() => {
+      console.log("solo leveling", data)
+      return data || {
         level: 1,
         points_in_level: 0,
         levelup_max_points: 1,
-    }
+    }}, [data])
 
     return (
         <Stack as="solo-leveling" style={{marginTop: "6%"}}>

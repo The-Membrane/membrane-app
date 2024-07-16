@@ -18,7 +18,7 @@ const VoteButton = ({ show, vote, proposalId, isEnded = false }: Props) => {
   const castVote = useCastVote({
     proposalId: Number(proposalId),
     vote,
-  })
+  }).action
 
   const { data: votingPower, isLoading } = useVotingPower(Number(proposalId))
 
@@ -36,8 +36,8 @@ const VoteButton = ({ show, vote, proposalId, isEnded = false }: Props) => {
       w="fit-content"
       fontSize="sm"
       isDisabled={!!!vote}
-      isLoading={castVote.isPending}
-      onClick={() => castVote.mutate()}
+      isLoading={castVote.tx.isPending}
+      onClick={() => castVote.tx.mutate()}
     >
       Vote
     </TxButton>

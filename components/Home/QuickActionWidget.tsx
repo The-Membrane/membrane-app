@@ -84,7 +84,6 @@ const QuickActionWidget = () => {
         .filter((asset) => {
           if (!asset) return false
            //This helps us decrease the menu size by removing dust
-           //Technically we could do anything under $110 as that's the minimum but for new users that adds confusion
           if (asset.combinUsdValue < 1) return false
           else return true
         })
@@ -108,7 +107,7 @@ const QuickActionWidget = () => {
 
     const levAssets = (quickActionState?.assets??[]).filter((asset) => {
       if (asset === undefined) return false
-      if (asset.isLP || asset.symbol === "USDC" || asset.symbol === "USDT" || asset.symbol === "USDC.axl") return false
+      if (asset.isLP || asset.symbol === "USDC" || asset.symbol === "USDT" || asset.symbol === "USDC.axl" || asset.symbol === "USDC.kava") return false
       else return true
     })
 
@@ -121,6 +120,7 @@ const QuickActionWidget = () => {
     return { levAssets, stableAssets }
 
   }, [QAAssets])
+  console.log("lev & QA", levAssets, QAAssets)
   //
   useEffect(() => {
     if (!quickActionState?.levAssets && (quickActionState?.assets??[]).length > 0) {
@@ -157,7 +157,6 @@ const QuickActionWidget = () => {
       for (let i = 0; i < quickActionState?.levAssets?.length; i++) {
         let found = quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAssets?.[i].symbol)
         if(found) quickActionState.levAssets[i] = found
-        console.log(i, found)
       }
       // let found = quickActionState?.assets.find((asset) => asset.symbol === quickActionState?.levAssets?.[0].symbol)
       // if(found) quickActionState.levAssets[0] = found
@@ -213,6 +212,10 @@ const QuickActionWidget = () => {
             {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
           </ConfirmModal>
         </Stack>
+        : QAAssets.length === 0 && !LevAssets?.[0].symbol && walletBalances ?
+        <Text fontSize="sm" fontWeight={"bold"} color="red.500" mt="2" minH="21px">
+          No available collateral assets in your wallet, onboard to Osmosis above.
+        </Text>
         : QAAssets.length === 0 && !LevAssets?.[0].symbol ? 
         <Text variant="body" fontSize="16px" marginTop={1}>
             Loading your available collateral assets...
@@ -283,11 +286,6 @@ const QuickActionWidget = () => {
         </Card>
          {((LevAssets?.[0].sliderValue??0 < 222) && (LevAssets?.[0].sliderValue??0) != 0) ? <Text fontSize="sm" color="red.500" mt="2" minH="21px">
             Minimum to leverage: $222. Please add more collateral.
-          </Text>
-          : levAssets.length === 0 && (LevAssets?.length??[]) === 0 ?
-          <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-            No available collateral assets in your wallet. 
-            {/* Add Onboarding Button here */}
           </Text>
           : null }
         </Stack>

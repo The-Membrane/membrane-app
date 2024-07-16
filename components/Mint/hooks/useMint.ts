@@ -53,9 +53,9 @@ const useMint = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     setMintState({positionNumber: 1, mint: 0, repay: 0, summary: []})
     //Reset points queries
-    queryClient.invalidateQueries({ queryKey: ['all_users_points'] })
-    queryClient.invalidateQueries({ queryKey: ['one_users_points'] })
-    queryClient.invalidateQueries({ queryKey: ['one_users_level'] })
+    queryClient.invalidateQueries({ queryKey: ['all users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users level'] })
   }
 
   return useSimulateAndBroadcast({

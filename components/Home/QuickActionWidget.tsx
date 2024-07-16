@@ -212,7 +212,7 @@ const QuickActionWidget = () => {
             {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
           </ConfirmModal>
         </Stack>
-        : QAAssets.length === 0 && !LevAssets?.[0].symbol && walletBalances != undefined ?
+        : QAAssets.length === 0 && !LevAssets?.[0].symbol && walletBalances.length === 0 ?
         <Text fontSize="sm" color="red.500" mt="2" minH="21px">
           No available collateral assets in your wallet, Onboard to Osmosis above.
         </Text>

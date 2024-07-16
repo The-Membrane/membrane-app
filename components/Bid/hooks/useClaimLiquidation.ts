@@ -69,9 +69,9 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
     queryClient.invalidateQueries({ queryKey: ['user bids'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     //Reset points queries
-    queryClient.invalidateQueries({ queryKey: ['all_users_points'] })
-    queryClient.invalidateQueries({ queryKey: ['one_users_points'] })
-    queryClient.invalidateQueries({ queryKey: ['one_users_level'] })
+    queryClient.invalidateQueries({ queryKey: ['all users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users level'] })
 
   }
 

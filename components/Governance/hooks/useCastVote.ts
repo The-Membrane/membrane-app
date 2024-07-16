@@ -58,9 +58,9 @@ const useCastVote = ({ proposalId, vote }: CastVoteParams) => {
     queryClient.invalidateQueries({ queryKey: ['user voting power'] })
     queryClient.invalidateQueries({ queryKey: ['proposals'] })  
     //Reset points queries
-    queryClient.invalidateQueries({ queryKey: ['all_users_points'] })
-    queryClient.invalidateQueries({ queryKey: ['one_users_points'] })
-    queryClient.invalidateQueries({ queryKey: ['one_users_level'] })
+    queryClient.invalidateQueries({ queryKey: ['all users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users level'] })
   }
 
   return {

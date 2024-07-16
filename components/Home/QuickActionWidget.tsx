@@ -23,6 +23,7 @@ const QuickActionWidget = () => {
   const { isWalletConnected, address } = useWallet("osmosis")
 
   const { data: walletBalances } = useBalance("osmosis")
+  console.log("how long is wallet balances undefined:", walletBalances)
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
 
@@ -212,7 +213,7 @@ const QuickActionWidget = () => {
             {/* <QASummary newPositionValue={parseInt(newPositionValue.toFixed(0))} swapRatio={swapRatio} summary={summary}/> */}
           </ConfirmModal>
         </Stack>
-        : QAAssets.length != 0 && levAssets.length === 0 ?
+        : QAAssets.length === 0 && !LevAssets?.[0].symbol &&  ?
         <Text fontSize="sm" color="red.500" mt="2" minH="21px">
           No available collateral assets in your wallet, Onboard to Osmosis above.
         </Text>

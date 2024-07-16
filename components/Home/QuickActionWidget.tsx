@@ -213,8 +213,8 @@ const QuickActionWidget = () => {
           </ConfirmModal>
         </Stack>
         : QAAssets.length === 0 && !LevAssets?.[0].symbol && walletBalances ?
-        <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-          No available collateral assets in your wallet, Onboard to Osmosis above.
+        <Text fontSize="sm" fontWeight={"bold"} color="red.500" mt="2" minH="21px">
+          No available collateral assets in your wallet, onboard to Osmosis above.
         </Text>
         : QAAssets.length === 0 && !LevAssets?.[0].symbol ? 
         <Text variant="body" fontSize="16px" marginTop={1}>

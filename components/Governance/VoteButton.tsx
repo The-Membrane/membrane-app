@@ -5,7 +5,6 @@ import useCastVote from './hooks/useCastVote'
 import { ProposalVoteOption } from '@/contracts/codegen/governance/Governance.types'
 import { TxButton } from '@/components/TxButton'
 import useVotingPower from './hooks/useVotingPower'
-import EndProposalButton from './EndProposalButton'
 
 type Props = {
   show: boolean

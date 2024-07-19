@@ -35,6 +35,8 @@ const ActionButtons = ({
     return <ConnectButton w="200px" onClick={connect}/>
   }
 
+  console.log("GOV LOGS", isEnded, !isExecuteAllowed, proposal.proposal_id)
+
   return (
     <Fragment>
       <RemoveButton show={isRemoveAllowed} proposalId={proposal.proposal_id} />

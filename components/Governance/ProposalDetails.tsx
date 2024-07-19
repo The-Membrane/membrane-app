@@ -204,8 +204,11 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
   const isVoteAllowed =
     (proposal?.status === 'active' || proposal?.status === 'pending') && !proposalDetails?.voted
   const isPending = proposal?.status === 'pending'
+    
+  const { days, hours, minutes } = proposal?.daysLeft || {}
+  const isEnded = !days && !hours && !minutes
 
-  console.log("GOV GOV", proposal?.status, proposal?.badge, isVoteAllowed , isRemoveAllowed, isExecuteAllowed)
+  console.log("GOV GOV", isEnded)
 
   return (
     <>
@@ -286,7 +289,7 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
               <Voted proposalDetails={proposalDetails} />
             </Stack>
           </ModalBody>
-          {(isVoteAllowed || isRemoveAllowed || isExecuteAllowed) && (
+          {(isVoteAllowed || isRemoveAllowed || isExecuteAllowed || isEnded) && (
             <ModalFooter
               as={HStack}
               justifyContent="end"

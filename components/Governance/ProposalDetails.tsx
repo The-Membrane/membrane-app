@@ -205,6 +205,8 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
     (proposal?.status === 'active' || proposal?.status === 'pending') && !proposalDetails?.voted
   const isPending = proposal?.status === 'pending'
 
+  console.log("GOV GOV", proposal?.status, proposal?.badge, isVoteAllowed , isRemoveAllowed, isExecuteAllowed)
+
   return (
     <>
       <Button onClick={onOpen} variant="unstyled" fontWeight="normal" mb="3">

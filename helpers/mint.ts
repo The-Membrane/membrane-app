@@ -213,8 +213,13 @@ export const getMintAndRepayMsgs = ({
 }: GetMintAndRepayMsgs) => {
   const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
   const msgs = []
-  
+
   if (num(mintAmount).isGreaterThan(0)) {
+    //Add accrue msg
+    const accrueMsg = messageComposer.accrue({ positionIds: [positionId], positionOwner: address })
+    msgs.push(accrueMsg)
+
+    //Add Mint msg  
     const mintMsg = messageComposer.increaseDebt({
       positionId,
       amount: shiftDigits(mintAmount, 6).dp(0).toString(),

@@ -57,7 +57,7 @@ const useMint = () => {
     queryClient.invalidateQueries({ queryKey: ['one users points'] })
     queryClient.invalidateQueries({ queryKey: ['one users level'] })
   }
-
+  console.log("mint msgs:", msgs)
   return useSimulateAndBroadcast({
     msgs,
     queryKey: [

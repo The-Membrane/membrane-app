@@ -7,6 +7,7 @@
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
 import { Uint128, Uint256, Addr, ClaimCheck, ClaimsResponse, Coin, Decimal, Config, ExecuteMsg, InstantiateMsg, QueryMsg, UserStatsResponse, UserStats } from "./Points.types";
+import { UserInfo } from "../positions/Positions.types";
 export interface PointsReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<Config>;
@@ -97,7 +98,7 @@ export interface PointsInterface extends PointsReadOnlyInterface {
     spClaims,
     vote
   }: {
-    cdpRepayment: boolean;
+    cdpRepayment: UserInfo;
     lqClaims: boolean;
     spClaims: boolean;
     vote?: number[];
@@ -189,7 +190,7 @@ export class PointsClient extends PointsQueryClient implements PointsInterface {
     spClaims,
     vote
   }: {
-    cdpRepayment: boolean;
+    cdpRepayment: UserInfo;
     lqClaims: boolean;
     spClaims: boolean;
     vote?: number[];

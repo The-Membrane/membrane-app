@@ -8,6 +8,8 @@ import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
 import { Uint128, Uint256, Addr, ClaimCheck, ClaimsResponse, Coin, Decimal, Config, ExecuteMsg, InstantiateMsg, QueryMsg, UserStatsResponse, UserStats } from "./Points.types";
+import { UserInfo } from "../positions/Positions.types";
+
 export interface PointsMsg {
   contractAddress: string;
   sender: string;
@@ -44,7 +46,7 @@ export interface PointsMsg {
     spClaims,
     vote
   }: {
-    cdpRepayment: boolean;
+    cdpRepayment: UserInfo;
     lqClaims: boolean;
     spClaims: boolean;
     vote?: number[];
@@ -141,7 +143,7 @@ export class PointsMsgComposer implements PointsMsg {
     spClaims,
     vote
   }: {
-    cdpRepayment: boolean;
+    cdpRepayment: UserInfo;
     lqClaims: boolean;
     spClaims: boolean;
     vote?: number[];

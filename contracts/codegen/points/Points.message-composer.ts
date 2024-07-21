@@ -46,7 +46,7 @@ export interface PointsMsg {
     spClaims,
     vote
   }: {
-    cdpRepayment: UserInfo;
+    cdpRepayment: UserInfo | undefined;
     lqClaims: boolean;
     spClaims: boolean;
     vote?: number[];
@@ -143,7 +143,7 @@ export class PointsMsgComposer implements PointsMsg {
     spClaims,
     vote
   }: {
-    cdpRepayment: UserInfo;
+    cdpRepayment: UserInfo | undefined;
     lqClaims: boolean;
     spClaims: boolean;
     vote?: number[];

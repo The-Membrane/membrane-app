@@ -36,7 +36,7 @@ const VoteButton = ({ show, vote, proposalId, isEnded = false }: Props) => {
       fontSize="sm"
       isDisabled={!!!vote}
       isLoading={castVote.tx.isPending}
-      onClick={() => castVote.tx.mutate()}
+      onClick={() => castVote.simulate.refetch().then( () => castVote.tx.mutate())}
     >
       Vote
     </TxButton>

@@ -199,6 +199,7 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
   const buttonLabel = proposal?.status === 'active' ? 'Vote' : 'View'
   const { data: proposalDetails } = useProposalById(Number(proposal?.proposal_id))
 
+  console.log(proposal?.proposal_id, proposal?.badge)
   const isExecuteAllowed = proposal?.badge === 'passed'
   const isRemoveAllowed = proposal?.submitter === address
   const isVoteAllowed =

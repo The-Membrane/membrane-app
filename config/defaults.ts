@@ -185,6 +185,12 @@ export const cdtRoutes = {
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
+  "LAB": [
+    {
+      poolId: BigInt(1655), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
   "MBRN": [
     {
       poolId: BigInt(1225),

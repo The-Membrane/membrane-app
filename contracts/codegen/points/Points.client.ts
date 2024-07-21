@@ -98,7 +98,7 @@ export interface PointsInterface extends PointsReadOnlyInterface {
     spClaims,
     vote
   }: {
-    cdpRepayment: UserInfo;
+    cdpRepayment: UserInfo | undefined;
     lqClaims: boolean;
     spClaims: boolean;
     vote?: number[];
@@ -190,7 +190,7 @@ export class PointsClient extends PointsQueryClient implements PointsInterface {
     spClaims,
     vote
   }: {
-    cdpRepayment: UserInfo;
+    cdpRepayment: UserInfo | undefined;
     lqClaims: boolean;
     spClaims: boolean;
     vote?: number[];

@@ -224,9 +224,6 @@ export const getMintAndRepayMsgs = ({
   }
 
   if (num(repayAmount).isGreaterThan(0)) {
-    //Add accrue msg
-    // const accrueMsg = messageComposer.accrue({ positionIds: [positionId], positionOwner: address })
-    // msgs.push(accrueMsg)
     //Add points check/allocate before and after
     const pointsMessageComposer = new PointsMsgComposer(address, contracts.points)
     msgs.push(pointsMessageComposer.checkClaims({

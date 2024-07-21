@@ -27,7 +27,7 @@ const useCastVote = ({ proposalId, vote }: CastVoteParams) => {
         const govMessageComposer = new GovernanceMsgComposer(address, contracts.governance)
         msgs.push(
           pointsMessageComposer.checkClaims({
-            cdpRepayment: false,
+            cdpRepayment: undefined,
             spClaims: false,
             lqClaims: false,
             vote: [proposalId],
@@ -67,7 +67,7 @@ const useCastVote = ({ proposalId, vote }: CastVoteParams) => {
     action: useSimulateAndBroadcast({
     msgs,
     queryKey: ['vote proposal sim and execute', (msgs?.toString() ?? '0')],
-    enabled: !!msgs,
+    enabled: true,
     onSuccess,
   }), msgs }
 

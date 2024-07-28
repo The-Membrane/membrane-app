@@ -242,11 +242,11 @@ export const getMintAndRepayMsgs = ({
     //Push repay msg
     // msgs.push(repayMsg)
     //Add points allocation after msgs    
-    // msgs.push(pointsMessageComposer.givePoints({
-    //   cdpRepayment: true,
-    //   spClaims: false,
-    //   lqClaims: false,
-    // }))
+    msgs.push(pointsMessageComposer.givePoints({
+      cdpRepayment: true,
+      spClaims: false,
+      lqClaims: false,
+    }))
   }
 
   return msgs

@@ -240,13 +240,13 @@ export const getMintAndRepayMsgs = ({
     const funds = [coin(microAmount, cdt?.base!)]
     const repayMsg = messageComposer.repay({ positionId, sendExcessTo: address }, funds)
     //Push repay msg
-    msgs.push(repayMsg)
+    // msgs.push(repayMsg)
     //Add points allocation after msgs    
-    msgs.push(pointsMessageComposer.givePoints({
-      cdpRepayment: true,
-      spClaims: false,
-      lqClaims: false,
-    }))
+    // msgs.push(pointsMessageComposer.givePoints({
+    //   cdpRepayment: true,
+    //   spClaims: false,
+    //   lqClaims: false,
+    // }))
   }
 
   return msgs

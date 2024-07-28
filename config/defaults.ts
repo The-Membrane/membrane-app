@@ -87,6 +87,7 @@ export const denoms = {
   //ETH, //This is ETH.axl that Osmosis is using as canonical denom rn
   ETH: ["ibc/EA1D43981D5C9A1C4AAEA9C23BB1D4FA126BA9BC7020A25E0AE4AA841EA25DC5", 18],
   INJ: ["ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273", 18],
+  DYDX: ["ibc/831F0B1BBB1D08A2B75311892876D71565478C532967545476DF4C2D7492E48C", 18],
 };
 
 export const stableSymbols = ["USDC", "USDT", "USDC.axl"];
@@ -95,6 +96,13 @@ export const MAX_CDP_POSITIONS = 3;
 
 //all CDT pairs
 export const cdtRoutes = {
+  "MBRN": [
+    {
+      poolId: BigInt(1225),
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "CDT": [],
   "OSMO": [
     {
       poolId: BigInt(1263),
@@ -197,11 +205,82 @@ export const cdtRoutes = {
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
-  "MBRN": [
+  "ISLM": [
     {
-      poolId: BigInt(1225),
+      poolId: BigInt(1632), 
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
-  "CDT": [],
+  "NLS": [
+    {
+      poolId: BigInt(1797), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "FLIX": [
+    {
+      poolId: BigInt(1895), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "DYDX": [
+    {
+      poolId: BigInt(1246), 
+      tokenOutDenom: denoms.USDC[0],
+    }
+  ],
+  "stDYDX": [
+    {
+      poolId: BigInt(1423), 
+      tokenOutDenom: denoms.DYDX[0],
+    }
+  ],
+  "UMEE": [
+    {
+      poolId: BigInt(1110), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "LVN": [
+    {
+      poolId: BigInt(1325), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "USTC": [
+    {
+      poolId: BigInt(560), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "JKL": [
+    {
+      poolId: BigInt(832), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "QSR": [
+    {
+      poolId: BigInt(1314), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "DVPN": [
+    {
+      poolId: BigInt(5), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "SOL": [
+    {
+      poolId: BigInt(1294), 
+      tokenOutDenom: denoms.USDC[0],
+    }
+  ],
+  "SAGA": [
+    {
+      poolId: BigInt(1671), 
+      tokenOutDenom: denoms.USDC[0],
+    }
+  ],
 } as swapRoutes;

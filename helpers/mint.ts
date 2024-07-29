@@ -173,16 +173,19 @@ export const getDepostAndWithdrawMsgs = ({
   const depositFunds = deposit
     .sort((a, b) => (a.base < b.base ? -1 : 1))
     .map((asset) => {
-      console.log("deposit asset", asset)
+      // console.log("deposit asset", asset)
       const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toString()
-      console.log("deposit amount", amount)
+      // console.log("deposit amount", amount)
       return coin(amount, asset.base)
     })
     
   
+  console.log("deposit funds", depositFunds)
   if (depositFunds.length > 0) {
     if (hasPosition) {
-      const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
+  console.log("here")
+  const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
+      console.log("deposit msg", depositMsg)
       msgs.push(depositMsg)
     } else {
       //Don't use positionID, deposit into new position

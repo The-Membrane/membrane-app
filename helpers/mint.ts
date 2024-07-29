@@ -173,9 +173,9 @@ export const getDepostAndWithdrawMsgs = ({
   const depositFunds = deposit
     .sort((a, b) => (a.base < b.base ? -1 : 1))
     .map((asset) => {
-      // console.log("deposit asset", asset)
+      console.log("deposit asset", asset)
       const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toString()
-      // console.log("deposit amount", amount)
+      console.log("deposit coin", amount, coin(amount, asset.base))
       return coin(amount, asset.base)
     })
     

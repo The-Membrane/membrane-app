@@ -37,6 +37,7 @@ const VoteButton = ({ show, vote, proposalId, isEnded = false }: Props) => {
       isDisabled={!!!vote}
       isLoading={castVote.tx.isPending}
       onClick={() => castVote.simulate.refetch().then( () => castVote.tx.mutate())}
+      toggleConnectLabel={false}
     >
       Vote
     </TxButton>

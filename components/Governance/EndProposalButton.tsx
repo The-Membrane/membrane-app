@@ -23,6 +23,7 @@ const EndProposalButton = ({ show, proposalId }: Props) => {
       fontSize="sm"
       isLoading={endProposal.isPending}
       onClick={() => endProposal.mutate()}
+      toggleConnectLabel={false}
     >
       End Proposal
     </TxButton>

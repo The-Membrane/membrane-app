@@ -167,7 +167,7 @@ export const getDepostAndWithdrawMsgs = ({
       withdraw.push(asset)
     }
   })
-
+  console.log("deposit check", deposit)
   // user_coins.sort((a, b) => a.denom < b.denom ? -1 : 1,);
 
   const depositFunds = deposit
@@ -176,6 +176,8 @@ export const getDepostAndWithdrawMsgs = ({
       const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toString()
       return coin(amount, asset.base)
     })
+    
+    console.log("deposit check", depositFunds)
   
   if (depositFunds.length > 0) {
     if (hasPosition) {

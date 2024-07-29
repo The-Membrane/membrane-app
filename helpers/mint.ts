@@ -178,7 +178,7 @@ export const getDepostAndWithdrawMsgs = ({
       console.log("deposit no dec", shiftDigits(asset.amount, asset.decimal).dp(0))
       console.log("deposit number", shiftDigits(asset.amount, asset.decimal).dp(0).toNumber())
       console.log("deposit String", shiftDigits(asset.amount, asset.decimal).dp(0).toString())
-      const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toString()
+      const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toNumber()
       console.log("deposit coin", amount, coin(amount, asset.base))
       return coin(amount, asset.base)
     })

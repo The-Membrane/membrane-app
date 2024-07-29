@@ -167,30 +167,19 @@ export const getDepostAndWithdrawMsgs = ({
       withdraw.push(asset)
     }
   })
-  console.log("deposit check", deposit)
   // user_coins.sort((a, b) => a.denom < b.denom ? -1 : 1,);
 
   const depositFunds = deposit
     .sort((a, b) => (a.base < b.base ? -1 : 1))
     .map((asset) => {
-      console.log("deposit asset", asset)
-      console.log("deposit dec", shiftDigits(asset.amount, asset.decimal))
-      console.log("deposit no dec", shiftDigits(asset.amount, asset.decimal).dp(0))
-      console.log("deposit number", shiftDigits(asset.amount, asset.decimal).dp(0).toNumber())
-      console.log("deposit String", shiftDigits(asset.amount, asset.decimal).dp(0).valueOf())
-      console.log("deposit String", shiftDigits(asset.amount, asset.decimal).dp(0).toNumber().toString())
       const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toNumber().toString()
-      console.log("deposit coin", amount, coin(amount, asset.base))
       return coin(amount, asset.base)
     })
     
   
-  console.log("deposit funds", depositFunds)
   if (depositFunds.length > 0) {
     if (hasPosition) {
-  console.log("here")
-  const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
-      console.log("deposit msg", depositMsg)
+      const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
       msgs.push(depositMsg)
     } else {
       //Don't use positionID, deposit into new position

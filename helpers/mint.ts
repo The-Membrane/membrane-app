@@ -175,7 +175,7 @@ export const getDepostAndWithdrawMsgs = ({
       const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toNumber().toString()
       return {
         denom: asset.base,
-        amount: "2000000000000000000000".toString(),
+        amount: amount,
       }
     })
     

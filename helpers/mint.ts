@@ -173,7 +173,10 @@ export const getDepostAndWithdrawMsgs = ({
     .sort((a, b) => (a.base < b.base ? -1 : 1))
     .map((asset) => {
       const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toNumber().toString()
-      return coin(amount, asset.base)
+      return {
+        denom: asset.base,
+        amount: "2000000000000000000000".toString(),
+      }
     })
     
   

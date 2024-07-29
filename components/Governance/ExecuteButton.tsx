@@ -22,6 +22,7 @@ const ExecuteButton = ({ show, proposalId }: Props) => {
       fontSize="sm"
       isLoading={executeProposal.isPending}
       onClick={() => executeProposal.mutate()}
+      toggleConnectLabel={false}
     >
       Execute
     </TxButton>

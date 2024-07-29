@@ -26,6 +26,7 @@ const RemoveButton = ({ show, proposalId }: Props) => {
       color="black"
       isLoading={removeProposal.isPending}
       onClick={() => removeProposal.mutate()}
+      toggleConnectLabel={false}
     >
       Remove
     </TxButton>

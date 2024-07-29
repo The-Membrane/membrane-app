@@ -18,7 +18,7 @@ import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSumma
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 
-const useUnLoop = (positionIndex: number) => {
+const useUnLoop = (positionIndex: number, desiredWithdrawal?: number) => {
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
@@ -55,7 +55,8 @@ const useUnLoop = (positionIndex: number) => {
       address,
       positionId, 
       prices,
-      basketPositions
+      basketPositions,
+      desiredWithdrawal
     ],
     queryFn: () => {
       if (!address || !basket || !prices || !positionId || !basketPositions) return { msgs: undefined, newPositionValue: 0, newLTV: 0 }
@@ -77,7 +78,8 @@ const useUnLoop = (positionIndex: number) => {
         initialBorrowLTV,
         positions,
         positionId, 
-        loopMax, 
+        loopMax,
+        desiredWithdrawal
       )
       msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
       newPositionValue = newValue

@@ -102,7 +102,7 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 // let calculator = new LiquidityPoolCalculator({ assets: osmosisAssets });
 
 /////functions/////
-export const unloopPosition = (cdtPrice: number, walletCDT: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any, positionId: string, loops: number) => {
+export const unloopPosition = (cdtPrice: number, walletCDT: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any, positionId: string, loops: number, desiredWithdrawal?: number) => {
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
 
@@ -129,7 +129,8 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
     //Repeat until no more CDT or Loops are done
     var iter = 0;
     var all_msgs: EncodeObject[] = [];
-    while ((creditAmount > 0 || iter == 0) && (iter < loops )) {
+    var withdrawPreSwapValue = 0;
+    while ((creditAmount > 0 || iter == 0) && (iter < loops) && (desiredWithdrawal ? desiredWithdrawal != withdrawPreSwapValue : true)) {
         //Set LTV range
         //We can withdraw value up to the borrowable LTV
         //Or the current LTV, whichever is lower
@@ -193,7 +194,9 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
         repay_msg.value.funds = [coin(tokenOutMin.toString(), denoms.CDT[0] as string)];
 
         // console.log("repay value:", repay_msg.value.funds)
-
+        
+        //Save non-slippage withdraw value
+        withdrawPreSwapValue = withdrawValue;
 
         //Subtract slippage to mint value
         withdrawValue = parseFloat(calcAmountWithSlippage(withdrawValue.toString(), SWAP_SLIPPAGE));
@@ -230,7 +233,9 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
 
         // console.log("current LTV", currentLTV)
         //Add msgs to all_msgs
-        all_msgs = all_msgs.concat([withdraw_msg]).concat(swap_msgs).concat([repay_msg]);
+        if (desiredWithdrawal && desiredWithdrawal === withdrawPreSwapValue) {
+            all_msgs.push(withdraw_msg)
+        } else all_msgs = all_msgs.concat([withdraw_msg]).concat(swap_msgs).concat([repay_msg]);
         // console.log("right before iter", all_msgs)
 
         //Increment iter

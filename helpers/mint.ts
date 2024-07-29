@@ -226,14 +226,14 @@ export const getMintAndRepayMsgs = ({
   if (num(repayAmount).isGreaterThan(0)) {
     //Add points check/allocate before and after
     const pointsMessageComposer = new PointsMsgComposer(address, contracts.points)
-    // msgs.push(pointsMessageComposer.checkClaims({
-    //     cdpRepayment: {
-    //       position_id: positionId,
-    //       position_owner: address
-    //     },
-    //     spClaims: false,
-    //     lqClaims: false,
-    //   }))
+    msgs.push(pointsMessageComposer.checkClaims({
+        cdpRepayment: {
+          position_id: positionId,
+          position_owner: address
+        },
+        spClaims: false,
+        lqClaims: false,
+      }))
 
     const cdt = getAssetBySymbol('CDT')
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
@@ -242,11 +242,11 @@ export const getMintAndRepayMsgs = ({
     //Push repay msg
     msgs.push(repayMsg)
     //Add points allocation after msgs    
-    // msgs.push(pointsMessageComposer.givePoints({
-    //   cdpRepayment: true,
-    //   spClaims: false,
-    //   lqClaims: false,
-    // }))
+    msgs.push(pointsMessageComposer.givePoints({
+      cdpRepayment: true,
+      spClaims: false,
+      lqClaims: false,
+    }))
   }
 
   return msgs

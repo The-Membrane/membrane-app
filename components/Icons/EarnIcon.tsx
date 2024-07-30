@@ -43,7 +43,7 @@ const EarnIcon = ({ color = 'white', width = '40', height = 'auto' }: Props) => 
     <pattern id="pattern0_887_201" patternContentUnits="objectBoundingBox" width="1" height="1">
     <use xlinkHref="#image0_887_201" transform="scale(0.00125)"/>
     </pattern>
-    <image id="image0_887_201" width="800" height="800" xlinkHref="/public/images/EarnIcon.svg"/>
+    <image id="image0_887_201" width="800" height="800" xlinkHref="/images/EarnIcon.svg"/>
     </defs>
     </svg>    
   )

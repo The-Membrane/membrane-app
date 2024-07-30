@@ -6,9 +6,10 @@ type Props = {
   height?: string
 }
 
-const EarnIcon = ({ color = 'white', width = '40', height = 'auto' }: Props) => {
+const EarnIcon = ({ color = 'white', width = '25', height = 'auto' }: Props) => {
   return (
     <svg 
+    style={{margin:"8px"}}    
     width={width}
     height={height}
     viewBox="0 0 31 33" fill="none" xmlns="http://www.w3.org/2000/svg">

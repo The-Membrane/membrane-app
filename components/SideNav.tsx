@@ -9,7 +9,7 @@ import { Box, HStack, Stack, Text, Image, IconButton,
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { useState } from 'react'
-import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon } from './Icons'
+import { BidIcon, EarnIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon } from './Icons'
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
@@ -33,7 +33,7 @@ type NavItems = {
 
 const navItems: NavItems[] = [
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
-  { label: 'Earn', href: '/', ItemIcon:  },
+  { label: 'Earn', href: '/', ItemIcon: EarnIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
@@ -43,7 +43,7 @@ const navItems: NavItems[] = [
 
 const mobileNavItems: NavItems[] = [
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
-  { label: 'Earn', href: '/', ItemIcon:  },
+  { label: 'Earn', href: '/', ItemIcon: EarnIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },

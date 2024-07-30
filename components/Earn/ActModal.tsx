@@ -83,6 +83,8 @@ const ActModal = ({
         // isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
         isDisabled={isDisabled}
         onClick={onModalOpen}
+        width={"30%"}
+        // opacity={label === "Withdraw" ? 0.5 : 1}
         {...buttonProps}
       >
         {label}

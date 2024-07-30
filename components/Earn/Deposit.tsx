@@ -96,10 +96,10 @@ const Deposit = () => {
   const totalDeposit = TVL / earnState.leverageMulti
 
   return (
-    <Card p="8" alignItems="center" gap={5}>
+    <Card p="8" gap={5}>
       <Text variant="body">Total Deposit</Text>
       <Text variant="body">{totalDeposit} USD</Text>  
-      <HStack alignContent="left">
+      <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
         <DepositButton usdyAsset={usdyAsset} usdyPrice={usdyPrice} prices={prices}/>
         <WithdrawButton positionIndex={positionIndex} position={position}/>
       </HStack>    

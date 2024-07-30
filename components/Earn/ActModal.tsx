@@ -97,7 +97,7 @@ const ActModal = ({
       >
         <ModalOverlay />
         <LoadingContent action={action} />
-        <ConfrimDetails action={action}>{children}</ConfrimDetails>
+        <ConfirmDetails action={action}>{children}</ConfirmDetails>
         <TxDetails action={action} onClose={onModalClose} />
       </Modal>
     </>

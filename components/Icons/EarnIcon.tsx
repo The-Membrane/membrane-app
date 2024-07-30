@@ -12,7 +12,7 @@ const EarnIcon = ({ color = 'white', width = '40', height = 'auto' }: Props) => 
     width={width}
     height={height}
     viewBox="0 0 31 33" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <g filter="url(#filter0_d_143_698)">
+      <g >
         <path   
           fillRule="evenodd"
           clipRule="evenodd"

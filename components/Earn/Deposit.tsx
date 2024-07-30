@@ -97,7 +97,7 @@ const Deposit = () => {
 
   return (
     <Card p="8" gap={5}>
-      <Text variant="title">Total Deposit</Text>
+      <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
       <Text variant="body">{totalDeposit} USD</Text>  
       <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
         <DepositButton usdyAsset={usdyAsset} usdyPrice={usdyPrice} prices={prices}/>

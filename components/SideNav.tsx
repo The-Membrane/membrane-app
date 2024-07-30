@@ -33,7 +33,7 @@ type NavItems = {
 
 const navItems: NavItems[] = [
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
-  { label: 'Earn', href: '/', ItemIcon: EarnIcon },
+  { label: 'Earn', href: '/earn', ItemIcon: EarnIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
@@ -43,7 +43,7 @@ const navItems: NavItems[] = [
 
 const mobileNavItems: NavItems[] = [
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
-  { label: 'Earn', href: '/', ItemIcon: EarnIcon },
+  { label: 'Earn', href: '/earn', ItemIcon: EarnIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },

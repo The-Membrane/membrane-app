@@ -125,7 +125,7 @@ const Deposit = () => {
           <WithdrawButton positionIndex={positionIndex} position={position}/>
         </HStack>
       </Card>
-      <Card p="8" gap={5} width={"100%"}>        
+      <Card p="8" gap={5} width={"100%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>        
           <HStack spacing="5" alignItems="flex-start">
             <Stack>
               <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Current Yield</Text>

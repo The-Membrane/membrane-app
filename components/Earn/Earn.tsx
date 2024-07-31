@@ -7,7 +7,7 @@ export const FOUR_WEEK_TREASURY_YIELD = 0.0529;
 const Earn = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false })
   return (
-    <HStack spacing="5" alignItems="flex-start">
+    <HStack spacing="32" justifyContent="center">
         <Deposit />
     </HStack>
   )

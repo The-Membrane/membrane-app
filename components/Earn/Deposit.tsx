@@ -116,7 +116,7 @@ const Deposit = () => {
   const grossYield = useMemo(() => { return treasuryRate - usdyRate }, [usdyRate, treasuryRate])
 
   return (
-    <HStack spacing="32" justifyContent="center">
+    <HStack spacing="5" alignItems="flex-start">
       <Card p="8" gap={5} width={"100%"}>
         <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
         <Text variant="body">{(totalDeposit * usdyPrice).toFixed(2)} USD</Text>  

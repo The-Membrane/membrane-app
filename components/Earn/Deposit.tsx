@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from 'react'
-import { Card, HStack, Text } from '@chakra-ui/react'
+import React, { use, useEffect, useMemo } from 'react'
+import { Card, HStack, Stack, Text } from '@chakra-ui/react'
 import { TxButton } from '@/components/TxButton'
 import useUnloop from '../Home/hooks/useUnloop'
 import useStableYieldLoop from './hooks/useStableYieldLoop'
@@ -8,13 +8,14 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import ActModal from './ActModal'
 import useEarnState from './hooks/useEarnState'
-import { useBasketPositions, useUserPositions } from '@/hooks/useCDP'
+import { useBasket, useBasketPositions, useCollateralInterest, useUserPositions } from '@/hooks/useCDP'
 import { shiftDigits } from '@/helpers/math'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { Asset } from '@/helpers/chain'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { Price } from '@/services/oracle'
 import { SliderWithState } from '../Mint/SliderWithState'
+import { FOUR_WEEK_TREASURY_YIELD } from './Earn'
 
 
 const DepositButton = ({ usdyAsset, usdyPrice, prices}: { usdyAsset: Asset | null, usdyPrice: number, prices: Price[] | undefined }) => {
@@ -95,16 +96,48 @@ const Deposit = () => {
   //Dividing the TVL by the leverage taken to get the total deposit
   const totalDeposit = TVL / earnState.leverageMulti
 
-  return (
-    <Card p="8" gap={5}>
-      <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
-      <Text variant="body">{totalDeposit} USD</Text>  
-      <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
-        <DepositButton usdyAsset={usdyAsset} usdyPrice={usdyPrice} prices={prices}/>
-        <WithdrawButton positionIndex={positionIndex} position={position}/>
-      </HStack>    
+  ////Calc yield by taking the treasury rate leveraged minus USDY's current interest rate////
+  //Query rates
+  const { data: interest } = useCollateralInterest()
+  const { data: basket } = useBasket()
+  //Find the index of the USDY asset
+  const usdyIndex = useMemo(() => {
+    if (!basket || !usdyAsset) return 0
+    return basket.collateral_types.findIndex((collateral) => collateral.asset.info.native_token.denom === usdyAsset.base)
+  }, [basket, usdyAsset])
+  //Find USDY rate
+  const usdyRate = useMemo(() => { return parseFloat(interest?.rates.[usdyIndex]) }, [interest, usdyIndex])
+  //Find leveraged treasury rate
+  const treasuryRate = useMemo(() => {
+    if (!basket) return 0
+    return FOUR_WEEK_TREASURY_YIELD * earnState.leverageMulti
+  }, [basket, earnState.leverageMulti])
+  //Calc gross yield
+  const grossYield = useMemo(() => { return treasuryRate - usdyRate }, [usdyRate, treasuryRate])
 
-    </Card>
+  return (
+    <HStack spacing="5" alignItems="flex-start">
+      <Card p="8" gap={5}>
+        <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
+        <Text variant="body">{(totalDeposit * usdyPrice).toFixed(2)} USD</Text>  
+        <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
+          <DepositButton usdyAsset={usdyAsset} usdyPrice={usdyPrice} prices={prices}/>
+          <WithdrawButton positionIndex={positionIndex} position={position}/>
+        </HStack>
+      </Card>
+      <Card p="8" gap={5}>        
+          <HStack spacing="5" alignItems="flex-start">
+            <Stack>
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Current Yield</Text>
+              <Text variant="body">{grossYield.toFixed(2)}% </Text>
+            </Stack>
+            <Stack>
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Expected Annual Interest</Text>
+              <Text variant="body">{(grossYield * totalDeposit * usdyPrice).toFixed(2)} USD</Text>  
+            </Stack>
+          </HStack>
+      </Card>
+    </HStack>
   )
 }
 

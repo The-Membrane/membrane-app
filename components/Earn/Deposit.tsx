@@ -106,7 +106,7 @@ const Deposit = () => {
     return basket.collateral_types.findIndex((collateral) => collateral.asset.info.native_token.denom === usdyAsset.base)
   }, [basket, usdyAsset])
   //Find USDY rate
-  const usdyRate = useMemo(() => { return parseFloat(interest?.rates.[usdyIndex]) }, [interest, usdyIndex])
+  const usdyRate = useMemo(() => { return parseFloat(interest?.rates[usdyIndex]??"0") }, [interest, usdyIndex])
   //Find leveraged treasury rate
   const treasuryRate = useMemo(() => {
     if (!basket) return 0

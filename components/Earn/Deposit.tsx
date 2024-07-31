@@ -117,7 +117,7 @@ const Deposit = () => {
 
   return (
     <HStack spacing="32" justifyContent="center">
-      <Card p="8" gap={5}>
+      <Card p="8" gap={5} width={"100%"}>
         <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
         <Text variant="body">{(totalDeposit * usdyPrice).toFixed(2)} USD</Text>  
         <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
@@ -125,7 +125,7 @@ const Deposit = () => {
           <WithdrawButton positionIndex={positionIndex} position={position}/>
         </HStack>
       </Card>
-      <Card p="8" gap={5}>        
+      <Card p="8" gap={5} width={"100%"}>        
           <HStack spacing="5" alignItems="flex-start">
             <Stack>
               <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Current Yield</Text>

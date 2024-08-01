@@ -177,7 +177,7 @@ export const getProposals = async () => {
   var activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop)=> prop.proposal_id != "61")  
   const singleProp = await client.proposal({ proposalId: 98 }).then((res) => res)
   activeProposals.push(singleProp)  
-  const secondProp = await client.proposal({ proposalId: 98 }).then((res) => res)
+  const secondProp = await client.proposal({ proposalId: 99 }).then((res) => res)
   activeProposals.push(secondProp)
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
 

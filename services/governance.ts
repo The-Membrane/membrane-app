@@ -171,10 +171,14 @@ export const getProposals = async () => {
   // const requiredQuorum = parseFloat(config.proposal_required_quorum)
   const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
-  const start = 75
+ const start = 100
   const limit = 30 //Contract's max limit is 30 so we'll need to move the start point every 30 proposals
 
-  const activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop)=> prop.proposal_id != "61")
+  var activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop)=> prop.proposal_id != "61")  
+  const singleProp = await client.proposal({ proposalId: 98 }).then((res) => res)
+  activeProposals.push(singleProp)  
+  const secondProp = await client.proposal({ proposalId: 98 }).then((res) => res)
+  activeProposals.push(secondProp)
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
 
   const statusOrder: Record<string, number> = {

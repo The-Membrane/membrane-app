@@ -137,6 +137,7 @@ const Deposit = () => {
             </Stack>
           </HStack>
       </Card>
+      {/* Add risk description bc USDY CAN get liquidated */}
     </HStack>
   )
 }

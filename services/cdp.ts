@@ -43,12 +43,12 @@ export type BasketAsset = {
   maxBorrowLTV: number
 }
 export const getBasketAssets = (
-  baseket: Basket,
+  basket: Basket,
   collateralInterest: CollateralInterestResponse,
 ) => {
   const chainAssets = getChainAssets()
 
-  return baseket?.collateral_types.map((asset) => {
+  return basket?.collateral_types.map((asset, index) => {
     const denom = asset.asset?.info.native_token?.denom
     let assetInfo = chainAssets?.find((chainAsset) => chainAsset.base === denom)
 
@@ -58,7 +58,7 @@ export const getBasketAssets = (
       }
     }
 
-    const interestRate = getAsseInterestRate(assetInfo?.base, collateralInterest, baseket)
+    const interestRate = getAsseInterestRate(assetInfo?.base, collateralInterest, basket)
     const rateIndex = Number(asset.rate_index)
     const maxLTV = Number(asset.max_LTV)
     const maxBorrowLTV = Number(asset.max_borrow_LTV)

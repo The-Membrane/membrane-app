@@ -19,7 +19,7 @@ const Header = () => {
       zIndex="100"
       maxW="1200px"
     >
-      <Heading size="md" textTransform="capitalize">
+      <Heading size="md" textTransform="uppercase">
         {pageName}
       </Heading>
     </HStack>

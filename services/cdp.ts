@@ -41,6 +41,8 @@ export type BasketAsset = {
   rateIndex: number
   maxLTV: number
   maxBorrowLTV: number
+  supplyCapRatio: string
+  SPCapRatio?: string
 }
 export const getBasketAssets = (
   basket: Basket,
@@ -69,6 +71,9 @@ export const getBasketAssets = (
       rateIndex,
       maxLTV,
       maxBorrowLTV,
+      supplyCapRatio: basket?.collateral_supply_caps[index].supply_cap_ratio,
+      SPCapRatio: basket?.collateral_supply_caps[index].stability_pool_ratio_for_debt_cap,
+
     }
   }) as BasketAsset[]
 }

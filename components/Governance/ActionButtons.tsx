@@ -35,6 +35,7 @@ const ActionButtons = ({
     return <ConnectButton w="200px" onClick={connect}/>
   }
 
+
   return (
     <Fragment>
       <RemoveButton show={isRemoveAllowed} proposalId={proposal.proposal_id} />

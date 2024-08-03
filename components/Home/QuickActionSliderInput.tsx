@@ -1,4 +1,4 @@
-import { HStack, Input, Stack, Text} from "@chakra-ui/react"
+import { Box, Button, HStack, Input, Stack } from "@chakra-ui/react"
 import { QuickActionAssetWithSlider } from "./QuickActionAssetSlider"
 import { ChangeEvent, useEffect } from "react"
 import { num } from "@/helpers/num"
@@ -6,8 +6,8 @@ import { delayTime } from "@/config/defaults"
 import { QuickActionState } from "./hooks/useQuickActionState"
 import QASelect from "../QuickActionSelect"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
-import { useUserPositions } from "@/hooks/useCDP"
-import Divider from "../Divider"
+import React from "react"
+import { GrClose } from 'react-icons/gr'
 
 type Props = {
     value: string
@@ -22,65 +22,78 @@ type Props = {
   type SliderWithInputProps = {
     max: number
     inputBoxWidth?: string
+    assets: AssetWithBalance[]
     QAState: QuickActionState
     setQAState: (partialState: Partial<QuickActionState>) => void
-    onMenuChange: (value: string) => void
-    inputAmount: number
-    setInputAmount: (value: number) => void
+    onMenuChange: (value: string, index: number) => void
+    inputAmounts: number[]
+    setInputAmounts: (value: number[]) => void
+    levAssetIndex: number
   }
-  
-  export const SliderWithInputBox = ({ max, inputBoxWidth = "38%", QAState, setQAState, onMenuChange, inputAmount, setInputAmount }: SliderWithInputProps) => {
-      
-      const { data: basketPositions } = useUserPositions()
 
+  ////Remove menu options for assets that aren't the last 1
+  
+  export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", assets, QAState, setQAState, onMenuChange, inputAmounts, setInputAmounts, levAssetIndex }: SliderWithInputProps) => {
       const onSliderChange = (value: number) => {      
-        if (inputAmount != value) setInputAmount(value)
+        if (inputAmounts[levAssetIndex] != value) {
+          inputAmounts[levAssetIndex] = value
+          setInputAmounts(inputAmounts)
+        }
       }
   
       const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault()
         const newAmount = e.target.value
-        if (num(newAmount).isGreaterThan(max)) setInputAmount(max)
-          else setInputAmount(parseInt(e.target.value))
+        
+        if (num(newAmount).isGreaterThan(max)) inputAmounts[levAssetIndex] = max
+          else inputAmounts[levAssetIndex] = parseInt(e.target.value)
+        setInputAmounts(inputAmounts)
   
         setTimeout(() => {
-          if (num(newAmount).isGreaterThan(max)) setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: max, sliderValue: max }})
-            else setQAState({ selectedAsset: { ...QAState?.selectedAsset, amount: (parseInt(e.target.value)), sliderValue: (parseInt(e.target.value)) }})
+          if (!QAState?.levAssets) return
+          if (num(newAmount).isGreaterThan(max)) QAState.levAssets[levAssetIndex].sliderValue = max
+            else QAState.levAssets[levAssetIndex].sliderValue = parseInt(e.target.value)
+          setQAState({levAssets: QAState.levAssets})
+          
         }, delayTime);  
       }
   
       useEffect(() => {
+        if (!QAState?.levAssets) return
         //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
-        if (QAState?.selectedAsset?.sliderValue != inputAmount) {
-          setInputAmount(QAState?.selectedAsset?.sliderValue??0)
+        if (QAState.levAssets[levAssetIndex].sliderValue != inputAmounts[levAssetIndex]) {
+          inputAmounts[levAssetIndex] = QAState.levAssets[levAssetIndex].sliderValue??0
+          setInputAmounts(inputAmounts)
         }
-      }, [QAState?.selectedAsset?.sliderValue])
+      }, [QAState?.levAssets?.[levAssetIndex].sliderValue])
       
-  
+      const removeLevAsset = (index: number) => {
+        let newLevAssets = QAState.levAssets?.filter((_, i) => i != index)
+        setQAState({levAssets: newLevAssets})
+        let newInputAmounts = inputAmounts.filter((_, i) => i != index)
+        setInputAmounts(newInputAmounts)
+      }
   
       return (
-      <Stack py="5" w="full" gap="3" mb="8">     
-        <Text fontSize="14px" fontWeight="700">
-          {QAState.swapInsteadofMint ? "Choose Asset" : basketPositions ? "Add collateral to your existing vault (optional)" : "Choose Collateral"}
-        </Text> 
-        <Divider mx="0" mt="0" mb="5"/>
-        {QAState?.selectedAsset != undefined ? <><HStack justifyContent="space-between">
+      <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >     
+        {QAState?.levAssets?.[levAssetIndex] != undefined ? <><HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
-            value={QAState?.selectedAsset} 
-            onChange={onMenuChange}
-            assets={QAState?.assets}
-          />
+            value={QAState?.levAssets[levAssetIndex]} 
+            onChange={(value) => onMenuChange(value, levAssetIndex)}
+            assets={assets}
+          />          
+          { levAssetIndex != 0 ? <Button flex={"1"} paddingInlineStart={"3"} minWidth={"0"} variant="ghost" rightIcon={< GrClose/>} onClick={()=>{removeLevAsset(levAssetIndex)}}/> : null}
           <Input 
             width={inputBoxWidth} 
             textAlign={"center"} 
             placeholder="0" 
             type="number" 
-            value={inputAmount} 
+            value={inputAmounts[levAssetIndex]} 
             onChange={handleInputChange}
           />
         </HStack>
-        <QuickActionAssetWithSlider onChangeExt={onSliderChange} key={QAState?.selectedAsset?.base} asset={QAState?.selectedAsset} label={QAState?.selectedAsset?.symbol} />
-        </> : null}
-  
-    </Stack>)
-  }
+        <QuickActionAssetWithSlider onChangeExt={onSliderChange} asset={QAState?.levAssets[levAssetIndex]} label={QAState?.levAssets?.[levAssetIndex].symbol} levAssetIndex={levAssetIndex} />        
+        </> : null}  
+      </Stack>
+    )
+  })

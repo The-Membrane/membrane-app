@@ -1,22 +1,18 @@
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 import { Summary } from '@/components/Mint/hooks/useMintState'
-import { Asset } from '@/helpers/chain'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
-type ActionMenu = {
-  value: string
-  label: string
-}
 
 export type QuickActionState = {
-  selectedAsset?: AssetWithBalance
+  levAssets?: AssetWithBalance[]
+  stableAsset?: AssetWithBalance
   assets: AssetWithBalance[]
   summary?: Summary[]
   totalUsdValue?: number
-  mint?: number
-  swapInsteadofMint: boolean
-  action: ActionMenu
+  levSwapRatio?: number
+  useCookies: boolean
+  readyToLoop: boolean
 }
 
 type Store = {
@@ -26,8 +22,8 @@ type Store = {
 
 const initialState: QuickActionState = {  
   assets: [],
-  swapInsteadofMint: false,
-  action: {value: "LP", label: "LP"},
+  useCookies: false,
+  readyToLoop: false,
 }
 
 // @ts-ignore

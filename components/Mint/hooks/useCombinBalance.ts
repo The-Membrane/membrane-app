@@ -21,20 +21,23 @@ export type AssetWithBalance = Asset & {
   inputAmount?: number
 }
 
-const useCombinBalance = () => {
+const useCombinBalance = (positionIndex: number = 0) => {
   const { data: collateralInterest } = useCollateralInterest()
   const { data: prices } = useOraclePrice()
   const { data: balances } = useBalance()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
-  // const { mintState } = useMintState()
 
   return useMemo(() => {
     const basketAssets = getBasketAssets(basket!, collateralInterest!)
-    const positions = getPositions(basketPositions, prices)
+    const positions = getPositions(basketPositions, prices, positionIndex)
+    if (!positions) return []
 
-    return basketAssets?.map((asset) => {
+    return basketAssets?.map((asset, index) => {
       const position = positions.find((p) => p.denom === asset.asset.base)
+      //if its collateral supply cap is 0, it is not a valid asset
+      if (basket?.collateral_supply_caps[index].supply_cap_ratio === '0' && position?.amount === 0) return
+      //
       const balance = balances?.find((b) => b.denom === asset.asset.base) || { amount: '0' }
       const balanceInMicro = shiftDigits(balance.amount, -asset.asset.decimal || -18).toNumber()
       const combinBalance = num(balanceInMicro || 0)
@@ -44,7 +47,6 @@ const useCombinBalance = () => {
       const walletsdValue = num(balanceInMicro).times(price).toNumber()
       const depositUsdValue = num(position?.usdValue || 0).toNumber()
       const combinUsdValue = num(combinBalance).times(price).toNumber()
-      console.log(asset.asset.symbol, balanceInMicro, position?.amount, combinBalance, price)
       return {
         ...asset.asset,
         walletBalance: Number(balanceInMicro),
@@ -56,7 +58,7 @@ const useCombinBalance = () => {
         price,
       }
     }) as AssetWithBalance[]
-  }, [balances, basketPositions, basket, prices])
+  }, [balances, basketPositions, basket, prices, positionIndex])
 }
 
 export default useCombinBalance

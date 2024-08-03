@@ -6,7 +6,7 @@ import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 
-const useClaimFees = () => {
+const useClaimFees = (sim: boolean = true) => {
   const { address } = useWallet()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
@@ -24,12 +24,13 @@ const useClaimFees = () => {
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['allocations'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return {action: useSimulateAndBroadcast({
     msgs,
     onSuccess,
-    enabled: true
+    enabled: sim
   }), msgs}
 }
 

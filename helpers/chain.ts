@@ -27,6 +27,7 @@ const supportedAssets = [
   'ETH.axl',
   'WBTC',
   'WBTC.axl',
+  'INJ'
 ]
 
 //For swaps
@@ -41,6 +42,11 @@ export interface exported_supportedAssets {
   USDT: undefined,
   USDC: undefined,
   "USDC.axl": undefined,
+  WBTC: undefined,
+  "WBTC.axl": undefined,
+  //This is ETH.axl that Osmosis is using as canonical denom rn
+  ETH: undefined,
+  INJ: undefined,
 }
 
 export const getAssetLogo = (asset: RegistryAsset) => {

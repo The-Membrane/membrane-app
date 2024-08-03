@@ -61,7 +61,7 @@ type Props = {
 
 const QASelect = ({ options, onChange, value }: Props) => {
   if (!options) return null
-  if (options && options.length === 0) return "No collateral in wallet"
+  // if (options && options.length === 0) return "No collateral in wallet"
   return (
     <ChakraSelect
       isSearchable={false}

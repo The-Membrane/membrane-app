@@ -1,43 +1,59 @@
 import { num } from '@/helpers/num'
 import { HStack, Stack, Text } from '@chakra-ui/react'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SliderWithState } from './SliderWithState'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 
+
+const calcSliderValue = (debtAmount: number, mint: number = 0, repay: number = 0) => {
+  console.log("calc slider value", debtAmount, mint, repay) //60
+  return num(debtAmount).plus(mint).minus(repay).dp(2).toNumber()
+}
+
 export type LTVWithSliderProps = {
   label: string
   value?: number
 }
 
-export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
+export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
   const { setMintState, mintState } = useMintState()
-  const { maxMint = 0, debtAmount } = useVaultSummary()
+  const { data } = useVaultSummary()
+  const [ sumData, setSumData] = useState(data)
+
+  useEffect(() => { if (data != undefined) setSumData(data) }, [data])  
+  const { debtAmount, maxMint } = sumData || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+    maxMint: 0,
+  }
+
+  const value = calcSliderValue(debtAmount, mintState.mint, mintState.repay)
   const CDT = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(CDT)
 
   const maxMintLabel = useMemo(() => {
-    if (isNaN(maxMint)) return 0
     if (num(maxMint).minus(debtAmount).dp(0).toNumber() < 0) return 0
     return num(maxMint).minus(debtAmount).dp(0).toNumber()
   }, [maxMint, debtAmount])
 
   const maxSlider = useMemo(() => {
-    if (isNaN(maxMint)) return 0
     if (num(maxMint).minus(debtAmount).dp(0).toNumber() < 0) return debtAmount
     return num(maxMint).dp(0).toNumber()
-  }, [maxMint, debtAmount]) 
+  }, [maxMint, debtAmount])
 
   //For refreshes on state updates (ex: successful tx)
   var mint = 0
   var repay = 0
   var ltvSlider = useMemo(() => {
-    mint = 0
-    repay = 0
-    setMintState({ mint, repay})
-    return num(debtAmount).times(100).dividedBy(maxMint).dp(2).toNumber()
+    return num(debtAmount).times(100).dividedBy(maxMint??1).dp(2).toNumber()
   }, [debtAmount])
 
   const onChange = (value: number) => {
@@ -53,12 +69,12 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
     const diff = num(debtAmount).minus(newValue).abs().toNumber()
     mint = num(newValue).isGreaterThan(debtAmount) ? diff : 0
     repay = num(newValue).isLessThan(debtAmount) ? diff : 0
-    ltvSlider = num(newValue).times(100).dividedBy(maxMint).dp(2).toNumber()
+    ltvSlider = num(newValue).times(100).dividedBy(maxMint??1).dp(2).toNumber()
 
     //Repay stopper at wallet's CDT balance
     if (repay > parseFloat(walletCDT)) {
       repay = parseFloat(walletCDT)
-      ltvSlider = num(debtAmount).minus(repay).times(100).dividedBy(maxMint).dp(2).toNumber()
+      ltvSlider = num(debtAmount).minus(repay).times(100).dividedBy(maxMint??1).dp(2).toNumber()
     }
 
     //If repaying everything, use all the Wallet's CDT to get past the minimum debt barrier
@@ -66,7 +82,6 @@ export const LTVWithSlider = ({ label, value = 0 }: LTVWithSliderProps) => {
       repay = parseFloat(walletCDT)
       ltvSlider = 0
     }
-
 
     setMintState({ mint, repay, ltvSlider, newDebtAmount: newValue })
   }

@@ -3,14 +3,14 @@ import { ConnectButton } from './WallectConnect'
 
 const LockedAccess = () => {
   return (
-    <Stack w="420px" h="full" justifyContent="center">
+    <Stack w="420px" h="full">
       <Card>
         <CardHeader>
           <Text variant="title" fontSize="24px">
             Access Pending
           </Text>
           <Text color="white" fontSize="xs" fontWeight="normal">
-            Connect you wallet to access.
+            Connect your wallet to access.
           </Text>
         </CardHeader>
         <CardFooter>

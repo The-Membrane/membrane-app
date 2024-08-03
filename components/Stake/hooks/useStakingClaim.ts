@@ -6,11 +6,11 @@ import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 
-export const useStakingClaim = (restake = false) => {
+export const useStakingClaim = (restake: boolean, sim: boolean = true) => {
   const { address } = useWallet()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg staking claims', address],
+    queryKey: ['msg staking claims', address, restake],
     queryFn: () => {
       if (!address) return [] as MsgExecuteContractEncodeObject[]
         
@@ -23,13 +23,13 @@ export const useStakingClaim = (restake = false) => {
   
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    enabled: (sim && !!msgs),
     onSuccess,
   }), msgs}
 }

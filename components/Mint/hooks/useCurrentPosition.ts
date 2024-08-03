@@ -13,7 +13,16 @@ const getDebtAmount = (summary) => {
 }
 
 export const useCurrentPosition = () => {
-  const summary = useVaultSummary()
+  const { data } = useVaultSummary()
+  const summary = data || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
   const { mintState } = useMintState()
 
   const isValueChanged = !num(mintState.totalUsdValue).isZero()

@@ -28,17 +28,18 @@ const useProtocolLiquidations = () => {
   const { data: allPositions } = useBasketPositions()
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
-  //For metric purposes
-  console.log("total # of CDPs: ", allPositions?.length)
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
     queryFn: () => {
-        if (!address || !allPositions || !prices || !basket || !interest) return {msgs: undefined, liquidating_positions: []}
+        if (!address || !allPositions || !prices || !basket || !interest) {console.log("liq attempt"); return { msgs: [], liquidating_positions: [] }}
 
+        //For metric purposes
+        console.log("total # of CDPs: ", allPositions?.length)
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
         const liq = getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
+        console.log("liquidatible positions:", liq)
 
         if (liq.length > 0) {
             const liq_msgs = getLiquidationMsgs({address, liq_info: liq})
@@ -58,18 +59,23 @@ const useProtocolLiquidations = () => {
   })
   
   const { msgs, liquidating_positions: liq_pos } = useMemo(() => {
-    if (!queryData) return {msgs: undefined, liquidating_positions: liquidating_positions}
+    if (!queryData) return { msgs: [], liquidating_positions: liquidating_positions }
     else return queryData
   }, [queryData])
   
 
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['msg liquidations'] })
+    //Reset points queries
+    queryClient.invalidateQueries({ queryKey: ['all users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users level'] })
   }
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    enabled: !!msgs,
+    queryKey: ['protocol liquidation sim', (msgs?.toString() ?? '0')],
     onSuccess,
   }), liquidating_positions: liq_pos}
 }

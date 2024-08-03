@@ -61,10 +61,19 @@ const SummaryItem = ({
 
 export const Summary = () => {
   const { mintState } = useMintState()
-  const { debtAmount } = useVaultSummary()
+  const { data } = useVaultSummary()
+  const { debtAmount } = data || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
   const { summary } = mintState
   const cdt = useAssetBySymbol('CDT')
-  console.log(mintState.repay??0, debtAmount)
+  console.log("Mint Summary", mintState.repay??0, debtAmount)
 
   if (!mintState.isTakeAction) return null
 

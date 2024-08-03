@@ -30,13 +30,13 @@ export const registry = new Registry(protoRegistry)
 export const aminoTypes = new AminoTypes(aminoConverters)
 
 export const stargazeRPCUrl = 'https://rpc.cosmos.directory/stargaze'
-export const rpcUrl = 'https://rpc.osmosis.zone/'
+export const rpcUrl = 'https://osmosis-rpc.polkachu.com/'
 
 export const delayTime = 1200; // State update Delay time in millisecond
 export const loopMax = 5;
 
 ////Specifics for Osmosis services//////
-export const SWAP_SLIPPAGE = 0.5; //0.5% slippage
+export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
 export const USDC_CL_RATIO = 0.115; //11.5% CL
 
 
@@ -81,16 +81,34 @@ export const denoms = {
   //USDT
   USDT: ["ibc/4ABBEF4C8926DDDB320AE5188CFD63267ABBCEFC0583E4AE05D6E5AA2401DDAB", 6],
   //WBTC.axl
-  WBTCaxl: ["ibc/D1542AA8762DB13087D8364F3EA6509FD6F009A34F00426AF9E4F9FA85CBBF1F", 8],
+  "WBTC.axl": ["ibc/D1542AA8762DB13087D8364F3EA6509FD6F009A34F00426AF9E4F9FA85CBBF1F", 8],
+  //WBTC
+  WBTC: ["factory/osmo1z0qrq605sjgcqpylfl4aa6s90x738j7m58wyatt0tdzflg2ha26q67k743/wbtc", 8],
+  //ETH, //This is ETH.axl that Osmosis is using as canonical denom rn
+  ETH: ["ibc/EA1D43981D5C9A1C4AAEA9C23BB1D4FA126BA9BC7020A25E0AE4AA841EA25DC5", 18],
+  INJ: ["ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273", 18],
+  DYDX: ["ibc/831F0B1BBB1D08A2B75311892876D71565478C532967545476DF4C2D7492E48C", 18],
+  USDY: ["ibc/23104D411A6EB6031FA92FB75F227422B84989969E91DCAD56A535DD7FF0A373", 18]
 };
+
+export const stableSymbols = ["USDC", "USDT", "USDC.axl"];
+export const stableDenoms = ["ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4", "ibc/4ABBEF4C8926DDDB320AE5188CFD63267ABBCEFC0583E4AE05D6E5AA2401DDAB", "ibc/D189335C6E4A68B513C10AB227BF1C1D38C746766278BA3EEB4FB14124F1D858"];
+export const MAX_CDP_POSITIONS = 3;
 
 //all CDT pairs
 export const cdtRoutes = {
+  "MBRN": [
+    {
+      poolId: BigInt(1225),
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "CDT": [],
   "OSMO": [
     {
-      poolId: BigInt(1226),
-      tokenOutDenom: denoms.CDT[0],
-    },
+      poolId: BigInt(1263),
+      tokenOutDenom: denoms.USDC[0],
+    }
   ],
   "ATOM": [
     {
@@ -161,14 +179,109 @@ export const cdtRoutes = {
   "WBTC": [
     {
       poolId: BigInt(1422), 
-      tokenOutDenom: denoms.WBTCaxl[0],
+      tokenOutDenom: denoms["WBTC.axl"][0],
     }
   ],
-  "MBRN": [
+  "INJ": [
     {
-      poolId: BigInt(1225),
+      poolId: BigInt(1319), 
+      tokenOutDenom: denoms.USDC[0],
+    }
+  ],
+  "AKT": [
+    {
+      poolId: BigInt(1093), 
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
-  "CDT": [],
+  "LAB": [
+    {
+      poolId: BigInt(1655), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "DYM": [
+    {
+      poolId: BigInt(1449), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "ISLM": [
+    {
+      poolId: BigInt(1632), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "NLS": [
+    {
+      poolId: BigInt(1797), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "FLIX": [
+    {
+      poolId: BigInt(1895), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "DYDX": [
+    {
+      poolId: BigInt(1246), 
+      tokenOutDenom: denoms.USDC[0],
+    }
+  ],
+  "stDYDX": [
+    {
+      poolId: BigInt(1423), 
+      tokenOutDenom: denoms.DYDX[0],
+    }
+  ],
+  "UMEE": [
+    {
+      poolId: BigInt(1110), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "LVN": [
+    {
+      poolId: BigInt(1325), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "USTC": [
+    {
+      poolId: BigInt(560), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "JKL": [
+    {
+      poolId: BigInt(832), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "QSR": [
+    {
+      poolId: BigInt(1314), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "DVPN": [
+    {
+      poolId: BigInt(5), 
+      tokenOutDenom: denoms.OSMO[0],
+    }
+  ],
+  "SOL": [
+    {
+      poolId: BigInt(1294), 
+      tokenOutDenom: denoms.USDC[0],
+    }
+  ],
+  "SAGA": [
+    {
+      poolId: BigInt(1671), 
+      tokenOutDenom: denoms.USDC[0],
+    }
+  ],
 } as swapRoutes;

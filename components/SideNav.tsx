@@ -1,20 +1,27 @@
-import { Box, Button, HStack, Stack, Text, Image } from '@chakra-ui/react'
+import { Box, HStack, Stack, Text, Image, IconButton, 
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalCloseButton,
+  ModalBody,
+  VStack,
+  Button} from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
-import React, { useMemo, useState } from 'react'
-import { BidIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon } from './Icons'
+import React, { useState } from 'react'
+import { BidIcon, EarnIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon } from './Icons'
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
-import useProtocolClaims from './Nav/hooks/useClaims'
-import ConfirmModal from './ConfirmModal'
-import { ClaimSummary } from './Bid/ClaimSummary'
-import { num } from '@/helpers/num'
-import useProtocolLiquidations from './Nav/hooks/useLiquidations'
-import { LiqSummary } from './Nav/LiqSummary'
-import { getPriceByDenom } from '@/services/oracle'
 import { getAssetBySymbol } from '@/helpers/chain'
 import { useOraclePrice } from '@/hooks/useOracle'
+
+import { HamburgerIcon } from "@chakra-ui/icons";
+import UniversalButtons from './Nav/UniversalButtons'
+import useProtocolLiquidations from './Nav/hooks/useLiquidations'
+import ConfirmModal from './ConfirmModal'
+import { LiqSummary } from './Nav/LiqSummary'
+import SoloLeveling from './Nav/PointsLevel'
 
 type NavItems = {
   label: string
@@ -26,9 +33,19 @@ type NavItems = {
 
 const navItems: NavItems[] = [
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
+  { label: 'Earn', href: '/earn', ItemIcon: EarnIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
+  { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
+  { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
   { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
+]
+
+const mobileNavItems: NavItems[] = [
+  { label: 'Home', href: '/', ItemIcon: HomeIcon },
+  { label: 'Earn', href: '/earn', ItemIcon: EarnIcon },
+  { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
+  { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
   { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
 ]
@@ -53,6 +70,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
       _hover={hoverStyles}
       {...(isActive && hoverStyles)}
       p={label === 'Home' ? '5px' : '0'}
+      pr={'10px'}
     >
       <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />
       <Text fontSize="lg" fontWeight="400">
@@ -70,20 +88,25 @@ const getCDTPrice = () => {
   return parseFloat((price.price)).toFixed(4)
 }
 
-const SideNav = () => {
+function SideNav(){
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleMobileMenuToggle = () => {
+    setMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const close = () => {
+    setMobileMenuOpen(false);
+  };
   const [cdtPrice, setcdtPrice ] = useState(" ")
   const price = getCDTPrice()
   if (price != cdtPrice && price != '0') setcdtPrice(price)
-
-  const { action: claim, claims_summary } = useProtocolClaims()
-  const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
-
-  //Disable claims for a time period to allow simulates to run
+    
   const [enable_msgs, setEnableMsgs] = useState(false)
-  setTimeout(() => setEnableMsgs(true), 2222);
   
   return (
-    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" h="100%" p="6" bg="whiteAlpha.100" style={{zoom: '85%'}}>
+    <>
+    <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" p="6" bg="whiteAlpha.100" style={{zoom: '85%'}} display={{ base: "none", md: "flex" }}>
       <Stack as="ul" gap="1">
         <Stack marginTop={"6%"}>
           <Logo />
@@ -94,31 +117,53 @@ const SideNav = () => {
             </Text>
           </HStack>
         </Stack>
-        <Box h="10" />
+        {/* Put level here "D Rank Generator: 3403489 Juoules" */}
+        <SoloLeveling />
+        <Box h="3" />
         {navItems.map((item, index) => (
           <NavItem key={index} {...item} />
         ))}
         <WallectConnect />
       </Stack>
-      {/* Claim Button */}
-      <ConfirmModal
-        label={ 'Claim' }
-        action={claim}
-        isDisabled={claim?.simulate.isError || !claim?.simulate.data || !enable_msgs || claims_summary.length === 0}
-      >
-        <ClaimSummary claims={claims_summary}/>
-      </ConfirmModal>
-      {/* Liquidate Button */}
-      <ConfirmModal
-        label={ 'Liquidate' }
-        action={liquidate}
-        isDisabled={liquidate?.simulate.isError || !liquidate?.simulate.data || !enable_msgs || liq_summ.length === 0}
-      >
-        <LiqSummary liquidations={liq_summ}/>
-      </ConfirmModal>
+        <Button textAlign="center" whiteSpace={"prewrap"} fontSize="14px" onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
+        Check For Claims & Liquidations
+        </Button>
+        {enable_msgs ? 
+            <UniversalButtons />    
+        : null}
 
       <BalanceCard />
     </Stack>
+
+     {/* Mobile Menu */}
+     <HStack as="mobile" display={{ base: "flex", md: "none" }} spacing="0.5rem">
+     {!isMobileMenuOpen && (
+       <IconButton
+         icon={<HamburgerIcon />}
+         aria-label={"Open Menu"}
+         bg="transparent"
+         color="white"
+         onClick={handleMobileMenuToggle}
+       />
+     )}
+    </HStack>
+
+  {/* Mobile Menu Modal */}
+  <Modal isOpen={isMobileMenuOpen} onClose={close}>
+    <ModalOverlay bg="rgba(0, 0, 0, 0.7)" />
+    <ModalContent bg="transparent" color="white" mt={4}>
+      <ModalCloseButton mr={2} />
+      <ModalBody mt={8}>
+        <VStack spacing={8} mt={12} onClick={close}>
+        {mobileNavItems.map((item, index) => (
+          <NavItem key={index} {...item} />
+        ))}
+          <WallectConnect />
+        </VStack>
+      </ModalBody>
+    </ModalContent>
+  </Modal>
+  </>
   )
 }
 

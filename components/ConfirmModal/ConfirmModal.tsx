@@ -10,6 +10,7 @@ type Props = PropsWithChildren & {
   label: string
   action?: Action
   isDisabled?: boolean
+  isLoading?: boolean
   buttonProps?: ButtonProps
 }
 
@@ -18,6 +19,7 @@ const ConfirmModal = ({
   label = 'Open',
   action,
   isDisabled = false,
+  isLoading = true,
   buttonProps,
 }: Props) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -34,7 +36,7 @@ const ConfirmModal = ({
   return (
     <>
       <Button
-        isLoading={action?.simulate.isLoading || action?.tx.isPending}
+        isLoading={isLoading && (action?.simulate.isLoading || action?.tx.isPending)}
         // isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
         isDisabled={isDisabled}
         onClick={() => {

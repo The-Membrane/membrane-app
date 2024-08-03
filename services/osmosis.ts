@@ -5,7 +5,6 @@ import { Coin, coin, coins } from "@cosmjs/amino";
 import { calcAmountWithSlippage, calcShareOutAmount, convertGeckoPricesToDenomPriceHash, LiquidityPoolCalculator } from "@osmonauts/math";
 
 import { osmosis } from 'osmojs';
-import { SwapAmountInRoute } from "osmojs/dist/codegen/osmosis/poolmanager/v1beta1/swap_route";
 import { getAssetBySymbol, exported_supportedAssets } from "@/helpers/chain";
 import { PositionsMsgComposer } from "@/contracts/codegen/positions/Positions.message-composer";
 
@@ -31,6 +30,10 @@ import { shiftDigits } from "@/helpers/math";
 
 
 const secondsInADay = 24 * 60 * 60;
+type SwapAmountInRoute = {
+    poolId: any,
+    tokenOutDenom: string,
+}
 
 export interface swapRoutes {
     OSMO: SwapAmountInRoute[],
@@ -43,6 +46,12 @@ export interface swapRoutes {
     USDT: SwapAmountInRoute[],
     MBRN: SwapAmountInRoute[],
     CDT: SwapAmountInRoute[],
+    milkTIA: SwapAmountInRoute[],
+    stTIA: SwapAmountInRoute[],
+    ETH: SwapAmountInRoute[],
+    WBTC: SwapAmountInRoute[],
+    "WBTC.axl": SwapAmountInRoute[],
+    INJ: SwapAmountInRoute[],
 };
 
 const {
@@ -93,144 +102,154 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 // let calculator = new LiquidityPoolCalculator({ assets: osmosisAssets });
 
 /////functions/////
-// export const unloopPosition = (positionId: string, loops: number) => {
-//     const { address } = useWallet()
-//     const { mintState } = useMintState()
-//     const { data: prices } = useOraclePrice()
-//     const cdtAsset = useAssetBySymbol('CDT')
-//     const walletCDT = useBalanceByAsset(cdtAsset)
-//     const { initialTVL, debtAmount, initialBorrowLTV } = useVaultSummary();
+export const unloopPosition = (cdtPrice: number, walletCDT: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any, positionId: string, loops: number, desiredWithdrawal?: number) => {
+    //Create CDP Message Composer
+    const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
 
-//     //Create CDP Message Composer
-//     const cdp_composer = new PositionsMsgComposer(address!, mainnetAddrs.positions);
-//     //getPosition
-//     const { data: basketPositions } = useUserPositions()
+    //Set Position value
+    var positionValue = tvl;
+    //Set credit amount
+    var creditAmount = debtAmount;
+    //set borrowLTV
+    var borrowLTV = borrowLTV / 100;
 
-//     //Set Position value
-//     var positionValue = initialTVL!;
-//     //Set credit amount
-//     var creditAmount = debtAmount;
-//     //set borrowLTV
-//     var borrowLTV = initialBorrowLTV! / 100;
+    //Get Position's LTV
+    var currentLTV = getPositionLTV(positionValue, num(shiftDigits(creditAmount, -6)).toNumber(), basket);
+    // console.log("LTVS:", currentLTV, borrowLTV, positionValue, creditAmount)
+    //If current LTV is over the borrowable LTV, we can't withdraw anything
+    if (currentLTV > borrowLTV) {
+        // console.log("Current LTV is over the Position's borrowable LTV, we can't withdraw collateral")
+        return { msgs: [], newValue: 0, newLTV: 0 };
+    }
+    //Get position cAsset ratios 
+    //Ratios won't change in btwn loops so we can set them outside the loop
+    let cAsset_ratios = getAssetRatio(false, tvl, positions);
+    // console.log("ratios:", cAsset_ratios, "positions:", positions)
 
-//     //Get Position's LTV
-//     var currentLTV = getPositionLTV(positionValue, creditAmount);
-//     //If current LTV is over the borrowable LTV, we can't withdraw anything
-//     if (currentLTV > borrowLTV) {
-//         console.log("Current LTV is over the Position's borrowable LTV, we can't withdraw collateral")
-//         return;
-//     }
-//     //Get position cAsset ratios 
-//     //Ratios won't change in btwn loops so we can set them outside the loop
-//     let cAsset_ratios = getAssetRatio(initialTVL!, getPositionAssets(mintState.index, basketPositions, prices));
+    //Repeat until no more CDT or Loops are done
+    var iter = 0;
+    var all_msgs: EncodeObject[] = [];
+    var withdrawPreSwapValue = 0;
+    while ((creditAmount > 0 || iter == 0) && (iter < loops) && (desiredWithdrawal ? desiredWithdrawal != withdrawPreSwapValue : true)) {
+        //Set LTV range
+        //We can withdraw value up to the borrowable LTV
+        //Or the current LTV, whichever is lower
+        let LTV_range = Math.min(borrowLTV - currentLTV, currentLTV);
+        // console.log("LTV RANGE:", LTV_range, currentLTV, borrowLTV)
+        //Set value to withdraw
+        var withdrawValue = positionValue * LTV_range;
 
-//     //Repeat until no more CDT or Loops are done
-//     var iter = 0;
-//     var all_msgs: EncodeObject[] = [];
-//     while ((creditAmount > 0 || iter == 0) && iter < loops) {
-//         //Set LTV range
-//         //We can withdraw value up to the borrowable LTV
-//         //Or the current LTV, whichever is lower
-//         let LTV_range = Math.min(borrowLTV - currentLTV, currentLTV);
-//         //Set value to withdraw
-//         var withdrawValue = positionValue * LTV_range;
+        //.Divvy withdraw value to the cAssets based on ratio
+        //Transform the value to the cAsset's amount using its price & decimals
+        var cAsset_prices: number[] = []
+        let cAsset_amounts = cAsset_ratios.map((asset) => {
+            if (!asset) return;
+            const assetPrice = prices?.find((price) => price.denom === asset.denom)?.price || '0'
+            cAsset_prices.push(parseFloat(assetPrice))
 
-//         //.Divvy withdraw value to the cAssets based on ratio
-//         //Transform the value to the cAsset's amount using its price & decimals
-//         let cAsset_amounts = cAsset_ratios.map((asset) => {
-//             const assetPrice = prices?.find((price) => price.denom === asset.denom)?.price || '0'
-
-//             return [asset.symbol, parseInt(((asset.ratio * withdrawValue) / parseFloat(assetPrice) * Math.pow(10, denoms[asset.symbol as keyof exported_supportedAssets][1] as number)).toFixed(0))];
-//         });
-//         //Save amounts as assets for withdraw msg
-//         var assets: Asset[] = [];
-//         cAsset_amounts.forEach((amount) => {
-//             if (amount[1] as number != 0) {
-//                 assets.push(
-//                     {
-//                         amount: amount[1].toString(),
-//                         //@ts-ignore
-//                         info: {
-//                             //@ts-ignore
-//                             native_token: {
-//                                 denom: denoms[amount[0] as keyof exported_supportedAssets][0] as string
-//                             }
-//                         }
-//                     });
-//             }
-//         });
-
-
-//         //Create withdraw msg for assets
-//         var withdraw_msg: MsgExecuteContractEncodeObject = cdp_composer.withdraw({
-//             positionId: positionId,
-//             assets,
-//         });
-
-//         //Create Swap msgs to CDT for each cAsset & save tokenOutMinAmount
-//         var swap_msgs: EncodeObject[] = [];
-//         var tokenOutMin = 0;
-//         cAsset_amounts.forEach((amount) => {
-//             if (amount[1] as number != 0) {
-//                 let swap_output = handleCDTswaps(amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number)!;
-//                 swap_msgs.push(swap_output);
-//                 tokenOutMin += parseInt((swap_output.value as MsgSwapExactAmountIn).tokenOutMinAmount);
-//             }
-//         });
-
-//         //Create repay msg with newly swapped CDT
-//         var repay_msg: EncodeObject = cdp_composer.repay({
-//             positionId: positionId,
-//         });
-//         repay_msg.value.funds = [coin(tokenOutMin.toString(), denoms.CDT[0] as string)];
-
-//         console.log(repay_msg.value.funds)
+            return [asset.symbol, parseInt(((asset.ratio * withdrawValue) / parseFloat(assetPrice) * Math.pow(10, denoms[asset.symbol as keyof exported_supportedAssets][1] as number)).toFixed(0))];
+        });
+        //Save amounts as assets for withdraw msg
+        var assets: CDPAsset[] = [];
+        cAsset_amounts.forEach((amount) => {
+            if (!amount) return;
+            if (amount[1] as number != 0) {
+                assets.push(
+                    {
+                        amount: amount[1].toString(),
+                        //@ts-ignore
+                        info: {
+                            //@ts-ignore
+                            native_token: {
+                                denom: denoms[amount[0] as keyof exported_supportedAssets][0] as string
+                            }
+                        }
+                    });
+            }
+        });
 
 
-//         //Subtract slippage to mint value
-//         withdrawValue = parseFloat(calcAmountWithSlippage(withdrawValue.toString(), SWAP_SLIPPAGE));
-//         //Calc new TVL (w/ slippage calculated into the mintValue)
-//         positionValue = positionValue - withdrawValue;
+        //Create withdraw msg for assets
+        var withdraw_msg: MsgExecuteContractEncodeObject = cdp_composer.withdraw({
+            positionId: positionId,
+            assets,
+        });
+        // console.log("CASSET LOGS:", cAsset_amounts, cAsset_prices)
+        //Create Swap msgs to CDT for each cAsset & save tokenOutMinAmount
+        var swap_msgs: EncodeObject[] = [];
+        var tokenOutMin = 0;
+        cAsset_amounts.forEach((amount, index) => {
+            if (!amount) return;
+            if (amount[1] as number != 0) {
+                let swap_output = handleCDTswaps(address, cdtPrice, cAsset_prices[index], amount[0] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
+                swap_msgs.push(swap_output.msg);
+                tokenOutMin += swap_output.tokenOutMinAmount;
+            }
+        });
 
+        //Create repay msg with newly swapped CDT
+        var repay_msg: EncodeObject = cdp_composer.repay({
+            positionId: positionId,
+        });
+        repay_msg.value.funds = [coin(tokenOutMin.toString(), denoms.CDT[0] as string)];
 
-//         //Repayments under 100 CDT will fail unless fully repaid
-//         //NOTE: This will leave the user with leftover CDT in their wallet, maximum 50 CDT
-//         if ((creditAmount - repay_msg.value.funds[0].amount) < 100_000_000 && (creditAmount - repay_msg.value.funds[0].amount) > 0) {
-//             //Set repay amount so that credit amount is 100
-//             repay_msg.value.funds = [coin((creditAmount - 100_000_000).toString(), denoms.CDT[0] as string)];
-//             //break loop
-//             iter = loops;
-//         }
+        // console.log("repay value:", repay_msg.value.funds)
+        
+        //Save non-slippage withdraw value
+        withdrawPreSwapValue = withdrawValue;
 
-//         //Attempted full repay
-//         if (LTV_range === currentLTV) {
-//             //Set credit amount to 0
-//             creditAmount = 0;
-//             //Add any walletCDT to the repay amount to account for interest & slippage
-//             repay_msg.value.funds = [coin((creditAmount + (parseFloat(walletCDT) * 1_000_000)).toFixed(0), denoms.CDT[0] as string)];
-//         } else {
-//             //Set credit amount including slippage
-//             creditAmount -= repay_msg.value.funds[0].amount;
-//         }
+        //Subtract slippage to mint value
+        withdrawValue = parseFloat(calcAmountWithSlippage(withdrawValue.toString(), SWAP_SLIPPAGE));
+        // console.log("here we")
+        //Calc new TVL (w/ slippage calculated into the mintValue)
+        positionValue = positionValue - withdrawValue;
+        // console.log("here we we")
 
-//         //Calc new LTV
-//         currentLTV = getPositionLTV(positionValue, creditAmount);
+        //Repayments under 100 CDT will fail unless fully repaid
+        //NOTE: This will leave the user with leftover CDT in their wallet, maximum 50 CDT
+        if ((creditAmount - repay_msg.value.funds[0].amount) < 100_000_000 && (creditAmount - repay_msg.value.funds[0].amount) > 0) {
+            // console.log("inside here")
+            //Set repay amount so that credit amount is 100
+            repay_msg.value.funds = [coin((creditAmount - 100_000_000).toString(), denoms.CDT[0] as string)];
+            //break loop
+            iter = loops;
+        }
 
-//         //Add msgs to all_msgs
-//         all_msgs = all_msgs.concat([withdraw_msg]).concat(swap_msgs).concat([repay_msg]);
+        //Attempted full repay
+        if (LTV_range === currentLTV) {
+            // console.log("full repay")
+            //Set credit amount to 0
+            creditAmount = 0;
+            //Add any walletCDT to the repay amount to account for interest & slippage
+            repay_msg.value.funds = [coin((creditAmount + (walletCDT * 1_000_000)).toFixed(0), denoms.CDT[0] as string)];
+        } else {
+            // console.log("minus credit", creditAmount)
+            //Set credit amount including slippage
+            creditAmount -= repay_msg.value.funds[0].amount;
+        }
 
-//         //Increment iter
-//         iter += 1;
-//     }
+        //Calc new LTV
+        currentLTV = getPositionLTV(positionValue, num(shiftDigits(creditAmount, -6)).toNumber(), basket);
 
-//     console.log(all_msgs, iter)
+        // console.log("current LTV", currentLTV)
+        //Add msgs to all_msgs
+        if (desiredWithdrawal && desiredWithdrawal === withdrawPreSwapValue) {
+            all_msgs.push(withdraw_msg)
+        } else all_msgs = all_msgs.concat([withdraw_msg]).concat(swap_msgs).concat([repay_msg]);
+        // console.log("right before iter", all_msgs)
 
-//     return all_msgs
+        //Increment iter
+        iter += 1;
+    }
 
-// }
+    // console.log("unloop msgs:", all_msgs, iter, creditAmount)
+
+    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
+
+}
 //Ledger has a msg max of 3 msgs per tx (untested), so users can only loop with a max of 1 collateral
 //LTV as a decimal
-export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
+export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number, positionId: string, loops: number, address: string, prices: Price[], basket: Basket, tvl: number, debtAmount: number, borrowLTV: number, positions: any) => {
 
     //Create CDP Message Composer
     const cdp_composer = new PositionsMsgComposer(address, mainnetAddrs.positions);
@@ -240,20 +259,22 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
     //Set credit amount
     var creditAmount = debtAmount;
     //Confirm desired LTV isn't over the borrowable LTV
-    if (LTV >= borrowLTV / 100) {
-        console.log("Desired LTV is over the Position's borrowable LTV")
-        return;
+    if (LTV > borrowLTV / 100) {
+        // console.log("Desired LTV is over the Position's borrowable LTV")
+        console.log(LTV, borrowLTV / 100)
+        LTV = borrowLTV / 100;
+        // return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Get position cAsset ratios 
     //Ratios won't change in btwn loops so we can set them outside the loop
-    let cAsset_ratios = getAssetRatio(tvl, positions);
+    let cAsset_ratios = getAssetRatio(skipStable, tvl, positions);
+    // console.log(cAsset_ratios)
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
         console.log("Desired LTV is under the Position's current LTV")
-        return;
+        return { msgs: [], newValue: 0, newLTV: 0 };
     }
-
     //Repeat until CDT to mint is under 1 or Loops are done
     var mintAmount = 0;
     var iter = 0;
@@ -265,7 +286,11 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         var mintValue = positionValue * LTV_range;
         //Set amount to mint
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
-
+        // console.log("mintAmount", mintAmount)
+        if (!mintAmount) {
+            console.log("mintAmount please return us", mintAmount)
+            return { msgs: [], newValue: 0, newLTV: 0 };
+        }
         //Create mint msg
         let mint_msg: EncodeObject = cdp_composer.increaseDebt({
             positionId: positionId,
@@ -295,7 +320,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         
             //Create deposit msgs for newly swapped assets
             var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
-                positionId: positionId,
+                positionId,
             });
             //Sort tokenOutMins alphabetically
             tokenOutMins.sort((a, b) => (a.denom > b.denom) ? 1 : -1);
@@ -320,10 +345,10 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
         }
     }
 
-    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV }
+    return { msgs: all_msgs, newValue: positionValue, newLTV: currentLTV };
 }
 // export const exitCLPools = (poolId: number) => {
-//     console.log("exit_cl_attempt")
+//     // console.log("exit_cl_attempt")
 //     let msg = [] as EncodeObject[];
 //     const { address } = useWallet()
 
@@ -374,7 +399,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
 //         let shareAmount = new BigNumber(shareInAmount);
 //         let totalShareAmount = new BigNumber(totalShares.amount);
 //         let userShare = shareAmount.div(totalShareAmount);
-//         console.log(userShare)
+//         // console.log(userShare)
 //         //Calc user's share of poolAssets
 //         //@ts-ignore
 //         let tokenOutMins = poolAssets.map((asset) => {
@@ -384,7 +409,7 @@ export const loopPosition = (cdtPrice: number, LTV: number, positionId: string, 
 //                     asset.token.denom);
 //             }
 //         });
-//         console.log(tokenOutMins)
+//         // console.log(tokenOutMins)
 
 //         //Exit pool
 //         msg.push(exitPool({
@@ -436,7 +461,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 //     var msg = [] as EncodeObject[];
 //     //@ts-ignore
 //     if (osmosisQueryClient !== null && cg_prices !== null && osmosisAssets !== undefined) {
-//         console.log("join_pool_attempt")
+//         // console.log("join_pool_attempt")
 //         const { address } = useWallet()
 //         //Query pool
 //         osmosisQueryClient!.osmosis.gamm.v1beta1.pool({
@@ -467,12 +492,12 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 //                 //Find the key for the denom
 //                 let tokenKey = Object.keys(denoms).find(key => denoms[key as keyof exported_supportedAssets][0] === tokenIn1.denom);
 //                 let tokenInValue = (parseFloat(tokenPrice) * parseFloat(tokenIn1.amount) / Math.pow(10, denoms[tokenKey as keyof exported_supportedAssets][1] as number));
-//                 // console.log(tokenInValue)
+//                 // // console.log(tokenInValue)
 //                 //@ts-ignore
 //                 const coinsNeeded = calculator.convertDollarValueToCoins(tokenInValue, pool, cg_prices);
-//                 // console.log(coinsNeeded)
+//                 // // console.log(coinsNeeded)
 //                 const shareOutAmount = calcShareOutAmount(pool, coinsNeeded);
-//                 // console.log(shareOutAmount)
+//                 // // console.log(shareOutAmount)
 
 //                 msg.push(joinSwapExternAmountIn({
 //                     poolId: BigInt(poolId),
@@ -488,7 +513,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 // }
 
 // export const lockGAMMPool = (shareInAmount: Coin) => {
-//     console.log("lock_pool_attempt")
+//     // console.log("lock_pool_attempt")
 //     let msg = [] as EncodeObject[];
 //     const { address } = useWallet()
 
@@ -505,7 +530,7 @@ export const joinCLPools = (address: string, tokenIn1: Coin, poolId: number, tok
 // }
 
 // export const unlockGAMMPool = (poolID: string, shareInAmount: Coin) => {
-//     console.log("unlock_pool_attempt")
+//     // console.log("unlock_pool_attempt")
 //     let msg = [] as EncodeObject[];
 //     const { address } = useWallet()
 
@@ -524,12 +549,15 @@ const getCDTtokenOutAmount = (tokenInAmount: number, cdtPrice: number, swapFromP
     return tokenInAmount * (swapFromPrice / cdtPrice)
 }
 //Parse through saved Routes until we reach CDT
-const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
+const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof exported_supportedAssets) => {
+    // console.log(tokenIn)
     var route = cdtRoutes[tokenIn];
     //to protect against infinite loops
     var iterations = 0;
 
     while (route != undefined && route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] && iterations < 5) {
+        if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
+
         //Find the key from this denom
         let routeDenom = route[route.length - 1].tokenOutDenom as string;
         //Set the next node in the route path
@@ -538,36 +566,41 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets) => {
         route = route.concat(cdtRoutes[routeKey as keyof exported_supportedAssets]);
 
         //output to test
-        // console.log(route)
+        if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
         iterations += 1;
     }
 
-    return route;
+    return { route, foundToken: false };
 }
-//This is getting Swaps To CDT
-export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number) => {
+//This is getting Swaps To CDT w/ optional different tokenOut
+export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number, tokenOut?: keyof exported_supportedAssets) => {
     
     //Get tokenOutAmount
-    const tokenOutAmount = getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice);
+    // console.log("boom1")
+    const decimalDiff = denoms[tokenIn][1] as number - 6;
+    const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -decimalDiff);
     //Swap routes
-    const routes: SwapAmountInRoute[] = getCDTRoute(tokenIn);
+    // console.log("boom2")
+    const { route: routes, foundToken } = getCDTRoute(tokenIn, tokenOut);
 
+    // console.log("boom3", tokenOutAmount )
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
+    // console.log("boom4", address, denoms[tokenIn][0] as string)
     const msg = swapExactAmountIn({
         sender: address! as string,
         routes,
         tokenIn: coin(tokenInAmount, denoms[tokenIn][0] as string),
         tokenOutMinAmount
     });
+    // console.log("boom5", msg)
 
-    return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
+    return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount), foundToken };
 };
 
 //Parse through saved Routes until we reach CDT
 const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap routes
-    const temp_routes: SwapAmountInRoute[] = getCDTRoute(tokenOut);
-
+    const { route: temp_routes, foundToken: _ } = getCDTRoute(tokenOut);
     //Reverse the route
     var routes = temp_routes.reverse();
     //Swap tokenOutdenom of the route to the key of the route
@@ -594,18 +627,20 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 //Swapping CDT to collateral
 export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
     //Get tokenOutAmount
-    const tokenOutAmount = getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice);
+    const decimalDiff = denoms[tokenOut][1] as number - 6;
+    // const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -decimalDiff);
+    const tokenOutAmount = shiftDigits(getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice), decimalDiff);
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
-
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
 
     const msg = swapExactAmountIn({
-        sender: address! as string,
+        sender: address as string,
         routes,
         tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
         tokenOutMinAmount
     });
-    // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {console.log(res)});
+
+    // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {// console.log(res)});
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
 };

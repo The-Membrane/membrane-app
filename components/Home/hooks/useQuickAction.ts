@@ -1,4 +1,4 @@
-import { getDepostAndWithdrawMsgs, getMintAndRepayMsgs } from '@/helpers/mint'
+import { getDepostAndWithdrawMsgs } from '@/helpers/mint'
 import { useBasket, useUserPositions } from '@/hooks/useCDP'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
@@ -7,210 +7,193 @@ import { useQuery } from '@tanstack/react-query'
 import useQuickActionState from './useQuickActionState'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
-import { LPMsg, swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
+import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useOraclePrice } from '@/hooks/useOracle'
-import { shiftDigits } from '@/helpers/math'
-import { buildStabilityPooldepositMsg } from '@/services/stabilityPool'
-import { coin } from '@cosmjs/stargate'
 import { loopPosition } from '@/services/osmosis'
-import useQuickActionVaultSummary from './useQuickActionVaultSummary'
-import { num } from '@/helpers/num'
+import { num, shiftDigits } from '@/helpers/num'
 import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
-import { set } from 'react-hook-form'
+import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
+import { setCookie } from '@/helpers/cookies'
 
-const useQuickAction = () => {
+const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  const { summary = [] } = quickActionState
+
+  // const { summary = [] } = quickActionState
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
-  const usdcAsset = useAssetBySymbol("USDC")
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
-  const { borrowLTV, maxMint, debtAmount, tvl } = useQuickActionVaultSummary()
+  // const usdcAsset = useAssetBySymbol('USDC')
+  
 
   /////First we'll do 1 position, but these actions will be usable by multiple per user in the future//////
 
-  //Use first position id or use the basket's next position ID (for new positions)
+  //Always using the basket's next position ID (for new positions)
   const positionId = useMemo(() => {
-    if (basketPositions !== undefined) {
-      return basketPositions?.[0]?.positions?.[0]?.position_id
-    } else {
       //Use the next position ID
       return basket?.current_position_id ?? ""
-    }
-  }, [basket, basketPositions])
+  }, [basket])
 
+  // const stableAsset = useMemo(() => {
+  //   return usdcAsset! as AssetWithBalance
+  // }, [usdcAsset])
+
+  
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
+    loop_msgs: MsgExecuteContractEncodeObject[] | undefined
     newPositionValue: number
-    newPositionLTV: number
+    summary: any[]
   }
-
+  // console.log("SV:", quickActionState?.stableAsset?.sliderValue)
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'mint',
+      'quick action widget',
       address,
       positionId, 
-      borrowLTV, 
-      maxMint,
-      quickActionState?.mint,
-      quickActionState?.selectedAsset,
-      quickActionState?.action,
-      quickActionState?.swapInsteadofMint,
-      usdcAsset,
+      quickActionState?.levAssets,
+      borrowLTV,
       prices,
-      cdtAsset, basketPositions, tvl, debtAmount, summary
+      cdtAsset, 
+      basketPositions,
     ],
     queryFn: () => {
-      if (!address || !basket || !usdcAsset || !prices || !cdtAsset || !quickActionState?.selectedAsset) return {msgs: undefined, newPositionLTV: 0, newPositionValue: 0}
+      if (!address || !basket || !prices || !cdtAsset || !quickActionState?.levAssets || borrowLTV === 0) return { msgs: undefined, loop_msgs: undefined, newPositionValue: 0, summary: []}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       var newPositionValue = 0
-      var newPositionLTV = 0
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
-      //Deposit or Swap to CDT
-      if (num(quickActionState?.selectedAsset?.amount??"0") > num(0)){
-        //Deposit
-        if (!quickActionState.swapInsteadofMint){
-          const deposit = getDepostAndWithdrawMsgs({ summary: [quickActionState?.selectedAsset as any], address, positionId, hasPosition: basketPositions !== undefined })
-          msgs = msgs.concat(deposit)
-        } else {
-          //Choose amount to swap to CDT
-          //- If LPing USDC, only swap half the amount
-          //- Otherwise, swap the full amount to CDT
-          const swapFromAmount = (quickActionState?.selectedAsset?.symbol === "USDC" && quickActionState?.action.value === "LP") ?
-             num(quickActionState?.selectedAsset?.amount).div(2).toNumber() 
-             : num(quickActionState?.selectedAsset?.amount).toNumber()
 
-          //Swap
-          const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
-            address, 
-            swapFromAmount,
-            swapFromAsset: quickActionState?.selectedAsset,
-            prices,
-            cdtPrice,
-          })
-          msgs.push(swap as MsgExecuteContractEncodeObject)
-          //Set the mint amount to the swap amount
-          quickActionState.mint = shiftDigits(tokenOutMinAmount, -6).toNumber()
-          setQuickActionState({mint: quickActionState.mint})
+      //1) Swap to CDT
+      //2) Swap to Stables
+      //3) Deposit to new position
+      //4) Loop the levAssets
+
+      //1) Swap 85% of the levAssets to CDT
+      //////Calculate the % to swap/////
+      // const swapRatio = 0.20
+      // var stableAmount = 0;
+      // var levAssets = [];
+      // //Loop through levAssets to create swap msgs for each
+      // for (const asset of quickActionState?.levAssets as AssetWithBalance[]) {
         
-        }
-      }
+      //   const swapFromAmount = num(asset.amount).times(swapRatio).toNumber()
+      //   const levAmount = shiftDigits(num(asset.amount).minus(swapFromAmount).toNumber(), asset.decimal)
+      //   var stableOutAmount = 0
+      //   if (swapFromAmount != 0){
+      //     // console.log("are we in here")
+      //     const { msg: swap, tokenOutMinAmount, foundToken } = swapToCDTMsg({
+      //       address, 
+      //       swapFromAmount,
+      //       swapFromAsset: asset,
+      //       prices,
+      //       cdtPrice,
+      //       tokenOut: 'USDC'
+      //     })
+      //     msgs.push(swap as MsgExecuteContractEncodeObject)
+      //     stableOutAmount = tokenOutMinAmount
+      //     //2) Swap CDT to stableAsset
+      //     // console.log("are we past #1")
+      //     if (!foundToken){
+      //     const { msg: CDTswap, tokenOutMinAmount: stableOutMinAmount } =  swapToCollateralMsg({
+      //       address,
+      //       cdtAmount: shiftDigits(tokenOutMinAmount, -6),
+      //       swapToAsset: stableAsset,
+      //       prices,
+      //       cdtPrice,
+      //     })
+      //     msgs.push(CDTswap as MsgExecuteContractEncodeObject)
+      //     stableOutAmount = stableOutMinAmount
+      //     }
+      //   }
+
+      //   //Set stableAsset deposit amount - Add swapAmount to the stableAsset
+      //   stableAmount += num(stableAsset.amount).plus(shiftDigits(stableOutAmount, -stableAsset.decimal)).toNumber();                
+      //   levAssets.push({...asset as any, amount: shiftDigits(levAmount, -asset.decimal)})
+      // }
+
+      //3) Deposit both lev assets to a new position
+      const summary = quickActionState?.levAssets as any[]
+      //Set QAState
+      setQuickActionState({ summary })
+      // console.log("summary:", summary)
+      quickActionState.summary = summary
+      // quickActionState.levAssets = levAssets
+      // quickActionState.stableAsset = newStableAsset
+
+      const deposit = getDepostAndWithdrawMsgs({ 
+        summary,
+        address,
+        basketPositions,
+        positionId,
+        hasPosition: false
+      })
+      msgs = msgs.concat(deposit)
+
+      // //4) Loop at 45% to get Postion Value
+      const mintLTV = num(.45)
+      const positions = updatedSummary(summary, undefined, prices)
+      const TVL = quickActionState?.levAssets.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)
+      console.log("QA positionID", positionId)
+      const { msgs: loops, newValue, newLTV } = loopPosition(
+        false,
+        cdtPrice,
+        mintLTV.toNumber(),
+        positionId, 
+        loopMax, 
+        address, 
+        prices, 
+        basket,
+        TVL, 
+        0, 
+        Math.min(borrowLTV, 45),
+        positions
+      )
+      console.log("loop msgs", loops) 
+      msgs = msgs.concat(loops as MsgExecuteContractEncodeObject[]) 
+      newPositionValue = newValue
       
-      if (quickActionState?.mint && quickActionState?.mint > 0){        
-        /////Actions that require minting to acquire CDT/////
-          if (quickActionState.action.value === "Loop"){            
-            //If we are looping we skip the initial mint msg bc the loop will handle it
-            //Loop
-            //Calc LTV based on mint
-            const mintLTV = num(quickActionState?.mint).div(maxMint??0).times(borrowLTV).div(100)
-            const positions = updatedSummary(summary, basketPositions, prices)
-            //Loop max amount
-            const loops = loopPosition(
-              cdtPrice,
-              mintLTV.toNumber(), //"99423726"
-              positionId, 
-              loopMax, 
-              address, 
-              prices, 
-              basket,
-              tvl, 
-              debtAmount, 
-              borrowLTV, 
-              positions
-            )
-            msgs = msgs.concat(loops!.msgs as MsgExecuteContractEncodeObject[])
-            newPositionValue = loops!.newValue
-            newPositionLTV = loops!.newLTV
-          } else if (!quickActionState.swapInsteadofMint) {
-
-            //Mint
-            const mint = getMintAndRepayMsgs({
-              address,
-              positionId,
-              mintAmount: quickActionState?.mint,
-              repayAmount: 0,
-            })
-            msgs = msgs.concat(mint)
-          }          
-        
-
-        ////Actions after acquiring CDT////
-        if (quickActionState.action.value === "LP"){
-          //Swap
-          const { msg: swap, tokenOutMinAmount } = swapToCollateralMsg({
-            address, 
-            cdtAmount: num(quickActionState?.mint).div(2).toNumber(), 
-            swapToAsset: usdcAsset,
-            prices,
-            cdtPrice,
-          })   
-          var tokenOutAmount = tokenOutMinAmount
-          var cdtInAmount = shiftDigits(quickActionState?.mint, 6).dp(0).div(2)
-          //Swap here if its not a redundant swap
-          if (quickActionState?.selectedAsset?.symbol !== "USDC" || quickActionState?.action.value !== "LP" || !quickActionState.swapInsteadofMint) {
-            msgs.push(swap as MsgExecuteContractEncodeObject)
-          }           
-          //If we are LPing USDC & the input asset is USDC & we are not swapping instead of minting, then we don't swap again. 
-          else {
-            tokenOutAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toNumber()
-            cdtInAmount = cdtInAmount.times(2)
-          }
-
-          //LP   
-          const lp = LPMsg({
-            address,
-            cdtInAmount: cdtInAmount.toString(),
-            cdtAsset,
-            pairedAssetInAmount: tokenOutAmount,
-            pairedAsset: usdcAsset,
-            poolID: 1268,
-          })
-          msgs.push(lp as MsgExecuteContractEncodeObject)
-
-        } else if (quickActionState.action.value === "Bid"){  
-          //Omni-Pool     
-          const microAmount = shiftDigits(quickActionState?.mint, 6).dp(0).toString()
-          const funds = [coin(microAmount, cdtAsset?.base!)]
-
-          const omni = buildStabilityPooldepositMsg({ address, funds })
-          msgs.push(omni as MsgExecuteContractEncodeObject)
-
-        }
-      }
-      
-      return { msgs, newPositionValue, newPositionLTV }
+      return { msgs, loop_msgs: loops as MsgExecuteContractEncodeObject[], newPositionValue, summary }
     },
     enabled: !!address,
   })
 
-  const { msgs, newPositionLTV, newPositionValue } = useMemo(() => {
-    if (!queryData) return {msgs: undefined, newPositionLTV: 0, newPositionValue: 0}
+  const { msgs, loop_msgs, newPositionValue, summary } = useMemo(() => {
+    if (!queryData) return { msgs: undefined, loop_msgs: undefined, newPositionValue: 0, summary: []}
     else return queryData
   }, [queryData])
 
-  const onSuccess = () => {    
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
+  const onInitialSuccess = () => {
+    // setQuickActionState({ readyToLoop: true })
+    queryClient.invalidateQueries({ queryKey: ['positions'] })    
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
   }
 
+  const onLoopSuccess = () => {    
+    // queryClient.invalidateQueries({ queryKey: ['positions'] })    
+    // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    // if (quickActionState.useCookies) setCookie("no liq leverage " + positionId, newPositionValue.toString(), 3650)
+    // setQuickActionState({ readyToLoop: false })
+  }
+
+  // console.log("loop_msgs", loop_msgs)
+  const action = useSimulateAndBroadcast({
+    msgs: loop_msgs,
+    queryKey: ['quick action loop', (loop_msgs?.toString()??"0"), String(quickActionState.readyToLoop)],
+    onSuccess: onLoopSuccess,
+  })
+
+
+  // console.log(msgs, stableAsset, quickActionState?.levAssets?.amount)
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    queryKey: [
-      String(quickActionState?.mint) || '0',
-      String(quickActionState?.selectedAsset?.amount) || '0',
-      quickActionState?.action?.value,
-      String(quickActionState?.swapInsteadofMint),
-    ],
-    enabled: !!msgs && ((quickActionState?.mint??0) > 0),
-    onSuccess,
-  }),
-  newPositionValue,
-  newPositionLTV}
+    queryKey: ['quick action lev', (msgs?.toString()??"0")],
+    onSuccess: onInitialSuccess,
+  }), loop: action, newPositionValue, positionId, summary}
 }
 
 export default useQuickAction

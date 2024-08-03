@@ -8,17 +8,19 @@ import { assets, chains } from 'chain-registry'
 import { GasPrice } from 'cosmwasm'
 import { wallets as cosmostationWallets } from '@cosmos-kit/cosmostation'
 import { wallets as keplrWallets } from '@cosmos-kit/keplr'
+import { wallets as keplrMobile } from '@cosmos-kit/keplr-mobile'
 import { wallets as leapWallets } from '@cosmos-kit/leap'
+import { wallets as leapMobile } from '@cosmos-kit/leap-mobile'
 import { wallets as ledgerWallets } from '@cosmos-kit/ledger'
-import { wallets as stationWallets } from '@cosmos-kit/station'
-import { wallets as tailwindWallets } from '@cosmos-kit/tailwind'
+// import { wallets as stationWallets } from '@cosmos-kit/station'
+// import { wallets as tailwindWallets } from '@cosmos-kit/tailwind'
 import { Chain } from '@chain-registry/types'
 import WalletModal from '@/components/WalletModal'
 import { aminoTypes, registry, rpcUrl } from '@/config/defaults'
 import { useEffect, useState } from 'react'
 import Layout from '@/components/Layout'
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-
+//pnpm install @cosmos-kit/keplr-mobile@^2.4.3
 import '@interchain-ui/react/styles'
 // import MembersRules from '@/components/MembersRules'
 
@@ -54,6 +56,7 @@ export const queryClient = new QueryClient({
   },
 })
 
+import '../styles/global.css';
 const App = ({ Component, pageProps }: AppProps) => {
   const [isLoaded, setIsLoaded] = useState(false)
 
@@ -70,15 +73,18 @@ const App = ({ Component, pageProps }: AppProps) => {
           sessionOptions={{
             duration: 1000 * 60 * 60 * 24 * 7, // 7 days
           }}
+          allowedIframeParentOrigins={['http://localhost:*', 'https://*.abstract.money']}
           chains={chains}
           assetLists={assets}
           wallets={[
-            ...keplrWallets?.slice(0, 1),
-            ...cosmostationWallets?.slice(0, 1),
-            ...ledgerWallets?.slice(0, 1),
-            ...leapWallets?.slice(0, 1),
-            ...stationWallets?.slice(0, 1),
-            ...tailwindWallets?.slice(0, 1),
+            ...keplrWallets?.slice(0,1),
+            ...keplrMobile?.slice(0,1),
+            ...cosmostationWallets?.slice(0,1),
+            ...ledgerWallets?.slice(0,1),
+            ...leapWallets?.slice(0,1),
+            ...leapMobile?.slice(0,1),
+            // ...stationWallets?.slice(0,1),
+            // ...tailwindWallets?.slice(0,1),
           ]}
           walletModal={WalletModal}
           signerOptions={signerOptions}

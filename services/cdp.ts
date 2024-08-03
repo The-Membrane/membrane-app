@@ -11,7 +11,7 @@ import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
-import { useBasket, useCollateralInterest } from '@/hooks/useCDP'
+import { stableSymbols } from '@/config/defaults'
 
 export const cdpClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -43,12 +43,12 @@ export type BasketAsset = {
   maxBorrowLTV: number
 }
 export const getBasketAssets = (
-  baseket: Basket,
+  basket: Basket,
   collateralInterest: CollateralInterestResponse,
 ) => {
   const chainAssets = getChainAssets()
 
-  return baseket?.collateral_types.map((asset) => {
+  return basket?.collateral_types.map((asset, index) => {
     const denom = asset.asset?.info.native_token?.denom
     let assetInfo = chainAssets?.find((chainAsset) => chainAsset.base === denom)
 
@@ -58,7 +58,7 @@ export const getBasketAssets = (
       }
     }
 
-    const interestRate = getAsseInterestRate(assetInfo?.base, collateralInterest, baseket)
+    const interestRate = getAsseInterestRate(assetInfo?.base, collateralInterest, basket)
     const rateIndex = Number(asset.rate_index)
     const maxLTV = Number(asset.max_LTV)
     const maxBorrowLTV = Number(asset.max_borrow_LTV)
@@ -97,9 +97,9 @@ export const getBasketPositions = async () => {
   })
 }
 
-export const getDebt = (basketPositions: BasketPositionsResponse[] | undefined) => {
+export const getDebt = (basketPositions: BasketPositionsResponse[] | undefined, positionIndex: number = 0) => {
   if (!basketPositions) return 0
-  const debt = basketPositions?.[0]?.positions?.[0]?.credit_amount
+  const debt = basketPositions?.[0]?.positions?.[positionIndex]?.credit_amount
   return shiftDigits(debt, -6).toNumber()
 }
 
@@ -121,9 +121,11 @@ export interface Prices {
   [key: string]: number
 }
 
-export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[]) => {
+export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], positionIndex: number = 0) => {
+  //This allows us to create a new position for users even if they have open positions
+  if (basketPositions && positionIndex === basketPositions[0].positions.length) return []
   if (!basketPositions) return []
-  const positions = basketPositions?.[0]?.positions?.[0]
+  const positions = basketPositions?.[0]?.positions?.[positionIndex]
 
   return positions?.collateral_assets.map((asset) => {
     const denom = asset.asset.info.native_token.denom
@@ -141,14 +143,19 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
   }) as Positions[]
 }
 
-export const getAssetRatio = (tvl: number, positions: Positions[]) => {
+export const getAssetRatio = (skipStable: boolean, tvl: number, positions: Positions[]) => {
   if (!positions) return []
   return positions.map((position) => {
-    if (!position) return 
+    if (!position || (skipStable && stableSymbols.includes(position.symbol))) return
+    if (skipStable && positions.length === 2) return {
+      ...position,
+      ratio: 1,
+    }
+
     return {
-    ...position,
-    ratio: num(position.usdValue).div(tvl).toNumber(),
-  }
+      ...position,
+      ratio: num(position.usdValue).div(tvl).toNumber(),
+    }
   })
 }
 
@@ -158,11 +165,11 @@ export const getRateCost = (
   basketAssets: BasketAsset[] = [],
 ): { cost: number, ratios: any } => {
   if (!positions) return {cost: 0, ratios: []}
-  const positionsWithRatio = getAssetRatio(tvl, positions)
+  const positionsWithRatio = getAssetRatio(false, tvl, positions)
   const cost = positionsWithRatio.reduce((acc, position) => {    
     if (!position) return acc
     const rate =
-      basketAssets.find((asset) => asset?.asset?.base === position.denom)?.interestRate || 0
+      basketAssets.find((asset) => asset?.asset?.base === position.base)?.interestRate || 0
     return acc.plus(num(position.ratio).times(rate))
   }, num(0))
 
@@ -198,7 +205,7 @@ export const getBorrowLTV = (
   basketAssets: BasketAsset[] = [],
   ratios?: any[],
 ) => {  
-  const positionsWithRatio = ratios??getAssetRatio(tvl, positions);
+  const positionsWithRatio = ratios??getAssetRatio(false, tvl, positions);
   const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => { 
     if (!position) return acc
     const ltv =
@@ -224,7 +231,7 @@ export const getLiqudationLTV = (
   basketAssets: BasketAsset[] = [],
   ratios?: any[],
 ) => {
-  const positionsWithRatio = ratios??getAssetRatio(tvl, positions);
+  const positionsWithRatio = ratios??getAssetRatio(false, tvl, positions);
 
   const maxLTV = positionsWithRatio.reduce((acc, position) => { 
     if (!position) return acc
@@ -263,6 +270,7 @@ type VaultSummary = {
   basket?: Basket
   collateralInterest?: CollateralInterestResponse
   basketPositions?: BasketPositionsResponse[]
+  positionIndex: number
   prices?: Price[]
   newDeposit: number
   summary?: any[]
@@ -276,7 +284,7 @@ type VaultSummary = {
   basketAssets: BasketAsset[]
 }
 
-export const updatedSummary = (summary: any, basketPositions: any, prices: any) => {
+export const updatedSummary = (summary: any, basketPositions: any, prices: any, positionIndex: number = 0) => {
 
   //If no initial position, return a summary using the summary from the mint state
   if (!basketPositions){
@@ -294,7 +302,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any) 
     })
   }
 
-  const positions = getPositions(basketPositions, prices)
+  const positions = getPositions(basketPositions, prices, positionIndex)
 
   return positions.map((position) => {
     if (!position) return
@@ -316,6 +324,7 @@ export const calculateVaultSummary = ({
   basket,
   collateralInterest,
   basketPositions,
+  positionIndex = 0,
   prices,
   newDeposit,
   summary = [],
@@ -329,27 +338,32 @@ export const calculateVaultSummary = ({
   basketAssets,
 }: VaultSummary) => {
   if (!basket || !collateralInterest || (!basketPositions && summary.length === 0) || !prices) {
-    return {
-      debtAmount: 0,
+    {console.log("returning 0 debt")
+      return {
+      debtAmount,
       cost: 0,
-      tvl: 0,
-      ltv: 0,
-      borrowLTV: 0,
+      tvl: initialTVL,
+      ltv: initialLTV,
+      borrowLTV: initialBorrowLTV,
+      liquidValue: 0,
+      liqudationLTV: 0,
+    }}
+  }
+
+  const positions = updatedSummary(summary, basketPositions, prices, positionIndex)
+  if (!positions) {
+    console.log("returning 0 debt 2")
+    return {
+      debtAmount,
+      cost: 0,
+      tvl: initialTVL,
+      ltv: initialLTV,
+      borrowLTV: initialBorrowLTV,
       liquidValue: 0,
       liqudationLTV: 0,
     }
   }
-
-  const positions = updatedSummary(summary, basketPositions, prices)
-  if (!positions) return {
-    debtAmount: 0,
-    cost: 0,
-    tvl: 0,
-    ltv: 0,
-    borrowLTV: 0,
-    liquidValue: 0,
-    liqudationLTV: 0,
-  }
+  console.log("running summ")
   const tvl = initialTVL + newDeposit
   const { cost, ratios} = getRateCost(positions, tvl, basketAssets)
   const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).multipliedBy(basket.credit_price.price).toNumber())
@@ -414,15 +428,51 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
 
   if (!basketPositions || !prices || !basket || !interest) return []
 
+  // const bundles: string[][] = []
+  // const tally: number[] = []
+  // const totalValue: number[] = []
+
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   return basketPositions?.map((basketPosition) => {
     const positions = getPositions([basketPosition], prices)
+
+    // Create a list of the position's assets and sort alphabetically
+    // const assetList = positions.map((position) => position.symbol).sort()
+    // // If the asset list is already in the bundles, increment the tally array of the same index & add the total value of the position to the totalValue array
+    // // Otherwise, add the asset list to the bundles, add 1 to the tally & add the total value of the position to the totalValue array
+    // const index = bundles.findIndex((bundle) => bundle.join('') === assetList.join(''))
+    // if (index !== -1) {
+    //   tally[index] += 1
+    //   totalValue[index] += positions.reduce((acc, position) => { 
+    //     if (!position) return acc
+    //     return acc + position.usdValue
+    //   }, 0)
+    // } else {
+    //   bundles.push(assetList)
+    //   tally.push(1)
+    //   totalValue.push(positions.reduce((acc, position) => { 
+    //     if (!position) return acc
+    //     return acc + position.usdValue
+    //   }, 0))
+    // }
+
+    // //Log the top 5 most common asset bundles
+    // const topBundles = tally.map((count, i) => {
+    //   return { bundle: bundles[i], count }
+    // }).sort((a, b) => b.count - a.count)//.slice(0, 5)
+    // console.log(topBundles)
+    // //Log the highest value bundles
+    // const topValue = totalValue.map((value, i) => {
+    //   return { bundle: bundles[i], value }
+    // }).sort((a, b) => b.value - a.value)//.slice(0, 5)
+    // console.log(topValue)
+    
     const tvl = getTVL(positions)
     const debt = getDebt([basketPosition])
     const debtValue = num(debt).times(basket.credit_price.price).toNumber()
     const ltv = getLTV(tvl, debtValue)
-    const positionsWithRatio = getAssetRatio(tvl, positions)
+    const positionsWithRatio = getAssetRatio(false, tvl, positions)
     const liquidationLTV = getLiqudationLTV(
       tvl,
       positions,

@@ -1,4 +1,5 @@
 import contracts from '@/config/contracts.json'
+import delegates from '@/config/delegates.json'
 import {
   GovernanceClient,
   GovernanceQueryClient,
@@ -114,6 +115,7 @@ const getDaysLeft = (proposal: any) => {
 }
 
 const parseProposal = (proposals: ProposalResponseType[]) => {
+  // console.log("before parse", proposals)
   const activeProposals = proposals
     .filter(({ status }) => status === 'active')
     .map((proposal) => ({
@@ -149,7 +151,7 @@ const parseProposal = (proposals: ProposalResponseType[]) => {
       badge: 'executed',
     }))
   const pendingProposals = proposals
-    .filter(({ status }) => status === 'pending')
+    .filter(({ aligned_power }) => aligned_power < "1000000000")
     .map((proposal) => ({
       ...proposal,
       badge: 'pending',
@@ -169,10 +171,12 @@ export const getProposals = async () => {
   // const requiredQuorum = parseFloat(config.proposal_required_quorum)
   const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
-  const start = 50
+ const start = 100
   const limit = 30 //Contract's max limit is 30 so we'll need to move the start point every 30 proposals
 
-  const activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop)=> prop.proposal_id != "61")
+  var activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop)=> prop.proposal_id != "61")  
+  const secondProp = await client.proposal({ proposalId: 98 }).then((res) => res)
+  activeProposals.push(secondProp)
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
 
   const statusOrder: Record<string, number> = {
@@ -190,6 +194,14 @@ export const getProposals = async () => {
         return statusOrder[a.status] - statusOrder[b.status]
       }),
     )
+
+  //   console.log(allProposals)
+  // //Count the amount of times a delegate has voted for a proposal & save in an array
+  // const delegateVotes = delegates.map((delegate) => {
+  //   return [delegate.name, allProposals.filter((proposal) => proposal.for_voters?.includes(delegate.address) || proposal.against_voters?.includes(delegate.address) || proposal.aligned_voters?.includes(delegate.address) || proposal.removal_voters?.includes(delegate.address)).length]
+  // })
+  // console.log(delegateVotes)
+
 
   return allProposals.filter((prop) => prop.proposal_id != "61")
   .map((proposal) => ({

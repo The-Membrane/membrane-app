@@ -29,7 +29,7 @@ const RestakeButton = (reward: any) => {
 export const ClaimAndRestake = (props: Props) => {
   const { data } = useStaked()
   const { rewards = [] } = data || {}
-  const claim = useStakingClaim().action
+  const claim = useStakingClaim(false).action
 
   const CDT = useAssetBySymbol('CDT')
   const MBRN = useAssetBySymbol('MBRN')

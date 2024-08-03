@@ -14,7 +14,6 @@ type Props = Omit<PaginationType<ProposalResponse>, 'paginatedData'>
 export const Pagination = ({
   totalPages,
   currentPage,
-  setPage,
   nextPage,
   previousPage,
   isFirst,

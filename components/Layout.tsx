@@ -19,7 +19,7 @@ const Mobile = () => (
 )
 
 const HexagonBackground = () => (
-  <Box position="absolute" top="0" right="0" zIndex={0} display={['none', 'block']}>
+  <Box position="absolute" top="0" right="0" zIndex={0} display={['block']}>
     <Image src="/images/backgrounds/right.svg" alt="Hexagon" />
   </Box>
 )
@@ -30,10 +30,10 @@ const Layout = ({ children }: Props) => {
   if (show) return <MembersRules />
 
   return (
-    <Fragment>
-      <Mobile />
+    //<Fragment>
+      //<Mobile />
 
-      <HStack w="100vw" h="100vh" display={['none', 'flex']} position="relative">
+      <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{base: "column", md: "row"}}>
         <HexagonBackground />
         <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
           <SideNav />
@@ -47,13 +47,13 @@ const Layout = ({ children }: Props) => {
           zIndex={1}
         >
           <Header />
-          <Stack as="main" p="10" maxW="1200px" w="full" flex={1} mt="70px">
+          <Stack as="main" p={{base: "2"}} maxW="1200px" w="full" flex={1} mt={{base: "0px", md: "70px"}}>
             <RPCStatus />
             {children}
           </Stack>
         </Stack>
-      </HStack>
-    </Fragment>
+      </Stack>
+      //</Fragment>
   )
 }
 

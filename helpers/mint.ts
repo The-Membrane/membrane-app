@@ -3,11 +3,12 @@ import { num } from './num'
 import { Summary } from '@/components/Mint/hooks/useMintState'
 import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
 import contracts from '@/config/contracts.json'
-import { Asset } from '@/contracts/codegen/positions/Positions.types'
+import { Asset, BasketPositionsResponse } from '@/contracts/codegen/positions/Positions.types'
 import { Coin, coin } from '@cosmjs/stargate'
 import { shiftDigits } from './math'
 import { getAssetBySymbol } from './chain'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import { PointsMsgComposer } from '@/contracts/codegen/points/Points.message-composer'
 
 // const getDeposited = (deposited = 0, newDeposit: string) => {
 //   const diff = num(newDeposit).minus(deposited).dp(6).toNumber()
@@ -125,13 +126,14 @@ export const setInitialMintState = ({
 type GetDepostAndWithdrawMsgs = {
   summary?: Summary[]
   address: string
+  basketPositions: BasketPositionsResponse[] | undefined
   positionId: string
   hasPosition?: boolean
 }
 
 const getAsset = (asset: any): Asset => {
   return {
-    amount: shiftDigits(Math.abs(asset.amount), asset.decimal).dp(0).toString(),
+    amount: shiftDigits(Math.abs(asset.amount), asset.decimal).dp(0).toNumber().toString(),
     info: {
       native_token: {
         denom: asset.base,
@@ -143,6 +145,7 @@ const getAsset = (asset: any): Asset => {
 export const getDepostAndWithdrawMsgs = ({
   summary,
   address,
+  basketPositions,
   positionId,
   hasPosition = true,
 }: GetDepostAndWithdrawMsgs) => {
@@ -156,19 +159,28 @@ export const getDepostAndWithdrawMsgs = ({
     if (num(asset.amount).isGreaterThan(0)) {
       deposit.push(asset)
     } else {
+      if(asset.sliderValue == 0 && basketPositions){
+        //Find asset in basketPositions
+        const amount = basketPositions[0].positions.find((p: any) => p.position_id === positionId)?.collateral_assets.find((a: any) => a.base === asset.base)?.asset.amount
+        if(amount) asset.amount = amount
+      }
       withdraw.push(asset)
     }
   })
-
   // user_coins.sort((a, b) => a.denom < b.denom ? -1 : 1,);
 
   const depositFunds = deposit
     .sort((a, b) => (a.base < b.base ? -1 : 1))
     .map((asset) => {
-      const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toString()
-      return coin(amount, asset.base)
+      const amount = shiftDigits(asset.amount, asset.decimal).dp(0).toNumber().toString()
+      console.log("amount", amount)
+      return {
+        denom: asset.base,
+        amount: amount,
+      }
     })
-
+    
+  
   if (depositFunds.length > 0) {
     if (hasPosition) {
       const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
@@ -205,8 +217,9 @@ export const getMintAndRepayMsgs = ({
 }: GetMintAndRepayMsgs) => {
   const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
   const msgs = []
-  
+
   if (num(mintAmount).isGreaterThan(0)) {
+    //Add Mint msg  
     const mintMsg = messageComposer.increaseDebt({
       positionId,
       amount: shiftDigits(mintAmount, 6).dp(0).toString(),
@@ -215,11 +228,29 @@ export const getMintAndRepayMsgs = ({
   }
 
   if (num(repayAmount).isGreaterThan(0)) {
+    //Add points check/allocate before and after
+    const pointsMessageComposer = new PointsMsgComposer(address, contracts.points)
+    msgs.push(pointsMessageComposer.checkClaims({
+        cdpRepayment: {
+          position_id: positionId,
+          position_owner: address
+        },
+        spClaims: false,
+        lqClaims: false,
+      }))
+
     const cdt = getAssetBySymbol('CDT')
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
     const funds = [coin(microAmount, cdt?.base!)]
     const repayMsg = messageComposer.repay({ positionId, sendExcessTo: address }, funds)
+    //Push repay msg
     msgs.push(repayMsg)
+    //Add points allocation after msgs    
+    msgs.push(pointsMessageComposer.givePoints({
+      cdpRepayment: true,
+      spClaims: false,
+      lqClaims: false,
+    }))
   }
 
   return msgs
@@ -233,7 +264,7 @@ export const getLiquidationMsgs = ({
   address,
   liq_info
 }: GetLiqMsgs) => {
-  const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
+  const messageComposer = new PointsMsgComposer(address, contracts.points)
   const msgs = [] as MsgExecuteContractEncodeObject[]
 
   liq_info.map((liq) => {

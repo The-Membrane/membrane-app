@@ -8,6 +8,7 @@ import {
   Stack,
   Text,
   UnorderedList,
+  useBreakpointValue,
   useDisclosure,
 } from '@chakra-ui/react'
 import useMembersRulesState from './useRules'
@@ -15,7 +16,8 @@ import { rules } from './MembersRules'
 
 export const RulesModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { setShow } = useMembersRulesState()
+  const { setShow } = useMembersRulesState()  
+  const isMobile = useBreakpointValue({ base: true, md: false })
 
   const handleAgree = () => {
     setShow(false)
@@ -47,7 +49,7 @@ export const RulesModal = () => {
         }}
       />
 
-      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
+      <Modal isOpen={isOpen || (isMobile??false)} onClose={onClose} size="xl" isCentered>
         <ModalContent
           p="0"
           border="none"
@@ -57,8 +59,9 @@ export const RulesModal = () => {
           h="493px"
           w="534px"
           backdropFilter="none"
+          style={isMobile ? { zoom: "69%" } : { zoom: "90%" }}
         >
-          <ModalBody bgImage="url('/images/rules_frame.svg')" p="58px 23px">
+          <ModalBody bgImage="url('/images/rules_frame.svg')" p="58px 23px" bgRepeat="no-repeat">
             <Stack h="full">
               <Text variant="title" fontSize="45px" textAlign="center" py={4}>
                 MEMBRANE RULES

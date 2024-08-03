@@ -11,11 +11,17 @@ const useQuickActionVaultSummary = () => {
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
   const { quickActionState } = useQuickActionState()
-  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = useInitialVaultSummary()
+  const { data } = useInitialVaultSummary()
+  const { basketAssets } = data || {}
+
+  //Calc totalvalue
+  const totalUsdValue = useMemo(() => {
+    if (!quickActionState?.levAssets || quickActionState?.levAssets.length === 0 ) return 0
+    return quickActionState?.levAssets.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0
+  }, [quickActionState?.assets])
 
   return useMemo(() => {
-    
-    if (!quickActionState?.selectedAsset){
+    if (!quickActionState?.levAssets){
       return {
         debtAmount: 0,
         cost: 0,
@@ -30,24 +36,24 @@ const useQuickActionVaultSummary = () => {
     return calculateVaultSummary({
       basket,
       collateralInterest,
-      basketPositions,
+      basketPositions: undefined,
+      positionIndex: 0,
       prices,
-      newDeposit: (quickActionState?.selectedAsset?.sliderValue??0) || 0,
-      summary: [quickActionState?.selectedAsset],
-      mint: quickActionState?.mint,
-      initialBorrowLTV,
-      initialLTV,
-      debtAmount,
-      initialTVL,
-      basketAssets,
+      newDeposit: totalUsdValue,
+      summary: quickActionState?.levAssets as any[],
+      mint: 0,
+      initialBorrowLTV: 0,
+      initialLTV: 0,
+      debtAmount: 0,
+      initialTVL: 0,
+      basketAssets: basketAssets??[],
     })
   }, [
     basketPositions,
-    basket,
     collateralInterest,
     prices,
-    quickActionState?.selectedAsset,
-    quickActionState?.mint,
+    quickActionState?.assets,
+    totalUsdValue
   ])
 }
 

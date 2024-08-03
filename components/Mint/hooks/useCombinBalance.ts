@@ -37,7 +37,7 @@ const useCombinBalance = (positionIndex: number = 0) => {
       const position = positions.find((p) => p.denom === asset.asset.base)
       //if its collateral supply cap is 0, it is not a valid asset
       console.log("asset.supplyCapRatio:", asset.supplyCapRatio, position?.amount)
-      if (asset.supplyCapRatio === '0' && position?.amount === 0) return
+      if (asset.supplyCapRatio === '0' && (!position?.amount || position?.amount === 0)) return
       //
       const balance = balances?.find((b) => b.denom === asset.asset.base) || { amount: '0' }
       const balanceInMicro = shiftDigits(balance.amount, -asset.asset.decimal || -18).toNumber()

@@ -37,7 +37,6 @@ const useCombinBalance = (positionIndex: number = 0) => {
       const position = positions.find((p) => p.denom === asset.asset.base)
       //if its collateral supply cap is 0, it is not a valid asset
       console.log("asset.supplyCapRatio:", asset.supplyCapRatio, position?.amount, asset.asset.symbol)
-      if (asset.supplyCapRatio === '0' && (position?.amount === undefined || position?.amount === 0)) return
       //
       const balance = balances?.find((b) => b.denom === asset.asset.base) || { amount: '0' }
       const balanceInMicro = shiftDigits(balance.amount, -asset.asset.decimal || -18).toNumber()
@@ -48,6 +47,16 @@ const useCombinBalance = (positionIndex: number = 0) => {
       const walletsdValue = num(balanceInMicro).times(price).toNumber()
       const depositUsdValue = num(position?.usdValue || 0).toNumber()
       const combinUsdValue = num(combinBalance).times(price).toNumber()
+      if (asset.supplyCapRatio === '0' && (position?.amount === undefined || position?.amount === 0)) return {
+        ...asset.asset,
+        walletBalance: Number(balanceInMicro),
+        walletsdValue: 0,
+        deposited: position?.amount || 0,
+        depositUsdValue: 0,
+        combinBalance: 0,
+        combinUsdValue: 0,
+        price,
+      }
       return {
         ...asset.asset,
         walletBalance: Number(balanceInMicro),

@@ -16,6 +16,8 @@ const SelectAsset = (props: Props) => {
       label: asset?.symbol,
     }))
 
+    console.log("bid assets", assetsWithOptions)
+
   useEffect(() => {
     if (!bidState?.selectedAsset && assetsWithOptions?.[0]) {
       setBidState({
@@ -25,6 +27,8 @@ const SelectAsset = (props: Props) => {
   }, [assetsWithOptions])
 
   const onChange = (value: string) => {
+    console.log("selectedAsset", value)
+    
     setBidState({
       selectedAsset: value,
       placeBid: {

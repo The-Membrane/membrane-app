@@ -1,4 +1,4 @@
-import { BidResponse } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.types'
+import { Bid, BidResponse } from '@/contracts/codegen/liquidation_queue/LiquidationQueue.types'
 import { shiftDigits } from '@/helpers/math'
 import {
   Button,
@@ -18,7 +18,7 @@ import useUpdateBid from './hooks/useUpdateBid'
 import useUserBids from './hooks/useUserBids'
 
 type MyBidItemProps = {
-  bid: BidResponse
+  bid: Bid
 }
 
 const MyBidItem = ({ bid }: MyBidItemProps) => {
@@ -80,7 +80,8 @@ const MyBidItem = ({ bid }: MyBidItemProps) => {
 }
 
 const MyBid = () => {
-  const { data: bids = [] } = useUserBids()
+  const { data } = useUserBids()
+  const bids = data ?? []
   const { setBidState, bidState } = useBidState()
 
   const txSuccess = () => {

@@ -394,6 +394,11 @@ export const calculateVaultSummary = ({
     creditPrice,
   })
 
+  console.log("lqiuidation values", liquidValue, liqudationLTV,
+    debtAmount,
+    mintAmount,
+    creditPrice)
+    
   return {
     newDebtAmount,
     debtAmount,

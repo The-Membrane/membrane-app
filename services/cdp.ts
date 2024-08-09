@@ -379,7 +379,7 @@ export const calculateVaultSummary = ({
   const maxMint = getMaxMint(tvl, borrowLTV, creditPrice)
   
 
-  const mintAmount = getMintAmount({
+  const remainingMintAmount = getMintAmount({
     tvl,
     creditPrice,
     debtAmount,
@@ -389,16 +389,11 @@ export const calculateVaultSummary = ({
   const liquidValue = getLiquidValue({
     liqudationLTV,
     debtAmount,
-    mintAmount,
-    repayAmount: 0,
+    mintAmount: mint,
+    repayAmount: repay,
     creditPrice,
   })
 
-  console.log("lqiuidation values", liquidValue, liqudationLTV,
-    debtAmount,
-    mintAmount,
-    creditPrice)
-    
   return {
     newDebtAmount,
     debtAmount,
@@ -412,7 +407,7 @@ export const calculateVaultSummary = ({
     initialLTV,
     initialTVL,
     initialBorrowLTV,
-    mintAmount,
+    remainingMintAmount,
   }
 }
 

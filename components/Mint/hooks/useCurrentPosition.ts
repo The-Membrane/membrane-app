@@ -44,7 +44,7 @@ export const useCurrentPosition = () => {
     },
     {
       label: 'COST',
-      value: `${summary.cost?.toFixed(4)}% / year`,
+      value: `${(summary.cost??0 * 100).toFixed(2)}% / year`,
     },
     {
       label: 'BORROWABLE LTV',

@@ -1,7 +1,7 @@
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Stack, HStack, Image, Text } from '@chakra-ui/react'
-import React from 'react'
+import React, { useEffect } from 'react'
 import useStaked from './hooks/useStaked'
 import { TxButton } from '../TxButton'
 import dayjs from 'dayjs'
@@ -68,8 +68,8 @@ const Unstaking = (props: Props) => {
   const { address } = useWallet()
   const { action: claim } = useClaimUnstake({address: address, sim: true})
 
-  console.log("unstaking", unstaking)
-  
+  useEffect(() => console.log("unstaking", unstaking), [data])
+
   if (!unstaking?.length)
     return (
       <HStack justifyContent="center" mt="5">

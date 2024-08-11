@@ -64,9 +64,9 @@ const ClaimButton = ({ unstakeStartDate, action }: { unstakeStartDate: number, a
 const Unstaking = (props: Props) => {
   const mbrn = useAssetBySymbol('MBRN')
   const { data } = useStaked()
-  const { unstaking = [] } = data || {}
+  const { unstaking } = data || { unstaking: [] }
   const { address } = useWallet()
-  const { action: claim } = useClaimUnstake({address: address})
+  const { action: claim } = useClaimUnstake({address: address, sim: true})
 
   if (!unstaking?.length)
     return (

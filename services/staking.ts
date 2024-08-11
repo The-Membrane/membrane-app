@@ -47,12 +47,12 @@ export const getStaked = async (address: Addr) => {
 
   const staking = response?.deposit_list?.filter((s) => !s.unstake_start_time)
   const unstaking = response?.deposit_list?.filter((s) => s.unstake_start_time)
-  console.log("unstaking", unstaking)
 
   const staked = staking?.reduce((acc, s) => {
     return acc.plus(s.amount)
   }, num(0))
 
+  console.log("unstaking in fn", unstaking)
   return {
     staked: staked.toNumber(),
     unstaking,

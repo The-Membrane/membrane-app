@@ -68,6 +68,8 @@ const Unstaking = (props: Props) => {
   const { address } = useWallet()
   const { action: claim } = useClaimUnstake({address: address, sim: true})
 
+  console.log("unstaking", unstaking)
+  
   if (!unstaking?.length)
     return (
       <HStack justifyContent="center" mt="5">

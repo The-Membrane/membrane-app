@@ -14,6 +14,11 @@ const useStaked = () => {
       const { staked, unstaking } = await getStaked(static_address)
       const rewards = await getRewards(static_address)
 
+      console.log("unstaking in query", {
+        staked,
+        unstaking,
+        rewards,
+      })
       return {
         staked,
         unstaking,

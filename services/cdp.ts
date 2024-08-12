@@ -420,7 +420,7 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
     const usdValue = num(amount).times(assetPrice).toNumber()
-    console.log(assetInfo?.symbol, usdValue, amount, assetPrice)
+    // console.log(assetInfo?.symbol, usdValue, amount, assetPrice)
     return usdValue
   })
 

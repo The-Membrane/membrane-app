@@ -1,7 +1,7 @@
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Stack, HStack, Image, Text } from '@chakra-ui/react'
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import useStaked from './hooks/useStaked'
 import { TxButton } from '../TxButton'
 import dayjs from 'dayjs'
@@ -64,11 +64,11 @@ const ClaimButton = ({ unstakeStartDate, action }: { unstakeStartDate: number, a
 const Unstaking = (props: Props) => {
   const mbrn = useAssetBySymbol('MBRN')
   const { data } = useStaked()
-  const { unstaking } = data || { unstaking: [] }
+  const { unstaking } = useMemo(() => data || { unstaking: [] }, [data])
   const { address } = useWallet()
   const { action: claim } = useClaimUnstake({address: address, sim: true})
 
-  useEffect(() => console.log("unstaking", unstaking), [data])
+  useEffect(() => console.log("unstaking", unstaking), [unstaking])
 
   if (!unstaking?.length)
     return (

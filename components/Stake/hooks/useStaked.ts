@@ -7,18 +7,17 @@ const useStaked = () => {
   const { address } = useWallet()
 
   return useQuery({
-    queryKey: ['staked', address],
+    queryKey: ['staked', ],
     queryFn: async () => {
       if (!address) return null
-      let static_address = "osmo1pss5jer8r00zv6x562uttctug9u96f4k2g0kam"
-      const { staked, unstaking } = await getStaked(static_address)
-      const rewards = await getRewards(static_address) || undefined
+      const { staked, unstaking } = await getStaked(address)
+      const rewards = await getRewards(address)
       //Reward query is erroring
 
       return {
         staked,
         unstaking,
-        rewards: rewards || undefined,
+        rewards,
       }
     },
     enabled: !!address,

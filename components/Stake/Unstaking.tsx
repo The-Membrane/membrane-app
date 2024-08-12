@@ -68,7 +68,7 @@ const Unstaking = (props: Props) => {
   const { address } = useWallet()
   const { action: claim } = useClaimUnstake({address: address, sim: true})
 
-  useEffect(() => console.log("unstaking", unstaking), [unstaking])
+  console.log("unstaking", data)
 
   if (!unstaking?.length)
     return (

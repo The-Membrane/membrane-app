@@ -20,7 +20,7 @@ const useStaked = () => {
       return {
         staked,
         unstaking,
-        rewards,
+        rewards: rewards || [],
       }
     },
     enabled: !!address,

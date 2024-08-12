@@ -72,7 +72,7 @@ export const getRewards = async (address: Addr) => {
   const client = await stakingClient()
   const rewards = await client.userRewards({
     user: address,
-  })
+  }) || { claimables: [], accrued_interest: '0' }
   const mbrn = getAssetBySymbol('MBRN')
 
   const claimable = parseClaimable(rewards.claimables)

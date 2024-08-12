@@ -8,18 +8,13 @@ const useStaked = () => {
   return useQuery({
     queryKey: ['staked', address],
     queryFn: async () => {
-      console.log("address check", address)
       if (!address) return null
       let static_address = "osmo1pss5jer8r00zv6x562uttctug9u96f4k2g0kam"
-      console.log("got past address check")
       const { staked, unstaking } = await getStaked(static_address)
-      const rewards = await getRewards(static_address)
+      const rewards = await getRewards(static_address) || []
 
-      console.log("unstaking in query", {
-        staked,
-        unstaking,
-        rewards,
-      })
+      //Reward query is erroring
+
       return {
         staked,
         unstaking,

@@ -14,7 +14,7 @@ const useStaked = () => {
       const { staked, unstaking } = await getStaked(static_address)
       console.log("unstaked", { unstaking, staked })
       const rewards = await getRewards(static_address) || []
-
+      console.log("rewards", rewards)
       //Reward query is erroring
 
       return {

@@ -71,9 +71,15 @@ const parseClaimable = (claimable: LiqAsset[]) => {
 export const getRewards = async (address: Addr) => {
   const client = await stakingClient()
   console.log("rewards 1")
-  const rewards = await client.userRewards({
-    user: address,
-  }) || { claimables: [], accrued_interest: '0' }
+  let rewards;
+  try {
+    rewards = await client.userRewards({
+      user: address,
+    });
+  } catch (error) {
+    console.error("Error fetching user rewards:", error);
+    rewards = { claimables: [], accrued_interest: '0' };
+  }
   console.log("rewards 2")
   const mbrn = getAssetBySymbol('MBRN')
   const claimable = parseClaimable(rewards.claimables)

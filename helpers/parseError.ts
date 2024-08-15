@@ -1,8 +1,26 @@
+import { useBasket } from "@/hooks/useCDP"
 import { stake } from "@/services/staking"
 import { position } from "@chakra-ui/react"
+import { getAssetByDenom } from "./chain"
+
+//Get the collateral assets from the Basket and create regex errors for them
+const collateralSupplyCapErrors = () => {
+  const { data: basket } = useBasket()
+  const basketAssets = basket?.collateral_types
+
+  return basketAssets?.map((asset) => {
+    //@ts-ignore
+    const assetDenom = asset.asset.info.native_token.denom
+    const assetSymbol = getAssetByDenom(assetDenom)?.symbol
+    return {
+      regex: new RegExp(`Supply cap ratio for ${assetDenom}`, 'i'),
+      message: `This transaction puts ${assetSymbol} over its supply cap. If withdrawing, withdraw ${assetSymbol}. If depositing, deposit a different asset. If minting from zero debt, withdraw ${assetSymbol} first & attempt to deposit it after the mint.`,
+    }
+  })
+}
 
 export const parseError = (error: Error) => {
-  const customErrors = [
+  var customErrors = [
     { regex: /insufficient funds/i, message: 'Insufficient funds' },
     { regex: /overflow: cannot sub with/i, message: 'Insufficient funds' },
     { regex: /max spread assertion/i, message: 'Try increasing slippage' },
@@ -36,6 +54,7 @@ export const parseError = (error: Error) => {
       message: 'Success despite error', 
     },
   ]
+  customErrors = customErrors.concat(collateralSupplyCapErrors()??[])
 
   const errorMessage = error?.message || ''
     console.log("error:", errorMessage)

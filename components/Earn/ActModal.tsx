@@ -23,11 +23,10 @@ type Props = PropsWithChildren & {
 
 type ConfirmProps = PropsWithChildren & {
     action?: Action
-    onClose: () => void
   }
   
-  const ConfirmDetails = ({ children, action, onClose }: ConfirmProps) => {
-    // if (action?.tx?.isPending) return null
+  const ConfirmDetails = ({ children, action }: ConfirmProps) => {
+    if (action?.tx?.isPending) return null
   
     return (
       <ModalContent display={action?.tx?.isSuccess ? 'none' : 'flex'}>
@@ -48,7 +47,7 @@ type ConfirmProps = PropsWithChildren & {
             maxW="200px"
             isLoading={action?.simulate.isLoading || action?.tx.isPending}
             isDisabled={action?.simulate.isError || !action?.simulate.data}
-            onClick={() => {action?.tx.mutate(); onClose(); }}
+            onClick={() => action?.tx.mutate()}
           >
             Confirm
           </TxButton>
@@ -100,7 +99,7 @@ const ActModal = ({
       >
         <ModalOverlay />
         <LoadingContent action={action} />
-        <ConfirmDetails action={action} onClose={onClose}>{children}</ConfirmDetails>
+        <ConfirmDetails action={action} >{children}</ConfirmDetails>
         <TxDetails action={action} onClose={onModalClose} />
       </Modal>
     </>

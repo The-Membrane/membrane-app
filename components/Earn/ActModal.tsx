@@ -47,7 +47,8 @@ type ConfirmProps = PropsWithChildren & {
             maxW="200px"
             isLoading={action?.simulate.isLoading || action?.tx.isPending}
             isDisabled={action?.simulate.isError || !action?.simulate.data}
-            onClick={() => action?.simulate.refetch().then( () => action?.tx.mutate())}
+            onClick={() => action?.tx.mutate()}
+
           >
             Confirm
           </TxButton>

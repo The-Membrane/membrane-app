@@ -5,7 +5,7 @@ import React, { useMemo }  from 'react'
 function SoloLeveling(){
     const { data: pointsData } = useUserPoints()
     const points = useMemo(() => {
-      console.log("total p[oints", pointsData)
+      console.log("total points", pointsData)
       return pointsData || { stats: { total_points: "0" } }
     }, [pointsData])
 

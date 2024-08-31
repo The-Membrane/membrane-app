@@ -175,7 +175,8 @@ const Deposit = () => {
               <Divider />
               <Text variant="body">{APRObject.yearly}% </Text>
             </Stack>
-          </HStack>
+          </HStack>          
+          <Divider />
           <Stack>
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
             <Text variant="body">{(num(longestAPR).multipliedBy(TVL)).toFixed(2)} USD</Text>  

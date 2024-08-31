@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExecuteMsg",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "enter_vault"
+      ],
+      "properties": {
+        "enter_vault": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "exit_vault"
+      ],
+      "properties": {
+        "exit_vault": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Unloop the vault's CDP position to free up collateral Only called by the contract. (for withdrawals)",
+      "type": "object",
+      "required": [
+        "unloop_c_d_p"
+      ],
+      "properties": {
+        "unloop_c_d_p": {
+          "type": "object",
+          "required": [
+            "desired_collateral_withdrawal"
+          ],
+          "properties": {
+            "desired_collateral_withdrawal": {
+              "description": "Amount of collateral to withdraw.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Loop the vault's CDP position to increase collateral",
+      "type": "object",
+      "required": [
+        "loop_c_d_p"
+      ],
+      "properties": {
+        "loop_c_d_p": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Assures that for deposits & withdrawals the conversion rate is static. We are trusting that Mars deposits will only go up. Only callable by the contract",
+      "type": "object",
+      "required": [
+        "rate_assurance"
+      ],
+      "properties": {
+        "rate_assurance": {
+          "type": "object",
+          "required": [
+            "exit"
+          ],
+          "properties": {
+            "exit": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Update the config's total_nonleveraged_vault_tokens Only callable by the contract",
+      "type": "object",
+      "required": [
+        "update_nonleveraged_vault_tokens"
+      ],
+      "properties": {
+        "update_nonleveraged_vault_tokens": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "Decimal": {
+      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+      "type": "string"
+    },
+    "Uint128": {
+      "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
+      "type": "string"
+    }
+  }
+}

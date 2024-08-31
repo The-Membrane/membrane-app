@@ -40,7 +40,18 @@ const DepositButton = () => {
       isDisabled={!isGreaterThanZero(usdcBalance)}
       action={stableLooping}
     >
-      <SliderWithState value={earnState.deposit} onChange={onSliderChange} min={0} max={parseFloat(usdcBalance)} walletCDT={1} summary={["empty"]}/>
+      
+      <Stack gap="0">
+        <HStack justifyContent="space-between">
+          <Text variant="lable" textTransform="unset">
+            USDC
+          </Text>
+          <HStack>
+            <Text variant="value">${earnState.deposit}</Text>
+          </HStack>
+        </HStack>
+        <SliderWithState value={earnState.deposit} onChange={onSliderChange} min={0} max={parseFloat(usdcBalance)} walletCDT={1} summary={["empty"]}/>
+      </Stack>
     </ActModal>
   )
 }
@@ -76,7 +87,17 @@ const WithdrawButton = () => {
         isDisabled={!isGreaterThanZero(underlyingUSDC)}
         action={earnExit}
       >
-      <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+      <Stack gap="0">
+        <HStack justifyContent="space-between">
+          <Text variant="lable" textTransform="unset">
+            USDC
+          </Text>
+          <HStack>
+            <Text variant="value">${earnState.deposit}</Text>
+          </HStack>
+        </HStack>
+        <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+      </Stack>
       </ActModal>
     )
 }
@@ -100,10 +121,10 @@ const Deposit = () => {
       yearly: "N/A",
     }
     return {
-      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(APRs?.cost)).toFixed(1) : "N/A",
-      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(APRs?.cost)).toFixed(1) : "N/A",
-      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(APRs?.cost)).toFixed(1) : "N/A",
-      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(APRs?.cost)).toFixed(1) : "N/A",
+      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(APRs?.cost)).multipliedBy(100).toFixed(1) : "N/A",
+      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(APRs?.cost)).multipliedBy(100).toFixed(1) : "N/A",
+      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(APRs?.cost)).multipliedBy(100).toFixed(1) : "N/A",
+      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(APRs?.cost)).multipliedBy(100).toFixed(1) : "N/A",
     }
   }, [APRs])
   const longestAPR = useMemo(() => {

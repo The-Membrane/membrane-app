@@ -26,7 +26,7 @@ type ConfirmProps = PropsWithChildren & {
     onClose?: () => void
   }
   
-  const ConfirmDetails = ({ children, action }: ConfirmProps) => {
+  const ConfirmDetails = ({ children, action, onClose }: ConfirmProps) => {
     // if (action?.tx?.isPending) return null
   
     return (
@@ -48,7 +48,7 @@ type ConfirmProps = PropsWithChildren & {
             maxW="200px"
             isLoading={action?.simulate.isLoading || action?.tx.isPending}
             isDisabled={action?.simulate.isError || !action?.simulate.data}
-            onClick={() => {action?.tx.mutate(); }}
+            onClick={() => {action?.tx.mutate(); onClose(); }}
           >
             Confirm
           </TxButton>

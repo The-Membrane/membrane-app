@@ -1,9 +1,8 @@
 import React, { use, useEffect, useMemo } from 'react'
 import { Card, HStack, Stack, Text } from '@chakra-ui/react'
 import { TxButton } from '@/components/TxButton'
-import useUnloop from '../Home/hooks/useUnloop'
 import useStableYieldLoop from './hooks/useStableYieldLoop'
-import { isGreaterThanZero } from '@/helpers/num'
+import { isGreaterThanZero, num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import ActModal from './ActModal'
@@ -15,13 +14,18 @@ import { Asset } from '@/helpers/chain'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { Price } from '@/services/oracle'
 import { SliderWithState } from '../Mint/SliderWithState'
-import { FOUR_WEEK_TREASURY_YIELD } from './Earn'
+import { getUnderlyingUSDC } from '@/services/earn'
+import { useVaultTokenUnderlying, useAPR } from './hooks/useEarnQueries'
+import useEarnExit from './hooks/useEarnExit'
+import Divider from '../Divider'
 
 
-const DepositButton = ({ usdyAsset, usdyPrice, prices}: { usdyAsset: Asset | null, usdyPrice: number, prices: Price[] | undefined }) => {
+const DepositButton = () => {
   const { earnState, setEarnState } = useEarnState()
-  const usdyBalance = useBalanceByAsset(usdyAsset)
-  const { action: stableLooping } = useStableYieldLoop( { usdyAsset, usdyPrice, prices} )
+  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcBalance = useBalanceByAsset(usdcAsset)
+
+  const { action: stableLooping } = useStableYieldLoop()
 
   const onSliderChange = (value: number) => {
     setEarnState({ deposit: value })
@@ -33,27 +37,34 @@ const DepositButton = ({ usdyAsset, usdyPrice, prices}: { usdyAsset: Asset | nul
       // w="fit-content"
       // fontSize="sm"
       label="Deposit"
-      isDisabled={!isGreaterThanZero(usdyBalance)}
+      isDisabled={!isGreaterThanZero(usdcBalance)}
       action={stableLooping}
     >
-      <SliderWithState value={earnState.deposit} onChange={onSliderChange} min={0} max={parseFloat(usdyBalance)} walletCDT={1} summary={["empty"]}/>
+      <SliderWithState value={earnState.deposit} onChange={onSliderChange} min={0} max={parseFloat(usdcBalance)} walletCDT={1} summary={["empty"]}/>
     </ActModal>
   )
 }
 
-const WithdrawButton = ({ positionIndex, position }: { positionIndex: number, position: PositionResponse | undefined }) => {
-    const { earnState, setEarnState } = useEarnState()
-    //Find totalEarnDeposit by dividing the USDY collateral position by the leverage taken to get the yield
-    const totalEarnDeposit = useMemo(() => {
-      if (!position) return 0
-      return shiftDigits( position.collateral_assets[0].asset.amount, -18).toNumber() / earnState.leverageMulti
-    }, [position])
+const WithdrawButton = () => {
+    const { earnState, setEarnState } = useEarnState()    
+    const loopedUSDCAsset = useAssetBySymbol('loopedMarsUSDC')
+    const loopedUSDCBalance = useBalanceByAsset(loopedUSDCAsset)
+
+    //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
+    const { data: underlyingUSDC } = useVaultTokenUnderlying(loopedUSDCBalance)
+    ////////////////////////////////////
+
+    const vttoUSDCRatio = useMemo(() => { return num(loopedUSDCBalance).dividedBy(num(underlyingUSDC)) }, [loopedUSDCBalance, underlyingUSDC])
 
     //Unloop to the withdrawal amount
-    const { action: stableUnLooping } = useUnloop(positionIndex, earnState.withdraw)
+    const { action: earnExit } = useEarnExit()
 
     const onSliderChange = (value: number) => {
-      setEarnState({ withdraw: value })
+      ////Convert the USDC amount to the looped USDC amount using the queried ratio///
+      //Shift USDC amount back
+      const vtAmount = num(shiftDigits(value, 6)).times(vttoUSDCRatio)
+
+      setEarnState({ withdraw: vtAmount.toNumber() })
     }
 
     return (
@@ -62,82 +73,95 @@ const WithdrawButton = ({ positionIndex, position }: { positionIndex: number, po
         // w="fit-content"
         // fontSize="sm"
         label="Withdraw"
-        isDisabled={!isGreaterThanZero(totalEarnDeposit)}
-        action={stableUnLooping}
+        isDisabled={!isGreaterThanZero(underlyingUSDC)}
+        action={earnExit}
       >
-      <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={totalEarnDeposit} walletCDT={1} summary={["empty"]}/>
+      <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
       </ActModal>
     )
 }
 
 const Deposit = () => {
   const { earnState } = useEarnState()
-  const usdyAsset = useAssetBySymbol('USDY')
+  const usdcAsset = useAssetBySymbol('USD')
   const { data: prices } = useOraclePrice()
-  const usdyPrice = parseFloat(prices?.find((price) => price.denom === usdyAsset?.base)?.price ?? "0")
-  //Get the position data  
-  const { data: basketPositions } = useUserPositions()
-  const { position, positionIndex } = useMemo(() => {
-    if (!basketPositions) return { position: undefined, positionIndex: 0 }
-    //@ts-ignore
-    let positionIndex = basketPositions?.[0].positions.findIndex((position) => position.collateral_assets.length === 1 && position.collateral_assets[0].asset.info.native_token.denom === 'ibc/23104D411A6EB6031FA92FB75F227422B84989969E91DCAD56A535DD7FF0A373')
-    return { 
-      position: basketPositions?.[0].positions[positionIndex],
-      positionIndex
-    }
-  }, [basketPositions])
+  const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
   
-  //Calc its TVL
+  const loopedUSDCAsset = useAssetBySymbol('loopedMarsUSDC')
+  const loopedUSDCBalance = useBalanceByAsset(loopedUSDCAsset)
+  const { data: underlyingUSDC } = useVaultTokenUnderlying(loopedUSDCBalance)
+  
+  const { data: APRs } = useAPR() 
+  const APRObject = useMemo(() => {
+    if (!APRs) return {
+      weekly: "N/A",
+      monthly: "N/A",
+      three_month: "N/A",
+      yearly: "N/A",
+    }
+    return {
+      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(APRs?.cost)).toFixed(1) : "N/A",
+      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(APRs?.cost)).toFixed(1) : "N/A",
+      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(APRs?.cost)).toFixed(1) : "N/A",
+      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(APRs?.cost)).toFixed(1) : "N/A",
+    }
+  }, [APRs])
+  const longestAPR = useMemo(() => {
+    if (!APRs) return "0"
+    if (APRs.year_apr) return APRs.year_apr
+    if (APRs.three_month_apr) return APRs.three_month_apr
+    if (APRs.month_apr) return APRs.month_apr
+    return APRs.week_apr??"0"
+  }, [APRs])
+
+  
+  //Calc TVL in the Earn (Mars USDC looped) vault 
   const TVL = useMemo(() => {
-    if (!position || !usdyAsset || !usdyPrice) return 0
-    return shiftDigits(position?.collateral_assets[0].asset.amount, usdyAsset?.decimal).toNumber() * usdyPrice
-  }, [position, usdyPrice, usdyAsset])
-
-  //Dividing the TVL by the leverage taken to get the total deposit
-  const totalDeposit = TVL / earnState.leverageMulti
-
-  ////Calc yield by taking the treasury rate leveraged minus USDY's current interest rate////
-  //Query rates
-  const { data: interest } = useCollateralInterest()
-  const { data: basket } = useBasket()
-  //Find the index of the USDY asset
-  const usdyIndex = useMemo(() => {
-    if (!basket || !usdyAsset) return 0
-    return basket.collateral_types.findIndex((collateral) => collateral.asset.info.native_token.denom === usdyAsset.base)
-  }, [basket, usdyAsset])
-  //Find USDY rate
-  const usdyRate = useMemo(() => { return parseFloat(interest?.rates[usdyIndex]??"0") }, [interest, usdyIndex])
-  //Find leveraged treasury rate
-  const treasuryRate = useMemo(() => {
-    if (!basket) return 0
-    return FOUR_WEEK_TREASURY_YIELD * earnState.leverageMulti
-  }, [basket, earnState.leverageMulti])
-  //Calc gross yield
-  const grossYield = useMemo(() => { return treasuryRate - usdyRate }, [usdyRate, treasuryRate])
+    if (underlyingUSDC == "0" || !usdcPrice || !usdcAsset) return 0
+    return shiftDigits(underlyingUSDC, usdcAsset?.decimal).toNumber() * usdcPrice
+  }, [underlyingUSDC, usdcPrice])
 
   return (
     <HStack spacing="5" alignItems="flex-start">
       <Card p="8" gap={5} width={"100%"}>
         <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
-        <Text variant="body">{(totalDeposit * usdyPrice).toFixed(2)} USD</Text>  
+        <Text variant="body">{(TVL).toFixed(2)} USD</Text>  
         <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
-          <DepositButton usdyAsset={usdyAsset} usdyPrice={usdyPrice} prices={prices}/>
-          <WithdrawButton positionIndex={positionIndex} position={position}/>
+          <DepositButton />
+          <WithdrawButton />
         </HStack>
       </Card>
-      <Card p="8" gap={5} width={"100%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>        
+      <Card p="8" gap={5} width={"100%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
+      <Stack>          
           <HStack spacing="5" alignItems="flex-start">
             <Stack>
-              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Current Yield</Text>
-              <Text variant="body">{(grossYield * 100).toFixed(2)}% </Text>
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Last Week's APR</Text>
+              <Divider />
+              <Text variant="body">{APRObject.weekly}% </Text>
             </Stack>
             <Stack>
-              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Expected Annual Interest</Text>
-              <Text variant="body">{(grossYield * totalDeposit * usdyPrice).toFixed(2)} USD</Text>  
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Last Month's APR</Text>
+              <Divider />
+              <Text variant="body">{APRObject.monthly}% </Text>
+            </Stack>
+            <Stack>
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Last 3 Months' APR</Text>
+              <Divider />
+              <Text variant="body">{APRObject.three_month}% </Text>
+            </Stack>
+            <Stack>
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Last Year's APR</Text>
+              <Divider />
+              <Text variant="body">{APRObject.yearly}% </Text>
             </Stack>
           </HStack>
+          <Stack>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
+            <Text variant="body">{(num(longestAPR).multipliedBy(TVL)).toFixed(2)} USD</Text>  
+          </Stack>
+        </Stack>
       </Card>
-      {/* Add risk description bc USDY CAN get liquidated */}
+      {/* Add risk description */}
     </HStack>
   )
 }

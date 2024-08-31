@@ -62,6 +62,7 @@ const useStableYieldLoop = ( ) => {
     msgs,
     queryKey: ['earn page mars usdc loop', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
+    enabled: !!msgs,
   })}
 }
 

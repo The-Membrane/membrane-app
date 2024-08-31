@@ -23,7 +23,7 @@ type Props = PropsWithChildren & {
 
 type ConfirmProps = PropsWithChildren & {
     action?: Action
-    onClose?: () => void
+    onClose: () => void
   }
   
   const ConfirmDetails = ({ children, action, onClose }: ConfirmProps) => {

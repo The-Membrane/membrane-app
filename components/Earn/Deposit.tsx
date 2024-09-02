@@ -143,7 +143,7 @@ const Deposit = () => {
   }, [underlyingUSDC, usdcPrice])
 
   return (
-    <HStack spacing="5" alignItems="flex-start">
+    <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>
       <Card p="8" gap={5} width={"100%"}>
         <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
         <Text variant="body">{(TVL).toFixed(2)} USD</Text>  
@@ -152,36 +152,36 @@ const Deposit = () => {
           <WithdrawButton />
         </HStack>
       </Card>
-      <Card p="8" gap={5} width={"100%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
-      <Stack>          
-          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Retroactive APRs</Text>
-          <HStack spacing="5" alignItems="flex-start">
+      <Card p="8" gap={5} width={"46%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
+        <Stack>          
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Retroactive APRs</Text>
+            <HStack spacing="5" alignItems="flex-start">
+              <Stack>
+                <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Week</Text>
+                <Divider marginTop={1} marginBottom={1}/>
+                <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.weekly}% </Text>
+              </Stack>
+              <Stack>
+                <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Month</Text>
+                <Divider marginTop={1} marginBottom={1}/>
+                <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.monthly}% </Text>
+              </Stack>
+              <Stack>
+                <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>3 Months</Text>
+                <Divider marginTop={1} marginBottom={1}/>
+                <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.three_month}% </Text>
+              </Stack>
+              <Stack>
+                <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Year</Text>
+                <Divider marginTop={1} marginBottom={1}/>
+                <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.yearly}% </Text>
+              </Stack>
+            </HStack>          
+            <Divider />
             <Stack>
-              <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Week</Text>
-              <Divider marginTop={1} marginBottom={1}/>
-              <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.weekly}% </Text>
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
+              <Text variant="body">{(num(longestAPR).multipliedBy(TVL)).toFixed(2)} USD</Text>  
             </Stack>
-            <Stack>
-              <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Month</Text>
-              <Divider marginTop={1} marginBottom={1}/>
-              <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.monthly}% </Text>
-            </Stack>
-            <Stack>
-              <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>3 Months</Text>
-              <Divider marginTop={1} marginBottom={1}/>
-              <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.three_month}% </Text>
-            </Stack>
-            <Stack>
-              <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Year</Text>
-              <Divider marginTop={1} marginBottom={1}/>
-              <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.yearly}% </Text>
-            </Stack>
-          </HStack>          
-          <Divider />
-          <Stack>
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
-            <Text variant="body">{(num(longestAPR).multipliedBy(TVL)).toFixed(2)} USD</Text>  
-          </Stack>
         </Stack>
       </Card>
       {/* Add risk description */}

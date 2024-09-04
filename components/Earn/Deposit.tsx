@@ -1,5 +1,5 @@
-import React, { use, useEffect, useMemo } from 'react'
-import { Card, HStack, Stack, Text } from '@chakra-ui/react'
+import React, { ChangeEvent, use, useEffect, useMemo } from 'react'
+import { Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
 import { TxButton } from '@/components/TxButton'
 import useStableYieldLoop from './hooks/useStableYieldLoop'
 import { isGreaterThanZero, num } from '@/helpers/num'
@@ -103,7 +103,7 @@ const WithdrawButton = () => {
 }
 
 const Deposit = () => {
-  const { earnState } = useEarnState()
+  const { earnState, setEarnState } = useEarnState()
   const usdcAsset = useAssetBySymbol('USD')
   const { data: prices } = useOraclePrice()
   const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
@@ -144,7 +144,7 @@ const Deposit = () => {
   
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault()
-    setEarnState({ loopMax: e.target.value })
+    setEarnState({ loopMax: parseInt(e.target.value) })
   }
 
   return (

@@ -19,7 +19,11 @@ export interface EarnMsg {
   }: {
     desiredCollateralWithdrawal: Uint128;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  loopCDP: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  loopCDP: ({
+    max_mint_amount
+  }: {
+    max_mint_amount: Uint128 | undefined;
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   rateAssurance: ({
     exit
   }: {
@@ -87,14 +91,20 @@ export class EarnMsgComposer implements EarnMsg {
       })
     };
   };
-  loopCDP = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
+  loopCDP = ({
+    max_mint_amount
+  }: {
+    max_mint_amount: Uint128 | undefined;
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
       value: MsgExecuteContract.fromPartial({
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          loop_c_d_p: {}
+          loop_c_d_p: {
+            max_mint_amount: max_mint_amount
+          }
         })),
         funds: _funds
       })

@@ -5,9 +5,9 @@ import { devtools } from 'zustand/middleware'
 
 
 export type EarnState = {
-    deposit: number
-    withdraw: number
-    leverageMulti: number
+  deposit: number
+  withdraw: number
+  loopMax?: number
 }
 
 type Store = {
@@ -18,7 +18,6 @@ type Store = {
 const initialState: EarnState = {  
     deposit: 0,
     withdraw: 0,
-    leverageMulti: 1
 }
 
 // @ts-ignore

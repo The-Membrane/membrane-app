@@ -19,6 +19,7 @@ import { useVaultTokenUnderlying, useAPR } from './hooks/useEarnQueries'
 import useEarnExit from './hooks/useEarnExit'
 import Divider from '../Divider'
 
+const EXIT_FEE = 0.005
 
 const DepositButton = () => {
   const { earnState, setEarnState } = useEarnState()
@@ -149,88 +150,89 @@ const Deposit = () => {
 
   return (
     <Stack>
-      <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>
-        <Card p="8" gap={5} width={"100%"}>
-          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
-          <Text variant="body">{(TVL).toFixed(2)} USD</Text>  
-          <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
-            <DepositButton />
-            <WithdrawButton />
-          </HStack>
-        </Card>
-        <Card p="8" gap={5} width={"46%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
-          <Stack>          
-              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Retroactive APRs</Text>
-              <HStack spacing="5" alignItems="flex-start">
-                <Stack>
-                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Week</Text>
-                  <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.weekly}% </Text>
-                </Stack>
-                <Stack>
-                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Month</Text>
-                  <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.monthly}% </Text>
-                </Stack>
-                <Stack>
-                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>3 Month</Text>
-                  <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.three_month}% </Text>
-                </Stack>
-                <Stack>
-                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Year</Text>
-                  <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.yearly}% </Text>
-                </Stack>
-              </HStack>          
-              <Divider />
-              <Stack>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
-                <Text variant="body">{(num(longestAPR).multipliedBy(TVL)).toFixed(2)} USD</Text>  
-              </Stack>
-          </Stack>
-        </Card>        
-      </HStack>
-      <HStack> 
-        <Stack>
-          <Card>
-            <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Who is the Yield?</Text>
-            <Text variant="body">TLDR: 1. Looped Mars USDC yield, 2. CDT Redemptions, 3. Exit fee. This vault supplies USDC on Mars Protocol and loops it by collateralizing the Mars position to mint CDT,
-              swap it for USDC & deposit it back to the Mars market. To enable lower rates for this strategy, the collateral position is open for profitable debt redemptions that act as downside liquidity for CDT.
-              On top of that, there is a 0.5% exit fee that goes to remaining depositors in order to account for the slippage it takes to unloop & withdraw USDC.
-              The exit fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max.
-            </Text>          
-            <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Recommended Deposit Time: {} to overcome exit fee</Text>
+      <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>        
+      <Stack>
+          <Card p="8" gap={5} width={"100%"}>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
+            <Text variant="body">{(TVL).toFixed(2)} USD</Text>  
+            <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
+              <DepositButton />
+              <WithdrawButton />
+            </HStack>
           </Card>
+          
           <Card>
-            <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Vault Info</Text>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Who is the Yield?</Text>
+              <Text variant="body">TLDR: 1. Looped Mars USDC yield, 2. CDT Redemptions, 3. Exit fee. This vault supplies USDC on Mars Protocol and loops it by collateralizing the Mars position to mint CDT,
+                swap it for USDC & deposit it back to the Mars market. To enable lower rates for this strategy, the collateral position is open for profitable debt redemptions that act as downside liquidity for CDT.
+                On top of that, there is a 0.5% exit fee that goes to remaining depositors in order to account for the slippage it takes to unloop & withdraw USDC.
+                The exit fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max.
+              </Text>          
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(100).dividedBy(365)).toFixed(1)} days to overcome exit fee</Text>
+            </Card>
+            <Card>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
           </Card>
         </Stack>
-        <Card>
-          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Global Management</Text>
-          <Stack>
-            <HStack>
-              <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >
-              <Text variant="body"> Max CDT to Loop </Text>
-                  <Input 
-                    width={"40%"} 
-                    textAlign={"center"} 
-                    placeholder="0" 
-                    type="number" 
-                    value={earnState.loopMax ?? 0} 
-                    onChange={handleInputChange}
-                  />
-              </Stack>
-              {/* Loop Button */}
-            </HStack>            
-            <HStack>
-              {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}
-              {/* Redeen CDT input */}
-              {/* Redeem Button */}
-            </HStack>
-              {/* Crank APR Button */}
-          </Stack>
-        </Card>
+        <Stack>    
+          <Card p="7" gap={5} width={"46%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
+            <Stack>          
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Retroactive APRs</Text>
+                <HStack spacing="5" alignItems="flex-start">
+                  <Stack>
+                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Week</Text>
+                    <Divider marginTop={1} marginBottom={1}/>
+                    <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.weekly}% </Text>
+                  </Stack>
+                  <Stack>
+                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Month</Text>
+                    <Divider marginTop={1} marginBottom={1}/>
+                    <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.monthly}% </Text>
+                  </Stack>
+                  <Stack>
+                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>3 Month</Text>
+                    <Divider marginTop={1} marginBottom={1}/>
+                    <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.three_month}% </Text>
+                  </Stack>
+                  <Stack>
+                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Year</Text>
+                    <Divider marginTop={1} marginBottom={1}/>
+                    <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.yearly}% </Text>
+                  </Stack>
+                </HStack>          
+                <Divider />
+                <Stack>
+                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
+                  <Text variant="body">{(num(longestAPR).multipliedBy(TVL)).toFixed(2)} USD</Text>  
+                </Stack>
+            </Stack>
+          </Card>          
+          <Card>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Global Management</Text>
+            <Stack>
+              <HStack>
+                <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >
+                <Text variant="body"> Max CDT to Loop </Text>
+                    <Input 
+                      width={"40%"} 
+                      textAlign={"center"} 
+                      placeholder="0" 
+                      type="number" 
+                      value={earnState.loopMax ?? 0} 
+                      onChange={handleInputChange}
+                    />
+                </Stack>
+                {/* Loop Button */}
+              </HStack>            
+              <HStack>
+                {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}
+                {/* Redeen CDT input */}
+                {/* Redeem Button */}
+              </HStack>
+                {/* Crank APR Button */}
+            </Stack>
+          </Card>
+        </Stack>
       </HStack>
     </Stack>
   )

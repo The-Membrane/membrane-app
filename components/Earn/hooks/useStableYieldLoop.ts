@@ -52,7 +52,6 @@ const useStableYieldLoop = ( ) => {
   console.log("enter msgs:", msgs)
 
   const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     setEarnState({ deposit: 0 })
   }
@@ -60,7 +59,7 @@ const useStableYieldLoop = ( ) => {
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    queryKey: ['earn page mars usdc loop', (msgs?.toString()??"0")],
+    queryKey: ['earn page mars usdc enter', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
     enabled: !!msgs,
   })}

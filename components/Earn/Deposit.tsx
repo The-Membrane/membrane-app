@@ -18,6 +18,7 @@ import { getUnderlyingUSDC } from '@/services/earn'
 import { useVaultTokenUnderlying, useAPR } from './hooks/useEarnQueries'
 import useEarnExit from './hooks/useEarnExit'
 import Divider from '../Divider'
+import useEarnLoop from './hooks/useEarnLoop'
 
 const EXIT_FEE = 0.005
 
@@ -105,6 +106,7 @@ const WithdrawButton = () => {
 
 const Deposit = () => {
   const { earnState, setEarnState } = useEarnState()
+  const { action: loop } = useEarnLoop()
   const usdcAsset = useAssetBySymbol('USD')
   const { data: prices } = useOraclePrice()
   const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
@@ -175,7 +177,7 @@ const Deposit = () => {
           </Card>
         </Stack>
         <Stack>    
-          <Card p="7" gap={5} width={"46%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
+          <Card p="7" gap={5} width={"100%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
             <Stack>          
                 <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Retroactive APRs</Text>
                 <HStack spacing="5" alignItems="flex-start">
@@ -190,7 +192,7 @@ const Deposit = () => {
                     <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.monthly}% </Text>
                   </Stack>
                   <Stack>
-                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>3 Month</Text>
+                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>3M</Text>
                     <Divider marginTop={1} marginBottom={1}/>
                     <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.three_month}% </Text>
                   </Stack>
@@ -223,6 +225,14 @@ const Deposit = () => {
                     />
                 </Stack>
                 {/* Loop Button */}
+                <TxButton
+                  maxW="200px"
+                  isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
+                  isDisabled={loop?.simulate.isError || !loop?.simulate.data}
+                  onClick={() => loop?.tx.mutate()}
+                >
+                  Loop
+                </TxButton>
               </HStack>            
               <HStack>
                 {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}

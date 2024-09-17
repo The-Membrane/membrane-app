@@ -170,7 +170,7 @@ const Deposit = () => {
                 On top of that, there is a 0.5% exit fee that goes to remaining depositors in order to account for the slippage it takes to unloop & withdraw USDC.
                 The exit fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max.
               </Text>          
-              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(100).dividedBy(365)).toFixed(1)} days to overcome exit fee</Text>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome exit fee</Text>
             </Card>
             <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>

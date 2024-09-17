@@ -213,7 +213,7 @@ const Deposit = () => {
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Global Management</Text>
             <Stack>
               <HStack>
-                <Stack py="5" w="full" gap="3" mb={"0"} pb={"5"} >
+                <Stack py="5" w="full" gap="3" mb={"0"} >
                 <Text variant="body"> Max CDT to Loop </Text>
                     <Input 
                       width={"40%"} 
@@ -226,10 +226,12 @@ const Deposit = () => {
                 </Stack>
                 {/* Loop Button */}
                 <TxButton
-                  maxW="200px"
+                  maxW="75px"
                   isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
                   isDisabled={loop?.simulate.isError || !loop?.simulate.data}
                   onClick={() => loop?.tx.mutate()}
+                  toggleConnectLabel={false}
+                  style={{ alignSelf: "end" }}
                 >
                   Loop
                 </TxButton>

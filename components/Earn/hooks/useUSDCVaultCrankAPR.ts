@@ -7,6 +7,7 @@ import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import { queryClient } from '@/pages/_app';
 
 const useUSDCVaultCrankAPR = ( ) => {
   const { address } = useWallet()
@@ -51,7 +52,7 @@ const useUSDCVaultCrankAPR = ( ) => {
 
   const onInitialSuccess = () => {
     ///ADD A RESET FOR THE VAULT INFO QUERIES//
-    //queryClient.invalidateQueries({ queryKey: ['positions'] })
+    queryClient.invalidateQueries({ queryKey: ['useAPR'] })
   }
 
   return {

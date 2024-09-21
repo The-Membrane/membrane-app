@@ -179,14 +179,14 @@ const Deposit = () => {
           
           <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Who is the Yield?</Text>
-              <Text variant="body" fontWeight={"bold"}> TLDR: 1. Looped Mars USDC yield, 2. CDT Redemptions, 3. Exit fee. {'\n\n'}</Text>
+              <Text variant="body" fontWeight={"bold"}> TLDR: 1. Looped Mars USDC yield, 2. CDT Redemptions, 3. Exit fee. {'\n'}{'\n'}</Text>
               <Text variant="body">
                 This vault supplies USDC on Mars Protocol and loops it by collateralizing the Mars position to mint CDT,
                 swap it for USDC & deposit it back to the Mars market. To enable lower rates for this strategy, the collateral position is open for profitable debt redemptions that act as downside liquidity for CDT.
                 On top of that, there is a 0.5% exit fee that goes to remaining depositors in order to account for the slippage it takes to unloop & withdraw USDC.
                 The exit fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max.
               </Text>          
-              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>{'\n\n'}Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome exit fee</Text>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>{'\n'}{'\n'}Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome exit fee</Text>
             </Card>
             <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
@@ -286,12 +286,12 @@ const Deposit = () => {
               </HStack>    
                 {/* Crank APR Button */}
                 <TxButton
-                  maxW="75px"
+                  maxW="100%"
                   isLoading={crankAPR?.simulate.isLoading || crankAPR?.tx.isPending}
                   isDisabled={crankAPR?.simulate.isError || !crankAPR?.simulate.data}
                   onClick={() => crankAPR?.tx.mutate()}
                   toggleConnectLabel={false}
-                  style={{ alignSelf: "end" }}
+                  style={{ alignSelf: "center" }}
                 >
                   Crank APR
                 </TxButton>

@@ -179,14 +179,14 @@ const Deposit = () => {
           
           <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Who is the Yield?</Text>
-              <Text variant="body" fontWeight={"bold"}> TLDR: 1. Looped Mars USDC yield, 2. CDT Redemptions, 3. Exit fee. {'\n'}</Text>
+              <Text variant="body" fontWeight={"bold"}> TLDR: 1. Looped Mars USDC yield, 2. CDT Redemptions, 3. Exit fee. {'\n\n'}</Text>
               <Text variant="body">
                 This vault supplies USDC on Mars Protocol and loops it by collateralizing the Mars position to mint CDT,
                 swap it for USDC & deposit it back to the Mars market. To enable lower rates for this strategy, the collateral position is open for profitable debt redemptions that act as downside liquidity for CDT.
                 On top of that, there is a 0.5% exit fee that goes to remaining depositors in order to account for the slippage it takes to unloop & withdraw USDC.
                 The exit fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max.
               </Text>          
-              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>{'\n'}Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome exit fee</Text>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>{'\n\n'}Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome exit fee</Text>
             </Card>
             <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
@@ -231,6 +231,7 @@ const Deposit = () => {
               <HStack>
                 <Stack py="5" w="full" gap="3" mb={"0"} >
                 <Text variant="body"> Max CDT to Loop </Text>
+                <HStack>
                     <Input 
                       width={"40%"} 
                       textAlign={"center"} 
@@ -239,25 +240,27 @@ const Deposit = () => {
                       value={earnState.loopMax ?? 0} 
                       onChange={handleInputChange}
                     />
+                    {/* Loop Button */}
+                    <TxButton
+                      maxW="75px"
+                      isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
+                      isDisabled={loop?.simulate.isError || !loop?.simulate.data}
+                      onClick={() => loop?.tx.mutate()}
+                      toggleConnectLabel={false}
+                      style={{ alignSelf: "end" }}
+                    >
+                      Loop
+                    </TxButton>
+                </HStack>
                 </Stack>
-                {/* Loop Button */}
-                <TxButton
-                  maxW="75px"
-                  isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
-                  isDisabled={loop?.simulate.isError || !loop?.simulate.data}
-                  onClick={() => loop?.tx.mutate()}
-                  toggleConnectLabel={false}
-                  style={{ alignSelf: "end" }}
-                >
-                  Loop
-                </TxButton>
               </HStack>            
               <HStack>
                 {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}
                 {/* Redeen CDT input */}
                 {/* Redeem Button */}
                 <Stack py="5" w="full" gap="3" mb={"0"} >
-                <Text variant="body"> Did you buy CDT {`<=`}{num(basket?.credit_price.price??"0").multipliedBy(0.99).toFixed(1)}?</Text>
+                <Text variant="body"> Did you buy CDT {`<=`}{num(basket?.credit_price.price??"0").multipliedBy(0.99).toFixed(2)}?</Text>
+                <HStack>
                     <Input 
                       width={"40%"} 
                       textAlign={"center"} 
@@ -267,18 +270,19 @@ const Deposit = () => {
                       max={CDTBalance}
                       onChange={handleRedeemInputChange}
                     />
+                    {/* Redeem Button */}
+                    <TxButton
+                      maxW="75px"
+                      isLoading={redeem?.simulate.isLoading || redeem?.tx.isPending}
+                      isDisabled={redeem?.simulate.isError || !redeem?.simulate.data}
+                      onClick={() => redeem?.tx.mutate()}
+                      toggleConnectLabel={false}
+                      style={{ alignSelf: "end" }}
+                    >
+                      Redeem
+                    </TxButton>
+                  </HStack>
                 </Stack>
-                {/* Loop Button */}
-                <TxButton
-                  maxW="75px"
-                  isLoading={redeem?.simulate.isLoading || redeem?.tx.isPending}
-                  isDisabled={redeem?.simulate.isError || !redeem?.simulate.data}
-                  onClick={() => redeem?.tx.mutate()}
-                  toggleConnectLabel={false}
-                  style={{ alignSelf: "end" }}
-                >
-                  Redeem
-                </TxButton>
               </HStack>    
                 {/* Crank APR Button */}
                 <TxButton

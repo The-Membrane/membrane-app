@@ -1,26 +1,23 @@
-import { getDepostAndWithdrawMsgs } from '@/helpers/mint'
-import { useBasket, useUserPositions } from '@/hooks/useCDP'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
-import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 
 import contracts from '@/config/contracts.json'
-import { EarnMsgComposer } from '@/contracts/codegen/earn/Earn.message-composer'
-import { useAssetBySymbol } from '@/hooks/useAssets'
 import useEarnState from './useEarnState'
 import { shiftDigits } from '@/helpers/math'
+import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
+import { denoms } from '@/config/defaults'
 
-const useEarnLoop = ( ) => {
+const useCDPRedeem = ( ) => {
   const { address } = useWallet()
   const { earnState, setEarnState } = useEarnState()
 
-  const maxMint = useMemo(() => {
-    if (earnState.loopMax) return shiftDigits(earnState.loopMax, 6).dp(0).toNumber().toString()
-        else return undefined
-  }, [earnState.loopMax])
+//   const maxMint = useMemo(() => {
+//     if (earnState.loopMax) return shiftDigits(earnState.loopMax, 6).dp(0).toNumber().toString()
+//         else return undefined
+//   }, [earnState.loopMax])
 
 
   type QueryData = {
@@ -28,17 +25,18 @@ const useEarnLoop = ( ) => {
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'earn page management loop msg creation',
+      'earn page management redeem msg creation',
       address,
-      earnState.loopMax
+      earnState.redeemAmount
     ],
     queryFn: () => {
-      if (!address) return { msgs: undefined }
+      if (!address || !earnState.redeemAmount) return { msgs: undefined }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      let messageComposer = new EarnMsgComposer(address, contracts.earn)
-      let loopMsg = messageComposer.loopCDP({ max_mint_amount: maxMint })
-      msgs.push(loopMsg)
+      let messageComposer = new PositionsMsgComposer(address, contracts.cdp)
+      const funds = [{ amount: shiftDigits(earnState.redeemAmount, 6).dp(0).toNumber().toString(), denom: denoms.CDT[0].toString() }]
+      let redeemMsg = messageComposer.redeemCollateral({ maxCollateralPremium: 1 }, funds)
+      msgs.push(redeemMsg)
       
       return { msgs }
     },
@@ -50,7 +48,7 @@ const useEarnLoop = ( ) => {
     else return queryData
   }, [queryData])
 
-  console.log("loop msg:", msgs)
+  console.log("redeem msg:", msgs)
 
   const onInitialSuccess = () => {
     ///ADD A RESET FOR THE VAULT INFO QUERIES//
@@ -60,10 +58,10 @@ const useEarnLoop = ( ) => {
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    queryKey: ['earn page management loop', (msgs?.toString()??"0")],
+    queryKey: ['earn page management redeem', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
     enabled: !!msgs,
   })}
 }
 
-export default useEarnLoop
+export default useCDPRedeem

@@ -19,6 +19,9 @@ import { useVaultTokenUnderlying, useAPR } from './hooks/useEarnQueries'
 import useEarnExit from './hooks/useEarnExit'
 import Divider from '../Divider'
 import useEarnLoop from './hooks/useEarnLoop'
+import useCDPRedeem from './hooks/useCDPRedeem'
+import useUSDCVaultCrankAPR from './hooks/useUSDCVaultCrankAPR'
+import useWallet from '@/hooks/useWallet'
 
 const EXIT_FEE = 0.005
 
@@ -105,10 +108,16 @@ const WithdrawButton = () => {
 }
 
 const Deposit = () => {
+  const { address } = useWallet()
   const { earnState, setEarnState } = useEarnState()
-  const { action: loop } = useEarnLoop()
-  const usdcAsset = useAssetBySymbol('USD')
   const { data: prices } = useOraclePrice()
+  const { data: basket } = useBasket()
+  const { action: loop } = useEarnLoop()
+  const { action: redeem } = useCDPRedeem()
+  const { action: crankAPR } = useUSDCVaultCrankAPR()
+  const cdtAsset = useAssetBySymbol('CDT')
+  const CDTBalance = useBalanceByAsset(cdtAsset)
+  const usdcAsset = useAssetBySymbol('USD')
   const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
   
   const loopedUSDCAsset = useAssetBySymbol('loopedUSDCmars')
@@ -149,6 +158,11 @@ const Deposit = () => {
     e.preventDefault()
     setEarnState({ loopMax: parseInt(e.target.value) })
   }
+  const handleRedeemInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    setEarnState({ redeemAmount: parseInt(e.target.value) })
+  }
+
 
   return (
     <Stack>
@@ -165,12 +179,14 @@ const Deposit = () => {
           
           <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Who is the Yield?</Text>
-              <Text variant="body">TLDR: 1. Looped Mars USDC yield, 2. CDT Redemptions, 3. Exit fee. This vault supplies USDC on Mars Protocol and loops it by collateralizing the Mars position to mint CDT,
+              <Text variant="body" fontWeight={"bold"}> TLDR: 1. Looped Mars USDC yield, 2. CDT Redemptions, 3. Exit fee. {'\n'}</Text>
+              <Text variant="body">
+                This vault supplies USDC on Mars Protocol and loops it by collateralizing the Mars position to mint CDT,
                 swap it for USDC & deposit it back to the Mars market. To enable lower rates for this strategy, the collateral position is open for profitable debt redemptions that act as downside liquidity for CDT.
                 On top of that, there is a 0.5% exit fee that goes to remaining depositors in order to account for the slippage it takes to unloop & withdraw USDC.
                 The exit fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max.
               </Text>          
-              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome exit fee</Text>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>{'\n'}Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome exit fee</Text>
             </Card>
             <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
@@ -240,8 +256,41 @@ const Deposit = () => {
                 {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}
                 {/* Redeen CDT input */}
                 {/* Redeem Button */}
-              </HStack>
+                <Stack py="5" w="full" gap="3" mb={"0"} >
+                <Text variant="body"> Did you buy CDT {`<=`}{num(basket?.credit_price.price??"0").multipliedBy(0.99).toFixed(1)}?</Text>
+                    <Input 
+                      width={"40%"} 
+                      textAlign={"center"} 
+                      placeholder="0" 
+                      type="number" 
+                      value={earnState.redeemAmount ?? 0} 
+                      max={CDTBalance}
+                      onChange={handleRedeemInputChange}
+                    />
+                </Stack>
+                {/* Loop Button */}
+                <TxButton
+                  maxW="75px"
+                  isLoading={redeem?.simulate.isLoading || redeem?.tx.isPending}
+                  isDisabled={redeem?.simulate.isError || !redeem?.simulate.data}
+                  onClick={() => redeem?.tx.mutate()}
+                  toggleConnectLabel={false}
+                  style={{ alignSelf: "end" }}
+                >
+                  Redeem
+                </TxButton>
+              </HStack>    
                 {/* Crank APR Button */}
+                <TxButton
+                  maxW="75px"
+                  isLoading={crankAPR?.simulate.isLoading || crankAPR?.tx.isPending}
+                  isDisabled={crankAPR?.simulate.isError || !crankAPR?.simulate.data}
+                  onClick={() => crankAPR?.tx.mutate()}
+                  toggleConnectLabel={false}
+                  style={{ alignSelf: "end" }}
+                >
+                  Crank APR
+                </TxButton>
             </Stack>
           </Card>
         </Stack>

@@ -8,6 +8,7 @@ export type EarnState = {
   deposit: number
   withdraw: number
   loopMax?: number
+  redeemAmount?: number
 }
 
 type Store = {

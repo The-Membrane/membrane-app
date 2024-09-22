@@ -150,7 +150,7 @@ const Deposit = () => {
   //Calc TVL in the Earn (Mars USDC looped) vault 
   const TVL = useMemo(() => {
     if (underlyingUSDC == "0" || !usdcPrice || !usdcAsset) return 0
-    return (shiftDigits(underlyingUSDC, -(usdcAsset?.decimal*2)).toNumber() * usdcPrice).toFixed(2)
+    return (shiftDigits(underlyingUSDC, -(usdcAsset?.decimal)).toNumber() * usdcPrice).toFixed(2)
   }, [underlyingUSDC, usdcPrice])
 
   

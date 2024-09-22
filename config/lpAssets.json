@@ -20,5 +20,12 @@
     ],
     "decimal": 18,
     "isLP": true
+  },
+  {
+    "description": "USDC supplied on Mars looped using Membrane by a vault",
+    "base": "factory/osmo1vf6e300hv2qe7r5rln8deft45ewgyytjnwfrdfcv5rgzrfy0s6cswjqf9r/mars-usdc-looped",
+    "symbol": "loopedUSDCmars",
+    "decimal": 6,
+    "isLP": false
   }
 ]

@@ -116,7 +116,7 @@ const Deposit = () => {
   const { action: crankAPR } = useUSDCVaultCrankAPR()
   const cdtAsset = useAssetBySymbol('CDT')
   const CDTBalance = useBalanceByAsset(cdtAsset)
-  const usdcAsset = useAssetBySymbol('USD')
+  const usdcAsset = useAssetBySymbol('USDC')
   const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
   
   const loopedUSDCAsset = useAssetBySymbol('loopedUSDCmars')

@@ -178,7 +178,7 @@ const Deposit = () => {
           
           <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Who is the Yield?</Text>
-              <Text variant="body" fontWeight={"bold"}> TLDR: 1. Looped Mars USDC yield - 2. CDT Redemptions - 3. 0.5% Exit fee. {'\n'}{'\n'}</Text>
+              <Text variant="body" fontWeight={"bold"}> TLDR: Looped Mars USDC yield, CDT Redemptions & a 0.5% Exit fee. {'\n'}{'\n'}</Text>
               <Text variant="body">
                 This vault supplies USDC on Mars Protocol and loops it by collateralizing the Mars position to mint CDT,
                 swap it for USDC & deposit it back to the Mars USDC market. The vault's collateral position is also open for profitable debt redemptions that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.

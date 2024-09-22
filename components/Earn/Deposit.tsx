@@ -150,7 +150,7 @@ const Deposit = () => {
   //Calc TVL in the Earn (Mars USDC looped) vault 
   const TVL = useMemo(() => {
     if (underlyingUSDC == "0" || !usdcPrice || !usdcAsset) return 0
-    return shiftDigits(underlyingUSDC, usdcAsset?.decimal).toNumber() * usdcPrice
+    return (shiftDigits(underlyingUSDC, -(usdcAsset?.decimal*2)).toNumber() * usdcPrice).toFixed(2)
   }, [underlyingUSDC, usdcPrice])
 
   
@@ -170,7 +170,7 @@ const Deposit = () => {
       <Stack>
           <Card p="8" gap={5} width={"100%"}>
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
-            <Text variant="body">{(TVL).toFixed(2)} USD</Text>  
+            <Text variant="body">{TVL} USD</Text>  
             <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
               <DepositButton />
               <WithdrawButton />

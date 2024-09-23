@@ -61,7 +61,7 @@ const useEarnExit = ( ) => {
     msgs,
     queryKey: ['earn page mars usdc looped vault exit', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: true,
+    enabled: !!msgs,
   })}
 }
 

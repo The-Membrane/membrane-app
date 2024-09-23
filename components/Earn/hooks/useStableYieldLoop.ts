@@ -25,7 +25,7 @@ const useStableYieldLoop = ( ) => {
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'quick action widget',
+      'earn enter msg creation',
       address,
       earnState.deposit,
       usdcAsset,

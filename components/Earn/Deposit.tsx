@@ -78,8 +78,8 @@ const WithdrawButton = () => {
     const onSliderChange = (value: number) => {
       ////Convert the USDC amount to the looped USDC amount using the queried ratio///
       //Shift USDC amount back
-      const vtAmount = num(shiftDigits(value, -12)).times(vttoUSDCRatio)
-      console.log("vtAmount", vtAmount.toString(), num(shiftDigits(value, -12)).toString(), (vttoUSDCRatio).toString())
+      const vtAmount = num(shiftDigits(value, 6)).times(vttoUSDCRatio)
+      console.log("vtAmount", vtAmount.toString(), num(shiftDigits(value, 6)).toString(), (vttoUSDCRatio).toString())
 
       setEarnState({ withdraw: vtAmount.toNumber() })
     }

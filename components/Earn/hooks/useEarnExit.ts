@@ -11,7 +11,6 @@ import contracts from '@/config/contracts.json'
 import { EarnMsgComposer } from '@/contracts/codegen/earn/Earn.message-composer'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import useEarnState from './useEarnState'
-import { shiftDigits } from '@/helpers/math'
 
 const useEarnExit = ( ) => {
   const { address } = useWallet()
@@ -31,14 +30,15 @@ const useEarnExit = ( ) => {
     ],
     queryFn: () => {
       if (!address || !loopedUSDCAsset ||  earnState.withdraw === 0) return { msgs: undefined }
+
       var msgs = [] as MsgExecuteContractEncodeObject[]
-      console.log("earn state withdraw", earnState.withdraw)
+      // console.log("earn state withdraw", earnState.withdraw)
       let messageComposer = new EarnMsgComposer(address, contracts.earn)
       const funds = [{ amount: earnState.withdraw.toString(), denom: loopedUSDCAsset.base }]
       let exitMsg = messageComposer.exitVault(funds)
       msgs.push(exitMsg)
 
-      console.log("exit msg:", msgs)
+      // console.log("exit msg:", msgs)
       
       return { msgs }
     },
@@ -46,7 +46,7 @@ const useEarnExit = ( ) => {
   })
 
   const { msgs }: QueryData = useMemo(() => {
-    if (!queryData) return { msgs: undefined}
+    if (!queryData) return { msgs: undefined }
     else return queryData
   }, [queryData])
 
@@ -61,7 +61,7 @@ const useEarnExit = ( ) => {
     msgs,
     queryKey: ['earn page mars usdc looped vault exit', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: !!msgs,
+    enabled: true,
   })}
 }
 

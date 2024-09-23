@@ -45,7 +45,7 @@ const useStableYieldLoop = ( ) => {
   })
 
   const { msgs }: QueryData = useMemo(() => {
-    if (!queryData) return { msgs: undefined}
+    if (!queryData) return { msgs: undefined }
     else return queryData
   }, [queryData])
 

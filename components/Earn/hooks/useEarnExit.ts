@@ -29,6 +29,7 @@ const useEarnExit = ( ) => {
       loopedUSDCAsset,
     ],
     queryFn: () => {
+      console.log("here1")
       if (!address || !loopedUSDCAsset ||  earnState.withdraw === 0) return { msgs: undefined }
 
       var msgs = [] as MsgExecuteContractEncodeObject[]
@@ -39,6 +40,7 @@ const useEarnExit = ( ) => {
       msgs.push(exitMsg)
 
       // console.log("exit msg:", msgs)
+      console.log("here to return msgs")
       
       return { msgs }
     },
@@ -56,7 +58,8 @@ const useEarnExit = ( ) => {
     setEarnState({ withdraw: 0 })
   }
 
-  return {
+  console.log("here to return action ")
+  return  {
     action: useSimulateAndBroadcast({
     msgs,
     queryKey: ['earn page mars usdc looped vault exit', (msgs?.toString()??"0")],

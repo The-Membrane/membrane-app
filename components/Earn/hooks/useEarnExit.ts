@@ -32,11 +32,13 @@ const useEarnExit = ( ) => {
     queryFn: () => {
       if (!address || !loopedUSDCAsset ||  earnState.withdraw === 0) return { msgs: undefined }
       var msgs = [] as MsgExecuteContractEncodeObject[]
-
+      console.log("earn state withdraw", earnState.withdraw)
       let messageComposer = new EarnMsgComposer(address, contracts.earn)
       const funds = [{ amount: earnState.withdraw.toString(), denom: loopedUSDCAsset.base }]
       let exitMsg = messageComposer.exitVault(funds)
       msgs.push(exitMsg)
+
+      console.log("exit msg:", msgs)
       
       return { msgs }
     },

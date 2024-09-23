@@ -75,14 +75,15 @@ const WithdrawButton = () => {
 
     const vttoUSDCRatio = useMemo(() => { return num(loopedUSDCBalance).dividedBy(num(underlyingUSDC)) }, [loopedUSDCBalance, underlyingUSDC])   
 
-    const onSliderChange = (value: number) => {
-      ////Convert the USDC amount to the looped USDC amount using the queried ratio///
-      //Shift USDC amount back
-      // const vtAmount = num(shiftDigits(value, 12)).times(vttoUSDCRatio)
-
-      setEarnState({ withdraw: 1000000000000 })
+    const onSliderChange = (value: number) => {      
       setWithdraw(value)
     }
+
+    useEffect(() => {      
+      ////Convert the USDC amount to the looped USDC amount using the queried ratio///
+      const vtAmount = num(shiftDigits(withdraw, 12)).times(vttoUSDCRatio)
+      setEarnState({ withdraw: num(vtAmount.toFixed(0)).toNumber() })
+    }, [withdraw])
 
     return (
       <ActModal

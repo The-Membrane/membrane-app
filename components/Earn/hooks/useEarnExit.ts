@@ -16,7 +16,7 @@ import { shiftDigits } from '@/helpers/math'
 const useEarnExit = ( ) => {
   const { address } = useWallet()
   const { earnState, setEarnState } = useEarnState()
-  const loopedUSDCAsset = useAssetBySymbol('loopedMarsUSDC')
+  const loopedUSDCAsset = useAssetBySymbol('loopedUSDCmars')
 
   
   type QueryData = {
@@ -51,7 +51,7 @@ const useEarnExit = ( ) => {
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    setEarnState({ deposit: 0 })
+    setEarnState({ withdraw: 0 })
   }
 
   return {

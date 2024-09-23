@@ -99,7 +99,7 @@ const WithdrawButton = () => {
             USDC
           </Text>
           <HStack>
-            <Text variant="value">${earnState.deposit}</Text>
+            <Text variant="value">${earnState.withdraw}</Text>
           </HStack>
         </HStack>
         <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC, -6).toNumber()} walletCDT={1} summary={["empty"]}/>

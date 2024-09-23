@@ -52,6 +52,7 @@ const useStableYieldLoop = ( ) => {
   console.log("enter msgs:", msgs)
 
   const onInitialSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     setEarnState({ deposit: 0 })
   }

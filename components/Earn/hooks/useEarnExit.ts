@@ -23,7 +23,7 @@ const useEarnExit = ( ) => {
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'quick action widget',
+      'earn exit msg creation',
       address,
       earnState.withdraw,
       loopedUSDCAsset,

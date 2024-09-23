@@ -82,7 +82,7 @@ const WithdrawButton = () => {
       const vtAmount = num(shiftDigits(value, 12)).times(vttoUSDCRatio)
       console.log("vtAmount", vtAmount.toString(), num(shiftDigits(value, 6)).toString(), (vttoUSDCRatio).toString())
 
-      setEarnState({ withdraw: vtAmount.toNumber() })
+      setEarnState({ withdraw: num(vtAmount.toFixed(0)).toNumber() })
       setWithdraw(value)
     }
 

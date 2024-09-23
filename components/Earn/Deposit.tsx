@@ -66,16 +66,14 @@ const WithdrawButton = () => {
     const { earnState, setEarnState } = useEarnState()    
     const loopedUSDCAsset = useAssetBySymbol('loopedUSDCmars')
     const loopedUSDCBalance = useBalanceByAsset(loopedUSDCAsset)
+    //Unloop to the withdrawal amount
+    const { action: earnExit } = useEarnExit()
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data: underlyingUSDC } = useVaultTokenUnderlying(shiftDigits(loopedUSDCBalance, 6).toFixed(0))
     ////////////////////////////////////
 
-    const vttoUSDCRatio = useMemo(() => { return num(loopedUSDCBalance).dividedBy(num(underlyingUSDC)) }, [loopedUSDCBalance, underlyingUSDC])
-    
-    //Unloop to the withdrawal amount
-    const { action: earnExit } = useEarnExit()
-    console.log("exit action", earnExit.simulate.isError, earnExit.simulate.errorMessage, !earnExit?.simulate.data, earnExit?.simulate.data)
+    const vttoUSDCRatio = useMemo(() => { return num(loopedUSDCBalance).dividedBy(num(underlyingUSDC)) }, [loopedUSDCBalance, underlyingUSDC])   
 
     const onSliderChange = (value: number) => {
       ////Convert the USDC amount to the looped USDC amount using the queried ratio///

@@ -18,7 +18,6 @@ export const useAssetBySymbol = (symbol: string,  chainID: string = 'osmosis') =
 
   return useMemo(() => {
     if (!assets || !symbol) return null
-    console.log("assets", assets)
     return assets.find((asset) => asset.symbol === symbol) as Asset
   }, [assets, symbol])
 }

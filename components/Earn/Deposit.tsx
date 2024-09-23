@@ -1,4 +1,4 @@
-import React, { ChangeEvent, use, useEffect, useMemo } from 'react'
+import React, { ChangeEvent, use, useEffect, useMemo, useState } from 'react'
 import { Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
 import { TxButton } from '@/components/TxButton'
 import useStableYieldLoop from './hooks/useStableYieldLoop'
@@ -62,6 +62,7 @@ const DepositButton = () => {
 }
 
 const WithdrawButton = () => {
+    const [withdraw, setWithdraw] = useState<number>(0)
     const { earnState, setEarnState } = useEarnState()    
     const loopedUSDCAsset = useAssetBySymbol('loopedUSDCmars')
     const loopedUSDCBalance = useBalanceByAsset(loopedUSDCAsset)
@@ -82,6 +83,7 @@ const WithdrawButton = () => {
       console.log("vtAmount", vtAmount.toString(), num(shiftDigits(value, 6)).toString(), (vttoUSDCRatio).toString())
 
       setEarnState({ withdraw: vtAmount.toNumber() })
+      setWithdraw(value)
     }
 
     return (
@@ -99,10 +101,10 @@ const WithdrawButton = () => {
             USDC
           </Text>
           <HStack>
-            <Text variant="value">${earnState.withdraw}</Text>
+            <Text variant="value">${withdraw}</Text>
           </HStack>
         </HStack>
-        <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+        <SliderWithState value={withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
       </Stack>
       </ActModal>
     )

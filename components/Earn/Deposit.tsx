@@ -80,6 +80,7 @@ const WithdrawButton = () => {
     }
 
     useEffect(() => {      
+      if (!withdraw) return
       ////Convert the USDC amount to the looped USDC amount using the queried ratio///
       const vtAmount = num(shiftDigits(withdraw, 12)).times(vttoUSDCRatio)
       setEarnState({ withdraw: num(vtAmount.toFixed(0)).toNumber() })

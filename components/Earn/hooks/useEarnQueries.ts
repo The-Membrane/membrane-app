@@ -30,7 +30,7 @@ export const useVaultInfo = () => {
     const { data: apr } = useAPR()
     
     return useQuery({
-        queryKey: ['useVaultInfo'],
+        queryKey: ['useVaultInfo', apr, prices, basket],
         queryFn: async () => {
             
             //Query Vault's CDP 
@@ -62,7 +62,7 @@ export const useVaultInfo = () => {
 
             //Calc the cost of the debt using the ratio of debt to collateral * the leverage
             const cost = num(debtToCollateral).times(apr?.cost??"0").times(apr?.leverage??"0")
-            console.log("Earn cost", cost.toString())
+            console.log("Earn cost", cost.toString(), vaultCDP, vaultCDPs)
             return {
                 collateralValue,
                 debtValue,

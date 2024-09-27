@@ -15,7 +15,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { Price } from '@/services/oracle'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { getUnderlyingUSDC } from '@/services/earn'
-import { useVaultTokenUnderlying, useAPR } from './hooks/useEarnQueries'
+import { useVaultTokenUnderlying, useAPR, useVaultInfo } from './hooks/useEarnQueries'
 import useEarnExit from './hooks/useEarnExit'
 import Divider from '../Divider'
 import useEarnLoop from './hooks/useEarnLoop'
@@ -23,7 +23,7 @@ import useCDPRedeem from './hooks/useCDPRedeem'
 import useUSDCVaultCrankAPR from './hooks/useUSDCVaultCrankAPR'
 import useWallet from '@/hooks/useWallet'
 
-const EXIT_FEE = 0.005
+const ENTRY_FEE = 0.005
 
 const DepositButton = () => {
   const { earnState, setEarnState } = useEarnState()
@@ -127,6 +127,7 @@ const Deposit = () => {
   const { data: underlyingUSDC } = useVaultTokenUnderlying(shiftDigits(loopedUSDCBalance, 6).toFixed(0))
   // console.log("underlyingUSDC", loopedUSDCAsset, loopedUSDCBalance, shiftDigits(loopedUSDCBalance, 6).toFixed(0), underlyingUSDC)
   
+  const { data: vaultInfo } = useVaultInfo()
   const { data: APRs } = useAPR() 
   const APRObject = useMemo(() => {
     if (!APRs) return {
@@ -136,10 +137,10 @@ const Deposit = () => {
       yearly: "N/A",
     }
     return {
-      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(APRs?.cost)).multipliedBy(100).toFixed(1) : "N/A",
-      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(APRs?.cost)).multipliedBy(100).toFixed(1) : "N/A",
-      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(APRs?.cost)).multipliedBy(100).toFixed(1) : "N/A",
-      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(APRs?.cost)).multipliedBy(100).toFixed(1) : "N/A",
+      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",
+      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",
+      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",
+      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",
     }
   }, [APRs])
   const longestAPR = useMemo(() => {
@@ -189,7 +190,7 @@ const Deposit = () => {
                 On top of that, there is a 0.5% entry fee in order to account for the slippage it takes to unloop & withdraw USDC.
                 The entry fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max allowed slippage of 0.5%. You only see the profits for the entry fee as people withdraw, beforehand they still have virtual ownership over the full deposit.
               </Text>          
-              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>{'\n'}{'\n'}Recommended Deposit Time: ~{num(EXIT_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome entry fee</Text>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>{'\n'}{'\n'}Recommended Deposit Time: ~{num(ENTRY_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome entry fee</Text>
             </Card>
             {/* <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>

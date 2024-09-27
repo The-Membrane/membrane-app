@@ -171,7 +171,10 @@ const Deposit = () => {
   return (
     <Stack>
       <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>        
-      <Stack>
+      <Stack>        
+            {/* <Card>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
+          </Card> */}
           <Card p="8" gap={5} width={"100%"}>
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
             <Text variant="body">{TVL} USD</Text>  
@@ -182,19 +185,20 @@ const Deposit = () => {
           </Card>
           
           <Card>
-              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Who is the Yield?</Text>
-              <Text variant="body" fontWeight={"bold"}> TLDR: Looped Mars USDC yield, CDT Redemptions & a 0.5% entry fee {'\n'}{'\n'}</Text>
-              <Text variant="body">
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1}>Who is the Yield?</Text>
+              <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions & a 0.5% entry fee {'\n'}</Text>
+              <Text variant="body" mb={1}>
                 This vault supplies USDC on Mars Protocol and loops it by collateralizing the Mars position to mint CDT,
-                swap it for USDC & deposit it back to the Mars USDC market. The vault's collateral position is also open for profitable debt redemptions that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.
-                On top of that, there is a 0.5% entry fee in order to account for the slippage it takes to unloop & withdraw USDC.
+                swap it for USDC & deposit it back to the Mars USDC market. The Mars USDC market only pays yield as borrowers repay so even if the APR is 100%, this Manic vault earns nothing until Mars borrowers repay.
+                Due to this, we can't offer a reccommended deposit time to recoup the entry fee.
+              </Text>
+              <Text variant="body" mb={1}> The vault's collateral position is open for profitable debt redemptions that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.              </Text>    
+              <Text variant="body" mb={1}>On top of that, there is a 0.5% entry fee in order to account for the slippage it takes to unloop & withdraw USDC.
                 The entry fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max allowed slippage of 0.5%. You only see the profits for the entry fee as people withdraw, beforehand they still have virtual ownership over the full deposit.
-              </Text>          
-              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>{'\n'}{'\n'}Recommended Deposit Time: ~{num(ENTRY_FEE).dividedBy(num(APRs?.month_apr??"0").dividedBy(365)).toFixed(1)} days to overcome entry fee</Text>
+              </Text>    
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1}>{'\n'} Why does my TVL flucuate?</Text>
+              <Text variant="body" mb={1}>Your TVL represents a portion of the vault's TVL. The vault's TVL may temporary decrease as it takes $1 of CDT in debt and sells it, the lowest conversion rate being $.99. This difference will be recouped as users withdraw or as the vault's CDP position gets redeemed against. Redemptions & the entry fee to remaining users realized as users withdraw can be profitable as stated above so this flucuation is temporary & part of the vault's normal functionality.</Text>
             </Card>
-            {/* <Card>
-              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
-          </Card> */}
         </Stack>
         <Stack>    
           <Card p="7" gap={5} width={"100%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>

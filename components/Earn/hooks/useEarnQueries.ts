@@ -5,6 +5,7 @@ import { getUnderlyingUSDC, getVaultAPRResponse } from "@/services/earn"
 import { useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket } from "@/hooks/useCDP"
+import { useRpcClient } from "@/hooks/useRpcClient"
 
 export const useVaultTokenUnderlying = (vtAmount: string) => {
     return useQuery({
@@ -28,6 +29,7 @@ export const useVaultInfo = () => {
     const { data: prices } = useOraclePrice()
     const { data: basket } = useBasket()
     const { data: apr } = useAPR()
+    const { getRpcClient } = useRpcClient("osmosis")
     
     return useQuery({
         queryKey: ['useVaultInfo', apr, prices, basket],
@@ -60,12 +62,45 @@ export const useVaultInfo = () => {
             //Find ratio of debt to collateral
             const debtToCollateral = num(debtValue).div(collateralValue)
 
+            ////Get the leverage///
+            //Query balance of the buffer in the vault
+            const rpcClient = await getRpcClient()
+            const earnBalances = await rpcClient.cosmos.bank.v1beta1
+                .allBalances({
+                address: contracts.earn,
+                pagination: {
+                    key: new Uint8Array(),
+                    offset: BigInt(0),
+                    limit: BigInt(1000),
+                    countTotal: false,
+                    reverse: false,
+                },
+                })
+                .then((res) => {
+                return res.balances
+            })
+            //Find the amount of the buffer
+            const bufferAmount = earnBalances?.find((balance) => balance.denom === "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized")?.amount??"0"
+
+            //Add buffer amount to the collateral amount
+            const totalVTokens = num(collateralAmount).plus(bufferAmount)
+            //Calculate the value of the total vTokens
+            const totalVTValue = num(totalVTokens).times(collateralPrice)
+            //Subtract the debt value from the total vToken value to find the unleveraged value
+            const unleveragedValue = num(totalVTValue).div(debtValue)
+
+            //Find the leverage
+            const leverage = totalVTValue.div(unleveragedValue)
+
+            //////////////////
+
             //Calc the cost of the debt using the ratio of debt to collateral * the leverage
-            const cost = num(debtToCollateral).times(apr?.cost??"0").times(apr?.leverage??"0")
-            console.log("Earn cost", cost.toString(), vaultCDP, vaultCDPs)
+            const cost = num(debtToCollateral).times(apr?.cost??"0")
+            console.log("Earn cost", cost.toString(), leverage)
             return {
                 collateralValue,
                 debtValue,
+                leverage,
                 cost,
             }
         },

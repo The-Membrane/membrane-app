@@ -96,7 +96,7 @@ export const useVaultInfo = () => {
 
             //Calc the cost of the debt using the ratio of debt to collateral * the leverage
             const cost = num(debtToCollateral).times(apr?.cost??"0")
-            console.log("Earn cost", cost.toString(), leverage)
+            console.log("Earn cost", cost.toString(), leverage.toString())
             return {
                 collateralValue,
                 debtValue,

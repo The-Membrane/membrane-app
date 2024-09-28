@@ -188,16 +188,16 @@ const Deposit = () => {
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1}>Who is the Yield?</Text>
               <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions & a 0.5% entry fee {'\n'}</Text>
               <Text variant="body" mb={1}>
-                This vault <a font-weight={"bold"}>supplies USDC on Mars Protocol</a> and loops it by collateralizing the Mars position to mint CDT,
-                swap it for USDC & deposit it back to the Mars USDC market. The Mars USDC market only distirbutes yield as borrowers repay so even if the APR is 100%, this Manic vault earns nothing until Mars borrowers repay.
+                This vault <a style={{fontWeight:"bold"}}>supplies USDC on Mars Protocol</a> and loops it by collateralizing the Mars position to mint CDT,
+                swap it for USDC & deposit it back to the Mars USDC market. The Mars USDC market only distributes yield as borrowers repay so even if the APR is 100%, this Manic vault earns nothing until Mars borrowers repay.
                 Due to this, we can't offer a recommended deposit time to recoup the entry fee.
               </Text>
-              <Text variant="body" mb={1}> The vault's collateral position is open for <a font-weight={"bold"}>profitable debt redemptions</a> that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.</Text>    
-              <Text variant="body" mb={1}>On top of that, there is a <a font-weight={"bold"}>0.5% entry fee</a> in order to account for the slippage it takes to unloop & withdraw USDC.
+              <Text variant="body" mb={1}> The vault's collateral position is open for <a style={{fontWeight:"bold"}}>profitable debt redemptions</a> that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.</Text>    
+              <Text variant="body" mb={1}>On top of that, there is a <a style={{fontWeight:"bold"}}>0.5% entry fee</a> in order to account for the slippage it takes to unloop & withdraw USDC.
                 The entry fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max allowed slippage of 0.5%. You only see the profits for the entry fee as people withdraw, beforehand they still have virtual ownership over the full deposit.
               </Text>    
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1}>{'\n'} Why does my TVL flucuate?</Text>
-              <Text variant="body" mb={1}>Your TVL represents a portion of the vault's TVL. The vault's TVL may temporary decrease as <a font-weight={"bold"}>it takes $1 of CDT in debt and sells it</a>, the lowest conversion rate being $.99. This difference will be recouped as users withdraw or as the vault's CDP position gets redeemed against. Redemptions & the entry fee to remaining users realized as users withdraw can be profitable as stated above so this flucuation is temporary & part of the vault's normal functionality.</Text>
+              <Text variant="body" mb={1}>Your TVL represents a portion of the vault's TVL. The vault's TVL may temporary decrease as <a style={{fontWeight:"bold"}}>it takes $1 of CDT in debt and sells it</a>, the lowest conversion rate being $.99. This difference will be recouped as users withdraw or as the vault's CDP position gets redeemed against. Redemptions & the entry fee to remaining users realized as users withdraw can be profitable as stated above so this flucuation is temporary & part of the vault's normal functionality.</Text>
             </Card>
         </Stack>
         <Stack>    

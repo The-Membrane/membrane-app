@@ -87,16 +87,18 @@ export const useVaultInfo = () => {
             //Calculate the value of the total vTokens
             const totalVTValue = num(totalVTokens).times(collateralPrice)
             //Subtract the debt value from the total vToken value to find the unleveraged value
-            const unleveragedValue = num(totalVTValue).div(debtValue)
+            const unleveragedValue = num(totalVTValue).minus(debtValue)
 
             //Find the leverage
             const leverage = totalVTValue.div(unleveragedValue)
+            console.log("leverage logs", leverage.toString(), totalVTValue.toString(), unleveragedValue.toString(), debtValue.toString())
+
 
             //////////////////
 
             //Calc the cost of the debt using the ratio of debt to collateral * the leverage
             const cost = num(debtToCollateral).times(apr?.cost??"0")
-            console.log("Earn cost", cost.toString(), leverage.toString())
+            console.log("Earn cost", cost.toString())
             return {
                 collateralValue,
                 debtValue,

@@ -150,7 +150,7 @@ const Deposit = () => {
     if (APRs.three_month_apr) return APRs.three_month_apr
     if (APRs.month_apr) return APRs.month_apr
     return APRs.week_apr??"0"
-  }, [APRs])
+  }, [APRs, vaultInfo])
   
   //Calc TVL in the Earn (Mars USDC looped) vault 
   const TVL = useMemo(() => {

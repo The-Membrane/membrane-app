@@ -23,6 +23,6 @@ export const getVaultAPRResponse = async () => {
   const cosmWasmClient = await getCosmWasmClient()  
   return cosmWasmClient.queryContractSmart(contracts.marsUSDCvault, {
     a_p_r: {}
-  }) Promise<APRResponse> 
+  }) as Promise<APRResponse> 
   
 }

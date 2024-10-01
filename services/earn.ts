@@ -9,6 +9,9 @@ export const EarnClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
   return new EarnQueryClient(cosmWasmClient, contracts.earn)
 }
+export const usdcVaultClient = async () => {
+  return new EarnQueryClient(cosmWasmClient, contracts.earn)
+}
 
 export const getUnderlyingUSDC = async (vtAmount: string) => {
   const client = await EarnClient()
@@ -17,7 +20,9 @@ export const getUnderlyingUSDC = async (vtAmount: string) => {
 
 
 export const getVaultAPRResponse = async () => {
-    const client = await EarnClient()
-    return client.aPR().then((res) => res) as Promise<APRResponse>    
+  const cosmWasmClient = await getCosmWasmClient()  
+  return cosmWasmClient.queryContractSmart(contracts.marsUSDCvault, {
+    a_p_r: {}
+  }) Promise<APRResponse> 
   
 }

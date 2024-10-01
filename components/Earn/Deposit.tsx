@@ -136,7 +136,7 @@ const Deposit = () => {
       three_month: "N/A",
       yearly: "N/A",
     }
-    console.log("APR logs", APRs?.week_apr, vaultInfo?.leverage, vaultInfo?.cost)
+    console.log("APR logs", APRs?.week_apr)
     return {
       weekly: APRs.week_apr ? num(APRs?.week_apr).times(vaultInfo?.leverage??1).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",
       monthly: APRs.month_apr ? num(APRs?.month_apr).times(vaultInfo?.leverage??1).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",

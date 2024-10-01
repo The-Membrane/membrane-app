@@ -10,10 +10,10 @@ import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import React from 'react'
 
-const OverDraftMessage = ({ overdraft = false, minDebt = false}: { overdraft?: boolean, minDebt?: boolean }) => {
+const OverDraftMessage = ({ overdraft = false, minDebt = false, depositing = false }: { overdraft?: boolean, minDebt?: boolean, depositing?: boolean }) => {
   return (
     <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-      {overdraft ? 'Withdrawal amount exceeds the maximum LTV.' : minDebt ? 'Minimum debt is 100 CDT unless fully repaying' : ' '}
+      {overdraft ? 'Withdrawal amount exceeds the maximum LTV.' : (overdraft && !depositing) ? 'Withdrawal amount exceeds the maximum LTV.' : minDebt ? 'Minimum debt is 100 CDT unless fully repaying' : ' '}
     </Text>
   )
 }

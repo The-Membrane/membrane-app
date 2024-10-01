@@ -43,6 +43,10 @@ const useMint = () => {
         mintAmount: mintState?.mint,
         repayAmount: mintState?.repay,
       })
+      //if repaying and updating assets, repay first
+      if (mintState.repay > 0) {
+        return [...mintAndRepay, ...depositAndWithdraw] as MsgExecuteContractEncodeObject[]
+      }
       return [...depositAndWithdraw, ...mintAndRepay] as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address && !mintState.overdraft,

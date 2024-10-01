@@ -416,12 +416,12 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   const positions = basket?.collateral_types.map((asset) => {
     const denom = asset.asset?.info.native_token?.denom
     const assetInfo = getAssetByDenom(denom)    
-    // console.log(assetInfo, denom, asset.asset)
+    console.log(assetInfo, denom, asset.asset)
     const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal??6)).toNumber()
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
     const usdValue = num(amount).times(assetPrice).toNumber()
-    // console.log(assetInfo?.symbol, usdValue, amount, assetPrice)
+    console.log(assetInfo?.symbol, usdValue, amount, assetPrice)
     return usdValue
   })
 

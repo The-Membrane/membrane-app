@@ -268,7 +268,7 @@ const Deposit = () => {
                 {/* Redeen CDT input */}
                 {/* Redeem Button */}
                 <Stack py="5" w="full" gap="3" mb={"0"} >
-                <Text variant="body"> Did you buy CDT {`<= $`}{num(basket?.credit_price.price??"0").multipliedBy(0.985).toFixed(2)}?</Text>
+                <Text variant="body"> Did you buy CDT {`<= $`}{num(basket?.credit_price.price??"0").multipliedBy(0.985).toFixed(3)}?</Text>
                 <HStack>
                     <Input 
                       width={"40%"} 

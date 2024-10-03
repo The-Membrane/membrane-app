@@ -48,8 +48,7 @@ const useCombinBalance = (positionIndex: number = 0) => {
       const walletsdValue = num(balanceInMicro).times(price).toNumber()
       const depositUsdValue = num(position?.usdValue || 0).toNumber()
       const combinUsdValue = num(combinBalance).times(price).toNumber()
-<<<<<<< HEAD
-=======
+
       if (asset.supplyCapRatio === '0' && (position?.amount === undefined || position?.amount === 0)) return {
         ...asset.asset,
         walletBalance: Number(balanceInMicro),
@@ -60,7 +59,7 @@ const useCombinBalance = (positionIndex: number = 0) => {
         combinUsdValue: 0,
         price,
       }
->>>>>>> ca3b7724555f499bb1624e4bf3a1fa5c3817b644
+      
       return {
         ...asset.asset,
         walletBalance: Number(balanceInMicro),

@@ -208,7 +208,7 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
   const { days, hours, minutes } = proposal?.daysLeft || {}
   const isEnded = !days && !hours && !minutes
 
-  console.log("GOV GOV", isEnded)
+  console.log("isEnded?", isEnded)
 
   return (
     <>

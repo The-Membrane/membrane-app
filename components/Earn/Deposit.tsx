@@ -125,9 +125,11 @@ const Deposit = () => {
   const loopedUSDCAsset = useAssetBySymbol('loopedUSDCmars')
   const loopedUSDCBalance = useBalanceByAsset(loopedUSDCAsset)
   const { data: underlyingUSDC } = useVaultTokenUnderlying(shiftDigits(loopedUSDCBalance, 6).toFixed(0))
-  // console.log("underlyingUSDC", loopedUSDCAsset, loopedUSDCBalance, shiftDigits(loopedUSDCBalance, 6).toFixed(0), underlyingUSDC)
+  console.log("underlyingUSDC", usdcPrice, underlyingUSDC)
+
   
   const { data: vaultInfo } = useVaultInfo()
+  console.log("vaultInfo", vaultInfo)
   const { data: APRs } = useAPR() 
   const APRObject = useMemo(() => {
     if (!APRs) return {

@@ -25,7 +25,7 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
 
       //Start msgs with a ClaimCheck so we can award points
       var msgs = [ pointsMessageComposer.checkClaims({
-        cdpRepayment: false,
+        cdpRepayment: undefined,
         spClaims: sp_claims ? true : false,
         lqClaims: claimKeys.length > 0,
       }) ] as MsgExecuteContractEncodeObject[]

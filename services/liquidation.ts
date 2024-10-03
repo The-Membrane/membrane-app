@@ -123,6 +123,23 @@ export const getUserBids = async (address: Addr, denom?: string) => {
       denom,
     },
   }
+  
+  // let userBids = [];
+  // //Query every premium slot
+  // for (let i = 0; i <= 10; i++) {
+  //   const slot = await client.premiumSlot({ bidFor, premium: i })
+  //   if (slot.bids.length > 0) {
+  //     for (let j = 0; j < slot.bids.length; j++) {
+  //       const bid = slot.bids[j]
+  //       if (bid.user === address) {
+  //         userBids.push(bid)
+  //       }
+  //     }
+  //   }
+  // }
+
+  // return userBids
+
   return client.bidsByUser({
     bidFor,
     user: address,

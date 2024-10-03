@@ -1,0 +1,2 @@
+Add in config/defaults.ts, services/osmosis.ts (swapRoutes), helpers/chain.ts
+- This enables use in the QA Loop functions

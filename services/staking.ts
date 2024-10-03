@@ -52,6 +52,7 @@ export const getStaked = async (address: Addr) => {
     return acc.plus(s.amount)
   }, num(0))
 
+  console.log("unstaking in fn", unstaking)
   return {
     staked: staked.toNumber(),
     unstaking,
@@ -69,11 +70,16 @@ const parseClaimable = (claimable: LiqAsset[]) => {
 }
 export const getRewards = async (address: Addr) => {
   const client = await stakingClient()
-  const rewards = await client.userRewards({
-    user: address,
-  })
+  let rewards;
+  try {
+    rewards = await client.userRewards({
+      user: address,
+    });
+  } catch (error) {
+    console.error("Error fetching user rewards:", error);
+    rewards = { claimables: [], accrued_interest: '0' };
+  }
   const mbrn = getAssetBySymbol('MBRN')
-
   const claimable = parseClaimable(rewards.claimables)
   return [
     {

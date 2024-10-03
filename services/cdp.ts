@@ -41,6 +41,8 @@ export type BasketAsset = {
   rateIndex: number
   maxLTV: number
   maxBorrowLTV: number
+  supplyCapRatio: string
+  SPCapRatio?: string
 }
 export const getBasketAssets = (
   basket: Basket,
@@ -69,6 +71,9 @@ export const getBasketAssets = (
       rateIndex,
       maxLTV,
       maxBorrowLTV,
+      supplyCapRatio: basket?.collateral_supply_caps[index].supply_cap_ratio,
+      SPCapRatio: basket?.collateral_supply_caps[index].stability_pool_ratio_for_debt_cap,
+
     }
   }) as BasketAsset[]
 }
@@ -374,7 +379,7 @@ export const calculateVaultSummary = ({
   const maxMint = getMaxMint(tvl, borrowLTV, creditPrice)
   
 
-  const mintAmount = getMintAmount({
+  const remainingMintAmount = getMintAmount({
     tvl,
     creditPrice,
     debtAmount,
@@ -384,8 +389,8 @@ export const calculateVaultSummary = ({
   const liquidValue = getLiquidValue({
     liqudationLTV,
     debtAmount,
-    mintAmount,
-    repayAmount: 0,
+    mintAmount: mint,
+    repayAmount: repay,
     creditPrice,
   })
 
@@ -402,7 +407,7 @@ export const calculateVaultSummary = ({
     initialLTV,
     initialTVL,
     initialBorrowLTV,
-    mintAmount,
+    remainingMintAmount,
   }
 }
 
@@ -410,11 +415,13 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   if (!basket || !prices) return 0
   const positions = basket?.collateral_types.map((asset) => {
     const denom = asset.asset?.info.native_token?.denom
-    const assetInfo = getAssetByDenom(denom)
+    const assetInfo = getAssetByDenom(denom)    
+    console.log(assetInfo, denom, asset.asset)
     const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal??6)).toNumber()
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
     const usdValue = num(amount).times(assetPrice).toNumber()
+    console.log(assetInfo?.symbol, usdValue, amount, assetPrice)
     return usdValue
   })
 

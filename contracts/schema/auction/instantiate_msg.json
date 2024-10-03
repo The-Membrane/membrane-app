@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InstantiateMsg",
+  "type": "object",
+  "required": [
+    "discount_increase",
+    "discount_increase_timeframe",
+    "governance_contract",
+    "initial_discount",
+    "mbrn_denom",
+    "oracle_contract",
+    "osmosis_proxy",
+    "positions_contract",
+    "staking_contract",
+    "twap_timeframe"
+  ],
+  "properties": {
+    "discount_increase": {
+      "description": "Increase in discount per unit of timeframe",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Decimal"
+        }
+      ]
+    },
+    "discount_increase_timeframe": {
+      "description": "Timeframe for increase of discount in seconds",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "governance_contract": {
+      "description": "Address of the governance contract",
+      "type": "string"
+    },
+    "initial_discount": {
+      "description": "Initial discount for MBRN",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Decimal"
+        }
+      ]
+    },
+    "mbrn_denom": {
+      "description": "Native Denom of MBRN",
+      "type": "string"
+    },
+    "oracle_contract": {
+      "description": "Address of the oracle contract",
+      "type": "string"
+    },
+    "osmosis_proxy": {
+      "description": "Address of the osmosis proxy contract",
+      "type": "string"
+    },
+    "owner": {
+      "description": "Address of the owner",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "positions_contract": {
+      "description": "Address of the positions contract",
+      "type": "string"
+    },
+    "staking_contract": {
+      "description": "Address of the staking contract",
+      "type": "string"
+    },
+    "twap_timeframe": {
+      "description": "Timeframe for MBRN TWAP in minutes",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Decimal": {
+      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+      "type": "string"
+    }
+  }
+}

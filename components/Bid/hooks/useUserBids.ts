@@ -7,6 +7,7 @@ const useUserBids = () => {
   const { address } = useWallet()
   const { bidState } = useBidState()
 
+  console.log("enabled", !!bidState?.selectedAsset?.base)
   return useQuery({
     queryKey: ['user bids', address, bidState?.selectedAsset?.base],
     queryFn: async () => {

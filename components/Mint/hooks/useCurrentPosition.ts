@@ -43,8 +43,8 @@ export const useCurrentPosition = () => {
       textColor: isValueChanged ? 'primary.200' : 'white',
     },
     {
-      label: 'COST',
-      value: `${summary.cost?.toFixed(4)}% / year`,
+      label: 'DYNAMIC COST',
+      value: `${(summary.cost??0 * 100).toFixed(2)}% / year`,
     },
     {
       label: 'BORROWABLE LTV',

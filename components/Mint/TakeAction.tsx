@@ -10,10 +10,10 @@ import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import React from 'react'
 
-const OverDraftMessage = ({ overdraft = false, minDebt = false}: { overdraft?: boolean, minDebt?: boolean }) => {
+const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean }) => {
   return (
     <Text fontSize="sm" color="red.500" mt="2" minH="21px">
-      {overdraft ? 'Withdrawal amount exceeds the maximum LTV.' : minDebt ? 'Minimum debt is 100 CDT unless fully repaying' : ' '}
+      {(overdraft && ltvChange) ? 'Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? 'Withdrawal amount exceeds the maximum LTV.' : minDebt ? 'Minimum debt is 100 CDT unless fully repaying' : ' '}
     </Text>
   )
 }
@@ -63,7 +63,7 @@ const TakeAction = React.memo(() => {
 
       <LTVWithSlider label="Your Debt" />
       <ActionButtons onRest={onRest} />
-      <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt}/>
+      <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
     </TabPanel>
   )
 })

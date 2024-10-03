@@ -152,8 +152,8 @@ const Deposit = () => {
     return APRs.week_apr??"0"
   }, [APRs])
   
-  //Calc TVL in the Earn (Mars USDC looped) vault 
-  const TVL = useMemo(() => {
+  //Calc userTVL in the Earn (Mars USDC looped) vault 
+  const userTVL = useMemo(() => {
     if (underlyingUSDC == "0" || !usdcPrice || !usdcAsset) return 0
     return (shiftDigits(underlyingUSDC, -(usdcAsset?.decimal)).toNumber() * usdcPrice).toFixed(2)
   }, [underlyingUSDC, usdcPrice])
@@ -173,12 +173,17 @@ const Deposit = () => {
     <Stack>
       <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>        
       <Stack>        
-            {/* <Card>
+            <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
-          </Card> */}
+              <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
+                <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >TVL: </Text><Text variant="body">${(vaultInfo?.totalTVL??0).toFixed(0)}</Text></HStack>
+                <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Debt (redeemable): </Text><Text variant="body">{vaultInfo?.debtAmount??0} CDT</Text></HStack>
+                <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Leverage: </Text><Text variant="body">{vaultInfo?.leverage??"N/A"}x</Text></HStack>
+              </HStack>
+          </Card>
           <Card p="8" gap={5} width={"100%"}>
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
-            <Text variant="body">{TVL} USD</Text>  
+            <Text variant="body">{userTVL} USD</Text>  
             <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
               <DepositButton />
               <WithdrawButton />
@@ -230,7 +235,7 @@ const Deposit = () => {
                 <Divider />
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
-                  <Text variant="body">{(num(longestAPR).multipliedBy(TVL)).toFixed(2)} USD</Text>  
+                  <Text variant="body">{(num(longestAPR).multipliedBy(userTVL)).toFixed(2)} USD</Text>  
                 </Stack>
             </Stack>
           </Card>          

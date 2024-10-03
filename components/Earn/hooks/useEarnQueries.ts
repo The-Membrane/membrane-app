@@ -100,10 +100,12 @@ export const useVaultInfo = () => {
             const cost = num(debtToCollateral).times(apr?.cost??"0").times(leverage)
             console.log("Earn cost", cost.toString(), debtToCollateral.toString(), apr?.cost??"0", leverage.toString())
             return {
+                totalTVL: totalVTValue,
                 collateralValue,
                 debtValue,
                 leverage,
                 cost,
+                debtAmount: shiftDigits(vaultCDP?.credit_amount, -6).toFixed(0)
             }
         },
     })

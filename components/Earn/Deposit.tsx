@@ -176,9 +176,12 @@ const Deposit = () => {
             <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
               <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
-                <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >TVL: </Text><Text variant="body">${vaultInfo?.totalTVL.toFixed(0)}</Text></HStack>
-                <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Debt (redeemable): </Text><Text variant="body">{vaultInfo?.debtAmount} CDT</Text></HStack>
-                <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Leverage: </Text><Text variant="body">{vaultInfo?.leverage.toString()}x</Text></HStack>
+                {vaultInfo ? 
+                <><HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >TVL: </Text><Text variant="body">${vaultInfo.totalTVL.toFixed(0)}</Text></HStack>
+                <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Debt (redeemable): {vaultInfo.debtAmount} CDT</Text></HStack>
+                <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Leverage: </Text><Text variant="body">{vaultInfo.leverage.toFixed(2)}x</Text></HStack></>
+                : 
+                <Text variant="body">Loading...</Text>}
               </HStack>
           </Card>
           <Card p="8" gap={5} width={"100%"}>

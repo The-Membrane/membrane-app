@@ -105,7 +105,7 @@ export const useVaultInfo = () => {
                 debtValue,
                 leverage,
                 cost,
-                debtAmount: shiftDigits(vaultCDP?.credit_amount, -6).toFixed(0)
+                debtAmount: parseInt(shiftDigits(vaultCDP?.credit_amount, -6))
             }
         },
     })

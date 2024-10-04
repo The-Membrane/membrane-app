@@ -81,6 +81,7 @@ export const useVaultInfo = () => {
             })
             //Find the amount of the buffer
             const bufferAmount = earnBalances?.find((balance) => balance.denom === "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized")?.amount??"0"
+            console.log("bufferAmount", bufferAmount, earnBalances)
 
             //Add buffer amount to the collateral amount
             const totalVTokens = num(collateralAmount).plus(shiftDigits(bufferAmount, -12))

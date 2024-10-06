@@ -34,7 +34,7 @@ const useCDPRedeem = ( ) => {
 
       let messageComposer = new PositionsMsgComposer(address, contracts.cdp)
       const funds = [{ amount: shiftDigits(earnState.redeemAmount, 6).dp(0).toNumber().toString(), denom: denoms.CDT[0].toString() }]
-      let redeemMsg = messageComposer.redeemCollateral({ maxCollateralPremium: 1 }, funds)
+      let redeemMsg = messageComposer.redeemCollateral({ maxCollateralPremium: "1" }, funds)
       msgs.push(redeemMsg)
       
       return { msgs }

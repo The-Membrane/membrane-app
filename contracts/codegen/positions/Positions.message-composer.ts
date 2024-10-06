@@ -96,7 +96,7 @@ export interface PositionsMsg {
   redeemCollateral: ({
     maxCollateralPremium
   }: {
-    maxCollateralPremium?: number;
+    maxCollateralPremium?: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   editRedeemability: ({
     maxLoanRepayment,
@@ -383,7 +383,7 @@ export class PositionsMsgComposer implements PositionsMsg {
   redeemCollateral = ({
     maxCollateralPremium
   }: {
-    maxCollateralPremium?: number;
+    maxCollateralPremium?: string;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",

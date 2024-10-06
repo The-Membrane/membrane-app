@@ -12,8 +12,8 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@chain-registry/osmosis": "^1.62.39",
-    "@chain-registry/utils": "^1.46.39",
+    "@chain-registry/osmosis": "^1.63.8",
+    "@chain-registry/utils": "^1.47.8",
     "@chakra-ui/anatomy": "^2.2.2",
     "@chakra-ui/icons": "^2.1.1",
     "@chakra-ui/react": "^2.8.2",
@@ -44,7 +44,7 @@
     "@tanstack/react-table": "^8.19.3",
     "@thirdweb-dev/react": "^4.9.4",
     "bignumber.js": "^9.1.2",
-    "chain-registry": "^1.63.47",
+    "chain-registry": "^1.64.8",
     "chakra-react-select": "^4.9.1",
     "cosmos-kit": "^2.19.0",
     "cosmwasm": "^1.1.1",

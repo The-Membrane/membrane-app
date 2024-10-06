@@ -6,10 +6,10 @@ settings:
 
 dependencies:
   '@chain-registry/osmosis':
-    specifier: ^1.62.39
+    specifier: ^1.63.8
     version: 1.63.8
   '@chain-registry/utils':
-    specifier: ^1.46.39
+    specifier: ^1.47.8
     version: 1.47.8
   '@chakra-ui/anatomy':
     specifier: ^2.2.2
@@ -102,7 +102,7 @@ dependencies:
     specifier: ^9.1.2
     version: 9.1.2
   chain-registry:
-    specifier: ^1.63.47
+    specifier: ^1.64.8
     version: 1.64.8
   chakra-react-select:
     specifier: ^4.9.1

@@ -80,7 +80,7 @@ export const getAssets = (chainID: string = 'osmosis') => {
   // )
   // const assetsWtihLogo = chainAssets?.assets?.map((asset) => assetWithLogo(asset, chainID)) || []
 
-  return [lpAssets]
+  return [...chainAssets?.assets, ...lpAssets]
 }
 
 export const getAssetBySymbol = (symbol: string, chainID: string = 'osmosis') => {

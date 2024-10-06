@@ -78,9 +78,9 @@ export const getAssets = (chainID: string = 'osmosis') => {
   // const supportedChainAssets = chainAssets?.assets.filter((asset) =>
   //   supportedAssets.includes(asset.symbol),
   // )
-  const assetsWtihLogo = chainAssets?.assets?.map((asset) => assetWithLogo(asset, chainID)) || []
+  // const assetsWtihLogo = chainAssets?.assets?.map((asset) => assetWithLogo(asset, chainID)) || []
 
-  return [...assetsWtihLogo, ...lpAssets]
+  return [lpAssets]
 }
 
 export const getAssetBySymbol = (symbol: string, chainID: string = 'osmosis') => {

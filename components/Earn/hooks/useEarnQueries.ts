@@ -102,6 +102,7 @@ export const useVaultInfo = () => {
             console.log("Earn cost", cost.toString(), debtToCollateral.toString(), apr?.cost??"0", leverage.toString())
             return {
                 totalTVL: totalVTValue,
+                unleveragedValue,
                 collateralValue,
                 debtValue,
                 leverage,

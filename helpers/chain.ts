@@ -72,7 +72,9 @@ export const getChainAssets = (chainID: string = 'osmosis') => {
 }
 
 export const getAssets = (chainID: string = 'osmosis') => {
-  const chainAssets = registryAssets.find((asset) => asset.chain_name === chainID)
+  //Remove Asset with denom: ibc/F74225B0AFD2F675AF56E9BE3F235486BCDE5C5E09AA88A97AFD2E052ABFE04C
+  //This denom is creating ambiguity errors in the UI
+  const chainAssets = registryAssets.find((asset) => asset.chain_name === chainID).filter((asset) => asset.base !== 'ibc/F74225B0AFD2F675AF56E9BE3F235486BCDE5C5E09AA88A97AFD2E052ABFE04C')
   // const supportedChainAssets = chainAssets?.assets.filter((asset) =>
   //   supportedAssets.includes(asset.symbol),
   // )

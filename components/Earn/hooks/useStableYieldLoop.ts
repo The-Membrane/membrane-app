@@ -25,7 +25,7 @@ const useStableYieldLoop = ( ) => {
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'earn enter msg creation',
+      'earn_enter_msg_creation',
       address,
       earnState.deposit,
       usdcAsset,
@@ -60,7 +60,7 @@ const useStableYieldLoop = ( ) => {
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    queryKey: ['earn page mars usdc enter', (msgs?.toString()??"0")],
+    queryKey: ['earn_page_looped_mars_usdc_enter', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
     enabled: !!msgs,
   })}

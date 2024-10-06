@@ -28,7 +28,7 @@ const useEarnLoop = ( ) => {
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'earn page management loop msg creation',
+      'earn_page_management_loop_msg_creation',
       address,
       earnState.loopMax
     ],
@@ -60,7 +60,7 @@ const useEarnLoop = ( ) => {
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    queryKey: ['earn page management loop', (msgs?.toString()??"0")],
+    queryKey: ['earn_page_management_loop', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
     enabled: !!msgs,
   })}

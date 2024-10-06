@@ -17,7 +17,7 @@ const useUSDCVaultCrankAPR = ( ) => {
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'earn page management redeem msg creation',
+      'earn_page_management_redeem_msg_creation',
       address,
     ],
     queryFn: () => {
@@ -51,14 +51,13 @@ const useUSDCVaultCrankAPR = ( ) => {
   console.log("crank msg:", msgs)
 
   const onInitialSuccess = () => {
-    ///ADD A RESET FOR THE VAULT INFO QUERIES//
     queryClient.invalidateQueries({ queryKey: ['useAPR'] })
   }
 
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    queryKey: ['earn page management crank apr', (msgs?.toString()??"0")],
+    queryKey: ['earn_page_management_crank_apr', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
     enabled: !!msgs,
   })}

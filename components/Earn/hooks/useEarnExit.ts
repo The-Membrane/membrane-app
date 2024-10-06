@@ -23,13 +23,12 @@ const useEarnExit = ( ) => {
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'earn exit msg creation',
+      'earn_exit_msg_creation',
       address,
       earnState.withdraw,
       loopedUSDCAsset,
     ],
     queryFn: () => {
-      console.log("here1")
       if (!address || !loopedUSDCAsset ||  earnState.withdraw === 0) return { msgs: undefined }
 
       var msgs = [] as MsgExecuteContractEncodeObject[]
@@ -39,8 +38,7 @@ const useEarnExit = ( ) => {
       let exitMsg = messageComposer.exitVault(funds)
       msgs.push(exitMsg)
 
-      // console.log("exit msg:", msgs)
-      console.log("here to return msgs")
+      console.log("exit msg:", msgs)
       
       return { msgs }
     },
@@ -62,7 +60,7 @@ const useEarnExit = ( ) => {
   return  {
     action: useSimulateAndBroadcast({
     msgs,
-    queryKey: ['earn page mars usdc looped vault exit', (msgs?.toString()??"0")],
+    queryKey: ['earn_page_mars_usdc_looped_vault_exit', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
     enabled: !!msgs,
   })}

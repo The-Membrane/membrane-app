@@ -116,6 +116,7 @@ const Deposit = () => {
   const { data: basket } = useBasket()
   const { action: loop } = useEarnLoop()
   const { action: redeem } = useCDPRedeem()
+  console.log("redeem", redeem.simulate.data, redeem.simulate.isError, redeem.simulate.error)
   const { action: crankAPR } = useUSDCVaultCrankAPR()
   const cdtAsset = useAssetBySymbol('CDT')
   const CDTBalance = useBalanceByAsset(cdtAsset)

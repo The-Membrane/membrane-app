@@ -47,9 +47,10 @@ const useCDPRedeem = ( ) => {
       msgs.push(redeemMsg)
       
       /////How many marsUSDC VT tokens will we redeem at a 1% discount using the CDT paid?///
-      //CDT peg price * 99% * cdtAmount = value redeemed
+      //CDT peg price * 99% * (cdtAmount - fee) = value redeemed
       const cdtRedemptionPrice = num(basket?.credit_price.price??"0").multipliedBy(0.99)
-      const valueRedeemed = cdtRedemptionPrice.multipliedBy(redemptionAmount)
+      const redemptionAmountMinusFee = num(redemptionAmount).multipliedBy(0.995)
+      const valueRedeemed = cdtRedemptionPrice.multipliedBy(redemptionAmountMinusFee)
 
       //valueRedeemed / marsUSDC VT token price = VT tokens redeemed
       const vtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized")?.price ?? "0")

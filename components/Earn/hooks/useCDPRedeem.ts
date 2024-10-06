@@ -53,7 +53,7 @@ const useCDPRedeem = ( ) => {
 
       //valueRedeemed / marsUSDC VT token price = VT tokens redeemed
       const vtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized")?.price ?? "0")
-      const vtTokensRedeemed = valueRedeemed.dividedBy(vtPrice)
+      const vtTokensRedeemed = valueRedeemed.dividedBy(vtPrice).dp(0)
 
       console.log("vt tokens redeemed", vtTokensRedeemed.toString(), "vt price", vtPrice.toString(), "prices", prices)
 

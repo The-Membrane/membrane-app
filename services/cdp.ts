@@ -494,6 +494,7 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
 
     if (getRevenue){
       const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio)
+      console.log("cost", cost.cost)
       const annualInterest = cost.cost * shiftDigits(debt, 6).toNumber()
       totalExpectedRevenue += annualInterest
     }

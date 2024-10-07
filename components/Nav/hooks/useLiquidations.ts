@@ -9,6 +9,7 @@ import { getRiskyPositions } from '@/services/cdp'
 import { useBasket, useBasketPositions, useCollateralInterest } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getLiquidationMsgs } from '@/helpers/mint'
+import useBidState from '@/components/Bid/hooks/useBidState'
 
 export type Liq = {
     position_id: string
@@ -23,6 +24,7 @@ type QueryData = {
 const useProtocolLiquidations = () => {
   const liquidating_positions: Liq[] = [];
   const { address } = useWallet()
+  const { setBidState } = useBidState()
 
   const { data: prices } = useOraclePrice()
   const { data: allPositions } = useBasketPositions()
@@ -42,6 +44,7 @@ const useProtocolLiquidations = () => {
         const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
         console.log("liquidatible positions:", liq)
         console.log("total expected annual revenue", cdpCalcs.totalExpectedRevenue.toString())
+        setBidState({totalExpectedRevenue: cdpCalcs.totalExpectedRevenue})
 
 
         if (liq.length > 0) {

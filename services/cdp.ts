@@ -481,6 +481,9 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     
     const tvl = getTVL(positions)
     const debt = getDebt([basketPosition])
+    //skip if no debt
+    if (debt === 0) return undefined
+    ////////////////////////////////
     const debtValue = num(debt).times(basket.credit_price.price).toNumber()
     const ltv = getLTV(tvl, debtValue)
     const positionsWithRatio = getAssetRatio(false, tvl, positions)

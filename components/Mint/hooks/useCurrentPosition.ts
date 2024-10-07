@@ -26,7 +26,7 @@ export const useCurrentPosition = () => {
   const { mintState } = useMintState()
 
   const isValueChanged = !num(mintState.totalUsdValue).isZero()
-
+  console.log("COST", summary.cost)
   return [
     {
       label: 'YOUR COLLATERAL VALUE',

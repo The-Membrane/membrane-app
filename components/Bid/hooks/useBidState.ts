@@ -9,6 +9,7 @@ type BidState = {
     premium: number
   }
   updateBids?: any[]
+  cdpExpectedAnnualRevenue?: number
 }
 
 type Store = {

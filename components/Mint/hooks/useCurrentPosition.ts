@@ -26,7 +26,7 @@ export const useCurrentPosition = () => {
   const { mintState } = useMintState()
 
   const isValueChanged = !num(mintState.totalUsdValue).isZero()
-  console.log("COST", summary.cost)
+  console.log("COST", summary.cost, num(summary.cost).multipliedBy(100).toFixed(2), summary.cost * 100)
   return [
     {
       label: 'YOUR COLLATERAL VALUE',
@@ -44,7 +44,7 @@ export const useCurrentPosition = () => {
     },
     {
       label: 'DYNAMIC COST',
-      value: `${(summary.cost??0 * 100).toFixed(2)}% / year`,
+      value: `${num(summary.cost).multipliedBy(100).toFixed(2)}% / year`,
     },
     {
       label: 'BORROWABLE LTV',

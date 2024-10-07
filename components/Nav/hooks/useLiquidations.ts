@@ -38,8 +38,11 @@ const useProtocolLiquidations = () => {
         console.log("total # of CDPs: ", allPositions?.length)
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
-        const liq = getRiskyPositions(allPositions, prices, basket, interest).filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
+        const cdpCalcs = getRiskyPositions(allPositions, prices, basket, interest, true)
+        const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
         console.log("liquidatible positions:", liq)
+        console.log("total expected annual revenue", cdpCalcs.totalExpectedRevenue.toString())
+
 
         if (liq.length > 0) {
             const liq_msgs = getLiquidationMsgs({address, liq_info: liq})

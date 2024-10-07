@@ -168,9 +168,10 @@ export const getRateCost = (
   positions: Positions[],
   tvl: number,
   basketAssets: BasketAsset[] = [],
+  positionRatios?: any[],
 ): { cost: number, ratios: any } => {
   if (!positions) return {cost: 0, ratios: []}
-  const positionsWithRatio = getAssetRatio(false, tvl, positions)
+  const positionsWithRatio = positionRatios ? positionRatios : getAssetRatio(false, tvl, positions)
   const cost = positionsWithRatio.reduce((acc, position) => {    
     if (!position) return acc
     const rate =
@@ -431,9 +432,11 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   }, 0)
 }
 
-export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], basket?: Basket, interest?: CollateralInterestResponse ) => {
+export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], basket?: Basket, interest?: CollateralInterestResponse, getRevenue: boolean) => {
 
-  if (!basketPositions || !prices || !basket || !interest) return []
+  if (!basketPositions || !prices || !basket || !interest) return { liquidatibleCDPs: [], totalExpectedRevenue: 0 }
+
+  var totalExpectedRevenue = 0
 
   // const bundles: string[][] = []
   // const tally: number[] = []
@@ -441,7 +444,8 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
-  return basketPositions?.map((basketPosition) => {
+  return {
+    liquidatibleCDPs: basketPositions?.map((basketPosition) => {
     const positions = getPositions([basketPosition], prices)
 
     // Create a list of the position's assets and sort alphabetically
@@ -480,12 +484,19 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     const debtValue = num(debt).times(basket.credit_price.price).toNumber()
     const ltv = getLTV(tvl, debtValue)
     const positionsWithRatio = getAssetRatio(false, tvl, positions)
+    const basketAssets = getBasketAssets(basket!, interest!)
     const liquidationLTV = getLiqudationLTV(
       tvl,
       positions,
-      getBasketAssets(basket!, interest!),
+      basketAssets,
       positionsWithRatio,
     )
+
+    if (getRevenue){
+      const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio)
+      const annualInterest = cost.cost * shiftDigits(debt, 6).toNumber()
+      totalExpectedRevenue += annualInterest
+    }
 
     if (ltv > liquidationLTV) {
       let ltv_diff = num(ltv).minus(liquidationLTV)
@@ -497,5 +508,6 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
         fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
       }
     }
-  })
+  }),
+  totalExpectedRevenue }
 }

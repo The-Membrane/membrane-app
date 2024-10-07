@@ -141,10 +141,10 @@ const Deposit = () => {
     }
     console.log("APR logs", APRs?.week_apr)
     return {
-      weekly: APRs.week_apr ? num(APRs?.week_apr).times(vaultInfo?.leverage??1).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",
-      monthly: APRs.month_apr ? num(APRs?.month_apr).times(vaultInfo?.leverage??1).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",
-      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).times(vaultInfo?.leverage??1).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",
-      yearly: APRs.year_apr ? num(APRs?.year_apr).times(vaultInfo?.leverage??1).minus(num(vaultInfo?.cost)).multipliedBy(100).toFixed(1) : "N/A",
+      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
     }
   }, [APRs, vaultInfo])
   const longestAPR = useMemo(() => {

@@ -148,12 +148,12 @@ const Deposit = () => {
     }
   }, [APRs, vaultInfo])
   const longestAPR = useMemo(() => {
-    if (!APRs) return "0"
-    if (APRs.year_apr) return APRs.year_apr
-    if (APRs.three_month_apr) return APRs.three_month_apr
-    if (APRs.month_apr) return APRs.month_apr
-    return APRs.week_apr??"0"
-  }, [APRs])
+    if (!APRObject) return "0"
+    if (APRObject.year_apr) return APRObject.year_apr
+    if (APRObject.three_month_apr) return APRObject.three_month_apr
+    if (APRObject.month_apr) return APRObject.month_apr
+    return APRObject.week_apr??"0"
+  }, [APRObject])
   
   //Calc userTVL in the Earn (Mars USDC looped) vault 
   const userTVL = useMemo(() => {

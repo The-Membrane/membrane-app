@@ -34,7 +34,7 @@ const useProtocolLiquidations = () => {
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
     queryFn: () => {
-        if (!address || !allPositions || !prices || !basket || !interest) {console.log("liq attempt"); return { msgs: [], liquidating_positions: [] }}
+        if (!address || !allPositions || !prices || !basket || !interest) {console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] }}
 
         //For metric purposes
         console.log("total # of CDPs: ", allPositions?.length)

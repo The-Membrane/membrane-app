@@ -54,7 +54,7 @@ export const useUserDiscountValue = (address: string) => {
   return useQuery({
     queryKey: ['user discount', address, prices, staked],
     queryFn: async () => {
-      if (!address || !prices || !staked) return
+      if (!prices || !staked) {console.log("userdiscounts", !prices, !staked); return 0}
 
       const mbrnPrice = prices?.find((price) => price.denom === denoms.MBRN[0])?.price??"0"
       const stakedBalance = shiftDigits(staked, -6).toNumber()

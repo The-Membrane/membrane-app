@@ -91,7 +91,7 @@ export const getCreditRate = async () => {
 export const getUserPositions = async (address: Addr) => {
   const client = await cdpClient()
   return client.getBasketPositions({
-    user: "osmo1wjjg0mvsfgnskjj7qq28uaxqwq5h38q68enshj",
+    user: address,
   })
 }
 

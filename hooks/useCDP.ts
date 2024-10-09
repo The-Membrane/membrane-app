@@ -62,7 +62,7 @@ export const useUserDiscountValue = (address: string) => {
 
       return mbrnValue
     },
-    enabled: !!address,
+    enabled: true,
   })
 }
 

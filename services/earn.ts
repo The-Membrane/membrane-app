@@ -9,9 +9,9 @@ export const EarnClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
   return new EarnQueryClient(cosmWasmClient, contracts.earn)
 }
-export const usdcVaultClient = async () => {
-  return new EarnQueryClient(cosmWasmClient, contracts.earn)
-}
+// export const usdcVaultClient = async () => {
+//   return new EarnQueryClient(cosmWasmClient, contracts.earn)
+// }
 
 export const getUnderlyingUSDC = async (vtAmount: string) => {
   const client = await EarnClient()

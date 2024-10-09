@@ -12,6 +12,8 @@ import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
 import { stableSymbols } from '@/config/defaults'
+import { useOraclePrice } from '@/hooks/useOracle'
+import { useUserDiscountValue } from '@/hooks/useCDP'
 
 export const cdpClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -432,11 +434,12 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   }, 0)
 }
 
-export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], basket?: Basket, interest?: CollateralInterestResponse, getRevenue: boolean) => {
+export const getRiskyPositions = (getRevenue: boolean, basketPositions?: BasketPositionsResponse[], prices?: Price[], basket?: Basket, interest?: CollateralInterestResponse) => {
 
-  if (!basketPositions || !prices || !basket || !interest) return { liquidatibleCDPs: [], totalExpectedRevenue: 0 }
+  if (!basketPositions || !prices || !basket || !interest) return { liquidatibleCDPs: [], totalExpectedRevenue: 0, undiscountedTER: 0 }
 
   var totalExpectedRevenue = 0
+  var undiscountedTER = 0
 
   // const bundles: string[][] = []
   // const tally: number[] = []
@@ -447,6 +450,8 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
   return {
     liquidatibleCDPs: basketPositions?.map((basketPosition) => {
     const positions = getPositions([basketPosition], prices)
+    const { data: discountValue } = useUserDiscountValue(basketPosition.user)
+
 
     // Create a list of the position's assets and sort alphabetically
     // const assetList = positions.map((position) => position.symbol).sort()
@@ -496,10 +501,14 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
     )
 
     if (getRevenue){
-      const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio)
-      const annualInterest = !Number.isNaN(cost.cost) ? cost.cost * shiftDigits(debt, 6).toNumber() : 0
-      console.log("annualInterest", annualInterest)
-      totalExpectedRevenue += annualInterest
+      const discountRatio = Math.min(1, num(discountValue).div(debtValue).toNumber())
+      const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
+      const discountedCost = cost * discountRatio
+      const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
+      const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
+      console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
+      totalExpectedRevenue += discountedAnnualInterest
+      undiscountedTER += annualInterest
     }
 
     if (ltv > liquidationLTV) {
@@ -513,5 +522,6 @@ export const getRiskyPositions = (basketPositions?: BasketPositionsResponse[], p
       }
     }
   }),
-  totalExpectedRevenue }
+  totalExpectedRevenue,
+  undiscountedTER}
 }

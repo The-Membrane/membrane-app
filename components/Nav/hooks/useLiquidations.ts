@@ -6,7 +6,7 @@ import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 
 import { getRiskyPositions } from '@/services/cdp'
-import { useBasket, useBasketPositions, useCollateralInterest } from '@/hooks/useCDP'
+import { useBasket, useBasketPositions, useCollateralInterest, useUserDiscountValue } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getLiquidationMsgs } from '@/helpers/mint'
 import useBidState from '@/components/Bid/hooks/useBidState'
@@ -40,12 +40,13 @@ const useProtocolLiquidations = () => {
         console.log("total # of CDPs: ", allPositions?.length)
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
-        const cdpCalcs = getRiskyPositions(allPositions, prices, basket, interest, true)
+        const cdpCalcs = getRiskyPositions(true, allPositions, prices, basket, interest)
         const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
         console.log("liquidatible positions:", liq)
+        console.log("undiscounted total expected annual revenue", cdpCalcs.undiscountedTER.toString())
         console.log("total expected annual revenue", cdpCalcs.totalExpectedRevenue.toString())
-        setBidState({totalExpectedRevenue: cdpCalcs.totalExpectedRevenue})
-
+        setBidState({cdpExpectedAnnualRevenue: cdpCalcs.totalExpectedRevenue})
+        
 
         if (liq.length > 0) {
             const liq_msgs = getLiquidationMsgs({address, liq_info: liq})

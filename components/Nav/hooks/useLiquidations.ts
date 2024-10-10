@@ -38,11 +38,11 @@ const useProtocolLiquidations = () => {
         queryKey: ['user', 'discount', 'cdp', basketPosition.user],
         queryFn: async () => {
           console.log(`Fetching discount for address: ${basketPosition.user}`);
-          return useUserDiscountValue(basketPosition.user)
+          return getUserDiscountValue(basketPosition.user)
         },
     })) || [],
   });
-  console.log("userDiscountQueries", userDiscountQueries)
+  // console.log("userDiscountQueries", userDiscountQueries)
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest, userDiscountQueries],

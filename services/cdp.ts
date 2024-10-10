@@ -454,18 +454,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
   // const totalValue: number[] = []
   
   console.log("user discount", getUserDiscountValue("osmo1fd8z9npe5gd6afm0wj60tryzx04gn5jl84hcm2"))
-  
-  const userDiscountQueries = useQueries({
-    queries: basketPositions?.map((basketPosition) =>  ({
-        queryKey: ['user', 'discount', 'cdp', basketPosition.user],
-        queryFn: async () => {
-          console.log(`Fetching discount for address: ${basketPosition.user}`);
-          return getUserDiscountValue(basketPosition.user)
-        },
-        enabled: !!basketPosition.user, // Only run query if address is valid        
-    })) || [],
-  });
-  console.log("userDiscountQueries", userDiscountQueries)
+
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated

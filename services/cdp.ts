@@ -510,7 +510,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
       positionsWithRatio,
     )
     
-    const discountRatio = userDiscountQueries[index].data && userDiscountQueries[index].data.data ? userDiscountQueries[index].data.data.discount : "0"
+    const discountRatio = userDiscountQueries[index].data ? userDiscountQueries[index].data.discount : "0"
     if (getRevenue){
       console.log("discount", discountRatio)
       const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost

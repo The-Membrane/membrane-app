@@ -1,11 +1,11 @@
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 
-import { getRiskyPositions } from '@/services/cdp'
+import { getRiskyPositions, getUserDiscountValue } from '@/services/cdp'
 import { useBasket, useBasketPositions, useCollateralInterest, useUserDiscountValue } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getLiquidationMsgs } from '@/helpers/mint'
@@ -32,8 +32,20 @@ const useProtocolLiquidations = () => {
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
 
+    
+  const userDiscountQueries = useQueries({
+    queries: allPositions?.map((basketPosition) =>  ({
+        queryKey: ['user', 'discount', 'cdp', basketPosition.user],
+        queryFn: async () => {
+          console.log(`Fetching discount for address: ${basketPosition.user}`);
+          return getUserDiscountValue(basketPosition.user)
+        },
+    })) || [],
+  });
+  console.log("userDiscountQueries", userDiscountQueries)
+
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
+    queryKey: ['msg liquidations', address, allPositions, prices, basket, interest, userDiscountQueries],
     queryFn: () => {
         if (!address || !allPositions || !prices || !basket || !interest) {console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] }}
 

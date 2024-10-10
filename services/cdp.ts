@@ -453,7 +453,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
   // const tally: number[] = []
   // const totalValue: number[] = []
   
-  console.log("user discount", getUserDiscountValue("osmo1fd8z9npe5gd6afm0wj60tryzx04gn5jl84hcm2").)
+  console.log("user discount", getUserDiscountValue("osmo1fd8z9npe5gd6afm0wj60tryzx04gn5jl84hcm2"))
   
   const userDiscountQueries = useQueries({
     queries: basketPositions?.map((basketPosition) =>  ({

@@ -47,6 +47,7 @@ export const useUserPositions = () => {
 }
 
 export const useUserDiscountValue = (address: string) => {
+  console.log("userdiscounts above oracle")
   const { data: prices } = useOraclePrice()
   console.log("userdiscounts above data")
   const { data } = useStaked()

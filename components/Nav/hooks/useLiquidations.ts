@@ -42,7 +42,7 @@ const useProtocolLiquidations = () => {
         },
     })) || [],
   });
-  // console.log("userDiscountQueries", userDiscountQueries)
+  console.log("userDiscountQueries", userDiscountQueries)
 
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest, userDiscountQueries],

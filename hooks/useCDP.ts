@@ -57,7 +57,7 @@ export const useUserDiscountValue = (address: string, prices: Price[]) => {
   return useQuery({
     queryKey: ['user_discount_in_useCDP', address, prices, staked],
     queryFn: async () => {
-      if (!prices || !staked) {console.log("userdiscounts", !prices, !staked); return 0}
+      if (!staked) {console.log("userdiscounts", !prices, !staked); return 0}
       console.log("userdiscounts inside")
       const mbrnPrice = prices?.find((price) => price.denom === denoms.MBRN[0])?.price??"0"
       const stakedBalance = shiftDigits(staked, -6).toNumber()

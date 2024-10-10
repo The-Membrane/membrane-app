@@ -49,11 +49,9 @@ export const useUserPositions = () => {
 
 export const useUserDiscountValue = (address: string) => {
 
-  console.log("userdiscounts above useQuery")
   return useQuery({
     queryKey: ['user', 'discount', 'cdp', address],
     queryFn: async () => {
-      console.log("plz run pretty plz")
       return getUserDiscountValue(address)
     },
   })

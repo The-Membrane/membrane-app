@@ -14,6 +14,7 @@ import { num } from '@/helpers/num'
 import { stableSymbols } from '@/config/defaults'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { useUserDiscountValue } from '@/hooks/useCDP'
+import { useQueries } from '@tanstack/react-query'
 
 export const cdpClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -101,7 +102,7 @@ export const getUserDiscountValue = async (address: string) => {
   const cosmWasmClient = await getCosmWasmClient()  
   return cosmWasmClient.queryContractSmart(contracts.system_discounts, {
     user_discount: { user: address }
-  }) as Promise<any> 
+  }) as Promise<{user: string, discount: string}> 
 }
 
 export const getBasketPositions = async () => {
@@ -451,11 +452,22 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
   // const bundles: string[][] = []
   // const tally: number[] = []
   // const totalValue: number[] = []
+  
+  const userDiscountQueries = useQueries({
+    queries: basketPositions?.map((basketPosition) =>  ({
+        queryKey: ['user', 'discount', 'cdp', basketPosition.user],
+        queryFn: async () => {
+          console.log(`Fetching discount for address: ${basketPosition.user}`);
+          return useUserDiscountValue(basketPosition.user)
+        },
+        enabled: !!basketPosition.user, // Only run query if address is valid        
+    })),
+  });
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   return {
-    liquidatibleCDPs: basketPositions?.map((basketPosition) => async () => {
+    liquidatibleCDPs: basketPositions?.map((basketPosition, index) => async () => {
     const positions = getPositions([basketPosition], prices)
 
 
@@ -505,14 +517,12 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
       basketAssets,
       positionsWithRatio,
     )
-    console.log("is this an address?", basketPosition.user, basketPosition)
-      const { data: discountValue } = useUserDiscountValue(basketPosition.user)
-      // const discountValue = {user: basketPosition.user, discount: "1"}
+    
+    const discountRatio = userDiscountQueries[index].data && userDiscountQueries[index].data.data ? userDiscountQueries[index].data.data.discount : "0"
     if (getRevenue){
-      console.log("discountValue", discountValue)
-      const discountRatio = Math.min(1, num(discountValue?.discount).div(debtValue).toNumber())
+      console.log("discount", discountRatio)
       const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
-      const discountedCost = cost * discountRatio
+      const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
       const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
       const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
       console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)

@@ -505,7 +505,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
       basketAssets,
       positionsWithRatio,
     )
-
+    console.log("is this an address?", basketPosition.user, basketPosition)
       const { data: discountValue } = useUserDiscountValue(basketPosition.user)
       // const discountValue = {user: basketPosition.user, discount: "1"}
     if (getRevenue){

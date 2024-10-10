@@ -56,7 +56,6 @@ export const useUserDiscountValue = (address: string) => {
       console.log("plz run pretty plz")
       return getUserDiscountValue(address)
     },
-    enabled: true,
   })
 }
 

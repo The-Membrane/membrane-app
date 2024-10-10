@@ -467,7 +467,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   return {
-    liquidatibleCDPs: basketPositions?.map((basketPosition, index) => async () => {
+    liquidatibleCDPs: basketPositions?.map((basketPosition, index) => {
     const positions = getPositions([basketPosition], prices)
 
 

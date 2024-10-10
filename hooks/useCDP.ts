@@ -48,9 +48,12 @@ export const useUserPositions = () => {
 
 export const useUserDiscountValue = (address: string) => {
   const { data: prices } = useOraclePrice()
+  console.log("userdiscounts above data")
   const { data } = useStaked()
+  console.log("userdiscounts above staked")
   const { staked } = data || {}
 
+  console.log("userdiscounts above useQuery")
   return useQuery({
     queryKey: ['user_discount_in_useCDP.ts', address, prices, staked],
     queryFn: async () => {
@@ -62,7 +65,7 @@ export const useUserDiscountValue = (address: string) => {
 
       return mbrnValue
     },
-    enabled: true,
+    enabled: !!address,
   })
 }
 

@@ -40,6 +40,7 @@ const useProtocolLiquidations = () => {
           console.log(`Fetching discount for address: ${basketPosition.user}`);
           return getUserDiscountValue(basketPosition.user)
         },
+        staleTime: 60000, // 60 seconds (adjust based on your needs)
     })) || [],
   });
   console.log("userDiscountQueries", userDiscountQueries)

@@ -56,7 +56,7 @@ export const useUserDiscountValue = (address: string) => {
 
   console.log("userdiscounts above useQuery")
   return useQuery({
-    queryKey: ['user_discount_in_useCDP.ts', address, prices, staked],
+    queryKey: ['user_discount_in_useCDP', address, prices, staked],
     queryFn: async () => {
       if (!prices || !staked) {console.log("userdiscounts", !prices, !staked); return 0}
       console.log("userdiscounts inside")

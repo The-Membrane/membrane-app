@@ -501,7 +501,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions?: BasketP
 
     if (getRevenue){
       console.log("userdiscounts outside")
-      const { data: discountValue } = useUserDiscountValue(basketPosition.user)
+      const { data: discountValue } = useUserDiscountValue(basketPosition.user, prices)
       const discountRatio = Math.min(1, num(discountValue).div(debtValue).toNumber())
       const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
       const discountedCost = cost * discountRatio

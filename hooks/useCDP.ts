@@ -5,6 +5,7 @@ import { useOraclePrice } from './useOracle'
 import { denoms } from '@/config/defaults'
 import useStaked from '@/components/Stake/hooks/useStaked'
 import { shiftDigits } from '@/helpers/math'
+import { Price } from '@/services/oracle'
 
 export const useBasket = () => {
   return useQuery({
@@ -46,9 +47,7 @@ export const useUserPositions = () => {
   })
 }
 
-export const useUserDiscountValue = (address: string) => {
-  console.log("userdiscounts above oracle")
-  const { data: prices } = useOraclePrice()
+export const useUserDiscountValue = (address: string, prices: Price[]) => {
   console.log("userdiscounts above data")
   const { data } = useStaked()
   console.log("userdiscounts above staked")

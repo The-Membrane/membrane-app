@@ -97,10 +97,10 @@ export const getUserPositions = async (address: Addr) => {
   })
 }
 
-export const getUserDiscountValue = async (address: Addr) => {  
+export const getUserDiscountValue = async (address: string) => {  
   const cosmWasmClient = await getCosmWasmClient()  
   return cosmWasmClient.queryContractSmart(contracts.system_discounts, {
-    user_discount: { user: address as string },
+    user_discount: { user: address },
   }) as Promise<any> 
 }
 

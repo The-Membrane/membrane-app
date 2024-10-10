@@ -53,7 +53,8 @@ export const useUserDiscountValue = (address: string) => {
   return useQuery({
     queryKey: ['user discount in useCDP', address],
     queryFn: async () => {
-      return getUserDiscountValue(address)
+      console.log("discount log", getUserDiscountValue(address))
+      return { user: address, discount: "1" }
     },
     enabled: true,
   })

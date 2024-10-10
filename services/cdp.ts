@@ -458,7 +458,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
         queryKey: ['user', 'discount', 'cdp', basketPosition.user],
         queryFn: async () => {
           console.log(`Fetching discount for address: ${basketPosition.user}`);
-          return useUserDiscountValue(basketPosition.user)
+          return getUserDiscountValue(basketPosition.user)
         },
         enabled: !!basketPosition.user, // Only run query if address is valid        
     })),

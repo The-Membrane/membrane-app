@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions } from '@/services/cdp'
+import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscountValue } from '@/services/cdp'
 import useWallet from './useWallet'
 import { useOraclePrice } from './useOracle'
 import { denoms } from '@/config/defaults'
@@ -47,20 +47,16 @@ export const useUserPositions = () => {
   })
 }
 
-export const useUserDiscountValue = (address: string, prices: Price[], staked: any) => {
+export const useUserDiscountValue = (address: string) => {
 
   console.log("userdiscounts above useQuery")
   return useQuery({
-    queryKey: ['user_discount_in_useCDP', address, prices, staked],
-    queryFn: async () => {
-      console.log("userdiscounts inside")
-      const mbrnPrice = prices?.find((price) => price.denom === denoms.MBRN[0])?.price??"0"
-      const stakedBalance = shiftDigits(staked, -6).toNumber()
-      const mbrnValue = stakedBalance * parseFloat(mbrnPrice)
+    queryKey: ['user_discount_in_useCDP', address],
+    queryFn: () => {
 
-      return mbrnValue
+      return getUserDiscountValue(address)
     },
-    enabled: !!address,
+    enabled: true,
   })
 }
 

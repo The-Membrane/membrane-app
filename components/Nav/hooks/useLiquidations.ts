@@ -38,7 +38,7 @@ const useProtocolLiquidations = () => {
         queryKey: ['user', 'discount', 'cdp', basketPosition.user],
         queryFn: async () => {
           console.log(`Fetching discount for address: ${basketPosition.user}`);
-          return getUserDiscountValue(basketPosition.user)
+          return useUserDiscountValue(basketPosition.user)
         },
     })) || [],
   });
@@ -47,13 +47,13 @@ const useProtocolLiquidations = () => {
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg liquidations', address, allPositions, prices, basket, interest, userDiscountQueries],
     queryFn: () => {
-        if (!address || !allPositions || !prices || !basket || !interest) {console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] }}
+        if (!address || !allPositions || !prices || !basket || !interest || !userDiscountQueries) {console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] }}
 
         //For metric purposes
         console.log("total # of CDPs: ", allPositions?.length)
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
-        const cdpCalcs = getRiskyPositions(true, allPositions, prices, basket, interest)
+        const cdpCalcs = getRiskyPositions(true, allPositions, prices, basket, interest, userDiscountQueries)
         const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
         console.log("liquidatible positions:", liq)
         console.log("undiscounted total expected annual revenue", cdpCalcs.undiscountedTER.toString())

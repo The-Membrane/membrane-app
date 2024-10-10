@@ -442,7 +442,7 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   }, 0)
 }
 
-export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse) => {
+export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse, userDiscountQueries: any) => {
 
   // if (!basketPositions || !prices || !basket || !interest) return { liquidatibleCDPs: [], totalExpectedRevenue: 0, undiscountedTER: 0 }
 
@@ -453,7 +453,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
   // const tally: number[] = []
   // const totalValue: number[] = []
   
-  console.log("user discount", getUserDiscountValue("osmo1fd8z9npe5gd6afm0wj60tryzx04gn5jl84hcm2"))
+  // console.log("user discount", getUserDiscountValue("osmo1fd8z9npe5gd6afm0wj60tryzx04gn5jl84hcm2"))
 
 
   //Get current LTV & liquidation LTV for all positions

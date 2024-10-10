@@ -10,6 +10,7 @@ import { useBasket, useBasketPositions, useCollateralInterest, useUserDiscountVa
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getLiquidationMsgs } from '@/helpers/mint'
 import useBidState from '@/components/Bid/hooks/useBidState'
+import useStaked from '@/components/Stake/hooks/useStaked'
 
 export type Liq = {
     position_id: string
@@ -30,17 +31,19 @@ const useProtocolLiquidations = () => {
   const { data: allPositions } = useBasketPositions()
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
+  const { data } = useStaked()
+  const { staked } = data || {}
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
+    queryKey: ['msg liquidations', address, allPositions, prices, basket, interest, staked],
     queryFn: () => {
-        if (!address || !allPositions || !prices || !basket || !interest) {console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] }}
+        if (!address || !allPositions || !prices || !basket || !interest || !staked) {console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] }}
 
         //For metric purposes
         console.log("total # of CDPs: ", allPositions?.length)
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
-        const cdpCalcs = getRiskyPositions(true, allPositions, prices, basket, interest)
+        const cdpCalcs = getRiskyPositions(true, allPositions, prices, basket, interest, staked)
         const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
         console.log("liquidatible positions:", liq)
         console.log("undiscounted total expected annual revenue", cdpCalcs.undiscountedTER.toString())

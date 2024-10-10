@@ -434,9 +434,9 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   }, 0)
 }
 
-export const getRiskyPositions = (getRevenue: boolean, basketPositions?: BasketPositionsResponse[], prices?: Price[], basket?: Basket, interest?: CollateralInterestResponse) => {
+export const getRiskyPositions = (getRevenue: boolean, basketPositins: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse, staked: any) => {
 
-  if (!basketPositions || !prices || !basket || !interest) return { liquidatibleCDPs: [], totalExpectedRevenue: 0, undiscountedTER: 0 }
+  // if (!basketPositions || !prices || !basket || !interest) return { liquidatibleCDPs: [], totalExpectedRevenue: 0, undiscountedTER: 0 }
 
   var totalExpectedRevenue = 0
   var undiscountedTER = 0
@@ -501,7 +501,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions?: BasketP
 
     if (getRevenue){
       console.log("userdiscounts outside")
-      const { data: discountValue } = useUserDiscountValue(basketPosition.user, prices)
+      const { data: discountValue } = useUserDiscountValue(basketPosition.user, prices, staked)
       const discountRatio = Math.min(1, num(discountValue).div(debtValue).toNumber())
       const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
       const discountedCost = cost * discountRatio

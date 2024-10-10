@@ -100,7 +100,7 @@ export const getUserPositions = async (address: Addr) => {
 export const getUserDiscountValue = async (address: Addr) => {  
   const cosmWasmClient = await getCosmWasmClient()  
   return cosmWasmClient.queryContractSmart(contracts.system_discounts, {
-    user_discount: { user: address },
+    user_discount: { user: address as string },
   }) as Promise<{user: string, discount: string }> 
 }
 
@@ -507,7 +507,7 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
     )
 
       const { data: discountValue } = useUserDiscountValue(basketPosition.user)
-      if (getRevenue){
+    if (getRevenue){
       console.log("discountValue", discountValue)
       const discountRatio = Math.min(1, num(discountValue?.discount).div(debtValue).toNumber())
       const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost

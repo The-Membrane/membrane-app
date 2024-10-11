@@ -154,6 +154,8 @@ const Deposit = () => {
     if (APRObject.monthly) return APRObject.monthly
     return APRObject.weekly??"0"
   }, [APRObject])
+  console.log("longest APR log", longestAPR)
+
   
   //Calc userTVL in the Earn (Mars USDC looped) vault 
   const userTVL = useMemo(() => {

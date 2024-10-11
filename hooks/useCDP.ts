@@ -47,11 +47,12 @@ export const useUserPositions = () => {
   })
 }
 
-export const useUserDiscountValue = (address: string) => {
+export const useUserDiscount = (address: string | undefined) => {
   return useQuery({
     queryKey: ['user', 'discount', 'cdp', address],
     queryFn: async () => {
-      return getUserDiscountValue(address)
+      if (!address) return { user: "", discount: "0" }
+      return getUserDiscount(address)
     },
   })
 }

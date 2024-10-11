@@ -17,6 +17,7 @@ export const useCurrentPosition = () => {
   const summary = data || {
     debtAmount: 0,
     cost: 0,
+    discountedCost: 0,
     tvl: 0,
     ltv: 0,
     borrowLTV: 0,
@@ -44,7 +45,8 @@ export const useCurrentPosition = () => {
     },
     {
       label: 'DYNAMIC COST',
-      value: `${num(summary.cost).multipliedBy(100).toFixed(2)}% / year`,
+      value: `${num(summary.discountedCost).multipliedBy(100).toFixed(2)}% / year`,
+      textColor: summary.cost != summary.discountedCost ? 'primary.200' : 'white'
     },
     {
       label: 'BORROWABLE LTV',

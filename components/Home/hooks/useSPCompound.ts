@@ -52,6 +52,7 @@ const useSPCompound = ( ) => {
 
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['user bids'] })
+    queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
   }
 
   return {

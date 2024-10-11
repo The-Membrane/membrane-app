@@ -1,16 +1,19 @@
-import { useBasket, useUserPositions, useCollateralInterest } from '@/hooks/useCDP'
+import { useBasket, useUserPositions, useCollateralInterest, useUserDiscount } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { calculateVaultSummary } from '@/services/cdp'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import useMintState from './useMintState'
 import useInitialVaultSummary from './useInitialVaultSummary'
+import useWallet from '@/hooks/useWallet'
 
 const useVaultSummary = () => {
+  const { address } = useWallet()
   const { data: basket } = useBasket()
   const { data: collateralInterest } = useCollateralInterest()
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
+  const { data: discount } = useUserDiscount(address)
   const { mintState } = useMintState()
   const { data } = useInitialVaultSummary(mintState.positionNumber-1)
   
@@ -40,6 +43,7 @@ const useVaultSummary = () => {
     mintState.repay,
     mintState.positionNumber,
     mintState.newDebtAmount,
+    discount,
   ],
   queryFn: async () => {
     console.log("LTVs", initialBorrowLTV, initialLTV, debtAmount, initialTVL, mintState.newDebtAmount,
@@ -62,6 +66,7 @@ const useVaultSummary = () => {
       debtAmount: debtAmount,
       initialTVL: initialTVL,
       basketAssets: basketAssets,
+      discount: discount?.discount??"0",
     })},
   })
 }

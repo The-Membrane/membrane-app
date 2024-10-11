@@ -13,7 +13,7 @@ import { Price } from './oracle'
 import { num } from '@/helpers/num'
 import { stableSymbols } from '@/config/defaults'
 import { useOraclePrice } from '@/hooks/useOracle'
-import { useUserDiscountValue } from '@/hooks/useCDP'
+import { useUserDiscount } from '@/hooks/useCDP'
 import { useQueries } from '@tanstack/react-query'
 
 export const cdpClient = async () => {
@@ -98,7 +98,7 @@ export const getUserPositions = async (address: Addr) => {
   })
 }
 
-export const getUserDiscountValue = async (address: string) => {  
+export const getUserDiscount = async (address: string) => {  
   const cosmWasmClient = await getCosmWasmClient()  
   return cosmWasmClient.queryContractSmart(contracts.system_discounts, {
     user_discount: { user: address }
@@ -298,6 +298,7 @@ type VaultSummary = {
   initialTVL: number
   debtAmount: number
   basketAssets: BasketAsset[]
+  discount: string
 }
 
 export const updatedSummary = (summary: any, basketPositions: any, prices: any, positionIndex: number = 0) => {
@@ -352,6 +353,7 @@ export const calculateVaultSummary = ({
   initialTVL,
   debtAmount,
   basketAssets,
+  discount,
 }: VaultSummary) => {
   if (!basket || !collateralInterest || (!basketPositions && summary.length === 0) || !prices) {
     {console.log("returning 0 debt")
@@ -372,6 +374,7 @@ export const calculateVaultSummary = ({
     return {
       debtAmount,
       cost: 0,
+      discountedCost: 0,
       tvl: initialTVL,
       ltv: initialLTV,
       borrowLTV: initialBorrowLTV,
@@ -409,6 +412,7 @@ export const calculateVaultSummary = ({
     newDebtAmount,
     debtAmount,
     cost,
+    discountedCost: cost * (num(1).minus(discount)).toNumber(),
     tvl,
     ltv,
     borrowLTV,

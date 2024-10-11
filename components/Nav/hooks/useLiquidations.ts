@@ -5,8 +5,8 @@ import { useQueries, useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 
-import { getRiskyPositions, getUserDiscountValue } from '@/services/cdp'
-import { useBasket, useBasketPositions, useCollateralInterest, useUserDiscountValue } from '@/hooks/useCDP'
+import { getRiskyPositions, getUserDiscount } from '@/services/cdp'
+import { useBasket, useBasketPositions, useCollateralInterest, useUserDiscount } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getLiquidationMsgs } from '@/helpers/mint'
 import useBidState from '@/components/Bid/hooks/useBidState'
@@ -38,7 +38,7 @@ const useProtocolLiquidations = () => {
         queryKey: ['user', 'discount', 'cdp', basketPosition.user],
         queryFn: async () => {
           console.log(`Fetching discount for address: ${basketPosition.user}`);
-          return getUserDiscountValue(basketPosition.user)
+          return getUserDiscount(basketPosition.user)
         },
         staleTime: 60000, // 60 seconds (adjust based on your needs)
     })) || [],

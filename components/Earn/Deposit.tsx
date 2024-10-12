@@ -244,7 +244,7 @@ const Deposit = () => {
                 <Divider />
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
-                  <Text variant="body">{(num(longestAPR).multipliedBy(userTVL)).toFixed(2)} USD</Text>  
+                  <Text variant="body">{(num(longestAPR).dividedBy(100).multipliedBy(userTVL)).toFixed(2)} USD</Text>  
                 </Stack>
             </Stack>
           </Card>          

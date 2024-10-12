@@ -149,10 +149,10 @@ const Deposit = () => {
   }, [APRs, vaultInfo])
   const longestAPR = useMemo(() => {
     if (!APRObject) return "0"
-    if (APRObject.yearly) return APRObject.yearly
-    if (APRObject.three_month) return APRObject.three_month
-    if (APRObject.monthly) return APRObject.monthly
-    return APRObject.weekly??"0"
+    if (APRObject.yearly && APRObject.yearly != "N/A") {console.log("the longest is yearly"); return APRObject.yearly}
+    if (APRObject.three_month && APRObject.three_month != "N/A") {console.log("the longest is three month"); return APRObject.three_month}
+    if (APRObject.monthly && APRObject.monthly != "N/A") {console.log("the longest is monthly"); return APRObject.monthly}
+    {console.log("the longest is weekly"); return APRObject.weekly??"0"}
   }, [APRObject])
   console.log("longest APR log", longestAPR)
 

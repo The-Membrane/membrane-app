@@ -13,6 +13,19 @@ export interface APRResponse {
   week_apr?: Decimal | null;
   year_apr?: Decimal | null;
 }
+
+export interface newAPRResponse {
+  cost: Decimal;
+  leverage: Decimal;
+  month_apr?: APR | null;
+  three_month_apr?: APR | null;
+  week_apr?: APR | null;
+  year_apr?: APR | null;
+}
+export interface APR {
+  apr: string;
+  negative: boolean;
+}
 export type Addr = string;
 export type Uint128 = string;
 export interface Config {

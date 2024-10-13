@@ -230,7 +230,7 @@ const Deposit = () => {
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Realized APR </Text>
                     <Stack>
-                      <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR} / {realizedAPRlabel}</Text>
+                      <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR.negative ? "-" : ""}{realizedAPR.apr} / {realizedAPRlabel}</Text>
                     </Stack>
                 </Stack>
                 <Stack>

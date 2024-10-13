@@ -129,15 +129,16 @@ const Deposit = () => {
   console.log("underlyingUSDC", usdcPrice, underlyingUSDC)
 
   //Get the time since Sep 22, 2024, 7:50:35 PM (UTC) in seconds
-  const daysSinceLaunch = num(Math.floor(Date.now() / 1000) - 1727005835).dividedBy(86400)
-  console.log("daysSinceLaunch", daysSinceLaunch)
+  //Days since Earn vault launch
+  // const daysSinceLaunch = num(Math.floor(Date.now() / 1000) - 1727005835).dividedBy(86400)
+  // console.log("daysSinceLaunch", daysSinceLaunch)
   
   const { data: vaultInfo } = useVaultInfo()
   console.log("vaultInfo", vaultInfo)
   const { data: realizedAPRs } = useEarnUSDCRealizedAPR()
   const { data: APRs } = useEarnUSDCEstimatedAPR() 
   const { realizedAPR, realizedAPRlabel} = useMemo(() => {
-    if (!realizedAPRs) return { realizedAPR: {apr: "0", negative: false}, realizedAPRlabel: "N/A"}
+    if (!realizedAPRs) return { realizedAPR: {apr: "N/A", negative: false}, realizedAPRlabel: "N/A"}
     if (realizedAPRs.year_apr) return { realizedAPR: realizedAPRs.year_apr, realizedAPRlabel: "year"}
     if (realizedAPRs.three_month_apr) return { realizedAPR: realizedAPRs.three_month_apr, realizedAPRlabel: "3month"}
     if (realizedAPRs.month_apr) return { realizedAPR: realizedAPRs.month_apr, realizedAPRlabel: "month"}
@@ -233,7 +234,7 @@ const Deposit = () => {
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Realized APR </Text>
                   <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR.negative ? "-" : ""}{num(realizedAPR.apr).minus(1).times(100).toFixed(1)}% / {daysSinceLaunch.toFixed(1)} days</Text>
+                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR.negative ? "-" : ""}{num(realizedAPR.apr).minus(1).times(100).toFixed(1)}%</Text>
                 </Stack>
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Minimum APR</Text>

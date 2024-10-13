@@ -64,7 +64,7 @@ const SPCard = () => {
                 </HStack>
               </Stack>
             </HStack>     */}
-              <Button onClick={() => setCalcAPR(true)}>Calc APR</Button>
+              {!calcAPR && <Button onClick={() => setCalcAPR(true)}>Calc APR</Button>}
               {calcAPR && <EstimatedAPRLabel />}
               {/* Compound normal SP Button*/}
               <TxButton

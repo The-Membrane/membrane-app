@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
 import { cdpClient } from "@/services/cdp"
-import { getUnderlyingUSDC, getVaultAPRResponse } from "@/services/earn"
+import { getUnderlyingUSDC, getVaultAPRResponse, getEarnUSDCRealizedAPR } from "@/services/earn"
 import { useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket } from "@/hooks/useCDP"
@@ -16,11 +16,20 @@ export const useVaultTokenUnderlying = (vtAmount: string) => {
     })
 }
 
-export const useAPR = () => {
+export const useEarnUSDCEstimatedAPR = () => {
     return useQuery({
-        queryKey: ['useAPR'],
+        queryKey: ['useEarnUSDCEstimatedAPR'],
         queryFn: async () => {
         return getVaultAPRResponse()
+        },
+    })
+}
+
+export const useEarnUSDCRealizedAPR = () => {
+    return useQuery({
+        queryKey: ['useEarnUSDCRealizedAPR'],
+        queryFn: async () => {
+        return getEarnUSDCRealizedAPR()
         },
     })
 }
@@ -28,7 +37,7 @@ export const useAPR = () => {
 export const useVaultInfo = () => {
     const { data: prices } = useOraclePrice()
     const { data: basket } = useBasket()
-    const { data: apr } = useAPR()
+    const { data: apr } = useEarnUSDCEstimatedAPR()
     const { getRpcClient } = useRpcClient("osmosis")
     
     return useQuery({

@@ -15,7 +15,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { Price } from '@/services/oracle'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { getUnderlyingUSDC } from '@/services/earn'
-import { useVaultTokenUnderlying, useAPR, useVaultInfo } from './hooks/useEarnQueries'
+import { useVaultTokenUnderlying, useEarnUSDCEstimatedAPR, useVaultInfo, useEarnUSDCRealizedAPR } from './hooks/useEarnQueries'
 import useEarnExit from './hooks/useEarnExit'
 import Divider from '../Divider'
 import useEarnLoop from './hooks/useEarnLoop'
@@ -131,7 +131,15 @@ const Deposit = () => {
   
   const { data: vaultInfo } = useVaultInfo()
   console.log("vaultInfo", vaultInfo)
-  const { data: APRs } = useAPR() 
+  const { data: realizedAPRs } = useEarnUSDCRealizedAPR()
+  const { data: APRs } = useEarnUSDCEstimatedAPR() 
+  const { realizedAPR, realizedAPRlabel} = useMemo(() => {
+    if (!realizedAPRs) return { realizedAPR: "0", realizedAPRlabel: "N/A"}
+    if (realizedAPRs.year_apr && realizedAPRs.year_apr != "N/A") return { realizedAPR: realizedAPRs.year_apr, realizedAPRlabel: "year"}
+    if (realizedAPRs.three_month_apr && realizedAPRs.three_month_apr != "N/A") return { realizedAPR: realizedAPRs.three_month_apr, realizedAPRlabel: "3month"}
+    if (realizedAPRs.month_apr && realizedAPRs.month_apr != "N/A") return { realizedAPR: realizedAPRs.month_apr, realizedAPRlabel: "month"}
+    return { realizedAPR: realizedAPRs.week_apr, realizedAPRlabel: "week"}
+  }, [realizedAPRs])
   const APRObject = useMemo(() => {
     if (!APRs) return {
       weekly: "N/A",
@@ -141,18 +149,18 @@ const Deposit = () => {
     }
     console.log("APR logs", APRs)
     return {
-      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(realizedAPRs?.cost)).times(realizedAPRs?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(realizedAPRs?.cost)).times(realizedAPRs?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(realizedAPRs?.cost)).times(realizedAPRs?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(realizedAPRs?.cost)).times(realizedAPRs?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
     }
-  }, [APRs, vaultInfo])
-  const longestAPR = useMemo(() => {
-    if (!APRObject) return "0"
-    if (APRObject.yearly && APRObject.yearly != "N/A") {console.log("the longest is yearly"); return APRObject.yearly}
-    if (APRObject.three_month && APRObject.three_month != "N/A") {console.log("the longest is three month"); return APRObject.three_month}
-    if (APRObject.monthly && APRObject.monthly != "N/A") {console.log("the longest is monthly"); return APRObject.monthly}
-    {console.log("the longest is weekly"); return APRObject.weekly??"0"}
+  }, [APRs, realizedAPRs])
+  const { longestAPR, estimatedAPRlabel } = useMemo(() => {
+    if (!APRObject) return { longestAPR: "0", estimatedAPRlabel: "N/A"}
+    if (APRObject.yearly && APRObject.yearly != "N/A") return { longestAPR: APRObject.yearly, estimatedAPRlabel: "Annual"}
+    if (APRObject.three_month && APRObject.three_month != "N/A") return { longestAPR: APRObject.three_month, estimatedAPRlabel: "Three Month"}
+    if (APRObject.monthly && APRObject.monthly != "N/A") return { longestAPR: APRObject.monthly, estimatedAPRlabel: "Monthly"}
+    return { longestAPR: APRObject.weekly, estimatedAPRlabel: "Weekly"}
   }, [APRObject])
   console.log("longest APR log", longestAPR)
 
@@ -217,30 +225,24 @@ const Deposit = () => {
         </Stack>
         <Stack>    
           <Card p="7" gap={5} width={"100%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
-            <Stack>          
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Retroactive APRs</Text>
-                <HStack spacing="5" alignItems="flex-start">
-                  <Stack>
-                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Week</Text>
-                    <Divider marginTop={1} marginBottom={1}/>
-                    <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.weekly}% </Text>
-                  </Stack>
-                  <Stack>
-                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Month</Text>
-                    <Divider marginTop={1} marginBottom={1}/>
-                    <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.monthly}% </Text>
-                  </Stack>
-                  <Stack>
-                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>3M</Text>
-                    <Divider marginTop={1} marginBottom={1}/>
-                    <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.three_month}% </Text>
-                  </Stack>
-                  <Stack>
-                    <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>Year</Text>
-                    <Divider marginTop={1} marginBottom={1}/>
-                    <Text variant="body" justifyContent={"center"} display={"flex"}>{APRObject.yearly}% </Text>
-                  </Stack>
-                </HStack>          
+            <Stack>
+              <HStack spacing="5" alignItems="flex-start">
+                <Stack>
+                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Realized APR </Text>
+                    <Stack>
+                      <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR} / {realizedAPRlabel}</Text>
+                    </Stack>
+                </Stack>
+                <Stack>
+                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Minimum APR</Text>
+                    <Stack>
+                      <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{estimatedAPRlabel}</Text>
+                      <Divider marginTop={1} marginBottom={1}/>
+                      <Text variant="body" justifyContent={"center"} display={"flex"}>{longestAPR}% </Text>
+                    </Stack>
+                </Stack>
+                </HStack>    
+                    
                 <Divider />
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>

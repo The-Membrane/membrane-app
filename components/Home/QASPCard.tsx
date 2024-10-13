@@ -1,12 +1,13 @@
-import { Card, Text, Stack, HStack, Input } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Input, Button } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
+import { useMemo, useState } from "react"
+import EstimatedAPRLabel from "./EstimatedAPRLabel"
 
-        
           
 const SPCard = () => {
-
     const { action: compound } = useSPCompound()
+    const [calcAPR, setCalcAPR] = useState(false)
 
     return (
         <Card>
@@ -63,6 +64,8 @@ const SPCard = () => {
                 </HStack>
               </Stack>
             </HStack>     */}
+              <Button onClick={() => setCalcAPR(true)}>Calc APR</Button>
+              {calcAPR && <EstimatedAPRLabel />}
               {/* Compound normal SP Button*/}
               <TxButton
                 maxW="100%"

@@ -9,7 +9,7 @@ import { LiqSummary } from './LiqSummary'
 function UniversalButtons(){
     const { action: claim, claims_summary } = useProtocolClaims()
     const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations()
-
+ 
     return (
         <Stack as="uniButtons" gap="1">
             {/* Claim Button */}

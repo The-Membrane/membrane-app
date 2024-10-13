@@ -128,9 +128,7 @@ function SideNav(){
         <Button textAlign="center" whiteSpace={"prewrap"} fontSize="14px" onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
         Check For Claims & Liquidations
         </Button>
-        {enable_msgs ? 
-            <UniversalButtons />    
-        : null}
+        {enable_msgs && <UniversalButtons /> }
 
       <BalanceCard />
     </Stack>

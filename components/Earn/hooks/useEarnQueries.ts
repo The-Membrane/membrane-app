@@ -1,10 +1,10 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
-import { cdpClient } from "@/services/cdp"
-import { getUnderlyingUSDC, getVaultAPRResponse, getEarnUSDCRealizedAPR } from "@/services/earn"
-import { useQuery } from "@tanstack/react-query"
+import { cdpClient, getUserDiscount } from "@/services/cdp"
+import { getUnderlyingUSDC, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest } from "@/services/earn"
+import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
-import { useBasket } from "@/hooks/useCDP"
+import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
 import { useRpcClient } from "@/hooks/useRpcClient"
 
 export const useVaultTokenUnderlying = (vtAmount: string) => {
@@ -33,6 +33,39 @@ export const useEarnUSDCRealizedAPR = () => {
         },
     })
 }
+
+export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
+    const { data: prices } = useOraclePrice()
+    const { data: allPositions } = useBasketPositions()
+    const { data: basket } = useBasket()
+    const { data: interest } = useCollateralInterest()
+
+    
+    const userDiscountQueries = useDiscounts ? useQueries({
+        queries: allPositions?.map((basketPosition) =>  ({
+            queryKey: ['user', 'discount', 'cdp', basketPosition.user],
+            queryFn: async () => {
+            console.log(`Fetching discount for address: ${basketPosition.user}`);
+            return getUserDiscount(basketPosition.user)
+            },
+            staleTime: 60000, // 60 seconds (adjust based on your needs)
+        })) || [],
+    }) : [];
+
+    return useQuery({
+        queryKey: ['useEstimatedAnnualInterest'],
+        queryFn: async () => {
+            if (!allPositions || !prices || !basket || !interest || !userDiscountQueries.every(query => query.isSuccess || query.failureReason?.message === "Query failed with (6): Generic error: Querier contract error: alloc::vec::Vec<membrane::types::StakeDeposit> not found: query wasm contract failed: query wasm contract failed: unknown request")) {console.log("revenue calc attempt", !allPositions, !prices, !basket, !interest); return { totalExpectedRevenue: 0, undiscountedTER: 0 }}
+
+            const cdpCalcs =  getEstimatedAnnualInterest(allPositions, prices, basket, interest, userDiscountQueries)
+            
+            console.log("undiscounted total expected annual revenue", cdpCalcs.undiscountedTER.toString())
+            console.log("total expected annual revenue", cdpCalcs.totalExpectedRevenue.toString())
+            setBidState({cdpExpectedAnnualRevenue: cdpCalcs.totalExpectedRevenue})
+        },
+    })
+}
+
 
 export const useVaultInfo = () => {
     const { data: prices } = useOraclePrice()
@@ -121,4 +154,8 @@ export const useVaultInfo = () => {
         },
     })
 
+}
+
+function setBidState(arg0: { cdpExpectedAnnualRevenue: number }) {
+    throw new Error("Function not implemented.")
 }

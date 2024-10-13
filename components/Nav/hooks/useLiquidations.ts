@@ -33,33 +33,19 @@ const useProtocolLiquidations = () => {
   const { data: interest } = useCollateralInterest()
 
     
-  const userDiscountQueries = useQueries({
-    queries: allPositions?.map((basketPosition) =>  ({
-        queryKey: ['user', 'discount', 'cdp', basketPosition.user],
-        queryFn: async () => {
-          console.log(`Fetching discount for address: ${basketPosition.user}`);
-          return getUserDiscount(basketPosition.user)
-        },
-        staleTime: 60000, // 60 seconds (adjust based on your needs)
-    })) || [],
-  });
-  console.log("userDiscountQueries", userDiscountQueries)
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg liquidations', address, allPositions, prices, basket, interest, userDiscountQueries],
+    queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
     queryFn: () => {
-        if (!address || !allPositions || !prices || !basket || !interest || !userDiscountQueries.every(query => query.isSuccess || query.failureReason?.message === "Query failed with (6): Generic error: Querier contract error: alloc::vec::Vec<membrane::types::StakeDeposit> not found: query wasm contract failed: query wasm contract failed: unknown request")) {console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] }}
+        if (!address || !allPositions || !prices || !basket || !interest) {console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] }}
 
         //For metric purposes
         console.log("total # of CDPs: ", allPositions?.length)
         var msgs = [] as MsgExecuteContractEncodeObject[]
         
-        const cdpCalcs = getRiskyPositions(true, allPositions, prices, basket, interest, userDiscountQueries)
+        const cdpCalcs = getRiskyPositions(allPositions, prices, basket, interest)
         const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
         console.log("liquidatible positions:", liq)
-        console.log("undiscounted total expected annual revenue", cdpCalcs.undiscountedTER.toString())
-        console.log("total expected annual revenue", cdpCalcs.totalExpectedRevenue.toString())
-        setBidState({cdpExpectedAnnualRevenue: cdpCalcs.totalExpectedRevenue})
         
 
         if (liq.length > 0) {

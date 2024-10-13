@@ -446,12 +446,10 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   }, 0)
 }
 
-export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse, userDiscountQueries: any) => {
+export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse) => {
 
   // if (!basketPositions || !prices || !basket || !interest) return { liquidatibleCDPs: [], totalExpectedRevenue: 0, undiscountedTER: 0 }
 
-  var totalExpectedRevenue = 0
-  var undiscountedTER = 0
 
   // const bundles: string[][] = []
   // const tally: number[] = []
@@ -514,17 +512,17 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
       positionsWithRatio,
     )
     
-    const discountRatio = userDiscountQueries[index].data ? userDiscountQueries[index].data.discount : "0"
-    if (getRevenue){
-      console.log("discount", discountRatio)
-      const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
-      const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
-      const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
-      const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
-      console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
-      totalExpectedRevenue += discountedAnnualInterest
-      undiscountedTER += annualInterest
-    }
+    // const discountRatio = userDiscountQueries[index].data ? userDiscountQueries[index].data.discount : "0"
+    // if (getRevenue){
+    //   console.log("discount", discountRatio)
+    //   const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
+    //   const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
+    //   const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
+    //   const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
+    //   console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
+    //   totalExpectedRevenue += discountedAnnualInterest
+    //   undiscountedTER += annualInterest
+    // }
 
     if (ltv > liquidationLTV) {
       let ltv_diff = num(ltv).minus(liquidationLTV)
@@ -536,7 +534,5 @@ export const getRiskyPositions = (getRevenue: boolean, basketPositions: BasketPo
         fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
       }
     }
-  }),
-  totalExpectedRevenue,
-  undiscountedTER}
+  })}
 }

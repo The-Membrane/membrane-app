@@ -234,7 +234,7 @@ const Deposit = () => {
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Realized APR </Text>
                   <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR.negative ? "-" : ""}{num(realizedAPR.apr).minus(1).times(100).toFixed(1)}%</Text>
+                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR?.negative ? "-" : ""}{num(realizedAPR?.apr).minus(1).times(100).toFixed(1)}%</Text>
                 </Stack>
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Minimum APR</Text>

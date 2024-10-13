@@ -25,7 +25,6 @@ type QueryData = {
 const useProtocolLiquidations = () => {
   const liquidating_positions: Liq[] = [];
   const { address } = useWallet()
-  const { setBidState } = useBidState()
 
   const { data: prices } = useOraclePrice()
   const { data: allPositions } = useBasketPositions()

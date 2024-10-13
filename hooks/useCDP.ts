@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscountValue } from '@/services/cdp'
+import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscountValue, getUserDiscount } from '@/services/cdp'
 import useWallet from './useWallet'
 import { useOraclePrice } from './useOracle'
 import { denoms } from '@/config/defaults'

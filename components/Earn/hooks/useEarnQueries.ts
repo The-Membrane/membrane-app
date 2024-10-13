@@ -37,6 +37,7 @@ export const useEarnUSDCRealizedAPR = () => {
 export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
     const { data: prices } = useOraclePrice()
     const { data: allPositions } = useBasketPositions()
+    console.log("AP in interstquery", allPositions) 
     const { data: basket } = useBasket()
     const { data: interest } = useCollateralInterest()
 

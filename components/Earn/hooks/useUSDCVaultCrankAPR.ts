@@ -37,6 +37,21 @@ const useUSDCVaultCrankAPR = ( ) => {
           })
       } as MsgExecuteContractEncodeObject
       msgs.push(crankMsg)
+
+      //Crank Realized APR
+      const crankRealizedMsg  = {
+        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+        value: MsgExecuteContract.fromPartial({
+        sender: address,
+        contract: contracts.earn,
+        msg: toUtf8(JSON.stringify({
+            crank_realized_a_p_r: {}
+        })),
+        funds: []
+        })
+    } as MsgExecuteContractEncodeObject
+    msgs.push(crankRealizedMsg)
+
       
       return { msgs }
     },
@@ -51,7 +66,8 @@ const useUSDCVaultCrankAPR = ( ) => {
   console.log("crank msg:", msgs)
 
   const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['useAPR'] })
+    queryClient.invalidateQueries({ queryKey: ['useEarnUSDCRealizedAPR'] })
+    queryClient.invalidateQueries({ queryKey: ['useEarnUSDCEstimatedAPR'] })
   }
 
   return {

@@ -62,6 +62,8 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
             console.log("undiscounted total expected annual revenue", cdpCalcs.undiscountedTER.toString())
             console.log("total expected annual revenue", cdpCalcs.totalExpectedRevenue.toString())
             setBidState({cdpExpectedAnnualRevenue: cdpCalcs.totalExpectedRevenue})
+
+            return cdpCalcs
         },
     })
 }

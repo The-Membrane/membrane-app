@@ -134,10 +134,10 @@ const Deposit = () => {
   const { data: realizedAPRs } = useEarnUSDCRealizedAPR()
   const { data: APRs } = useEarnUSDCEstimatedAPR() 
   const { realizedAPR, realizedAPRlabel} = useMemo(() => {
-    if (!realizedAPRs) return { realizedAPR: "0", realizedAPRlabel: "N/A"}
-    if (realizedAPRs.year_apr && realizedAPRs.year_apr != "N/A") return { realizedAPR: realizedAPRs.year_apr, realizedAPRlabel: "year"}
-    if (realizedAPRs.three_month_apr && realizedAPRs.three_month_apr != "N/A") return { realizedAPR: realizedAPRs.three_month_apr, realizedAPRlabel: "3month"}
-    if (realizedAPRs.month_apr && realizedAPRs.month_apr != "N/A") return { realizedAPR: realizedAPRs.month_apr, realizedAPRlabel: "month"}
+    if (!realizedAPRs) return { realizedAPR: {apr: "0", negative: false}, realizedAPRlabel: "N/A"}
+    if (realizedAPRs.year_apr) return { realizedAPR: realizedAPRs.year_apr, realizedAPRlabel: "year"}
+    if (realizedAPRs.three_month_apr) return { realizedAPR: realizedAPRs.three_month_apr, realizedAPRlabel: "3month"}
+    if (realizedAPRs.month_apr) return { realizedAPR: realizedAPRs.month_apr, realizedAPRlabel: "month"}
     return { realizedAPR: realizedAPRs.week_apr, realizedAPRlabel: "week"}
   }, [realizedAPRs])
   const APRObject = useMemo(() => {

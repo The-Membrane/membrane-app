@@ -128,6 +128,9 @@ const Deposit = () => {
   const { data: underlyingUSDC } = useVaultTokenUnderlying(shiftDigits(loopedUSDCBalance, 6).toFixed(0))
   console.log("underlyingUSDC", usdcPrice, underlyingUSDC)
 
+  //Get the time since Sep 22, 2024, 7:50:35 PM (UTC) in seconds
+  const daysSinceLaunch = num(Math.floor(Date.now() / 1000) - 1727005835).dividedBy(86400)
+  console.log("daysSinceLaunch", daysSinceLaunch)
   
   const { data: vaultInfo } = useVaultInfo()
   console.log("vaultInfo", vaultInfo)
@@ -149,12 +152,12 @@ const Deposit = () => {
     }
     console.log("APR logs", APRs)
     return {
-      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(realizedAPRs?.cost)).times(realizedAPRs?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(realizedAPRs?.cost)).times(realizedAPRs?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(realizedAPRs?.cost)).times(realizedAPRs?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(realizedAPRs?.cost)).times(realizedAPRs?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
     }
-  }, [APRs, realizedAPRs])
+  }, [APRs, vaultInfo])
   const { longestAPR, estimatedAPRlabel } = useMemo(() => {
     if (!APRObject) return { longestAPR: "0", estimatedAPRlabel: "N/A"}
     if (APRObject.yearly && APRObject.yearly != "N/A") return { longestAPR: APRObject.yearly, estimatedAPRlabel: "Annual"}
@@ -229,17 +232,13 @@ const Deposit = () => {
               <HStack spacing="5" alignItems="flex-start">
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Realized APR </Text>
-                    <Stack>
-                      <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR.negative ? "-" : ""}{realizedAPR.apr} / {realizedAPRlabel}</Text>
-                    </Stack>
+                  <Divider marginTop={1} marginBottom={1}/>
+                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR.negative ? "-" : ""}{num(realizedAPR.apr).minus(1).times(100).toFixed(1)}% / {daysSinceLaunch.toFixed(1)} days</Text>
                 </Stack>
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Minimum APR</Text>
-                    <Stack>
-                      <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{estimatedAPRlabel}</Text>
-                      <Divider marginTop={1} marginBottom={1}/>
-                      <Text variant="body" justifyContent={"center"} display={"flex"}>{longestAPR}% </Text>
-                    </Stack>
+                  <Divider marginTop={1} marginBottom={1}/>
+                  <Text variant="body" justifyContent={"center"} display={"flex"}>{longestAPR}% </Text>
                 </Stack>
                 </HStack>    
                     

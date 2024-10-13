@@ -239,14 +239,14 @@ const Deposit = () => {
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Minimum APR</Text>
                   <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" justifyContent={"center"} display={"flex"}>{longestAPR}% </Text>
+                  <Text variant="body" justifyContent={"center"} fontWeight={"bold"} display={"flex"}>{longestAPR}% </Text>
                 </Stack>
                 </HStack>    
                     
                 <Divider />
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
-                  <Text variant="body">{(num(longestAPR).dividedBy(100).multipliedBy(userTVL)).toFixed(2)} USD</Text>  
+                  <Text variant="body" fontWeight={"bold"}>{(num(longestAPR).dividedBy(100).multipliedBy(userTVL)).toFixed(2)} USD</Text>  
                 </Stack>
             </Stack>
           </Card>          

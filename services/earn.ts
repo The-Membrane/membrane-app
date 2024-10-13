@@ -43,10 +43,12 @@ export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsRespo
   var undiscountedTER = 0
   //  
 
+  console.log("above map", basketPositions)
   basketPositions?.map((basketPosition, index) => {
-    const positions = getPositions([basketPosition], prices)
+  console.log("in map", basketPosition)
+  const positions = getPositions([basketPosition], prices)
     const tvl = getTVL(positions)
-    const basketAssets = getBasketAssets(basket!, interest!)
+    const basketAssets = getBasketAssets(basket, interest)
     const debt = getDebt([basketPosition])
     const positionsWithRatio = getAssetRatio(false, tvl, positions)
 

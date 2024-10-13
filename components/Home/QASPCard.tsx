@@ -3,12 +3,9 @@ import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
 import { useMemo, useState } from "react"
 import EstimatedAPRLabel from "./EstimatedAPRLabel"
-import { useBasketPositions } from "@/hooks/useCDP"
 
           
 const SPCard = () => {
-  const { data: allPositions } = useBasketPositions()
-  console.log("AP in SPCard", allPositions) 
   const { action: compound } = useSPCompound()
     const [calcAPR, setCalcAPR] = useState(false)
 

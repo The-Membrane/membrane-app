@@ -7,6 +7,7 @@ import { Text } from '@chakra-ui/react'
 
 function estimatedAPRLabel(){
   const { data: revenue } = useEstimatedAnnualInterest(false)
+  console.log("revenue", revenue)
   const { data: assetPool } = useStabilityAssetPool()
   const stabilityPoolAPR = useMemo(() => {
     if (revenue && assetPool) {

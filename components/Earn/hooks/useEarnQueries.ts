@@ -59,6 +59,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
             if (!allPositions || !prices || !basket || !interest || !userDiscountQueries.every(query => query.isSuccess || query.failureReason?.message === "Query failed with (6): Generic error: Querier contract error: alloc::vec::Vec<membrane::types::StakeDeposit> not found: query wasm contract failed: query wasm contract failed: unknown request")) {console.log("revenue calc attempt", allPositions, !prices, !basket, !interest); return { totalExpectedRevenue: 0, undiscountedTER: 0 }}
 
             const cdpCalcs =  getEstimatedAnnualInterest(allPositions, prices, basket, interest, userDiscountQueries)
+            console.log("cdpCalcs", cdpCalcs)
             
             console.log("undiscounted total expected annual revenue", cdpCalcs.undiscountedTER.toString())
             console.log("total expected annual revenue", cdpCalcs.totalExpectedRevenue.toString())

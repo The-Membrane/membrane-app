@@ -42,17 +42,17 @@ export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsRespo
   var totalExpectedRevenue = 0
   var undiscountedTER = 0
   //  
-
-  console.log("above map", basketPositions)
+// // 
+//   console.log("above map", basketPositions)
   basketPositions?.map((basketPosition, index) => {
-  console.log("in map", basketPosition)
+  // console.log("in map", basketPosition)
     const positions = getPositions([basketPosition], prices)
     const tvl = getTVL(positions)
     const basketAssets = getBasketAssets(basket, interest)
     const debt = getDebt([basketPosition])
     const positionsWithRatio = getAssetRatio(false, tvl, positions)
 
-    console.log("above discount")
+    // console.log("above discount")
     const discountRatio = (userDiscountQueries.length !== 0 && userDiscountQueries[index].data) ? userDiscountQueries[index].data.discount : "0"
     console.log("discount", discountRatio)
     const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost

@@ -11,7 +11,7 @@ function estimatedAPRLabel(){
   const stabilityPoolAPR = useMemo(() => {
     if (revenue && assetPool) {
       return num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).toFixed(1)
-    }
+    } else console.log("none of one", revenue, assetPool)
   }, [revenue, assetPool])
 
 

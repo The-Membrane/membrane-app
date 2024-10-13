@@ -64,7 +64,6 @@ export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsRespo
     undiscountedTER += annualInterest
   })
 
-  return { totalExpectedRevenue, undiscountedTER }
-  
+  return { totalExpectedRevenue, undiscountedTER }  
 }
 

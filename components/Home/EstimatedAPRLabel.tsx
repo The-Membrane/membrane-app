@@ -15,7 +15,7 @@ function estimatedAPRLabel(){
     if (revenue && assetPool) {
         console.log("returning", num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).toFixed(1), revenue.totalExpectedRevenue, assetPool.credit_asset.amount, assetPool)
 
-        return num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).toFixed(1)
+        return num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).multipliedBy(100).toFixed(1)
     } else console.log("none of one", revenue, assetPool)
   }, [revenue, assetPool])
 

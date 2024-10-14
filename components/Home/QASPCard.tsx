@@ -29,9 +29,7 @@ const DepositButton = () => {
 
   return (
     <ActModal
-      // px="5"
-      // w="fit-content"
-      // fontSize="sm"
+      width="100%"
       label="Deposit"
       isDisabled={!isGreaterThanZero(cdtBalance)}
       action={autoSPenter}
@@ -78,9 +76,7 @@ const WithdrawButton = () => {
 
     return (
       <ActModal
-        // px="5"
-        // w="fit-content"
-        // fontSize="sm"
+        width="100%"
         label="Withdraw"
         isDisabled={!isGreaterThanZero(underlyingCDT)}
         action={autoSPexit}
@@ -113,14 +109,11 @@ const SPCard = () => {
     }, [revenue, assetPool])
 
     return (
-        <Card>
+        <Card width={"33%"}>
           <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
-          <Stack>
-             
-            <Stack justifyContent="end" width={"100%"} gap={"1rem"}>
+          <Stack>             
               <DepositButton />
               <WithdrawButton />
-            </Stack>
             {/* <HStack>
               <Stack py="5" w="full" gap="3" mb={"0"} >
               <Text variant="body"> Max CDT to Loop </Text>

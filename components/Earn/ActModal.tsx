@@ -17,6 +17,7 @@ type Props = PropsWithChildren & {
   action?: Action
   isDisabled?: boolean
   isLoading?: boolean
+  width?: string
   buttonProps?: ButtonProps
 }
 
@@ -63,6 +64,7 @@ const ActModal = ({
   action,
   isDisabled = false,
   isLoading = true,
+  width = "30%",
   buttonProps,
 }: Props) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -83,7 +85,7 @@ const ActModal = ({
         // isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
         isDisabled={isDisabled}
         onClick={onModalOpen}
-        width={"30%"}
+        width={width}
         // opacity={label === "Withdraw" ? 0.5 : 1}
         {...buttonProps}
       >

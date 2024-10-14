@@ -12,6 +12,8 @@ import { useBalanceByAsset } from "@/hooks/useBalance"
 import ActModal from "../Earn/ActModal"
 import { SliderWithState } from "../Mint/SliderWithState"
 import { shiftDigits } from "@/helpers/math"
+import useAutoSPEnter from "./hooks/useAutoSPEnter"
+import useAutoSPExit from "./hooks/useAutoSPExit"
 
 
 const DepositButton = () => {
@@ -19,7 +21,7 @@ const DepositButton = () => {
   const cdtAsset = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdtAsset)
 
-  // const { action: stableLooping } = useStableYieldLoop()
+  const { action: autoSPenter } = useAutoSPEnter()
 
   const onSliderChange = (value: number) => {
     setQuickActionState({ autoSPdeposit: value })
@@ -32,7 +34,7 @@ const DepositButton = () => {
       // fontSize="sm"
       label="Deposit"
       isDisabled={!isGreaterThanZero(cdtBalance)}
-      action={stableLooping}
+      action={autoSPenter}
     >
       
       <Stack gap="0">
@@ -55,8 +57,7 @@ const WithdrawButton = () => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const earnCDTAsset = useAssetBySymbol('earnCDT')
     const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
-    //Unloop to the withdrawal amount
-    // const { action: earnExit } = useEarnExit()
+    const { action: autoSPexit } = useAutoSPExit()
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
@@ -82,7 +83,7 @@ const WithdrawButton = () => {
         // fontSize="sm"
         label="Withdraw"
         isDisabled={!isGreaterThanZero(underlyingCDT)}
-        action={earnExit}
+        action={autoSPexit}
       >
       <Stack gap="0">
         <HStack justifyContent="space-between">
@@ -115,6 +116,11 @@ const SPCard = () => {
         <Card>
           <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
           <Stack>
+             
+            <Stack justifyContent="end" width={"100%"} gap={"1rem"}>
+              <DepositButton />
+              <WithdrawButton />
+            </Stack>
             {/* <HStack>
               <Stack py="5" w="full" gap="3" mb={"0"} >
               <Text variant="body"> Max CDT to Loop </Text>

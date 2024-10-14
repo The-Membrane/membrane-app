@@ -2,7 +2,7 @@
 import contracts from '@/config/contracts.json'
 import { getCosmWasmClient } from '@/helpers/cosmwasmClient' 
 import { EarnQueryClient } from '@/contracts/codegen/earn/Earn.client'
-import { APRResponse, newAPRResponse } from '@/contracts/codegen/earn/Earn.types'
+import { APRResponse, ClaimTracker } from '@/contracts/codegen/earn/Earn.types'
 import { Basket, BasketPositionsResponse, CollateralInterestResponse, Uint128 } from '@/contracts/codegen/positions/Positions.types'
 import { useQueries } from '@tanstack/react-query'
 import { getAssetRatio, getBasketAssets, getDebt, getPositions, getRateCost, getTVL, getUserDiscount } from './cdp'
@@ -35,7 +35,7 @@ export const getVaultAPRResponse = async () => {
 
 export const getEarnUSDCRealizedAPR = async () => {
   const client = await EarnClient()
-  return client.aPR().then((res) => res) as Promise<newAPRResponse> 
+  return client.aPR().then((res) => res) as Promise<ClaimTracker> 
 }
 
 export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse, userDiscountQueries: any[]) => {

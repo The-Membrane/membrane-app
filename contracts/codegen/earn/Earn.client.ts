@@ -47,7 +47,7 @@ export class EarnQueryClient implements EarnReadOnlyInterface {
   };
   aPR = async (): Promise<APRResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      a_p_r: {}
+      claim_tracker: {}
     });
   };
 }

@@ -14,13 +14,14 @@ export interface APRResponse {
   year_apr?: Decimal | null;
 }
 
-export interface newAPRResponse {
-  cost: Decimal;
-  leverage: Decimal;
-  month_apr?: APR | null;
-  three_month_apr?: APR | null;
-  week_apr?: APR | null;
-  year_apr?: APR | null;
+interface VTCheckpoint {
+  vt_claim_of_checkpoint: string;
+  time_since_last_checkpoint: number;
+}
+
+export interface ClaimTracker {
+  vt_claim_checkpoints: VTCheckpoint[];
+  last_updated: number;
 }
 export interface APR {
   apr: string;

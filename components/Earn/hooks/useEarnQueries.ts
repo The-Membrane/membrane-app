@@ -7,6 +7,7 @@ import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
 import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
+import { get } from "lodash"
 
 export const useVaultTokenUnderlying = (vtAmount: string) => {
     return useQuery({
@@ -30,7 +31,21 @@ export const useEarnUSDCRealizedAPR = () => {
     return useQuery({
         queryKey: ['useEarnUSDCRealizedAPR'],
         queryFn: async () => {
-        return getEarnUSDCRealizedAPR()
+            const claimTracker = await getEarnUSDCRealizedAPR()
+
+            //Parse the claim tracker to get the realized APR//
+            const runningDuration = claimTracker.vt_claim_checkpoints.reduce((acc, checkpoint) => {
+                return acc + checkpoint.time_since_last_checkpoint
+            }, 0);
+
+            const APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[0].vt_claim_of_checkpoint)
+
+            //if dration is > a year, divide the APR by the duration in years
+            if (runningDuration > 86400*365) {
+                return APR.dividedBy(runningDuration/(86400*365))
+            }
+            console.log("APR calcs", APR.toString(), runningDuration.toString(), claimTracker)
+            return APR
         },
     })
 }

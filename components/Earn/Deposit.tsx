@@ -135,15 +135,8 @@ const Deposit = () => {
   
   const { data: vaultInfo } = useVaultInfo()
   console.log("vaultInfo", vaultInfo)
-  const { data: realizedAPRs } = useEarnUSDCRealizedAPR()
+  const { data: realizedAPR } = useEarnUSDCRealizedAPR()
   const { data: APRs } = useEarnUSDCEstimatedAPR() 
-  const { realizedAPR, realizedAPRlabel} = useMemo(() => {
-    if (!realizedAPRs) return { realizedAPR: {apr: "N/A", negative: false}, realizedAPRlabel: "N/A"}
-    if (realizedAPRs.year_apr) return { realizedAPR: realizedAPRs.year_apr, realizedAPRlabel: "year"}
-    if (realizedAPRs.three_month_apr) return { realizedAPR: realizedAPRs.three_month_apr, realizedAPRlabel: "3month"}
-    if (realizedAPRs.month_apr) return { realizedAPR: realizedAPRs.month_apr, realizedAPRlabel: "month"}
-    return { realizedAPR: realizedAPRs.week_apr, realizedAPRlabel: "week"}
-  }, [realizedAPRs])
   const APRObject = useMemo(() => {
     if (!APRs) return {
       weekly: "N/A",

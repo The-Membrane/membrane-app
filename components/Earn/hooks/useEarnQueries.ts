@@ -38,14 +38,20 @@ export const useEarnUSDCRealizedAPR = () => {
                 return acc + checkpoint.time_since_last_checkpoint
             }, 0);
 
-            const APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[0].vt_claim_of_checkpoint)
+            var APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[0].vt_claim_of_checkpoint).minus(1)
+            var negative = false
 
-            //if dration is > a year, divide the APR by the duration in years
-            if (runningDuration > 86400*365) {
-                return APR.dividedBy(runningDuration/(86400*365))
+            //If the APR is negative, set the negative flag to true and multiply the APR by -1
+            if (APR.toNumber() < 0) {
+                APR = APR.times(-1)
+                negative = true
             }
-            console.log("APR calcs", APR.toString(), runningDuration.toString(), claimTracker)
-            return APR
+            
+            console.log("APR calcs", APR.dividedBy(runningDuration/(86400*365)).toString(), runningDuration.toString(), claimTracker)
+
+            //Divide the APR by the duration in years
+            return { apr: APR.dividedBy(runningDuration/(86400*365)).toString(), negative }
+
         },
     })
 }

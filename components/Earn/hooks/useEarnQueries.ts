@@ -19,7 +19,7 @@ export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
 }
 export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
     return useQuery({
-        queryKey: ['useVaultTokenUnderlying', vtAmount],
+        queryKey: ['useCDTVaultTokenUnderlying', vtAmount],
         queryFn: async () => {
         return getUnderlyingCDT(vtAmount)
         },

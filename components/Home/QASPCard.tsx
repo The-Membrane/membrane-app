@@ -1,17 +1,28 @@
 import { Card, Text, Stack, HStack, Input, Button } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
-import { useMemo, useState } from "react"
-import EstimatedAPRLabel from "./EstimatedAPRLabel"
+import { useMemo } from "react"
+import useStabilityAssetPool from "../Bid/hooks/useStabilityAssetPool"
+import { num } from "@/helpers/num"
+import { useEstimatedAnnualInterest } from "../Earn/hooks/useEarnQueries"
+import useBidState from "../Bid/hooks/useBidState"
 
           
 const SPCard = () => {
   const { action: compound } = useSPCompound()
-    const [calcAPR, setCalcAPR] = useState(false)
+    const { data: revenue } = useEstimatedAnnualInterest(false)
+    const { data: assetPool } = useStabilityAssetPool()
+    const { bidState } = useBidState()
+    const stabilityPoolAPR = useMemo(() => {
+      if (revenue && assetPool) {
+  
+          return num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).multipliedBy(100).toFixed(1) + "%"
+      } else console.log("none of one", revenue, assetPool)
+    }, [revenue, assetPool])
 
     return (
         <Card>
-          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Global Management</Text>
+          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
           <Stack>
             {/* <HStack>
               <Stack py="5" w="full" gap="3" mb={"0"} >
@@ -64,8 +75,6 @@ const SPCard = () => {
                 </HStack>
               </Stack>
             </HStack>     */}
-              {!calcAPR && <Button onClick={() => setCalcAPR(true)}>Calc APR</Button>}
-              {calcAPR && <EstimatedAPRLabel />}
               {/* Compound normal SP Button*/}
               <TxButton
                 maxW="100%"

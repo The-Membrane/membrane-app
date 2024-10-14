@@ -1,12 +1,103 @@
 import { Card, Text, Stack, HStack, Input, Button } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import useStabilityAssetPool from "../Bid/hooks/useStabilityAssetPool"
-import { num } from "@/helpers/num"
-import { useEstimatedAnnualInterest } from "../Earn/hooks/useEarnQueries"
+import { isGreaterThanZero, num } from "@/helpers/num"
+import { useCDTVaultTokenUnderlying, useEstimatedAnnualInterest } from "../Earn/hooks/useEarnQueries"
 import useBidState from "../Bid/hooks/useBidState"
+import useQuickActionState from "./hooks/useQuickActionState"
+import { useAssetBySymbol } from "@/hooks/useAssets"
+import { useBalanceByAsset } from "@/hooks/useBalance"
+import ActModal from "../Earn/ActModal"
+import { SliderWithState } from "../Mint/SliderWithState"
+import { shiftDigits } from "@/helpers/math"
 
+
+const DepositButton = () => {
+  const { quickActionState, setQuickActionState } = useQuickActionState()
+  const cdtAsset = useAssetBySymbol('CDT')
+  const cdtBalance = useBalanceByAsset(cdtAsset)
+
+  // const { action: stableLooping } = useStableYieldLoop()
+
+  const onSliderChange = (value: number) => {
+    setQuickActionState({ autoSPdeposit: value })
+  }
+
+  return (
+    <ActModal
+      // px="5"
+      // w="fit-content"
+      // fontSize="sm"
+      label="Deposit"
+      isDisabled={!isGreaterThanZero(cdtBalance)}
+      action={stableLooping}
+    >
+      
+      <Stack gap="0">
+        <HStack justifyContent="space-between">
+          <Text variant="lable" textTransform="unset">
+            CDT
+          </Text>
+          <HStack>
+            <Text variant="value">${quickActionState.autoSPdeposit}</Text>
+          </HStack>
+        </HStack>
+        <SliderWithState value={quickActionState.autoSPdeposit} onChange={onSliderChange} min={0} max={parseFloat(cdtBalance)} walletCDT={1} summary={["empty"]}/>
+      </Stack>
+    </ActModal>
+  )
+}
+
+const WithdrawButton = () => {
+    const [withdraw, setWithdraw] = useState<number>(0)
+    const { quickActionState, setQuickActionState } = useQuickActionState()
+    const earnCDTAsset = useAssetBySymbol('earnCDT')
+    const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
+    //Unloop to the withdrawal amount
+    // const { action: earnExit } = useEarnExit()
+
+    //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
+    const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
+    ////////////////////////////////////
+
+    const vttoCDTRatio = useMemo(() => { return num(earnCDTBalance).dividedBy(num(underlyingCDT)) }, [earnCDTBalance, underlyingCDT])   
+
+    const onSliderChange = (value: number) => {      
+      setWithdraw(value)
+    }
+
+    useEffect(() => {      
+      if (!withdraw) return
+      ////Convert the CDT amount to the earnCDT amount using the queried ratio///
+      const vtAmount = num(shiftDigits(withdraw, 6)).times(vttoCDTRatio)
+      setQuickActionState({ autoSPwithdrawal: num(vtAmount.toFixed(0)).toNumber() })
+    }, [withdraw])
+
+    return (
+      <ActModal
+        // px="5"
+        // w="fit-content"
+        // fontSize="sm"
+        label="Withdraw"
+        isDisabled={!isGreaterThanZero(underlyingCDT)}
+        action={earnExit}
+      >
+      <Stack gap="0">
+        <HStack justifyContent="space-between">
+          <Text variant="lable" textTransform="unset">
+            USDC
+          </Text>
+          <HStack>
+            <Text variant="value">${withdraw}</Text>
+          </HStack>
+        </HStack>
+        <SliderWithState value={withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingCDT, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+      </Stack>
+      </ActModal>
+    )
+}
           
 const SPCard = () => {
   const { action: compound } = useSPCompound()

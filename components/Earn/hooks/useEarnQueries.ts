@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
 import { cdpClient, getUserDiscount } from "@/services/cdp"
-import { getUnderlyingUSDC, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest } from "@/services/earn"
+import { getUnderlyingUSDC, getUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest } from "@/services/earn"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
@@ -9,11 +9,19 @@ import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
 import { get } from "lodash"
 
-export const useVaultTokenUnderlying = (vtAmount: string) => {
+export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
+    return useQuery({
+        queryKey: ['useUSDCVaultTokenUnderlying', vtAmount],
+        queryFn: async () => {
+        return getUnderlyingUSDC(vtAmount)
+        },
+    })
+}
+export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
     return useQuery({
         queryKey: ['useVaultTokenUnderlying', vtAmount],
         queryFn: async () => {
-        return getUnderlyingUSDC(vtAmount)
+        return getUnderlyingCDT(vtAmount)
         },
     })
 }
@@ -47,7 +55,7 @@ export const useEarnUSDCRealizedAPR = () => {
                 negative = true
             }
             
-            console.log("APR calcs", APR.dividedBy(runningDuration/(86400*365)).toString(), runningDuration.toString(), claimTracker)
+            // console.log("APR calcs", APR.dividedBy(runningDuration/(86400*365)).toString(), runningDuration.toString(), claimTracker)
 
             //Divide the APR by the duration in years
             return { apr: APR.dividedBy(runningDuration/(86400*365)).toString(), negative }

@@ -15,13 +15,12 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { Price } from '@/services/oracle'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { getUnderlyingUSDC } from '@/services/earn'
-import { useVaultTokenUnderlying, useEarnUSDCEstimatedAPR, useVaultInfo, useEarnUSDCRealizedAPR } from './hooks/useEarnQueries'
+import { useUSDCVaultTokenUnderlying, useEarnUSDCEstimatedAPR, useVaultInfo, useEarnUSDCRealizedAPR } from './hooks/useEarnQueries'
 import useEarnExit from './hooks/useEarnExit'
 import Divider from '../Divider'
 import useEarnLoop from './hooks/useEarnLoop'
 import useCDPRedeem from './hooks/useCDPRedeem'
 import useUSDCVaultCrankAPR from './hooks/useUSDCVaultCrankAPR'
-import useWallet from '@/hooks/useWallet'
 
 const ENTRY_FEE = 0.005
 
@@ -70,7 +69,7 @@ const WithdrawButton = () => {
     const { action: earnExit } = useEarnExit()
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
-    const { data: underlyingUSDC } = useVaultTokenUnderlying(shiftDigits(loopedUSDCBalance, 6).toFixed(0))
+    const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(loopedUSDCBalance, 6).toFixed(0))
     ////////////////////////////////////
 
     const vttoUSDCRatio = useMemo(() => { return num(loopedUSDCBalance).dividedBy(num(underlyingUSDC)) }, [loopedUSDCBalance, underlyingUSDC])   
@@ -227,10 +226,10 @@ const Deposit = () => {
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Realized APR </Text>
                   <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
+                  <Text variant="body" justifyContent={"center"} fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
                 </Stack>
                 <Stack>
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Minimum APR</Text>
+                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated APR</Text>
                   <Divider marginTop={1} marginBottom={1}/>
                   <Text variant="body" justifyContent={"center"} fontWeight={"bold"} display={"flex"}>{longestAPR}% </Text>
                 </Stack>

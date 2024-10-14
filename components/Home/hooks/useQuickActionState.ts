@@ -1,18 +1,20 @@
-import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
-import { Summary } from '@/components/Mint/hooks/useMintState'
+// import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
+// import { Summary } from '@/components/Mint/hooks/useMintState'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
 
 export type QuickActionState = {
-  levAssets?: AssetWithBalance[]
-  stableAsset?: AssetWithBalance
-  assets: AssetWithBalance[]
-  summary?: Summary[]
-  totalUsdValue?: number
-  levSwapRatio?: number
-  useCookies: boolean
-  readyToLoop: boolean
+  // levAssets?: AssetWithBalance[]
+  // stableAsset?: AssetWithBalance
+  // assets: AssetWithBalance[]
+  // summary?: Summary[]
+  // totalUsdValue?: number
+  // levSwapRatio?: number
+  // useCookies: boolean
+  // readyToLoop: boolean
+  autoSPdeposit: number
+  autoSPwithdrawal: number
 }
 
 type Store = {
@@ -21,9 +23,11 @@ type Store = {
 }
 
 const initialState: QuickActionState = {  
-  assets: [],
-  useCookies: false,
-  readyToLoop: false,
+  // assets: [],
+  // useCookies: false,
+  // readyToLoop: false,
+  autoSPdeposit: 0,
+  autoSPwithdrawal: 0,
 }
 
 // @ts-ignore

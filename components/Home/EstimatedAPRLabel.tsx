@@ -7,23 +7,20 @@ import useBidState from "../Bid/hooks/useBidState"
 
 
 function estimatedAPRLabel(){
-  const { bidState } = useBidState()
   const { data: revenue } = useEstimatedAnnualInterest(false)
-  console.log("revenue", revenue)
   const { data: assetPool } = useStabilityAssetPool()
+  const { bidState } = useBidState()
   const stabilityPoolAPR = useMemo(() => {
     if (revenue && assetPool) {
-        console.log("returning", num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).toFixed(1), revenue.totalExpectedRevenue, assetPool.credit_asset.amount, assetPool)
 
-        return num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).multipliedBy(100).toFixed(1)
+        return num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).multipliedBy(100).toFixed(1) + "%"
     } else console.log("none of one", revenue, assetPool)
   }, [revenue, assetPool])
 
-  console.log("bidState", bidState.cdpExpectedAnnualRevenue)
 
 
   return (
-    <Text>{stabilityPoolAPR}%</Text>
+    <Text>{bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."}</Text>
   )
 }
 

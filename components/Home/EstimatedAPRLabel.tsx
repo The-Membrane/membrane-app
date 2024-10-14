@@ -20,7 +20,7 @@ function estimatedAPRLabel(){
 
 
   return (
-    <Text>{bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."}</Text>
+    <Text justifyContent={"center"} >Annualized APR: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."}</Text>
   )
 }
 

@@ -124,91 +124,91 @@ const SPCard = () => {
 
     return (
         <Card width={"33%"}>
-          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
-          <Divider marginBottom={"3vh"}/> 
-          <List spacing={3} styleType="disc">
-            <ListItem>First item</ListItem>
-            <ListItem>Second item</ListItem>
-            <ListItem>Third item</ListItem>
-          </List>
           <Stack>             
-              <DepositButton />
-              <WithdrawButton />
-            {/* <HStack>
-              <Stack py="5" w="full" gap="3" mb={"0"} >
-              <Text variant="body"> Max CDT to Loop </Text>
-              <HStack>
-                  <Input 
-                    width={"40%"} 
-                    textAlign={"center"} 
-                    placeholder="0" 
-                    type="number" 
-                    value={earnState.loopMax ?? 0} 
-                    onChange={handleInputChange}
-                  />
-                  <TxButton
-                    maxW="75px"
-                    isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
-                    isDisabled={loop?.simulate.isError || !loop?.simulate.data}
-                    onClick={() => loop?.tx.mutate()}
-                    toggleConnectLabel={false}
-                    style={{ alignSelf: "end" }}
-                  >
-                    Loop
-                  </TxButton>
-              </HStack>
-              </Stack>
-            </HStack>            
-            <HStack>
-              <Stack py="5" w="full" gap="3" mb={"0"} >
-              <Text variant="body"> Did you buy CDT {`<= $`}{num(basket?.credit_price.price??"0").multipliedBy(0.985).toFixed(3)}?</Text>
-              <HStack>
-                  <Input 
-                    width={"40%"} 
-                    textAlign={"center"} 
-                    placeholder="0" 
-                    type="number" 
-                    value={earnState.redeemAmount ?? 0} 
-                    max={CDTBalance}
-                    onChange={handleRedeemInputChange}
-                  />
-                  <TxButton
-                    maxW="75px"
-                    isLoading={redeem?.simulate.isLoading || redeem?.tx.isPending}
-                    isDisabled={redeem?.simulate.isError || !redeem?.simulate.data}
-                    onClick={() => redeem?.tx.mutate()}
-                    toggleConnectLabel={false}
-                    style={{ alignSelf: "end" }}
-                  >
-                    Redeem
-                  </TxButton>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
+            <Divider marginBottom={"3vh"}/> 
+            <List spacing={3} styleType="disc">
+              <ListItem>First item</ListItem>
+              <ListItem>Second item</ListItem>
+              <ListItem>Third item</ListItem>
+            </List>
+            <DepositButton />
+            <WithdrawButton />
+              {/* <HStack>
+                <Stack py="5" w="full" gap="3" mb={"0"} >
+                <Text variant="body"> Max CDT to Loop </Text>
+                <HStack>
+                    <Input 
+                      width={"40%"} 
+                      textAlign={"center"} 
+                      placeholder="0" 
+                      type="number" 
+                      value={earnState.loopMax ?? 0} 
+                      onChange={handleInputChange}
+                    />
+                    <TxButton
+                      maxW="75px"
+                      isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
+                      isDisabled={loop?.simulate.isError || !loop?.simulate.data}
+                      onClick={() => loop?.tx.mutate()}
+                      toggleConnectLabel={false}
+                      style={{ alignSelf: "end" }}
+                    >
+                      Loop
+                    </TxButton>
                 </HStack>
-              </Stack>
-            </HStack>     */}
-              <Divider marginTop={"3vh"}/>           
-              <Slider
-                defaultValue={percentToDistribution}
-                isReadOnly
-                cursor="default"
-                min={0}
-                max={1}
-                value={percentToDistribution}
-              >
-                <SliderTrack h="1.5">
-                  <SliderFilledTrack bg={'blue.400'} />
-                </SliderTrack>
-              </Slider>
-              {/* Compound normal SP Button*/}
-              <TxButton
-                maxW="100%"
-                isLoading={compound?.simulate.isLoading || compound?.tx.isPending}
-                isDisabled={compound?.simulate.isError || !compound?.simulate.data}
-                onClick={() => compound?.tx.mutate()}
-                toggleConnectLabel={false}
-                style={{ alignSelf: "center" }}
-              >
-                Compound
-              </TxButton>
+                </Stack>
+              </HStack>            
+              <HStack>
+                <Stack py="5" w="full" gap="3" mb={"0"} >
+                <Text variant="body"> Did you buy CDT {`<= $`}{num(basket?.credit_price.price??"0").multipliedBy(0.985).toFixed(3)}?</Text>
+                <HStack>
+                    <Input 
+                      width={"40%"} 
+                      textAlign={"center"} 
+                      placeholder="0" 
+                      type="number" 
+                      value={earnState.redeemAmount ?? 0} 
+                      max={CDTBalance}
+                      onChange={handleRedeemInputChange}
+                    />
+                    <TxButton
+                      maxW="75px"
+                      isLoading={redeem?.simulate.isLoading || redeem?.tx.isPending}
+                      isDisabled={redeem?.simulate.isError || !redeem?.simulate.data}
+                      onClick={() => redeem?.tx.mutate()}
+                      toggleConnectLabel={false}
+                      style={{ alignSelf: "end" }}
+                    >
+                      Redeem
+                    </TxButton>
+                  </HStack>
+                </Stack>
+              </HStack>     */}
+            <Divider marginTop={"3vh"}/>           
+            <Slider
+              defaultValue={percentToDistribution}
+              isReadOnly
+              cursor="default"
+              min={0}
+              max={1}
+              value={percentToDistribution}
+            >
+              <SliderTrack h="1.5">
+                <SliderFilledTrack bg={'blue.400'} />
+              </SliderTrack>
+            </Slider>
+            {/* Compound normal SP Button*/}
+            <TxButton
+              maxW="100%"
+              isLoading={compound?.simulate.isLoading || compound?.tx.isPending}
+              isDisabled={compound?.simulate.isError || !compound?.simulate.data}
+              onClick={() => compound?.tx.mutate()}
+              toggleConnectLabel={false}
+              style={{ alignSelf: "center" }}
+            >
+              Compound
+            </TxButton>
           </Stack>
         </Card>
     )

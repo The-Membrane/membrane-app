@@ -15,6 +15,7 @@ import { shiftDigits } from "@/helpers/math"
 import useAutoSPEnter from "./hooks/useAutoSPEnter"
 import useAutoSPExit from "./hooks/useAutoSPExit"
 import { useBasket } from "@/hooks/useCDP"
+import Divider from "../Divider"
 
 
 const DepositButton = () => {
@@ -123,7 +124,9 @@ const SPCard = () => {
 
     return (
         <Card width={"33%"}>
-          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" marginBottom={"3vh"}>Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
+          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
+          <Divider marginBottom={"3vh"}/> 
+
           <Stack>             
               <DepositButton />
               <WithdrawButton />
@@ -177,7 +180,8 @@ const SPCard = () => {
                   </TxButton>
                 </HStack>
               </Stack>
-            </HStack>     */}            
+            </HStack>     */}
+              <Divider marginTop={"3vh"}/>           
               <Slider
                 defaultValue={percentToDistribution}
                 isReadOnly
@@ -185,7 +189,6 @@ const SPCard = () => {
                 min={0}
                 max={1}
                 value={percentToDistribution}
-                marginTop={"3vh"}
               >
                 <SliderTrack h="1.5">
                   <SliderFilledTrack bg={'blue.400'} />

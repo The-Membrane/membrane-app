@@ -185,6 +185,7 @@ const SPCard = () => {
                 min={0}
                 max={1}
                 value={percentToDistribution}
+                marginTop={"3vh"}
               >
                 <SliderTrack h="1.5">
                   <SliderFilledTrack bg={'blue.400'} />

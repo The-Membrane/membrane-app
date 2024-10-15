@@ -1,4 +1,4 @@
-import { Card, Text, Stack, HStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, SliderMark, Box } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Input, Button, Slider, SliderTrack, SliderFilledTrack } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
 import { useEffect, useMemo, useState } from "react"
@@ -103,6 +103,8 @@ const SPCard = () => {
     const { data: assetPool } = useStabilityAssetPool()
     const { data: basket } = useBasket()
     const revenueDistributionThreshold = 50000000
+   console.log("basket revenue", num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber(), basket?.pending_revenue, revenueDistributionThreshold)
+
 
     const { bidState } = useBidState()
 

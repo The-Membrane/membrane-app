@@ -67,7 +67,7 @@ export const useEarnUSDCRealizedAPR = () => {
 export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
     const { data: prices } = useOraclePrice()
     const { data: allPositions } = useBasketPositions()
-    console.log("AP in interstquery", allPositions) 
+    // console.log("AP in interstquery", allPositions) 
     const { data: basket } = useBasket()
     const { data: interest } = useCollateralInterest()
     const { setBidState } = useBidState()
@@ -77,7 +77,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
         queries: allPositions?.map((basketPosition) =>  ({
             queryKey: ['user', 'discount', 'cdp', basketPosition.user],
             queryFn: async () => {
-            console.log(`Fetching discount for address: ${basketPosition.user}`);
+            // console.log(`Fetching discount for address: ${basketPosition.user}`);
             return getUserDiscount(basketPosition.user)
             },
             staleTime: 60000, // 60 seconds (adjust based on your needs)
@@ -90,7 +90,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
             if (!allPositions || !prices || !basket || !setBidState || !interest || !userDiscountQueries.every(query => query.isSuccess || query.failureReason?.message === "Query failed with (6): Generic error: Querier contract error: alloc::vec::Vec<membrane::types::StakeDeposit> not found: query wasm contract failed: query wasm contract failed: unknown request")) {console.log("revenue calc attempt", allPositions, !prices, !basket, !interest); return { totalExpectedRevenue: 0, undiscountedTER: 0 }}
 
             const cdpCalcs = getEstimatedAnnualInterest(allPositions, prices, basket, interest, userDiscountQueries)
-            console.log("cdpCalcs", cdpCalcs)
+            // console.log("cdpCalcs", cdpCalcs)
 
             setBidState({cdpExpectedAnnualRevenue: cdpCalcs.totalExpectedRevenue})
             

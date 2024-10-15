@@ -62,12 +62,12 @@ export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsRespo
 
     // console.log("above discount")
     const discountRatio = (userDiscountQueries.length !== 0 && userDiscountQueries[index].data) ? userDiscountQueries[index].data.discount : "0"
-    console.log("discount", discountRatio)
+    // console.log("discount", discountRatio)
     const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
     const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
     const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
     const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
-    console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
+    // console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
     totalExpectedRevenue += discountedAnnualInterest
     undiscountedTER += annualInterest
   })

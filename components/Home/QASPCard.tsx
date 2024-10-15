@@ -110,7 +110,7 @@ const SPCard = () => {
 
     return (
         <Card width={"33%"}>
-          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
+          <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" marginBottom={"3vh"}>Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
           <Stack>             
               <DepositButton />
               <WithdrawButton />

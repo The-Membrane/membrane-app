@@ -1,4 +1,4 @@
-import { Card, Text, Stack, HStack, Input, Button } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, SliderMark, Box } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
 import { useEffect, useMemo, useState } from "react"
@@ -14,6 +14,7 @@ import { SliderWithState } from "../Mint/SliderWithState"
 import { shiftDigits } from "@/helpers/math"
 import useAutoSPEnter from "./hooks/useAutoSPEnter"
 import useAutoSPExit from "./hooks/useAutoSPExit"
+import { useBasket } from "@/hooks/useCDP"
 
 
 const DepositButton = () => {
@@ -100,7 +101,11 @@ const SPCard = () => {
     const { action: compound } = useSPCompound()
     const { data: revenue } = useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()
+    const { data: basket } = useBasket()
+    const revenueDistributionThreshold = 50000000
+
     const { bidState } = useBidState()
+
     const stabilityPoolAPR = useMemo(() => {
       if (revenue && assetPool) {
   
@@ -164,7 +169,19 @@ const SPCard = () => {
                   </TxButton>
                 </HStack>
               </Stack>
-            </HStack>     */}
+            </HStack>     */}            
+              <Slider
+                defaultValue={num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()}
+                isReadOnly
+                cursor="default"
+                min={0}
+                max={100}
+                value={num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()}
+              >
+                <SliderTrack h="1.5">
+                  <SliderFilledTrack bg={'blue.400'} />
+                </SliderTrack>
+              </Slider>
               {/* Compound normal SP Button*/}
               <TxButton
                 maxW="100%"

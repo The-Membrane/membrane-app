@@ -102,8 +102,14 @@ const SPCard = () => {
     const { data: revenue } = useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()
     const { data: basket } = useBasket()
+
     const revenueDistributionThreshold = 50000000
-   console.log("basket revenue", num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber(), basket?.pending_revenue, revenueDistributionThreshold)
+  //  console.log("basket revenue", num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber(), basket?.pending_revenue, revenueDistributionThreshold)
+    const percentToDistribution = useMemo(() => {
+      if (!basket) return 0
+      return num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()
+
+    }, [basket])
 
 
     const { bidState } = useBidState()
@@ -173,12 +179,12 @@ const SPCard = () => {
               </Stack>
             </HStack>     */}            
               <Slider
-                defaultValue={num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()}
+                defaultValue={percentToDistribution}
                 isReadOnly
                 cursor="default"
                 min={0}
-                max={100}
-                value={num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()}
+                max={1}
+                value={percentToDistribution}
               >
                 <SliderTrack h="1.5">
                   <SliderFilledTrack bg={'blue.400'} />

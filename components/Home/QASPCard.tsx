@@ -1,4 +1,4 @@
-import { Card, Text, Stack, HStack, Input, Button, Slider, SliderTrack, SliderFilledTrack } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, List, ListItem } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
 import { useEffect, useMemo, useState } from "react"
@@ -126,7 +126,11 @@ const SPCard = () => {
         <Card width={"33%"}>
           <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
           <Divider marginBottom={"3vh"}/> 
-
+          <List spacing={3} styleType="disc">
+            <ListItem>First item</ListItem>
+            <ListItem>Second item</ListItem>
+            <ListItem>Third item</ListItem>
+          </List>
           <Stack>             
               <DepositButton />
               <WithdrawButton />

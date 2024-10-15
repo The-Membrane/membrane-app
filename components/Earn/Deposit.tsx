@@ -72,14 +72,14 @@ const WithdrawButton = () => {
     const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(loopedUSDCBalance, 6).toFixed(0))
     ////////////////////////////////////
 
-    const vttoUSDCRatio = useMemo(() => { return num(loopedUSDCBalance).dividedBy(num(underlyingUSDC)) }, [loopedUSDCBalance, underlyingUSDC])   
+    const vttoUSDCRatio = useMemo(() => { return num(loopedUSDCBalance).dividedBy(num(underlyingUSDC??1)) }, [loopedUSDCBalance, underlyingUSDC])   
 
     const onSliderChange = (value: number) => {      
       setWithdraw(value)
     }
 
     useEffect(() => {      
-      if (!withdraw) return
+      // if (!withdraw) return
       ////Convert the USDC amount to the looped USDC amount using the queried ratio///
       const vtAmount = num(shiftDigits(withdraw, 12)).times(vttoUSDCRatio)
       setEarnState({ withdraw: num(vtAmount.toFixed(0)).toNumber() })
@@ -103,7 +103,7 @@ const WithdrawButton = () => {
             <Text variant="value">${withdraw}</Text>
           </HStack>
         </HStack>
-        <SliderWithState value={withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+        <SliderWithState value={withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
       </Stack>
       </ActModal>
     )

@@ -28,7 +28,7 @@ const useAutoSPEnter = ( ) => {
       earnCDTAsset,
     ],
     queryFn: () => {
-      if (!address || !earnCDTAsset || quickActionState.autoSPwithdrawal === 0) return { msgs: undefined}
+      if (!address || !earnCDTAsset || quickActionState.autoSPwithdrawal === 0) return { msgs: undefined }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       const funds = [{ amount: shiftDigits(quickActionState.autoSPwithdrawal, earnCDTAsset.decimal).dp(0).toNumber().toString(), denom: earnCDTAsset.base }]      
@@ -38,7 +38,7 @@ const useAutoSPEnter = ( ) => {
         sender: address,
         contract: contracts.autoStabilityPool,
         msg: toUtf8(JSON.stringify({
-            enter_vault: {}
+            exit_vault: {}
         })),
         funds: funds
         })

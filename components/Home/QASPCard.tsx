@@ -61,14 +61,14 @@ const WithdrawButton = () => {
     const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
     ////////////////////////////////////
 
-    const vttoCDTRatio = useMemo(() => { return num(earnCDTBalance).dividedBy(num(underlyingCDT)) }, [earnCDTBalance, underlyingCDT])   
+    const vttoCDTRatio = useMemo(() => { return num(earnCDTBalance).dividedBy(num(underlyingCDT??1)) }, [earnCDTBalance, underlyingCDT])   
 
     const onSliderChange = (value: number) => {      
       setWithdraw(value)
     }
 
     useEffect(() => {      
-      if (!withdraw) return
+      // if (!withdraw) return
       ////Convert the CDT amount to the earnCDT amount using the queried ratio///
       const vtAmount = num(shiftDigits(withdraw, 6)).times(vttoCDTRatio)
       setQuickActionState({ autoSPwithdrawal: num(vtAmount.toFixed(0)).toNumber() })
@@ -90,14 +90,14 @@ const WithdrawButton = () => {
             <Text variant="value">${withdraw}</Text>
           </HStack>
         </HStack>
-        <SliderWithState value={withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingCDT, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+        <SliderWithState value={withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingCDT??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
       </Stack>
       </ActModal>
     )
 }
           
 const SPCard = () => {
-  const { action: compound } = useSPCompound()
+    const { action: compound } = useSPCompound()
     const { data: revenue } = useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()
     const { bidState } = useBidState()

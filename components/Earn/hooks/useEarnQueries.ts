@@ -64,7 +64,7 @@ export const useEarnUSDCRealizedAPR = () => {
     })
 }
 
-export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
+export const useEstimatedAnnualInterest = async (useDiscounts: boolean) => {
     const { data: prices } = useOraclePrice()
     const { data: allPositions } = useBasketPositions()
     // console.log("AP in interstquery", allPositions) 

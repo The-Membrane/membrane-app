@@ -100,7 +100,13 @@ const WithdrawButton = () => {
           
 const SPCard = () => {
     const { action: compound } = useSPCompound()
-    const { data: revenue } = useEstimatedAnnualInterest(false)
+    const [revenue, setRevenue] = useState<{undiscountedTER: number, totalExpectedRevenue: number} | undefined>({undiscountedTER: 0, totalExpectedRevenue: 0})
+    useEstimatedAnnualInterest(false).then((data) => setRevenue(data.data))
+    // const revenue = useMemo(() => {
+    //   if (revenuePromise.) {
+    //     return revenuePromise.data
+    //   } else return null
+    // }, [revenuePromise])
     const { data: assetPool } = useStabilityAssetPool()
     const { data: basket } = useBasket()
 

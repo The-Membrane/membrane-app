@@ -28,7 +28,9 @@ export const getUnderlyingUSDC = async (vtAmount: string) => {
 export const getUnderlyingCDT = async (vtAmount: string) => {
   const cosmWasmClient = await getCosmWasmClient()  
   return cosmWasmClient.queryContractSmart(contracts.autoStabilityPool, {
-    vault_token_amount: vtAmount
+    vault_token_underlying: {
+      vault_token_amount: vtAmount
+    }
   }) as Promise<Uint128>   
 }
 

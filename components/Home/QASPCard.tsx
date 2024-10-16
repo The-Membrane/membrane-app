@@ -60,7 +60,7 @@ const WithdrawButton = () => {
     const { action: autoSPexit } = useAutoSPExit()
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
-    const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
+    const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 12).toFixed(0))
     console.log("EARN CDT", earnCDTBalance, earnCDTAsset, underlyingCDT)
     ////////////////////////////////////
 

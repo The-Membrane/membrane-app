@@ -39,7 +39,7 @@
     "description": "Auto-compounding CDT vault for Membrane's Stability Pool/OmniPool",
     "base": "factory/osmo1jw6r68y0uhfmqagc7uhtdddctc7wq95pncvrqnvtd47w4hx46p7se9nju5/earn-cdt",
     "symbol": "earnCDT",
-    "decimal": 6,
+    "decimal": 12,
     "isLP": false
   }
 ]

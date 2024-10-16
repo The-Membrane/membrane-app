@@ -68,7 +68,7 @@ export const getChainAssets = (chainID: string = 'osmosis') => {
   const supportedChainAssets = chainAssets?.assets.filter((asset) =>
     asset.base !== 'ibc/F74225B0AFD2F675AF56E9BE3F235486BCDE5C5E09AA88A97AFD2E052ABFE04C'
   )
-  const assetsWtihLogo = supportedChainAssets.map((asset) => assetWithLogo(asset, chainID)) || []
+  const assetsWtihLogo = supportedChainAssets?.map((asset) => assetWithLogo(asset, chainID)) || []
 
 
   return [...assetsWtihLogo, ...lpAssets]
@@ -81,7 +81,7 @@ export const getAssets = (chainID: string = 'osmosis') => {
   const supportedChainAssets = chainAssets?.assets.filter((asset) =>
     asset.base !== 'ibc/F74225B0AFD2F675AF56E9BE3F235486BCDE5C5E09AA88A97AFD2E052ABFE04C'
   )
-  const assetsWtihLogo = supportedChainAssets.map((asset) => assetWithLogo(asset, chainID)) || []
+  const assetsWtihLogo = supportedChainAssets?.map((asset) => assetWithLogo(asset, chainID)) || []
 
   return [...assetsWtihLogo, ...lpAssets]
 }

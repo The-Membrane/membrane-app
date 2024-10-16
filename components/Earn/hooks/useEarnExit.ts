@@ -15,7 +15,7 @@ import useEarnState from './useEarnState'
 const useEarnExit = ( ) => {
   const { address } = useWallet()
   const { earnState, setEarnState } = useEarnState()
-  const loopedUSDCAsset = useAssetBySymbol('loopedUSDCmars')
+  const earnUSDCAsset = useAssetBySymbol('earnUSDC')
 
   
   type QueryData = {
@@ -26,15 +26,15 @@ const useEarnExit = ( ) => {
       'earn_exit_msg_creation',
       address,
       earnState.withdraw,
-      loopedUSDCAsset,
+      earnUSDCAsset,
     ],
     queryFn: () => {
-      if (!address || !loopedUSDCAsset ||  earnState.withdraw === 0) return { msgs: undefined }
+      if (!address || !earnUSDCAsset ||  earnState.withdraw === 0) return { msgs: undefined }
 
       var msgs = [] as MsgExecuteContractEncodeObject[]
       // console.log("earn state withdraw", earnState.withdraw)
       let messageComposer = new EarnMsgComposer(address, contracts.earn)
-      const funds = [{ amount: earnState.withdraw.toString(), denom: loopedUSDCAsset.base }]
+      const funds = [{ amount: earnState.withdraw.toString(), denom: earnUSDCAsset.base }]
       let exitMsg = messageComposer.exitVault(funds)
       msgs.push(exitMsg)
 

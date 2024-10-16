@@ -63,16 +63,16 @@ const DepositButton = () => {
 const WithdrawButton = () => {
     const [withdraw, setWithdraw] = useState<number>(0)
     const { earnState, setEarnState } = useEarnState()    
-    const loopedUSDCAsset = useAssetBySymbol('loopedUSDCmars')
-    const loopedUSDCBalance = useBalanceByAsset(loopedUSDCAsset)
+    const earnUSDCAsset = useAssetBySymbol('earnUSDC')
+    const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
     //Unloop to the withdrawal amount
     const { action: earnExit } = useEarnExit()
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
-    const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(loopedUSDCBalance, 6).toFixed(0))
+    const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
     ////////////////////////////////////
 
-    const vttoUSDCRatio = useMemo(() => { return num(loopedUSDCBalance).dividedBy(num(underlyingUSDC??1)) }, [loopedUSDCBalance, underlyingUSDC])   
+    const vttoUSDCRatio = useMemo(() => { return num(earnUSDCBalance).dividedBy(num(underlyingUSDC??1)) }, [earnUSDCBalance, underlyingUSDC])   
 
     const onSliderChange = (value: number) => {      
       setWithdraw(value)
@@ -122,9 +122,9 @@ const Deposit = () => {
   const usdcAsset = useAssetBySymbol('USDC')
   const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
   
-  const loopedUSDCAsset = useAssetBySymbol('loopedUSDCmars')
-  const loopedUSDCBalance = useBalanceByAsset(loopedUSDCAsset)
-  const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(loopedUSDCBalance, 6).toFixed(0))
+  const earnUSDCAsset = useAssetBySymbol('earnUSDC')
+  const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
+  const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
   console.log("underlyingUSDC", usdcPrice, underlyingUSDC)
 
   //Get the time since Sep 22, 2024, 7:50:35 PM (UTC) in seconds

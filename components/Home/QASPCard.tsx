@@ -117,7 +117,7 @@ const SPCard = () => {
 
     const stabilityPoolAPR = useMemo(() => {
       if (revenue && assetPool) {
-  
+        console.log("both", revenue, assetPool)
           return num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).multipliedBy(100).toFixed(1) + "%"
       } else console.log("none of one", revenue, assetPool)
     }, [revenue, assetPool])

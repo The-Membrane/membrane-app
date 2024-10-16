@@ -12,7 +12,7 @@ import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
 
-const useAutoSPEnter = ( ) => { 
+const useAutoSPExit = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const earnCDTAsset = useAssetBySymbol('earnCDT')
@@ -71,4 +71,4 @@ const useAutoSPEnter = ( ) => {
   })}
 }
 
-export default useAutoSPEnter
+export default useAutoSPExit

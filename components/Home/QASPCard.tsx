@@ -60,7 +60,7 @@ const WithdrawButton = () => {
     const { action: autoSPexit } = useAutoSPExit()
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
-    const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 12).toFixed(0))
+    const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
     console.log("EARN CDT", earnCDTBalance, earnCDTAsset, underlyingCDT)
     ////////////////////////////////////
 
@@ -87,7 +87,7 @@ const WithdrawButton = () => {
       <Stack gap="0">
         <HStack justifyContent="space-between">
           <Text variant="lable" textTransform="unset">
-            USDC
+            CDT
           </Text>
           <HStack>
             <Text variant="value">${withdraw}</Text>

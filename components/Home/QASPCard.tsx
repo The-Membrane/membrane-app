@@ -127,10 +127,10 @@ const SPCard = () => {
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
             <Divider marginBottom={"3vh"}/> 
-            <List spacing={3} styleType="disc">
-              <ListItem>First item</ListItem>
-              <ListItem>Second item</ListItem>
-              <ListItem>Third item</ListItem>
+            <List spacing={3} styleType="disc" padding="6">
+              <ListItem>Yield: Revenue & Liquidations</ListItem>
+              <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
+              <ListItem>Max 1 Day Withdraw Time</ListItem>
             </List>
             <DepositButton />
             <WithdrawButton />

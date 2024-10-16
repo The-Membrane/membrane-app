@@ -100,12 +100,11 @@ const WithdrawButton = () => {
           
 const SPCard = () => {
     const { action: compound } = useSPCompound()
-    useEstimatedAnnualInterest(false)
+    useEstimatedAnnualInterest(true)
     const { data: assetPool } = useStabilityAssetPool()
     const { data: basket } = useBasket()
 
     const revenueDistributionThreshold = 50000000
-  //  console.log("basket revenue", num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber(), basket?.pending_revenue, revenueDistributionThreshold)
     const percentToDistribution = useMemo(() => {
       if (!basket) return 0
       return num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()

@@ -78,6 +78,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
             queryKey: ['user', 'discount', 'cdp', basketPosition.user],
             queryFn: async () => {
             // console.log(`Fetching discount for address: ${basketPosition.user}`);
+            if (basketPosition.positions.reduce((acc, position) => acc + parseInt(position.credit_amount), 0) <= 1000) return { discount: 0 }
             return getUserDiscount(basketPosition.user)
             },
             staleTime: 60000, // 60 seconds (adjust based on your needs)

@@ -100,13 +100,7 @@ const WithdrawButton = () => {
           
 const SPCard = () => {
     const { action: compound } = useSPCompound()
-    const [revenue, setRevenue] = useState<{undiscountedTER: number, totalExpectedRevenue: number} | undefined>({undiscountedTER: 0, totalExpectedRevenue: 0})
-    useEstimatedAnnualInterest(false).then((data) => setRevenue(data.data))
-    // const revenue = useMemo(() => {
-    //   if (revenuePromise.) {
-    //     return revenuePromise.data
-    //   } else return null
-    // }, [revenuePromise])
+    const { data: revenue } = useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()
     const { data: basket } = useBasket()
 
@@ -133,7 +127,7 @@ const SPCard = () => {
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? stabilityPoolAPR : "loading..."} </Text>
             <Divider marginBottom={"3vh"}/> 
-            <List spacing={3} styleType="disc" padding="6">
+            <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem>Yield: Revenue & Liquidations</ListItem>
               <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
               <ListItem>Max 1 Day Withdraw Time</ListItem>

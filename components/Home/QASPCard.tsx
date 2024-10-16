@@ -61,6 +61,7 @@ const WithdrawButton = () => {
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
+    console.log("EARN CDT", earnCDTBalance, earnCDTAsset, underlyingCDT)
     ////////////////////////////////////
 
     const vttoCDTRatio = useMemo(() => { return num(earnCDTBalance).dividedBy(num(underlyingCDT??1)) }, [earnCDTBalance, underlyingCDT])   

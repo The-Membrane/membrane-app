@@ -100,7 +100,7 @@ const WithdrawButton = () => {
           
 const SPCard = () => {
     const { action: compound } = useSPCompound()
-    const { data: revenue } = useEstimatedAnnualInterest(false)
+    useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()
     const { data: basket } = useBasket()
 
@@ -112,15 +112,7 @@ const SPCard = () => {
 
     }, [basket])
 
-
     const { bidState } = useBidState()
-
-    // const stabilityPoolAPR = useMemo(() => {
-    //   if (revenue && assetPool) {
-    //     console.log("both", revenue, assetPool)
-    //       return num(revenue.totalExpectedRevenue).dividedBy(assetPool.credit_asset.amount).multipliedBy(100).toFixed(1) + "%"
-    //   } else console.log("none of one", revenue, assetPool)
-    // }, [revenue, assetPool])
 
     return (
         <Card width={"33%"}>
@@ -128,7 +120,7 @@ const SPCard = () => {
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(assetPool?.credit_asset.amount || 1).multipliedBy(100).toFixed(1) + "%" : "loading..."} </Text>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem><a style={{fontWeight:"bold"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>
+              <ListItem><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>
               <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
               <ListItem>Max 1 Day Withdraw Time</ListItem>
             </List>

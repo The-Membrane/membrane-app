@@ -31,7 +31,7 @@ const useStableYieldLoop = ( ) => {
       usdcAsset,
     ],
     queryFn: () => {
-      if (!address || !usdcAsset ||  earnState.deposit === 0) return { msgs: undefined}
+      if (!address || !usdcAsset ||  earnState.deposit === 0) return { msgs: undefined }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       let messageComposer = new EarnMsgComposer(address, contracts.earn)

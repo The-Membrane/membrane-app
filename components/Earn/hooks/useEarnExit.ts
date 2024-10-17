@@ -59,13 +59,14 @@ const useEarnExit = ( ) => {
     setEarnState({ withdraw: 0 })
   }
 
-  console.log("here to return action ")
+  console.log("here to return action", msgs)
+
   return  {
     action: useSimulateAndBroadcast({
     msgs,
     queryKey: ['earn_page_mars_usdc_looped_vault_exit', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: !!msgs,
+    enabled: true,
   })}
 }
 

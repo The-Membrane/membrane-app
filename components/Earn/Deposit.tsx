@@ -192,8 +192,8 @@ const Deposit = () => {
           <Card p="8" gap={5} width={"100%"}>
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
             <Text variant="body">{userTVL} USD</Text>  
-            <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
-              <DepositButton /> */}
+            <HStack justifyContent="end" width={"100%"} gap={"1rem"}>*/}
+              <DepositButton /> 
               <WithdrawButton />
             {/* </HStack>
           </Card>

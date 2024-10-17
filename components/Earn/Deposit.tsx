@@ -95,89 +95,89 @@ const WithdrawButton = () => {
             USDC
           </Text>
           <HStack>
-            <Text variant="value">${earnState.withdraw}</Text>
+            <Text variant="value">${shiftDigits(earnState.withdraw, -12).toNumber()}</Text>
           </HStack>
         </HStack>
-        <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+        <SliderWithState value={shiftDigits(earnState.withdraw, -12).toNumber()} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
       </Stack>
       </ActModal>
     )
 }
 
 const Deposit = () => {
-  const { earnState, setEarnState } = useEarnState()
-  const { data: prices } = useOraclePrice()
-  const { data: basket } = useBasket()
-  const { action: loop } = useEarnLoop()
-  const { action: redeem } = useCDPRedeem()
-  console.log("redeem", redeem.simulate.data, redeem.simulate.isError, redeem.simulate.error)
-  const { action: crankAPR } = useUSDCVaultCrankAPR()
-  const cdtAsset = useAssetBySymbol('CDT')
-  const CDTBalance = useBalanceByAsset(cdtAsset)
-  const usdcAsset = useAssetBySymbol('USDC')
-  const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
+  // const { earnState, setEarnState } = useEarnState()
+  // const { data: prices } = useOraclePrice()
+  // const { data: basket } = useBasket()
+  // const { action: loop } = useEarnLoop()
+  // const { action: redeem } = useCDPRedeem()
+  // console.log("redeem", redeem.simulate.data, redeem.simulate.isError, redeem.simulate.error)
+  // const { action: crankAPR } = useUSDCVaultCrankAPR()
+  // const cdtAsset = useAssetBySymbol('CDT')
+  // const CDTBalance = useBalanceByAsset(cdtAsset)
+  // const usdcAsset = useAssetBySymbol('USDC')
+  // const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
   
-  const earnUSDCAsset = useAssetBySymbol('earnUSDC')
-  const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
-  const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
-  console.log("underlyingUSDC", usdcPrice, underlyingUSDC)
+  // const earnUSDCAsset = useAssetBySymbol('earnUSDC')
+  // const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
+  // const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
+  // console.log("underlyingUSDC", usdcPrice, underlyingUSDC)
 
   //Get the time since Sep 22, 2024, 7:50:35 PM (UTC) in seconds
   //Days since Earn vault launch
   // const daysSinceLaunch = num(Math.floor(Date.now() / 1000) - 1727005835).dividedBy(86400)
   // console.log("daysSinceLaunch", daysSinceLaunch)
   
-  const { data: vaultInfo } = useVaultInfo()
-  console.log("vaultInfo", vaultInfo)
-  const { data: realizedAPR } = useEarnUSDCRealizedAPR()
-  const { data: APRs } = useEarnUSDCEstimatedAPR() 
-  const APRObject = useMemo(() => {
-    if (!APRs) return {
-      weekly: "N/A",
-      monthly: "N/A",
-      three_month: "N/A",
-      yearly: "N/A",
-    }
-    console.log("APR logs", APRs)
-    return {
-      weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-      monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-      three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-      yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-    }
-  }, [APRs, vaultInfo])
-  const { longestAPR, estimatedAPRlabel } = useMemo(() => {
-    if (!APRObject) return { longestAPR: "0", estimatedAPRlabel: "N/A"}
-    if (APRObject.yearly && APRObject.yearly != "N/A") return { longestAPR: APRObject.yearly, estimatedAPRlabel: "Annual"}
-    if (APRObject.three_month && APRObject.three_month != "N/A") return { longestAPR: APRObject.three_month, estimatedAPRlabel: "Three Month"}
-    if (APRObject.monthly && APRObject.monthly != "N/A") return { longestAPR: APRObject.monthly, estimatedAPRlabel: "Monthly"}
-    return { longestAPR: APRObject.weekly, estimatedAPRlabel: "Weekly"}
-  }, [APRObject])
-  console.log("longest APR log", longestAPR)
+  // const { data: vaultInfo } = useVaultInfo()
+  // console.log("vaultInfo", vaultInfo)
+  // const { data: realizedAPR } = useEarnUSDCRealizedAPR()
+  // const { data: APRs } = useEarnUSDCEstimatedAPR() 
+  // const APRObject = useMemo(() => {
+  //   if (!APRs) return {
+  //     weekly: "N/A",
+  //     monthly: "N/A",
+  //     three_month: "N/A",
+  //     yearly: "N/A",
+  //   }
+  //   console.log("APR logs", APRs)
+  //   return {
+  //     weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+  //     monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+  //     three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+  //     yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+  //   }
+  // }, [APRs, vaultInfo])
+  // const { longestAPR, estimatedAPRlabel } = useMemo(() => {
+  //   if (!APRObject) return { longestAPR: "0", estimatedAPRlabel: "N/A"}
+  //   if (APRObject.yearly && APRObject.yearly != "N/A") return { longestAPR: APRObject.yearly, estimatedAPRlabel: "Annual"}
+  //   if (APRObject.three_month && APRObject.three_month != "N/A") return { longestAPR: APRObject.three_month, estimatedAPRlabel: "Three Month"}
+  //   if (APRObject.monthly && APRObject.monthly != "N/A") return { longestAPR: APRObject.monthly, estimatedAPRlabel: "Monthly"}
+  //   return { longestAPR: APRObject.weekly, estimatedAPRlabel: "Weekly"}
+  // }, [APRObject])
+  // console.log("longest APR log", longestAPR)
 
   
   //Calc userTVL in the Earn (Mars USDC looped) vault 
-  const userTVL = useMemo(() => {
-    if (underlyingUSDC == "0" || !usdcPrice || !usdcAsset) return 0
-    return (shiftDigits(underlyingUSDC, -(usdcAsset?.decimal)).toNumber() * usdcPrice).toFixed(2)
-  }, [underlyingUSDC, usdcPrice])
+  // const userTVL = useMemo(() => {
+  //   if (underlyingUSDC == "0" || !usdcPrice || !usdcAsset) return 0
+  //   return (shiftDigits(underlyingUSDC, -(usdcAsset?.decimal)).toNumber() * usdcPrice).toFixed(2)
+  // }, [underlyingUSDC, usdcPrice])
 
   
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    setEarnState({ loopMax: parseInt(e.target.value) })
-  }
-  const handleRedeemInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    setEarnState({ redeemAmount: parseInt(e.target.value) })
-  }
+  // const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+  //   e.preventDefault()
+  //   setEarnState({ loopMax: parseInt(e.target.value) })
+  // }
+  // const handleRedeemInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+  //   e.preventDefault()
+  //   setEarnState({ redeemAmount: parseInt(e.target.value) })
+  // }
 
 
   return (
     <Stack>
-      <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>        
-      <Stack>        
-            <Card>
+    {/*    <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>        
+       <Stack>         */}
+            {/* <Card>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
               <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
                 {vaultInfo ? 
@@ -193,9 +193,9 @@ const Deposit = () => {
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
             <Text variant="body">{userTVL} USD</Text>  
             <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
-              <DepositButton />
+              <DepositButton /> */}
               <WithdrawButton />
-            </HStack>
+            {/* </HStack>
           </Card>
           
           <Card>
@@ -254,7 +254,6 @@ const Deposit = () => {
                       value={earnState.loopMax ?? 0} 
                       onChange={handleInputChange}
                     />
-                    {/* Loop Button */}
                     <TxButton
                       maxW="75px"
                       isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
@@ -269,9 +268,6 @@ const Deposit = () => {
                 </Stack>
               </HStack>            
               <HStack>
-                {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}
-                {/* Redeen CDT input */}
-                {/* Redeem Button */}
                 <Stack py="5" w="full" gap="3" mb={"0"} >
                 <Text variant="body"> Did you buy CDT {`<= $`}{num(basket?.credit_price.price??"0").multipliedBy(0.985).toFixed(3)}?</Text>
                 <HStack>
@@ -284,7 +280,6 @@ const Deposit = () => {
                       max={CDTBalance}
                       onChange={handleRedeemInputChange}
                     />
-                    {/* Redeem Button */}
                     <TxButton
                       maxW="75px"
                       isLoading={redeem?.simulate.isLoading || redeem?.tx.isPending}
@@ -298,7 +293,6 @@ const Deposit = () => {
                   </HStack>
                 </Stack>
               </HStack>    
-                {/* Crank APR Button */}
                 <TxButton
                   maxW="100%"
                   isLoading={crankAPR?.simulate.isLoading || crankAPR?.tx.isPending}
@@ -312,8 +306,8 @@ const Deposit = () => {
             </Stack>
           </Card>
         </Stack>
-      </HStack>
-    </Stack>
+      </HStack>*/}
+    </Stack> 
   )
 }
 

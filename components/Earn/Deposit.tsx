@@ -22,7 +22,7 @@ import useEarnLoop from './hooks/useEarnLoop'
 import useCDPRedeem from './hooks/useCDPRedeem'
 import useUSDCVaultCrankAPR from './hooks/useUSDCVaultCrankAPR'
 
-const ENTRY_FEE = 0.005
+// const ENTRY_FEE = 0.005
 
 const DepositButton = () => {
   const { earnState, setEarnState } = useEarnState()
@@ -69,7 +69,7 @@ const WithdrawButton = () => {
     const { action: earnExit } = useEarnExit()
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
-    const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
+    const { data: underlyingUSDC } = useMemo(() => { return useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0)) }, [earnUSDCBalance])
     ////////////////////////////////////
 
     const vttoUSDCRatio = useMemo(() => { return num(earnUSDCBalance).dividedBy(num(underlyingUSDC??1)) }, [earnUSDCBalance, underlyingUSDC])   

@@ -66,7 +66,7 @@ const WithdrawButton = () => {
     const earnUSDCAsset = useAssetBySymbol('earnUSDC')
     const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
     //Unloop to the withdrawal amount
-    const { action: earnExit } = useEarnExit()
+    const { action: earnExit } = useMemo(() => useEarnExit(), []);
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))

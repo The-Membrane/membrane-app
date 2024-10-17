@@ -19,7 +19,7 @@ const useEarnExit = ( ) => {
 
   
   type QueryData = {
-    msgs: MsgExecuteContractEncodeObject[] | undefined
+    msgs: MsgExecuteContractEncodeObject[]
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
@@ -33,7 +33,7 @@ const useEarnExit = ( ) => {
         address,
         earnState.withdraw,
         earnUSDCAsset)
-      if (!address || !earnUSDCAsset ||  earnState.withdraw === 0) return { msgs: undefined }
+      if (!address || !earnUSDCAsset || earnState.withdraw === 0) return { msgs: [] }
 
       var msgs = [] as MsgExecuteContractEncodeObject[]
       let messageComposer = new EarnMsgComposer(address, contracts.earn)
@@ -48,10 +48,7 @@ const useEarnExit = ( ) => {
     enabled: !!address,
   })
 
-  const { msgs }: QueryData = useMemo(() => {
-    if (!queryData) return { msgs: undefined }
-    else return queryData
-  }, [queryData])
+  const  msgs = queryData?.msgs ?? []
 
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
@@ -59,14 +56,14 @@ const useEarnExit = ( ) => {
     setEarnState({ withdraw: 0 })
   }
 
-  console.log("here to return action", msgs)
-
+  console.log("here to return action ")
+  
   return  {
     action: useSimulateAndBroadcast({
     msgs,
     queryKey: ['earn_page_mars_usdc_looped_vault_exit', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: true,
+    enabled: !!msgs?.length,
   })}
 }
 

@@ -34,13 +34,15 @@ const useEarnExit = ( ) => {
       address,
       earnState.withdraw,
       earnUSDCAsset,
+      underlyingUSDC,
+      earnUSDCBalance
     ],
     queryFn: () => {
       console.log("earn exit", 
         address,
         earnState.withdraw,
         earnUSDCAsset)
-      if (!address || !earnUSDCAsset || earnState.withdraw === 0) return { msgs: [] }
+      if (!address || !earnUSDCAsset || earnState.withdraw === 0 || !underlyingUSDC || !earnUSDCBalance) return { msgs: [] }
 
       const withdrawAmount = num(shiftDigits(earnState.withdraw, 12)).times(num(earnUSDCBalance??1).dividedBy(num(underlyingUSDC??1))).toNumber()
 

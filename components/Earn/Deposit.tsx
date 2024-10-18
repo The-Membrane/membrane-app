@@ -76,12 +76,12 @@ const WithdrawButton = () => {
     ////////////////////////////////////
 
     // const vttoUSDCRatio = 1
-    //Problem has been in th3e calculation of the ratio 
+
+    ////Hook Problem has been in th3e calculation of the ratio within the slider update///
     
     //useMemo(() => { return  }, [earnUSDCBalance, underlyingUSDC])   
 
     const onSliderChange = (value: number) => {     
-      ////Convert the USDC amount to the looped USDC amount using the queried ratio///
       setEarnState({ withdraw: value })
     }
 
@@ -100,10 +100,10 @@ const WithdrawButton = () => {
             USDC
           </Text>
           <HStack>
-            <Text variant="value">${ num(shiftDigits(earnState.withdraw, 12)).times(num(earnUSDCBalance??1).dividedBy(num(underlyingUSDC??1))).toNumber()}</Text>
+            <Text variant="value">${earnState.withdraw}</Text>
           </HStack>
         </HStack>
-        <SliderWithState value={num(shiftDigits(earnState.withdraw, 12)).times(num(earnUSDCBalance??1).dividedBy(num(underlyingUSDC??1))).toNumber()} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+        <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
       </Stack>
       </ActModal>
     )

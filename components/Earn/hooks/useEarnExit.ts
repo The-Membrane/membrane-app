@@ -82,7 +82,7 @@ const useEarnExit = ( ) => {
     msgs,
     queryKey: ['earn_page_mars_usdc_looped_vault_exit', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: false, //!!msgs?.length,
+    enabled: !!msgs?.length,
   })}
 }
 

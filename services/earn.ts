@@ -1,6 +1,6 @@
 
 import contracts from '@/config/contracts.json'
-import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient' 
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient' 
 import { EarnQueryClient } from '@/contracts/codegen/earn/Earn.client'
 import { APRResponse, ClaimTracker } from '@/contracts/codegen/earn/Earn.types'
 import { Basket, BasketPositionsResponse, CollateralInterestResponse, Uint128 } from '@/contracts/codegen/positions/Positions.types'
@@ -13,8 +13,8 @@ import { num } from '@/helpers/num'
 import { Price } from './oracle'
 
 export const EarnClient = async () => {
-  const { data: cosmWasmClient } = useCosmWasmClient()
-  return new EarnQueryClient(cosmWasmClient!, contracts.earn)
+  const cosmWasmClient = await getCosmWasmClient()
+  return new EarnQueryClient(cosmWasmClient, contracts.earn)
 }
 // export const usdcVaultClient = async () => {
 //   return new EarnQueryClient(cosmWasmClient, contracts.earn)
@@ -26,8 +26,8 @@ export const getUnderlyingUSDC = async (vtAmount: string) => {
 }
 
 export const getUnderlyingCDT = async (vtAmount: string) => {
-  const { data: cosmWasmClient } = useCosmWasmClient()
-  return cosmWasmClient!.queryContractSmart(contracts.autoStabilityPool, {
+  const cosmWasmClient = await getCosmWasmClient()  
+  return cosmWasmClient.queryContractSmart(contracts.autoStabilityPool, {
     vault_token_underlying: {
       vault_token_amount: vtAmount
     }
@@ -37,8 +37,8 @@ export const getUnderlyingCDT = async (vtAmount: string) => {
 
 
 export const getVaultAPRResponse = async () => {
-  const { data: cosmWasmClient } = useCosmWasmClient()
-  return cosmWasmClient!.queryContractSmart(contracts.marsUSDCvault, {
+  const cosmWasmClient = await getCosmWasmClient()  
+  return cosmWasmClient.queryContractSmart(contracts.marsUSDCvault, {
     a_p_r: {}
   }) as Promise<APRResponse>   
 }

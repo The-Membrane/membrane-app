@@ -7,9 +7,10 @@ import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
 import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
-import { get } from "lodash"
 
 export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
+    console.log("usdc log")
+
     return useQuery({
         queryKey: ['useUSDCVaultTokenUnderlying', vtAmount],
         queryFn: async () => {

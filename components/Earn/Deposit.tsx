@@ -75,13 +75,13 @@ const WithdrawButton = () => {
 
     ////////////////////////////////////
 
-    const vttoUSDCRatio = 1
+    // const vttoUSDCRatio = 1
     
-    //useMemo(() => { return num(earnUSDCBalance).dividedBy(num(underlyingUSDC??1)) }, [earnUSDCBalance, underlyingUSDC])   
+    //useMemo(() => { return  }, [earnUSDCBalance, underlyingUSDC])   
 
     const onSliderChange = (value: number) => {     
       ////Convert the USDC amount to the looped USDC amount using the queried ratio///
-      const vtAmount = num(shiftDigits(value, 12)).times(vttoUSDCRatio)
+      const vtAmount = num(shiftDigits(value, 12)).times(num(earnUSDCBalance).dividedBy(num(underlyingUSDC??1)))
       setEarnState({ withdraw: num(vtAmount.toFixed(0)).toNumber() })
     }
 

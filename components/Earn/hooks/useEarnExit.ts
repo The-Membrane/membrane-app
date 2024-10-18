@@ -42,7 +42,7 @@ const useEarnExit = ( ) => {
         address,
         earnState.withdraw,
         earnUSDCAsset)
-      if (!address || !earnUSDCAsset || earnState.withdraw === 0 || !underlyingUSDC || !earnUSDCBalance) return { msgs: [] }
+      if (!address || !earnUSDCAsset || earnState.withdraw === 0 || underlyingUSDC === "0"|| earnUSDCBalance === "0") return { msgs: [] }
 
       const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
       //find percent of underlying usdc to withdraw

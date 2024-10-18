@@ -69,9 +69,9 @@ const WithdrawButton = () => {
     const { action: earnExit } = useEarnExit();
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
-    // const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
-    // const underlyingUSDC = data ?? "1"
-    const underlyingUSDC = "2000000"
+    const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
+    const underlyingUSDC = data ?? "1"
+    // const underlyingUSDC = "2000000"
 
     ////////////////////////////////////
 

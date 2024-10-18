@@ -9,7 +9,7 @@ import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
 
 export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
-    console.log("usdc log")
+    console.log("usdc log", vtAmount)
 
     return useQuery({
         queryKey: ['useUSDCVaultTokenUnderlying', vtAmount],

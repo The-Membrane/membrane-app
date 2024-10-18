@@ -82,7 +82,8 @@ const WithdrawButton = () => {
     
     //useMemo(() => { return  }, [earnUSDCBalance, underlyingUSDC])   
 
-    const onSliderChange = (value: number) => {     
+    const onSliderChange = (value: number) => {
+      console.log("withdraw", value)
       setEarnState({ withdraw: value })
     }
 

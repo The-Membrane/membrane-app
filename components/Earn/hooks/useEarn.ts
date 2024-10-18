@@ -60,12 +60,15 @@ const useEarn = ( ) => {
           const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
           let exitMsg = messageComposer.exitVault(funds)
           msgs.push(exitMsg)
+
         }
 
-        if (earnState.deposit != 0){          
+        if (earnState.deposit != 0){
+
           const funds = [{ amount: shiftDigits(earnState.deposit, usdcAsset.decimal).dp(0).toNumber().toString(), denom: usdcAsset.base }]
           let enterMsg = messageComposer.enterVault(funds)
           msgs.push(enterMsg)
+
         }
 
       console.log("earn msgs:", msgs)

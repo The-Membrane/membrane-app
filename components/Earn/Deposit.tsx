@@ -33,7 +33,7 @@ const DepositButton = () => {
   const { action: earn } = useEarn();
 
   const onSliderChange = (value: number) => {
-    setEarnState({ deposit: value })
+    setEarnState({ deposit: value, withdraw: 0 })
   }
 
   return (
@@ -84,7 +84,7 @@ const WithdrawButton = () => {
 
     const onSliderChange = (value: number) => {
       console.log("withdraw", value)
-      setEarnState({ withdraw: value })
+      setEarnState({ withdraw: value, deposit: 0 })
     }
 
     return (

@@ -44,11 +44,12 @@ const useEarnExit = ( ) => {
         earnUSDCAsset)
       if (!address || !earnUSDCAsset || earnState.withdraw === 0 || underlyingUSDC === "0"|| earnUSDCBalance === "0") return { msgs: [] }
 
-      const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
+      // const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
       //find percent of underlying usdc to withdraw
-      const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
+      // const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
       //Calc VT to withdraw using the percent
-      const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6).toFixed(0)).times(percentToWithdraw).dp(0).toNumber()
+      // const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6).toFixed(0)).times(percentToWithdraw).dp(0).toNumber()
+      const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
 
       console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
 

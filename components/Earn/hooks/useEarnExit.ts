@@ -44,7 +44,7 @@ const useEarnExit = ( ) => {
         earnUSDCAsset)
       if (!address || !earnUSDCAsset || earnState.withdraw === 0 || !underlyingUSDC || !earnUSDCBalance) return { msgs: [] }
 
-      const withdrawAmount = num(shiftDigits(earnState.withdraw, 12)).times(num(earnUSDCBalance??1).dividedBy(num(underlyingUSDC??1))).toNumber()
+      const withdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
 
       var msgs = [] as MsgExecuteContractEncodeObject[]
       let messageComposer = new EarnMsgComposer(address, contracts.earn)

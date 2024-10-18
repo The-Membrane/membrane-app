@@ -19,7 +19,6 @@ const useStableYieldLoop = ( ) => {
   const usdcAsset = useAssetBySymbol('USDC')
 
 
-  
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
   }

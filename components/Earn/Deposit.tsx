@@ -64,8 +64,7 @@ const WithdrawButton = () => {
     const { earnState, setEarnState } = useEarnState()    
     const earnUSDCAsset = useAssetBySymbol('earnUSDC')
     const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
-    
-    
+        
     const { action: earnExit } = useEarnExit();
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
@@ -83,6 +82,7 @@ const WithdrawButton = () => {
     //useMemo(() => { return  }, [earnUSDCBalance, underlyingUSDC])   
 
     const onSliderChange = (value: number) => {     
+      console.log("sloder log")
       setEarnState({ withdraw: value })
     }
 

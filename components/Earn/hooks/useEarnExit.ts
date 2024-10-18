@@ -44,7 +44,12 @@ const useEarnExit = ( ) => {
         earnUSDCAsset)
       if (!address || !earnUSDCAsset || earnState.withdraw === 0 || !underlyingUSDC || !earnUSDCBalance) return { msgs: [] }
 
-      const withdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
+      const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
+      //find percent of underlying usdc to withdraw
+      const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
+      //Calc VT to withdraw using the percent
+      const withdrawAmount = num(earnUSDCBalance).times(percentToWithdraw).dp(0).toNumber()
+
 
       var msgs = [] as MsgExecuteContractEncodeObject[]
       let messageComposer = new EarnMsgComposer(address, contracts.earn)

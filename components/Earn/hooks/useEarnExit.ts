@@ -50,6 +50,8 @@ const useEarnExit = ( ) => {
       //Calc VT to withdraw using the percent
       const withdrawAmount = num(earnUSDCBalance).times(percentToWithdraw).dp(0).toNumber()
 
+      console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
+
 
       var msgs = [] as MsgExecuteContractEncodeObject[]
       let messageComposer = new EarnMsgComposer(address, contracts.earn)

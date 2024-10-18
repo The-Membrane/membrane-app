@@ -11,12 +11,19 @@ import contracts from '@/config/contracts.json'
 import { EarnMsgComposer } from '@/contracts/codegen/earn/Earn.message-composer'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import useEarnState from './useEarnState'
+import { useBalanceByAsset } from '@/hooks/useBalance'
+import { useUSDCVaultTokenUnderlying } from './useEarnQueries'
+import { shiftDigits } from '@/helpers/math'
+import { num } from '@/helpers/num'
 
 const useEarnExit = ( ) => {
   const { address } = useWallet()
   const { earnState, setEarnState } = useEarnState()
   const earnUSDCAsset = useAssetBySymbol('earnUSDC')
+  const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
 
+  const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
+  const underlyingUSDC = data ?? "1"
   
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[]
@@ -35,9 +42,11 @@ const useEarnExit = ( ) => {
         earnUSDCAsset)
       if (!address || !earnUSDCAsset || earnState.withdraw === 0) return { msgs: [] }
 
+      const withdrawAmount = num(shiftDigits(earnState.withdraw, 12)).times(num(earnUSDCBalance??1).dividedBy(num(underlyingUSDC??1))).toNumber()
+
       var msgs = [] as MsgExecuteContractEncodeObject[]
       let messageComposer = new EarnMsgComposer(address, contracts.earn)
-      const funds = [{ amount: earnState.withdraw.toString(), denom: earnUSDCAsset.base }]
+      const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
       let exitMsg = messageComposer.exitVault(funds)
       msgs.push(exitMsg)
 

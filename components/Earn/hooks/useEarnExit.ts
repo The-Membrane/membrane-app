@@ -48,7 +48,7 @@ const useEarnExit = ( ) => {
         // find percent of underlying usdc to withdraw
         const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
         // Calc VT to withdraw using the percent
-        const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6).toFixed(0)).times(percentToWithdraw).dp(0).toNumber()
+        const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6).toFixed(0)).times(1).dp(0).toNumber()
         // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
   
         console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)

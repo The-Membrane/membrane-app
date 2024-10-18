@@ -42,16 +42,16 @@ const useEarnExit = ( ) => {
         address,
         earnState.withdraw,
         earnUSDCAsset)
-        if (!address || !earnUSDCAsset || earnState.withdraw === 0 || underlyingUSDC === "0"|| earnUSDCBalance === "0") {console.log("early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance); return { msgs: [] }}
+        if (!address || !earnUSDCAsset || earnState.withdraw === 0 || underlyingUSDC === "0"|| earnUSDCBalance === "0") {console.log("earn exit early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance); return { msgs: [] }}
 
-        // const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
-        //find percent of underlying usdc to withdraw
-        // const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
-        //Calc VT to withdraw using the percent
-        // const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6).toFixed(0)).times(percentToWithdraw).dp(0).toNumber()
-        const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
+        const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
+        // find percent of underlying usdc to withdraw
+        const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
+        // Calc VT to withdraw using the percent
+        const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6).toFixed(0)).times(percentToWithdraw).dp(0).toNumber()
+        // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
   
-        // console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
+        console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
 
 
       var msgs = [] as MsgExecuteContractEncodeObject[]
@@ -82,7 +82,7 @@ const useEarnExit = ( ) => {
     msgs,
     queryKey: ['earn_page_mars_usdc_looped_vault_exit', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: !!msgs?.length,
+    enabled: false, //!!msgs?.length,
   })}
 }
 

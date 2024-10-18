@@ -16,9 +16,10 @@ import { useUSDCVaultTokenUnderlying } from './useEarnQueries'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 
-const useEarnExit = ( ) => {
+const useEarn = ( ) => {
   const { address } = useWallet()
   const { earnState, setEarnState } = useEarnState()
+  const usdcAsset = useAssetBySymbol('USDC')
   const earnUSDCAsset = useAssetBySymbol('earnUSDC')
   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
 
@@ -30,38 +31,44 @@ const useEarnExit = ( ) => {
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'earn_exit_msg_creation',
+      'earn_msgs_creation',
       address,
       earnState.withdraw,
+      earnState.deposit,
+      usdcAsset,
       earnUSDCAsset,
       underlyingUSDC,
       earnUSDCBalance
     ],
     queryFn: () => {
-      console.log("earn exit", 
-        address,
-        earnState.withdraw,
-        earnUSDCAsset)
-        if (!address || !earnUSDCAsset || earnState.withdraw === 0 || underlyingUSDC === "0"|| earnUSDCBalance === "0") {console.log("earn exit early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance); return { msgs: [] }}
+        if (!address || !earnUSDCAsset || !usdcAsset) {console.log("earn exit early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance); return { msgs: [] }}
+        var msgs = [] as MsgExecuteContractEncodeObject[]
+        let messageComposer = new EarnMsgComposer(address, contracts.earn)
 
-        const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
-        // find percent of underlying usdc to withdraw
-        const percentToWithdraw = 100
-        //num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
-        // Calc VT to withdraw using the percent
-        const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6).toFixed(0)).times(1).dp(0).toNumber()
-        // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
+        if (earnState.withdraw != 0){
+
+          const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
+          // find percent of underlying usdc to withdraw
+          const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
   
-        console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
+          // Calc VT to withdraw using the percent
+          const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6).toFixed(0)).times(percentToWithdraw).dp(0).toNumber()
+          // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
+    
+          // console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
+    
+          const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
+          let exitMsg = messageComposer.exitVault(funds)
+          msgs.push(exitMsg)
+        }
 
+        if (earnState.deposit != 0){          
+          const funds = [{ amount: shiftDigits(earnState.deposit, usdcAsset.decimal).dp(0).toNumber().toString(), denom: usdcAsset.base }]
+          let enterMsg = messageComposer.enterVault(funds)
+          msgs.push(enterMsg)
+        }
 
-      var msgs = [] as MsgExecuteContractEncodeObject[]
-      let messageComposer = new EarnMsgComposer(address, contracts.earn)
-      const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
-      let exitMsg = messageComposer.exitVault(funds)
-      msgs.push(exitMsg)
-
-      console.log("exit msg:", msgs)
+      console.log("earn msgs:", msgs)
       
       return { msgs }
     },
@@ -73,7 +80,7 @@ const useEarnExit = ( ) => {
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    setEarnState({ withdraw: 0 })
+    setEarnState({ withdraw: 0, deposit: 0 })
   }
 
   console.log("here to return action ")
@@ -81,10 +88,10 @@ const useEarnExit = ( ) => {
   return  {
     action: useSimulateAndBroadcast({
     msgs,
-    queryKey: ['earn_page_mars_usdc_looped_vault_exit', (msgs?.toString()??"0")],
+    queryKey: ['earn_page_mars_usdc_looped_vault', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
     enabled: !!msgs?.length,
   })}
 }
 
-export default useEarnExit
+export default useEarn

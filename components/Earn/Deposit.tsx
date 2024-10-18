@@ -16,11 +16,12 @@ import { Price } from '@/services/oracle'
 import { SliderWithState } from '../Mint/SliderWithState'
 import { getUnderlyingUSDC } from '@/services/earn'
 import { useUSDCVaultTokenUnderlying, useEarnUSDCEstimatedAPR, useVaultInfo, useEarnUSDCRealizedAPR } from './hooks/useEarnQueries'
-import useEarnExit from './hooks/useEarnExit'
+import useEarnExit from './hooks/useEarn'
 import Divider from '../Divider'
 import useEarnLoop from './hooks/useEarnLoop'
 import useCDPRedeem from './hooks/useCDPRedeem'
 import useUSDCVaultCrankAPR from './hooks/useUSDCVaultCrankAPR'
+import useEarn from './hooks/useEarn'
 
 // const ENTRY_FEE = 0.005
 
@@ -29,7 +30,7 @@ const DepositButton = () => {
   const usdcAsset = useAssetBySymbol('USDC')
   const usdcBalance = useBalanceByAsset(usdcAsset)
 
-  const { action: stableLooping } = useStableYieldLoop()
+  const { action: earn } = useEarn();
 
   const onSliderChange = (value: number) => {
     setEarnState({ deposit: value })
@@ -42,7 +43,7 @@ const DepositButton = () => {
       // fontSize="sm"
       label="Deposit"
       isDisabled={!isGreaterThanZero(usdcBalance)}
-      action={stableLooping}
+      action={earn}
     >
       
       <Stack gap="0">
@@ -65,7 +66,7 @@ const WithdrawButton = () => {
     const earnUSDCAsset = useAssetBySymbol('earnUSDC')
     const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
         
-    const { action: earnExit } = useEarnExit();
+    const { action: earn } = useEarn();
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
@@ -92,7 +93,7 @@ const WithdrawButton = () => {
         // fontSize="sm"
         label="Withdraw"
         isDisabled={!isGreaterThanZero(underlyingUSDC)}
-        action={earnExit}
+        action={earn}
       >
       <Stack gap="0">
         <HStack justifyContent="space-between">

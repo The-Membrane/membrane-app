@@ -81,7 +81,7 @@ const WithdrawButton = () => {
 
     const onSliderChange = (value: number) => {     
       ////Convert the USDC amount to the looped USDC amount using the queried ratio///
-      const vtAmount = num(shiftDigits(value, 12)).times(num(earnUSDCBalance??1).dividedBy(num(1)))
+      const vtAmount = num(shiftDigits(value, 12)).times(num(earnUSDCBalance??1).dividedBy(num(underlyingUSDC??1)))
       setEarnState({ withdraw: num(vtAmount.toFixed(0)).toNumber() })
     }
 
@@ -100,10 +100,10 @@ const WithdrawButton = () => {
             USDC
           </Text>
           <HStack>
-            <Text variant="value">${shiftDigits(earnState.withdraw, -12).toNumber()}</Text>
+            <Text variant="value">${ num(shiftDigits(earnState.withdraw, 12)).times(num(earnUSDCBalance??1).dividedBy(num(underlyingUSDC??1))).toNumber()}</Text>
           </HStack>
         </HStack>
-        <SliderWithState value={shiftDigits(earnState.withdraw, -12).toNumber()} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+        <SliderWithState value={num(shiftDigits(earnState.withdraw, 12)).times(num(earnUSDCBalance??1).dividedBy(num(underlyingUSDC??1))).toNumber()} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
       </Stack>
       </ActModal>
     )

@@ -34,6 +34,8 @@ const ActSlider = React.memo(() => {
 
     const { action: autoSP } = useAutoSP();
 
+    const logo = useMemo(() => {return cdtAsset?.logo}, [cdtAsset])
+
     const totalBalance = useMemo(() => {
       return num(underlyingCDT).plus(cdtBalance).toString()
     }, [cdtBalance, underlyingCDT])
@@ -67,7 +69,7 @@ const ActSlider = React.memo(() => {
       <Stack gap="0">
         <HStack justifyContent="space-between">
           <Text variant="lable" textTransform="unset">
-            CDT to Vaults
+            CDT in Vault
           </Text>
           <HStack>
             <Text variant="value">${pendingBalance}</Text>
@@ -79,7 +81,7 @@ const ActSlider = React.memo(() => {
           max={Number(totalBalance)} 
         />        
         <ConfirmModal label={quickActionState.autoSPdeposit > 0 ? "Deposit" : quickActionState.autoSPwithdrawal > 0 ? "Withdraw" : "Manage"} action={autoSP} isDisabled={Number(totalBalance) < 1}>
-          <QASummary logo={cdtAsset?.logo}/>
+          <QASummary logo={logo}/>
         </ConfirmModal>
       </Stack>
       // </ActModal>

@@ -33,9 +33,9 @@ const useAutoSP = ( ) => {
     queryKey: [
       'autoSP_msg_creation',
       address,
+      quickActionState.autoSPwithdrawal,
       quickActionState.autoSPdeposit,
       cdtAsset,
-      quickActionState.autoSPwithdrawal,
       earnCDTAsset,
       underlyingCDT,
       earnCDTBalance
@@ -109,7 +109,7 @@ const useAutoSP = ( ) => {
     msgs,
     queryKey: ['home_page_autoSP', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: !!msgs,
+    enabled: !!msgs?.length,
   })}
 }
 

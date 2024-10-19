@@ -90,7 +90,7 @@ const WithdrawButton = () => {
           
 const SPCard = () => {
     const { action: compound } = useSPCompound()
-    useEstimatedAnnualInterest(true)
+    // useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()
     const { data: basket } = useBasket()
 

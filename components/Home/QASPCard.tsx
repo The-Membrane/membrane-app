@@ -15,6 +15,7 @@ import { shiftDigits } from "@/helpers/math"
 import useAutoSP from "./hooks/useAutoSP"
 import { useBasket } from "@/hooks/useCDP"
 import Divider from "../Divider"
+import React from "react"
 
 
 const DepositButton = () => {
@@ -51,7 +52,7 @@ const DepositButton = () => {
   )
 }
 
-const WithdrawButton = () => {
+const WithdrawButton = React.memo(() => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const earnCDTAsset = useAssetBySymbol('earnCDT')
     const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
@@ -87,7 +88,7 @@ const WithdrawButton = () => {
       </Stack>
       </ActModal>
     )
-}
+});
           
 const SPCard = () => {
     console.log("rendering SPCard")

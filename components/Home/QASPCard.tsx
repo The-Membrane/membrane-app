@@ -56,13 +56,14 @@ const WithdrawButton = React.memo(() => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const earnCDTAsset = useAssetBySymbol('earnCDT')
     const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
-
-    const { action: autoSP } = useAutoSP();
-
+    
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
     const underlyingCDT = data ?? "1"
     ////////////////////////////////////
+
+    const { action: autoSP } = useAutoSP(underlyingCDT);
+
 
     const onSliderChange = (value: number) => {      
       setQuickActionState({ autoSPwithdrawal: value, autoSPdeposit: 0 })    

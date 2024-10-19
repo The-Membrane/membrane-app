@@ -28,28 +28,32 @@ const ActSlider = React.memo(() => {
     
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
-    const underlyingCDT = data ?? "1"
+    const underlyingCDT = shiftDigits(data, -6).toString() ?? "1"
     ////////////////////////////////////
 
     const { action: autoSP } = useAutoSP();
 
     const totalBalance = useMemo(() => {
-      console.log("CDTs", cdtBalance, underlyingCDT)
       return num(underlyingCDT).plus(cdtBalance).toString()
     }, [cdtBalance, underlyingCDT])
+    console.log("CDTs", cdtBalance, underlyingCDT, totalBalance)
 
     const pendingBalance = useMemo(() => {
       return num(underlyingCDT).plus(quickActionState.autoSPdeposit).minus(quickActionState.autoSPwithdrawal).toNumber()
     }, [])
 
     const onSliderChange = (value: number) => {
-      if (value > underlyingCDT) {
+      if (value > parseFloat(underlyingCDT)) {
         let diff = num(value).minus(underlyingCDT).toNumber()
         setQuickActionState({ autoSPdeposit: diff, autoSPwithdrawal: 0 })
-      } else if (value < underlyingCDT) {
+        console.log("deposit", diff)
+        
+      } else if (value < parseFloat(underlyingCDT)) {
         let diff = num(underlyingCDT).minus(value).toNumber()
         setQuickActionState({ autoSPdeposit: 0, autoSPwithdrawal: diff })
+        console.log("withdraw", diff)
       }
+
     }
 
     return (
@@ -69,7 +73,7 @@ const ActSlider = React.memo(() => {
           </HStack>
         </HStack>
         <SliderWithState 
-          value={underlyingCDT} 
+          value={parseFloat(underlyingCDT)} 
           onChange={onSliderChange} 
           max={Number(totalBalance)} 
         />        

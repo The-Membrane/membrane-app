@@ -18,7 +18,6 @@ import { num } from '@/helpers/num'
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  useMemo(() => console.log("QArerender"), [quickActionState])
   const cdtAsset = useAssetBySymbol('CDT')
   const earnCDTAsset = useAssetBySymbol('earnCDT')
   const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
@@ -55,7 +54,7 @@ const useAutoSP = ( ) => {
         console.log("withdrawAmount", quickActionState.autoSPwithdrawal, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
 
         const funds = [{ amount: withdrawAmount.toString(), denom: earnCDTAsset.base }]      
-        const exitMsg  = {
+        let exitMsg  = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
           sender: address,
@@ -72,7 +71,7 @@ const useAutoSP = ( ) => {
       if (quickActionState.autoSPdeposit != 0){
         
         const funds = [{ amount: shiftDigits(quickActionState.autoSPdeposit, cdtAsset.decimal).dp(0).toNumber().toString(), denom: cdtAsset.base }]      
-        const enterMsg  = {
+        let enterMsg  = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
           sender: address,
@@ -86,6 +85,7 @@ const useAutoSP = ( ) => {
         msgs.push(enterMsg)
       }
 
+      console.log("in query sp msgs:", msgs)
       
       return { msgs }
     },

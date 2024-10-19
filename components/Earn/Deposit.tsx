@@ -75,13 +75,6 @@ const WithdrawButton = () => {
 
     ////////////////////////////////////
 
-    // const vttoUSDCRatio = 1
-
-    ////Hook Problem has been in th3e calculation of the ratio within the slider update///
-    ///Next solution: use the percent of tokens to calc the funds
-    
-    //useMemo(() => { return  }, [earnUSDCBalance, underlyingUSDC])   
-
     const onSliderChange = (value: number) => {
       console.log("withdraw", value)
       setEarnState({ withdraw: value, deposit: 0 })

@@ -55,7 +55,8 @@ const WithdrawButton = () => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const earnCDTAsset = useAssetBySymbol('earnCDT')
     const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
-    const { action: autoSP } = useAutoSP()
+
+    const { action: autoSP } = useAutoSP();
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
@@ -114,7 +115,7 @@ const SPCard = () => {
               <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
               <ListItem>Max 1 Day Withdraw Time</ListItem>
             </List>
-            <DepositButton />
+            {/* <DepositButton /> */}
             <WithdrawButton />
               {/* <HStack>
                 <Stack py="5" w="full" gap="3" mb={"0"} >

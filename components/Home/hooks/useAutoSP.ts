@@ -18,9 +18,9 @@ import { num } from '@/helpers/num'
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  const cdtAsset = useAssetBySymbol('CDT')
-  const earnCDTAsset = useAssetBySymbol('earnCDT')
-  const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
+  const cdtAsset = useMemo(() => useAssetBySymbol('CDT'), []);
+  const earnCDTAsset = useMemo(() => useAssetBySymbol('earnCDT'), []);
+  const earnCDTBalance = useMemo(() => useBalanceByAsset(earnCDTAsset)??"1", []);
 
   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
   const underlyingCDT = data ?? "1"
@@ -99,7 +99,7 @@ const useAutoSP = ( ) => {
     enabled: !!address,
   })
   
-  const  msgs = queryData?.msgs ?? []
+  const msgs = useMemo(() => queryData?.msgs ?? [], [queryData]);
 
   console.log("autoSP msgs:", msgs)
 
@@ -108,17 +108,13 @@ const useAutoSP = ( ) => {
     setQuickActionState({ autoSPdeposit: 0, autoSPwithdrawal: 0 })
   }
 
-   // Memoize the action object to prevent unnecessary re-renders
-   const action = useMemo(() => {
-    return useSimulateAndBroadcast({
-      msgs,
-      queryKey: ['home_page_autoSP', (msgs?.toString() ?? "0")],
-      onSuccess: onInitialSuccess,
-      enabled: !!msgs?.length,
-    });
-  }, [msgs]);
-
-  return { action };
+  return {
+    action: useSimulateAndBroadcast({
+    msgs,
+    queryKey: ['home_page_autoSP', (msgs?.toString()??"0")],
+    onSuccess: onInitialSuccess,
+    enabled: true,
+  })}
 }
 
 export default useAutoSP

@@ -40,7 +40,7 @@ const ActSlider = React.memo(() => {
 
     const pendingBalance = useMemo(() => {
       return num(underlyingCDT).plus(quickActionState.autoSPdeposit).minus(quickActionState.autoSPwithdrawal).toNumber()
-    }, [])
+    }, [underlyingCDT, quickActionState.autoSPdeposit, quickActionState.autoSPwithdrawal])
 
     const onSliderChange = (value: number) => {
       if (value > parseFloat(underlyingCDT)) {
@@ -73,7 +73,7 @@ const ActSlider = React.memo(() => {
           </HStack>
         </HStack>
         <SliderWithState 
-          value={parseFloat(underlyingCDT)} 
+          value={num(underlyingCDT).minus(quickActionState.autoSPwithdrawal).plus(quickActionState.autoSPdeposit).toNumber()} 
           onChange={onSliderChange} 
           max={Number(totalBalance)} 
         />        

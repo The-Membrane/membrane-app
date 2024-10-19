@@ -28,6 +28,13 @@ const useAutoSP = ( ) => {
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
   }
+  console.log("autoSP", address,
+    quickActionState.autoSPwithdrawal,
+    quickActionState.autoSPdeposit,  
+    cdtAsset,
+    earnCDTAsset,
+    underlyingCDT,
+    earnCDTBalance)
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
       'autoSP_msg_creation',
@@ -106,7 +113,7 @@ const useAutoSP = ( ) => {
     msgs,
     queryKey: ['home_page_autoSP', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: !!msgs?.length,
+    enabled: true,
   })}
 }
 

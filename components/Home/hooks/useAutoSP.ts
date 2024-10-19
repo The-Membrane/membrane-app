@@ -14,12 +14,20 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
+import { Asset } from '@/helpers/chain'
 
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const cdtAsset = useMemo(() => useAssetBySymbol('CDT'), []);
-  const earnCDTAsset = useMemo(() => useAssetBySymbol('earnCDT'), []);
+  const earnCDTAsset = 
+  {
+    "description": "Auto-compounding CDT vault for Membrane's Stability Pool/OmniPool",
+    "base": "factory/osmo1jw6r68y0uhfmqagc7uhtdddctc7wq95pncvrqnvtd47w4hx46p7se9nju5/earn-cdt",
+    "symbol": "earnCDT",
+    "decimal": 6,
+    "isLP": false
+  } as Asset;
   const earnCDTBalance = useMemo(() => useBalanceByAsset(earnCDTAsset)??"1", []);
 
   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))

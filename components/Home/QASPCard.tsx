@@ -12,8 +12,7 @@ import { useBalanceByAsset } from "@/hooks/useBalance"
 import ActModal from "../Earn/ActModal"
 import { SliderWithState } from "../Mint/SliderWithState"
 import { shiftDigits } from "@/helpers/math"
-import useAutoSPEnter from "./hooks/useAutoSPEnter"
-import useAutoSPExit from "./hooks/useAutoSPExit"
+import useAutoSP from "./hooks/useAutoSP"
 import { useBasket } from "@/hooks/useCDP"
 import Divider from "../Divider"
 
@@ -23,10 +22,10 @@ const DepositButton = () => {
   const cdtAsset = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdtAsset)
 
-  const { action: autoSPenter } = useAutoSPEnter()
+  const { action: autoSP } = useAutoSP()
 
   const onSliderChange = (value: number) => {
-    setQuickActionState({ autoSPdeposit: value })
+    setQuickActionState({ autoSPdeposit: value, autoSPwithdrawal: 0 })
   }
 
   return (
@@ -34,7 +33,7 @@ const DepositButton = () => {
       width="100%"
       label="Deposit"
       isDisabled={!isGreaterThanZero(cdtBalance)}
-      action={autoSPenter}
+      action={autoSP}
     >
       
       <Stack gap="0">
@@ -57,7 +56,7 @@ const WithdrawButton = () => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const earnCDTAsset = useAssetBySymbol('earnCDT')
     const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
-    const { action: autoSPexit } = useAutoSPExit()
+    const { action: autoSP } = useAutoSP()
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
@@ -74,7 +73,7 @@ const WithdrawButton = () => {
       // if (!withdraw) return
       ////Convert the CDT amount to the earnCDT amount using the queried ratio///
       const vtAmount = num(shiftDigits(withdraw, 6)).times(vttoCDTRatio)
-      setQuickActionState({ autoSPwithdrawal: num(vtAmount.toFixed(0)).toNumber() })
+      setQuickActionState({ autoSPwithdrawal: num(vtAmount.toFixed(0)).toNumber(), autoSPdeposit: 0 })
     }, [withdraw])
 
     return (
@@ -82,7 +81,7 @@ const WithdrawButton = () => {
         width="100%"
         label="Withdraw"
         isDisabled={!isGreaterThanZero(underlyingCDT)}
-        action={autoSPexit}
+        action={autoSP}
       >
       <Stack gap="0">
         <HStack justifyContent="space-between">

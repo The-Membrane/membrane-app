@@ -12,15 +12,19 @@ import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
 import { useBalanceByAsset } from '@/hooks/useBalance'
+import { useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 
-const useAutoSP = (underlyingCDT: string) => { 
+const useAutoSP = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const cdtAsset = useAssetBySymbol('CDT')
   const earnCDTAsset = useAssetBySymbol('earnCDT')
   const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
 
+  const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
+  const underlyingCDT = data ?? "1"
+  
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
   }

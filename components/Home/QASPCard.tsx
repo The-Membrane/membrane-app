@@ -54,7 +54,7 @@ const DepositButton = () => {
 const WithdrawButton = () => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const earnCDTAsset = useAssetBySymbol('earnCDT')
-    const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
+    const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
 
     const { action: autoSP } = useAutoSP();
 

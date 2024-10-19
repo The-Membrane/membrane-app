@@ -19,6 +19,8 @@ export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
     })
 }
 export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
+    console.log("cdt log", vtAmount)
+
     return useQuery({
         queryKey: ['useCDTVaultTokenUnderlying', vtAmount],
         queryFn: async () => {

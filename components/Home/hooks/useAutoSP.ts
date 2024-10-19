@@ -20,7 +20,7 @@ const useAutoSP = ( ) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const cdtAsset = useAssetBySymbol('CDT')
   const earnCDTAsset = useAssetBySymbol('earnCDT')
-  const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
+  const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
 
   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
   const underlyingCDT = data ?? "1"
@@ -40,7 +40,7 @@ const useAutoSP = ( ) => {
       earnCDTBalance
     ],
     queryFn: () => {
-      if (!address || !cdtAsset || !earnCDTAsset) return { msgs: undefined }
+      if (!address || !cdtAsset || !earnCDTAsset) {console.log("autoSP early return", address, earnCDTAsset, quickActionState, underlyingCDT, earnCDTBalance); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       if (quickActionState.autoSPwithdrawal != 0){

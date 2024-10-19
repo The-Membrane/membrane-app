@@ -34,6 +34,7 @@ const ActSlider = React.memo(() => {
     const { action: autoSP } = useAutoSP();
 
     const totalBalance = useMemo(() => {
+      console.log("CDTs", cdtBalance, underlyingCDT)
       return num(underlyingCDT).plus(cdtBalance).toString()
     }, [cdtBalance, underlyingCDT])
 

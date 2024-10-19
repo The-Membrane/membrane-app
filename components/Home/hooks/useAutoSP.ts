@@ -14,21 +14,13 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
-import { Asset } from '@/helpers/chain'
 
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  const cdtAsset = useMemo(() => useAssetBySymbol('CDT'), []);
-  const earnCDTAsset = 
-  {
-    "description": "Auto-compounding CDT vault for Membrane's Stability Pool/OmniPool",
-    "base": "factory/osmo1jw6r68y0uhfmqagc7uhtdddctc7wq95pncvrqnvtd47w4hx46p7se9nju5/earn-cdt",
-    "symbol": "earnCDT",
-    "decimal": 6,
-    "isLP": false
-  } as Asset;
-  const earnCDTBalance = useMemo(() => useBalanceByAsset(earnCDTAsset)??"1", []);
+  const cdtAsset = useAssetBySymbol('CDT')
+  const earnCDTAsset = useAssetBySymbol('earnCDT')
+  const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
 
   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
   const underlyingCDT = data ?? "1"
@@ -60,13 +52,13 @@ const useAutoSP = ( ) => {
 
       if (quickActionState.autoSPwithdrawal != 0){
 
-        const cdtWithdrawAmount = shiftDigits(quickActionState.autoSPwithdrawal, 6).toNumber()
+        // const cdtWithdrawAmount = shiftDigits(quickActionState.autoSPwithdrawal, 6).toNumber()
         // find percent of underlying usdc to withdraw
-        const percentToWithdraw = num(cdtWithdrawAmount).div(underlyingCDT).toNumber()
+        // const percentToWithdraw = num(cdtWithdrawAmount).div(underlyingCDT).toNumber()
 
         // Calc VT to withdraw using the percent
-        const withdrawAmount = num(shiftDigits(earnCDTBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
-        console.log("withdrawAmount", quickActionState.autoSPwithdrawal, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
+        const withdrawAmount = num(shiftDigits(earnCDTBalance, 6)).times(1).dp(0).toNumber()
+        // console.log("withdrawAmount", quickActionState.autoSPwithdrawal, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
 
         const funds = [{ amount: withdrawAmount.toString(), denom: earnCDTAsset.base }]      
         let exitMsg  = {
@@ -107,7 +99,7 @@ const useAutoSP = ( ) => {
     enabled: !!address,
   })
   
-  const msgs = useMemo(() => queryData?.msgs ?? [], [queryData]);
+  const  msgs = queryData?.msgs ?? []
 
   console.log("autoSP msgs:", msgs)
 

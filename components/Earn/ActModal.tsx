@@ -71,7 +71,7 @@ const ActModal = ({
 
   const onModalOpen = () => {
     onOpen()
-    action?.simulate.refetch()
+    // action?.simulate.refetch()
   }
 
   const onModalClose = () => {

@@ -85,7 +85,11 @@ const WithdrawButton = React.memo(() => {
             <Text variant="value">${quickActionState.autoSPwithdrawal}</Text>
           </HStack>
         </HStack>
-        <SliderWithState value={quickActionState.autoSPwithdrawal} onChange={onSliderChange} min={0} max={shiftDigits(underlyingCDT??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+        <SliderWithState 
+          value={quickActionState.autoSPwithdrawal} 
+          onChange={onSliderChange} 
+          max={shiftDigits(underlyingCDT??1, -6).toNumber()} 
+        />
       </Stack>
       </ActModal>
     )

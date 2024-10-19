@@ -51,6 +51,7 @@ const useAutoSP = ( ) => {
 
         // Calc VT to withdraw using the percent
         const withdrawAmount = num(shiftDigits(earnCDTBalance, 6).toFixed(0)).times(percentToWithdraw).dp(0).toNumber()
+        console.log("withdrawAmount", quickActionState.autoSPwithdrawal, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
 
         const funds = [{ amount: withdrawAmount.toString(), denom: earnCDTAsset.base }]      
         const exitMsg  = {

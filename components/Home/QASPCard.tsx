@@ -24,6 +24,7 @@ const ActSlider = React.memo(() => {
     const earnCDTAsset = useAssetBySymbol('earnCDT')
     const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
     const cdtAsset = useAssetBySymbol('CDT')
+    console.log("cdtAsset", cdtAsset)
     const cdtBalance = useBalanceByAsset(cdtAsset)
     
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
@@ -66,7 +67,7 @@ const ActSlider = React.memo(() => {
       <Stack gap="0">
         <HStack justifyContent="space-between">
           <Text variant="lable" textTransform="unset">
-            CDT
+            CDT to Vaults
           </Text>
           <HStack>
             <Text variant="value">${pendingBalance}</Text>

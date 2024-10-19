@@ -23,8 +23,8 @@ const useAutoSP = ( ) => {
   const earnCDTAsset = useAssetBySymbol('earnCDT')
   const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
 
-  const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
-  const underlyingCDT = data ?? "1"
+  // const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
+  const underlyingCDT = "1"
   
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined

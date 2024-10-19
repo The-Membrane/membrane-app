@@ -16,46 +16,15 @@ import useAutoSP from "./hooks/useAutoSP"
 import { useBasket } from "@/hooks/useCDP"
 import Divider from "../Divider"
 import React from "react"
+import ConfirmModal from "../ConfirmModal"
+import { QASummary } from "./QASummary"
 
-
-const DepositButton = () => {
-  const { quickActionState, setQuickActionState } = useQuickActionState()
-  const cdtAsset = useAssetBySymbol('CDT')
-  const cdtBalance = useBalanceByAsset(cdtAsset)
-
-  const { action: autoSP } = useAutoSP()
-
-  const onSliderChange = (value: number) => {
-    setQuickActionState({ autoSPdeposit: value, autoSPwithdrawal: 0 })
-  }
-
-  return (
-    <ActModal
-      width="100%"
-      label="Deposit"
-      isDisabled={!isGreaterThanZero(cdtBalance)}
-      action={autoSP}
-    >
-      
-      <Stack gap="0">
-        <HStack justifyContent="space-between">
-          <Text variant="lable" textTransform="unset">
-            CDT
-          </Text>
-          <HStack>
-            <Text variant="value">${quickActionState.autoSPdeposit}</Text>
-          </HStack>
-        </HStack>
-        <SliderWithState value={quickActionState.autoSPdeposit} onChange={onSliderChange} min={0} max={parseFloat(cdtBalance)} walletCDT={1} summary={["empty"]}/>
-      </Stack>
-    </ActModal>
-  )
-}
-
-const WithdrawButton = React.memo(() => {
+const ActSlider = React.memo(() => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const earnCDTAsset = useAssetBySymbol('earnCDT')
     const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
+    const cdtAsset = useAssetBySymbol('CDT')
+    const cdtBalance = useBalanceByAsset(cdtAsset)
     
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
     const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
@@ -64,34 +33,50 @@ const WithdrawButton = React.memo(() => {
 
     const { action: autoSP } = useAutoSP();
 
+    const totalBalance = useMemo(() => {
+      return num(underlyingCDT).plus(cdtBalance).toString()
+    }, [cdtBalance, underlyingCDT])
 
-    const onSliderChange = (value: number) => {      
-      setQuickActionState({ autoSPwithdrawal: value, autoSPdeposit: 0 })    
+    const pendingBalance = useMemo(() => {
+      return num(underlyingCDT).plus(quickActionState.autoSPdeposit).minus(quickActionState.autoSPwithdrawal).toNumber()
+    }, [])
+
+    const onSliderChange = (value: number) => {
+      if (value > underlyingCDT) {
+        let diff = num(value).minus(underlyingCDT).toNumber()
+        setQuickActionState({ autoSPdeposit: diff, autoSPwithdrawal: 0 })
+      } else if (value < underlyingCDT) {
+        let diff = num(underlyingCDT).minus(value).toNumber()
+        setQuickActionState({ autoSPdeposit: 0, autoSPwithdrawal: diff })
+      }
     }
 
     return (
-      <ActModal
-        width="100%"
-        label="Withdraw"
-        isDisabled={!isGreaterThanZero(underlyingCDT)}
-        action={autoSP}
-      >
+      // <ActModal
+      //   width="100%"
+      //   label="Withdraw"
+      //   isDisabled={!isGreaterThanZero(underlyingCDT)}
+      //   action={autoSP}
+      // >
       <Stack gap="0">
         <HStack justifyContent="space-between">
           <Text variant="lable" textTransform="unset">
             CDT
           </Text>
           <HStack>
-            <Text variant="value">${quickActionState.autoSPwithdrawal}</Text>
+            <Text variant="value">${pendingBalance}</Text>
           </HStack>
         </HStack>
         <SliderWithState 
-          value={quickActionState.autoSPwithdrawal} 
+          value={underlyingCDT} 
           onChange={onSliderChange} 
-          max={shiftDigits(underlyingCDT??1, -6).toNumber()} 
-        />
+          max={Number(totalBalance)} 
+        />        
+        <ConfirmModal label={quickActionState.autoSPdeposit > 0 ? "Deposit" : quickActionState.autoSPwithdrawal > 0 ? "Withdraw" : "Manage"} action={autoSP} isDisabled={Number(totalBalance) < 1}>
+          <QASummary logo={cdtAsset?.logo}/>
+        </ConfirmModal>
       </Stack>
-      </ActModal>
+      // </ActModal>
     )
 });
           
@@ -122,7 +107,7 @@ const SPCard = () => {
               <ListItem>Max 1 Day Withdraw Time</ListItem>
             </List>
             {/* <DepositButton /> */}
-            <WithdrawButton />
+            <ActSlider />
               {/* <HStack>
                 <Stack py="5" w="full" gap="3" mb={"0"} >
                 <Text variant="body"> Max CDT to Loop </Text>

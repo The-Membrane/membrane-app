@@ -24,7 +24,6 @@ const ActSlider = React.memo(() => {
     const earnCDTAsset = useAssetBySymbol('earnCDT')
     const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
     const cdtAsset = useAssetBySymbol('CDT')
-    console.log("cdtAsset", cdtAsset)
     const cdtBalance = useBalanceByAsset(cdtAsset)
     
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
@@ -35,6 +34,7 @@ const ActSlider = React.memo(() => {
     const { action: autoSP } = useAutoSP();
 
     const logo = useMemo(() => {return cdtAsset?.logo}, [cdtAsset])
+    console.log("cdtAsset logo", logo)
 
     const totalBalance = useMemo(() => {
       return num(underlyingCDT).plus(cdtBalance).toString()
@@ -80,7 +80,10 @@ const ActSlider = React.memo(() => {
           onChange={onSliderChange} 
           max={Number(totalBalance)} 
         />        
-        <ConfirmModal label={quickActionState.autoSPdeposit > 0 ? "Deposit" : quickActionState.autoSPwithdrawal > 0 ? "Withdraw" : "Manage"} action={autoSP} isDisabled={Number(totalBalance) < 1}>
+        <ConfirmModal 
+          label={quickActionState.autoSPdeposit > 0 ? "Deposit" : quickActionState.autoSPwithdrawal > 0 ? "Withdraw" : "Manage"} 
+          action={autoSP} 
+          isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingCDT).toNumber()}>
           <QASummary logo={logo}/>
         </ConfirmModal>
       </Stack>

@@ -38,8 +38,8 @@ const SummaryItem = ({
   </HStack>
 )
 
-export const QASummary = (logo: any) => {
-  const { quickActionState, setQuickActionState } = useQuickActionState()
+export const QASummary = ({ logo }: { logo: string }) => {
+  const { quickActionState } = useQuickActionState()
 
   return (
     <Stack h="max-content" overflow="auto" w="full">

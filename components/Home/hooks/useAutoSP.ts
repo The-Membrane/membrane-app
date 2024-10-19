@@ -23,8 +23,8 @@ const useAutoSP = ( ) => {
   const earnCDTAsset = useAssetBySymbol('earnCDT')
   const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
 
-  // const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
-  const underlyingCDT = "1"
+  const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
+  const underlyingCDT = data ?? "1"
   
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -91,11 +91,8 @@ const useAutoSP = ( ) => {
     },
     enabled: !!address,
   })
-
-  const { msgs }: QueryData = useMemo(() => {
-    if (!queryData) return { msgs: undefined }
-    else return queryData
-  }, [queryData])
+  
+  const  msgs = queryData?.msgs ?? []
 
   console.log("autoSP msgs:", msgs)
 

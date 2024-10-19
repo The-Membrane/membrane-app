@@ -52,13 +52,13 @@ const useAutoSP = ( ) => {
 
       if (quickActionState.autoSPwithdrawal != 0){
 
-        // const cdtWithdrawAmount = shiftDigits(quickActionState.autoSPwithdrawal, 6).toNumber()
+        const cdtWithdrawAmount = shiftDigits(quickActionState.autoSPwithdrawal, 6).toNumber()
         // find percent of underlying usdc to withdraw
-        // const percentToWithdraw = num(cdtWithdrawAmount).div(underlyingCDT).toNumber()
+        const percentToWithdraw = num(cdtWithdrawAmount).div(underlyingCDT).toNumber()
 
         // Calc VT to withdraw using the percent
-        const withdrawAmount = num(shiftDigits(earnCDTBalance, 6)).times(1).dp(0).toNumber()
-        // console.log("withdrawAmount", quickActionState.autoSPwithdrawal, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
+        const withdrawAmount = num(shiftDigits(earnCDTBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
+        console.log("withdrawAmount", quickActionState.autoSPwithdrawal, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
 
         const funds = [{ amount: withdrawAmount.toString(), denom: earnCDTAsset.base }]      
         let exitMsg  = {

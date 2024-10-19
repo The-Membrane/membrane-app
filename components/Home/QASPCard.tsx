@@ -90,19 +90,19 @@ const WithdrawButton = () => {
           
 const SPCard = () => {
     console.log("rendering SPCard")
-    const { action: compound } = useSPCompound()
+    // const { action: compound } = useSPCompound()
     // useEstimatedAnnualInterest(false)
-    const { data: assetPool } = useStabilityAssetPool()
-    const { data: basket } = useBasket()
+    // const { data: assetPool } = useStabilityAssetPool()
+    // const { data: basket } = useBasket()
 
-    const revenueDistributionThreshold = 50000000
-    const percentToDistribution = useMemo(() => {
-      if (!basket) return 0
-      return num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()
+    // const revenueDistributionThreshold = 50000000
+    // const percentToDistribution = useMemo(() => {
+    //   if (!basket) return 0
+    //   return num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()
 
-    }, [basket])
+    // }, [basket])
 
-    const { bidState } = useBidState()
+    // const { bidState } = useBidState()
 
     return (
         <Card width={"33%"}>
@@ -168,7 +168,7 @@ const SPCard = () => {
                 </Stack>
               </HStack>     */}
             <Divider marginTop={"3vh"}/>           
-            <Slider
+            {/* <Slider
               defaultValue={percentToDistribution}
               isReadOnly
               cursor="default"
@@ -180,7 +180,6 @@ const SPCard = () => {
                 <SliderFilledTrack bg={'blue.400'} />
               </SliderTrack>
             </Slider>
-            {/* Compound normal SP Button*/}
             <TxButton
               maxW="100%"
               isLoading={compound?.simulate.isLoading || compound?.tx.isPending}
@@ -190,7 +189,7 @@ const SPCard = () => {
               style={{ alignSelf: "center" }}
             >
               Compound
-            </TxButton>
+            </TxButton> */}
           </Stack>
         </Card>
     )

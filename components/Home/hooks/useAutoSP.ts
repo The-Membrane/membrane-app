@@ -18,6 +18,7 @@ import { num } from '@/helpers/num'
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
+  useMemo(() => console.log("QArerender"), [quickActionState])
   const cdtAsset = useAssetBySymbol('CDT')
   const earnCDTAsset = useAssetBySymbol('earnCDT')
   const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
@@ -50,7 +51,7 @@ const useAutoSP = ( ) => {
         const percentToWithdraw = num(cdtWithdrawAmount).div(underlyingCDT).toNumber()
 
         // Calc VT to withdraw using the percent
-        const withdrawAmount = num(shiftDigits(earnCDTBalance, 6).toFixed(0)).times(percentToWithdraw).dp(0).toNumber()
+        const withdrawAmount = num(shiftDigits(earnCDTBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
         console.log("withdrawAmount", quickActionState.autoSPwithdrawal, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
 
         const funds = [{ amount: withdrawAmount.toString(), denom: earnCDTAsset.base }]      

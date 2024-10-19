@@ -89,6 +89,7 @@ const WithdrawButton = () => {
 }
           
 const SPCard = () => {
+    console.log("rendering SPCard")
     const { action: compound } = useSPCompound()
     // useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()

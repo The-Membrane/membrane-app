@@ -40,7 +40,7 @@ const useAutoSP = ( ) => {
       earnCDTBalance
     ],
     queryFn: () => {
-      if (!address || !cdtAsset || !earnCDTAsset) return { msgs: undefined}
+      if (!address || !cdtAsset || !earnCDTAsset) return { msgs: undefined }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       if (quickActionState.autoSPwithdrawal != 0){
@@ -99,7 +99,7 @@ const useAutoSP = ( ) => {
 
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    setQuickActionState({ autoSPdeposit: 0 })
+    setQuickActionState({ autoSPdeposit: 0, autoSPwithdrawal: 0 })
   }
 
   return {

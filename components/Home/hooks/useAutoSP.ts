@@ -108,13 +108,17 @@ const useAutoSP = ( ) => {
     setQuickActionState({ autoSPdeposit: 0, autoSPwithdrawal: 0 })
   }
 
-  return {
-    action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['home_page_autoSP', (msgs?.toString()??"0")],
-    onSuccess: onInitialSuccess,
-    enabled: true,
-  })}
+   // Memoize the action object to prevent unnecessary re-renders
+   const action = useMemo(() => {
+    return useSimulateAndBroadcast({
+      msgs,
+      queryKey: ['home_page_autoSP', (msgs?.toString() ?? "0")],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs?.length,
+    });
+  }, [msgs]);
+
+  return { action };
 }
 
 export default useAutoSP

@@ -11,13 +11,19 @@ import { shiftDigits } from '@/helpers/math'
 import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
+import { useBalanceByAsset } from '@/hooks/useBalance'
+import { useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
+import { num } from '@/helpers/num'
 
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const cdtAsset = useAssetBySymbol('CDT')
   const earnCDTAsset = useAssetBySymbol('earnCDT')
+  const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
 
+  const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
+  const underlyingCDT = data ?? "1"
   
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -30,13 +36,23 @@ const useAutoSP = ( ) => {
       cdtAsset,
       quickActionState.autoSPwithdrawal,
       earnCDTAsset,
+      underlyingCDT,
+      earnCDTBalance
     ],
     queryFn: () => {
       if (!address || !cdtAsset || !earnCDTAsset) return { msgs: undefined}
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       if (quickActionState.autoSPwithdrawal != 0){
-        const funds = [{ amount: shiftDigits(quickActionState.autoSPwithdrawal, earnCDTAsset.decimal).dp(0).toNumber().toString(), denom: earnCDTAsset.base }]      
+
+        const cdtWithdrawAmount = shiftDigits(quickActionState.autoSPwithdrawal, 6).toNumber()
+        // find percent of underlying usdc to withdraw
+        const percentToWithdraw = num(cdtWithdrawAmount).div(underlyingCDT).toNumber()
+
+        // Calc VT to withdraw using the percent
+        const withdrawAmount = num(shiftDigits(earnCDTBalance, 6).toFixed(0)).times(percentToWithdraw).dp(0).toNumber()
+
+        const funds = [{ amount: withdrawAmount.toString(), denom: earnCDTAsset.base }]      
         const exitMsg  = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({

@@ -52,29 +52,19 @@ const DepositButton = () => {
 }
 
 const WithdrawButton = () => {
-    const [withdraw, setWithdraw] = useState<number>(0)
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const earnCDTAsset = useAssetBySymbol('earnCDT')
     const earnCDTBalance = useBalanceByAsset(earnCDTAsset)
     const { action: autoSP } = useAutoSP()
 
     //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
-    const { data: underlyingCDT } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
-    console.log("EARN CDT", earnCDTBalance, earnCDTAsset, underlyingCDT)
+    const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
+    const underlyingCDT = data ?? "1"
     ////////////////////////////////////
 
-    const vttoCDTRatio = useMemo(() => { return num(earnCDTBalance).dividedBy(num(underlyingCDT??1)) }, [earnCDTBalance, underlyingCDT])   
-
     const onSliderChange = (value: number) => {      
-      setWithdraw(value)
+      setQuickActionState({ autoSPwithdrawal: value, autoSPdeposit: 0 })    
     }
-
-    useEffect(() => {      
-      // if (!withdraw) return
-      ////Convert the CDT amount to the earnCDT amount using the queried ratio///
-      const vtAmount = num(shiftDigits(withdraw, 6)).times(vttoCDTRatio)
-      setQuickActionState({ autoSPwithdrawal: num(vtAmount.toFixed(0)).toNumber(), autoSPdeposit: 0 })
-    }, [withdraw])
 
     return (
       <ActModal
@@ -89,10 +79,10 @@ const WithdrawButton = () => {
             CDT
           </Text>
           <HStack>
-            <Text variant="value">${withdraw}</Text>
+            <Text variant="value">${quickActionState.autoSPwithdrawal}</Text>
           </HStack>
         </HStack>
-        <SliderWithState value={withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingCDT??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
+        <SliderWithState value={quickActionState.autoSPwithdrawal} onChange={onSliderChange} min={0} max={shiftDigits(underlyingCDT??1, -6).toNumber()} walletCDT={1} summary={["empty"]}/>
       </Stack>
       </ActModal>
     )

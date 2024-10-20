@@ -71,7 +71,7 @@ const ActSlider = React.memo(() => {
 
     return (
       <Stack gap="0">
-        <HStack justifyContent="space-between">
+        <HStack justifyContent="space-between" padding={"4%"}>
           <Text variant="lable" textTransform="unset">
             CDT in Vault
           </Text>
@@ -80,13 +80,14 @@ const ActSlider = React.memo(() => {
           </HStack>
         </HStack>
         <SliderWithState 
+          style={{width: "92%", padding:"4%"}}
           value={num(underlyingCDT).minus(quickActionState.autoSPwithdrawal).plus(quickActionState.autoSPdeposit).toNumber()} 
           onChange={onSliderChange} 
           max={Number(totalBalance)} 
         />
         
 
-        <HStack>
+        <HStack gap={0} padding="4%" borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
           <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
           <ConfirmModal 
             label={quickActionState.autoSPdeposit > 0 ? `Deposit ${actingAmount.toString()} CDT` : quickActionState.autoSPwithdrawal > 0 ?  `Withdraw ${actingAmount.toString()} CDT` : "Manage"} 
@@ -116,7 +117,7 @@ const SPCard = () => {
     const { bidState } = useBidState()
 
     return (
-        <Card width={"33%"}>
+        <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(assetPool?.credit_asset.amount || 1).multipliedBy(100).toFixed(1) + "%" : "loading..."} </Text>
             <Divider marginBottom={"3vh"}/> 

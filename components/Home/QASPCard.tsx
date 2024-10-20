@@ -102,7 +102,6 @@ const ActSlider = React.memo(() => {
 });
           
 const SPCard = () => {
-    console.log("rendering SPCard")
     const { action: compound } = useSPCompound()
     useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()
@@ -116,6 +115,7 @@ const SPCard = () => {
     }, [basket])
 
     const { bidState } = useBidState()
+    const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
 
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
@@ -124,8 +124,8 @@ const SPCard = () => {
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>
-              <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
               <ListItem>Max 1 Day Withdraw Time</ListItem>
+              <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
             </List>
             <ActSlider />
             <Divider marginTop={"3vh"}/>           
@@ -144,12 +144,12 @@ const SPCard = () => {
             <TxButton
               maxW="100%"
               isLoading={compound?.simulate.isLoading || compound?.tx.isPending}
-              isDisabled={compound?.simulate.isError || !compound?.simulate.data}
+              isDisabled={isDisabled}
               onClick={() => compound?.tx.mutate()}
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}
             >
-              Compound
+              {isDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to Omni-Pool" : "Compound"}
             </TxButton>
           </Stack>
         </Card>

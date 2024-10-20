@@ -133,7 +133,7 @@ const ActSlider = React.memo(() => {
   }, [underlyingUSDC, earnState.deposit, earnState.withdraw])
   //set amount label 
   const actingAmount = useMemo(()=> {
-    return (earnState.deposit > 0 ? earnState.deposit : earnState.withdraw).toFixed(0)
+    return (earnState.deposit > 0 ? earnState.deposit : earnState.withdraw).toFixed(2)
   }, [earnState.deposit, earnState.withdraw])
   
 
@@ -177,7 +177,7 @@ const ActSlider = React.memo(() => {
         <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         <ConfirmModal 
           label={earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 
-          action={earn} 
+          // action={earn} 
           isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingUSDC).toNumber()}>
           <QASummary logo={logo}/>
         </ConfirmModal>
@@ -289,10 +289,10 @@ const Deposit = () => {
               </Text>
               <Text variant="body" mb={1}> The vault's collateral position is open for <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>profitable debt redemptions</a> that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.</Text>    
               <Text variant="body" mb={1}>On top of that, there is a <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>0.5% entry fee</a> in order to account for the slippage it takes to unloop & withdraw USDC.
-                The entry fee from withdrawals that use the buffer of supplied USDC are pure profit for depositors, whereas withdrawals that need to be swapped will only be profitable if the slippage is lower than the max allowed slippage of 0.5%. You only see the profits for the entry fee as people withdraw, beforehand they still have virtual ownership over the full deposit.
+                The entry fee from withdrawals will only be profitable if the slippage is lower than the max allowed slippage of 0.5%. The realized profits for the entry fee are only set once people withdraw, as beforehand there is no way to tell how much the swap's slippage will cost.
               </Text>    
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>{'\n'} Why does my TVL fluctuate?</Text>
-              <Text variant="body" mb={1}>Your TVL represents a portion of the vault's TVL. The vault's TVL may temporary decrease as <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>it takes $1 of CDT in protocol debt and sells it on the market</a>, the lowest conversion rate being $.99. This difference will be recouped as users withdraw or as the vault's CDP position gets redeemed against. Redemptions & the entry fee to remaining users, realized as users withdraw, can be profitable as stated above, making these fluctuations temporary & part of the vault's normal functionality.</Text>
+              <Text variant="body" mb={1}>Your TVL represents a portion of the vault's TVL. The vault's TVL may temporary decrease as <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>it takes $1 of CDT in protocol debt and sells it on the market</a>, the lowest conversion rate being $0.99. This difference will be recouped as the vault's CDP position gets redeemed against & from the entry fee of any deposits. Redemptions & the entry fee to remaining users can be profitable as stated above, making these fluctuations temporary & part of the vault's normal functionality.</Text>
             </Card>
         </Stack>
         <Stack>    

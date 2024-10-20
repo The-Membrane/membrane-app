@@ -157,12 +157,12 @@ const ActSlider = React.memo(() => {
 
   return (
     <Stack gap="0" borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
-      <HStack justifyContent="space-between" padding="1%">
+      <HStack justifyContent="space-between" padding="2%">
         <Text variant="lable" textTransform="unset">
           USDC in Vault
         </Text>
         <HStack>
-          <Text variant="value">${pendingBalance}</Text>
+          <Text variant="value">${pendingBalance.toFixed(2)}</Text>
         </HStack>
       </HStack>
       <SliderWithState 
@@ -173,7 +173,7 @@ const ActSlider = React.memo(() => {
         max={Number(totalBalance)} 
       />
 
-      <HStack gap={0} padding="1%">
+      <HStack gap={0} padding="2%">
         <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         <ConfirmModal 
           label={earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 
@@ -272,8 +272,8 @@ const Deposit = () => {
               </HStack>
           </Card>
           <Card p="8" gap={5} width={"100%"}>
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
-            <Text variant="body">{userTVL} USD</Text>  
+            {/* <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
+            <Text variant="body">{userTVL} USD</Text>   */}
             <HStack justifyContent="end" width={"100%"} gap={"1rem"} display={"block"}>
               <ActSlider />
             </HStack>

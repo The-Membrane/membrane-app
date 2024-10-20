@@ -70,13 +70,13 @@ const ActSlider = React.memo(() => {
     }
 
     return (
-      <Stack gap="0"  borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
+      <Stack gap="0" borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
         <HStack justifyContent="space-between" padding={"4%"}>
           <Text variant="lable" textTransform="unset">
             CDT in Vault
           </Text>
           <HStack>
-            <Text variant="value">${pendingBalance}</Text>
+            <Text variant="value">${pendingBalance.toFixed(2)}</Text>
           </HStack>
         </HStack>
         <SliderWithState 

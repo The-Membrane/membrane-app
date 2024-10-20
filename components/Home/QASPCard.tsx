@@ -84,9 +84,10 @@ const ActSlider = React.memo(() => {
           onChange={onSliderChange} 
           max={Number(totalBalance)} 
         />
+        
 
-        <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         <HStack>
+          <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
           <ConfirmModal 
             label={quickActionState.autoSPdeposit > 0 ? `Deposit ${actingAmount.toString()} CDT` : quickActionState.autoSPwithdrawal > 0 ?  `Withdraw ${actingAmount.toString()} CDT` : "Manage"} 
             action={autoSP} 

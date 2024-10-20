@@ -18,6 +18,7 @@ import Divider from "../Divider"
 import React from "react"
 import ConfirmModal from "../ConfirmModal"
 import { QASummary } from "./QASummary"
+import { GrPowerReset } from "react-icons/gr"
 
 const ActSlider = React.memo(() => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -44,6 +45,11 @@ const ActSlider = React.memo(() => {
     const pendingBalance = useMemo(() => {
       return num(underlyingCDT).plus(quickActionState.autoSPdeposit).minus(quickActionState.autoSPwithdrawal).toNumber()
     }, [underlyingCDT, quickActionState.autoSPdeposit, quickActionState.autoSPwithdrawal])
+    //set amount label 
+    const actingAmount = useMemo(()=> {
+      return quickActionState.autoSPdeposit > 0 ? quickActionState.autoSPdeposit : quickActionState.autoSPwithdrawal
+    }, [quickActionState.autoSPdeposit, quickActionState.autoSPwithdrawal])
+    
 
     const onSliderChange = (value: number) => {
       if (value > parseFloat(underlyingCDT)) {
@@ -57,6 +63,10 @@ const ActSlider = React.memo(() => {
         console.log("withdraw", diff)
       }
 
+    }
+
+    const onReset = () => {
+      setQuickActionState({ autoSPdeposit: 0, autoSPwithdrawal: 0 })
     }
 
     return (
@@ -73,13 +83,18 @@ const ActSlider = React.memo(() => {
           value={num(underlyingCDT).minus(quickActionState.autoSPwithdrawal).plus(quickActionState.autoSPdeposit).toNumber()} 
           onChange={onSliderChange} 
           max={Number(totalBalance)} 
-        />        
-        <ConfirmModal 
-          label={quickActionState.autoSPdeposit > 0 ? "Deposit" : quickActionState.autoSPwithdrawal > 0 ? "Withdraw" : "Manage"} 
-          action={autoSP} 
-          isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingCDT).toNumber()}>
-          <QASummary logo={logo}/>
-        </ConfirmModal>
+        />
+        <HStack>
+          <Button variant="outline" leftIcon={<GrPowerReset />} onClick={onReset}>
+            Reset
+          </Button>
+          <ConfirmModal 
+            label={quickActionState.autoSPdeposit > 0 ? `Deposit ${actingAmount.toString()} CDT` : quickActionState.autoSPwithdrawal > 0 ?  `Withdraw ${actingAmount.toString()} CDT` : "Manage"} 
+            action={autoSP} 
+            isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingCDT).toNumber()}>
+            <QASummary logo={logo}/>
+          </ConfirmModal>
+        </HStack>
       </Stack>
     )
 });

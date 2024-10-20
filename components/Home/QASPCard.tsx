@@ -47,7 +47,7 @@ const ActSlider = React.memo(() => {
     }, [underlyingCDT, quickActionState.autoSPdeposit, quickActionState.autoSPwithdrawal])
     //set amount label 
     const actingAmount = useMemo(()=> {
-      return quickActionState.autoSPdeposit > 0 ? quickActionState.autoSPdeposit : quickActionState.autoSPwithdrawal
+      return (quickActionState.autoSPdeposit > 0 ? quickActionState.autoSPdeposit : quickActionState.autoSPwithdrawal).toFixed(0)
     }, [quickActionState.autoSPdeposit, quickActionState.autoSPwithdrawal])
     
 
@@ -85,15 +85,13 @@ const ActSlider = React.memo(() => {
           max={Number(totalBalance)} 
         />
         <HStack>
-          <Button variant="outline" leftIcon={<GrPowerReset />} onClick={onReset}>
-            Reset
-          </Button>
           <ConfirmModal 
             label={quickActionState.autoSPdeposit > 0 ? `Deposit ${actingAmount.toString()} CDT` : quickActionState.autoSPwithdrawal > 0 ?  `Withdraw ${actingAmount.toString()} CDT` : "Manage"} 
             action={autoSP} 
             isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingCDT).toNumber()}>
             <QASummary logo={logo}/>
           </ConfirmModal>
+          <Button variant="outline" width={"10"} leftIcon={<GrPowerReset />} onClick={onReset} />
         </HStack>
       </Stack>
     )

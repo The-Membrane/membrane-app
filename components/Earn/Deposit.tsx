@@ -156,7 +156,7 @@ const ActSlider = React.memo(() => {
   }
 
   return (
-    <Stack gap="0" borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
+    <Stack gap="0">
       <HStack justifyContent="space-between" padding="2%">
         <Text variant="lable" textTransform="unset">
           USDC in Vault
@@ -271,12 +271,12 @@ const Deposit = () => {
                 <Text variant="body"  width={"100%"} display="flex" justifyContent="center">loading...</Text>}
               </HStack>
           </Card>
-          <Card p="8" gap={5} width={"100%"}>
+          <Card p="8" gap={5} width={"100%"} borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
             {/* <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
             <Text variant="body">{userTVL} USD</Text>   */}
-            <HStack justifyContent="end" width={"100%"} gap={"1rem"} display={"block"}>
+            {/* <HStack justifyContent="end" width={"100%"} gap={"1rem"} display={"block"}> */}
               <ActSlider />
-            </HStack>
+            {/* </HStack> */}
           </Card>
           
           <Card>

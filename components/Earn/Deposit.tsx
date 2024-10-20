@@ -156,8 +156,8 @@ const ActSlider = React.memo(() => {
   }
 
   return (
-    <Stack gap="0">
-      <HStack justifyContent="space-between" padding="4%">
+    <Stack gap="0" borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
+      <HStack justifyContent="space-between" padding="1%">
         <Text variant="lable" textTransform="unset">
           USDC in Vault
         </Text>
@@ -166,13 +166,14 @@ const ActSlider = React.memo(() => {
         </HStack>
       </HStack>
       <SliderWithState 
-        style={{width: "92%", padding:"4%"}}
+          width="97%"
+          padding="1%"
         value={num(underlyingUSDC).minus(earnState.withdraw).plus(earnState.deposit).toNumber()} 
         onChange={onSliderChange} 
         max={Number(totalBalance)} 
       />
 
-      <HStack gap={0} padding="4%">
+      <HStack gap={0} padding="1%">
         <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         <ConfirmModal 
           label={earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 

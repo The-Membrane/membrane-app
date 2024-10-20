@@ -80,7 +80,8 @@ const ActSlider = React.memo(() => {
           </HStack>
         </HStack>
         <SliderWithState 
-          style={{width: "92%", padding:"4%"}}
+          width="92%"
+          padding="4%"
           value={num(underlyingCDT).minus(quickActionState.autoSPwithdrawal).plus(quickActionState.autoSPdeposit).toNumber()} 
           onChange={onSliderChange} 
           max={Number(totalBalance)} 

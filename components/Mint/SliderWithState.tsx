@@ -8,13 +8,15 @@ export type SliderProps = {
   max?: number
   walletCDT?: number
   summary?: any[]
-  style?: any
+  width?: string
+  padding?: string
 }
 
-export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walletCDT = 0, summary = [], style}: SliderProps) => {
+export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walletCDT = 0, summary = [], width, padding }: SliderProps) => {
   return (
     <Slider
-      style={style}
+      width={width}
+      padding={padding}
       aria-label="slider-ex-4"
       defaultValue={0}
       min={min}

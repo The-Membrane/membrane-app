@@ -177,7 +177,7 @@ const ActSlider = React.memo(() => {
         <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         <ConfirmModal 
           label={earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 
-          // action={earn} 
+          action={earn} 
           isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingUSDC).toNumber()}>
           <QASummary logo={logo}/>
         </ConfirmModal>

@@ -1,5 +1,5 @@
 import React, { ChangeEvent, use, useEffect, useMemo, useState } from 'react'
-import { Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
+import { Button, Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
 import { TxButton } from '@/components/TxButton'
 import useStableYieldLoop from './hooks/useStableYieldLoop'
 import { isGreaterThanZero, num } from '@/helpers/num'
@@ -22,6 +22,9 @@ import useEarnLoop from './hooks/useEarnLoop'
 import useCDPRedeem from './hooks/useCDPRedeem'
 import useUSDCVaultCrankAPR from './hooks/useUSDCVaultCrankAPR'
 import useEarn from './hooks/useEarn'
+import { GrPowerReset } from 'react-icons/gr'
+import ConfirmModal from '../ConfirmModal'
+import { QASummary } from '../Home/QASummary'
 
 // const ENTRY_FEE = 0.005
 
@@ -103,6 +106,83 @@ const WithdrawButton = () => {
       </ActModal>
     )
 }
+
+
+const ActSlider = React.memo(() => {
+  const { earnState, setEarnState } = useEarnState()    
+  const earnUSDCAsset = useAssetBySymbol('earnUSDC')
+  const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
+  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcBalance = useBalanceByAsset(usdcAsset)
+
+  const { action: earn } = useEarn()
+  
+  //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
+  const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
+  const underlyingUSDC = shiftDigits(data, -6).toString() ?? "1"
+  ////////////////////////////////////
+
+  const logo = useMemo(() => {return usdcAsset?.logo}, [usdcAsset])
+
+  const totalBalance = useMemo(() => {
+    return num(underlyingUSDC).plus(usdcBalance).toString()
+  }, [usdcBalance, underlyingUSDC])
+
+  const pendingBalance = useMemo(() => {
+    return num(underlyingUSDC).plus(earnState.deposit).minus(earnState.withdraw).toNumber()
+  }, [underlyingUSDC, earnState.deposit, earnState.withdraw])
+  //set amount label 
+  const actingAmount = useMemo(()=> {
+    return (earnState.deposit > 0 ? earnState.deposit : earnState.withdraw).toFixed(0)
+  }, [earnState.deposit, earnState.withdraw])
+  
+
+  const onSliderChange = (value: number) => {
+    if (value > parseFloat(underlyingUSDC)) {
+      let diff = num(value).minus(underlyingUSDC).toNumber()
+      setEarnState({ deposit: diff, withdraw: 0 })
+      console.log("deposit", diff)
+      
+    } else if (value < parseFloat(underlyingUSDC)) {
+      let diff = num(underlyingUSDC).minus(value).toNumber()
+      setEarnState({ deposit: 0, withdraw: diff })
+      console.log("withdraw", diff)
+    }
+
+  }
+
+  const onReset = () => {
+    setEarnState({ deposit: 0, withdraw: 0 })
+  }
+
+  return (
+    <Stack gap="0">
+      <HStack justifyContent="space-between">
+        <Text variant="lable" textTransform="unset">
+          USDC in Vault
+        </Text>
+        <HStack>
+          <Text variant="value">${pendingBalance}</Text>
+        </HStack>
+      </HStack>
+      <SliderWithState 
+        value={num(underlyingUSDC).minus(earnState.withdraw).plus(earnState.deposit).toNumber()} 
+        onChange={onSliderChange} 
+        max={Number(totalBalance)} 
+      />
+
+      <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
+      <HStack>
+        <ConfirmModal 
+          label={earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 
+          action={earn} 
+          isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingUSDC).toNumber()}>
+          <QASummary logo={logo}/>
+        </ConfirmModal>
+      </HStack>
+    </Stack>
+  )
+});
 
 const Deposit = () => {
   const { earnState, setEarnState } = useEarnState()
@@ -193,8 +273,7 @@ const Deposit = () => {
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
             <Text variant="body">{userTVL} USD</Text>  
             <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
-              <DepositButton />
-              <WithdrawButton />
+              <ActSlider />
             </HStack>
           </Card>
           

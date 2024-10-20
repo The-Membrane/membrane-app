@@ -19,6 +19,7 @@ const ActionButtons = ({ onRest }: Props) => {
 
   return (
     <HStack mt="5" gap="4">
+    <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onRest}/>
       <ConfirmModal
         label={
           mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Mint' : basketPositions === undefined ? 'Deposit Assets' : 'Update Assets'
@@ -28,9 +29,6 @@ const ActionButtons = ({ onRest }: Props) => {
       >
         <Summary />
       </ConfirmModal>
-      <Button variant="ghost" leftIcon={<GrPowerReset />} onClick={onRest}>
-        Reset
-      </Button>
     </HStack>
   )
 }

@@ -84,6 +84,8 @@ const ActSlider = React.memo(() => {
           onChange={onSliderChange} 
           max={Number(totalBalance)} 
         />
+
+        <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         <HStack>
           <ConfirmModal 
             label={quickActionState.autoSPdeposit > 0 ? `Deposit ${actingAmount.toString()} CDT` : quickActionState.autoSPwithdrawal > 0 ?  `Withdraw ${actingAmount.toString()} CDT` : "Manage"} 
@@ -91,7 +93,6 @@ const ActSlider = React.memo(() => {
             isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingCDT).toNumber()}>
             <QASummary logo={logo}/>
           </ConfirmModal>
-          <Button variant="outline" width={"10"} padding={0} border={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         </HStack>
       </Stack>
     )

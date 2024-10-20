@@ -171,8 +171,8 @@ const ActSlider = React.memo(() => {
         max={Number(totalBalance)} 
       />
 
-      <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
       <HStack>
+        <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         <ConfirmModal 
           label={earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 
           action={earn} 
@@ -272,7 +272,7 @@ const Deposit = () => {
           <Card p="8" gap={5} width={"100%"}>
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
             <Text variant="body">{userTVL} USD</Text>  
-            <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
+            <HStack justifyContent="end" width={"100%"} gap={"1rem"} display="block">
               <ActSlider />
             </HStack>
           </Card>

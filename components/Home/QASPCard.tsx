@@ -60,12 +60,6 @@ const ActSlider = React.memo(() => {
     }
 
     return (
-      // <ActModal
-      //   width="100%"
-      //   label="Withdraw"
-      //   isDisabled={!isGreaterThanZero(underlyingCDT)}
-      //   action={autoSP}
-      // >
       <Stack gap="0">
         <HStack justifyContent="space-between">
           <Text variant="lable" textTransform="unset">
@@ -87,91 +81,38 @@ const ActSlider = React.memo(() => {
           <QASummary logo={logo}/>
         </ConfirmModal>
       </Stack>
-      // </ActModal>
     )
 });
           
 const SPCard = () => {
     console.log("rendering SPCard")
-    // const { action: compound } = useSPCompound()
-    // useEstimatedAnnualInterest(false)
-    // const { data: assetPool } = useStabilityAssetPool()
-    // const { data: basket } = useBasket()
+    const { action: compound } = useSPCompound()
+    useEstimatedAnnualInterest(false)
+    const { data: assetPool } = useStabilityAssetPool()
+    const { data: basket } = useBasket()
 
-    // const revenueDistributionThreshold = 50000000
-    // const percentToDistribution = useMemo(() => {
-    //   if (!basket) return 0
-    //   return num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()
+    const revenueDistributionThreshold = 50000000
+    const percentToDistribution = useMemo(() => {
+      if (!basket) return 0
+      return num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()
 
-    // }, [basket])
+    }, [basket])
 
-    // const { bidState } = useBidState()
+    const { bidState } = useBidState()
 
     return (
         <Card width={"33%"}>
           <Stack>             
-            {/* <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(assetPool?.credit_asset.amount || 1).multipliedBy(100).toFixed(1) + "%" : "loading..."} </Text> */}
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT: {bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(assetPool?.credit_asset.amount || 1).multipliedBy(100).toFixed(1) + "%" : "loading..."} </Text>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>
               <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
               <ListItem>Max 1 Day Withdraw Time</ListItem>
             </List>
-            {/* <DepositButton /> */}
             <ActSlider />
-              {/* <HStack>
-                <Stack py="5" w="full" gap="3" mb={"0"} >
-                <Text variant="body"> Max CDT to Loop </Text>
-                <HStack>
-                    <Input 
-                      width={"40%"} 
-                      textAlign={"center"} 
-                      placeholder="0" 
-                      type="number" 
-                      value={earnState.loopMax ?? 0} 
-                      onChange={handleInputChange}
-                    />
-                    <TxButton
-                      maxW="75px"
-                      isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
-                      isDisabled={loop?.simulate.isError || !loop?.simulate.data}
-                      onClick={() => loop?.tx.mutate()}
-                      toggleConnectLabel={false}
-                      style={{ alignSelf: "end" }}
-                    >
-                      Loop
-                    </TxButton>
-                </HStack>
-                </Stack>
-              </HStack>            
-              <HStack>
-                <Stack py="5" w="full" gap="3" mb={"0"} >
-                <Text variant="body"> Did you buy CDT {`<= $`}{num(basket?.credit_price.price??"0").multipliedBy(0.985).toFixed(3)}?</Text>
-                <HStack>
-                    <Input 
-                      width={"40%"} 
-                      textAlign={"center"} 
-                      placeholder="0" 
-                      type="number" 
-                      value={earnState.redeemAmount ?? 0} 
-                      max={CDTBalance}
-                      onChange={handleRedeemInputChange}
-                    />
-                    <TxButton
-                      maxW="75px"
-                      isLoading={redeem?.simulate.isLoading || redeem?.tx.isPending}
-                      isDisabled={redeem?.simulate.isError || !redeem?.simulate.data}
-                      onClick={() => redeem?.tx.mutate()}
-                      toggleConnectLabel={false}
-                      style={{ alignSelf: "end" }}
-                    >
-                      Redeem
-                    </TxButton>
-                  </HStack>
-                </Stack>
-              </HStack>     */}
             <Divider marginTop={"3vh"}/>           
-            {/* <Slider
+            <Slider
               defaultValue={percentToDistribution}
               isReadOnly
               cursor="default"
@@ -192,7 +133,7 @@ const SPCard = () => {
               style={{ alignSelf: "center" }}
             >
               Compound
-            </TxButton> */}
+            </TxButton>
           </Stack>
         </Card>
     )

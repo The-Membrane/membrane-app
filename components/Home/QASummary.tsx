@@ -38,7 +38,7 @@ const SummaryItem = ({
   </HStack>
 )
 
-export const QASummary = ({ logo }: { logo: string }) => {
+export const QASummary = ({ logo }: { logo?: string }) => {
   const { quickActionState } = useQuickActionState()
 
   return (

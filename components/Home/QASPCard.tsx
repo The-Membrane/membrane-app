@@ -70,7 +70,7 @@ const ActSlider = React.memo(() => {
     }
 
     return (
-      <Stack gap="0">
+      <Stack gap="0"  borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
         <HStack justifyContent="space-between" padding={"4%"}>
           <Text variant="lable" textTransform="unset">
             CDT in Vault
@@ -87,7 +87,7 @@ const ActSlider = React.memo(() => {
         />
         
 
-        <HStack gap={0} padding="4%" borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
+        <HStack gap={0} padding="4%">
           <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
           <ConfirmModal 
             label={quickActionState.autoSPdeposit > 0 ? `Deposit ${actingAmount.toString()} CDT` : quickActionState.autoSPwithdrawal > 0 ?  `Withdraw ${actingAmount.toString()} CDT` : "Manage"} 

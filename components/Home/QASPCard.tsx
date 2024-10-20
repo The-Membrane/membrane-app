@@ -91,7 +91,7 @@ const ActSlider = React.memo(() => {
             isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingCDT).toNumber()}>
             <QASummary logo={logo}/>
           </ConfirmModal>
-          <Button variant="outline" width={"10"} leftIcon={<GrPowerReset />} onClick={onReset} />
+          <Button variant="outline" width={"10"} padding={0} border={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         </HStack>
       </Stack>
     )

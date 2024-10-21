@@ -83,6 +83,7 @@ const useEarn = ( ) => {
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['useVaultInfo'] })
     setEarnState({ withdraw: 0, deposit: 0 })
   }
 

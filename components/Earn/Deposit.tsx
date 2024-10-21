@@ -1,7 +1,6 @@
 import React, { ChangeEvent, use, useEffect, useMemo, useState } from 'react'
 import { Button, Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
 import { TxButton } from '@/components/TxButton'
-import useStableYieldLoop from './hooks/useStableYieldLoop'
 import { isGreaterThanZero, num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
@@ -224,7 +223,6 @@ const Deposit = () => {
   // console.log("daysSinceLaunch", daysSinceLaunch)
   
   const { data: vaultInfo } = useVaultInfo()
-  console.log("vaultInfo", vaultInfo)
   const { data: realizedAPR } = useEarnUSDCRealizedAPR()
   const { data: APRs } = useEarnUSDCEstimatedAPR() 
   const APRObject = useMemo(() => {

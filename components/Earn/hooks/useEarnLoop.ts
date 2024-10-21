@@ -53,14 +53,16 @@ const useEarnLoop = ( ) => {
   console.log("loop msg:", msgs)
 
   const onInitialSuccess = () => {
-    ///ADD A RESET FOR THE VAULT INFO QUERIES//
-    //queryClient.invalidateQueries({ queryKey: ['positions'] })
+    queryClient.invalidateQueries({ queryKey: ['useVaultInfo'] })
+    //We want the vault to resim so that the Loop button isn't incorrectly Enabled
+    //Which results in a bunch of failed transactions as users continue to click the button
+    queryClient.invalidateQueries({ queryKey: ['earn_page_management_loop_sim'] })
   }
 
   return {
     action: useSimulateAndBroadcast({
     msgs,
-    queryKey: ['earn_page_management_loop', (msgs?.toString()??"0")],
+    queryKey: ['earn_page_management_loop_sim', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
     enabled: !!msgs,
   })}

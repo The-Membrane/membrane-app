@@ -17,7 +17,7 @@ const useSPCompound = ( ) => {
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
-      'quick action SP compound',
+      'quick_action_SP_compound',
       address,
     ],
     queryFn: () => {
@@ -53,6 +53,9 @@ const useSPCompound = ( ) => {
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['user bids'] })
     queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
+    //We want the vault to resim so that the Compound button isn't incorrectly Enabled
+    //Which results in a bunch of failed transactions as users continue to click the button
+    queryClient.invalidateQueries({ queryKey: ['quick_action_SP_compound_sim'] })
   }
 
   return {

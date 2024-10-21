@@ -16,7 +16,7 @@ const Home = React.memo(() => {
       <Stack>
         <StatsCard />
       </Stack>
-      <Stack direction={isMobile ? 'column' : 'row'}> 
+      <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center"> 
         {/* Earn Vault Card */}
         <SPCard />
         {/* autoSPVault Card */}

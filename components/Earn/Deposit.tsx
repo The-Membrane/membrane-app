@@ -114,12 +114,26 @@ const ActSlider = React.memo(() => {
   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
   const usdcAsset = useAssetBySymbol('USDC')
   const usdcBalance = useBalanceByAsset(usdcAsset)
+  const { data: prices } = useOraclePrice()
+  const { data: basket } = useBasket()
+  const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
 
   const { action: earn } = useEarn()
+
+  //Find exit fee ratio (i.e. fee of 1% = 0.99)
+  const exitFeeRatio = useMemo(() => { 
+    if (!basket) return 0
+    const pegRatio = num(cdtPrice).dividedBy(basket?.credit_price.price)
+    const exitFee = pegRatio > num(0.99) ? pegRatio.minus(0.99) : 0
+    return num(1).minus(exitFee)
+   }, [cdtPrice, basket])
   
   //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
   const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
-  const underlyingUSDC = shiftDigits(data, -6).toString() ?? "1"
+  const underlyingUSDC = useMemo(() => {
+    const baseUnderlying = shiftDigits(data, -6).toString() ?? "1"
+    return num(baseUnderlying).times(exitFeeRatio).toString()
+  }, [exitFeeRatio, data])
   ////////////////////////////////////
 
   const logo = useMemo(() => {return usdcAsset?.logo}, [usdcAsset])

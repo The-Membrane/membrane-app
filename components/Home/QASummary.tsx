@@ -50,7 +50,7 @@ export const QASummary = ({ logo }: { logo?: string }) => {
     <Stack h="max-content" overflow="auto" w="full">
 
       <SummaryItem
-        key={quickActionState.autoSPdeposit > 0 && quickActionState.autoSPwithdrawal > 0 ? "CDT" : "USDC"}
+        key={quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0 ? "CDT" : "USDC"}
         label={quickActionState.autoSPdeposit > 0 || earnState.deposit > 0 ? "Deposit" : "Withdraw"}
         amount={quickActionState.autoSPdeposit > 0 ? quickActionState.autoSPdeposit 
           : quickActionState.autoSPwithdrawal > 0 ? quickActionState.autoSPwithdrawal 

@@ -45,23 +45,23 @@ const useEarn = ( ) => {
         var msgs = [] as MsgExecuteContractEncodeObject[]
         let messageComposer = new EarnMsgComposer(address, contracts.earn)
 
-        if (earnState.withdraw != 0){
+        // if (earnState.withdraw != 0){
 
-          const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
-          // find percent of underlying usdc to withdraw
-          const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
+        //   const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
+        //   // find percent of underlying usdc to withdraw
+        //   const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
   
-          // Calc VT to withdraw using the percent
-          const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
-          // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
+        //   // Calc VT to withdraw using the percent
+        //   const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
+        //   // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
     
-          // console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
+        //   // console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
     
-          const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
-          let exitMsg = messageComposer.exitVault(funds)
-          msgs.push(exitMsg)
+        //   const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
+        //   let exitMsg = messageComposer.exitVault(funds)
+        //   msgs.push(exitMsg)
 
-        }
+        // }
 
         if (earnState.deposit != 0){
 

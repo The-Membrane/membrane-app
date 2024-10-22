@@ -221,9 +221,9 @@ const Deposit = () => {
   //Days since Earn vault launch
   // const daysSinceLaunch = num(Math.floor(Date.now() / 1000) - 1727005835).dividedBy(86400)
   // console.log("daysSinceLaunch", daysSinceLaunch)
-  
+
+  const { data: realizedAPR } = useEarnUSDCRealizedAPR()  
   const { data: vaultInfo } = useVaultInfo()
-  const { data: realizedAPR } = useEarnUSDCRealizedAPR()
   const { data: APRs } = useEarnUSDCEstimatedAPR() 
   const APRObject = useMemo(() => {
     if (!APRs) return {
@@ -240,12 +240,12 @@ const Deposit = () => {
       yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
     }
   }, [APRs, vaultInfo])
-  const { longestAPR, estimatedAPRlabel } = useMemo(() => {
-    if (!APRObject) return { longestAPR: "0", estimatedAPRlabel: "N/A"}
-    if (APRObject.yearly && APRObject.yearly != "N/A") return { longestAPR: APRObject.yearly, estimatedAPRlabel: "Annual"}
-    if (APRObject.three_month && APRObject.three_month != "N/A") return { longestAPR: APRObject.three_month, estimatedAPRlabel: "Three Month"}
-    if (APRObject.monthly && APRObject.monthly != "N/A") return { longestAPR: APRObject.monthly, estimatedAPRlabel: "Monthly"}
-    return { longestAPR: APRObject.weekly, estimatedAPRlabel: "Weekly"}
+  const { longestAPR } = useMemo(() => {
+    if (!APRObject) return { longestAPR: "0" }
+    if (APRObject.yearly && APRObject.yearly != "N/A") return { longestAPR: APRObject.yearly }
+    if (APRObject.three_month && APRObject.three_month != "N/A") return { longestAPR: APRObject.three_month }
+    if (APRObject.monthly && APRObject.monthly != "N/A") return { longestAPR: APRObject.monthly }
+    return { longestAPR: APRObject.weekly }
   }, [APRObject])
   console.log("longest APR log", longestAPR)
 

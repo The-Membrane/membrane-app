@@ -9,6 +9,7 @@ export type EarnState = {
   withdraw: number
   loopMax?: number
   redeemAmount?: number
+  longestAPR?: number,
 }
 
 type Store = {

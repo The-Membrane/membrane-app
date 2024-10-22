@@ -1,6 +1,7 @@
 import { Button, Grid, GridItem, Stack, useBreakpointValue } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import SPCard from './QASPCard'
+import EarnCard from './QAEarnCard'
 
 import React, { useState } from "react"
 import { range } from 'lodash'
@@ -20,6 +21,7 @@ const Home = React.memo(() => {
         {/* autoSPVault Card */}
         <SPCard />
         {/* Earn Vault Card */}
+        <EarnCard />
         {/* Peg is _? WID Card */}
       </Stack>
     </Stack>

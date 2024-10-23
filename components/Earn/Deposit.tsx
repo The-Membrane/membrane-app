@@ -109,6 +109,7 @@ const WithdrawButton = () => {
 
 const ActSlider = React.memo(() => {
   const { earnState, setEarnState } = useEarnState()    
+  const { data: vaultInfo } = useVaultInfo()
   const earnUSDCAsset = useAssetBySymbol('earnUSDC')
   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
   const usdcAsset = useAssetBySymbol('USDC')
@@ -121,10 +122,11 @@ const ActSlider = React.memo(() => {
 
   //Find exit fee ratio (i.e. fee of 1% = 0.99)
   const exitFeeRatio = useMemo(() => { 
-    if (!basket) return 0
-    const pegRatio = num(cdtPrice).dividedBy(basket?.credit_price.price)
-    const exitFee = pegRatio > num(0.99) ? pegRatio.minus(0.99) : 0
-    return num(1).minus(exitFee)
+    return 1
+    // if (!basket) return 0
+    // const pegRatio = num(cdtPrice).dividedBy(basket?.credit_price.price)
+    // const exitFee = pegRatio > num(0.99) ? pegRatio.minus(0.99) : 0
+    // return num(1).minus(exitFee)
    }, [cdtPrice, basket])
   
   //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
@@ -189,9 +191,9 @@ const ActSlider = React.memo(() => {
       <HStack gap={0} padding="2%">
         <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
         <ConfirmModal 
-          label={earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 
+          label={(earnState.deposit > 0 && (vaultInfo?.debtAmount||0) >= 200) ? "Deposits Disabled: Debt >= 200 CDT" : earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 
           action={earn} 
-          isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingUSDC).toNumber()}>
+          isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingUSDC).toNumber() || (earnState.deposit > 0 && (vaultInfo?.debtAmount||0) >= 200)}>
           <QASummary logo={logo}/>
         </ConfirmModal>
       </HStack>

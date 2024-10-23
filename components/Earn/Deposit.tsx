@@ -286,34 +286,30 @@ const Deposit = () => {
               </HStack>
           </Card>
           <Card p="8" gap={5} width={"100%"} borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
-            {/* <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Total Deposit</Text>
-            <Text variant="body">{userTVL} USD</Text>   */}
-            {/* <HStack justifyContent="end" width={"100%"} gap={"1rem"} display={"block"}> */}
               <ActSlider />
-            {/* </HStack> */}
           </Card>
           
           <Card>
-              <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>Who is the Yield?</Text>
-              <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions, 0.5% entry fee & dynamic exit fee {'\n'}</Text>
+            
+              <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions, 0.5% entry fee but you pay unloop costs{'\n'}</Text>
+
+              <Divider />
+
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>Who is the Yield?</Text>              
               <Text variant="body" mb={1}>
                 This vault <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>supplies USDC on Mars Protocol</a> and loops it by collateralizing the Mars position to mint CDT,
                 swap it for USDC & deposit it back to the Mars USDC market. The Mars USDC market only distributes yield as borrowers repay so even if the APR is 100%, this Manic vault earns nothing until Mars borrowers repay.
                 Due to this, we can't offer a recommended deposit time to recoup the entry fee.
               </Text>
               <Text variant="body" mb={1}> The vault's collateral position is open for <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>profitable debt redemptions</a> that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.</Text>    
-              <Text variant="body" mb={1}>On top of that, there is a <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>0.5% entry fee</a> in order to account for the slippage it takes to unloop & withdraw USDC.
-                The entry fee from withdrawals will only be profitable if the slippage is lower than the max allowed slippage of 0.5%. The realized profits for the entry fee are only set once people withdraw, as beforehand there is no way to tell how much the swap's slippage will cost.
+              <Text variant="body" mb={1}>On top of that, there is a <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>0.5% entry fee</a> that is pure profit. The "catch" is that this is ayield cushion because depositors <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>are responsible for their unlooping costs</a>.
+                  So if you decide to unloop at a bad conversion rate, above 99%, you will lose some capital on the trade out, on top of slippage (max: 0.5%).
               </Text>
-              <Text variant="body" mb={1}>Similar to the entry fee, <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>the exit fee which is based on the market price distance from 99% of the peg</a> (i.e. market price @ .993 = 0.3% exit fee), is used to account for swap costs but instead of 
-              being for slippage, this is for the difference in conversion rates. The vault's minimum conversion rate during loops is 99% of the peg, so that is the floor for the exit fee, meaning price @ .99 = 0% exit fee. This means that if the conversion rate for unlooping
-              is on average below the rate for looping, these exit fees will be profitable for the vault depositors.
-              </Text>   
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>{'\n'} Why does my TVL fluctuate?</Text>
               <Text variant="body" mb={1}>Your TVL represents a portion of the vault's TVL. The vault's TVL may temporary decrease as <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>it takes $1 of CDT in protocol debt and sells it on the market</a>,
                the lowest conversion rate being $0.99. This difference will be recouped as the vault's CDP position gets redeemed against & from the entry fee of any deposits. 
-               Redemptions & the entry fee to remaining users can be profitable as stated above, making these fluctuations temporary & part of the vault's normal functionality. 
-               Additionally the app incorporates the current exit fee to your TVL, so if you see oscillations outside of looping periods, its because price is floating above 99% of the peg.</Text>
+               Redemptions can be profitable if our loop conversion rate is above 99% & at least even at the 99% floor. This makes any TVL fluctuations temporary & part of the vault's normal functionality. 
+              </Text>
             </Card>
         </Stack>
         <Stack>    
@@ -335,6 +331,7 @@ const Deposit = () => {
                 </HStack>    
                     
                 <Divider />
+
                 <Stack>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
                   <Text variant="body" fontWeight={"bold"}>{(num(longestAPR).dividedBy(100).multipliedBy(userTVL)).toFixed(2)} USD</Text>  

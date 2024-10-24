@@ -268,7 +268,7 @@ const Deposit = () => {
     setEarnState({ redeemAmount: parseInt(e.target.value) })
   }
 
-
+console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.error)
   return (
     <Stack>
       <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>        

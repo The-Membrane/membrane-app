@@ -61,7 +61,7 @@ export const useEarnUSDCRealizedAPR = () => {
             // console.log("APR calcs", APR.dividedBy(runningDuration/(86400*365)).toString(), runningDuration.toString(), claimTracker)
 
             //Divide the APR by the duration in years
-            return { apr: APR.dividedBy(runningDuration/(86400*365)).toString(), negative }
+            return { apr: APR.dividedBy(runningDuration/(86400*365)).toString(), negative, runningDuration: num(runningDuration).dividedBy(86400).dp(0) }
 
         },
     })

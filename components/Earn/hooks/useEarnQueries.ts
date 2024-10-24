@@ -7,6 +7,7 @@ import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
 import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
+import { convertBaseUnitToDollarValue } from "@chain-registry/utils"
 
 export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
     console.log("usdc log", vtAmount)
@@ -43,7 +44,17 @@ export const useEarnUSDCRealizedAPR = () => {
         queryKey: ['useEarnUSDCRealizedAPR'],
         queryFn: async () => {
             const claimTracker = await getEarnUSDCRealizedAPR()
+            const currentClaim = await getUnderlyingUSDC("1000000000000")
+            const blockTime = await cdpClient().then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
+            const time_since_last_checkpoint = blockTime - claimTracker.last_updated
+            const currentClaimTracker = {
+                vt_claim_of_checkpoint: currentClaim,
+                time_since_last_checkpoint
+            }
+            console.log("claim tracker", currentClaimTracker)
 
+            //Add the current claim to the claim tracker
+            claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
             //Parse the claim tracker to get the realized APR//
             const runningDuration = claimTracker.vt_claim_checkpoints.reduce((acc, checkpoint) => {
                 return acc + checkpoint.time_since_last_checkpoint

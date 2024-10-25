@@ -38,7 +38,7 @@ const useLP = ({ txSuccess }: Props) => {
       //CL LP range flucuates so we havbe a config RATIO
       const CDTInAmount = num(microAmount).multipliedBy(1 - USDC_CL_RATIO).toNumber()
       const USDCTradeAmount = num(microAmount).multipliedBy(USDC_CL_RATIO).toNumber()
-      console.log("here")
+      console.log("here", cdtPrice, usdcPrice)
       const { msg, tokenOutMinAmount } = handleCollateralswaps(address, Number(cdtPrice!.price), Number(usdcPrice!.price), 'USDC' as keyof exported_supportedAssets, USDCTradeAmount)
       console.log("here1")
 

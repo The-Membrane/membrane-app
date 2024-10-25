@@ -38,14 +38,18 @@ const useLP = ({ txSuccess }: Props) => {
       //CL LP range flucuates so we havbe a config RATIO
       const CDTInAmount = num(microAmount).multipliedBy(1 - USDC_CL_RATIO).toNumber()
       const USDCTradeAmount = num(microAmount).multipliedBy(USDC_CL_RATIO).toNumber()
+      console.log("here")
       const { msg, tokenOutMinAmount } = handleCollateralswaps(address, Number(cdtPrice!.price), Number(usdcPrice!.price), 'USDC' as keyof exported_supportedAssets, USDCTradeAmount)
+      console.log("here1")
 
       var msgs = [msg]
 
       //Build LP msg
       const CDTCoinIn = coin(CDTInAmount.toString(), cdtAsset?.base!)
       const USDCCoinIn = coin(tokenOutMinAmount.toString(), usdcAsset?.base!)
+      console.log("here2")
       const LPmsg = joinCLPools(address, CDTCoinIn, 1268, USDCCoinIn)
+      console.log("here3")
 
       msgs.push(LPmsg as MsgExecuteContractEncodeObject)
       console.log("LP msgs", LPmsg)

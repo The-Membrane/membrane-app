@@ -289,6 +289,8 @@ console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.
               <ActSlider />
           </Card>
           
+          {(vaultInfo?.debtAmount??0) >= 200 ? <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} color={"#e73a3a"} >Alert: Deposits DISABLED when above 200 debt</Text> : null}
+
           <Card>
             
               <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions, 0.5% entry fee but you pay unloop costs (not calc'd into your TVL){'\n'}</Text>

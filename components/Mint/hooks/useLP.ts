@@ -50,7 +50,7 @@ const useLP = ({ txSuccess }: Props) => {
       console.log("LP msgs", LPmsg)
       return msgs as MsgExecuteContractEncodeObject[]
     },
-    enabled: !!address && LPState.newCDT !== 0,
+    enabled: !!address,
   })
 
   const onSuccess = () => {
@@ -62,9 +62,9 @@ const useLP = ({ txSuccess }: Props) => {
 
   return useSimulateAndBroadcast({
     msgs,
-    queryKey: [],
-    amount: LPState.newCDT.toString(),
+    queryKey: ['CL_pool_LP', (msgs?.toString()??"0")],
     onSuccess,
+    enabled: !!msgs,
   })
 }
 

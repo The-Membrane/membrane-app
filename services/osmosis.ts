@@ -609,6 +609,7 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
     //Swap tokenOutdenom of the route to the key of the route
     routes = routes.map((route) => {
         let routeDenom = route.tokenOutDenom as string;
+        console.log("before routeKey", cdtRoutes["CDT"][0].tokenOutDenom, routeDenom, route.poolId)
         let routeKey = Object.keys(cdtRoutes).find(key => cdtRoutes[key as keyof exported_supportedAssets][0].tokenOutDenom === routeDenom && route.poolId === cdtRoutes[key as keyof exported_supportedAssets][0].poolId);
         console.log("routeKey", routeKey)
 

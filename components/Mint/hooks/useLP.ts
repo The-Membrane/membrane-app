@@ -47,7 +47,7 @@ const useLP = ({ txSuccess }: Props) => {
       const LPmsg = joinCLPools(address, CDTCoinIn, 1268, USDCCoinIn)
 
       msgs.push(LPmsg as MsgExecuteContractEncodeObject)
-                
+      console.log("LP msgs", LPmsg)
       return msgs as MsgExecuteContractEncodeObject[]
     },
     enabled: !!address && LPState.newCDT !== 0,

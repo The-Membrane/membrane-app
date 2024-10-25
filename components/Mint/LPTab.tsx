@@ -34,9 +34,11 @@ const LPTab = React.memo(() => {
     const [ inputAmount, setInputAmount ] = useState(0);
     
     const txSuccess = () => {
-        setLPState({ newCDT: 0})
+      setLPState({ newCDT: 0})
     }
     const LP = useLP({ txSuccess })
+    console.log("LP", LP.simulate.data, LP.tx.error, LP.tx.isError)
+
 
     const onCDTChange = (value: number) => {
       setLPState({ ...LPState, newCDT: value})

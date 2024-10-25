@@ -24,10 +24,11 @@ const useLP = ({ txSuccess }: Props) => {
   const { address } = useWallet()
   const { data: prices } = useOraclePrice()
 
+
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: ['bid', 'msgs', address, LPState.newCDT, prices, cdtAsset, usdcAsset],
     queryFn: () => {
-      if (!address || !prices || !cdtAsset || !usdcAsset || LPState.newCDT === 0) return
+      if (!address || !prices || !cdtAsset || !usdcAsset || LPState.newCDT === 0) {console.log("LP attempt", address , prices, cdtAsset, usdcAsset, LPState.newCDT); return [];}
 
       const microAmount = shiftDigits(LPState.newCDT, 6).dp(0).toString()
 

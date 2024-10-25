@@ -552,10 +552,12 @@ const getCDTtokenOutAmount = (tokenInAmount: number, cdtPrice: number, swapFromP
 const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof exported_supportedAssets) => {
     // console.log(tokenIn)
     var route = cdtRoutes[tokenIn];
+    console.log("cdtRoutes", route)
     //to protect against infinite loops
     var iterations = 0;
 
     while (route != undefined && route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] && iterations < 5) {
+        console.log("route denoms", route[route.length - 1].tokenOutDenom === denoms[tokenOut??"CDT"][0] as string)
         if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
 
         //Find the key from this denom
@@ -600,7 +602,8 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
 
 //Parse through saved Routes until we reach CDT
 const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap routes
-    const { route: temp_routes, foundToken: _ } = getCDTRoute(tokenOut);
+    const { route: temp_routes, foundToken, } = getCDTRoute(tokenOut);
+    console.log("cdt routes", temp_routes, foundToken)
     //Reverse the route
     var routes = temp_routes.reverse();
     //Swap tokenOutdenom of the route to the key of the route

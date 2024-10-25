@@ -293,7 +293,7 @@ console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.
 
           <Card>
             
-              <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions, 0.5% entry fee but you pay unloop costs (not calc'd into your TVL){'\n'}</Text>
+              <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions, 0.5% entry fee but you pay unloop cost{'\n'}</Text>
 
               <Divider />
 

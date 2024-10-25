@@ -30,7 +30,7 @@ export const registry = new Registry(protoRegistry)
 export const aminoTypes = new AminoTypes(aminoConverters)
 
 export const stargazeRPCUrl = 'https://rpc.cosmos.directory/stargaze'
-export const rpcUrl = 'https://osmosis-rpc.polkachu.com/'
+export const rpcUrl = 'https://rpc.cosmos.directory/osmosis'//'https://osmosis-rpc.polkachu.com/'
 
 export const delayTime = 1200; // State update Delay time in millisecond
 export const loopMax = 5;

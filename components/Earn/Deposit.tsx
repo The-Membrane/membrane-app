@@ -289,7 +289,7 @@ console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.
               <ActSlider />
           </Card>
           
-          {(vaultInfo?.debtAmount??0) >= 200 ? <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} color={"#e73a3a"} >Alert: Deposits DISABLED when above 200 debt</Text> : null}
+          {(vaultInfo?.debtAmount??0) >= 200 ? <Text variant="title" justifyContent="flex" display={"flex"} fontSize={"md"} letterSpacing={"1px"} mb={1} color={"#e73a3a"} >Alert: Deposits DISABLED while above 200 debt</Text> : null}
 
           <Card>
             

@@ -626,13 +626,20 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 
 //Swapping CDT to collateral
 export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
+    console.log("herein 1")
     //Get tokenOutAmount
     const decimalDiff = denoms[tokenOut][1] as number - 6;
     // const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -decimalDiff);
     const tokenOutAmount = shiftDigits(getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice), decimalDiff);
+    console.log("herein 2")
+
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
+    console.log("herein 3")
+
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
+    console.log("herein 4")
+
 
     const msg = swapExactAmountIn({
         sender: address as string,
@@ -640,6 +647,7 @@ export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOu
         tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
         tokenOutMinAmount
     });
+    console.log("herein 5")
 
     // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {// console.log(res)});
     return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};

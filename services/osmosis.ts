@@ -607,12 +607,12 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
     //Reverse the route
         console.log("pre")
     temp_routes.reverse();
+    console.log("before routeKey", cdtRoutes["CDT"][0].tokenOutDenom)
         console.log("post", temp_routes)
     var routes = temp_routes;
     //Swap tokenOutdenom of the route to the key of the route
     routes = routes.map((route) => {
-        console.log("pre", route.tokenOutDenom)
-        console.log("before routeKey", cdtRoutes["CDT"][0].tokenOutDenom, route.tokenOutDenom, route.poolId)
+        console.log("pre", route.tokenOutDenom, route.poolId)
         let routeKey = Object.keys(cdtRoutes).find(key => cdtRoutes[key as keyof exported_supportedAssets][0].tokenOutDenom === route.tokenOutDenom && route.poolId === cdtRoutes[key as keyof exported_supportedAssets][0].poolId);
         console.log("routeKey", routeKey)
 

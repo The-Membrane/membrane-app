@@ -61,6 +61,8 @@ const useLP = ({ txSuccess }: Props) => {
     txSuccess?.()
   }
 
+  console.log("outisde LP msgs", msgs)
+
   return useSimulateAndBroadcast({
     msgs,
     queryKey: ['CL_pool_LP', (msgs?.toString()??"0")],

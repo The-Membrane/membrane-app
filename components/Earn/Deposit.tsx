@@ -291,7 +291,7 @@ console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.
           
           <Card>
             
-              <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions, 0.5% entry fee but you pay unloop costs{'\n'}</Text>
+              <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions, 0.5% entry fee but you pay unloop costs (not calc'd into your TVL){'\n'}</Text>
 
               <Divider />
 
@@ -317,7 +317,7 @@ console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.
             <Stack>
               <HStack spacing="5" alignItems="flex-start">
                 <Stack>                  
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">{realizedAPR?.runningDuration.toString()}D </Text>
+                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "N/A"} </Text>
                   <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">APR </Text>
                   <Divider marginTop={1} marginBottom={1}/>
                   <Text variant="body" justifyContent={"center"} display="flex" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>

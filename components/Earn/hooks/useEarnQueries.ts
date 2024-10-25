@@ -48,7 +48,7 @@ export const useEarnUSDCRealizedAPR = () => {
             const blockTime = await cdpClient().then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
-                vt_claim_of_checkpoint: currentClaim,
+                vt_claim_of_checkpoint: num(currentClaim).minus(40237).toString(), //subtracting gains from the exit bug
                 time_since_last_checkpoint
             }
             console.log("claim tracker", currentClaimTracker)

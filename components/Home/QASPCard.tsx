@@ -122,7 +122,7 @@ const SPCard = () => {
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="#20d6ff">Earn CDT</Text>
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>Estimated APR: </a>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(assetPool?.credit_asset.amount || 1).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>Estimated APR: &nbsp;</a>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(assetPool?.credit_asset.amount || 1).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>

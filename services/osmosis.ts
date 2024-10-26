@@ -602,11 +602,18 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
 
 //Parse through saved Routes until we reach CDT
 const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap routes
+    //Hardcoded route for USDC since the dynamic routing logic is breaking
+    if (tokenOut === "USDC") {
+        return [{ poolId: 1268, tokenOutDenom: denoms.USDC[0] as string }];
+    }
+
+
     const { route: temp_routes, foundToken, } = getCDTRoute(tokenOut);
     console.log("cdt routes", temp_routes, foundToken)
     //Reverse the route
         console.log("pre")
     temp_routes.reverse();
+    //This route key logic is breaking the fn
     console.log("before routeKey", cdtRoutes["CDT"][0].tokenOutDenom)
         console.log("post", temp_routes)
     var routes = temp_routes;

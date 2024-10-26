@@ -149,14 +149,14 @@ const EarnCard = () => {
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(196, 69, 240)">Earn USDC</Text>
             <Stack>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR:</a> {realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>Estimated APR:</a> {longestAPR}%</Text>
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR: </a> {realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>Estimated APR: </a> {longestAPR}%</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>
-              <ListItem>Max 1 Day Withdraw Time</ListItem>
-              <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
+              <ListItem><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>Yield:</a> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
+              <ListItem>You pay unloop costs to exit</ListItem>
+              <ListItem>Deposits disabled above 200 Vault debt</ListItem>
             </List>
             <ActSlider />
             <Divider marginTop={"3vh"}/>           

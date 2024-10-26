@@ -10,9 +10,10 @@ export type SliderProps = {
   summary?: any[]
   width?: string
   padding?: string
+  color?: string
 }
 
-export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walletCDT = 0, summary = [], width, padding }: SliderProps) => {
+export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walletCDT = 0, summary = [], width, padding, color }: SliderProps) => {
   return (
     <Slider
       width={width}
@@ -26,9 +27,9 @@ export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walle
       isDisabled={max === 0 && (walletCDT === 0 || summary.length === 0)}
     >
       <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
-        <SliderFilledTrack bg="#C445F0" />
+        <SliderFilledTrack bg={color ?? "#C445F0"} />
       </SliderTrack>
-      <SliderThumb boxSize={6} bg="#C445F0" cursor="grab" border="2px solid #E2D8DA" zIndex={0}/>
+      <SliderThumb boxSize={6} bg={color ?? "#C445F0"} cursor="grab" border="2px solid #E2D8DA" zIndex={0}/>
     </Slider>
   )
 }

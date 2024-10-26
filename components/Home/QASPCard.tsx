@@ -70,7 +70,7 @@ const ActSlider = React.memo(() => {
     }
 
     return (
-      <Stack gap="0" borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
+      <Stack gap="0" borderWidth={"7px"} borderColor="#20d6ff" borderRadius={"2rem"}>
         <HStack justifyContent="space-between" padding={"4%"}>
           <Text variant="lable" textTransform="unset">
             CDT in Vault
@@ -80,6 +80,7 @@ const ActSlider = React.memo(() => {
           </HStack>
         </HStack>
         <SliderWithState 
+          color="#20d6ff"
           width="92%"
           padding="4%"
           value={num(underlyingCDT).minus(quickActionState.autoSPwithdrawal).plus(quickActionState.autoSPdeposit).toNumber()} 
@@ -121,8 +122,8 @@ const SPCard = () => {
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex"  color="#20d6ff">Earn CDT</Text>
-            <Divider marginBottom={"3vh"}/> 
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex">Estimated APR: {bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(assetPool?.credit_asset.amount || 1).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
+            <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>
               <ListItem>Max 1 Day Withdraw Time</ListItem>
@@ -139,7 +140,7 @@ const SPCard = () => {
               value={percentToDistribution}
             >
               <SliderTrack h="1.5">
-                <SliderFilledTrack bg={'blue.400'} />
+                <SliderFilledTrack bg={'#20d6ff'} />
               </SliderTrack>
             </Slider>
             <TxButton

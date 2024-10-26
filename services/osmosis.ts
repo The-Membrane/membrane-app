@@ -71,8 +71,22 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
     return debt_value / position_value;
 }
 
+export const OsmosisClient = async () => {
+    const { createRPCQueryClient } = osmosis.ClientFactory;
+    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: "https://osmosis-rpc.polkachu.com/" })
+    return osmosisClient
+  }
+
+  export const getCLRewards = async (positionId: number) => {
+    const osmosisClient = await OsmosisClient()
+    const rewards = await osmosisClient.osmosis.concentratedliquidity.v1beta1.claimableSpreadRewards({
+        positionId: BigInt(positionId),
+    })  
+    return rewards
+  }
+
 //////Quick Action functions
-//Initialize osmosis client
+// Initialize osmosis client
 // const [osmosisQueryClient, setosmosisQueryClient] = useState<any | null>(null);
 // //Get Osmosis Client
 // useEffect(() => {

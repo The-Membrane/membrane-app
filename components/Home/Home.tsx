@@ -21,7 +21,7 @@ const Home = React.memo(() => {
         {/* autoSPVault Card */}
         <SPCard />
         {/* Earn Vault Card */}
-        {/* <EarnCard /> */}
+        <EarnCard />
         {/* Peg is _? WID Card */}
       </Stack>
     </Stack>

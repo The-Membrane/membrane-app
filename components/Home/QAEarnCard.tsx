@@ -147,10 +147,10 @@ const EarnCard = () => {
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn USDC</Text>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(196, 69, 240)">Earn USDC</Text>
             <Stack>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR: {realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">Estimated APR: {longestAPR}%</Text>
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex">{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR: {realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex">Estimated APR: {longestAPR}%</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">

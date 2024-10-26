@@ -147,28 +147,14 @@ const EarnCard = () => {
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn CDT</Text>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" >Earn USDC</Text>
             <Stack>
               <HStack spacing="5" alignItems="flex-start">
                 <Stack>                  
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">Realized </Text>
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">APR </Text>
-                  <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" justifyContent={"center"} display="flex" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
+                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR: {realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
+                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">Estimated APR: {longestAPR}%</Text>
                 </Stack>
-                <Stack>
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">Estimated</Text>
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">APR </Text>
-                  <Divider marginTop={1} marginBottom={1}/>
-                  <Text variant="body" justifyContent={"center"} display="flex" fontWeight={"bold"} >{longestAPR}% </Text>
-                </Stack>
-                </HStack>    
-                    
-                <Divider />
-                <Stack>
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
-                  <Text variant="body" fontWeight={"bold"}>{(num(longestAPR).dividedBy(100).multipliedBy(pendingBalance)).toFixed(2)} USD</Text>  
-                </Stack>
+                </HStack>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">

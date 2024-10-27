@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
 import { cdpClient, getUserDiscount } from "@/services/cdp"
-import { getUnderlyingUSDC, getUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest } from "@/services/earn"
+import { getUnderlyingUSDC, getUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR } from "@/services/earn"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
@@ -52,6 +52,45 @@ export const useEarnUSDCRealizedAPR = () => {
                 time_since_last_checkpoint
             }
             console.log("claim tracker", currentClaimTracker)
+
+            //Add the current claim to the claim tracker
+            claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
+            //Parse the claim tracker to get the realized APR//
+            const runningDuration = claimTracker.vt_claim_checkpoints.reduce((acc, checkpoint) => {
+                return acc + checkpoint.time_since_last_checkpoint
+            }, 0);
+
+            var APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[0].vt_claim_of_checkpoint).minus(1)
+            var negative = false
+
+            //If the APR is negative, set the negative flag to true and multiply the APR by -1
+            if (APR.toNumber() < 0) {
+                APR = APR.times(-1)
+                negative = true
+            }
+            
+            // console.log("APR calcs", APR.dividedBy(runningDuration/(86400*365)).toString(), runningDuration.toString(), claimTracker)
+
+            //Divide the APR by the duration in years
+            return { apr: APR.dividedBy(runningDuration/(86400*365)).toString(), negative, runningDuration: num(runningDuration).dividedBy(86400).dp(0) }
+
+        },
+    })
+}
+
+export const useEarnCDTRealizedAPR = () => {
+    return useQuery({
+        queryKey: ['useCDTUSDCRealizedAPR'],
+        queryFn: async () => {
+            const claimTracker = await getEarnCDTRealizedAPR()
+            const currentClaim = await getUnderlyingCDT("1000000000000")
+            const blockTime = await cdpClient().then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
+            const time_since_last_checkpoint = blockTime - claimTracker.last_updated
+            const currentClaimTracker = {
+                vt_claim_of_checkpoint: num(currentClaim).toString(), //subtracting gains from the exit bug
+                time_since_last_checkpoint
+            }
+            console.log("autoSP claim tracker", currentClaimTracker)
 
             //Add the current claim to the claim tracker
             claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
@@ -191,8 +230,7 @@ export const useVaultInfo = () => {
             //////////////////
 
             //Calc the cost of the debt using the ratio of debt to collateral * the leverage
-            const cost = 0
-            //Cost is 0 for now bc it gets 100% discounts //num(debtToCollateral).times(basket?.lastest_collateral_rates[31].rate || 1)
+            const cost = num(debtToCollateral).times(basket?.lastest_collateral_rates[31].rate || 1)
             console.log("Earn cost", cost.toString(), debtToCollateral.toString(), basket?.lastest_collateral_rates[31], leverage.toString())
             return {
                 totalTVL: totalVTValue,

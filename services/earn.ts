@@ -48,6 +48,13 @@ export const getEarnUSDCRealizedAPR = async () => {
   return client.aPR().then((res) => res) as Promise<ClaimTracker> 
 }
 
+export const getEarnCDTRealizedAPR = async () => {
+  const cosmWasmClient = await getCosmWasmClient()  
+  return cosmWasmClient.queryContractSmart(contracts.autoStabilityPool, {
+    claim_tracker: { }
+  }) as Promise<ClaimTracker> 
+}
+
 export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse, userDiscountQueries: any[]) => {
   var totalExpectedRevenue = 0
   var undiscountedTER = 0

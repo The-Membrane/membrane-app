@@ -71,7 +71,7 @@ const ActSlider = React.memo(() => {
     }
 
     return (
-      <Stack gap="0" borderWidth={"7px"} borderColor="rebeccapurple" borderRadius={"2rem"}>
+      <Stack gap="0" borderWidth={"7px"} borderColor="#20d6ff" borderRadius={"2rem"}>
         <HStack justifyContent="space-between" padding={"4%"}>
           <Text variant="lable" textTransform="unset">
             USDC in Vault
@@ -80,7 +80,8 @@ const ActSlider = React.memo(() => {
             <Text variant="value">${pendingBalance.toFixed(2)}</Text>
           </HStack>
         </HStack>
-        <SliderWithState 
+        <SliderWithState
+          color="#20d6ff"
           width="92%"
           padding="4%"
           value={num(underlyingUSDC).minus(earnState.withdraw).plus(earnState.deposit).toNumber()} 

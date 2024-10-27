@@ -18,12 +18,12 @@
   }
   .neonSign {
     font: 400 4vh "Vibur";
-    color: #50C9BD;
-    text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 0.01em #50C9BD, 0 0 0.01em #50C9BD, 0 0 0.01em #50C9BD, 0 10px 3px #000;}
+    color: #20d6ff;
+    text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 10px 3px #000;}
   .neonSignon {
     font: 400 4vh "Vibur";
     color: #fee;
-    text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 1em #50C9BD, 0 0 0.5em #50C9BD, 0 0 0.1em #50C9BD, 0 10px 3px #000;
+    text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 1em #20d6ff, 0 0 0.5em #20d6ff, 0 0 0.1em #20d6ff, 0 10px 3px #000;
   }
   .neonSign b span {
     display: inline-block;
@@ -79,7 +79,7 @@
     }
   }
   .brand-blue {
-    color: #50C9BD;
+    color: #20d6ff;
   }
 
 .leap-dialog-content {

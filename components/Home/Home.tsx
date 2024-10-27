@@ -11,13 +11,22 @@ import useWallet from '@/hooks/useWallet'
 
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
-
+  const [sign, setSign] = React.useState("");
+  
   return (
     <Stack>
       <Stack>
         <StatsCard />
       </Stack>
       <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center"> 
+        <div onMouseEnter={()=>{setSign("on")}} onMouseLeave={()=>{setSign("")}}>
+          <h5 className={`neonSign${sign}`}>
+            <b>
+              <a>E</a><span>X</span><a>P</a><span>E</span><a>R</a><span>I</span><a>M</a><span>E</span><a>N</a><span>T</span><a>A</a><span>L</span>
+              <a>V</a><span>A</span><a>U</a><span>L</span><a>T</a><span>S</span>
+            </b>
+          </h5>
+        </div>
         {/* autoSPVault Card */}
         <SPCard />
         {/* Earn Vault Card */}

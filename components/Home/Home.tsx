@@ -9,6 +9,7 @@ import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import PerformanceStats from './PerformanceStats'
 import useWallet from '@/hooks/useWallet'
 
+
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   const [sign, setSign] = React.useState("on");
@@ -19,7 +20,7 @@ const Home = React.memo(() => {
         <StatsCard />
       </Stack>
       <Stack>        
-        <div onMouseEnter={()=>{setSign("on")}} onMouseLeave={()=>{setSign("on")}} style="padding-bottom: 1.5%;">
+        <div className="paddingBottom" onMouseEnter={()=>{setSign("on")}} onMouseLeave={()=>{setSign("on")}}>
           <h5 className={`neonSign${sign}`}>
             <b>
               <a>E</a><span>X</span><a>P</a><span>E</span><a>R</a><span>I</span><a>M</a><span>E</span><a>N</a><span>T</span><a>A</a><span>L</span>

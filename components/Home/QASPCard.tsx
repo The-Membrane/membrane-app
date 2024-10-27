@@ -134,7 +134,7 @@ const SPCard = () => {
               <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
             </List>
             <ActSlider />
-            <Divider marginTop={"3vh"}/>           
+            <Divider marginTop={"3"} marginBottom={"3"}/>           
             <Slider
               defaultValue={percentToDistribution}
               isReadOnly

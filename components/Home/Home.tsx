@@ -19,7 +19,7 @@ const Home = React.memo(() => {
         <StatsCard />
       </Stack>
       <Stack>        
-        <div onMouseEnter={()=>{setSign("on")}} onMouseLeave={()=>{setSign("on")}}>
+        <div onMouseEnter={()=>{setSign("on")}} onMouseLeave={()=>{setSign("on")}} padding-bottom={"1"}>
           <h5 className={`neonSign${sign}`}>
             <b>
               <a>E</a><span>X</span><a>P</a><span>E</span><a>R</a><span>I</span><a>M</a><span>E</span><a>N</a><span>T</span><a>A</a><span>L</span>

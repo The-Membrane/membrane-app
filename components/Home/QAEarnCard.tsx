@@ -147,14 +147,14 @@ const EarnCard = () => {
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(196, 69, 240)">Earn USDC</Text>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn USDC</Text>
             <Stack>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR: &nbsp;</a> {realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>Estimated APR: &nbsp;</a> {longestAPR}%</Text>
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR: &nbsp;</a> {realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a> {longestAPR}%</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem><a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>Yield:</a> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
+              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
               <ListItem>You pay unloop costs to exit</ListItem>
               <ListItem>Deposits disabled above 200 Vault debt</ListItem>
             </List>

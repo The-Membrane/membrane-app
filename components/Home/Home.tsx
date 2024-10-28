@@ -3,11 +3,7 @@ import { StatsCard } from '../StatsCard'
 import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
 
-import React, { useState } from "react"
-import { range } from 'lodash'
-import { MAX_CDP_POSITIONS } from '@/config/defaults'
-import PerformanceStats from './PerformanceStats'
-import useWallet from '@/hooks/useWallet'
+import React, { useEffect, useState } from "react"
 import { getBestCLRange } from '@/services/osmosis'
 
 
@@ -15,7 +11,24 @@ const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   const [sign, setSign] = React.useState("on");
   const { data: clRewardList } = getBestCLRange()
-  console.log(" clRewardList",  clRewardList)
+
+  //Find the largest range of CL positions
+  var largestRange = { lower: 0, upper: 0 }
+  useEffect(() => {
+    if (clRewardList) {
+      for (const position of clRewardList) {
+        if (position.reward != 0) {
+          if (position.position.upperTick === largestRange.lower) {
+            largestRange = { lower: position.position.upperTick, upper: largestRange.upper }
+          }
+          if (position.position.lowerTick === largestRange.upper) {
+            largestRange = { upper: position.position.lowerTick, lower: largestRange.lower }
+          }
+        }
+      }
+    }
+  }, [clRewardList])
+  console.log("Largest Range", largestRange)
   
   return (
     <Stack>

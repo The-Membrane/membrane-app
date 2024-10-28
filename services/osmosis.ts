@@ -1,4 +1,4 @@
-import { cdtRoutes, denoms, mainnetAddrs, SWAP_SLIPPAGE } from "@/config/defaults";
+import { cdtRoutes, denoms, mainnetAddrs, rpcUrl, SWAP_SLIPPAGE, clPositions } from "@/config/defaults";
 import { getPriceByDenom, Price } from "@/services/oracle";
 import { Coin, coin, coins } from "@cosmjs/amino";
 
@@ -27,6 +27,7 @@ import { num } from "@/helpers/num";
 import useWallet from "@/hooks/useWallet";
 import useQuickActionVaultSummary from "@/components/Home/hooks/useQuickActionVaultSummary";
 import { shiftDigits } from "@/helpers/math";
+import { useQuery } from "@tanstack/react-query";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -73,17 +74,31 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 
 export const OsmosisClient = async () => {
     const { createRPCQueryClient } = osmosis.ClientFactory;
-    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: "https://osmosis-rpc.polkachu.com/" })
+    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: rpcUrl })
     return osmosisClient
-  }
+}
 
-  export const getCLRewards = async (positionId: number) => {
+export const getCLRewards = async (positionId: number) => {
     const osmosisClient = await OsmosisClient()
     const rewards = await osmosisClient.osmosis.concentratedliquidity.v1beta1.claimableSpreadRewards({
         positionId: BigInt(positionId),
     })  
     return rewards
-  }
+}
+
+export const getBestCLRange = () => {
+    return useQuery({
+        queryKey: ['getBestCLRange'],
+        queryFn: async () => {
+            //Initialize APR list
+            var aprList = [];
+            //Parse through all positions
+            for (const position of clPositions) {
+                console.log(position.id);
+            }
+        },
+    })
+}
 
 //////Quick Action functions
 // Initialize osmosis client

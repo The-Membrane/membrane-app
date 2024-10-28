@@ -15,7 +15,7 @@ const Stake = React.memo(() => {
         <ManageStake />
         {!isMobile ? <>
           <Delegate />
-          <AuctionClaim />
+          {/* <AuctionClaim /> */}
         </>
       : null}
       </Stack>

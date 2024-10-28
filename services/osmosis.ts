@@ -116,8 +116,9 @@ export const getBestCLRange = () => {
             var rewardList = [];
             //Parse through all positions
             for (const position of clRewards) {
+                console.log(" clRewards position",  position)
                 //Add reward totals
-                const totalReward = position.reward ? parseInt(position.reward.claimableSpreadRewards[0].amount) + parseInt(position.reward.claimableSpreadRewards[1].amount) : 0;
+                const totalReward = position.reward && position.reward.claimableSpreadRewards.length == 2 ? parseInt(position.reward.claimableSpreadRewards[0].amount) + parseInt(position.reward.claimableSpreadRewards[1].amount) : 0;
 
                 //Add position to list
                 rewardList.push({ position: position.position, reward: totalReward });

@@ -103,13 +103,14 @@ export const getLPRewards = () => {
 
 export const getBestCLRange = () => {
     const clRewardsData = getLPRewards()
-    const clRewards = clRewardsData.map((reward, index) => {
-        return {reward: reward.data, position: clPositions[index]}
-    })
 
     return useQuery({
-        queryKey: ['getBestCLRange', clRewards],
+        queryKey: ['getBestCLRange', clRewardsData],
         queryFn: async () => {
+            //Set rewards            
+            const clRewards = clRewardsData.map((reward, index) => {
+                return {reward: reward.data, position: clPositions[index]}
+            })
             //Initialize Rewards list
             var rewardList = [];
             //Parse through all positions

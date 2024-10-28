@@ -123,23 +123,23 @@ const EarnCard = () => {
     const { data: APRs } = useEarnUSDCEstimatedAPR() 
     const APRObject = useMemo(() => {
       if (!APRs) return {
-        weekly: "N/A",
-        monthly: "N/A",
-        three_month: "N/A",
-        yearly: "N/A",
+        weekly: "loading...",
+        monthly: "loading...",
+        three_month: "loading...",
+        yearly: "loading...",
       }
       return {
-        weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-        monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-        three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-        yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
+        weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "loading...",
+        monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "loading...",
+        three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "loading...",
+        yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "loading...",
       }
     }, [APRs, vaultInfo])
     const { longestAPR } = useMemo(() => {
       if (!APRObject) return { longestAPR: "0" }
-      if (APRObject.yearly && APRObject.yearly != "N/A") return { longestAPR: APRObject.yearly }
-      if (APRObject.three_month && APRObject.three_month != "N/A") return { longestAPR: APRObject.three_month }
-      if (APRObject.monthly && APRObject.monthly != "N/A") return { longestAPR: APRObject.monthly }
+      if (APRObject.yearly && APRObject.yearly != "loading...") return { longestAPR: APRObject.yearly }
+      if (APRObject.three_month && APRObject.three_month != "loading...") return { longestAPR: APRObject.three_month }
+      if (APRObject.monthly && APRObject.monthly != "loading...") return { longestAPR: APRObject.monthly }
       return { longestAPR: APRObject.weekly }
     }, [APRObject])
 
@@ -150,8 +150,8 @@ const EarnCard = () => {
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn USDC</Text>
             <Stack>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "loading..."}%</a></Text>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a> {longestAPR}%</Text>
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a> {longestAPR + "%"}</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">

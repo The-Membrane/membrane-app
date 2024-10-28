@@ -103,6 +103,7 @@ export const getLPRewards = () => {
 
 export const getBestCLRange = () => {
     const clRewardsData = getLPRewards()
+    console.log(" clRewardsData",  clRewardsData)
 
     return useQuery({
         queryKey: ['getBestCLRange', clRewardsData],

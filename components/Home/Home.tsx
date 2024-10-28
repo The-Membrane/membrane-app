@@ -13,15 +13,15 @@ const Home = React.memo(() => {
   const { data: clRewardList } = getBestCLRange()
 
   //Find the largest range of CL positions
-  var largestRange = { lower: 0, upper: 0 }
+  var largestRange = { lower: undefined, upper: undefined }
   useEffect(() => {
     if (clRewardList) {
       for (const position of clRewardList) {
         if (position.reward != 0) {
-          if (position.position.upperTick === largestRange.lower) {
+          if (position.position.upperTick === largestRange.lower || !largestRange.lower) {
             largestRange = { lower: position.position.upperTick, upper: largestRange.upper }
           }
-          if (position.position.lowerTick === largestRange.upper) {
+          if (position.position.lowerTick === largestRange.upper || !largestRange.upper) {
             largestRange = { upper: position.position.lowerTick, lower: largestRange.lower }
           }
         }

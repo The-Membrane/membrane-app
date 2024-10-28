@@ -18,6 +18,7 @@ const Home = React.memo(() => {
     if (clRewardList) {
       for (const position of clRewardList) {
         if (position.reward != 0) {
+          console.log("Position", position.position)
           if (position.position.upperTick === largestRange.lower || largestRange.lower === 0) {
             largestRange = { lower: position.position.upperTick, upper: largestRange.upper }
           }

@@ -28,7 +28,7 @@ const Home = React.memo(() => {
       }
     }
   }, [clRewardList])
-  console.log("Largest Range", largestRange)
+  console.log("Largest Range", largestRange, clRewardList)
   
   return (
     <Stack>

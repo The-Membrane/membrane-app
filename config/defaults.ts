@@ -95,87 +95,88 @@ export const stableSymbols = ["USDC", "USDT", "USDC.axl"];
 export const stableDenoms = ["ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4", "ibc/4ABBEF4C8926DDDB320AE5188CFD63267ABBCEFC0583E4AE05D6E5AA2401DDAB", "ibc/D189335C6E4A68B513C10AB227BF1C1D38C746766278BA3EEB4FB14124F1D858"];
 export const MAX_CDP_POSITIONS = 3;
 
+export const LPJoinDate = new Date("2024-10-25T17:15:59.903785061Z");
 //Position IDs of CL range testers
 export const clPositions = [
   {
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -10000, 
+    upperTick: 100,
     id: "9041292"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -100000,
+    upperTick: -90000,
     id: "9041334"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -90000, 
+    upperTick: -80000,
     id: "9041327"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -80000, 
+    upperTick: -70000,
     id: "9041321"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -70000, 
+    upperTick: -60000,
     id: "9041320"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -50000, 
+    upperTick: -40000,
     id: "9041313"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -40000, 
+    upperTick: -30000,
     id: "9041310"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -60000, 
+    upperTick: -50000,
     id: "9041318"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -30000, 
+    upperTick: -20000,
     id: "9041305"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -20000, 
+    upperTick: -10000,
     id: "9041299"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -160000, 
+    upperTick: -150000,
     id: "9041894"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -200000, 
+    upperTick: -190000,
     id: "9041881"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -190000, 
+    upperTick: -180000,
     id: "9041869"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -180000, 
+    upperTick: -170000,
     id: "9041865"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -170000, 
+    upperTick: -160000,
     id: "9041855"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -150000, 
+    upperTick: -140000,
     id: "9041827"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -140000, 
+    upperTick: -130000,
     id: "9041820"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -130000, 
+    upperTick: -120000,
     id: "9041380"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -120000, 
+    upperTick: -110000,
     id: "9041365"
   },{
-    lowerTick: 0, 
-    upperTick: 0,
+    lowerTick: -110000, 
+    upperTick: -100000,
     id: "9041353"
   }]
 

@@ -8,11 +8,14 @@ import { range } from 'lodash'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import PerformanceStats from './PerformanceStats'
 import useWallet from '@/hooks/useWallet'
+import { getBestCLRange } from '@/services/osmosis'
 
 
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   const [sign, setSign] = React.useState("on");
+  const { data: clRewardList } = getBestCLRange()
+  console.log(" clRewardList",  clRewardList)
   
   return (
     <Stack>

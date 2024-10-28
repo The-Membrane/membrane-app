@@ -27,7 +27,8 @@ import { num } from "@/helpers/num";
 import useWallet from "@/hooks/useWallet";
 import useQuickActionVaultSummary from "@/components/Home/hooks/useQuickActionVaultSummary";
 import { shiftDigits } from "@/helpers/math";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { position } from "@chakra-ui/react";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -78,7 +79,8 @@ export const OsmosisClient = async () => {
     return osmosisClient
 }
 
-export const getCLRewards = async (positionId: number) => {
+//Spread Rewards, not incentives
+export const getCLRewards = async (positionId: string) => {
     const osmosisClient = await OsmosisClient()
     const rewards = await osmosisClient.osmosis.concentratedliquidity.v1beta1.claimableSpreadRewards({
         positionId: BigInt(positionId),
@@ -86,16 +88,44 @@ export const getCLRewards = async (positionId: number) => {
     return rewards
 }
 
+
+export const getLPRewards = () => {
+    return useQueries({
+        queries: clPositions.map((position) =>  ({
+            queryKey: ['cl_position_rewards', position.id],
+            queryFn: async () => {
+                return getCLRewards(position.id)
+            },
+            staleTime: 60000, // 60 seconds (adjust based on your needs)
+        })) || [],
+    });
+}
+
 export const getBestCLRange = () => {
+    const clRewardsData = getLPRewards()
+    const clRewards = clRewardsData.map((reward, index) => {
+        return {reward: reward.data, position: clPositions[index]}
+    })
+
     return useQuery({
-        queryKey: ['getBestCLRange'],
+        queryKey: ['getBestCLRange', clRewards],
         queryFn: async () => {
-            //Initialize APR list
-            var aprList = [];
+            //Initialize Rewards list
+            var rewardList = [];
             //Parse through all positions
-            for (const position of clPositions) {
-                console.log(position.id);
+            for (const position of clRewards) {
+                //Add reward totals
+                const totalReward = position.reward ? parseInt(position.reward.claimableSpreadRewards[0].amount) + parseInt(position.reward.claimableSpreadRewards[1].amount) : 0;
+
+                //Add position to list
+                rewardList.push({ position: position.position, reward: totalReward });
             }
+
+            //Sort rewards from highest to lowest
+            rewardList.sort((a, b) => b.reward - a.reward);
+            
+            //Return
+            return rewardList;
         },
     })
 }

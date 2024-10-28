@@ -8,6 +8,8 @@ import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/us
 import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
 import { convertBaseUnitToDollarValue } from "@chain-registry/utils"
+import { clPositions } from "@/config/defaults"
+import { getCLRewards } from "@/services/osmosis"
 
 export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
     console.log("usdc log", vtAmount)

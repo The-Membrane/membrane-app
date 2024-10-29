@@ -2,6 +2,7 @@ import { Button, Grid, GridItem, Stack, useBreakpointValue } from '@chakra-ui/re
 import { StatsCard } from '../StatsCard'
 import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
+import LPCard from './QALPCard'
 
 import React, { useEffect, useState } from "react"
 import { getBestCLRange } from '@/services/osmosis'
@@ -33,7 +34,8 @@ const Home = React.memo(() => {
           <SPCard />
           {/* Earn Vault Card */}
           <EarnCard />
-          {/* Peg is _? WID Card */}
+          {/* LP Card */}
+          <LPCard />
         </Stack>      
       </Stack>
     </Stack>

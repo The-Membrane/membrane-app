@@ -97,12 +97,47 @@ export const MAX_CDP_POSITIONS = 3;
 
 export const LPJoinDate = new Date("2024-10-25T17:15:59.903785061Z");
 //Position IDs of CL range testers
-export const clPositions = [
-  {
-    lowerTick: -10000, 
-    upperTick: 100,
-    id: "9041292"
-  },{
+export const clPositions = [{
+  lowerTick: -200000, 
+  upperTick: -190000,
+  id: "9041881"
+},{
+  lowerTick: -190000, 
+  upperTick: -180000,
+  id: "9041869"
+},{
+  lowerTick: -180000, 
+  upperTick: -170000,
+  id: "9041865"
+},{
+  lowerTick: -170000, 
+  upperTick: -160000,
+  id: "9041855"
+},{
+  lowerTick: -160000, 
+  upperTick: -150000,
+  id: "9041894"
+},{
+  lowerTick: -150000, 
+  upperTick: -140000,
+  id: "9041827"
+},{
+  lowerTick: -140000, 
+  upperTick: -130000,
+  id: "9041820"
+},{
+  lowerTick: -130000, 
+  upperTick: -120000,
+  id: "9041380"
+},{
+  lowerTick: -120000, 
+  upperTick: -110000,
+  id: "9041365"
+},{
+  lowerTick: -110000, 
+  upperTick: -100000,
+  id: "9041353"
+},{
     lowerTick: -100000,
     upperTick: -90000,
     id: "9041334"
@@ -119,6 +154,10 @@ export const clPositions = [
     upperTick: -60000,
     id: "9041320"
   },{
+    lowerTick: -60000, 
+    upperTick: -50000,
+    id: "9041318"
+  },{
     lowerTick: -50000, 
     upperTick: -40000,
     id: "9041313"
@@ -127,10 +166,6 @@ export const clPositions = [
     upperTick: -30000,
     id: "9041310"
   },{
-    lowerTick: -60000, 
-    upperTick: -50000,
-    id: "9041318"
-  },{
     lowerTick: -30000, 
     upperTick: -20000,
     id: "9041305"
@@ -138,47 +173,12 @@ export const clPositions = [
     lowerTick: -20000, 
     upperTick: -10000,
     id: "9041299"
-  },{
-    lowerTick: -160000, 
-    upperTick: -150000,
-    id: "9041894"
-  },{
-    lowerTick: -200000, 
-    upperTick: -190000,
-    id: "9041881"
-  },{
-    lowerTick: -190000, 
-    upperTick: -180000,
-    id: "9041869"
-  },{
-    lowerTick: -180000, 
-    upperTick: -170000,
-    id: "9041865"
-  },{
-    lowerTick: -170000, 
-    upperTick: -160000,
-    id: "9041855"
-  },{
-    lowerTick: -150000, 
-    upperTick: -140000,
-    id: "9041827"
-  },{
-    lowerTick: -140000, 
-    upperTick: -130000,
-    id: "9041820"
-  },{
-    lowerTick: -130000, 
-    upperTick: -120000,
-    id: "9041380"
-  },{
-    lowerTick: -120000, 
-    upperTick: -110000,
-    id: "9041365"
-  },{
-    lowerTick: -110000, 
-    upperTick: -100000,
-    id: "9041353"
-  }]
+  },
+  {
+    lowerTick: -10000, 
+    upperTick: 100,
+    id: "9041292"
+  },]
 
 //all CDT pairs
 export const cdtRoutes = {

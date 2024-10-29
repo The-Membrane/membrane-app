@@ -123,7 +123,7 @@ export const getBestCLRange = () => {
             }
 
             //Sort rewards from highest to lowest
-            rewardList.sort((a, b) => b.reward - a.reward);
+            // rewardList.sort((a, b) => b.reward - a.reward);
             
             //Return
             return rewardList;

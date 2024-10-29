@@ -138,7 +138,7 @@ const EarnCard = () => {
         }
     }, [clRewardList])
     const highestAPR = useMemo(() => {
-        if (!clRewardList) return 0
+        if (!clRewardList) return {apr: 0, range: {lower: 0, upper: 0}}
         if (rangeOptions.fullRange > rangeOptions.upperAggressive && rangeOptions.fullRange > rangeOptions.lowerAggressive) return {apr: rangeOptions.fullRange / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -50000}}
         if (rangeOptions.upperAggressive > rangeOptions.lowerAggressive && rangeOptions.upperAggressive > rangeOptions.fullRange) return {apr: rangeOptions.upperAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -100000, upper: -50000}}
         return {apr: rangeOptions.lowerAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -150000}}
@@ -151,8 +151,7 @@ const EarnCard = () => {
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn BOTH</Text>
             <Stack>
-                {/* <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APR: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "loading..."}%</a></Text>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a> {longestAPR}%</Text> */}
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{`${daysSinceDeposit.toFixed(0)}D`} APR: &nbsp;</a> <a className="textShadow">{num(highestAPR.apr).times(100).toFixed(1)}%</a></Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <Text><a style={{fontWeight:"bold", color:"#20d6ff", padding:"6", paddingTop:"0"}}>Yield:</a> LP in the Highest APR range to date</Text>

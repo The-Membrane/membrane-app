@@ -10,9 +10,6 @@ import { getBestCLRange } from '@/services/osmosis'
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   const [sign, setSign] = React.useState("on");
-  const { data: clRewardList } = getBestCLRange()
-
-  console.log("rewardList", clRewardList)
   
   return (
     <Stack>

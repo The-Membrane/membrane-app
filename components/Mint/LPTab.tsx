@@ -13,8 +13,7 @@ import { delayTime } from "@/config/defaults"
 import React from "react"
 
 
-
-const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolean }) => {
+export const ErrorMessage = ({ outsidePriceRange = false}: { outsidePriceRange?: boolean }) => {
   return (
     <Text fontSize="sm" color="red.500" mt="2" minH="21px">
       {outsidePriceRange ? "CDT price is below 0.98 & we don't want to provide you a bad swap rate" : ' '}

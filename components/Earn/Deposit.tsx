@@ -359,7 +359,7 @@ console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.
                     <TxButton
                       maxW="75px"
                       isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
-                      isDisabled={true}//{loop?.simulate.isError || !loop?.simulate.data}
+                      isDisabled={loop?.simulate.isError || !loop?.simulate.data}
                       onClick={() => loop?.tx.mutate()}
                       toggleConnectLabel={false}
                       style={{ alignSelf: "end" }}

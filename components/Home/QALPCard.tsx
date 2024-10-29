@@ -129,9 +129,9 @@ const EarnCard = () => {
     const rangeOptions = useMemo(() => {
         if (!clRewardList) return { lowerAggressive: 0, upperAggressive: 0, fullRange: 0 }
         return {
-            lowerAggressive: clRewardList[0].reward + clRewardList[1].reward + clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward,
-            upperAggressive: clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward + clRewardList[13].reward + clRewardList[14].reward,
-            fullRange: clRewardList.slice(0,15).reduce((acc, curr) => acc + curr.reward, 0)
+            lowerAggressive: (clRewardList[0].reward + clRewardList[1].reward + clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward) / 5,
+            upperAggressive: (clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward + clRewardList[13].reward + clRewardList[14].reward) / 5,
+            fullRange: clRewardList.slice(0,15).reduce((acc, curr) => acc + curr.reward, 0) / 15
         }
     }, [clRewardList])
     console.log("rangeOptions", rangeOptions, clRewardList)

@@ -5,7 +5,6 @@ import EarnCard from './QAEarnCard'
 import LPCard from './QALPCard'
 
 import React, { useEffect, useState } from "react"
-import { getBestCLRange } from '@/services/osmosis'
 
 
 const Home = React.memo(() => {

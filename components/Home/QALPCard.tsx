@@ -24,6 +24,8 @@ import useLPState from "../Mint/hooks/useLPState"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useLP from "../Mint/hooks/useLP"
 import { getBestCLRange } from "@/services/osmosis"
+import { LPJoinDate } from "@/config/defaults"
+import { range } from "lodash"
 
 const ActSlider = React.memo(() => {
     const cdt = useAssetBySymbol('CDT')
@@ -124,6 +126,7 @@ const EarnCard = () => {
 
     // const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
 
+    const daysSinceDeposit = (Date.now() - LPJoinDate.getMilliseconds()) / 1000 / 86400
     
     const { data: clRewardList } = getBestCLRange()
     const rangeOptions = useMemo(() => {
@@ -134,7 +137,14 @@ const EarnCard = () => {
             fullRange: clRewardList.slice(0,15).reduce((acc, curr) => acc + curr.reward, 0) / 15
         }
     }, [clRewardList])
-    console.log("rangeOptions", rangeOptions, clRewardList)
+    const highestAPR = useMemo(() => {
+        if (!clRewardList) return 0
+        if (rangeOptions.fullRange > rangeOptions.upperAggressive && rangeOptions.fullRange > rangeOptions.lowerAggressive) return {apr: rangeOptions.fullRange / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -50000}}
+        if (rangeOptions.upperAggressive > rangeOptions.lowerAggressive && rangeOptions.upperAggressive > rangeOptions.fullRange) return {apr: rangeOptions.upperAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -100000, upper: -50000}}
+        return {apr: rangeOptions.lowerAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -150000}}
+        
+    }, [rangeOptions])
+    console.log("highestAPR", highestAPR)
 
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
@@ -145,11 +155,7 @@ const EarnCard = () => {
                 <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a> {longestAPR}%</Text> */}
             </Stack>
             <Divider marginBottom={"3vh"}/> 
-            <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
-              <ListItem>You pay unloop costs to exit</ListItem>
-              <ListItem>Deposits disabled above 200 Vault debt</ListItem>
-            </List>
+            <Text><a style={{fontWeight:"bold", color:"#20d6ff", padding:"6", paddingTop:"0"}}>Yield:</a> LP in the Highest APR range to date</Text>
             <ActSlider />
             <Divider marginTop={"3vh"}/> 
           </Stack>

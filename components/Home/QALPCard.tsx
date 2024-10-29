@@ -126,8 +126,8 @@ const EarnCard = () => {
 
     // const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
 
-    const daysSinceDeposit = num(Math.floor(Date.now() / 1000) - LPJoinDate.getSeconds()).dividedBy(86400).toNumber()
-    console.log("days", (Date.now() / 1000), LPJoinDate.getSeconds() )
+    const daysSinceDeposit = num(Math.floor(Date.now() / 1000) - LPJoinDate.getUTCSeconds()).dividedBy(86400).toNumber()
+    // console.log("days", (Date.now() / 1000), LPJoinDate.getSeconds() )
     
     const { data: clRewardList } = getBestCLRange()
     const rangeOptions = useMemo(() => {
@@ -145,7 +145,7 @@ const EarnCard = () => {
         return {apr: rangeOptions.lowerAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -150000}}
         
     }, [rangeOptions])
-    console.log("highestAPR", highestAPR, daysSinceDeposit)
+    console.log("highestAPR", highestAPR)
 
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>

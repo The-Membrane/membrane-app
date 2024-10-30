@@ -151,8 +151,8 @@ const EarnCard = () => {
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn BOTH</Text>
             <Stack>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>Best Range: &nbsp;</a> <a className="textShadow">{highestAPR.stringRange}</a></Text>
                 <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{`${daysSinceDeposit.toFixed(0)}D`} APR: &nbsp;</a> <a className="textShadow">{num(highestAPR.apr).times(100).toFixed(1)}%</a></Text>
+                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex" color="rgb(226, 216, 218)" > Best Range: {highestAPR.stringRange}</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <Text><a style={{fontWeight:"bold", color:"#20d6ff", padding:"6", paddingTop:"0"}}>Yield:</a> LP in the Highest APR range to date</Text>

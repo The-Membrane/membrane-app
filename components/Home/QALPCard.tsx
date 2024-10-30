@@ -127,7 +127,7 @@ const EarnCard = () => {
     // const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
 
     const daysSinceDeposit = num(Math.floor(Date.now() / 1000) - LPJoinDate.getUTCSeconds()).dividedBy(86400).toNumber()
-    // console.log("days", (Date.now() / 1000), LPJoinDate.getSeconds() )
+    console.log("days", (Date.now() / 1000), LPJoinDate.getUTCSeconds() )
     
     const { data: clRewardList } = getBestCLRange()
     const rangeOptions = useMemo(() => {

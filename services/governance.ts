@@ -91,16 +91,11 @@ export const calculateProposalResult = (proposal: ProposalResponseType, config: 
 }
 
 const getDaysLeft = (proposal: any) => {
-  const VOTING_PERIOD_IN_DAYS = 7
-  const EXPEDITED_VOTING_PERIOD_IN_DAYS = 3
   const SECONDS_PER_DAY = 86400
   const SECONDS_PER_HOUR = 3600
   const SECONDS_PER_MINUTE = 60
 
-  const votingPeriodInSeconds =
-    proposal.end_block - proposal.start_time === 259200
-      ? EXPEDITED_VOTING_PERIOD_IN_DAYS * SECONDS_PER_DAY
-      : VOTING_PERIOD_IN_DAYS * SECONDS_PER_DAY
+  const votingPeriodInSeconds =    proposal.delayed_end_block - proposal.start_time
 
   const secondsRemaining = Math.max(
     votingPeriodInSeconds - (dayjs().unix() - proposal.start_time),

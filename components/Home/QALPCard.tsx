@@ -83,7 +83,7 @@ const ActSlider = React.memo(({ range } : { range: string }) => {
     )
 });
           
-const EarnCard = () => {
+const LPCard = () => {
     // const { earnState, setEarnState } = useEarnState()
     // const earnUSDCAsset = useAssetBySymbol('earnUSDC')
     // const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)??"1"
@@ -147,7 +147,7 @@ const EarnCard = () => {
     console.log("highestAPR", highestAPR)
 
     return (
-        <Card height={"69%"} width={"33%"} borderColor={""} borderWidth={3} padding={4}>
+        <Card height={"69%"} width={"33%"} borderColor={""} borderWidth={3} padding={4} marginTop={"7%"}>
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn BOTH</Text>
             <Stack>
@@ -155,7 +155,7 @@ const EarnCard = () => {
                 <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex" color="rgb(226, 216, 218)" > Best Range: {highestAPR.stringRange}</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
-            <Text><a style={{fontWeight:"bold", color:"#20d6ff", padding:"6", paddingTop:"0"}}>Yield:</a> LP in the Highest APR range to date</Text>
+            <Text marginBottom={"4%"}><a style={{fontWeight:"bold", color:"#20d6ff", padding:"6", paddingTop:"0"}}>Yield:</a> LP in the Highest APR range to date</Text>
             <ActSlider range={highestAPR.stringRange}/>
             <Divider marginTop={"3vh"}/> 
           </Stack>
@@ -163,4 +163,4 @@ const EarnCard = () => {
     )
 }
 
-export default EarnCard
+export default LPCard

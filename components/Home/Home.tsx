@@ -31,10 +31,10 @@ const Home = React.memo(() => {
         <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center"> 
           {/* autoSPVault Card */}
           <SPCard />
-          {/* LP Card */}
-          <LPCard />
           {/* Earn Vault Card */}
           <EarnCard />
+          {/* LP Card */}
+          <LPCard />
         </Stack>      
       </Stack>
     </Stack>

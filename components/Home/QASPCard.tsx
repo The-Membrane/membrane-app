@@ -130,7 +130,6 @@ const SPCard = () => {
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>
-              <ListItem>Max 1 Day Withdraw Time</ListItem>
               <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
             </List>
             <ActSlider />

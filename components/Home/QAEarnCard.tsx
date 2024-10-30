@@ -21,7 +21,7 @@ import { GrPowerReset } from "react-icons/gr"
 import useEarnState from "../Earn/hooks/useEarnState"
 import useEarn from "../Earn/hooks/useEarn"
 
-const ActSlider = React.memo(() => {
+const ActSlider = React.memo(({isDisabled}: {isDisabled: boolean}) => {
     const { earnState, setEarnState } = useEarnState()
     const earnUSDCAsset = useAssetBySymbol('earnUSDC')
     const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)??"1"
@@ -93,9 +93,9 @@ const ActSlider = React.memo(() => {
         <HStack gap={0} padding="4%">
           <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
           <ConfirmModal 
-            label={earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 
+            label={isDisabled && earnState.deposit > 0 ? "Deposits Disabled" : earnState.deposit > 0 ? `Deposit ${actingAmount.toString()} USDC` : earnState.withdraw > 0 ?  `Withdraw ${actingAmount.toString()} USDC` : "Manage"} 
             action={earn} 
-            isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingUSDC).toNumber()}>
+            isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingUSDC).toNumber() || (isDisabled && earnState.deposit > 0)}>
             <QASummary logo={logo}/>
           </ConfirmModal>
         </HStack>
@@ -143,7 +143,7 @@ const EarnCard = () => {
       return { longestAPR: APRObject.weekly }
     }, [APRObject])
 
-    // const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
+    const isDisabled = useMemo(() => {return (vaultInfo?.debtAmount??0) >= 200 }, [vaultInfo])
 
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
@@ -157,9 +157,9 @@ const EarnCard = () => {
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
               <ListItem>You pay unloop costs to exit</ListItem>
-              <ListItem>Deposits disabled above 200 Vault debt</ListItem>
+              <ListItem>Deposits disabled above 200 Debt</ListItem>
             </List>
-            <ActSlider />
+            <ActSlider isDisabled={isDisabled}/>
             <Divider marginTop={"3vh"}/>           
             {/* <Slider
               defaultValue={percentToDistribution}

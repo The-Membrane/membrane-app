@@ -147,7 +147,7 @@ const EarnCard = () => {
     console.log("highestAPR", highestAPR)
 
     return (
-        <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
+        <Card height={"69%"} width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn BOTH</Text>
             <Stack>

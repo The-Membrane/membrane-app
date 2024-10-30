@@ -25,9 +25,8 @@ import { useOraclePrice } from "@/hooks/useOracle"
 import useLP from "../Mint/hooks/useLP"
 import { getBestCLRange } from "@/services/osmosis"
 import { LPJoinDate } from "@/config/defaults"
-import { range } from "lodash"
 
-const ActSlider = React.memo(() => {
+const ActSlider = React.memo(({ range } : { range: string }) => {
     const cdt = useAssetBySymbol('CDT')
     const cdtBalance = useBalanceByAsset(cdt)
     const { LPState, setLPState } = useLPState()
@@ -74,7 +73,7 @@ const ActSlider = React.memo(() => {
         <HStack gap={0} padding="4%">
           <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
           <ConfirmModal 
-            label={`LP into Range`} 
+            label={`LP into Range ${range}`} 
             action={LP} 
             isDisabled={Number(cdtBalance) < 1}>
             <QASummary logo={logo}/>
@@ -126,8 +125,8 @@ const EarnCard = () => {
 
     // const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
 
-    const daysSinceDeposit = num(Math.floor(Date.now() / 1000) - LPJoinDate.getUTCSeconds()).dividedBy(86400).toNumber()
-    console.log("days", (Date.now() / 1000), LPJoinDate.getUTCSeconds() )
+    const daysSinceDeposit = num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber()
+    console.log("days", (Date.now()), LPJoinDate.getTime() )
     
     const { data: clRewardList } = getBestCLRange()
     const rangeOptions = useMemo(() => {
@@ -139,10 +138,10 @@ const EarnCard = () => {
         }
     }, [clRewardList])
     const highestAPR = useMemo(() => {
-        if (!clRewardList) return {apr: 0, range: {lower: 0, upper: 0}}
-        if (rangeOptions.fullRange > rangeOptions.upperAggressive && rangeOptions.fullRange > rangeOptions.lowerAggressive) return {apr: rangeOptions.fullRange / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -50000}}
-        if (rangeOptions.upperAggressive > rangeOptions.lowerAggressive && rangeOptions.upperAggressive > rangeOptions.fullRange) return {apr: rangeOptions.upperAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -100000, upper: -50000}}
-        return {apr: rangeOptions.lowerAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -150000}}
+        if (!clRewardList) return {apr: 0, range: {lower: 0, upper: 0}, stringRange: "0-0"}
+        if (rangeOptions.fullRange > rangeOptions.upperAggressive && rangeOptions.fullRange > rangeOptions.lowerAggressive) return {apr: rangeOptions.fullRange / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -50000}, stringRange: "0.98-0.995"}
+        if (rangeOptions.upperAggressive > rangeOptions.lowerAggressive && rangeOptions.upperAggressive > rangeOptions.fullRange) return {apr: rangeOptions.upperAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -100000, upper: -50000}, stringRange: "0.99-0.995"}
+        return {apr: rangeOptions.lowerAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -150000}, stringRange: "0.98-0.985"}
         
     }, [rangeOptions])
     console.log("highestAPR", highestAPR)
@@ -156,7 +155,7 @@ const EarnCard = () => {
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <Text><a style={{fontWeight:"bold", color:"#20d6ff", padding:"6", paddingTop:"0"}}>Yield:</a> LP in the Highest APR range to date</Text>
-            <ActSlider />
+            <ActSlider range={highestAPR.stringRange}/>
             <Divider marginTop={"3vh"}/> 
           </Stack>
         </Card>

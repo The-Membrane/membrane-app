@@ -144,7 +144,7 @@ const LPCard = () => {
         return {apr: rangeOptions.lowerAggressive / 1000000 / daysSinceDeposit * 365, range: {lower: -200000, upper: -150000}, stringRange: "0.98-0.985"}
         
     }, [rangeOptions])
-    console.log("highestAPR", highestAPR)
+    console.log("highestAPR", highestAPR, rangeOptions)
 
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>

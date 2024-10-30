@@ -147,7 +147,7 @@ const LPCard = () => {
     console.log("highestAPR", highestAPR)
 
     return (
-        <Card height={"69%"} width={"33%"} borderColor={""} borderWidth={3} padding={4} marginTop={"7%"}>
+        <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn BOTH</Text>
             <Stack>

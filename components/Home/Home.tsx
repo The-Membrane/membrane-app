@@ -29,9 +29,9 @@ const Home = React.memo(() => {
             </b>
           </h5>
         </div>
+        {/* CDT Swap Card */}
+        <CDTSwapSliderCard />
         <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center"> 
-          {/* CDT Swap Card */}
-          <CDTSwapSliderCard />
           {/* autoSPVault Card */}
           <SPCard />
           {/* Earn Vault Card */}

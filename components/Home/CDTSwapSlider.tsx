@@ -25,9 +25,9 @@ const CDTSwapSliderCard = () => {
 
     return (
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
-          <HStack>
-            <Text> Available CDT Balance: {cdtBalance}</Text>
-            <Button>Swap for CDT</Button>
+          <HStack gap={"59%"}>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="50%"> Available CDT Balance: {cdtBalance}</Text>
+            <Button width="20%">Swap for CDT</Button>
            </HStack> 
         </Card>
     )

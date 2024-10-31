@@ -5,6 +5,7 @@ import EarnCard from './QAEarnCard'
 import LPCard from './QALPCard'
 
 import React, { useEffect, useState } from "react"
+import CDTSwapSliderCard from './CDTSwapSlider'
 
 
 const Home = React.memo(() => {
@@ -29,6 +30,8 @@ const Home = React.memo(() => {
           </h5>
         </div>
         <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center"> 
+          {/* CDT Swap Card */}
+          <CDTSwapSliderCard />
           {/* autoSPVault Card */}
           <SPCard />
           {/* Earn Vault Card */}

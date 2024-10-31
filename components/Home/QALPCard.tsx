@@ -157,7 +157,6 @@ const LPCard = () => {
             <Divider marginBottom={"3vh"}/> 
             <Text marginBottom={"4%"}><a style={{fontWeight:"bold", color:"#20d6ff", padding:"6", paddingTop:"0"}}>Yield:</a> LP in the Highest APR range to date</Text>
             <ActSlider range={highestAPR.stringRange}/>
-            <Divider marginTop={"3vh"}/> 
           </Stack>
         </Card>
     )

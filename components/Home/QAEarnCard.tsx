@@ -157,7 +157,7 @@ const EarnCard = () => {
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
               <ListItem>You pay unloop costs to exit</ListItem>
-              <ListItem>Deposits disabled above 200 Debt</ListItem>
+              <ListItem>Deposits <a style={isDisabled ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>disabled</a> above 200 Debt</ListItem>
             </List>
             <ActSlider isDisabled={isDisabled}/>
             <Divider marginTop={"3vh"}/>           

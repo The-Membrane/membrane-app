@@ -75,7 +75,7 @@ const ActSlider = React.memo(({ range } : { range: string }) => {
           <ConfirmModal 
             label={`LP into Range ${range}`} 
             action={LP} 
-            isDisabled={Number(cdtBalance) < 1 || setLPState.newCDT < 1}>
+            isDisabled={Number(cdtBalance) < 1 || LPState.newCDT < 1}>
             <QASummary logo={logo}/>
           </ConfirmModal>
         </HStack>

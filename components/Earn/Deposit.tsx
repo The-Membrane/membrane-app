@@ -304,7 +304,7 @@ console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.
                 Due to this, we can't offer a recommended deposit time to recoup the entry fee.
               </Text>
               <Text variant="body" mb={1}> The vault's collateral position is open for <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>profitable debt redemptions</a> that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.</Text>    
-              <Text variant="body" mb={1}>On top of that, there is a <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>0.5% entry fee</a> that is pure profit. The "catch" is that this is ayield cushion because depositors <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>are responsible for their unlooping costs</a>.
+              <Text variant="body" mb={1}>On top of that, there is a <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>0.5% entry fee</a> that is pure profit. The "catch" is that this is a yield cushion because depositors <a style={{fontWeight:"bold", color:"rgb(196, 69, 240)"}}>are responsible for their unlooping costs</a>.
                   So if you decide to unloop at a bad conversion rate, above 99%, you will lose some capital on the trade out, on top of slippage (max: 0.5%).
               </Text>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>{'\n'} Why does my TVL fluctuate?</Text>

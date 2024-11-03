@@ -56,6 +56,11 @@ const useSPCompound = ( ) => {
     //We want the vault to resim so that the Compound button isn't incorrectly Enabled
     //Which results in a bunch of failed transactions as users continue to click the button
     queryClient.invalidateQueries({ queryKey: ['quick_action_SP_compound_sim'] })
+    //autoSP Queries
+    queryClient.invalidateQueries({ queryKey: ['useCDTVaultTokenUnderlying'] })
+    queryClient.invalidateQueries({ queryKey: ['useCDTUSDCRealizedAPR'] })
+
+    
   }
 
   return {

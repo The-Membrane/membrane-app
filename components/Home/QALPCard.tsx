@@ -84,57 +84,18 @@ const ActSlider = React.memo(({ range } : { range: string }) => {
 });
           
 const LPCard = () => {
-    // const { earnState, setEarnState } = useEarnState()
-    // const earnUSDCAsset = useAssetBySymbol('earnUSDC')
-    // const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)??"1"
-    
-    // //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
-    // const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
-    // const underlyingUSDC = shiftDigits(data, -6).toString() ?? "1"
-    // ////////////////////////////////////
-    
-    // const pendingBalance = useMemo(() => {
-    //   return num(underlyingUSDC).plus(earnState.deposit).minus(earnState.withdraw).toNumber()
-    // }, [underlyingUSDC, earnState.deposit, earnState.withdraw])
-
-      
-    // const { data: realizedAPR } = useEarnUSDCRealizedAPR()  
-    // const { data: vaultInfo } = useVaultInfo()
-    // const { data: APRs } = useEarnUSDCEstimatedAPR() 
-    // const APRObject = useMemo(() => {
-    //   if (!APRs) return {
-    //     weekly: "N/A",
-    //     monthly: "N/A",
-    //     three_month: "N/A",
-    //     yearly: "N/A",
-    //   }
-    //   return {
-    //     weekly: APRs.week_apr ? num(APRs?.week_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-    //     monthly: APRs.month_apr ? num(APRs?.month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-    //     three_month: APRs.three_month_apr ? num(APRs?.three_month_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-    //     yearly: APRs.year_apr ? num(APRs?.year_apr).minus(num(vaultInfo?.cost)).times(vaultInfo?.leverage??1).multipliedBy(100).toFixed(1) : "N/A",
-    //   }
-    // }, [APRs, vaultInfo])
-    // const { longestAPR } = useMemo(() => {
-    //   if (!APRObject) return { longestAPR: "0" }
-    //   if (APRObject.yearly && APRObject.yearly != "N/A") return { longestAPR: APRObject.yearly }
-    //   if (APRObject.three_month && APRObject.three_month != "N/A") return { longestAPR: APRObject.three_month }
-    //   if (APRObject.monthly && APRObject.monthly != "N/A") return { longestAPR: APRObject.monthly }
-    //   return { longestAPR: APRObject.weekly }
-    // }, [APRObject])
-
-    // const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
-
     const daysSinceDeposit = num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber()
     console.log("days", (Date.now()), LPJoinDate.getTime() )
     
     const { data: clRewardList } = getBestCLRange()
     const rangeOptions = useMemo(() => {
-        if (!clRewardList) return { lowerAggressive: 0, upperAggressive: 0, fullRange: 0 }
+        //midRange is just for logs rn
+        if (!clRewardList) return { lowerAggressive: 0, upperAggressive: 0, midRange: 0, fullRange: 0 }
         return {
             lowerAggressive: (clRewardList[0].reward + clRewardList[1].reward + clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward) / 5,
             upperAggressive: (clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward + clRewardList[13].reward + clRewardList[14].reward) / 5,
-            fullRange: clRewardList.slice(0,15).reduce((acc, curr) => acc + curr.reward, 0) / 15
+            fullRange: clRewardList.slice(0,15).reduce((acc, curr) => acc + curr.reward, 0) / 15,
+            midRange: (clRewardList[0].reward + clRewardList[1].reward + clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward + clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward + clRewardList[13].reward + clRewardList[14].reward) / 10,
         }
     }, [clRewardList])
     const highestAPR = useMemo(() => {

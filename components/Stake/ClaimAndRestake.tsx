@@ -11,7 +11,7 @@ type Props = {}
 
 const RestakeButton = (reward: any) => {
   const { action: claim } = useStakingClaim(true)
-  console.log("CLAIM", claim)
+  console.log("restake", claim)
   return (
     <TxButton
       variant="ghost"
@@ -30,6 +30,7 @@ export const ClaimAndRestake = (props: Props) => {
   const { data } = useStaked()
   const { rewards = [] } = data || {}
   const { action: claim } = useStakingClaim(false)
+  console.log("CLAIM", claim)
 
   const CDT = useAssetBySymbol('CDT')
   const MBRN = useAssetBySymbol('MBRN')

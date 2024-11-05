@@ -49,6 +49,8 @@ const TokenAllocation = (props: Props) => {
   const mbrnAsset = useAssetBySymbol('MBRN')
   const { unlocked, allocation, claimables } = allocations || {}
   const { action: claimFees } = useClaimFees()
+  console.log("CLAIMFEES SIM", claimFees?.simulate.errorMessage)
+
   const withdraw = useWithdrawUnlocked()
 
   const allocationAmount = shiftDigits(Number(allocation?.amount || 0), -6).toString()

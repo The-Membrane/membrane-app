@@ -7,7 +7,7 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 
-const useClaimFees = (sim: boolean = true) => {
+const useClaimFees = () => {
   const { address } = useWallet()
 
   type QueryData = {
@@ -40,7 +40,8 @@ const useClaimFees = (sim: boolean = true) => {
   return {action: useSimulateAndBroadcast({
     msgs,
     onSuccess,
-    enabled: sim
+    queryKey: ['vesting_fee_claim', (msgs?.toString()??"0")],
+    enabled: !!msgs
   }), msgs}
 }
 

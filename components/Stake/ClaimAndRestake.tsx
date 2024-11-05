@@ -10,16 +10,16 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 type Props = {}
 
 const RestakeButton = (reward: any) => {
-  const claim = useStakingClaim(true).action
-
+  const { action: claim } = useStakingClaim(true)
+  console.log("CLAIM", claim)
   return (
     <TxButton
       variant="ghost"
       size="sm"
       px="2"
       isDisabled={Number(reward) <= 0}
-      isLoading={claim.simulate.isLoading || claim.tx.isPending}      
-      onClick={() => claim.tx.mutate()}
+      isLoading={claim?.simulate.isLoading || claim?.tx.isPending}      
+      onClick={() => claim?.tx.mutate()}
     >
       Restake
     </TxButton>
@@ -29,7 +29,7 @@ const RestakeButton = (reward: any) => {
 export const ClaimAndRestake = (props: Props) => {
   const { data } = useStaked()
   const { rewards = [] } = data || {}
-  const claim = useStakingClaim(false).action
+  const { action: claim } = useStakingClaim(false)
 
   const CDT = useAssetBySymbol('CDT')
   const MBRN = useAssetBySymbol('MBRN')
@@ -108,8 +108,8 @@ export const ClaimAndRestake = (props: Props) => {
       </Stack>
       <TxButton
         isDisabled={!isGreaterThanZero(cdtClaims.toNumber()) && !isGreaterThanZero(mbrnClaims.toNumber())}
-        isLoading={claim.simulate.isLoading || claim.tx.isPending}
-        onClick={() => claim.tx.mutate()}
+        isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
+        onClick={() => claim?.tx.mutate()}
       >
         Claim
       </TxButton>

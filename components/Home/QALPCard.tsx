@@ -89,13 +89,13 @@ const LPCard = () => {
     
     const { data: clRewardList } = getBestCLRange()
     const rangeOptions = useMemo(() => {
-        //midRange is just for logs rn
-        if (!clRewardList) return { lowerAggressive: 0, upperAggressive: 0, midRange: 0, fullRange: 0 }
+        //upperXlower is just for logs rn
+        if (!clRewardList) return { lowerAggressive: 0, upperAggressive: 0, upperXlower: 0, fullRange: 0 }
         return {
             lowerAggressive: (clRewardList[0].reward + clRewardList[1].reward + clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward) / 5,
             upperAggressive: (clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward + clRewardList[13].reward + clRewardList[14].reward) / 5,
             fullRange: clRewardList.slice(0,15).reduce((acc, curr) => acc + curr.reward, 0) / 15,
-            midRange: (clRewardList[0].reward + clRewardList[1].reward + clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward + clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward + clRewardList[13].reward + clRewardList[14].reward) / 10,
+            upperXlower: (clRewardList[0].reward + clRewardList[1].reward + clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward + clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward + clRewardList[13].reward + clRewardList[14].reward) / 10,
         }
     }, [clRewardList])
     const highestAPR = useMemo(() => {

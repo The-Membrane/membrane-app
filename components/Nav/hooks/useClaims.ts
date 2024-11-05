@@ -101,7 +101,7 @@ const useProtocolClaims = () => {
   const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg all protocol claims', address, ClaimMsgs, StakingMsgs, UnstakeMsgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
     queryFn: () => {
-      console.log("claim attempt");
+      console.log("claim attempt"); 
         var msgs = [] as MsgExecuteContractEncodeObject[]
 
         /////Add Liquidation claims/////        

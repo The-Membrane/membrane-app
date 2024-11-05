@@ -79,7 +79,7 @@ const Chart = () => {
 }
 
 const LockChart = () => {
-  const claim = useClaim()
+  const { action: claim } = useClaim()
   const { data: incentives } = useIncentives()
   const { data: distribution } = useRanking()
 
@@ -106,8 +106,8 @@ const LockChart = () => {
         <TxButton
           isDisabled={!isGreaterThanZero(incentives?.amount)}
           w="310px"
-          isLoading={claim.isPending}
-          onClick={() => claim.mutate()}
+          isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
+          onClick={() => claim?.tx.mutate()}
         >
           Claim
         </TxButton>

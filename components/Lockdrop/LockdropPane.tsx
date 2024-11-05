@@ -48,7 +48,7 @@ const LockItem = ({ deposit, lockUpDuration, isNew }: Lockup) => {
       lockUpDuration: String(lockUpDuration),
     },
   })
-  const claim = useClaim()
+  const { action: claim } = useClaim()
 
   return (
     <Tr>
@@ -66,8 +66,8 @@ const LockItem = ({ deposit, lockUpDuration, isNew }: Lockup) => {
           w="full"
           minW="120px"
           size="lg"
-          isLoading={claim.isPending}
-          onClick={() => claim.mutate()}
+          isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
+          onClick={() => claim?.tx.mutate()}
         >
           {isDirty && !isNew ? 'Update' : 'Lock'}
         </TxButton>

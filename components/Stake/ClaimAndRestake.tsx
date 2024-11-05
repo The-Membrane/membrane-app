@@ -11,7 +11,7 @@ type Props = {}
 
 const RestakeButton = (reward: any) => {
   const { action: claim } = useStakingClaim(true)
-  console.log("restake", claim)
+
   return (
     <TxButton
       variant="ghost"

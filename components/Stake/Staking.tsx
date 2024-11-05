@@ -16,10 +16,11 @@ const Stakeing = () => {
   const [stakeAmount, setStakeAmount] = useState(0)
   const mbrnAsset = useAssetBySymbol('MBRN')
   const mbrnBalance = useBalanceByAsset(mbrnAsset)
-  const stake = useStakeing({ amount: stakeAmount.toString() })
+  const { action: stake } = useStakeing({})
   const { data } = useStaked()
   const { staked } = data || {}
   const { stakeState, setStakeState } = useStakeState()
+  console.log("STAKE", stake)
 
   const stakedBalance = useMemo(() => {
     if (!staked || !mbrnAsset) return 0

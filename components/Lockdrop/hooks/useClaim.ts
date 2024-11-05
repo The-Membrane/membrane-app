@@ -11,14 +11,18 @@ import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import { useMemo } from 'react';
 
 export const useClaim = () => {
   const { address } = useWallet()
 
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+  type QueryData = {
+    msgs: MsgExecuteContractEncodeObject[] | undefined
+  }
+  const { data: queryData } = useQuery<QueryData>({
     queryKey: ['msg_lockdrop_claims', address],
     queryFn: async () => {
-      if (!address) return [] as MsgExecuteContractEncodeObject[]
+      if (!address) return { msgs: undefined }
       
       const msg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -32,7 +36,7 @@ export const useClaim = () => {
         })
       } as MsgExecuteContractEncodeObject
 
-      return [msg] as MsgExecuteContractEncodeObject[]
+      return { msgs: [msg] }
     },
     enabled: !!address,
   })
@@ -42,6 +46,13 @@ export const useClaim = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['lockdrop'] })
   }
+
+  
+  const { msgs }: QueryData = useMemo(() => {
+    if (!queryData) return { msgs: undefined }
+    else return queryData
+  }, [queryData])
+
 
   return {
     action: useSimulateAndBroadcast({

@@ -48,7 +48,7 @@ const TokenAllocation = (props: Props) => {
   const { data: allocations } = useAllocation()
   const mbrnAsset = useAssetBySymbol('MBRN')
   const { unlocked, allocation, claimables } = allocations || {}
-  const claimFees = useClaimFees()
+  const { action: claimFees } = useClaimFees()
   const withdraw = useWithdrawUnlocked()
 
   const allocationAmount = shiftDigits(Number(allocation?.amount || 0), -6).toString()
@@ -109,9 +109,9 @@ const TokenAllocation = (props: Props) => {
         <TxButton
           mt={4}
           maxW="300px"
-          isLoading={claimFees?.action.simulate.isLoading || claimFees?.action.tx.isPending}
-          isDisabled={claimFees?.action.simulate.isError}
-          onClick={() => claimFees.action.tx.mutate()}
+          isLoading={claimFees?.simulate.isLoading || claimFees?.tx.isPending}
+          isDisabled={claimFees?.simulate.isError}
+          onClick={() => claimFees.tx.mutate()}
         >
           Claim
         </TxButton>

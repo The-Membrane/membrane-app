@@ -244,8 +244,9 @@ const useProtocolClaims = () => {
 
   return {action: useSimulateAndBroadcast({
     msgs,
-    queryKey: ['protocol claim sim', (msgs?.toString() ?? '0')],
+    queryKey: ['protocol_claim_sim', (msgs?.toString() ?? '0')],
     onSuccess,
+    enabled: !!msgs,
   }), claims_summary: agg_claims}
 }
 

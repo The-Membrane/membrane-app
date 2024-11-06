@@ -30,7 +30,7 @@ const Home = React.memo(() => {
           </h5>
         </div>
         {/* CDT Swap Card */}
-        <CDTSwapSliderCard />
+        {/* <CDTSwapSliderCard /> */}
         <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center"> 
           {/* autoSPVault Card */}
           <SPCard />

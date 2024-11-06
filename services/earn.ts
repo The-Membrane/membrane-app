@@ -64,7 +64,7 @@ export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsRespo
 //   console.log("above map", basketPositions)
   basketPositions?.map((basketPosition, index) => {
     const debt = getDebt([basketPosition])
-    if (!debt || debt <= 1000) return
+    if (!debt || debt <= 1000 || basketPosition.user == contracts.earn ) return
     // debtTallies[0] += 1
   // console.log("in map", basketPosition)
     const positions = getPositions([basketPosition], prices)

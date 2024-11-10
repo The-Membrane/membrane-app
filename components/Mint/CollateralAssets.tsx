@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
   return combinBalance
     ?.filter((asset) => {
+      if (!asset) return false
       return num(asset.combinUsdValue || 0).isGreaterThan(1)
     })
     .map((asset) => ({

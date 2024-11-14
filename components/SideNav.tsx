@@ -37,7 +37,7 @@ const navItems: NavItems[] = [
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
-  { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
+  // { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
   { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
 ]
 
@@ -47,7 +47,7 @@ const mobileNavItems: NavItems[] = [
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
-  { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
+  // { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
 ]
 
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {

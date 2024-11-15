@@ -152,7 +152,7 @@ const RangeBoundLPCard = () => {
             <TxButton
               maxW="100%"
               isLoading={manage?.simulate.isLoading || manage?.tx.isPending}
-              isDisabled={true}//{isDisabled}
+              isDisabled={isDisabled}
               onClick={() => manage?.tx.mutate()}
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}

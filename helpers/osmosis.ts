@@ -11,13 +11,15 @@ type GetSwapToMsgs = {
     address: string
     prices: Price[]
     cdtPrice: number
+    slippage?: number
 }
 export const swapToCollateralMsg = ({
     address,
     cdtAmount,
     swapToAsset,
     prices,
-    cdtPrice
+    cdtPrice,
+    slippage
 }: GetSwapToMsgs) => {
     const microAmount = shiftDigits(cdtAmount, 6).dp(0).toString()
 
@@ -25,7 +27,7 @@ export const swapToCollateralMsg = ({
     const swapToPrice = prices?.find((price) => price.denom === swapToAsset.base)
     const CDTInAmount = num(microAmount).toNumber()
 
-    return handleCollateralswaps(address, cdtPrice, Number(swapToPrice!.price), swapToAsset.symbol as keyof exported_supportedAssets, CDTInAmount)
+    return handleCollateralswaps(address, cdtPrice, Number(swapToPrice!.price), swapToAsset.symbol as keyof exported_supportedAssets, CDTInAmount, slippage)
 }
 
 type GetSwapFromMsgs = {

@@ -36,7 +36,7 @@ const SummaryItem = ({
         {badge}
       </Badge>
       <Text variant="value" textTransform="unset">
-        {label} {amount} {key} {label === "Withdraw" ? "from" : "into"} {key === "CDT" ? "Auto-Compounding Omni-Pool Vault" : "Manic USDC Vault"}
+        {label} {amount} {key} {label === "Withdraw" ? "from" : "into"} {key === "CDT" ? "Auto-Compounding Omni-Pool Vault" : key === "LP" ? "Range Bound LP Vault" : "Manic USDC Vault"}
       </Text>
     </HStack>
   </HStack>
@@ -50,12 +50,15 @@ export const QASummary = ({ logo }: { logo?: string }) => {
     <Stack h="max-content" overflow="auto" w="full">
 
       <SummaryItem
-        key={quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0 ? "CDT" : "USDC"}
-        label={quickActionState.autoSPdeposit > 0 || earnState.deposit > 0 ? "Deposit" : "Withdraw"}
+        key={quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0 ? "CDT" : quickActionState.rangeBoundLPdeposit > 0 ||  quickActionState.rangeBoundLPwithdrawal > 0  ? "LP" : "USDC"}
+        label={quickActionState.autoSPdeposit > 0 || earnState.deposit > 0 ||  quickActionState.rangeBoundLPdeposit > 0 ? "Deposit" : "Withdraw"}
         amount={quickActionState.autoSPdeposit > 0 ? quickActionState.autoSPdeposit 
           : quickActionState.autoSPwithdrawal > 0 ? quickActionState.autoSPwithdrawal 
           : earnState.deposit > 0 ? earnState.deposit
-          : earnState.withdraw > 0 ? earnState.withdraw : 0        
+          : earnState.withdraw > 0 ? earnState.withdraw 
+          : quickActionState.rangeBoundLPdeposit > 0 ? quickActionState.rangeBoundLPdeposit
+          : quickActionState.rangeBoundLPwithdrawal > 0 ? quickActionState.rangeBoundLPwithdrawal :
+          0        
         }
         logo={logo}
         badge={"EARN"}

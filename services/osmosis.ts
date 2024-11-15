@@ -701,7 +701,7 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 }
 
 //Swapping CDT to collateral
-export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number): {msg: any, tokenOutMinAmount: number} => {
+export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number, slippage?: number): {msg: any, tokenOutMinAmount: number} => {
     console.log("herein 1")
     //Get tokenOutAmount
     const decimalDiff = denoms[tokenOut][1] as number - 6;
@@ -713,7 +713,7 @@ export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOu
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
     console.log("herein 3")
 
-    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
+    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), slippage??SWAP_SLIPPAGE)).toString();
     console.log("herein 4")
 
 

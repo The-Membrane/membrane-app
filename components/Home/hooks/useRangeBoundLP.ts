@@ -14,6 +14,8 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useBoundedCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
+import { swapToCollateralMsg } from '@/helpers/osmosis'
+import { useOraclePrice } from '@/hooks/useOracle'
 
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
@@ -21,6 +23,9 @@ const useAutoSP = ( ) => {
   const cdtAsset = useAssetBySymbol('CDT')
   const boundedCDTAsset = useAssetBySymbol('range-bound-CDT')
   const boundedCDTBalance = useBalanceByAsset(boundedCDTAsset)??"1"
+  //Get USDC asset
+  const usdcAsset = useAssetBySymbol('USDC')
+  const { data: prices } = useOraclePrice()
 
   const { data } = useBoundedCDTVaultTokenUnderlying(shiftDigits(boundedCDTBalance, 6).toFixed(0))
   const underlyingCDT = data ?? "1"
@@ -28,14 +33,15 @@ const useAutoSP = ( ) => {
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
   }
-  console.log("bounded", address,
-    quickActionState.rangeBoundLPwithdrawal,
-    quickActionState.rangeBoundLPdeposit,  
-    cdtAsset,
-    boundedCDTAsset,
-    underlyingCDT,
-    boundedCDTBalance
-)
+//   console.log("bounded", address,
+//     quickActionState.rangeBoundLPwithdrawal,
+//     quickActionState.rangeBoundLPdeposit,  
+//     cdtAsset,
+//     boundedCDTAsset,
+//     underlyingCDT,
+//     boundedCDTBalance,
+//     usdcAsset, prices
+// )
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
       'bounded_msg_creation',
@@ -45,11 +51,14 @@ const useAutoSP = ( ) => {
       cdtAsset,
       boundedCDTAsset,
       underlyingCDT,
-      boundedCDTBalance
+      boundedCDTBalance,
+      usdcAsset, prices
     ],
     queryFn: () => {
-      if (!address || !cdtAsset || !boundedCDTAsset) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance); return { msgs: [] }}
+      if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
+      const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
+
 
       if (quickActionState.rangeBoundLPwithdrawal != 0){
 
@@ -77,8 +86,22 @@ const useAutoSP = ( ) => {
       }
 
       if (quickActionState.rangeBoundLPdeposit != 0){
+
+        //Divide total deposit amount by half
+        const halfOfCDTDepositAmount = shiftDigits(quickActionState.rangeBoundLPdeposit, cdtAsset.decimal).dividedBy(2).dp(0).toNumber()
+        //Swap half to USDC         
+        const { msg: CDTswap, tokenOutMinAmount: usdcOutMinAmount } =  swapToCollateralMsg({
+          address,
+          cdtAmount: halfOfCDTDepositAmount,
+          swapToAsset: usdcAsset,
+          prices,
+          cdtPrice,
+          slippage: 0.5
+        })
+        msgs.push(CDTswap as MsgExecuteContractEncodeObject)          
+
         
-        const funds = [{ amount: shiftDigits(quickActionState.rangeBoundLPdeposit, cdtAsset.decimal).dp(0).toNumber().toString(), denom: cdtAsset.base }]      
+        const funds = [{ amount: halfOfCDTDepositAmount.toString(), denom: cdtAsset.base }, { amount: usdcOutMinAmount.toString(), denom: usdcAsset.base }]      
         let enterMsg  = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
@@ -114,7 +137,7 @@ const useAutoSP = ( ) => {
     msgs,
     queryKey: ['home_page_bounded', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: true,
+    enabled: !!msgs,
   })}
 }
 

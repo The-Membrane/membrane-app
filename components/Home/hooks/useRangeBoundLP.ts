@@ -55,7 +55,7 @@ const useAutoSP = ( ) => {
       usdcAsset, prices
     ],
     queryFn: () => {
-      if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset); return { msgs: [] }}
+      if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
 
@@ -100,6 +100,7 @@ const useAutoSP = ( ) => {
         })
         msgs.push(CDTswap as MsgExecuteContractEncodeObject)          
 
+        console.log("halfOfCDTDepositAmount", halfOfCDTDepositAmount, "usdcOutMinAmount", usdcOutMinAmount)
         
         const funds = [{ amount: halfOfCDTDepositAmount.toString(), denom: cdtAsset.base }, { amount: usdcOutMinAmount.toString(), denom: usdcAsset.base }]      
         let enterMsg  = {

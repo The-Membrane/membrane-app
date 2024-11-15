@@ -92,7 +92,7 @@ const useAutoSP = ( ) => {
         //Swap half to USDC         
         const { msg: CDTswap, tokenOutMinAmount: usdcOutMinAmount } =  swapToCollateralMsg({
           address,
-          cdtAmount: halfOfCDTDepositAmount,
+          cdtAmount: shiftDigits(halfOfCDTDepositAmount, -6).toString(),
           swapToAsset: usdcAsset,
           prices,
           cdtPrice,

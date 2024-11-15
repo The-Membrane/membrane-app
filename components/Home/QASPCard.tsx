@@ -104,7 +104,7 @@ const ActSlider = React.memo(() => {
           
 const SPCard = () => {
     const { action: compound } = useSPCompound()
-    useEstimatedAnnualInterest(false)
+    // useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()
     const { data: realizedAPR } = useEarnCDTRealizedAPR()  
 
@@ -115,14 +115,14 @@ const SPCard = () => {
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn CDT</Text>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Liquidate CDT</Text>
             <Stack>
               <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(assetPool?.credit_asset.amount || 1).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: N/A</a></Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>
+              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Compounded Liquidations</ListItem>
               <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
             </List>
             <ActSlider />

@@ -106,7 +106,6 @@ const ActSlider = React.memo(() => {
           
 const RangeBoundLPCard = () => {
     const { action: manage } = useBoundedManage()
-    //Make sure to add the LP yield as well
     useEstimatedAnnualInterest(false)
     //Get total deposit tokens
     const { data: TVL } = useBoundedTVL()
@@ -133,8 +132,8 @@ const RangeBoundLPCard = () => {
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Revenue & Compounded Liquidations</ListItem>
-              <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
+              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Revenue & Swap Fees</ListItem>
+              <ListItem>Withdraw Period: 0 days</ListItem>
             </List>
             <ActSlider />
             <Divider marginTop={"3"} marginBottom={"3"}/>           
@@ -153,7 +152,7 @@ const RangeBoundLPCard = () => {
             <TxButton
               maxW="100%"
               isLoading={manage?.simulate.isLoading || manage?.tx.isPending}
-              isDisabled={isDisabled}
+              isDisabled={true}//{isDisabled}
               onClick={() => manage?.tx.mutate()}
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}

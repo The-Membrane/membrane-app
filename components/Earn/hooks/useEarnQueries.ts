@@ -107,7 +107,7 @@ export const useEarnCDTRealizedAPR = () => {
                 vt_claim_of_checkpoint: num(currentClaim).toString(), //subtracting gains from the exit bug
                 time_since_last_checkpoint
             }
-            console.log("boundedLP claim tracker", currentClaimTracker)
+            console.log("Manic Vault claim tracker", currentClaimTracker)
 
             //Add the current claim to the claim tracker
             claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
@@ -117,7 +117,7 @@ export const useEarnCDTRealizedAPR = () => {
             }, 0);
 
             //We are skipping the first checkpoint because it saved incorrectly in state
-            var APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[1].vt_claim_of_checkpoint).minus(1)
+            var APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[0].vt_claim_of_checkpoint).minus(1)
             var negative = false
 
             //If the APR is negative, set the negative flag to true and multiply the APR by -1
@@ -145,7 +145,7 @@ export const useBoundedCDTRealizedAPR = () => {
             const blockTime = await cdpClient().then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
-                vt_claim_of_checkpoint: num(currentClaim).toString(), //subtracting gains from the exit bug
+                vt_claim_of_checkpoint: num(currentClaim).toString(),
                 time_since_last_checkpoint
             }
             console.log("autoSP claim tracker", currentClaimTracker)
@@ -157,7 +157,7 @@ export const useBoundedCDTRealizedAPR = () => {
                 return acc + checkpoint.time_since_last_checkpoint
             }, 0);
 
-            var APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[0].vt_claim_of_checkpoint).minus(1)
+            var APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[1].vt_claim_of_checkpoint).minus(1)
             var negative = false
 
             //If the APR is negative, set the negative flag to true and multiply the APR by -1

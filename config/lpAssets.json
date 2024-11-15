@@ -41,5 +41,12 @@
     "symbol": "earnCDT",
     "decimal": 6,
     "isLP": false
+  },
+  {
+    "description": "Compounding Range Bounded LP Vault for CDT-USDC CL Pool 1268",
+    "base": "factory/osmo17rvvd6jc9javy3ytr0cjcypxs20ru22kkhrpwx7j3ym02znuz0vqa37ffx/cdt-usdc-range-bound-lp",
+    "symbol": "range-bound-CDT",
+    "decimal": 6,
+    "isLP": false
   }
 ]

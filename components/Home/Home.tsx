@@ -6,6 +6,7 @@ import LPCard from './QALPCard'
 
 import React, { useEffect, useState } from "react"
 import CDTSwapSliderCard from './CDTSwapSlider'
+import RangeBoundLPCard from './RangeBoundLPCard'
 
 
 const Home = React.memo(() => {
@@ -36,8 +37,8 @@ const Home = React.memo(() => {
           <SPCard />
           {/* Earn Vault Card */}
           <EarnCard />
-          {/* LP Card */}
-          <LPCard />
+          {/* RangeBoundLP Card */}
+          <RangeBoundLPCard />
         </Stack>      
       </Stack>
     </Stack>

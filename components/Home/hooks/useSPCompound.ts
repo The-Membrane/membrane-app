@@ -29,9 +29,9 @@ const useSPCompound = ( ) => {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
           sender: address,
-          contract: contracts.stabilityPool,
+          contract: contracts.autoStabilityPool,
           msg: toUtf8(JSON.stringify({
-              compound_fee: { num_of_events: undefined }
+              compound: { }
           })),
           funds: []
           })

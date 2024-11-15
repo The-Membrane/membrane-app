@@ -20,6 +20,13 @@ export const EarnClient = async () => {
 //   return new EarnQueryClient(cosmWasmClient, contracts.earn)
 // }
 
+export const getBoundedTVL = async () => {
+  const cosmWasmClient = await getCosmWasmClient()  
+  return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
+    total_t_v_l: { }
+  }) as Promise<Uint128>   
+
+}
 export const getUnderlyingUSDC = async (vtAmount: string) => {
   const client = await EarnClient()
   return client.vaultTokenUnderlying({ vaultTokenAmount: vtAmount}).then((res) => res) as Promise<Uint128>    
@@ -34,6 +41,14 @@ export const getUnderlyingCDT = async (vtAmount: string) => {
   }) as Promise<Uint128>   
 }
 
+export const getBoundedUnderlyingCDT = async (vtAmount: string) => {
+  const cosmWasmClient = await getCosmWasmClient()  
+  return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
+    vault_token_underlying: {
+      vault_token_amount: vtAmount
+    }
+  }) as Promise<Uint128>   
+}
 
 
 export const getVaultAPRResponse = async () => {
@@ -51,6 +66,13 @@ export const getEarnUSDCRealizedAPR = async () => {
 export const getEarnCDTRealizedAPR = async () => {
   const cosmWasmClient = await getCosmWasmClient()  
   return cosmWasmClient.queryContractSmart(contracts.autoStabilityPool, {
+    claim_tracker: { }
+  }) as Promise<ClaimTracker> 
+}
+
+export const getBoundedCDTRealizedAPR = async () => {
+  const cosmWasmClient = await getCosmWasmClient()  
+  return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     claim_tracker: { }
   }) as Promise<ClaimTracker> 
 }

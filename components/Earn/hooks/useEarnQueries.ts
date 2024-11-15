@@ -1,18 +1,25 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
 import { cdpClient, getUserDiscount } from "@/services/cdp"
-import { getUnderlyingUSDC, getUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR } from "@/services/earn"
+import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR } from "@/services/earn"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
 import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
-import { convertBaseUnitToDollarValue } from "@chain-registry/utils"
-import { clPositions } from "@/config/defaults"
-import { getCLRewards } from "@/services/osmosis"
+
+export const useBoundedTVL = () => {
+
+    return useQuery({
+        queryKey: ['useBoundedTVL'],
+        queryFn: async () => {
+        return getBoundedTVL()
+        },
+    })
+
+}
 
 export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
-    console.log("usdc log", vtAmount)
 
     return useQuery({
         queryKey: ['useUSDCVaultTokenUnderlying', vtAmount],
@@ -22,12 +29,20 @@ export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
     })
 }
 export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
-    console.log("cdt log", vtAmount)
 
     return useQuery({
         queryKey: ['useCDTVaultTokenUnderlying', vtAmount],
         queryFn: async () => {
         return getUnderlyingCDT(vtAmount)
+        },
+    })
+}
+
+export const useBoundedCDTVaultTokenUnderlying = (vtAmount: string) => {    
+    return useQuery({
+        queryKey: ['useBoundedCDTVaultTokenUnderlying', vtAmount],
+        queryFn: async () => {
+        return getBoundedUnderlyingCDT(vtAmount)
         },
     })
 }
@@ -86,6 +101,47 @@ export const useEarnCDTRealizedAPR = () => {
         queryFn: async () => {
             const claimTracker = await getEarnCDTRealizedAPR()
             const currentClaim = await getUnderlyingCDT("1000000000000")
+            const blockTime = await cdpClient().then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
+            const time_since_last_checkpoint = blockTime - claimTracker.last_updated
+            const currentClaimTracker = {
+                vt_claim_of_checkpoint: num(currentClaim).toString(), //subtracting gains from the exit bug
+                time_since_last_checkpoint
+            }
+            console.log("boundedLP claim tracker", currentClaimTracker)
+
+            //Add the current claim to the claim tracker
+            claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
+            //Parse the claim tracker to get the realized APR//
+            const runningDuration = claimTracker.vt_claim_checkpoints.reduce((acc, checkpoint) => {
+                return acc + checkpoint.time_since_last_checkpoint
+            }, 0);
+
+            //We are skipping the first checkpoint because it saved incorrectly in state
+            var APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[1].vt_claim_of_checkpoint).minus(1)
+            var negative = false
+
+            //If the APR is negative, set the negative flag to true and multiply the APR by -1
+            if (APR.toNumber() < 0) {
+                APR = APR.times(-1)
+                negative = true
+            }
+            
+            // console.log("APR calcs", APR.dividedBy(runningDuration/(86400*365)).toString(), runningDuration.toString(), claimTracker)
+
+            //Divide the APR by the duration in years
+            return { apr: APR.dividedBy(runningDuration/(86400*365)).toString(), negative, runningDuration: num(runningDuration).dividedBy(86400).dp(0) }
+
+        },
+    })
+}
+
+
+export const useBoundedCDTRealizedAPR = () => {
+    return useQuery({
+        queryKey: ['useBoundedCDTRealizedAPR'],
+        queryFn: async () => {
+            const claimTracker = await getBoundedCDTRealizedAPR()
+            const currentClaim = await getBoundedUnderlyingCDT("1000000000000")
             const blockTime = await cdpClient().then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {

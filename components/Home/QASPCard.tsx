@@ -106,15 +106,8 @@ const SPCard = () => {
     const { action: compound } = useSPCompound()
     useEstimatedAnnualInterest(false)
     const { data: assetPool } = useStabilityAssetPool()
-    const { data: basket } = useBasket()
     const { data: realizedAPR } = useEarnCDTRealizedAPR()  
 
-    const revenueDistributionThreshold = 50000000
-    const percentToDistribution = useMemo(() => {
-      if (!basket) return 0
-      return num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()
-
-    }, [basket])
 
     const { bidState } = useBidState()
     const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
@@ -133,19 +126,7 @@ const SPCard = () => {
               <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
             </List>
             <ActSlider />
-            <Divider marginTop={"3"} marginBottom={"3"}/>           
-            <Slider
-              defaultValue={percentToDistribution}
-              isReadOnly
-              cursor="default"
-              min={0}
-              max={1}
-              value={percentToDistribution}
-            >
-              <SliderTrack h="1.5">
-                <SliderFilledTrack bg={'#20d6ff'} />
-              </SliderTrack>
-            </Slider>
+            <Divider marginTop={"3"} marginBottom={"3"}/>       
             <TxButton
               maxW="100%"
               isLoading={compound?.simulate.isLoading || compound?.tx.isPending}
@@ -154,7 +135,7 @@ const SPCard = () => {
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}
             >
-              {isDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to Omni-Pool" : "Compound"}
+                Compound
             </TxButton>
           </Stack>
         </Card>

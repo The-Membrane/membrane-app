@@ -5,16 +5,10 @@ import { devtools } from 'zustand/middleware'
 
 
 export type QuickActionState = {
-  // levAssets?: AssetWithBalance[]
-  // stableAsset?: AssetWithBalance
-  // assets: AssetWithBalance[]
-  // summary?: Summary[]
-  // totalUsdValue?: number
-  // levSwapRatio?: number
-  // useCookies: boolean
-  // readyToLoop: boolean
   autoSPdeposit: number
   autoSPwithdrawal: number
+  rangeBoundLPdeposit: number
+  rangeBoundLPwithdrawal: number
 }
 
 type Store = {
@@ -23,11 +17,10 @@ type Store = {
 }
 
 const initialState: QuickActionState = {  
-  // assets: [],
-  // useCookies: false,
-  // readyToLoop: false,
   autoSPdeposit: 0,
   autoSPwithdrawal: 0,
+  rangeBoundLPdeposit: 0,
+  rangeBoundLPwithdrawal: 0,
 }
 
 // @ts-ignore

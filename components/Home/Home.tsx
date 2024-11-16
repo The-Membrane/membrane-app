@@ -7,6 +7,7 @@ import LPCard from './QALPCard'
 import React, { useEffect, useState } from "react"
 import CDTSwapSliderCard from './CDTSwapSlider'
 import RangeBoundLPCard from './RangeBoundLPCard'
+import RangeBoundVisual from './RangeBoundVisual'
 
 
 const Home = React.memo(() => {
@@ -18,7 +19,8 @@ const Home = React.memo(() => {
       <Stack>
         <StatsCard />
       </Stack>
-      <Stack>        
+      <Stack>
+        <RangeBoundVisual />
         <div className="paddingBottom" onMouseEnter={()=>{setSign("on")}} onMouseLeave={()=>{setSign("on")}}>
           <h5 className={`neonSign${sign}`}>
             <b>

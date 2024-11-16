@@ -1,4 +1,4 @@
-import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box } from "@chakra-ui/react"
+import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex } from "@chakra-ui/react"
 
 // Create and return a vertical slider
 const RangeBoundVisual = () => {
@@ -9,7 +9,8 @@ const RangeBoundVisual = () => {
     //Get USDC price
 
 
-return (         
+return (        
+    <Flex gap={4} alignItems="center"> 
         <Box height="33vh">
             <Slider
               defaultValue={cdtPrice}
@@ -20,12 +21,14 @@ return (
               value={cdtPrice}
               orientation="vertical"
             >
-              <SliderTrack h="1.5">
+              <SliderTrack h="1.5" transform={"0"}>
                 {/* <SliderFilledTrack bg={'#20d6ff'} /> */}
               </SliderTrack>
                 <SliderThumb 
+                    transform={"0"}
+                    left={"0px"}
                     h="2px"              // Makes it thin like a line
-                    w="100%"             // Makes it wider horizontally
+                    w="68.2vw"             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
                     _hover={{
@@ -34,6 +37,20 @@ return (
                 />
             </Slider>
         </Box>
+      
+      {/* Label Rectangle */}
+      <Flex
+        w="100px"
+        h="40px"
+        bg="gray.200"
+        alignItems="center"
+        justifyContent="center"
+        borderRadius="md"
+        fontWeight="bold"
+      >
+        <Text>{value}%</Text>
+      </Flex>
+    </Flex>
     )
 }
 

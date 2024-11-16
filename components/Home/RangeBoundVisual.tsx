@@ -1,4 +1,4 @@
-import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex } from "@chakra-ui/react"
+import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text } from "@chakra-ui/react"
 
 // Create and return a vertical slider
 const RangeBoundVisual = () => {
@@ -48,7 +48,7 @@ return (
         borderRadius="md"
         fontWeight="bold"
       >
-        <Text>{value}%</Text>
+        <Text>{99}%</Text>
       </Flex>
     </Flex>
     )

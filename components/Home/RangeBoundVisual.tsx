@@ -40,28 +40,30 @@ return (
         </Box>
       
       {/* Label Rectangle */}
-      <Stack gap="15vh">
+      <Stack justifyContent="space-between">
         <Flex
             w="100px"
-            h="40px"
+            h="20%"
+            paddingBottom="13.33%"
             bg="gray.200"
             alignItems="center"
             justifyContent="center"
             borderRadius="md"
-            fontWeight="bold"
+            fontWeight="bold" 
         >
-            <Text>{99}%</Text>
+            <Text>99.3% - 99%</Text>
         </Flex>
         <Flex
             w="100px"
-            h="40px"
+            h="20%"
+            paddingBottom="13.33%"
             bg="gray.200"
             alignItems="center"
             justifyContent="center"
             borderRadius="md"
             fontWeight="bold"
         >
-            <Text>{99}%</Text>
+            <Text>98.5% - 98.2%</Text>
         </Flex>
       </Stack>
     </Flex>

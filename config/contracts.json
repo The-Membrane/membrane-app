@@ -1,5 +1,6 @@
 {
   "oracle": "osmo16sgcpe0hcs42qk5vumk06jzmstkpka9gjda9tfdelwn65ksu3l7s7d4ggs",
+  "cdtOracle": "osmo1nv8ngfpxhqxvwquldcnusstl6860c70cjyz3ypzfgj748zqvd92qw8zz3t",
   "cdp": "osmo1gy5gpqqlth0jpm9ydxlmff6g5mpnfvrfxd3mfc8dhyt03waumtzqt8exxr",
   "lockdrop": "osmo1g6hgj3eu9ju4vuaprjxdzj97ecnuczytve3junulgnwlamnndl5q6k73w6",
   "staking": "osmo1fty83rfxqs86jm5fmlql5e340e8pe0v9j8ez0lcc6zwt2amegwvsfp3gxj",

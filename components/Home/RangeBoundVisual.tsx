@@ -10,7 +10,7 @@ const RangeBoundVisual = () => {
 
 
 return (         
-        <Box>
+        <Box height="33vh">
             <Slider
               defaultValue={cdtPrice}
               isReadOnly

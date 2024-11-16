@@ -1,4 +1,4 @@
-import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text } from "@chakra-ui/react"
+import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text, Stack } from "@chakra-ui/react"
 
 // Create and return a vertical slider
 const RangeBoundVisual = () => {
@@ -10,7 +10,7 @@ const RangeBoundVisual = () => {
 
 
 return (        
-    <Flex gap={4} alignItems="center"> 
+    <Flex gap={0}> 
         <Box height="33vh">
             <Slider
               defaultValue={cdtPrice}
@@ -20,6 +20,7 @@ return (
               max={.995}
               value={cdtPrice}
               orientation="vertical"
+              paddingInlineStart={"0"}
             >
               <SliderTrack h="1.5" transform={"0"}>
                 {/* <SliderFilledTrack bg={'#20d6ff'} /> */}
@@ -39,17 +40,30 @@ return (
         </Box>
       
       {/* Label Rectangle */}
-      <Flex
-        w="100px"
-        h="40px"
-        bg="gray.200"
-        alignItems="center"
-        justifyContent="center"
-        borderRadius="md"
-        fontWeight="bold"
-      >
-        <Text>{99}%</Text>
-      </Flex>
+      <Stack gap="15vh">
+        <Flex
+            w="100px"
+            h="40px"
+            bg="gray.200"
+            alignItems="center"
+            justifyContent="center"
+            borderRadius="md"
+            fontWeight="bold"
+        >
+            <Text>{99}%</Text>
+        </Flex>
+        <Flex
+            w="100px"
+            h="40px"
+            bg="gray.200"
+            alignItems="center"
+            justifyContent="center"
+            borderRadius="md"
+            fontWeight="bold"
+        >
+            <Text>{99}%</Text>
+        </Flex>
+      </Stack>
     </Flex>
     )
 }

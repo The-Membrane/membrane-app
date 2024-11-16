@@ -21,11 +21,11 @@ return (
               orientation="vertical"
             >
               <SliderTrack h="1.5">
-                <SliderFilledTrack bg={'#20d6ff'} />
+                {/* <SliderFilledTrack bg={'#20d6ff'} /> */}
               </SliderTrack>
                 <SliderThumb 
                     h="2px"              // Makes it thin like a line
-                    w="16px"             // Makes it wider horizontally
+                    w="100%"             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
                     _hover={{

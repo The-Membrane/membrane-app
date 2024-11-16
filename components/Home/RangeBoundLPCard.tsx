@@ -42,7 +42,6 @@ const ActSlider = React.memo(() => {
     const totalBalance = useMemo(() => {
       return num(underlyingCDT).plus(cdtBalance).toString()
     }, [cdtBalance, underlyingCDT])
-    console.log("CDTs", cdtBalance, underlyingCDT, totalBalance)
 
     const pendingBalance = useMemo(() => {
       return num(underlyingCDT).plus(quickActionState.rangeBoundLPdeposit).minus(quickActionState.rangeBoundLPwithdrawal).toNumber()
@@ -109,6 +108,8 @@ const RangeBoundLPCard = () => {
     useEstimatedAnnualInterest(false)
     //Get total deposit tokens
     const { data: TVL } = useBoundedTVL()
+    console.log("bounded TVL", TVL)
+
     const { data: basket } = useBasket()
     const { data: realizedAPR } = useBoundedCDTRealizedAPR()  
 

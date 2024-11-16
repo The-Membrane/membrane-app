@@ -158,7 +158,7 @@ const RangeBoundLPCard = () => {
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}
             >
-              {isDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to LPs" : "Compound"}
+              {isDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to LPs" : "Manage"}
             </TxButton>
           </Stack>
         </Card>

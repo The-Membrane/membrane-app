@@ -109,7 +109,7 @@ const SPCard = () => {
     const { data: realizedAPR } = useEarnCDTRealizedAPR()  
 
 
-    const { bidState } = useBidState()
+    // const { bidState } = useBidState()
     const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
 
     return (
@@ -122,8 +122,8 @@ const SPCard = () => {
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Compounded Liquidations</ListItem>
-              <ListItem>Compounds over 10% Slippage = Capital Loss</ListItem>
+              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Compounded Liquidations (no longer gets revenue)</ListItem>
+              <ListItem>Compounds over 10% Slippage = <a style={{fontWeight:"bold", color:"rgb(231, 58, 58)"}}>Capital Loss</a> </ListItem>
             </List>
             <ActSlider />
             <Divider marginTop={"3"} marginBottom={"3"}/>       

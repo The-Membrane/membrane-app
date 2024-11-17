@@ -18,7 +18,7 @@ const RangeBoundVisual = () => {
     const cdtPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0"), [prices])
     //Get USDC price
     const usdcPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0"), [prices])
-
+    console.log("prices & positions", prices, positions)
     
     const positionsTVL = useMemo(() =>{
         //Find ceiling amounts
@@ -93,7 +93,7 @@ return (
             onMouseEnter={()=>{setCSwitch(true)}}
             onMouseLeave={()=>{setCSwitch(false)}}
         >
-            {cSwitch ? <Text justifySelf={"center"} width="100">$0.993 - $0.99</Text> 
+            {cSwitch ? <Text justifySelf={"center"} width="100">Range: $0.993 - $0.99</Text> 
             : <Text justifySelf={"center"} width="100">TVL: ${positionsTVL.ceilingTVL.toFixed(2)}</Text>}
         </Flex>
         <Flex
@@ -109,7 +109,7 @@ return (
             onMouseEnter={()=>{setFSwitch(true)}}
             onMouseLeave={()=>{setFSwitch(false)}}
         >
-            {fSwitch ? <Text justifySelf={"center"} width="100">$0.985 - $0.982</Text> 
+            {fSwitch ? <Text justifySelf={"center"} width="100">Range: $0.985 - $0.982</Text> 
             : <Text justifySelf={"center"} width="100">TVL: ${positionsTVL.floorTVL.toFixed(2)}</Text>}
         </Flex>
       </Stack>

@@ -44,7 +44,7 @@ return (
               cursor="default"
               min={.98}
               max={.995}
-              value={cdtPrice}
+              value={.985}
               orientation="vertical"
               paddingInlineStart={"0"}
             >
@@ -55,7 +55,7 @@ return (
                     transform={"0"}
                     left={"0px"}
                     h="5px"              // Makes it thin like a line
-                    w="40vw"             // Makes it wider horizontally
+                    w="9710%"             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
                     _hover={{

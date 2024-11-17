@@ -44,7 +44,7 @@ return (
               cursor="default"
               min={.98}
               max={.995}
-              value={.982}
+              value={cdtPrice}
               orientation="vertical"
               paddingInlineStart={"0"}
             >

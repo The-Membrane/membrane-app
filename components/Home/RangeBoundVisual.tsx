@@ -31,7 +31,7 @@ return (
                     transform={"0"}
                     left={"0px"}
                     h="2px"              // Makes it thin like a line
-                    w="45.2vw"             // Makes it wider horizontally
+                    w="42.5vw"             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
                     _hover={{
@@ -40,7 +40,7 @@ return (
                 >{/* Label attached to thumb */}
                 <Box
                   position="relative"
-                  left="53%"  // positions label to the right of thumb
+                  left="54%"  // positions label to the right of thumb
                   color="white"
                   p="1"
                   borderRadius="md"

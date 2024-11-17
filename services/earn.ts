@@ -23,11 +23,32 @@ export const EarnClient = async () => {
 export const getBoundedConfig = async () => {
   console.log("r u running")
   const cosmWasmClient = await getCosmWasmClient()  
-  const promise = cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
+  return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     config: { }
-  }) as Promise<any>   
-  console.log("i promise", promise)
-  return promise
+  }) as Promise<{
+    owner: string,
+    osmosis_proxy_contract_addr: string,
+    oracle_contract_addr: string,
+    vault_token: string,
+    range_tokens: {
+      ceiling_deposit_token: string,
+      floor_deposit_token: string
+    },
+    range_bounds: {
+      ceiling: {
+        lower_tick: number,
+        upper_tick: number
+      },
+      floor: {
+        lower_tick: number,
+        upper_tick: number
+      }
+    },
+    range_position_ids: {
+      ceiling: number,
+      floor: number
+    }
+  }>   
 }
 
 export const getBoundedTVL = async () => {

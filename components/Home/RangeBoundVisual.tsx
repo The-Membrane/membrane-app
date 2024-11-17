@@ -29,23 +29,36 @@ return (
                     transform={"0"}
                     left={"0px"}
                     h="2px"              // Makes it thin like a line
-                    w="68.2vw"             // Makes it wider horizontally
+                    w="45.2vw"             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
                     _hover={{
                         bg: "blue.600"
                     }}
-                />
+                >{/* Label attached to thumb */}
+                <Box
+                  position="absolute"
+                  left="24px"  // positions label to the right of thumb
+                  // bg="blue.500"
+                  color="white"
+                  p="1"
+                  borderRadius="md"
+                  fontSize="sm"
+                  whiteSpace="nowrap"
+                >
+                  {cdtPrice * 100}
+                </Box>
+              </SliderThumb>
             </Slider>
         </Box>
       
       {/* Label Rectangle */}
       <Stack justifyContent="space-between">
         <Flex
-            w="100px"
+            w="645.2%"
             h="20%"
-            paddingBottom="13.33%"
-            bg="gray.200"
+            marginTop="13.33%"
+            bg="#5f71ed"
             alignItems="center"
             justifyContent="center"
             borderRadius="md"
@@ -54,10 +67,10 @@ return (
             <Text>99.3% - 99%</Text>
         </Flex>
         <Flex
-            w="100px"
+            w="645.2%"
             h="20%"
-            paddingBottom="13.33%"
-            bg="gray.200"
+            marginBottom="13.33%"
+            bg="#5f71ed"
             alignItems="center"
             justifyContent="center"
             borderRadius="md"

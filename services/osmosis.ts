@@ -101,6 +101,7 @@ export const getCLPosition = async (positionId: string) => {
 
 //Get the RangeBound positions
 export const getCLPositionsForVault = async () => {
+    console.log("getCLPositionsForVault")
     const { data: config } = useBoundedConfig()
     
     console.log("RB Config", config.range_position_ids)

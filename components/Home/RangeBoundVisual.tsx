@@ -44,7 +44,7 @@ return (
               cursor="default"
               min={.98}
               max={.995}
-              value={.985}
+              value={.982}
               orientation="vertical"
               paddingInlineStart={"0"}
             >
@@ -82,7 +82,7 @@ return (
         <Flex
             display={"grid"}
             w="84%"
-            h="20%"
+            h="24%"
             marginTop="7%"
             bg="#5f71ed"
             alignItems="center"
@@ -98,7 +98,7 @@ return (
         <Flex
             display={"grid"}
             w="84%"
-            h="20%"
+            h="24%"
             marginBottom="7%"
             bg="#5f71ed"
             alignItems="center"

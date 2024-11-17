@@ -20,6 +20,13 @@ export const EarnClient = async () => {
 //   return new EarnQueryClient(cosmWasmClient, contracts.earn)
 // }
 
+export const getBoundedConfig = async () => {
+  const cosmWasmClient = await getCosmWasmClient()  
+  return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
+    config: { }
+  }) as Promise<any>   
+}
+
 export const getBoundedTVL = async () => {
   const cosmWasmClient = await getCosmWasmClient()  
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {

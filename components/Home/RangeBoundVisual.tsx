@@ -1,19 +1,44 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text, Stack } from "@chakra-ui/react"
+import { useBoundedPositions } from "../Earn/hooks/useEarnQueries"
+import { useMemo, useState } from "react"
+import { shiftDigits } from "@/helpers/math"
+
 
 // Create and return a vertical slider
 const RangeBoundVisual = () => {
+    //Set ceiling & floor switch state
+    const [cSwitch, setCSwitch] = useState(false)
+    const [fSwitch, setFSwitch] = useState(false)
     //Get bounded position data
+    const { data: positions } = useBoundedPositions()
     //Get prices
     const { data: prices } = useOraclePrice()
     //Get CDT price
-    const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
+    const cdtPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0"), [prices])
     //Get USDC price
-    const usdcPrice = parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0")
+    const usdcPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0"), [prices])
+
+    
+    const positionsTVL = useMemo(() =>{
+        //Find ceiling amounts
+        const ceilingAmounts = positions?.ceiling.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
+        ? {cdt: positions?.ceiling.asset0.amount, usdc: positions?.ceiling.asset1.amount} : {cdt: positions?.ceiling.asset1.amount, usdc: positions?.ceiling.asset0.amount}
+        //Find floor amounts
+        const floorAmounts = positions?.floor.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
+        ? {cdt: positions?.floor.asset0.amount, usdc: positions?.floor.asset1.amount} : {cdt: positions?.floor.asset1.amount, usdc: positions?.floor.asset0.amount}
+
+        //Calc Ceiling TVL
+        const ceilingTVL = shiftDigits(ceilingAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(ceilingAmounts.usdc, -6).times(usdcPrice))
+        //Calc Floor TVL
+        const floorTVL = shiftDigits(floorAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(floorAmounts.usdc, -6).times(usdcPrice))
+
+        return {ceilingTVL, floorTVL}
+    }, [ positions, cdtPrice, usdcPrice ])
 
 return (        
     <Flex gap={0}> 
-        <Box height="33vh">
+        <Box >
             <Slider
               defaultValue={cdtPrice}
               isReadOnly
@@ -57,29 +82,35 @@ return (
       <Stack justifyContent="space-between" width="100%">
         <Flex
             display={"grid"}
-            w="65.2%"
+            w="80%"
             h="20%"
-            marginTop="2%"
-            bg="#5f71ed"
-            alignItems="center"
-            justifyContent="center"
-            borderRadius="md"
-            fontWeight="bold" 
-        >
-            <Text justifySelf={"center"} width="100">99.3% - 99%</Text>
-        </Flex>
-        <Flex
-            display={"grid"}
-            w="65.2%"
-            h="20%"
-            marginBottom="2%"
+            marginTop="7%"
             bg="#5f71ed"
             alignItems="center"
             justifyContent="center"
             borderRadius="md"
             fontWeight="bold"
+            onMouseEnter={()=>{setCSwitch(true)}}
+            onMouseLeave={()=>{setCSwitch(false)}}
         >
-            <Text justifySelf={"center"} width="100">98.5% - 98.2%</Text>
+            {cSwitch ? <Text justifySelf={"center"} width="100">$0.993 - $0.99</Text> 
+            : <Text justifySelf={"center"} width="100">${positionsTVL.ceilingTVL.toFixed(2)}</Text>}
+        </Flex>
+        <Flex
+            display={"grid"}
+            w="80%"
+            h="20%"
+            marginBottom="7%"
+            bg="#5f71ed"
+            alignItems="center"
+            justifyContent="center"
+            borderRadius="md"
+            fontWeight="bold"
+            onMouseEnter={()=>{setFSwitch(true)}}
+            onMouseLeave={()=>{setFSwitch(false)}}
+        >
+            {fSwitch ? <Text justifySelf={"center"} width="100">$0.985 - $0.982</Text> 
+            : <Text justifySelf={"center"} width="100">${positionsTVL.floorTVL.toFixed(2)}</Text>}
         </Flex>
       </Stack>
     </Flex>

@@ -29,6 +29,8 @@ import useQuickActionVaultSummary from "@/components/Home/hooks/useQuickActionVa
 import { shiftDigits } from "@/helpers/math";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { position } from "@chakra-ui/react";
+import { getBoundedConfig } from "./earn";
+import { useBoundedConfig } from "@/components/Earn/hooks/useEarnQueries";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -86,6 +88,26 @@ export const getCLRewards = async (positionId: string) => {
         positionId: BigInt(positionId),
     })  
     return rewards
+}
+
+//Position assets
+export const getCLPosition = async (positionId: string) => {
+    const osmosisClient = await OsmosisClient()
+    const position = await osmosisClient.osmosis.concentratedliquidity.v1beta1.positionById({
+        positionId: BigInt(positionId),
+    })  
+    return position.position
+}
+
+//Get the RangeBound positions
+export const getCLPositionsForVault = async () => {
+    const { data: config } = useBoundedConfig()
+    const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor}
+    const ceilingPosition = await getCLPosition(positions.ceiling)
+    const floorPosition = await getCLPosition(positions.floor)
+
+    return { ceiling: ceilingPosition, floor: floorPosition }
+
 }
 
 

@@ -1,22 +1,41 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
 import { cdpClient, getUserDiscount } from "@/services/cdp"
-import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR } from "@/services/earn"
+import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig } from "@/services/earn"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
 import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
+import { getCLPositionsForVault } from "@/services/osmosis"
+
+export const useBoundedConfig = () => {
+    return useQuery({
+        queryKey: ['useBoundedConfig'],
+        queryFn: async () => {
+        return getBoundedConfig()
+        },
+    })
+}
+
+export const useBoundedPositions = () => {
+    return useQuery({
+        queryKey: ['useBoundedPositions'],
+        queryFn: async () => {
+        return getCLPositionsForVault()
+        },
+    })
+}
+
+
 
 export const useBoundedTVL = () => {
-
     return useQuery({
         queryKey: ['useBoundedTVL'],
         queryFn: async () => {
         return getBoundedTVL()
         },
     })
-
 }
 
 export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {

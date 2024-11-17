@@ -32,7 +32,7 @@ const Home = React.memo(() => {
         {/* CDT Swap Card */}
         {/* <CDTSwapSliderCard /> */}
         <Stack >          
-          <Stack direction={'row'}>  
+          <Stack direction={'row'} width="70%" marginBottom="3vh">  
             <RangeBoundVisual />          
             {/* RangeBoundLP Card */}
             <RangeBoundLPCard />  

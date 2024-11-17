@@ -108,11 +108,11 @@ export const getCLPositionsForVault = () => {
     return useQuery({
         queryKey: ['getCLPositionsForVault', config],
         queryFn: async () => {            
-    
+            if (!config) return;
             console.log("RB Config", config.range_position_ids)
             const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor}
-            const ceilingPosition = await getCLPosition(positions.ceiling)
-            const floorPosition = await getCLPosition(positions.floor)
+            const ceilingPosition = await getCLPosition(positions.ceiling.toString())
+            const floorPosition = await getCLPosition(positions.floor.toString())
 
             console.log("positions", floorPosition, ceilingPosition)
 

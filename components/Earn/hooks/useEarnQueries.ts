@@ -13,7 +13,9 @@ export const useBoundedConfig = () => {
     return useQuery({
         queryKey: ['useBoundedConfig'],
         queryFn: async () => {
-        return getBoundedConfig()
+            const returned = getBoundedConfig()
+            console.log("bounded config", returned)
+            return returned
         },
     })
 }
@@ -22,7 +24,7 @@ export const useBoundedPositions = () => {
     return useQuery({
         queryKey: ['useBoundedPositions'],
         queryFn: async () => {
-        return getCLPositionsForVault()
+            return getCLPositionsForVault()
         },
     })
 }
@@ -33,7 +35,7 @@ export const useBoundedTVL = () => {
     return useQuery({
         queryKey: ['useBoundedTVL'],
         queryFn: async () => {
-        return getBoundedTVL()
+            return getBoundedTVL()
         },
     })
 }

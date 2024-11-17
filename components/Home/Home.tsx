@@ -20,7 +20,6 @@ const Home = React.memo(() => {
         <StatsCard />
       </Stack>
       <Stack>
-        <RangeBoundVisual />
         <div className="paddingBottom" onMouseEnter={()=>{setSign("on")}} onMouseLeave={()=>{setSign("on")}}>
           <h5 className={`neonSign${sign}`}>
             <b>
@@ -32,14 +31,18 @@ const Home = React.memo(() => {
         </div>
         {/* CDT Swap Card */}
         {/* <CDTSwapSliderCard /> */}
-        <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center"> 
-          {/* autoSPVault Card */}
-          <SPCard />
-          {/* Earn Vault Card */}
-          <EarnCard />
+        <Stack>
+          
+          <RangeBoundVisual />          
           {/* RangeBoundLP Card */}
           <RangeBoundLPCard />
-        </Stack>      
+          <Stack direction={'row'} justifyContent="center"> 
+            {/* autoSPVault Card */}
+            <SPCard />
+            {/* Earn Vault Card */}
+            <EarnCard />
+          </Stack>      
+        </Stack>
       </Stack>
     </Stack>
   )

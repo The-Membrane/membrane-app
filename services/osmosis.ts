@@ -105,7 +105,7 @@ export const getCLPositionsForVault = async () => {
     const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor}
     const ceilingPosition = await getCLPosition(positions.ceiling)
     const floorPosition = await getCLPosition(positions.floor)
-    console.log("positions", floorPosition, ceilingPosition)
+    console.log("positions", floorPosition, ceilingPosition, config.range_position_ids)
     return { ceiling: ceilingPosition, floor: floorPosition }
 
 }

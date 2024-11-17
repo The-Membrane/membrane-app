@@ -37,13 +37,12 @@ return (
                     }}
                 >{/* Label attached to thumb */}
                 <Box
-                  position="absolute"
-                  left="24px"  // positions label to the right of thumb
-                  // bg="blue.500"
+                  position="relative"
+                  left="53%"  // positions label to the right of thumb
                   color="white"
                   p="1"
                   borderRadius="md"
-                  fontSize="sm"
+                  fontSize="lg"
                   whiteSpace="nowrap"
                 >
                   {cdtPrice * 100}

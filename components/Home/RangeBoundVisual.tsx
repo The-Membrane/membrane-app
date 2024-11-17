@@ -1,8 +1,8 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text, Stack } from "@chakra-ui/react"
-import { useBoundedPositions } from "../Earn/hooks/useEarnQueries"
 import { useMemo, useState } from "react"
 import { shiftDigits } from "@/helpers/math"
+import { getCLPositionsForVault } from "@/services/osmosis"
 
 
 // Create and return a vertical slider
@@ -11,7 +11,7 @@ const RangeBoundVisual = () => {
     const [cSwitch, setCSwitch] = useState(false)
     const [fSwitch, setFSwitch] = useState(false)
     //Get bounded position data
-    const { data: positions } = useBoundedPositions()
+    const { data: positions } = getCLPositionsForVault()
     //Get prices
     const { data: prices } = useOraclePrice()
     //Get CDT price

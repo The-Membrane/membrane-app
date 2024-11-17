@@ -31,8 +31,7 @@ const Home = React.memo(() => {
         </div>
         {/* CDT Swap Card */}
         {/* <CDTSwapSliderCard /> */}
-        <Stack>
-          
+        <Stack direction={'row'}>          
           <RangeBoundVisual />          
           {/* RangeBoundLP Card */}
           <RangeBoundLPCard />

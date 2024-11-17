@@ -47,7 +47,7 @@ return (
                   fontSize="lg"
                   whiteSpace="nowrap"
                 >
-                  {cdtPrice * 100}
+                  ${(cdtPrice).toFixed(4)}
                 </Box>
               </SliderThumb>
             </Slider>

@@ -11,7 +11,7 @@ import { getCLPositionsForVault } from "@/services/osmosis"
 
 export const useBoundedConfig = () => {
     return useQuery({
-        queryKey: ['useBoundedConfig'],
+        queryKey: ['use_Bounded_Config_plz_run'],
         queryFn: async () => {
             
             console.log("r u running 2")

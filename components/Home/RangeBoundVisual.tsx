@@ -5,7 +5,7 @@ const RangeBoundVisual = () => {
     //Get bounded position data
     //Get prices
     //Get CDT price
-    const cdtPrice = .987
+    const cdtPrice = .995
     //Get USDC price
 
 

@@ -13,9 +13,9 @@ export const useBoundedConfig = () => {
     return useQuery({
         queryKey: ['useBoundedConfig'],
         queryFn: async () => {
-            const returned = getBoundedConfig()
-            console.log("bounded config", returned)
-            return returned
+            
+            console.log("r u running 2")
+            return getBoundedConfig()
         },
     })
 }

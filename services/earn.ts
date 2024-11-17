@@ -21,7 +21,6 @@ export const EarnClient = async () => {
 // }
 
 export const getBoundedConfig = async () => {
-  console.log("r u running")
   const cosmWasmClient = await getCosmWasmClient()  
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     config: { }

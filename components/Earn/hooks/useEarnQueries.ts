@@ -13,8 +13,6 @@ export const useBoundedConfig = () => {
     return useQuery({
         queryKey: ['use_Bounded_Config_plz_run'],
         queryFn: async () => {
-            
-            console.log("r u running 2")
             return getBoundedConfig()
         },
     })

@@ -18,7 +18,6 @@ const RangeBoundVisual = () => {
     const cdtPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0"), [prices])
     //Get USDC price
     const usdcPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0"), [prices])
-    console.log("prices & positions", prices, positions)
     
     const positionsTVL = useMemo(() =>{
         //Find ceiling amounts
@@ -55,7 +54,7 @@ return (
                 <SliderThumb 
                     transform={"0"}
                     left={"0px"}
-                    h="2px"              // Makes it thin like a line
+                    h="5px"              // Makes it thin like a line
                     w="40vw"             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
@@ -82,7 +81,7 @@ return (
       <Stack justifyContent="space-between" width="100%">
         <Flex
             display={"grid"}
-            w="89%"
+            w="84%"
             h="20%"
             marginTop="7%"
             bg="#5f71ed"
@@ -98,7 +97,7 @@ return (
         </Flex>
         <Flex
             display={"grid"}
-            w="89%"
+            w="84%"
             h="20%"
             marginBottom="7%"
             bg="#5f71ed"

@@ -101,20 +101,15 @@ export const getCLPosition = async (positionId: string) => {
 
 //Get the RangeBound positions
 export const getCLPositionsForVault = () => {
-    console.log("getCLPositionsForVault")
     const { data: config } = useBoundedConfig()
-    console.log("config", config)
     
     return useQuery({
         queryKey: ['getCLPositionsForVault', config],
         queryFn: async () => {            
             if (!config) return;
-            console.log("RB Config", config.range_position_ids)
             const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor}
             const ceilingPosition = await getCLPosition(positions.ceiling.toString())
             const floorPosition = await getCLPosition(positions.floor.toString())
-
-            console.log("positions", floorPosition, ceilingPosition)
 
             return { ceiling: ceilingPosition, floor: floorPosition }
         },

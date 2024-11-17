@@ -37,7 +37,7 @@ const RangeBoundVisual = () => {
     }, [ positions, cdtPrice, usdcPrice ])
 
 return (        
-    <Flex gap={0}> 
+    <Flex gap={0} width={"70%"}> 
         <Box >
             <Slider
               defaultValue={cdtPrice}
@@ -56,7 +56,7 @@ return (
                     transform={"0"}
                     left={"0px"}
                     h="2px"              // Makes it thin like a line
-                    w="42.5vw"             // Makes it wider horizontally
+                    w="40vw"             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
                     _hover={{
@@ -65,7 +65,7 @@ return (
                 >{/* Label attached to thumb */}
                 <Box
                   position="relative"
-                  left="54%"  // positions label to the right of thumb
+                  left="57%"  // positions label to the right of thumb
                   color="white"
                   p="1"
                   borderRadius="md"
@@ -82,7 +82,7 @@ return (
       <Stack justifyContent="space-between" width="100%">
         <Flex
             display={"grid"}
-            w="80%"
+            w="89%"
             h="20%"
             marginTop="7%"
             bg="#5f71ed"
@@ -94,11 +94,11 @@ return (
             onMouseLeave={()=>{setCSwitch(false)}}
         >
             {cSwitch ? <Text justifySelf={"center"} width="100">$0.993 - $0.99</Text> 
-            : <Text justifySelf={"center"} width="100">${positionsTVL.ceilingTVL.toFixed(2)}</Text>}
+            : <Text justifySelf={"center"} width="100">TVL: ${positionsTVL.ceilingTVL.toFixed(2)}</Text>}
         </Flex>
         <Flex
             display={"grid"}
-            w="80%"
+            w="89%"
             h="20%"
             marginBottom="7%"
             bg="#5f71ed"
@@ -110,7 +110,7 @@ return (
             onMouseLeave={()=>{setFSwitch(false)}}
         >
             {fSwitch ? <Text justifySelf={"center"} width="100">$0.985 - $0.982</Text> 
-            : <Text justifySelf={"center"} width="100">${positionsTVL.floorTVL.toFixed(2)}</Text>}
+            : <Text justifySelf={"center"} width="100">TVL: ${positionsTVL.floorTVL.toFixed(2)}</Text>}
         </Flex>
       </Stack>
     </Flex>

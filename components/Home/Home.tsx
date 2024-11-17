@@ -31,10 +31,12 @@ const Home = React.memo(() => {
         </div>
         {/* CDT Swap Card */}
         {/* <CDTSwapSliderCard /> */}
-        <Stack direction={'row'}>          
-          <RangeBoundVisual />          
-          {/* RangeBoundLP Card */}
-          <RangeBoundLPCard />
+        <Stack >          
+          <Stack direction={'row'}>  
+            <RangeBoundVisual />          
+            {/* RangeBoundLP Card */}
+            <RangeBoundLPCard />  
+          </Stack>
           <Stack direction={'row'} justifyContent="center"> 
             {/* autoSPVault Card */}
             <SPCard />

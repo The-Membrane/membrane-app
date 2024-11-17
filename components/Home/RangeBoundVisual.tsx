@@ -82,8 +82,8 @@ return (
         <Flex
             display={"grid"}
             w="84%"
-            h="24%"
-            marginTop="7%"
+            h="22%"
+            marginTop="9%"
             bg="#5f71ed"
             alignItems="center"
             justifyContent="center"
@@ -98,8 +98,8 @@ return (
         <Flex
             display={"grid"}
             w="84%"
-            h="24%"
-            marginBottom="7%"
+            h="22%"
+            marginBottom="9%"
             bg="#5f71ed"
             alignItems="center"
             justifyContent="center"

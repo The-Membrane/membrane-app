@@ -1,13 +1,15 @@
+import { useOraclePrice } from "@/hooks/useOracle"
 import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text, Stack } from "@chakra-ui/react"
 
 // Create and return a vertical slider
 const RangeBoundVisual = () => {
     //Get bounded position data
     //Get prices
+    const { data: prices } = useOraclePrice()
     //Get CDT price
-    const cdtPrice = .995
+    const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
     //Get USDC price
-
+    const usdcPrice = parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0")
 
 return (        
     <Flex gap={0}> 

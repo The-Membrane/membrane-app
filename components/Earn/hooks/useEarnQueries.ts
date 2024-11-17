@@ -20,14 +20,14 @@ export const useBoundedConfig = () => {
     })
 }
 
-export const useBoundedPositions = () => {
-    return useQuery({
-        queryKey: ['useBoundedPositions'],
-        queryFn: async () => {
-            return getCLPositionsForVault()
-        },
-    })
-}
+// export const useBoundedPositions = () => {
+//     return useQuery({
+//         queryKey: ['useBoundedPositions'],
+//         queryFn: async () => {
+//             return getCLPositionsForVault()
+//         },
+//     })
+// }
 
 
 

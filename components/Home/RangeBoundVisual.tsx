@@ -53,30 +53,32 @@ return (
         </Box>
       
       {/* Label Rectangle */}
-      <Stack justifyContent="space-between">
+      <Stack justifyContent="space-between" width="100%">
         <Flex
-            w="645.2%"
+            display={"grid"}
+            w="65.2%"
             h="20%"
-            marginTop="13.33%"
+            marginTop="2%"
             bg="#5f71ed"
             alignItems="center"
             justifyContent="center"
             borderRadius="md"
             fontWeight="bold" 
         >
-            <Text>99.3% - 99%</Text>
+            <Text justifySelf={"center"} width="100">99.3% - 99%</Text>
         </Flex>
         <Flex
-            w="645.2%"
+            display={"grid"}
+            w="65.2%"
             h="20%"
-            marginBottom="13.33%"
+            marginBottom="2%"
             bg="#5f71ed"
             alignItems="center"
             justifyContent="center"
             borderRadius="md"
             fontWeight="bold"
         >
-            <Text>98.5% - 98.2%</Text>
+            <Text justifySelf={"center"} width="100">98.5% - 98.2%</Text>
         </Flex>
       </Stack>
     </Flex>

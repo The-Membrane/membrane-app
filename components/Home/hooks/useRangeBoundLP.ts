@@ -16,6 +16,7 @@ import { useBoundedCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEa
 import { num } from '@/helpers/num'
 import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useOraclePrice } from '@/hooks/useOracle'
+import { getCLPositionsForVault } from '@/services/osmosis'
 
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
@@ -57,7 +58,7 @@ const useAutoSP = ( ) => {
       usdcAsset, prices, positionInfo
     ],
     queryFn: () => {
-      if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo); return { msgs: [] }}
+      if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices || !positionInfo) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
 

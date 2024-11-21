@@ -88,7 +88,7 @@ const useAutoSP = ( ) => {
         msgs.push(exitMsg)
 
         //Calc swapFromAmount 
-        const swapFromAmount = num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toString()
+        const swapFromAmount = num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toNumber()
         console.log("exit RBLP amounts", cdtWithdrawAmount, swapFromAmount)
         //Post exit, swap USDC to CDT
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({

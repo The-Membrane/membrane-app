@@ -108,7 +108,6 @@ const RangeBoundLPCard = () => {
     useEstimatedAnnualInterest(false)
     //Get total deposit tokens
     const { data: TVL } = useBoundedTVL()
-    console.log("bounded TVL", TVL)
 
     const { data: basket } = useBasket()
     const { data: realizedAPR } = useBoundedCDTRealizedAPR()  
@@ -121,6 +120,7 @@ const RangeBoundLPCard = () => {
     }, [basket])
 
     const { bidState } = useBidState()
+    console.log("APR calcs", TVL, bidState.cdpExpectedAnnualRevenue)
     const isDisabled = useMemo(() => {return manage?.simulate.isError || !manage?.simulate.data }, [manage?.simulate.isError, manage?.simulate.data])
 
     return (

@@ -27,6 +27,7 @@ const useBoundedLP = ( ) => {
   const boundedCDTBalance = useBalanceByAsset(boundedCDTAsset)??"1"
   const { data: positionInfo } = getCLPositionsForVault()
   const { action: manageAction, msgs: manageMsg } = useBoundedManage()
+  const ManageMsgs = useMemo(() => { return manageMsg }, [manageMsg])
   
   //Get USDC asset
   const usdcAsset = useAssetBySymbol('USDC')
@@ -58,7 +59,7 @@ const useBoundedLP = ( ) => {
       underlyingCDT,
       boundedCDTBalance,
       usdcAsset, prices, positionInfo?.assetRatios,
-      manageMsg
+      ManageMsgs
     ],
     queryFn: () => {
       if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices || !positionInfo) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo, manageMsg, manageAction); return { msgs: [] }}
@@ -66,7 +67,7 @@ const useBoundedLP = ( ) => {
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
 
       //Append manageMsg if its not errored
-      if (!(manageAction?.simulate.isError || !manageAction?.simulate.data)) msgs = manageMsg!
+      if (!(manageAction?.simulate.isError || !manageAction?.simulate.data)) msgs = manageMsg??[]
 
       if (quickActionState.rangeBoundLPwithdrawal != 0){
 

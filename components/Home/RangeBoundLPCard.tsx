@@ -21,6 +21,8 @@ import { QASummary } from "./QASummary"
 import { GrPowerReset } from "react-icons/gr"
 import useBoundedManage from "./hooks/useRangeBoundLPManage"
 import useRangeBoundLP from "./hooks/useRangeBoundLP"
+import { getBestCLRange } from "@/services/osmosis"
+import { LPJoinDate } from "@/config/defaults"
 
 const ActSlider = React.memo(() => {
     const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -119,8 +121,21 @@ const RangeBoundLPCard = () => {
 
     }, [basket])
 
+    const { data: clRewardList } = getBestCLRange()
+    const daysSinceDeposit = num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber()
+    const rangeBoundAPR = useMemo(() => {
+        //upperXlower & middle are just for logs rn
+        if (!clRewardList) return { rangeBoundAPR: 0}
+
+        const totalrewards = ( clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward + clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward) / 6
+        return {
+          rangeBoundAPR: totalrewards / 1000000 / daysSinceDeposit * 365
+          ,
+        }
+    }, [clRewardList])
+    console.log("rangeBoundAPR", rangeBoundAPR)
+
     const { bidState } = useBidState()
-    console.log("APR calcs", TVL, bidState.cdpExpectedAnnualRevenue)
     const isDisabled = useMemo(() => {return manage?.simulate.isError || !manage?.simulate.data }, [manage?.simulate.isError, manage?.simulate.data])
 
     return (

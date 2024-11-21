@@ -17,14 +17,16 @@ import { num } from '@/helpers/num'
 import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getCLPositionsForVault } from '@/services/osmosis'
+import useBoundedManage from "./useRangeBoundLPManage"
 
-const useAutoSP = ( ) => { 
+const useBoundedLP = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const cdtAsset = useAssetBySymbol('CDT')
   const boundedCDTAsset = useAssetBySymbol('range-bound-CDT')
   const boundedCDTBalance = useBalanceByAsset(boundedCDTAsset)??"1"
   const { data: positionInfo } = getCLPositionsForVault()
+  const { action: manageAction, msgs: manageMsg } = useBoundedManage()
   
   //Get USDC asset
   const usdcAsset = useAssetBySymbol('USDC')
@@ -55,13 +57,16 @@ const useAutoSP = ( ) => {
       boundedCDTAsset,
       underlyingCDT,
       boundedCDTBalance,
-      usdcAsset, prices, positionInfo?.assetRatios
+      usdcAsset, prices, positionInfo?.assetRatios,
+      manageMsg, manageAction
     ],
     queryFn: () => {
-      if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices || !positionInfo) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo); return { msgs: [] }}
+      if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices || !positionInfo) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo, manageMsg, manageAction); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
 
+      //Append manageMsg if its not errored
+      if (!(manageAction?.simulate.isError || !manageAction?.simulate.data)) msgs = manageMsg!
 
       if (quickActionState.rangeBoundLPwithdrawal != 0){
 
@@ -88,7 +93,7 @@ const useAutoSP = ( ) => {
         msgs.push(exitMsg)
 
         //Calc swapFromAmount 
-        const swapFromAmount = num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toNumber()
+        const swapFromAmount = shiftDigits(num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc), -6).toNumber()
         console.log("exit RBLP amounts", cdtWithdrawAmount, swapFromAmount)
         //Post exit, swap USDC to CDT
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
@@ -158,4 +163,4 @@ const useAutoSP = ( ) => {
   })}
 }
 
-export default useAutoSP
+export default useBoundedLP

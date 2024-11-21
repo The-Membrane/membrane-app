@@ -68,7 +68,8 @@ const useBoundedManage = ( ) => {
     queryKey: ['quick_action_LP_manage_sim', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
     enabled: !!msgs,
-  })}
+    }), 
+    msgs}
 }
 
 export default useBoundedManage

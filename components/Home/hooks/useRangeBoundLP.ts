@@ -58,7 +58,7 @@ const useBoundedLP = ( ) => {
       underlyingCDT,
       boundedCDTBalance,
       usdcAsset, prices, positionInfo?.assetRatios,
-      manageMsg, manageAction
+      manageMsg
     ],
     queryFn: () => {
       if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices || !positionInfo) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo, manageMsg, manageAction); return { msgs: [] }}
@@ -93,7 +93,7 @@ const useBoundedLP = ( ) => {
         msgs.push(exitMsg)
 
         //Calc swapFromAmount 
-        const swapFromAmount = shiftDigits(num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc), -6).toNumber()
+        const swapFromAmount = shiftDigits(num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toNumber(), -6).toNumber()
         console.log("exit RBLP amounts", cdtWithdrawAmount, swapFromAmount)
         //Post exit, swap USDC to CDT
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({

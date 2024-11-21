@@ -7,34 +7,20 @@ import { getCLPositionsForVault } from "@/services/osmosis"
 
 // Create and return a vertical slider
 const RangeBoundVisual = () => {
-    //Set ceiling & floor switch state
-    const [cSwitch, setCSwitch] = useState(false)
-    const [fSwitch, setFSwitch] = useState(false)
-    //Get bounded position data
-    const { data: positions } = getCLPositionsForVault()
-    console.log("positions", positions)
-    //Get prices
-    const { data: prices } = useOraclePrice()
-    //Get CDT price
-    const cdtPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0"), [prices])
-    //Get USDC price
-    const usdcPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0"), [prices])
+  //Set ceiling & floor switch state
+  const [cSwitch, setCSwitch] = useState(false)
+  const [fSwitch, setFSwitch] = useState(false)
+  //Get bounded position data
+  const { data: positions } = getCLPositionsForVault()
+  console.log("positions", positions)
+  //Get prices
+  const { data: prices } = useOraclePrice()
+  //Get CDT price
+  const cdtPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0"), [prices])
+  //Get USDC price
+  const usdcPrice = useMemo (() => parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0"), [prices])
     
-    const positionsTVL = useMemo(() =>{
-        //Find ceiling amounts
-        const ceilingAmounts = positions?.ceiling.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
-        ? {cdt: positions?.ceiling.asset0.amount, usdc: positions?.ceiling.asset1.amount} : {cdt: positions?.ceiling.asset1.amount, usdc: positions?.ceiling.asset0.amount}
-        //Find floor amounts
-        const floorAmounts = positions?.floor.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
-        ? {cdt: positions?.floor.asset0.amount, usdc: positions?.floor.asset1.amount} : {cdt: positions?.floor.asset1.amount, usdc: positions?.floor.asset0.amount}
-
-        //Calc Ceiling TVL
-        const ceilingTVL = shiftDigits(ceilingAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(ceilingAmounts.usdc, -6).times(usdcPrice))
-        //Calc Floor TVL
-        const floorTVL = shiftDigits(floorAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(floorAmounts.usdc, -6).times(usdcPrice))
-
-        return {ceilingTVL, floorTVL}
-    }, [ positions, cdtPrice, usdcPrice ])
+    
 
 return (        
     <Flex gap={0} width={"70%"}> 
@@ -94,7 +80,7 @@ return (
             onMouseLeave={()=>{setCSwitch(false)}}
         >
             {cSwitch ? <Text justifySelf={"center"} width="100">Range: $0.993 - $0.99</Text> 
-            : <Text justifySelf={"center"} width="100">TVL: ${positionsTVL.ceilingTVL.toFixed(2)}</Text>}
+            : <Text justifySelf={"center"} width="100">TVL: ${positions?.positionsTVL.ceilingTVL.toFixed(2)}</Text>}
         </Flex>
         <Flex
             display={"grid"}
@@ -110,7 +96,7 @@ return (
             onMouseLeave={()=>{setFSwitch(false)}}
         >
             {fSwitch ? <Text justifySelf={"center"} width="100">Range: $0.985 - $0.982</Text> 
-            : <Text justifySelf={"center"} width="100">TVL: ${positionsTVL.floorTVL.toFixed(2)}</Text>}
+            : <Text justifySelf={"center"} width="100">TVL: ${positions?.positionsTVL.floorTVL.toFixed(2)}</Text>}
         </Flex>
       </Stack>
     </Flex>

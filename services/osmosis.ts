@@ -104,6 +104,7 @@ export const getCLPositionsForVault = () => {
     const { data: config } = useBoundedConfig()
     const { data: prices } = useOraclePrice()
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
+    const usdcPrice = parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0")
     
     return useQuery({
         queryKey: ['getCLPositionsForVault', config, prices, cdtPrice],
@@ -113,34 +114,31 @@ export const getCLPositionsForVault = () => {
             const ceilingPosition = await getCLPosition(positions.ceiling.toString())
             const floorPosition = await getCLPosition(positions.floor.toString())
 
-            /////Have this return asset ratio as well////
-            var assetRatios = (cdtPrice > .985 && cdtPrice < .99) ? {cdt: .5, usdc: .5} 
-            : (cdtPrice > .993) ? {cdt: 0, usdc: 1}
-            : (cdtPrice < .982) ? {cdt: 1, usdc: 0}
-            : {cdt: 0, usdc: 0}
-            ////Is price in the floor?
-            if (cdtPrice < .985 && cdtPrice > .982){
-                const difference = cdtPrice - .982
-                const percDiff = num(difference).dividedBy(.003)
-                const usdcRatioDiff = num(percDiff).times(.5)
-                const cdtRatioDiff = num(.5).minus(usdcRatioDiff)
-                assetRatios = {
-                    cdt: 0.5 + cdtRatioDiff.toNumber(),
-                    usdc: usdcRatioDiff.toNumber()
-                }
-            } else if (cdtPrice > .99 && cdtPrice < .993){
-                const difference = .993 - cdtPrice
-                const percDiff = num(difference).dividedBy(.003)
-                const cdtRatioDiff = num(percDiff).times(.5)
-                const usdcRatioDiff = num(.5).minus(cdtRatioDiff)
-                assetRatios = {
-                    cdt: cdtRatioDiff.toNumber(),
-                    usdc: 0.5 + usdcRatioDiff.toNumber()
-                }
+            //Find ceiling amounts
+            const ceilingAmounts = positions?.ceiling.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
+            ? {cdt: positions?.ceiling.asset0.amount, usdc: positions?.ceiling.asset1.amount} : {cdt: positions?.ceiling.asset1.amount, usdc: positions?.ceiling.asset0.amount}
+            //Find floor amounts
+            const floorAmounts = positions?.floor.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
+            ? {cdt: positions?.floor.asset0.amount, usdc: positions?.floor.asset1.amount} : {cdt: positions?.floor.asset1.amount, usdc: positions?.floor.asset0.amount}
+    
+            //Calc Ceiling TVL
+            const ceilingTVL = shiftDigits(ceilingAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(ceilingAmounts.usdc, -6).times(usdcPrice))
+            //Calc Floor TVL
+            const floorTVL = shiftDigits(floorAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(floorAmounts.usdc, -6).times(usdcPrice))
+    
+            const positionsTVL = {ceilingTVL, floorTVL}
+            //Calc CDT TVL
+            const cdtTVL = shiftDigits(ceilingAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(floorAmounts.cdt, -6).times(cdtPrice))
+            //Calc USDC TVL
+            const usdcTVL = shiftDigits(ceilingAmounts.usdc, -6).times(usdcPrice).plus(shiftDigits(floorAmounts.usdc, -6).times(usdcPrice))
+            //Calc total TVL
+            const totalTVL = cdtTVL.plus(usdcTVL)
+            const assetRatios = {
+                cdt: cdtTVL.dividedBy(totalTVL).toNumber()
+                usdc: usdcTVL.dividedBy(totalTVL).toNumber()
             }
 
-
-            return { ceiling: ceilingPosition, floor: floorPosition, assetRatios }
+            return { ceiling: ceilingPosition, floor: floorPosition, positionsTVL, assetRatios }
         },
     })
 

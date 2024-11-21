@@ -12,6 +12,7 @@ const RangeBoundVisual = () => {
     const [fSwitch, setFSwitch] = useState(false)
     //Get bounded position data
     const { data: positions } = getCLPositionsForVault()
+    console.log("positions", positions)
     //Get prices
     const { data: prices } = useOraclePrice()
     //Get CDT price

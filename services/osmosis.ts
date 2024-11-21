@@ -102,16 +102,45 @@ export const getCLPosition = async (positionId: string) => {
 //Get the RangeBound positions
 export const getCLPositionsForVault = () => {
     const { data: config } = useBoundedConfig()
+    const { data: prices } = useOraclePrice()
+    const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
     
     return useQuery({
-        queryKey: ['getCLPositionsForVault', config],
+        queryKey: ['getCLPositionsForVault', config, prices, cdtPrice],
         queryFn: async () => {            
             if (!config) return;
             const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor}
             const ceilingPosition = await getCLPosition(positions.ceiling.toString())
             const floorPosition = await getCLPosition(positions.floor.toString())
 
-            return { ceiling: ceilingPosition, floor: floorPosition }
+            /////Have this return asset ratio as well////
+            var assetRatios = (cdtPrice > .985 && cdtPrice < .99) ? {cdt: .5, usdc: .5} 
+            : (cdtPrice > .993) ? {cdt: 0, usdc: 1}
+            : (cdtPrice < .982) ? {cdt: 1, usdc: 0}
+            : {cdt: 0, usdc: 0}
+            ////Is price in the floor?
+            if (cdtPrice < .985 && cdtPrice > .982){
+                const difference = cdtPrice - .982
+                const percDiff = num(difference).dividedBy(.003)
+                const usdcRatioDiff = num(percDiff).times(.5)
+                const cdtRatioDiff = num(.5).minus(usdcRatioDiff)
+                assetRatios = {
+                    cdt: 0.5 + cdtRatioDiff.toNumber(),
+                    usdc: usdcRatioDiff.toNumber()
+                }
+            } else if (cdtPrice > .99 && cdtPrice < .993){
+                const difference = .993 - cdtPrice
+                const percDiff = num(difference).dividedBy(.003)
+                const cdtRatioDiff = num(percDiff).times(.5)
+                const usdcRatioDiff = num(.5).minus(cdtRatioDiff)
+                assetRatios = {
+                    cdt: cdtRatioDiff.toNumber(),
+                    usdc: 0.5 + usdcRatioDiff.toNumber()
+                }
+            }
+
+
+            return { ceiling: ceilingPosition, floor: floorPosition, assetRatios }
         },
     })
 

@@ -58,8 +58,7 @@ const useBoundedLP = ( ) => {
       boundedCDTAsset,
       underlyingCDT,
       boundedCDTBalance,
-      usdcAsset, prices, positionInfo?.assetRatios,
-      ManageMsgs
+      usdcAsset, prices, positionInfo?.assetRatios
     ],
     queryFn: () => {
       if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices || !positionInfo) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo, manageMsg, manageAction); return { msgs: [] }}

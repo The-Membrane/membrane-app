@@ -55,10 +55,10 @@ const useAutoSP = ( ) => {
       boundedCDTAsset,
       underlyingCDT,
       boundedCDTBalance,
-      usdcAsset, prices
+      usdcAsset, prices, positionInfo?.assetRatios
     ],
     queryFn: () => {
-      if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo); return { msgs: [] }}
+      if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices || !positionInfo) {console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
 
@@ -88,7 +88,7 @@ const useAutoSP = ( ) => {
         msgs.push(exitMsg)
 
         //Calc swapFromAmount 
-        const swapFromAmount = num(cdtWithdrawAmount).times(0.23).toNumber()
+        const swapFromAmount = num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toNumber()
         console.log("exit RBLP amounts", cdtWithdrawAmount, swapFromAmount)
         //Post exit, swap USDC to CDT
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({

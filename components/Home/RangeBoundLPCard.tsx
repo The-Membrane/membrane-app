@@ -125,7 +125,7 @@ const RangeBoundLPCard = () => {
     const daysSinceDeposit = num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber()
     const rangeBoundAPR = useMemo(() => {
         //upperXlower & middle are just for logs rn
-        if (!clRewardList) return { rangeBoundAPR: 0}
+        if (!clRewardList) return 0
 
         const totalrewards = ( clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward + clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward) / 6
         return totalrewards / 1000000 / daysSinceDeposit * 365

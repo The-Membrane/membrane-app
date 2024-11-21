@@ -95,7 +95,7 @@ const ActSlider = React.memo(() => {
         <HStack gap={0} padding="4%">
           <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
           <ConfirmModal 
-            label={quickActionState.rangeBoundLPdeposit > 0 ? `Deposit ${actingAmount.toString()} CDT` : quickActionState.rangeBoundLPwithdrawal > 0 ?  `Withdraw ${actingAmount.toString()} CDT` : "Manage"} 
+            label={quickActionState.rangeBoundLPdeposit > 0 ? `Deposit ${actingAmount.toString()} CDT` : quickActionState.rangeBoundLPwithdrawal > 0 ?  `Withdraw ${actingAmount.toString()} CDT` : "Act"} 
             action={rbLP} 
             isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingCDT).toNumber()}>
             <QASummary logo={logo}/>
@@ -144,7 +144,7 @@ const RangeBoundLPCard = () => {
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn CDT</Text>
             <Stack>
               <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(TVL || 1).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
@@ -173,7 +173,7 @@ const RangeBoundLPCard = () => {
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}
             >
-              {isDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to LPs" : "Manage"}
+              {isDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to LPs" : "Manage Vault"}
             </TxButton>
           </Stack>
         </Card>

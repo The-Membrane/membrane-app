@@ -91,14 +91,14 @@ const useAutoSP = ( ) => {
         const swapFromAmount = num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toNumber()
         console.log("exit RBLP amounts", cdtWithdrawAmount, swapFromAmount)
         //Post exit, swap USDC to CDT
-        const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
-          address, 
-          swapFromAmount: swapFromAmount,
-          swapFromAsset: usdcAsset,
-          prices,
-          cdtPrice,
-        })
-        msgs.push(swap as MsgExecuteContractEncodeObject)
+        // const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
+        //   address, 
+        //   swapFromAmount: swapFromAmount,
+        //   swapFromAsset: usdcAsset,
+        //   prices,
+        //   cdtPrice,
+        // })
+        // msgs.push(swap as MsgExecuteContractEncodeObject)
       }
 
       if (quickActionState.rangeBoundLPdeposit != 0){

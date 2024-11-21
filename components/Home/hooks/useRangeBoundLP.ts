@@ -93,7 +93,7 @@ const useAutoSP = ( ) => {
         //Post exit, swap USDC to CDT
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
           address, 
-          swapFromAmount,
+          swapFromAmount: swapFromAmount,
           swapFromAsset: usdcAsset,
           prices,
           cdtPrice,

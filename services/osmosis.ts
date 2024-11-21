@@ -115,11 +115,11 @@ export const getCLPositionsForVault = () => {
             const floorPosition = await getCLPosition(positions.floor.toString())
 
             //Find ceiling amounts
-            const ceilingAmounts = positions?.ceiling.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
-            ? {cdt: positions?.ceiling.asset0.amount, usdc: positions?.ceiling.asset1.amount} : {cdt: positions?.ceiling.asset1.amount, usdc: positions?.ceiling.asset0.amount}
+            const ceilingAmounts = ceilingPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
+            ? {cdt: ceilingPosition.asset0.amount, usdc: ceilingPosition.asset1.amount} : {cdt: ceilingPosition.asset1.amount, usdc: ceilingPosition.asset0.amount}
             //Find floor amounts
-            const floorAmounts = positions?.floor.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
-            ? {cdt: positions?.floor.asset0.amount, usdc: positions?.floor.asset1.amount} : {cdt: positions?.floor.asset1.amount, usdc: positions?.floor.asset0.amount}
+            const floorAmounts = floorPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
+            ? {cdt: floorPosition.asset0.amount, usdc: floorPosition.asset1.amount} : {cdt: floorPosition.asset1.amount, usdc: floorPosition.asset0.amount}
     
             //Calc Ceiling TVL
             const ceilingTVL = shiftDigits(ceilingAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(ceilingAmounts.usdc, -6).times(usdcPrice))
@@ -134,7 +134,7 @@ export const getCLPositionsForVault = () => {
             //Calc total TVL
             const totalTVL = cdtTVL.plus(usdcTVL)
             const assetRatios = {
-                cdt: cdtTVL.dividedBy(totalTVL).toNumber()
+                cdt: cdtTVL.dividedBy(totalTVL).toNumber(),
                 usdc: usdcTVL.dividedBy(totalTVL).toNumber()
             }
 

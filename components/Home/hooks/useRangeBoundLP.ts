@@ -93,7 +93,13 @@ const useBoundedLP = ( ) => {
         msgs.push(exitMsg)
 
         //Calc swapFromAmount 
-        const swapFromAmount = shiftDigits(num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toNumber(), -6).toNumber()
+        const swapFromAmount = 
+        shiftDigits(num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toNumber(), -6)
+          .times(cdtPrice)
+          .times(.995) //maxSlippage
+          .toNumber()
+        //Don't know why this works logically yet but it'll leave a few cents left over in USDC depending actual slippage
+
         console.log("exit RBLP amounts", cdtWithdrawAmount, swapFromAmount)
         //Post exit, swap USDC to CDT
         const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
@@ -102,6 +108,7 @@ const useBoundedLP = ( ) => {
           swapFromAsset: usdcAsset,
           prices,
           cdtPrice,
+          slippage: 0.5
         })
         msgs.push(swap as MsgExecuteContractEncodeObject)
       }

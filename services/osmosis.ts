@@ -691,7 +691,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
     return { route, foundToken: false };
 }
 //This is getting Swaps To CDT w/ optional different tokenOut
-export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number, tokenOut?: keyof exported_supportedAssets) => {
+export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number, tokenOut?: keyof exported_supportedAssets, slippage?: number) => {
     
     //Get tokenOutAmount
     // console.log("boom1")
@@ -702,7 +702,7 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
     const { route: routes, foundToken } = getCDTRoute(tokenIn, tokenOut);
 
     // console.log("boom3", tokenOutAmount )
-    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), SWAP_SLIPPAGE)).toString();
+    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), slippage??SWAP_SLIPPAGE)).toString();
 
     // console.log("boom4", address, denoms[tokenIn][0] as string)
     const msg = swapExactAmountIn({

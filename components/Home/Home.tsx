@@ -55,7 +55,8 @@ const Home = React.memo(() => {
       //Toast
       toaster.message({
         title: `Position ${positionNum+1}`,
-        message: <Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a>{"\n"} {`Cost: ${num(currentPositionCost).times(100).toFixed(2)}`}</Text>
+        message: <><Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a></Text>
+        <Text> {`Cost: ${num(currentPositionCost).times(100).toFixed(2)}`}%</Text></>
       })
       //Go to next position
       if (positionNum < totalPositions) {

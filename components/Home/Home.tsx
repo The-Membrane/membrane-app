@@ -13,6 +13,7 @@ import useVaultSummary from '../Mint/hooks/useVaultSummary'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import { useUserPositions } from '@/hooks/useCDP'
 import useToaster from '@/hooks/useToaster'
+import { num } from '@/helpers/num'
 
 
 const Home = React.memo(() => {
@@ -47,12 +48,12 @@ const Home = React.memo(() => {
     return summary.discountedCost
   }, [summary])
   useEffect(() => {
-    if (summary.cost != 0 && totalPositions && currentPositionCost) {
+    if (summary.cost != 0 && totalPositions != undefined && currentPositionCost != undefined) {
       console.log("costy")
       //Toast
       toaster.message({
         title: `Position ${positionNum+1} Cost`,
-        message: currentPositionCost.toString(),
+        message: num(currentPositionCost).times(100).toString() + "%",
       })
       //Go to next position
       if (positionNum < totalPositions) {

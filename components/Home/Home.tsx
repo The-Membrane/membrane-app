@@ -2,10 +2,8 @@ import { Button, Grid, GridItem, Stack, useBreakpointValue } from '@chakra-ui/re
 import { StatsCard } from '../StatsCard'
 import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
-import LPCard from './QALPCard'
 
 import React, { useEffect, useMemo, useState } from "react"
-import CDTSwapSliderCard from './CDTSwapSlider'
 import RangeBoundLPCard from './RangeBoundLPCard'
 import RangeBoundVisual from './RangeBoundVisual'
 import { FaArrowDown, FaArrowUp } from 'react-icons/fa6'
@@ -47,9 +45,9 @@ const Home = React.memo(() => {
   const currentPositionCost = useMemo(() => {
     return summary.discountedCost
   }, [summary])
-  useMemo(() => {
+  useEffect(() => {
     if (summary.cost != 0 && totalPositions != undefined && currentPositionCost != undefined) {
-      console.log("costy")
+      // console.log("costy")
       //Toast
       toaster.message({
         title: `Position ${positionNum+1} Cost`,
@@ -59,7 +57,8 @@ const Home = React.memo(() => {
       if (positionNum < totalPositions) {
         setPositionNum(positionNum + 1)
       }
-    } else console.log("no costy", summary.cost, totalPositions, currentPositionCost)
+    } 
+    // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)
   }, [currentPositionCost])
   
   

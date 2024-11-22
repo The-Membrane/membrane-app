@@ -12,7 +12,7 @@ const Bid = React.memo(() => {
         <Risk />
         <BidAction />
       </Stack>
-      {!isMobile ? <Filtration /> : null}
+      {/* {!isMobile ? <Filtration /> : null} */}
     </HStack>
   )
 })

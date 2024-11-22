@@ -128,7 +128,7 @@ const Mint = React.memo(() => {
   return (
     <HStack alignItems="flex-start">
       <MintTabsCard />
-      <Beaker />
+      {/* <Beaker /> */}
       {/* <BeakerScale /> */}
     </HStack>
   )

@@ -53,7 +53,7 @@ const Home = React.memo(() => {
       //Toast
       toaster.message({
         title: `Position ${positionNum+1} Cost`,
-        message: num(currentPositionCost).times(100).toString() + "%",
+        message: num(currentPositionCost).times(100).toFixed(2) + "%",
       })
       //Go to next position
       if (positionNum < totalPositions) {

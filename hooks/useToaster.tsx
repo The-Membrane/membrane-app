@@ -130,6 +130,7 @@ const useToaster = (): IToaster => {
       description: <ToastContent explorer={_explorer} message={message} />,
       status: ToastTypes.Info,
       position: 'top-right',
+      duration: 2000,
     })
   }
 

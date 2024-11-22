@@ -4,11 +4,15 @@ import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
 import LPCard from './QALPCard'
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import CDTSwapSliderCard from './CDTSwapSlider'
 import RangeBoundLPCard from './RangeBoundLPCard'
 import RangeBoundVisual from './RangeBoundVisual'
 import { FaArrowDown, FaArrowUp } from 'react-icons/fa6'
+import useVaultSummary from '../Mint/hooks/useVaultSummary'
+import { MAX_CDP_POSITIONS } from '@/config/defaults'
+import { useUserPositions } from '@/hooks/useCDP'
+import useToaster from '@/hooks/useToaster'
 
 
 const Home = React.memo(() => {
@@ -18,6 +22,45 @@ const Home = React.memo(() => {
   const onExpansion = () => {
     setIsExpanded(!isExpanded)
   }
+
+  
+  ////Setting up the Toaster for all position Costs////
+  const toaster = useToaster()
+  const { data: basketPositions } = useUserPositions()
+  const [positionNum, setPositionNum] = useState(0)
+  const totalPositions = useMemo(() => {
+    if (!basketPositions) return undefined
+    return Math.min(basketPositions[0].positions.length - 1, MAX_CDP_POSITIONS)
+  }, [basketPositions])  
+  const { data } = useVaultSummary()
+  const summary = data || {
+    debtAmount: 0,
+    cost: 0,
+    discountedCost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }  
+  const currentPositionCost = useMemo(() => {
+    return summary.discountedCost
+  }, [summary])
+  useEffect(() => {
+    if (summary.cost != 0 && totalPositions && currentPositionCost) {
+      //Toast
+      toaster.message({
+        title: `Position ${positionNum+1} Cost`,
+        message: currentPositionCost.toString(),
+      })
+      //Go to next position
+      if (positionNum < totalPositions) {
+        setPositionNum(positionNum + 1)
+      }
+    }
+  }, [currentPositionCost])
+  
+  
   
   return (
     <Stack>

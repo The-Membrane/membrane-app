@@ -29,12 +29,14 @@ export interface ToastPayload {
 
 type ToastProps = {
   message: string
+  title?: string
   chainName?: string
   txHash?: string
   explorer?: Explorer
 }
 export interface IToaster {
   dismiss: any
+  message: (data: ToastProps) => void
   success: (data: ToastProps) => void
   pending: (data: ToastProps) => void
   error: (data: ToastProps) => void
@@ -87,6 +89,7 @@ export const getExplorer = (chain: Chain | undefined) => {
 const useToaster = (): IToaster => {
   const toast = useToast()
   const { chain } = useWallet()
+  //@ts-ignore
   const [_explorer] = useMemo(() => getExplorer(chain), [chain])
 
   const error = ({ message, txHash, explorer }: ToastProps) => {
@@ -120,10 +123,20 @@ const useToaster = (): IToaster => {
       position: 'top-right',
     })
   }
+  const message = ({ title, message }: ToastProps) => {
+    toast({
+      ...defaultSettings,
+      title: title,
+      description: <ToastContent explorer={_explorer} message={message} />,
+      status: ToastTypes.Info,
+      position: 'top-right',
+    })
+  }
 
   //dismiss logic is missing for now
   return {
     dismiss: () => {},
+    message,
     success,
     error,
     pending,

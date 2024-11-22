@@ -8,11 +8,16 @@ import React, { useEffect, useState } from "react"
 import CDTSwapSliderCard from './CDTSwapSlider'
 import RangeBoundLPCard from './RangeBoundLPCard'
 import RangeBoundVisual from './RangeBoundVisual'
+import { FaArrowDown, FaArrowUp } from 'react-icons/fa6'
 
 
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
-  const [sign, setSign] = React.useState("on");
+  const [sign, setSign] = useState("on");
+  const [isExpanded, setIsExpanded] = useState(false)
+  const onExpansion = () => {
+    setIsExpanded(!isExpanded)
+  }
   
   return (
     <Stack>
@@ -37,11 +42,20 @@ const Home = React.memo(() => {
             {/* RangeBoundLP Card */}
             <RangeBoundLPCard />  
           </Stack>
-          <Stack direction={'row'} justifyContent="center"> 
-            {/* autoSPVault Card */}
-            <SPCard />
-            {/* Earn Vault Card */}
-            <EarnCard />
+          <Stack direction={'row'} justifyContent="center">
+            {isExpanded ? <>
+              <SPCard />
+              <EarnCard /> 
+            </> : null }        
+            <Button 
+              variant="ghost" 
+              width={"10"} 
+              padding={0} 
+              rightIcon={!isExpanded ? <FaArrowDown /> : undefined} 
+              leftIcon={isExpanded ? <FaArrowUp /> : undefined}
+              onClick={onExpansion} 
+            />
+
           </Stack>      
         </Stack>
       </Stack>

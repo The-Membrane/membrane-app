@@ -2,7 +2,6 @@ import { Link, Text, useToast, UseToastOptions, VStack } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import useWallet from './useWallet'
 import { Chain } from '@chain-registry/types'
-import React from 'react'
 
 type Explorer = {
   name?: string
@@ -29,7 +28,7 @@ export interface ToastPayload {
 }
 
 type ToastProps = {
-  message: string
+  message: JSX.Element
   title?: string
   chainName?: string
   txHash?: string
@@ -64,12 +63,7 @@ const ToastContent = ({ message, txHash, explorer }: ToastProps) => {
 
   return (
     <VStack alignItems="flex-start" gap={0}>
-      <Text>{message.split("\n").map((line, index) => (
-        <React.Fragment key={index}>
-          {line}
-          <br />
-        </React.Fragment>
-      ))}</Text>
+      {message}
       {!!txHash && (
         <Link isExternal href={txLink} style={{ margin: 'unset' }}>
           TxHash: {[first4, last4].join('...')}

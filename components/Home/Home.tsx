@@ -81,7 +81,7 @@ const Home = React.memo(() => {
         {/* CDT Swap Card */}
         {/* <CDTSwapSliderCard /> */}
         <Stack >          
-          <Stack direction={'row'} width="100%" marginBottom="3vh">  
+          <Stack direction={'row'} width="100%" marginBottom={isExpanded ? "3vh" : "0"}>  
             <RangeBoundVisual />          
             {/* RangeBoundLP Card */}
             <RangeBoundLPCard />  
@@ -98,7 +98,7 @@ const Home = React.memo(() => {
               width={"fit-content"} 
               padding={"16px"} 
               alignSelf={"center"}
-              marginTop={"1%"}
+              margin={"2%"}
               rightIcon={!isExpanded ? <FaArrowDown /> : undefined} 
               leftIcon={isExpanded ? <FaArrowUp /> : undefined}
               onClick={onExpansion} 

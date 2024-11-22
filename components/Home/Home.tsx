@@ -85,7 +85,7 @@ const Home = React.memo(() => {
             {/* RangeBoundLP Card */}
             <RangeBoundLPCard />  
           </Stack>
-          <Stack>
+          <Stack >
             <Stack direction={'row'} justifyContent="center">
               {isExpanded ? <>
                 <SPCard />
@@ -94,12 +94,14 @@ const Home = React.memo(() => {
             </Stack>
             <Button 
               variant="ghost" 
-              width={"10"} 
-              padding={0} 
+              width={"fit-content"} 
+              padding={"16px"} 
+              alignSelf={"center"}
+              marginTop={"1%"}
               rightIcon={!isExpanded ? <FaArrowDown /> : undefined} 
               leftIcon={isExpanded ? <FaArrowUp /> : undefined}
               onClick={onExpansion} 
-            > More Vaults </Button>
+            > {!isExpanded ? "More" : "Less"} Vaults </Button>
           </Stack>      
         </Stack>
       </Stack>

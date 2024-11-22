@@ -47,7 +47,7 @@ const Home = React.memo(() => {
   const currentPositionCost = useMemo(() => {
     return summary.discountedCost
   }, [summary])
-  useEffect(() => {
+  useMemo(() => {
     if (summary.cost != 0 && totalPositions != undefined && currentPositionCost != undefined) {
       console.log("costy")
       //Toast

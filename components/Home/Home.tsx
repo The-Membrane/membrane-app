@@ -48,6 +48,7 @@ const Home = React.memo(() => {
   }, [summary])
   useEffect(() => {
     if (summary.cost != 0 && totalPositions && currentPositionCost) {
+      console.log("costy")
       //Toast
       toaster.message({
         title: `Position ${positionNum+1} Cost`,
@@ -57,7 +58,7 @@ const Home = React.memo(() => {
       if (positionNum < totalPositions) {
         setPositionNum(positionNum + 1)
       }
-    }
+    } else console.log("no costy", summary.cost, totalPositions, currentPositionCost)
   }, [currentPositionCost])
   
   

@@ -45,13 +45,17 @@ const Home = React.memo(() => {
   const currentPositionCost = useMemo(() => {
     return summary.discountedCost
   }, [summary])
+  const health = useMemo(() => {
+    if (summary.ltv === 0) return 100
+    return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
+  }, [summary.ltv, summary.liqudationLTV])
   useEffect(() => {
     if (summary.cost != 0 && totalPositions != undefined && currentPositionCost != undefined) {
       // console.log("costy")
       //Toast
       toaster.message({
         title: `Position ${positionNum+1} Cost`,
-        message: num(currentPositionCost).times(100).toFixed(2) + "%",
+        message: num(currentPositionCost).times(100).toFixed(2) + "% /n Health: " + Math.min(health, 100) + "%",
       })
       //Go to next position
       if (positionNum < totalPositions) {

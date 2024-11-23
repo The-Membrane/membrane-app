@@ -1,6 +1,6 @@
 import { Action } from '@/types/tx'
 import { Button, ButtonProps, Modal, ModalOverlay, useDisclosure } from '@chakra-ui/react'
-import { PropsWithChildren } from 'react'
+import { PropsWithChildren, useEffect, useState } from 'react'
 import ConfrimDetails from './ConfrimDetails'
 import { LoadingContent } from './LoadingContent'
 import { TxDetails } from './TxDetails'
@@ -24,6 +24,18 @@ const ConfirmModal = ({
 }: Props) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
 
+  
+  // Prevent unnecessary remounts of the slider
+  const [isModalMounted, setIsModalMounted] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsModalMounted(true);
+    }
+  }, [isOpen]);
+
+  if (!isModalMounted) return null;
+
   const onModalOpen = () => {
     onOpen()
     action?.simulate.refetch()
@@ -32,6 +44,8 @@ const ConfirmModal = ({
   const onModalClose = () => {
     onClose()
     action?.tx.reset()
+    // Optionally delay unmounting
+    setTimeout(() => setIsModalMounted(false), 300);
   }
   return (
     <>

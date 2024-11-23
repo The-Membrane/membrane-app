@@ -118,6 +118,7 @@ const useAutoSP = ( ) => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
+    retry: false
     /////IF THIS DOESN'T WORK BUT ITS STILL ONLY 3-4 LISTENER ERRORS, LOOK FOR CACHE TIME OR ADD LOGS TO THE DEBOUNCER///////
   })
   

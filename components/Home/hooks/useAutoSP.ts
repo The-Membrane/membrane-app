@@ -97,6 +97,7 @@ const useAutoSP = ( ) => {
       return { msgs }
     },
     enabled: !!address,
+    staleTime: 5000,
   })
   
   const  msgs = queryData?.msgs ?? []

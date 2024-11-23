@@ -124,6 +124,7 @@ const SPCard = ({width = "33%", title= "Liquidate CDT"}: {width?: string, title?
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Compounded Liquidations (no longer gets revenue)</ListItem>
               <ListItem>Compounds over 10% Slippage = <a style={{fontWeight:"bold", color:"rgb(231, 58, 58)"}}>Capital Loss</a> </ListItem>
+              <ListItem>Minimum Deposit: 6 CDT</ListItem>
             </List>
             <ActSlider />
             <Divider marginTop={"3"} marginBottom={"3"}/>       

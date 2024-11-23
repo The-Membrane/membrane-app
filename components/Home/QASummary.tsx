@@ -46,7 +46,7 @@ export const QASummary = ({ logo }: { logo?: string }) => {
   const { quickActionState } = useQuickActionState()
   const { earnState } = useEarnState()
 
-  console.log("quickActionState", quickActionState)
+  console.log("quickActionState", quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0)
 
   return (
     <Stack h="max-content" overflow="auto" w="full">

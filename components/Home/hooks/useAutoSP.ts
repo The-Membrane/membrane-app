@@ -15,8 +15,8 @@ import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 
-// import EventEmitter from 'events';
-// EventEmitter.defaultMaxListeners = 20; // Increase the limit
+import EventEmitter from 'events';
+EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
@@ -113,6 +113,7 @@ const useAutoSP = ( ) => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
+    /////IF THIS DOESN'T WORK BUT ITS STILL ONLY 3-4 LISTENER ERRORS, LOOK FOR CACHE TIME OR ADD LOGS TO THE DEBOUNCER///////
   })
   
   const  msgs = queryData?.msgs ?? []

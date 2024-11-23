@@ -8,7 +8,7 @@ import { loopMax } from '@/config/defaults'
 import useEarnState from '../Earn/hooks/useEarnState'
 
 type SummaryItemProps = Partial<AssetWithBalance> & {
-  key: string
+  actionKey: string
   label: string
   amount?: string | number
   badge?: string
@@ -16,7 +16,7 @@ type SummaryItemProps = Partial<AssetWithBalance> & {
 }
 
 const SummaryItem = ({
-  key,
+  actionKey,
   label,
   amount = 0,
   badge,
@@ -36,7 +36,7 @@ const SummaryItem = ({
         {badge}
       </Badge>
       <Text variant="value" textTransform="unset">
-        {label} {amount} {key} {label === "Withdraw" ? "from" : "into"} {key === "CDT" ? "Auto-Compounding Omni-Pool Vault" : key === "LP" ? "Range Bound LP Vault" : "Manic USDC Vault"}
+        {label} {amount} {actionKey} {label === "Withdraw" ? "from" : "into"} {actionKey === "CDT" ? "Auto-Compounding Omni-Pool Vault" : actionKey === "LP" ? "Range Bound LP Vault" : "Manic USDC Vault"}
       </Text>
     </HStack>
   </HStack>
@@ -52,7 +52,7 @@ export const QASummary = ({ logo }: { logo?: string }) => {
     <Stack h="max-content" overflow="auto" w="full">
 
       <SummaryItem
-        key={key}
+        actionKey={key}
         label={quickActionState.autoSPdeposit > 0 || earnState.deposit > 0 ||  quickActionState.rangeBoundLPdeposit > 0 ? "Deposit" : "Withdraw"}
         amount={quickActionState.autoSPdeposit > 0 ? quickActionState.autoSPdeposit 
           : quickActionState.autoSPwithdrawal > 0 ? quickActionState.autoSPwithdrawal 

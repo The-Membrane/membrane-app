@@ -15,6 +15,9 @@ import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 
+import EventEmitter from 'events';
+EventEmitter.defaultMaxListeners = 20; // Increase the limit
+
 const useAutoSP = ( ) => { 
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -104,7 +107,7 @@ const useAutoSP = ( ) => {
       
       return { msgs }
     },
-    enabled: !!address,
+    enabled: !!address && (debouncedValue.withdraw != 0 || debouncedValue.deposit != 0),
     staleTime: 5000,
   })
   

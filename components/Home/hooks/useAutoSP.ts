@@ -119,7 +119,7 @@ const useAutoSP = ( ) => {
     refetchOnReconnect: false,
     refetchOnMount: false,
     retry: false
-    /////IF THIS DOESN'T WORK BUT ITS STILL ONLY 3-4 LISTENER ERRORS, LOOK FOR CACHE TIME OR ADD LOGS TO THE DEBOUNCER///////
+    /////ERRORS ON THE 3RD OR 4TH MODAL OPEN, CHECKING TO SEE IF ITS THE INVALIDATED QUERY////
   })
   
   const  msgs = queryData?.msgs ?? []
@@ -136,7 +136,7 @@ const useAutoSP = ( ) => {
     msgs,
     queryKey: ['home_page_autoSP', (msgs?.toString()??"0")],
     onSuccess: onInitialSuccess,
-    enabled: true,
+    enabled: !!msgs,
   })}
 }
 

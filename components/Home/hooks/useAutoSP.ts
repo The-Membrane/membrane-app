@@ -34,14 +34,19 @@ const useAutoSP = ( ) => {
   );
   
   useEffect(() => {
+    console.log('Debounce effect triggered:', quickActionState);
     const timer = setTimeout(() => {
+      console.log('Setting debounced values:', quickActionState);
       setDebouncedValue({
         withdraw: quickActionState.autoSPwithdrawal,
         deposit: quickActionState.autoSPdeposit
       });
     }, 300);
     
-    return () => clearTimeout(timer);
+    return () =>{
+      console.log('Cleaning up debounce effect');
+       clearTimeout(timer)
+      };
   }, [quickActionState.autoSPwithdrawal, quickActionState.autoSPdeposit]);
 
   type QueryData = {

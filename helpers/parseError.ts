@@ -35,7 +35,7 @@ export const parseError = (error: Error) => {
     { regex: /Makes position insolvent/i, message: 'Amount exceeds the maximum LTV' },
     { regex: /You don't have any voting power!/i, message: "You don't have any voting power!" },
     { regex: /Bid amount too small, minimum is 5000000/i, message: 'Minimum bid amount is 5 CDT' },
-    { regex: /Deposit is too small, minimum is Uint128(5000000)/i, message: 'Minimum deposit amount is 6 CDT' },
+    { regex: /Deposit is too small, minimum is Uint128\(5000000\)/i, message: 'Minimum deposit amount is 6 CDT' },
     { regex: /Maximum position number/i, message: "You've reached the max position number for this wallet" },
     { regex: /big.Int: tx parse error/i, message: "Max amount per deposit for this token is 999" },
     { regex: /invalid Uint128/i, message: "Max amount per deposit for this token is 999" },

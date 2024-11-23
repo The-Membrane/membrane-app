@@ -3,7 +3,7 @@ import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import contracts from '@/config/contracts.json'
 import { useAssetBySymbol } from '@/hooks/useAssets'
@@ -25,23 +25,31 @@ const useAutoSP = ( ) => {
   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
   const underlyingCDT = data ?? "1"
   
+  // Debounce the slider value to prevent too many queries
+  const [debouncedValue, setDebouncedValue] = useState<{withdraw: number, deposit: number}>(
+    {withdraw: 0, deposit: 0}
+  );
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue({
+        withdraw: quickActionState.autoSPwithdrawal,
+        deposit: quickActionState.autoSPdeposit
+      });
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [quickActionState.autoSPwithdrawal, quickActionState.autoSPdeposit]);
+
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
   }
-  console.log("autoSP", address,
-    quickActionState.autoSPwithdrawal,
-    quickActionState.autoSPdeposit,  
-    cdtAsset,
-    earnCDTAsset,
-    underlyingCDT,
-    earnCDTBalance)
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
       'autoSP_msg_creation',
       address,
-      quickActionState.autoSPwithdrawal,
-      quickActionState.autoSPdeposit,
       cdtAsset,
+      debouncedValue,
       earnCDTAsset,
       underlyingCDT,
       earnCDTBalance
@@ -50,15 +58,15 @@ const useAutoSP = ( ) => {
       if (!address || !cdtAsset || !earnCDTAsset) {console.log("autoSP early return", address, earnCDTAsset, quickActionState, underlyingCDT, earnCDTBalance); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      if (quickActionState.autoSPwithdrawal != 0){
+      if (debouncedValue.withdraw != 0){
 
-        const cdtWithdrawAmount = shiftDigits(quickActionState.autoSPwithdrawal, 6).toNumber()
+        const cdtWithdrawAmount = shiftDigits(debouncedValue.withdraw, 6).toNumber()
         // find percent of underlying usdc to withdraw
         const percentToWithdraw = num(cdtWithdrawAmount).div(underlyingCDT).toNumber()
 
         // Calc VT to withdraw using the percent
         const withdrawAmount = num(shiftDigits(earnCDTBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
-        console.log("withdrawAmount", quickActionState.autoSPwithdrawal, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
+        console.log("withdrawAmount", debouncedValue.withdraw, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
 
         const funds = [{ amount: withdrawAmount.toString(), denom: earnCDTAsset.base }]      
         let exitMsg  = {
@@ -75,9 +83,9 @@ const useAutoSP = ( ) => {
         msgs.push(exitMsg)
       }
 
-      if (quickActionState.autoSPdeposit != 0){
+      if (debouncedValue.deposit != 0){
         
-        const funds = [{ amount: shiftDigits(quickActionState.autoSPdeposit, cdtAsset.decimal).dp(0).toNumber().toString(), denom: cdtAsset.base }]      
+        const funds = [{ amount: shiftDigits(debouncedValue.deposit, cdtAsset.decimal).dp(0).toNumber().toString(), denom: cdtAsset.base }]      
         let enterMsg  = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({

@@ -57,19 +57,19 @@ const ActSlider = React.memo(() => {
     const onSliderChange = (value: number) => {
       if (value > parseFloat(underlyingCDT)) {
         let diff = num(value).minus(underlyingCDT).toNumber()
-        setQuickActionState({ rangeBoundLPdeposit: diff, rangeBoundLPwithdrawal: 0 })
+        setQuickActionState({ rangeBoundLPdeposit: diff, rangeBoundLPwithdrawal: 0, autoSPdeposit: 0, autoSPwithdrawal: 0 })
         console.log("deposit", diff)
         
       } else if (value < parseFloat(underlyingCDT)) {
         let diff = num(underlyingCDT).minus(value).toNumber()
-        setQuickActionState({ rangeBoundLPdeposit: 0, rangeBoundLPwithdrawal: diff })
+        setQuickActionState({ rangeBoundLPdeposit: 0, rangeBoundLPwithdrawal: diff, autoSPdeposit: 0, autoSPwithdrawal: 0 })
         console.log("withdraw", diff)
       }
 
     }
 
     const onReset = () => {
-      setQuickActionState({ rangeBoundLPdeposit: 0, rangeBoundLPwithdrawal: 0 })
+      setQuickActionState({ rangeBoundLPdeposit: 0, rangeBoundLPwithdrawal: 0, autoSPdeposit: 0, autoSPwithdrawal: 0 })
     }
 
     return (

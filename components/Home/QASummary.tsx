@@ -46,7 +46,7 @@ export const QASummary = ({ logo }: { logo?: string }) => {
   const { quickActionState } = useQuickActionState()
   const { earnState } = useEarnState()
 
-  const key = (quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0) ? "CDT" : (quickActionState.rangeBoundLPdeposit > 0 || quickActionState.rangeBoundLPwithdrawal > 0)  ? "LP" : "USDC"
+  const key = ((quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0) ? "CDT" : (quickActionState.rangeBoundLPdeposit > 0 || quickActionState.rangeBoundLPwithdrawal > 0)  ? "LP" : "USDC").toString()
   console.log("key", key)
   return (
     <Stack h="max-content" overflow="auto" w="full">

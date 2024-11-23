@@ -102,10 +102,10 @@ const ActSlider = React.memo(() => {
     )
 });
           
-const SPCard = () => {
+const SPCard = ({width = "33%", title= "Liquidate CDT"}: {width?: string, title?: string}) => {
     const { action: compound } = useSPCompound()
     // useEstimatedAnnualInterest(false)
-    const { data: assetPool } = useStabilityAssetPool()
+    // const { data: assetPool } = useStabilityAssetPool()
     const { data: realizedAPR } = useEarnCDTRealizedAPR()  
 
 
@@ -113,9 +113,9 @@ const SPCard = () => {
     const isDisabled = useMemo(() => {return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
 
     return (
-        <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
+        <Card width={width} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Liquidate CDT</Text>
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">{title}</Text>
             <Stack>
               <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
               <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: N/A</a></Text>

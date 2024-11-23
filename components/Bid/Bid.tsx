@@ -5,14 +5,14 @@ import React from "react"
 import QASPCard from '../Home/QASPCard'
 
 const Bid = React.memo(() => {
-  const isMobile = useBreakpointValue({ base: true, md: false })
+  // const isMobile = useBreakpointValue({ base: true, md: false })
   return (
     <HStack spacing="5" alignItems="flex-start">
       <Stack gap="5" minW="435px">
         <Risk />
         <BidAction />
       </Stack>
-      <QASPCard />
+      <QASPCard width="100%" title='Compounding Omni-Pool'/>
     </HStack>
   )
 })

@@ -46,13 +46,13 @@ export const QASummary = ({ logo }: { logo?: string }) => {
   const { quickActionState } = useQuickActionState()
   const { earnState } = useEarnState()
 
-  console.log("quickActionState", quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0)
+  console.log("quickActionState", quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0, (quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0) ? "CDT" : (quickActionState.rangeBoundLPdeposit > 0 || quickActionState.rangeBoundLPwithdrawal > 0)  ? "LP" : "USDC")
 
   return (
     <Stack h="max-content" overflow="auto" w="full">
 
       <SummaryItem
-        key={quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0 ? "CDT" : quickActionState.rangeBoundLPdeposit > 0 ||  quickActionState.rangeBoundLPwithdrawal > 0  ? "LP" : "USDC"}
+        key={(quickActionState.autoSPdeposit > 0 || quickActionState.autoSPwithdrawal > 0) ? "CDT" : (quickActionState.rangeBoundLPdeposit > 0 || quickActionState.rangeBoundLPwithdrawal > 0)  ? "LP" : "USDC"}
         label={quickActionState.autoSPdeposit > 0 || earnState.deposit > 0 ||  quickActionState.rangeBoundLPdeposit > 0 ? "Deposit" : "Withdraw"}
         amount={quickActionState.autoSPdeposit > 0 ? quickActionState.autoSPdeposit 
           : quickActionState.autoSPwithdrawal > 0 ? quickActionState.autoSPwithdrawal 

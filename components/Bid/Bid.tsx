@@ -1,8 +1,8 @@
 import { HStack, Stack, useBreakpointValue } from '@chakra-ui/react'
 import BidAction from './BidAction'
-import Filtration from './Filtration'
 import Risk from './Risk'
 import React from "react"
+import QASPCard from '../Home/QASPCard'
 
 const Bid = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false })
@@ -12,7 +12,7 @@ const Bid = React.memo(() => {
         <Risk />
         <BidAction />
       </Stack>
-      {/* {!isMobile ? <Filtration /> : null} */}
+      <QASPCard />
     </HStack>
   )
 })

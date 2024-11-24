@@ -72,11 +72,11 @@ const ActSlider = React.memo(() => {
     return (
       <Stack gap="0" borderWidth={"1px"} borderColor="rgb(226, 216, 218)" borderRadius={"2rem"}>
         <HStack justifyContent="space-between" padding={"4%"}>
-          <Text variant="lable" textTransform="unset">
+          <Text fontFamily="monospace" variant="lable" textTransform="unset">
             CDT in Vault
           </Text>
           <HStack>
-            <Text variant="value">${pendingBalance.toFixed(2)}</Text>
+            <Text fontFamily="monospace" variant="value">${pendingBalance.toFixed(2)}</Text>
           </HStack>
         </HStack>
         <SliderWithState 
@@ -115,16 +115,16 @@ const SPCard = ({width = "33%", title= "Liquidate CDT"}: {width?: string, title?
     return (
         <Card width={width} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">{title}</Text>
+            <Text fontFamily="monospace" variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">{title}</Text>
             <Stack>
-              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: N/A</a></Text>
+              <Text fontFamily="monospace" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
+              <Text fontFamily="monospace" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: N/A</a></Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Compounded Liquidations (no longer gets revenue)</ListItem>
-              <ListItem>Compounds over 10% Slippage = <a style={{fontWeight:"bold", color:"rgb(231, 58, 58)"}}>Capital Loss</a> </ListItem>
-              <ListItem>Minimum Deposit: 6 CDT</ListItem>
+              <ListItem fontFamily="monospace" ><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Compounded Liquidations (no longer gets revenue)</ListItem>
+              <ListItem fontFamily="monospace" >Compounds over 10% Slippage = <a style={{fontWeight:"bold", color:"rgb(231, 58, 58)"}}>Capital Loss</a> </ListItem>
+              <ListItem fontFamily="monospace" >Minimum Deposit: 6 CDT</ListItem>
             </List>
             <ActSlider />
             <Divider marginTop={"3"} marginBottom={"3"}/>       

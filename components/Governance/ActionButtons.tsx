@@ -32,7 +32,7 @@ const ActionButtons = ({
   const isEnded = !days && !hours && !minutes
 
   if (!isWalletConnected) {
-    return <ConnectButton w="200px" onClick={connect}/>
+    return <ConnectButton w="229px" onClick={connect}/>
   }
 
 

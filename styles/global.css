@@ -23,11 +23,11 @@
     background-size: 100%;
   }
   .neonSign {
-    font: 400 4vh "Vibur";
+    font: 400 4vh monospace;
     color: #20d6ff;
     text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 10px 3px #000;}
   .neonSignon {
-    font: 400 4vh "Vibur";
+    font: 400 4vh monospace;
     color: #fee;
     text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 1em #20d6ff, 0 0 0.5em #20d6ff, 0 0 0.1em #20d6ff, 0 10px 3px #000;
   }

@@ -73,11 +73,11 @@ const ActSlider = React.memo(({isDisabled}: {isDisabled: boolean}) => {
     return (
       <Stack gap="0" borderWidth={"1px"} borderColor="rgb(226, 216, 218)" borderRadius={"2rem"}>
         <HStack justifyContent="space-between" padding={"4%"}>
-          <Text variant="lable" textTransform="unset">
+          <Text fontFamily="monospace" variant="lable" textTransform="unset">
             USDC in Vault
           </Text>
           <HStack>
-            <Text variant="value">${pendingBalance.toFixed(2)}</Text>
+            <Text fontFamily="monospace" variant="value">${pendingBalance.toFixed(2)}</Text>
           </HStack>
         </HStack>
         <SliderWithState
@@ -148,16 +148,16 @@ const EarnCard = () => {
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn USDC</Text>
+            <Text fontFamily="monospace" variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn USDC</Text>
             <Stack>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a> {longestAPR}</Text>
+                <Text fontFamily="monospace" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
+                <Text fontFamily="monospace" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a> {longestAPR}</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
-              <ListItem>You <a style={{fontWeight:"bold", color:"rgb(231, 58, 58)"}}>pay</a> unloop costs to exit</ListItem>
-              <ListItem>Deposits <a style={isDisabled ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>disabled</a> above 200 Debt</ListItem>
+              <ListItem fontFamily="monospace" ><a style={{fontWeight:"bold", color:"#20d6ff"}}>Yield:</a> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
+              <ListItem fontFamily="monospace" >You <a style={{fontWeight:"bold", color:"rgb(231, 58, 58)"}}>pay</a> unloop costs to exit</ListItem>
+              <ListItem fontFamily="monospace" >Deposits <a style={isDisabled ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>disabled</a> above 200 Debt</ListItem>
             </List>
             <ActSlider isDisabled={isDisabled}/>
             <Divider marginTop={"3vh"}/>           

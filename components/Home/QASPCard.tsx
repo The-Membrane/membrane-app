@@ -115,7 +115,7 @@ const SPCard = ({width = "33%", title= "Liquidate CDT"}: {width?: string, title?
     return (
         <Card width={width} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">{title}</Text>
+            <Text fontFamily="Inter" variant="title" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">{title}</Text>
             <Stack>
               <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
               <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: N/A</a></Text>

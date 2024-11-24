@@ -72,7 +72,7 @@ const ActSlider = React.memo(() => {
     return (
       <Stack gap="0" borderWidth={"1px"} borderColor="rgb(226, 216, 218)" borderRadius={"2rem"}>
         <HStack justifyContent="space-between" padding={"4%"}>
-          <Text fontFamily="Inter" variant="lable" textTransform="unset">
+          <Text fontSize="lg" fontFamily="Inter" variant="lable" textTransform="unset">
             CDT in Vault
           </Text>
           <HStack>

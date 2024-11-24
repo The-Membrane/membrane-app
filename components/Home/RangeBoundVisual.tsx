@@ -1,5 +1,5 @@
 import { useOraclePrice } from "@/hooks/useOracle"
-import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text, Stack } from "@chakra-ui/react"
+import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card } from "@chakra-ui/react"
 import { useMemo, useState } from "react"
 import { shiftDigits } from "@/helpers/math"
 import { getCLPositionsForVault } from "@/services/osmosis"
@@ -23,7 +23,7 @@ const RangeBoundVisual = () => {
     
 
 return (        
-    <Flex gap={0} width={"70%"}> 
+    <Card gap={0} width={"70%"} borderColor={""} borderWidth={3}> 
         <Box >
             <Slider
               defaultValue={cdtPrice}
@@ -99,7 +99,7 @@ return (
             : <Text justifySelf={"center"} width="100">TVL: ${positions?.positionsTVL.floorTVL.toFixed(2)}</Text>}
         </Flex>
       </Stack>
-    </Flex>
+    </Card >
     )
 }
 

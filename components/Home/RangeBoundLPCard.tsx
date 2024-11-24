@@ -75,11 +75,11 @@ const ActSlider = React.memo(() => {
     return (
       <Stack gap="0" borderWidth={"1px"} borderColor="rgb(226, 216, 218)" borderRadius={"2rem"}>
         <HStack justifyContent="space-between" padding={"4%"}>
-          <Text fontFamily="monospace" variant="lable" textTransform="unset">
+          <Text fontFamily="Inter" variant="lable" textTransform="unset">
             CDT in Vault
           </Text>
           <HStack>
-            <Text fontFamily="monospace" variant="value">${pendingBalance.toFixed(2)}</Text>
+            <Text fontFamily="Inter" variant="value">${pendingBalance.toFixed(2)}</Text>
           </HStack>
         </HStack>
         <SliderWithState 
@@ -140,15 +140,15 @@ const RangeBoundLPCard = () => {
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text variant="title" fontFamily="monospace" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn CDT</Text>
+            <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn CDT</Text>
             <Stack>
-              <Text variant="title" fontFamily="monospace" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-              <Text variant="title" fontFamily="monospace" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
+              <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
+              <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"rgb(226, 216, 218)"}}>Estimated APR: &nbsp;</a>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem fontFamily="monospace" ><a style={{fontWeight:"bold", color:"#20d6ff", }}>Yield:</a> Revenue & Swap Fees</ListItem>
-              <ListItem fontFamily="monospace" >Withdraw Period: 0 days</ListItem>
+              <ListItem fontFamily="Inter" fontSize="md"><a style={{fontWeight:"bold", color:"#20d6ff", }}>Yield:</a> Revenue & Swap Fees</ListItem>
+              <ListItem fontFamily="Inter" fontSize="md">Withdraw Period: 0 days</ListItem>
             </List>
             <ActSlider />
             <Divider marginTop={"3"} marginBottom={"3"}/>           

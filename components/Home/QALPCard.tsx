@@ -53,11 +53,11 @@ const ActSlider = React.memo(({ range } : { range: string }) => {
     return (
       <Stack gap="0" borderWidth={"1px"} borderColor="rgb(226, 216, 218)" borderRadius={"2rem"}>
         <HStack justifyContent="space-between" padding={"4%"}>
-          <Text fontFamily="monospace" variant="lable" textTransform="unset">
+          <Text fontFamily="Inter" variant="lable" textTransform="unset">
             CDT to LP
           </Text>
           <HStack>
-            <Text fontFamily="monospace" variant="value">${LPState.newCDT.toFixed(2)}</Text>
+            <Text fontFamily="Inter" variant="value">${LPState.newCDT.toFixed(2)}</Text>
           </HStack>
         </HStack>
         <SliderWithState
@@ -111,13 +111,13 @@ const LPCard = () => {
     return (
         <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
-            <Text fontFamily="monospace" variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn BOTH</Text>
+            <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn BOTH</Text>
             <Stack>
-                <Text fontFamily="monospace" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{`${daysSinceDeposit.toFixed(0)}D`} APR: &nbsp;</a> <a className="textShadow">{num(highestAPR.apr).times(100).toFixed(1)}%</a></Text>
-                <Text fontFamily="monospace" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex" color="rgb(226, 216, 218)" > Best Range: {highestAPR.stringRange}</Text>
+                <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{fontWeight:"bold", color:"#20d6ff"}}>{`${daysSinceDeposit.toFixed(0)}D`} APR: &nbsp;</a> <a className="textShadow">{num(highestAPR.apr).times(100).toFixed(1)}%</a></Text>
+                <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex" color="rgb(226, 216, 218)" > Best Range: {highestAPR.stringRange}</Text>
             </Stack>
             <Divider marginBottom={"3vh"}/> 
-            <Text fontFamily="monospace" marginBottom={"4%"}><a style={{fontWeight:"bold", color:"#20d6ff", padding:"6", paddingTop:"0"}}>Yield:</a> LP in the Highest APR range to date</Text>
+            <Text fontFamily="Inter" marginBottom={"4%"}><a style={{fontWeight:"bold", color:"#20d6ff", padding:"6", paddingTop:"0"}}>Yield:</a> LP in the Highest APR range to date</Text>
             <ActSlider range={highestAPR.stringRange}/>
           </Stack>
         </Card>

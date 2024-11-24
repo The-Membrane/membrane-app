@@ -128,6 +128,8 @@ const RangeBoundLPCard = () => {
         if (!clRewardList) return 0
 
         const totalrewards = ( clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward + clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward) / 6
+        const middleAPR = ((clRewardList[5].reward + clRewardList[6].reward + clRewardList[7].reward + clRewardList[8].reward + clRewardList[9].reward) / 5) / 1000000 / daysSinceDeposit * 365
+        console.log("middleAPR", middleAPR)
         return totalrewards / 1000000 / daysSinceDeposit * 365
     }, [clRewardList])
     console.log("rangeBoundAPR", rangeBoundAPR)

@@ -24,8 +24,10 @@ const RangeBoundVisual = () => {
 
 return (        
     <Card gap={0} width={"70%"} borderColor={""} borderWidth={3}>
+      <Stack>
+      <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">The Membrane aka Range Bound LP</Text>
       <HStack>
-        <Box >
+        <Box height="100%">
             <Slider
               defaultValue={cdtPrice}
               isReadOnly
@@ -66,7 +68,7 @@ return (
         </Box>
       
       {/* Label Rectangle */}
-      <Stack justifyContent="space-between" width="100%">
+      <Stack justifyContent="space-between" width="100%"  height="100%">
         <Flex
             display={"grid"}
             w="84%"
@@ -101,6 +103,7 @@ return (
         </Flex>
       </Stack>
       </HStack>
+      </Stack>
     </Card >
     )
 }

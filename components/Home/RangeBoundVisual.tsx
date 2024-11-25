@@ -7,7 +7,7 @@ import { getCLPositionsForVault } from "@/services/osmosis"
 
 // Create and return a vertical slider
 const RangeBoundVisual = () => {  
-  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
+  const isMobile = useBreakpointValue({ base: true, md: true }) ?? false
   //Set ceiling & floor switch state
   const [cSwitch, setCSwitch] = useState(false)
   const [fSwitch, setFSwitch] = useState(false)

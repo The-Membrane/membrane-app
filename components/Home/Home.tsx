@@ -15,7 +15,7 @@ import { num } from '@/helpers/num'
 
 
 const Home = React.memo(() => {
-  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
+  const isMobile = useBreakpointValue({ base: true, md: true }) ?? false
   const [sign, setSign] = useState("on");
   const [isExpanded, setIsExpanded] = useState(false)
   const onExpansion = () => {

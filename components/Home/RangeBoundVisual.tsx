@@ -42,7 +42,7 @@ return (        //Remove height for desktop potentially
               pos={"relative"}
               height={"90%"}
             >
-              <SliderTrack height="100%" left="0" h="1.5" transform={"0"}>
+              <SliderTrack height="100%" left="0%" h="1.5" transform={"0"}>
                 {/* <SliderFilledTrack bg={'#20d6ff'} /> */}
               </SliderTrack>
                 <SliderThumb 

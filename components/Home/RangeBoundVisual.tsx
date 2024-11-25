@@ -7,7 +7,7 @@ import { getCLPositionsForVault } from "@/services/osmosis"
 
 // Create and return a vertical slider
 const RangeBoundVisual = () => {  
-  const isMobile = useBreakpointValue({ base: true, md: true }) ?? false
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   //Set ceiling & floor switch state
   const [cSwitch, setCSwitch] = useState(false)
   const [fSwitch, setFSwitch] = useState(false)
@@ -25,10 +25,10 @@ const RangeBoundVisual = () => {
 
 return (        //Remove height for desktop potentially
     <Card gap={0} width={isMobile ? "100%" : "70%"} height={isMobile ? "45vh" : ""} borderColor={""} borderWidth={3}>
-      <Stack height="100%">
+      <Stack height="100%" width={"inherit"}>
       <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">The Membrane aka Range Bound LP</Text>
-      <HStack height="100%" gap={0}>
-        <Box height="100%">
+      <HStack width={"inherit"} height="100%" gap={0}>
+        <Box height="90%" width={"inherit"} pos={"absolute"}>
             <Slider
               defaultValue={cdtPrice}
               isReadOnly
@@ -38,15 +38,18 @@ return (        //Remove height for desktop potentially
               value={cdtPrice}
               orientation="vertical"
               paddingInlineStart={"0"}
+              width={"inherit"}
+              pos={"relative"}
+              height={"90%"}
             >
-              <SliderTrack h="1.5" transform={"0"}>
+              <SliderTrack height="100%" h="1.5" transform={"0"}>
                 {/* <SliderFilledTrack bg={'#20d6ff'} /> */}
               </SliderTrack>
                 <SliderThumb 
                     transform={"0"}
                     left={"0px"}
                     h="5px"              // Makes it thin like a line
-                    w={isMobile ? "69vw" : "9710%"}             // Makes it wider horizontally
+                    w={"78%"}             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
                     _hover={{
@@ -68,41 +71,41 @@ return (        //Remove height for desktop potentially
             </Slider>
         </Box>
       
-      {/* Label Rectangle */}
-      <Stack justifyContent="center" gap="33%" width="100%"  height="100%">
-        <Flex
-            display={"grid"}
-            w="84%"
-            h="22%"
-            marginTop="9%"
-            bg="#5f71ed"
-            alignItems="center"
-            justifyContent="center"
-            borderRadius="md"
-            fontWeight="bold"
-            onMouseEnter={()=>{setCSwitch(true)}}
-            onMouseLeave={()=>{setCSwitch(false)}}
-        >
-            {cSwitch ? <Text justifySelf={"center"} width="100">Range: $0.993 - $0.99</Text> 
-            : <Text justifySelf={"center"} width="100">TVL: ${positions?.positionsTVL.ceilingTVL.toFixed(2)}</Text>}
-        </Flex>
-        <Flex
-            display={"grid"}
-            w="84%"
-            h="22%"
-            marginBottom="9%"
-            bg="#5f71ed"
-            alignItems="center"
-            justifyContent="center"
-            borderRadius="md"
-            fontWeight="bold"
-            onMouseEnter={()=>{setFSwitch(true)}}
-            onMouseLeave={()=>{setFSwitch(false)}}
-        >
-            {fSwitch ? <Text justifySelf={"center"} width="100">Range: $0.985 - $0.982</Text> 
-            : <Text justifySelf={"center"} width="100">TVL: ${positions?.positionsTVL.floorTVL.toFixed(2)}</Text>}
-        </Flex>
-      </Stack>
+        {/* Label Rectangle */}
+        <Stack justifyContent="center" gap="33%" width="100%"  height="100%">
+          <Flex
+              display={"grid"}
+              w="84%"
+              h="22%"
+              marginTop="9%"
+              bg="#5f71ed"
+              alignItems="center"
+              justifyContent="center"
+              borderRadius="md"
+              fontWeight="bold"
+              onMouseEnter={()=>{setCSwitch(true)}}
+              onMouseLeave={()=>{setCSwitch(false)}}
+          >
+              {cSwitch ? <Text justifySelf={"center"} width="100">Range: $0.993 - $0.99</Text> 
+              : <Text justifySelf={"center"} width="100">TVL: ${positions?.positionsTVL.ceilingTVL.toFixed(2)}</Text>}
+          </Flex>
+          <Flex
+              display={"grid"}
+              w="84%"
+              h="22%"
+              marginBottom="9%"
+              bg="#5f71ed"
+              alignItems="center"
+              justifyContent="center"
+              borderRadius="md"
+              fontWeight="bold"
+              onMouseEnter={()=>{setFSwitch(true)}}
+              onMouseLeave={()=>{setFSwitch(false)}}
+          >
+              {fSwitch ? <Text justifySelf={"center"} width="100">Range: $0.985 - $0.982</Text> 
+              : <Text justifySelf={"center"} width="100">TVL: ${positions?.positionsTVL.floorTVL.toFixed(2)}</Text>}
+          </Flex>
+        </Stack>
       </HStack>
       </Stack>
     </Card >

@@ -1,12 +1,13 @@
 import { useOraclePrice } from "@/hooks/useOracle"
-import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card, HStack } from "@chakra-ui/react"
+import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card, HStack, useBreakpointValue } from "@chakra-ui/react"
 import { useMemo, useState } from "react"
 import { shiftDigits } from "@/helpers/math"
 import { getCLPositionsForVault } from "@/services/osmosis"
 
 
 // Create and return a vertical slider
-const RangeBoundVisual = () => {
+const RangeBoundVisual = () => {  
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   //Set ceiling & floor switch state
   const [cSwitch, setCSwitch] = useState(false)
   const [fSwitch, setFSwitch] = useState(false)
@@ -22,8 +23,8 @@ const RangeBoundVisual = () => {
     
     
 
-return (        
-    <Card gap={0} width={"70%"} borderColor={""} borderWidth={3}>
+return (        //Remove height for desktop potentially
+    <Card gap={0} width={isMobile ? "100%" : "70%"} height={"45vh"} borderColor={""} borderWidth={3}>
       <Stack height="100%">
       <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">The Membrane aka Range Bound LP</Text>
       <HStack height="100%" gap={0}>
@@ -45,7 +46,7 @@ return (
                     transform={"0"}
                     left={"0px"}
                     h="5px"              // Makes it thin like a line
-                    w="9710%"             // Makes it wider horizontally
+                    w={isMobile ? "69vw" : "9710%"}             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
                     _hover={{
@@ -68,7 +69,7 @@ return (
         </Box>
       
       {/* Label Rectangle */}
-      <Stack justifyContent="space-between" width="100%"  height="100%">
+      <Stack justifyContent="center" gap="33%" width="100%"  height="100%">
         <Flex
             display={"grid"}
             w="84%"

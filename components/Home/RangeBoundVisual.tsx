@@ -25,10 +25,10 @@ const RangeBoundVisual = () => {
 
 return (        //Remove height for desktop potentially
     <Card gap={0} width={isMobile ? "100%" : "70%"} height={isMobile ? "45vh" : ""} borderColor={""} borderWidth={3}>
-      <Stack height="100%" width={"inherit"}>
+      <Stack height="100%">
       <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">The Membrane aka Range Bound LP</Text>
-      <HStack width={"inherit"} height="100%" gap={0}>
-        <Box height="90%" width={"inherit"} pos={"absolute"}>
+      <HStack width={"100%"} height="100%" gap={0}>
+        <Box height="90%" width={"90%"} pos={"absolute"}>
             <Slider
               defaultValue={cdtPrice}
               isReadOnly
@@ -42,14 +42,14 @@ return (        //Remove height for desktop potentially
               pos={"relative"}
               height={"90%"}
             >
-              <SliderTrack height="100%" h="1.5" transform={"0"}>
+              <SliderTrack height="100%" left="0" h="1.5" transform={"0"}>
                 {/* <SliderFilledTrack bg={'#20d6ff'} /> */}
               </SliderTrack>
                 <SliderThumb 
                     transform={"0"}
                     left={"0px"}
                     h="5px"              // Makes it thin like a line
-                    w={"78%"}             // Makes it wider horizontally
+                    w={"95%"}             // Makes it wider horizontally
                     borderRadius="2px"   // Less rounded edges
                     bg="blue.500"        // Color of the line
                     _hover={{

@@ -86,7 +86,7 @@ const Home = React.memo(() => {
         {/* CDT Swap Card */}
         {/* <CDTSwapSliderCard /> */}
         <Stack >          
-          <Stack direction={'row'} width="100%" marginBottom={isExpanded ? "3vh" : "0"}>  
+          <Stack direction={isMobile ? 'column' : 'row'} width="100%" marginBottom={isExpanded ? "3vh" : "0"}>  
             <RangeBoundVisual />          
             {/* RangeBoundLP Card */}
             <RangeBoundLPCard />  

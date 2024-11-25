@@ -13,7 +13,7 @@ const RangeBoundVisual = () => {
   const [fSwitch, setFSwitch] = useState(false)
   //Get bounded position data
   const { data: positions } = getCLPositionsForVault()
-  console.log("positions", positions)
+  // console.log("positions", positions)
   //Get prices
   const { data: prices } = useOraclePrice()
   //Get CDT price
@@ -24,7 +24,7 @@ const RangeBoundVisual = () => {
     
 
 return (        //Remove height for desktop potentially
-    <Card gap={0} width={isMobile ? "100%" : "70%"} height={"45vh"} borderColor={""} borderWidth={3}>
+    <Card gap={0} width={isMobile ? "100%" : "70%"} height={isMobile ? "45vh" : ""} borderColor={""} borderWidth={3}>
       <Stack height="100%">
       <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">The Membrane aka Range Bound LP</Text>
       <HStack height="100%" gap={0}>

@@ -92,7 +92,7 @@ const Home = React.memo(() => {
             <RangeBoundLPCard />  
           </Stack>
           <Stack >
-            <Stack direction={'row'} justifyContent="center">
+            <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center">
               {isExpanded ? <>
                 <SPCard />
                 <EarnCard /> 

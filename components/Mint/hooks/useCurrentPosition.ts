@@ -1,6 +1,7 @@
 import { num } from '@/helpers/num'
 import useMintState from './useMintState'
 import useVaultSummary from './useVaultSummary'
+import { useEffect, useState } from 'react'
 
 const getDebtAmount = (summary) => {
   const { debtAmount, newDebtAmount } = summary
@@ -14,7 +15,7 @@ const getDebtAmount = (summary) => {
 
 export const useCurrentPosition = () => {
   const { data } = useVaultSummary()
-  var summary = {
+  const [summary, setSummary] = useState({
     newDebtAmount: 0,
     debtAmount: 0,
     cost: 0,
@@ -24,10 +25,14 @@ export const useCurrentPosition = () => {
     borrowLTV: 0,
     liquidValue: 0,
     liqudationLTV: 0,
-  }
-  if (data) {
-    summary = data
-  }
+  });
+
+  useEffect(() => {
+    if (data) {
+      setSummary(data); // Only update if data is available
+    }
+  }, [data]); // Runs when `data` changes
+
   const { mintState } = useMintState()
 
   const isValueChanged = !num(mintState.totalUsdValue).isZero()

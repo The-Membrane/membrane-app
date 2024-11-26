@@ -91,7 +91,7 @@ const HealthSlider = () => {
 
   var color = 'blue.400'
   if (health <= (1 - summary.borrowLTV / summary.liqudationLTV) * 100 && health > 10 && health < 100)
-    color = 'sewage'
+    color = '#416041'
   if (health <= 10) color = 'red.400'
   return(
     <Slider

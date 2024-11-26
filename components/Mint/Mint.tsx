@@ -102,11 +102,11 @@ const HealthSlider = () => {
         max={100}
         value={health}
       >
-        <SliderTrack h="1.5">
+        <SliderTrack h="5">
           <SliderFilledTrack bg={'#20d6ff'} />
         </SliderTrack>
-        <SliderThumb boxSize={10}>
-          <Text fontSize="sm" color="white" fontWeight="bold">
+        <SliderThumb>
+          <Text fontSize="large" color="white" fontWeight="bold">
             Health: {health}%
           </Text>
         </SliderThumb>

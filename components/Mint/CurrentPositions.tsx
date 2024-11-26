@@ -7,7 +7,7 @@ const CurrentPositions = React.memo(() => {
 
   return (
     <Card minW="363px" gap="12" h="max-content" px="2">
-    <Stack gap="5">
+    <Stack gap="5" padding="3%">
       {stats.map(({ label, value, textColor = 'white' }) => (
         <HStack key={label + value} justifyContent="space-between">
           <Text variant="lable">{label}</Text>

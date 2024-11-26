@@ -1,6 +1,11 @@
 import {
   Card,
   HStack,
+  Stack,
+  SliderFilledTrack,
+  SliderTrack,
+  Slider,
+  SliderThumb,
   Tab,
   TabIndicator,
   TabList,
@@ -20,6 +25,8 @@ import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { Pagination } from '../Governance/Pagination'
 import { useUserPositions } from '@/hooks/useCDP'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
+import useVaultSummary from './hooks/useVaultSummary'
+import { num } from '@/helpers/num'
 
 type TabProps = {
   onClick: any
@@ -62,6 +69,50 @@ const PaginationBar = ({ pagination }: PaginationProps) => {
       <Pagination {...pagination} />
     </HStack>
   )
+}
+
+const HealthSlider = () => {
+  const { data } = useVaultSummary()
+  const summary = data || {
+    debtAmount: 0,
+    cost: 0,
+    discountedCost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }  
+  
+  const health = useMemo(() => {
+    if (summary.ltv === 0) return 100
+    return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
+  }, [summary.ltv, summary.liqudationLTV])
+
+  var color = 'blue'
+  if (health <= (1 - summary.borrowLTV / summary.liqudationLTV) * 100 && health > 10 && health < 100)
+    color = 'sewage'
+  if (health <= 10) color = 'red'
+  return(
+    <Slider
+        defaultValue={health}
+        isReadOnly
+        cursor="default"
+        min={0}
+        max={100}
+        value={health}
+      >
+        <SliderTrack h="1.5">
+          <SliderFilledTrack bg={'#20d6ff'} />
+        </SliderTrack>
+        <SliderThumb boxSize={10}>
+          <Text fontSize="sm" color="white" fontWeight="bold">
+            Health: {health}%
+          </Text>
+        </SliderThumb>
+      </Slider>
+  )
+  
 }
 
 const MintTabsCard = React.memo(() => {
@@ -124,10 +175,13 @@ const MintTabsCard = React.memo(() => {
 
 const Mint = React.memo(() => {
   return (
-    <HStack alignItems="flex-start">
-      <MintTabsCard />
-      <CurrentPositions />
-    </HStack>
+    <Stack>
+      <HStack alignItems="flex-start">
+        <MintTabsCard />
+        <CurrentPositions />
+      </HStack>
+
+    </Stack>
   )
 })
 

@@ -180,7 +180,7 @@ const Mint = React.memo(() => {
 
   useEffect(() => {
     if (data) {
-      setSummary(data); // Only update if data is available
+      setSummary({...data}); // Only update if data is available
     }
   }, [data]); // Runs when `data` changes
 

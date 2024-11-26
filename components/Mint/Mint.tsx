@@ -89,10 +89,10 @@ const HealthSlider = () => {
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
   }, [summary.ltv, summary.liqudationLTV])
 
-  var color = 'blue'
+  var color = 'blue.400'
   if (health <= (1 - summary.borrowLTV / summary.liqudationLTV) * 100 && health > 10 && health < 100)
     color = 'sewage'
-  if (health <= 10) color = 'red'
+  if (health <= 10) color = 'red.400'
   return(
     <Slider
         defaultValue={health}
@@ -105,7 +105,7 @@ const HealthSlider = () => {
       >
         <SliderTrack h="5" display={"flex"}>
           <SliderFilledTrack bg={color} />
-          <Box width={"100%"} justifyContent="center" zIndex="999">
+          <Box width={"100%"} justifyContent="center"display="flex" zIndex="999">
             <Text fontSize="large" color={"white"} zIndex="999" fontWeight="bold"  alignSelf="center">
               Health: {health}%
             </Text>

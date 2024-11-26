@@ -91,9 +91,8 @@ const MintTabsCard = React.memo(() => {
 
         <Tabs position="relative" variant="unstyled" align="center" w="full" onChange={onTabChange} index={activeTabIndex}>
           <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
-            <CustomTab onClick={() => handleTabClick(0)} label="Position info" />
-            <CustomTab onClick={() => handleTabClick(1)} label="Manage Vault" />
-            <CustomTab onClick={() => handleTabClick(2)} label="LP" />
+            <CustomTab onClick={() => handleTabClick(0)} label="Manage Vault" />
+            <CustomTab onClick={() => handleTabClick(1)} label="LP" />
           </TabList>
 
           <TabIndicator
@@ -103,8 +102,7 @@ const MintTabsCard = React.memo(() => {
             bg="#C445F0"
             borderRadius="28px"
           />
-          <TabPanels paddingBottom={activeTabIndex === 2 ? 0 : 4}>
-            <CurrentPositions />
+          <TabPanels paddingBottom={activeTabIndex === 1 ? 0 : 4}>
             <TakeAction />
             <LPTab />
           </TabPanels>
@@ -128,8 +126,7 @@ const Mint = React.memo(() => {
   return (
     <HStack alignItems="flex-start">
       <MintTabsCard />
-      {/* <Beaker /> */}
-      {/* <BeakerScale /> */}
+      <CurrentPositions />
     </HStack>
   )
 })

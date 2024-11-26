@@ -179,17 +179,22 @@ export const getRateCost = (
   tvl: number,
   basketAssets: BasketAsset[] = [],
   positionRatios?: any[],
-): { cost: number, ratios: any } => {
-  if (!positions) return {cost: 0, ratios: []}
+): { cost: number, ratios: any, costRatios: any } => {
+  var costRatios = []
+  if (!positions) return { cost: 0, ratios: [], costRatios }
   const positionsWithRatio = positionRatios ? positionRatios : getAssetRatio(false, tvl, positions)
   const cost = positionsWithRatio.reduce((acc, position) => {    
     if (!position) return acc
+    //Get the interest rate for the asset
     const rate =
       basketAssets.find((asset) => asset?.asset?.base === position.base)?.interestRate || 0
+    //Add to costRatios
+    costRatios.push({symbol: position.symbol, denom: position.base, ratio: position.ratio, rate: rate})
+    //Return the proportional cost of the collateral
     return acc.plus(num(position.ratio).times(rate))
   }, num(0))
 
-  return {cost: cost.toNumber(), ratios: positionsWithRatio}
+  return {cost: cost.toNumber(), ratios: positionsWithRatio, costRatios}
 }
 
 export type LiquidValue = {
@@ -384,7 +389,7 @@ export const calculateVaultSummary = ({
   }
   console.log("running summ")
   const tvl = initialTVL + newDeposit
-  const { cost, ratios} = getRateCost(positions, tvl, basketAssets)
+  const { cost, ratios, costRatios } = getRateCost(positions, tvl, basketAssets)
   const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).multipliedBy(basket.credit_price.price).toNumber())
 
   const creditPrice = Number(basket?.credit_price.price) || 1
@@ -413,6 +418,7 @@ export const calculateVaultSummary = ({
     debtAmount,
     cost,
     discountedCost: cost * (num(1).minus(discount)).toNumber(),
+    costRatios,
     tvl,
     ltv,
     borrowLTV,

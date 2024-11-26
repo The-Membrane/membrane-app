@@ -100,10 +100,10 @@ const HealthSlider = () => {
         cursor="default"
         min={0}
         max={100}
-        value={100}
+        value={health}
         width={"100%"}
       >
-        <SliderTrack h="5" display={"flex"}>
+        <SliderTrack h="9" display={"flex"} borderRadius={"xl"}>
           <SliderFilledTrack bg={color} />
           <Box width={"100%"} justifyContent="center"display="flex" zIndex="999">
             <Text fontSize="large" color={"white"} zIndex="999" fontWeight="bold"  alignSelf="center">
@@ -128,7 +128,7 @@ const MintTabsCard = React.memo(() => {
   const onTabChange = (index: number) => {
     setMintState({ isTakeAction: index === 1 })
   }  
-  const [activeTabIndex, setActiveTabIndex] = useState(1);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   const handleTabClick = (index: number) => {
     setActiveTabIndex(index);
@@ -176,12 +176,12 @@ const MintTabsCard = React.memo(() => {
 
 const Mint = React.memo(() => {
   return (
-    <Stack>
+    <Stack gap="1.5rem">
+      <HealthSlider />
       <HStack alignItems="flex-start">
         <MintTabsCard />
         <CurrentPositions />
       </HStack>
-      <HealthSlider />
     </Stack>
   )
 })

@@ -180,7 +180,7 @@ const Mint = React.memo(() => {
         <MintTabsCard />
         <CurrentPositions />
       </HStack>
-
+      <HealthSlider />
     </Stack>
   )
 })

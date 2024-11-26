@@ -14,7 +14,6 @@ const getDebtAmount = (summary) => {
 }
 
 export const useCurrentPosition = ({summary}: {summary: any}) => {
-
   const { mintState } = useMintState()
 
   const isValueChanged = !num(mintState.totalUsdValue).isZero()

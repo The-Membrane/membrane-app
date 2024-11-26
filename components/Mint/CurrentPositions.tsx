@@ -2,7 +2,7 @@ import { HStack, Stack, TabPanel, Card, Text } from '@chakra-ui/react'
 import { useCurrentPosition } from './hooks/useCurrentPosition'
 import React from 'react'
 
-const CurrentPositions = React.memo(({summary}: {summary: any}) => {
+const CurrentPositions = ({summary}: {summary: any}) => {
   const stats = useCurrentPosition(summary)
 
   return (
@@ -17,6 +17,6 @@ const CurrentPositions = React.memo(({summary}: {summary: any}) => {
     </Stack>
   </Card>
   )
-})
+}
 
 export default CurrentPositions

@@ -27,7 +27,7 @@ export const useCurrentPosition = ({summary}: {summary: any}) => {
     },
     {
       label: 'LIQUIDATION VALUE',
-      value: `$${summary.liquidValue?.toFixed(2)}`,
+      value: `$${summary?.liquidValue?.toFixed(2)}`,
     },
     {
       label: 'DEBT',
@@ -36,8 +36,8 @@ export const useCurrentPosition = ({summary}: {summary: any}) => {
     },
     {
       label: 'DYNAMIC COST',
-      value: `${num(summary.discountedCost).multipliedBy(100).toFixed(2)}% / year`,
-      textColor: summary.cost != summary.discountedCost ? 'primary.200' : 'white'
+      value: `${num(summary?.discountedCost).multipliedBy(100).toFixed(2)}% / year`,
+      textColor: summary?.cost != summary?.discountedCost ? 'primary.200' : 'white'
     },
     {
       label: 'BORROWABLE LTV',
@@ -46,12 +46,12 @@ export const useCurrentPosition = ({summary}: {summary: any}) => {
     },
     {
       label: 'LTV',
-      value: `${summary.ltv.toFixed(0)}%`,
+      value: `${summary?.ltv.toFixed(0)}%`,
       textColor: isValueChanged ? 'primary.200' : 'white',
     },
     {
       label: 'LIQUIDATION LTV',
-      value: `${summary.liqudationLTV?.toFixed(0)}%`,
+      value: `${summary?.liqudationLTV?.toFixed(0)}%`,
       textColor: isValueChanged ? 'primary.200' : 'white',
     },
   ]

@@ -4,7 +4,7 @@ import useVaultSummary from './useVaultSummary'
 import { useEffect, useState } from 'react'
 
 const getDebtAmount = (summary) => {
-  const { debtAmount, newDebtAmount } = summary
+  const { debtAmount, newDebtAmount } = summary ?? { debtAmount: 0, newDebtAmount: 0 }
 
   if (num(newDebtAmount).isGreaterThan(0)) {
     return newDebtAmount

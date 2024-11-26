@@ -370,6 +370,8 @@ export const calculateVaultSummary = ({
       borrowLTV: initialBorrowLTV,
       liquidValue: 0,
       liqudationLTV: 0,
+      discountedCost: 0,
+      newDebtAmount,
     }}
   }
 
@@ -384,6 +386,7 @@ export const calculateVaultSummary = ({
       ltv: initialLTV,
       borrowLTV: initialBorrowLTV,
       liquidValue: 0,
+      newDebtAmount,
       liqudationLTV: 0,
     }
   }

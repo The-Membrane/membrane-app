@@ -14,7 +14,8 @@ const getDebtAmount = (summary) => {
 
 export const useCurrentPosition = () => {
   const { data } = useVaultSummary()
-  const summary = data || {
+  var summary = {
+    newDebtAmount: 0,
     debtAmount: 0,
     cost: 0,
     discountedCost: 0,
@@ -23,6 +24,9 @@ export const useCurrentPosition = () => {
     borrowLTV: 0,
     liquidValue: 0,
     liqudationLTV: 0,
+  }
+  if (data) {
+    summary = data
   }
   const { mintState } = useMintState()
 

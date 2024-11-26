@@ -176,7 +176,7 @@ const MintTabsCard = React.memo(() => {
 
 const Mint = React.memo(() => {
   return (
-    <Stack gap="1.5rem">
+    <Stack gap="2rem" paddingTop="4%">
       <HealthSlider />
       <HStack alignItems="flex-start">
         <MintTabsCard />

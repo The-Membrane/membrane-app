@@ -5,7 +5,7 @@ import {
   SliderFilledTrack,
   SliderTrack,
   Slider,
-  SliderThumb,
+  Box,
   Tab,
   TabIndicator,
   TabList,
@@ -104,10 +104,12 @@ const HealthSlider = () => {
         width={"100%"}
       >
         <SliderTrack h="5" display={"flex"}>
-          <SliderFilledTrack bg={'#20d6ff'} />
-          <Text fontSize="large" color={color} fontWeight="bold" width={"100%"} paddingLeft="22%" alignSelf="center">
-            Health: {health}%
-          </Text>
+          <SliderFilledTrack bg={color} />
+          <Box width={"100%"} justifyContent="center" zIndex="999">
+            <Text fontSize="large" color={"white"} zIndex="999" fontWeight="bold"  alignSelf="center">
+              Health: {health}%
+            </Text>
+          </Box>
         </SliderTrack>
       </Slider>
   )

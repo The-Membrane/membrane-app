@@ -2,8 +2,8 @@ import { HStack, Stack, TabPanel, Card, Text } from '@chakra-ui/react'
 import { useCurrentPosition } from './hooks/useCurrentPosition'
 import React from 'react'
 
-const CurrentPositions = React.memo(() => {
-  const stats = useCurrentPosition()
+const CurrentPositions = React.memo(({summary}: {summary: any}) => {
+  const stats = useCurrentPosition(summary)
 
   return (
     <Card minW="363px" gap="12" h="max-content" px="2">

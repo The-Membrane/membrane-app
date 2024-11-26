@@ -13,25 +13,7 @@ const getDebtAmount = (summary) => {
   return debtAmount
 }
 
-export const useCurrentPosition = () => {
-  const { data } = useVaultSummary()
-  const [summary, setSummary] = useState({
-    newDebtAmount: 0,
-    debtAmount: 0,
-    cost: 0,
-    discountedCost: 0,
-    tvl: 0,
-    ltv: 0,
-    borrowLTV: 0,
-    liquidValue: 0,
-    liqudationLTV: 0,
-  });
-
-  useEffect(() => {
-    if (data) {
-      setSummary(data); // Only update if data is available
-    }
-  }, [data]); // Runs when `data` changes
+export const useCurrentPosition = ({summary}: {summary: any}) => {
 
   const { mintState } = useMintState()
 

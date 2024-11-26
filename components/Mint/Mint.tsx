@@ -19,7 +19,7 @@ import CurrentPositions from './CurrentPositions'
 import TakeAction from './TakeAction'
 import useMintState from './hooks/useMintState'
 import LPTab from './LPTab'
-import { use, useMemo, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import React from "react"
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { Pagination } from '../Governance/Pagination'
@@ -71,18 +71,7 @@ const PaginationBar = ({ pagination }: PaginationProps) => {
   )
 }
 
-const HealthSlider = () => {
-  const { data } = useVaultSummary()
-  const summary = data || {
-    debtAmount: 0,
-    cost: 0,
-    discountedCost: 0,
-    tvl: 0,
-    ltv: 0,
-    borrowLTV: 0,
-    liquidValue: 0,
-    liqudationLTV: 0,
-  }  
+const HealthSlider = ({ summary }: {summary: any}) => {
   
   const health = useMemo(() => {
     if (summary.ltv === 0) return 100
@@ -175,12 +164,32 @@ const MintTabsCard = React.memo(() => {
 })
 
 const Mint = React.memo(() => {
+  
+  const { data } = useVaultSummary()
+  const [summary, setSummary] = useState({
+    newDebtAmount: 0,
+    debtAmount: 0,
+    cost: 0,
+    discountedCost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  });
+
+  useEffect(() => {
+    if (data) {
+      setSummary(data); // Only update if data is available
+    }
+  }, [data]); // Runs when `data` changes
+
   return (
     <Stack gap="2rem" paddingTop="4%">
-      <HealthSlider />
+      <HealthSlider summary={summary}/>
       <HStack alignItems="flex-start">
         <MintTabsCard />
-        <CurrentPositions />
+        <CurrentPositions summary={summary}/>
       </HStack>
     </Stack>
   )

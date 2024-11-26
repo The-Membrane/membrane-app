@@ -10,7 +10,7 @@ const MintPage = () => {
   if (!isWalletConnected) return (
   <HStack alignItems="flex-start">
     <LockedAccess />
-    <Beaker />
+    {/* <Beaker /> */}
     {/* <BeakerScale /> */}
   </HStack>)
 

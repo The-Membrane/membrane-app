@@ -1,4 +1,4 @@
-import { Card, Text, Stack, HStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, List, ListItem } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, List, ListItem, useBreakpointValue } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
 import { useEffect, useMemo, useState } from "react"
@@ -106,6 +106,7 @@ const ActSlider = React.memo(() => {
 });
           
 const RangeBoundLPCard = () => {
+    const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
     const { action: manage } = useBoundedManage()
     useEstimatedAnnualInterest(false)
     //Get total deposit tokens
@@ -138,7 +139,7 @@ const RangeBoundLPCard = () => {
     const isDisabled = useMemo(() => {return manage?.simulate.isError || !manage?.simulate.data }, [manage?.simulate.isError, manage?.simulate.data])
 
     return (
-        <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
+        <Card width={isMobile ?"100%" : "50%"} borderColor={""} borderWidth={3} padding={4}>
           <Stack>             
             <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="rgb(226, 216, 218)">Earn CDT</Text>
             <Stack>

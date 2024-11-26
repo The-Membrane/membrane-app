@@ -36,20 +36,20 @@
   }
   .neonSign b span {
     display: inline-block;
-    font-size: clamp(20px, 4.6vh, 4.6vh);
+    font-size: clamp(20px, 4vh, 4vh);
   }
   .neonSignon b span {
     display: inline-block; 
-    font-size: clamp(20px, 4.6vh, 4.6vh);
+    font-size: clamp(20px, 4vh, 4vh);
     animation: blink linear infinite 5s;
   }
   .neonSign b a {
     display: inline-block;
-    font-size: clamp(20px, 4.6vh, 4.6vh);
+    font-size: clamp(20px, 4vh, 4vh);
   }
   .neonSignon b a {
     display: inline-block;
-    font-size: clamp(20px, 4.6vh, 4.6vh);
+    font-size: clamp(20px, 4vh, 4vh);
   }
   .neonSignon b span:nth-of-type(2) {
     animation: blink reverse infinite 8s;

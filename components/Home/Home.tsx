@@ -58,7 +58,7 @@ const Home = React.memo(() => {
     if (summary.ltv === 0) return 100
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
   }, [summary.ltv, summary.liqudationLTV])
-  useEffect(() => {
+  useMemo(() => {
     if (summary.cost != 0 && totalPositions != undefined && positionCost != undefined) {
       // console.log("costy")
       //Toast

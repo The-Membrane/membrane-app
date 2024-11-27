@@ -72,8 +72,7 @@ const Home = React.memo(() => {
         <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text>
         
         {ratesOverTen.length > 0 ? <>
-          <Text>{`\n`}</Text>
-          <Text>{`\n`}Your Collateral Rates Over 10%:</Text>
+          <Text style={{marginTop:"5%"}}>{`\n`}Your Collateral Rates Over 10%:</Text>
           {ratesOverTen.map((rate: any) => {
             return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({num(rate.ratio).toFixed(2)}% of CDP)</Text>
           })}

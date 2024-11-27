@@ -78,7 +78,7 @@ const Home = React.memo(() => {
       })
       //Go to next position
       if (mintState.positionNumber < totalPositions) {
-        setMintState({ positionNumber: mintState.positionNumber + 1 })
+        // setMintState({ positionNumber: mintState.positionNumber + 1 })
       }
     } 
     // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)

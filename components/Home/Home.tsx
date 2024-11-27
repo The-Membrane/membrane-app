@@ -28,7 +28,7 @@ const Home = React.memo(() => {
   ////Setting up the Toaster for all position Costs////
   const toaster = useToaster()
   const { data: basketPositions } = useUserPositions()
-  const { mintState, setMintState } = useMintState()
+  // const { mintState, setMintState } = useMintState()
   const [ positionCost, setPositionCost ] = useState(0)
   const totalPositions = useMemo(() => {
     if (!basketPositions) return undefined
@@ -58,12 +58,12 @@ const Home = React.memo(() => {
     if (summary.ltv === 0) return 100
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
   }, [summary.ltv, summary.liqudationLTV])
-  useMemo(() => {
+  useEffect(() => {
     if (totalPositions != undefined && positionCost != undefined) {
       // console.log("costy")
       //Toast
       toaster.message({
-        title: `Position ${mintState.positionNumber}`,
+        title: `Position ${1}`,
         message: <><Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a></Text>
         <Text>Cost: <a style={num(positionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(positionCost).times(100).toFixed(2)}</a>%</Text>
         
@@ -77,7 +77,7 @@ const Home = React.memo(() => {
         </>
       })
       //Go to next position
-      if (mintState.positionNumber < totalPositions) {
+      if (1 < totalPositions) {
         // setMintState({ positionNumber: mintState.positionNumber + 1 })
       }
     } 

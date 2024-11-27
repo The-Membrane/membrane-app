@@ -32,25 +32,25 @@ const Home = React.memo(() => {
     if (!basketPositions) return undefined
     return Math.min(basketPositions[0].positions.length - 1, MAX_CDP_POSITIONS)
   }, [basketPositions])  
+  //Memoize 
   const { data } = useVaultSummary()
-  const summary = data || {
-    debtAmount: 0,
-    cost: 0,
-    discountedCost: 0,
-    tvl: 0,
-    ltv: 0,
-    borrowLTV: 0,
-    liquidValue: 0,
-    liqudationLTV: 0,
-    costRatios: []
-  }
-  //Memoize summary
-  const discountedCost = useMemo(() => {
-    return summary.discountedCost
-  }, [summary.discountedCost])
+  const summary = useMemo(() => {
+    return data || {
+      debtAmount: 0,
+      cost: 0,
+      discountedCost: 0,
+      tvl: 0,
+      ltv: 0,
+      borrowLTV: 0,
+      liquidValue: 0,
+      liqudationLTV: 0,
+      costRatios: []
+    }
+  }, [data])
+  
   const currentPositionCost = useMemo(() => {
     return summary.discountedCost
-  }, [discountedCost])
+  }, [summary.discountedCost])
   const ratesOverTen = useMemo(() => {
     //Find any rate costs Over 10%
     return summary.costRatios.filter((rate: any) => {

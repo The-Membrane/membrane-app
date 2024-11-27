@@ -50,7 +50,7 @@ const Home = React.memo(() => {
   
   const currentPositionCost = useMemo(() => {
     return summary.discountedCost
-  }, [discountedCost])
+  }, [summary.discountedCost])
   const ratesOverTen = []
   //  useMemo(() => {
   //   //Find any rate costs Over 10%

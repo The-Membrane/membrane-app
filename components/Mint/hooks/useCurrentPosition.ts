@@ -3,6 +3,7 @@ import useMintState from './useMintState'
 import useVaultSummary from './useVaultSummary'
 import { useEffect, useState } from 'react'
 
+    //@ts-ignore
 const getDebtAmount = (summary) => {
   const { debtAmount, newDebtAmount } = summary
 

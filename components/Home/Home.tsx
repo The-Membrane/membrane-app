@@ -44,13 +44,15 @@ const Home = React.memo(() => {
     liqudationLTV: 0,
     costRatios: []
   }  
-  const {currentPositionCost, ratesOverTen} = useMemo(() => {
+  const currentPositionCost = useMemo(() => {
+    return summary.discountedCost
+  }, [summary.discountedCost])
+  const ratesOverTen = useMemo(() => {
     //Find any rate costs Over 10%
-    var ratesOverTen = summary.costRatios.filter((rate: any) => {
+    return summary.costRatios.filter((rate: any) => {
       return num(rate.rate).times(100).toNumber() >= 10
     })
-    return {currentPositionCost: summary.discountedCost, ratesOverTen}
-  }, [summary])
+  }, [summary.costRatios])
   const health = useMemo(() => {
     if (summary.ltv === 0) return 100
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
@@ -65,9 +67,9 @@ const Home = React.memo(() => {
         <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text>
         
         {ratesOverTen.length > 0 ? <>
-          <Text>{`\n`}Collateral Rates Over 10%:</Text>
+          <Text>{`\n`}Your Collateral Rates Over 10%:</Text>
           {ratesOverTen.map((rate: any) => {
-            return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({rate.ratio})</Text>
+            return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({num(rate.ratio).toFixed(2)}% of CDP)</Text>
           })}
         </> : null}
         </>

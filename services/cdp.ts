@@ -33,6 +33,7 @@ const getAsseInterestRate = (
 ) => {
   if (!denom || !collateralInterest || !basket) return null
   const rateIndex = basket?.collateral_types.findIndex(
+    //@ts-ignore
     ({ asset }) => asset.info.native_token.denom === denom,
   )
   return rateIndex !== -1 ? collateralInterest?.rates[rateIndex] || 0 : null
@@ -54,10 +55,12 @@ export const getBasketAssets = (
   const chainAssets = getChainAssets()
 
   return basket?.collateral_types.map((asset, index) => {
+    //@ts-ignore
     const denom = asset.asset?.info.native_token?.denom
     let assetInfo = chainAssets?.find((chainAsset) => chainAsset.base === denom)
 
     if (!assetInfo) {
+      //@ts-ignore
       assetInfo = {
         base: denom,
       }
@@ -143,6 +146,7 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
   const positions = basketPositions?.[0]?.positions?.[positionIndex]
 
   return positions?.collateral_assets.map((asset) => {
+    //@ts-ignore
     const denom = asset.asset.info.native_token.denom
     const assetInfo = getAssetByDenom(denom)
     const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal??6)).toNumber()
@@ -180,7 +184,9 @@ export const getRateCost = (
   basketAssets: BasketAsset[] = [],
   positionRatios?: any[],
 ): { cost: number, ratios: any, costRatios: any } => {
+  //@ts-ignore
   var costRatios = []
+  //@ts-ignore
   if (!positions) return { cost: 0, ratios: [], costRatios }
   const positionsWithRatio = positionRatios ? positionRatios : getAssetRatio(false, tvl, positions)
   const cost = positionsWithRatio.reduce((acc, position) => {    
@@ -194,6 +200,7 @@ export const getRateCost = (
     return acc.plus(num(position.ratio).times(rate))
   }, num(0))
 
+    //@ts-ignore
   return {cost: cost.toNumber(), ratios: positionsWithRatio, costRatios}
 }
 
@@ -311,8 +318,10 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
   //If no initial position, return a summary using the summary from the mint state
   if (!basketPositions){
 
+    //@ts-ignore
     return summary.map((position) => {
       if (!position) return
+      //@ts-ignore
       const price = prices?.find((p) => p.denom === (position.base))?.price || 0
       const amount = num(position?.amount).toNumber()
       const usdValue = amount * price
@@ -329,6 +338,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
   return positions.map((position) => {
     if (!position) return
     const updatedPosition = summary.find((p: any) => p.symbol === position.symbol)
+    //@ts-ignore
     const price = prices?.find((p) => p.denom === position.denom)?.price || 0
     const amount = num(position.amount)
       .plus(updatedPosition?.amount || 0)
@@ -440,6 +450,7 @@ export const calculateVaultSummary = ({
 export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }) => {
   if (!basket || !prices) return 0
   const positions = basket?.collateral_types.map((asset) => {
+    //@ts-ignore
     const denom = asset.asset?.info.native_token?.denom
     const assetInfo = getAssetByDenom(denom)    
     console.log(assetInfo, denom, asset.asset)

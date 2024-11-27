@@ -12,6 +12,7 @@ import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import { useUserPositions } from '@/hooks/useCDP'
 import useToaster from '@/hooks/useToaster'
 import { num } from '@/helpers/num'
+import useMintState from '../Mint/hooks/useMintState'
 
 
 const Home = React.memo(() => {
@@ -26,7 +27,7 @@ const Home = React.memo(() => {
   ////Setting up the Toaster for all position Costs////
   const toaster = useToaster()
   const { data: basketPositions } = useUserPositions()
-  const [positionNum, setPositionNum] = useState(0)
+  const { mintState, setMintState } = useMintState()
   const totalPositions = useMemo(() => {
     if (!basketPositions) return undefined
     return Math.min(basketPositions[0].positions.length - 1, MAX_CDP_POSITIONS)
@@ -49,18 +50,18 @@ const Home = React.memo(() => {
     if (summary.ltv === 0) return 100
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
   }, [summary.ltv, summary.liqudationLTV])
-  useEffect(() => {
+  useMemo(() => {
     if (summary.cost != 0 && totalPositions != undefined && currentPositionCost != undefined) {
       // console.log("costy")
       //Toast
       toaster.message({
-        title: `Position ${positionNum+1}`,
+        title: `Position ${mintState.positionNumber-1}`,
         message: <><Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a></Text>
         <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text></>
       })
       //Go to next position
-      if (positionNum < totalPositions) {
-        setPositionNum(positionNum + 1)
+      if (mintState.positionNumber-1 < totalPositions) {
+        setMintState({ positionNumber: mintState.positionNumber + 1 })
       }
     } 
     // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)

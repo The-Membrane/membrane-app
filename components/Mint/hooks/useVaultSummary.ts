@@ -16,41 +16,58 @@ const useVaultSummary = () => {
   const { data: discount } = useUserDiscount(address)
   const { mintState } = useMintState()
   const { data } = useInitialVaultSummary(mintState.positionNumber-1)
+  
+  const SumData = useMemo(() => { return data }, [data])  
+  const { initialBorrowLTV, initialLTV, initialTVL, basketAssets, debtAmount } = data || { 
+    initialBorrowLTV: 0, 
+    initialLTV: 0, 
+    debtAmount: 0, 
+    initialTVL: 0, 
+    basketAssets: []
+  }
 
-  return useQuery({
-    queryKey: [
-      'vault-summary', 
-      address, 
-      mintState.positionNumber, 
-      mintState.mint, 
-      mintState.repay,discount, prices, basket, collateralInterest, basketPositions
-    ],
-    queryFn: async () => {
-      if (!data) return null;
+  const Basket = useMemo(() => { return basket }, [basket])
+  const CollateralInterest = useMemo(() => { return collateralInterest }, [collateralInterest])
+  const BasketPositions = useMemo(() => { return basketPositions }, [basketPositions])
+  const Prices = useMemo(() => { return prices }, [prices])
+  const Summary = useMemo(() => {  return mintState?.summary }, [mintState?.summary])
 
-      return calculateVaultSummary({
-        basket,
-        collateralInterest,
-        basketPositions,
-        positionIndex: mintState.positionNumber-1,
-        prices,
-        newDeposit: mintState?.totalUsdValue || 0,
-        summary: mintState?.summary,
-        mint: mintState?.mint,
-        repay: mintState?.repay,
-        newDebtAmount: mintState?.newDebtAmount,
-        initialBorrowLTV: data.initialBorrowLTV,
-        initialLTV: data.initialLTV,
-        debtAmount: data.debtAmount,
-        initialTVL: data.initialTVL,
-        basketAssets: data.basketAssets,
-        discount: discount?.discount ?? "0",
-      })
-    },
-    // Consider adding these options
-    staleTime: 5000, // Keep data fresh for 5 seconds
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false
+  return useQuery({queryKey: ['vault summary',
+    BasketPositions,
+    Basket,
+    CollateralInterest,
+    Prices,
+    Summary,
+    SumData,
+    mintState.mint,
+    mintState.repay,
+    mintState.positionNumber,
+    mintState.newDebtAmount,
+    discount,
+  ],
+  queryFn: async () => {
+    console.log("LTVs", initialBorrowLTV, initialLTV, debtAmount, initialTVL, mintState.newDebtAmount,
+      mintState.mint,
+      mintState.repay)
+
+    return calculateVaultSummary({
+      basket,
+      collateralInterest,
+      basketPositions,
+      positionIndex: mintState.positionNumber-1,
+      prices,
+      newDeposit: mintState?.totalUsdValue || 0,
+      summary: mintState?.summary,
+      mint: mintState?.mint,
+      repay: mintState?.repay,
+      newDebtAmount: mintState?.newDebtAmount,
+      initialBorrowLTV,
+      initialLTV: initialLTV,
+      debtAmount: debtAmount,
+      initialTVL: initialTVL,
+      basketAssets: basketAssets,
+      discount: discount?.discount??"0",
+    })},
   })
 }
 

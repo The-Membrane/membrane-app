@@ -53,7 +53,7 @@ const Home = React.memo(() => {
     })
     setPositionCost(summary.discountedCost)
     return ratesOverTen
-  }, [summary])
+  }, [summary.costRatios, summary.discountedCost])
   const health = useMemo(() => {
     if (summary.ltv === 0) return 100
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()

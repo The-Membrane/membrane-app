@@ -59,7 +59,7 @@ const Home = React.memo(() => {
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
   }, [summary.ltv, summary.liqudationLTV])
   useMemo(() => {
-    if (summary.cost != 0 && totalPositions != undefined && positionCost != undefined) {
+    if (totalPositions != undefined && positionCost != undefined) {
       // console.log("costy")
       //Toast
       toaster.message({
@@ -67,13 +67,13 @@ const Home = React.memo(() => {
         message: <><Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a></Text>
         <Text>Cost: <a style={num(positionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(positionCost).times(100).toFixed(2)}</a>%</Text>
         
-        {ratesOverTen.length > 0 ? <>
+        {/* {ratesOverTen.length > 0 ? <>
           <Text>{`\n`}</Text>
           <Text>{`\n`}Collateral Rates Over 10%:</Text>
           {ratesOverTen.map((rate: any) => {
             return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({rate.ratio}% of CDP)</Text>
           })}
-        </> : null}
+        </> : null} */}
         </>
       })
       //Go to next position

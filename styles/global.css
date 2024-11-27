@@ -5,7 +5,7 @@
     text-shadow: 0 -40px 100px,0 0 .2px,0 0 1em #20d6ff,0 0 .5em #20d6ff,0 0 .1em #20d6ff,0 10px 3px #000;
 }
 .paddingBottom {
-  padding-bottom: 1.5%;
+  padding-bottom: 3.5%;
 }
 .neonSign {
     user-select: none;
@@ -26,30 +26,30 @@
     background-size: 100%;
   }
   .neonSign {
-    font: 400 4vh monospace;
+    font: 400 4vw monospace;
     color: #20d6ff;
     text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 10px 3px #000;}
   .neonSignon {
-    font: 400 4vh monospace;
+    font: 400 4vw monospace;
     color: #fee;
     text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 1em #20d6ff, 0 0 0.5em #20d6ff, 0 0 0.1em #20d6ff, 0 10px 3px #000;
   }
   .neonSign b span {
     display: inline-block;
-    font-size: clamp(20px, 4vh, 4vh);
+    font-size: clamp(20px, 4vw, 4vw);
   }
   .neonSignon b span {
     display: inline-block; 
-    font-size: clamp(20px, 4vh, 4vh);
+    font-size: clamp(20px, 4vw, 4vw);
     animation: blink linear infinite 5s;
   }
   .neonSign b a {
     display: inline-block;
-    font-size: clamp(20px, 4vh, 4vh);
+    font-size: clamp(20px, 4vw, 4vw);
   }
   .neonSignon b a {
     display: inline-block;
-    font-size: clamp(20px, 4vh, 4vh);
+    font-size: clamp(20px, 4vw, 4vw);
   }
   .neonSignon b span:nth-of-type(2) {
     animation: blink reverse infinite 8s;

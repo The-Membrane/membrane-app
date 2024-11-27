@@ -68,6 +68,9 @@ const useVaultSummary = () => {
       basketAssets: basketAssets,
       discount: discount?.discount??"0",
     })},
+    staleTime: 5000, // Keep data fresh for 5 seconds
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false
   })
 }
 

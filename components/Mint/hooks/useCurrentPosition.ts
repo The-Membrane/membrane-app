@@ -4,7 +4,7 @@ import useVaultSummary from './useVaultSummary'
 import { useEffect, useState } from 'react'
 
 const getDebtAmount = (summary) => {
-  const { debtAmount, newDebtAmount } = summary ?? { debtAmount: 0, newDebtAmount: 0 }
+  const { debtAmount, newDebtAmount } = summary
 
   if (num(newDebtAmount).isGreaterThan(0)) {
     return newDebtAmount
@@ -13,7 +13,25 @@ const getDebtAmount = (summary) => {
   return debtAmount
 }
 
-export const useCurrentPosition = ({summary}: {summary: any}) => {
+export const useCurrentPosition = () => {
+  const { data } = useVaultSummary()
+  const [summary, setSummary] = useState({
+    newDebtAmount: 0,
+    debtAmount: 0,
+    cost: 0,
+    discountedCost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  });
+
+  useEffect(() => {
+    if (data) {
+      setSummary({...data}); // Only update if data is available
+    }
+  }, [data]); // Runs when `data` changes
   const { mintState } = useMintState()
   const isValueChanged = !num(mintState.totalUsdValue).isZero()
   

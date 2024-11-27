@@ -23,7 +23,7 @@ const useVaultSummary = () => {
       address, 
       mintState.positionNumber, 
       mintState.mint, 
-      mintState.repay
+      mintState.repay,discount, prices, basket, collateralInterest, basketPositions
     ],
     queryFn: async () => {
       if (!data) return null;

@@ -13,7 +13,6 @@ import { useUserPositions } from '@/hooks/useCDP'
 import useToaster from '@/hooks/useToaster'
 import { num } from '@/helpers/num'
 import useMintState from '../Mint/hooks/useMintState'
-import { set } from 'lodash'
 
 
 const Home = React.memo(() => {
@@ -28,8 +27,7 @@ const Home = React.memo(() => {
   ////Setting up the Toaster for all position Costs////
   const toaster = useToaster()
   const { data: basketPositions } = useUserPositions()
-  // const { mintState, setMintState } = useMintState()
-  const [ positionCost, setPositionCost ] = useState(0)
+  const { mintState, setMintState } = useMintState()
   const totalPositions = useMemo(() => {
     if (!basketPositions) return undefined
     return Math.min(basketPositions[0].positions.length - 1, MAX_CDP_POSITIONS)
@@ -46,43 +44,41 @@ const Home = React.memo(() => {
     liqudationLTV: 0,
     costRatios: []
   }  
-  const ratesOverTen = useMemo(() => {
+  const {currentPositionCost, ratesOverTen} = useMemo(() => {
     //Find any rate costs Over 10%
     var ratesOverTen = summary.costRatios.filter((rate: any) => {
       return num(rate.rate).times(100).toNumber() >= 10
     })
-    setPositionCost(summary.discountedCost)
-    return ratesOverTen
+    return {currentPositionCost: summary.discountedCost, ratesOverTen}
   }, [summary.costRatios, summary.discountedCost])
   const health = useMemo(() => {
     if (summary.ltv === 0) return 100
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
   }, [summary.ltv, summary.liqudationLTV])
-  useEffect(() => {
-    if (totalPositions != undefined && positionCost != undefined) {
+  useMemo(() => {
+    if (summary.cost != 0 && totalPositions != undefined && currentPositionCost != undefined) {
       // console.log("costy")
       //Toast
       toaster.message({
-        title: `Position ${1}`,
+        title: `Position ${mintState.positionNumber}`,
         message: <><Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a></Text>
-        <Text>Cost: <a style={num(positionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(positionCost).times(100).toFixed(2)}</a>%</Text>
+        <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text>
         
-        {/* {ratesOverTen.length > 0 ? <>
-          <Text>{`\n`}</Text>
+        {ratesOverTen.length > 0 ? <>
           <Text>{`\n`}Collateral Rates Over 10%:</Text>
           {ratesOverTen.map((rate: any) => {
-            return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({rate.ratio}% of CDP)</Text>
+            return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({rate.ratio})</Text>
           })}
-        </> : null} */}
+        </> : null}
         </>
       })
       //Go to next position
-      if (1 < totalPositions) {
-        // setMintState({ positionNumber: mintState.positionNumber + 1 })
+      if (mintState.positionNumber < totalPositions) {
+        setMintState({ positionNumber: mintState.positionNumber + 1 })
       }
-    } 
+    } console.log("why costy", currentPositionCost)
     // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)
-  }, [positionCost])
+  }, [currentPositionCost])
   
   
   

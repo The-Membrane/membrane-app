@@ -42,9 +42,14 @@ const Home = React.memo(() => {
     borrowLTV: 0,
     liquidValue: 0,
     liqudationLTV: 0,
+    costRatios: []
   }  
-  const currentPositionCost = useMemo(() => {
-    return summary.discountedCost
+  const {currentPositionCost, ratesOverTen} = useMemo(() => {
+    //Find any rate costs Over 10%
+    var ratesOverTen = summary.costRatios.filter((rate: any) => {
+      return num(rate.rate).times(100).toNumber() >= 10
+    })
+    return {currentPositionCost: summary.discountedCost, ratesOverTen}
   }, [summary])
   const health = useMemo(() => {
     if (summary.ltv === 0) return 100
@@ -55,12 +60,20 @@ const Home = React.memo(() => {
       // console.log("costy")
       //Toast
       toaster.message({
-        title: `Position ${mintState.positionNumber-1}`,
+        title: `Position ${mintState.positionNumber}`,
         message: <><Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a></Text>
-        <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text></>
+        <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text>
+        
+        {ratesOverTen.length > 0 ? <>
+          <Text>{`\n`}Collateral Rates Over 10%:</Text>
+          {ratesOverTen.map((rate: any) => {
+            return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({rate.ratio})</Text>
+          })}
+        </> : null}
+        </>
       })
       //Go to next position
-      if (mintState.positionNumber-1 < totalPositions) {
+      if (mintState.positionNumber < totalPositions) {
         setMintState({ positionNumber: mintState.positionNumber + 1 })
       }
     } 

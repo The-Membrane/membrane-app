@@ -13,6 +13,7 @@ import { useUserPositions } from '@/hooks/useCDP'
 import useToaster from '@/hooks/useToaster'
 import { num } from '@/helpers/num'
 import useMintState from '../Mint/hooks/useMintState'
+import { set } from 'lodash'
 
 
 const Home = React.memo(() => {
@@ -28,6 +29,7 @@ const Home = React.memo(() => {
   const toaster = useToaster()
   const { data: basketPositions } = useUserPositions()
   const { mintState, setMintState } = useMintState()
+  const [ positionCost, setPositionCost ] = useState(0)
   const totalPositions = useMemo(() => {
     if (!basketPositions) return undefined
     return Math.min(basketPositions[0].positions.length - 1, MAX_CDP_POSITIONS)
@@ -44,30 +46,31 @@ const Home = React.memo(() => {
     liqudationLTV: 0,
     costRatios: []
   }  
-  const {currentPositionCost, ratesOverTen} = useMemo(() => {
+  const ratesOverTen = useMemo(() => {
     //Find any rate costs Over 10%
     var ratesOverTen = summary.costRatios.filter((rate: any) => {
       return num(rate.rate).times(100).toNumber() >= 10
     })
-    return {currentPositionCost: summary.discountedCost, ratesOverTen}
+    setPositionCost(summary.discountedCost)
+    return ratesOverTen
   }, [summary])
   const health = useMemo(() => {
     if (summary.ltv === 0) return 100
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
   }, [summary.ltv, summary.liqudationLTV])
-  useMemo(() => {
-    if (summary.cost != 0 && totalPositions != undefined && currentPositionCost != undefined) {
+  useEffect(() => {
+    if (summary.cost != 0 && totalPositions != undefined && positionCost != undefined) {
       // console.log("costy")
       //Toast
       toaster.message({
         title: `Position ${mintState.positionNumber}`,
         message: <><Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a></Text>
-        <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text>
+        <Text>Cost: <a style={num(positionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(positionCost).times(100).toFixed(2)}</a>%</Text>
         
         {ratesOverTen.length > 0 ? <>
           <Text>{`\n`}Collateral Rates Over 10%:</Text>
           {ratesOverTen.map((rate: any) => {
-            return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({rate.ratio})</Text>
+            return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({rate.ratio}% of CDP)</Text>
           })}
         </> : null}
         </>
@@ -78,7 +81,7 @@ const Home = React.memo(() => {
       }
     } 
     // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)
-  }, [currentPositionCost])
+  }, [positionCost])
   
   
   

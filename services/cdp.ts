@@ -189,7 +189,7 @@ export const getRateCost = (
     const rate = 0.10
       // basketAssets.find((asset) => asset?.asset?.base === position.base)?.interestRate || 0
     //Add to costRatios
-    costRatios.push({symbol: position.symbol, denom: position.base, ratio: position.ratio, rate: rate})
+    costRatios.push({symbol: position.symbol, denom: position.base, ratio: num(position.ratio).timew(100).toNumber(), rate: rate})
     //Return the proportional cost of the collateral
     return acc.plus(num(position.ratio).times(rate))
   }, num(0))

@@ -101,16 +101,18 @@ const useBoundedLP = ( ) => {
         //Don't know why this works logically yet but it'll leave a few cents left over in USDC depending actual slippage
 
         console.log("exit RBLP amounts", cdtWithdrawAmount, swapFromAmount)
-        //Post exit, swap USDC to CDT
-        const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
-          address, 
-          swapFromAmount: swapFromAmount,
-          swapFromAsset: usdcAsset,
-          prices,
-          cdtPrice,
-          slippage: 0.5
-        })
-        msgs.push(swap as MsgExecuteContractEncodeObject)
+        if (swapFromAmount > 0){
+          //Post exit, swap USDC to CDT
+          const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
+            address, 
+            swapFromAmount: swapFromAmount,
+            swapFromAsset: usdcAsset,
+            prices,
+            cdtPrice,
+            slippage: 0.5
+          })
+          msgs.push(swap as MsgExecuteContractEncodeObject)
+        }
       }
 
       if (quickActionState.rangeBoundLPdeposit != 0){

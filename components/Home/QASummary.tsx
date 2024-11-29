@@ -36,7 +36,7 @@ const SummaryItem = ({
         {badge}
       </Badge>
       <Text variant="value" textTransform="unset">
-        {label} {amount} {actionKey} {label === "Withdraw" ? "from" : "into"} {actionKey === "CDT" ? "Auto-Compounding Omni-Pool Vault" : actionKey === "LP" ? "Range Bound LP Vault" : "Manic USDC Vault"}
+        {label} {amount} {actionKey === "USDC" ? "USDC" : "CDT"} {label === "Withdraw" ? "from" : "into"} {actionKey === "CDT" ? "Auto-Compounding Omni-Pool Vault" : actionKey === "LP" ? "Range Bound LP Vault" : "Manic USDC Vault"}
       </Text>
     </HStack>
   </HStack>

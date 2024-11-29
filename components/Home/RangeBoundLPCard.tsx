@@ -71,6 +71,7 @@ const ActSlider = React.memo(() => {
     const onReset = () => {
       setQuickActionState({ rangeBoundLPdeposit: 0, rangeBoundLPwithdrawal: 0, autoSPdeposit: 0, autoSPwithdrawal: 0 })
     }
+    console.log("rbLP", rbLP)
 
     return (
       <Stack gap="0" borderWidth={"1px"} borderColor="rgb(226, 216, 218)" borderRadius={"2rem"}>

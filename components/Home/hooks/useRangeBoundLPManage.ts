@@ -58,6 +58,8 @@ const useBoundedManage = ( ) => {
     //Bounded Vault Queries
     queryClient.invalidateQueries({ queryKey: ['useBoundedCDTVaultTokenUnderlying'] })
     queryClient.invalidateQueries({ queryKey: ['useBoundedCDTRealizedAPR'] })
+    queryClient.invalidateQueries({ queryKey: ['useBoundedTVL'] })
+    
 
     
   }

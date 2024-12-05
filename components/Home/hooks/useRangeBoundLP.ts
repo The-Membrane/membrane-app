@@ -118,21 +118,21 @@ const useBoundedLP = ( ) => {
       if (quickActionState.rangeBoundLPdeposit != 0){
 
         //Divide total deposit amount by half
-        const halfOfCDTDepositAmount = shiftDigits(quickActionState.rangeBoundLPdeposit, cdtAsset.decimal).dividedBy(2).dp(0).toNumber()
-        //Swap half to USDC         
-        const { msg: CDTswap, tokenOutMinAmount: usdcOutMinAmount } =  swapToCollateralMsg({
-          address,
-          cdtAmount: shiftDigits(halfOfCDTDepositAmount, -6).toString(),
-          swapToAsset: usdcAsset,
-          prices,
-          cdtPrice,
-          slippage: 0.5
-        })
-        msgs.push(CDTswap as MsgExecuteContractEncodeObject)          
+        // const halfOfCDTDepositAmount = shiftDigits(quickActionState.rangeBoundLPdeposit, cdtAsset.decimal).dividedBy(2).dp(0).toNumber()
+        // //Swap half to USDC         
+        // const { msg: CDTswap, tokenOutMinAmount: usdcOutMinAmount } =  swapToCollateralMsg({
+        //   address,
+        //   cdtAmount: shiftDigits(halfOfCDTDepositAmount, -6).toString(),
+        //   swapToAsset: usdcAsset,
+        //   prices,
+        //   cdtPrice,
+        //   slippage: 0.5
+        // })
+        // msgs.push(CDTswap as MsgExecuteContractEncodeObject)          
 
-        console.log("halfOfCDTDepositAmount", halfOfCDTDepositAmount, "usdcOutMinAmount", usdcOutMinAmount)
+        // console.log("halfOfCDTDepositAmount", halfOfCDTDepositAmount, "usdcOutMinAmount", usdcOutMinAmount)
         
-        const funds = [{ amount: halfOfCDTDepositAmount.toString(), denom: cdtAsset.base }, { amount: usdcOutMinAmount.toString(), denom: usdcAsset.base }]      
+        const funds = [{ amount: quickActionState.rangeBoundLPdeposit.toString(), denom: cdtAsset.base }]      
         let enterMsg  = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({

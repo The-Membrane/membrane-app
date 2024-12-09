@@ -58,7 +58,7 @@ export const queryClient = new QueryClient({
 
 import '../styles/global.css';
 const App = ({ Component, pageProps }: AppProps) => {
-  const [isLoaded, setIsLoaded] = useState(false)
+const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     setIsLoaded(true)
@@ -92,7 +92,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             isLazy: true,
             endpoints: {
               osmosis: {
-                rpc: [rpcUrl],
+                rpc: [], //rpcState.rpcURLs[rpcState.urlIndex]
               },
             },
           }}

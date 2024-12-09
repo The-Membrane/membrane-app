@@ -1,11 +1,13 @@
-import { rpcUrl, stargazeRPCUrl } from '@/config/defaults'
-import { useQuery } from "@tanstack/react-query"
+import { stargazeRPCUrl } from '@/config/defaults'
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate'
+import useRPCState from "@/components/useRPCState";
+
 
 //Osmosis
 export const getCosmWasmClient = () => {
-  return CosmWasmClient.connect(rpcUrl)
-}
+  const { rpcState } = useRPCState()
+  return CosmWasmClient.connect(rpcState.rpcURLs[rpcState.urlIndex])
+} 
 
 //SG
 export const getSGCosmwasmClient = () => {

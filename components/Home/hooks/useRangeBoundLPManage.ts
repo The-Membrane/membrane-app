@@ -60,8 +60,6 @@ const useBoundedManage = ( ) => {
     queryClient.invalidateQueries({ queryKey: ['useBoundedCDTRealizedAPR'] })
     queryClient.invalidateQueries({ queryKey: ['useBoundedTVL'] })
     
-
-    
   }
 
   return {

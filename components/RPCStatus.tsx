@@ -1,14 +1,17 @@
-import { rpcUrl } from '@/config/defaults'
 import { Alert, AlertIcon } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import React from 'react'
+import useRPCState from './useRPCState'
 
 const useRpcStatus = () => {
+  const { rpcState, setRPCState } = useRPCState()
+
   return useQuery({
-    queryKey: ['rpc status'],
+    queryKey: ['rpc status', rpcState.urlIndex],
     queryFn: async () => {
-      const url = rpcUrl + '/status'
+      const url = rpcState.rpcURLs[rpcState.urlIndex] + '/status'
       const res = await fetch(url).then((res) => res.json())
+      if ('error' in res && rpcState.urlIndex < rpcState.rpcURLs.length - 1) setRPCState({ urlIndex: rpcState.urlIndex + 1 })
       if ('error' in res) throw new Error('rpc error')
       return res
     },

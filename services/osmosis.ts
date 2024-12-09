@@ -17,20 +17,13 @@ import { Basket, BasketPositionsResponse, Asset as CDPAsset } from "@/contracts/
 import { Asset } from '@/helpers/chain'
 import { useEffect, useState } from "react";
 import { getAssetRatio, getPositions, getUserPositions, Positions, updatedSummary } from "@/services/cdp";
-import useMintState from "@/components/Mint/hooks/useMintState";
-import useVaultSummary from "@/components/Mint/hooks/useVaultSummary";
 import { useOraclePrice } from "@/hooks/useOracle";
-import { useBasket, useUserPositions } from "@/hooks/useCDP";
-import { useBalanceByAsset } from "@/hooks/useBalance";
-import { useAssetBySymbol } from "@/hooks/useAssets";
 import { num } from "@/helpers/num";
-import useWallet from "@/hooks/useWallet";
-import useQuickActionVaultSummary from "@/components/Home/hooks/useQuickActionVaultSummary";
 import { shiftDigits } from "@/helpers/math";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { position } from "@chakra-ui/react";
-import { getBoundedConfig } from "./earn";
 import { useBoundedConfig } from "@/components/Earn/hooks/useEarnQueries";
+import useRPCState from "@/components/useRPCState";
+
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -77,7 +70,8 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 
 export const OsmosisClient = async () => {
     const { createRPCQueryClient } = osmosis.ClientFactory;
-    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: rpcUrl })
+    const { rpcState } = useRPCState()
+    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: rpcState.rpcURLs[rpcState.urlIndex] })
     return osmosisClient
 }
 

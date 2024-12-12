@@ -127,7 +127,8 @@ const NeuroGuardCard = () => {
 //     setNeuroState({ assets: sortedAssets })
 //   }, [combinBalance])
 
-  const onSliderChange = (value: number) => {      
+  const onSliderChange = (value: number) => {
+    const max = neuroState?.selectedAsset?.combinUsdValue??0
 
     if (num(value).isGreaterThan(max)) setNeuroState({ selectedAsset: { ...neuroState?.selectedAsset, sliderValue: max }})
     else setNeuroState({ selectedAsset: { ...neuroState?.selectedAsset, sliderValue: value }})

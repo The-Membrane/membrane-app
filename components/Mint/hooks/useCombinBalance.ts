@@ -19,6 +19,7 @@ export type AssetWithBalance = Asset & {
   price: number
   amount?: string | number
   inputAmount?: number
+  maxBorrowLTV?: number
 }
 
 const useCombinBalance = (positionIndex: number = 0) => {

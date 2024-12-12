@@ -7,10 +7,12 @@ const useCollateralAssets = () => {
 
   return useMemo(() => {
     return basket?.collateral_types
-      ?.map(({ asset }) => {
+      ?.map(({ asset, max_borrow_LTV }) => {
         const denom = asset?.info?.native_token?.denom || asset?.info?.token?.address
         const newAsset = getAssetByDenom(denom)
-        return newAsset
+
+        if (!newAsset) return null
+        return { ...newAsset, maxBorrowLTV: max_borrow_LTV }
       })
       .filter((asset) => !!asset)
   }, [basket])

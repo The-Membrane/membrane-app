@@ -102,31 +102,6 @@ const NeuroGuardCard = () => {
       }
   }, [assets, walletBalances, prices])
 
-//   useEffect(() => {
-//     const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance)
-// // Sort assets with priority symbols first, then alphabetically
-// const sortedAssets = assetsWithBalance.sort((a, b) => {
-//   const aIndex = prioritySymbols.indexOf(a.symbol??"N/A")
-//   const bIndex = prioritySymbols.indexOf(b.symbol??"N/A")
-  
-//   // If both assets are in priority list, sort by priority order
-//   if (aIndex !== -1 && bIndex !== -1) {
-//       return aIndex - bIndex
-//   }
-//   // If only first asset is in priority list, it comes first
-//   if (aIndex !== -1) {
-//       return -1
-//   }
-//   // If only second asset is in priority list, it comes first
-//   if (bIndex !== -1) {
-//       return 1
-//   }
-//   // For non-priority assets, sort alphabetically by symbol
-//   return a.symbol.localeCompare(b.symbol)
-// })
-//     setNeuroState({ assets: sortedAssets })
-//   }, [combinBalance])
-
   const onSliderChange = (value: number) => {
     const max = neuroState?.selectedAsset?.combinUsdValue??0
 
@@ -144,6 +119,7 @@ const NeuroGuardCard = () => {
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"42%"}>
             {/* <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="35%"> Available CDT Balance: {num(cdtBalance).toFixed(1)}</Text> */}
+            { neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8) * 101) && <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="35%"> Warning: You are approaching the maximum LTV ratio for this asset</Text>}
             
               <AssetsWithBalanceMenu 
                 value={neuroState?.selectedAsset} 

@@ -15,7 +15,7 @@ type Props = {
     assets: AssetWithBalance[]
   }
   
-  const AssetsWithBalanceMenu = ({ value, onChange, assets }: Props) => {
+  export const AssetsWithBalanceMenu = ({ value, onChange, assets }: Props) => {
       return <QASelect options={assets} onChange={onChange} value={value} />
   }
   

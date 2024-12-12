@@ -13,6 +13,7 @@ import { useUserPositions } from '@/hooks/useCDP'
 import useToaster from '@/hooks/useToaster'
 import { num } from '@/helpers/num'
 import useMintState from '../Mint/hooks/useMintState'
+import NeuroGuardCard from './NeuroGuardCard'
 
 
 const Home = React.memo(() => {
@@ -104,15 +105,13 @@ const Home = React.memo(() => {
             </b>
           </h5>
         </div>
-        {/* CDT Swap Card */}
-        {/* <CDTSwapSliderCard /> */}
+        <NeuroGuardCard />
         <Stack >          
           <Stack direction={isMobile ? 'column' : 'row'} width="100%" marginBottom={isExpanded ? "3vh" : "0"}>  
             <RangeBoundVisual />          
-            {/* RangeBoundLP Card */}
             <RangeBoundLPCard />  
           </Stack>
-          <Stack >
+          {/* <Stack >
             <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center">
               {isExpanded ? <>
                 <SPCard />
@@ -129,7 +128,7 @@ const Home = React.memo(() => {
               leftIcon={isExpanded ? <FaArrowUp /> : undefined}
               onClick={onExpansion} 
             > {!isExpanded ? "More" : "Less"} Vaults </Button>
-          </Stack>      
+          </Stack>       */}
         </Stack>
       </Stack>
     </Stack>

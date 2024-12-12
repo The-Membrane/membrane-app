@@ -5,7 +5,7 @@ import useMintState from './hooks/useMintState'
 import useCombinBalance, { AssetWithBalance } from './hooks/useCombinBalance'
 import { useEffect, useState } from 'react'
 
-const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
+export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
   return combinBalance
     ?.filter((asset) => {
       if (!asset) return false

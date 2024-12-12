@@ -65,13 +65,17 @@ const NeuroGuardCard = () => {
             price: Number(prices?.find((p: any) => p.denom === asset.base)?.price??"0"),
             combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount??0), -(asset?.decimal??6))).times(num(prices?.find((p: any) => p.denom === asset.base)?.price??"0"))).toNumber()
           }
-        })
+        }) 
+        //Filter out assets with zero balance
+        .filter((asset) => asset?.combinUsdValue??0 > 1)
 
         //Sort assets by USD value
         // assetsWithBalance.sort((a, b) => {
         //   if (a.combinUsdValue < b.combinUsdValue) return 1
         //   else return -1
         // })
+
+
 
         
         // Sort assets with priority symbols first, then alphabetically

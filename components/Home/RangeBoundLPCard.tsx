@@ -80,7 +80,7 @@ const ActSlider = React.memo(() => {
             CDT in Vault
           </Text>
           <HStack>
-            <Text fontFamily="Inter" variant="value">${pendingBalance.toFixed(2)}</Text>
+            <Text fontFamily="Inter" variant="value">{pendingBalance.toFixed(2)}</Text>
           </HStack>
         </HStack>
         <SliderWithState 

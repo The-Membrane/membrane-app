@@ -1,3 +1,4 @@
+import { shiftDigits } from '@/helpers/math';
 import { useState, useEffect, useRef } from 'react';
 
 const IncreasingCounter = ({ 
@@ -17,7 +18,7 @@ const IncreasingCounter = ({
       lastUpdateRef.current = now;
       
       // Only update display value if it would show a different number
-      const roundedValue = Number(actualValueRef.current);
+      const roundedValue = shiftDigits(actualValueRef.current, precision).toNumber();
       if (roundedValue !== displayValue) {
         setDisplayValue(roundedValue);
       }
@@ -29,7 +30,7 @@ const IncreasingCounter = ({
   return (
       <div >
         <div className="text-6xl font-bold tabular-nums">
-          {displayValue}
+          {shiftDigits(displayValue, precision).toNumber()}
         </div>
         <div className="text-gray-600 mt-2">
           Increasing by {incrementPerSecond} per second

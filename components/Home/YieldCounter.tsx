@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 
 const IncreasingCounter = ({ 
-  incrementPerSecond,
+  incrementPerSecond = 1,
   precision = 2           // Number of decimal places to show
-}: {incrementPerSecond: number, precision: number}) => {
+}: {incrementPerSecond?: number, precision?: number}) => {
   const [displayValue, setDisplayValue] = useState(0);
   const actualValueRef = useRef(0);
   const lastUpdateRef = useRef(Date.now());

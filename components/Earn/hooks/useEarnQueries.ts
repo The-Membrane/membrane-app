@@ -34,7 +34,7 @@ export const useBoundedConfig = () => {
 export const useBoundedIntents = () => {    
     const { address } = useWallet()
     return useQuery({
-        queryKey: ['useBoundedCDTVaultTokenUnderlying', address],
+        queryKey: ['useBoundedIntents', address],
         queryFn: async () => {
             if (!address) return
         return getBoundedIntents(address)
@@ -219,9 +219,11 @@ export const getBoundedCDTBalance = () => {
     return useQuery({
         queryKey: ['getBoundedCDTBalance', data, boundCDTBalance],
         queryFn: async () => {
+            console.log("returning early")
             if (!data || !boundCDTBalance) return "0"
             const intents = data
             const totalVTs = boundCDTBalance + intents.intent.vault_tokens
+            console.log("made it here", intents, totalVTs)
             
             const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(totalVTs, 6)).toFixed(0))
             console.log("underlyiG", underlyingData, totalVTs, shiftDigits(underlyingData??"1000000", -6).toString() ?? "0")

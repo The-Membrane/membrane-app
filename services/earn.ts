@@ -72,7 +72,7 @@ export const getBoundedIntents = async (address: string) => {
       unstake_time: number,
       fee_to_caller: string
     }
-  }>  
+  }[]>  
 }
 
 export const getUnderlyingUSDC = async (vtAmount: string) => {

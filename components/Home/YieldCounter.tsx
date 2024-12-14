@@ -18,7 +18,7 @@ const IncreasingCounter = ({
       lastUpdateRef.current = now;
       
       // Only update display value if it would show a different number
-      const roundedValue = shiftDigits(actualValueRef.current, precision).toNumber();
+      const roundedValue = Number(actualValueRef.current.toFixed(precision));
       if (roundedValue !== displayValue) {
         setDisplayValue(roundedValue);
       }
@@ -30,10 +30,7 @@ const IncreasingCounter = ({
   return (
       <div >
         <div className="text-6xl font-bold tabular-nums">
-          {shiftDigits(displayValue, precision).toNumber()}
-        </div>
-        <div className="text-gray-600 mt-2">
-          Increasing by {incrementPerSecond} per second
+          Real-Time Yield Accrual: ${(displayValue).toFixed(precision)}
         </div>
       </div>
   );

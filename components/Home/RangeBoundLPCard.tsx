@@ -152,7 +152,7 @@ const RangeBoundLPCard = () => {
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem fontFamily="Inter" fontSize="md"><a style={{fontWeight:"bold", color:"#20d6ff", }}>Yield:</a> Revenue & Swap Fees</ListItem>
               <ListItem fontFamily="Inter" fontSize="md">
-                <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).dividedBy(365).dividedBy(86400).toNumber() : 0} precision={7} />
+                <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).dividedBy(365).dividedBy(86400).toNumber() : 0} precision={8} />
               </ListItem>
             </List>
             <ActSlider />

@@ -217,12 +217,13 @@ export const getBoundedCDTBalance = () => {
     return useQuery({
         queryKey: ['getBoundedCDTBalance', data, boundCDTBalance],
         queryFn: async () => {
-            if (!data) return 
+            if (!data) return "0"
             const intents = data || { intent: { vault_tokens: "0" } }
             const totalVTs = boundCDTBalance + intents.intent.vault_tokens
             
             const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(totalVTs, 6)).toFixed(0))
-            return  shiftDigits(underlyingData??"1000000", -6).toString() ?? "1"            
+            console.log("underlyiG", underlyingData, totalVTs, shiftDigits(underlyingData??"1000000", -6).toString() ?? "0")
+            return shiftDigits(underlyingData??"1000000", -6).toString() ?? "0"            
         },
     })
     ////////////////////////////////////

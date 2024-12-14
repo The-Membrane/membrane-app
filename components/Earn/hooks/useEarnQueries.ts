@@ -213,6 +213,7 @@ export const getBoundedCDTBalance = () => {
 
     //Get VTs that are in RBLP's intents
     const { data } = useBoundedIntents()
+    console.log("intents", data)
     
     return useQuery({
         queryKey: ['getBoundedCDTBalance', data, boundCDTBalance],

@@ -210,10 +210,11 @@ export const useBoundedCDTRealizedAPR = () => {
 export const getBoundedCDTBalance = () => {    
     const boundCDTAsset  = useAssetBySymbol("range-bound-CDT")
     const boundCDTBalance = useBalanceByAsset(boundCDTAsset)
+    console.log("bound balance", boundCDTAsset, boundCDTBalance)
 
     //Get VTs that are in RBLP's intents
     const { data } = useBoundedIntents()
-    console.log("intents", data)
+    console.log("user intents", data)
     
     return useQuery({
         queryKey: ['getBoundedCDTBalance', data, boundCDTBalance],

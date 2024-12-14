@@ -209,7 +209,7 @@ export const useBoundedCDTRealizedAPR = () => {
 
 export const getBoundedCDTBalance = () => {    
     const boundCDTAsset  = useAssetBySymbol("range-bound-CDT")
-    const boundCDTBalance = useBalanceByAsset(boundCDTAsset)??"1"
+    const boundCDTBalance = useBalanceByAsset(boundCDTAsset)
 
     //Get VTs that are in RBLP's intents
     const { data } = useBoundedIntents()
@@ -217,13 +217,13 @@ export const getBoundedCDTBalance = () => {
     return useQuery({
         queryKey: ['getBoundedCDTBalance', data, boundCDTBalance],
         queryFn: async () => {
-            if (!data) return "0"
-            const intents = data || { intent: { vault_tokens: "0" } }
+            if (!data || !boundCDTBalance) return "0"
+            const intents = data
             const totalVTs = boundCDTBalance + intents.intent.vault_tokens
             
             const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(totalVTs, 6)).toFixed(0))
             console.log("underlyiG", underlyingData, totalVTs, shiftDigits(underlyingData??"1000000", -6).toString() ?? "0")
-            return shiftDigits(underlyingData??"1000000", -6).toString() ?? "0"            
+            return shiftDigits(underlyingData??"1000000", -6).toString()      
         },
     })
     ////////////////////////////////////

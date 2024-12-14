@@ -112,7 +112,9 @@ const RangeBoundLPCard = () => {
     const { action: manage } = useBoundedManage()
     useEstimatedAnnualInterest(false)
     //Get total deposit tokens
-    const { data: TVL } = useBoundedTVL()
+    const { data: TVL } = useBoundedTVL()    
+    const { data: intents } = getBoundedCDTBalance()
+    console.log("underlying laods in the main componeneT?", intents)
 
     const { data: basket } = useBasket()
     const { data: realizedAPR } = useBoundedCDTRealizedAPR()  

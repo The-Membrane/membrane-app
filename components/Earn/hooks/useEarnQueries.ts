@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
 import { cdpClient, getUserDiscount } from "@/services/cdp"
-import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig } from "@/services/earn"
+import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig, getBoundedIntents } from "@/services/earn"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
@@ -10,6 +10,7 @@ import useBidState from "@/components/Bid/hooks/useBidState"
 import { getCLPositionsForVault } from "@/services/osmosis"
 import { useBalanceByAsset } from "@/hooks/useBalance"
 import { useAssetBySymbol } from "@/hooks/useAssets"
+import useWallet from "@/hooks/useWallet"
 
 export const useBoundedConfig = () => {
     return useQuery({
@@ -34,7 +35,7 @@ export const useBoundedIntents = () => {
     return useQuery({
         queryKey: ['useBoundedCDTVaultTokenUnderlying', address],
         queryFn: async () => {
-        return getBoundedIntents(address)
+        return getBoundedIntents(address!)
         },
     })
 }
@@ -209,14 +210,14 @@ export const getBoundedCDTBalance = () => {
     const boundCDTBalance = useBalanceByAsset(boundCDTAsset)??"1"
     //Get VTs that are in RBLP's intents
     const { data } = useBoundedIntents()
-    const intents = data || { vault_tokens: "0" }
+    const intents = data || { intent: { vault_tokens: "0" } }
 
-    const totalVTs = boundCDTbalance + intents.vault_tokens
+    const totalVTs = boundCDTBalance + intents.intent.vault_tokens
 
     
     //Set withdraw slider max to the total CDT deposit, not the VT deposit
-    const { data } = useBoundedCDTVaultTokenUnderlying(shiftDigits(boundCDTBalance, 6).toFixed(0))
-    return  shiftDigits(data, -6).toString() ?? "1"
+    const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(totalVTs, 6)).toFixed(0))
+    return  shiftDigits(underlyingData??"1000000", -6).toString() ?? "1"
     ////////////////////////////////////
 }
 

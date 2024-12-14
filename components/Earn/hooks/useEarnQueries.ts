@@ -219,9 +219,11 @@ export const getBoundedCDTBalance = () => {
     return useQuery({
         queryKey: ['getBoundedCDTBalance', data, boundCDTBalance],
         queryFn: async () => {
-            console.log("returning early", !data, !boundCDTBalance, !data, !boundCDTBalance)
+            console.log("returning early", !data || !boundCDTBalance, !data, !boundCDTBalance, data, boundCDTBalance)
             if (!data || !boundCDTBalance) return "0"
+            console.log("where are we")
             const intents = data
+            console.log("hello")
             const totalVTs = boundCDTBalance + intents.intent.vault_tokens
             console.log("made it here", intents, totalVTs)
             

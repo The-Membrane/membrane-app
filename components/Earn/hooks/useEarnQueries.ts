@@ -11,6 +11,7 @@ import { getCLPositionsForVault } from "@/services/osmosis"
 import { useBalanceByAsset } from "@/hooks/useBalance"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
+import { use } from "react"
 
 export const useBoundedConfig = () => {
     return useQuery({
@@ -35,7 +36,8 @@ export const useBoundedIntents = () => {
     return useQuery({
         queryKey: ['useBoundedCDTVaultTokenUnderlying', address],
         queryFn: async () => {
-        return getBoundedIntents(address!)
+            if (!address) return
+        return getBoundedIntents(address)
         },
     })
 }
@@ -208,17 +210,31 @@ export const useBoundedCDTRealizedAPR = () => {
 export const getBoundedCDTBalance = () => {    
     const boundCDTAsset  = useAssetBySymbol("range-bound-CDT")
     const boundCDTBalance = useBalanceByAsset(boundCDTAsset)??"1"
+
     //Get VTs that are in RBLP's intents
     const { data } = useBoundedIntents()
-    const intents = data || { intent: { vault_tokens: "0" } }
-
-    const totalVTs = boundCDTBalance + intents.intent.vault_tokens
-
     
-    //Set withdraw slider max to the total CDT deposit, not the VT deposit
-    const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(totalVTs, 6)).toFixed(0))
-    return  shiftDigits(underlyingData??"1000000", -6).toString() ?? "1"
+    return useQuery({
+        queryKey: ['getBoundedCDTBalance', data, boundCDTBalance],
+        queryFn: async () => {
+            if (!data) return 
+            const intents = data || { intent: { vault_tokens: "0" } }
+            const totalVTs = boundCDTBalance + intents.intent.vault_tokens
+            
+            const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(totalVTs, 6)).toFixed(0))
+            return  shiftDigits(underlyingData??"1000000", -6).toString() ?? "1"            
+        },
+    })
     ////////////////////////////////////
+}
+
+export const useBoundedCDTBalance = () => {
+    return useQuery({
+        queryKey: ['useBoundedCDTBalance'],
+        queryFn: async () => {
+            return getBoundedCDTBalance()
+        },
+    })
 }
 
 export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {

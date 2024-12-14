@@ -101,7 +101,8 @@ const NeuroGuardCard = () => {
 
 
         setNeuroState({
-          assets: (sortedAssets??[])
+          assets: (sortedAssets??[]),
+          selectedAsset: sortedAssets[0]??{}
         })
       }
   }, [assets, walletBalances, prices])

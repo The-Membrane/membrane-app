@@ -4,7 +4,7 @@ import useSPCompound from "./hooks/useSPCompound"
 import { useEffect, useMemo, useState } from "react"
 import useStabilityAssetPool from "../Bid/hooks/useStabilityAssetPool"
 import { isGreaterThanZero, num } from "@/helpers/num"
-import { useBoundedCDTVaultTokenUnderlying, useBoundedCDTRealizedAPR, useEstimatedAnnualInterest, useBoundedTVL } from "../Earn/hooks/useEarnQueries"
+import { useBoundedCDTVaultTokenUnderlying, useBoundedCDTRealizedAPR, getBoundedCDTBalance, useEstimatedAnnualInterest, useBoundedTVL } from "../Earn/hooks/useEarnQueries"
 import useBidState from "../Bid/hooks/useBidState"
 import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
@@ -33,8 +33,7 @@ const ActSlider = React.memo(() => {
     const cdtBalance = useBalanceByAsset(cdtAsset)
     
     //Set withdraw slider max to the total CDT deposit, not the VT deposit
-    const { data } = useBoundedCDTVaultTokenUnderlying(shiftDigits(boundCDTBalance, 6).toFixed(0))
-    const underlyingCDT = shiftDigits(data, -6).toString() ?? "1"
+    const underlyingCDT = getBoundedCDTBalance()
     ////////////////////////////////////
 
     const { action: rbLP } = useRangeBoundLP();

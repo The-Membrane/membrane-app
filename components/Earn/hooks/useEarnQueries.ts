@@ -8,6 +8,8 @@ import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/us
 import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
 import { getCLPositionsForVault } from "@/services/osmosis"
+import { useBalanceByAsset } from "@/hooks/useBalance"
+import { useAssetBySymbol } from "@/hooks/useAssets"
 
 export const useBoundedConfig = () => {
     return useQuery({
@@ -27,7 +29,15 @@ export const useBoundedConfig = () => {
 //     })
 // }
 
-
+export const useBoundedIntents = () => {    
+    const { address } = useWallet()
+    return useQuery({
+        queryKey: ['useBoundedCDTVaultTokenUnderlying', address],
+        queryFn: async () => {
+        return getBoundedIntents(address)
+        },
+    })
+}
 
 export const useBoundedTVL = () => {
     return useQuery({
@@ -192,6 +202,22 @@ export const useBoundedCDTRealizedAPR = () => {
 
         },
     })
+}
+
+export const getBoundedCDTBalance = () => {    
+    const boundCDTAsset  = useAssetBySymbol("range-bound-CDT")
+    const boundCDTBalance = useBalanceByAsset(boundCDTAsset)??"1"
+    //Get VTs that are in RBLP's intents
+    const { data } = useBoundedIntents()
+    const intents = data || { vault_tokens: "0" }
+
+    const totalVTs = boundCDTbalance + intents.vault_tokens
+
+    
+    //Set withdraw slider max to the total CDT deposit, not the VT deposit
+    const { data } = useBoundedCDTVaultTokenUnderlying(shiftDigits(boundCDTBalance, 6).toFixed(0))
+    return  shiftDigits(data, -6).toString() ?? "1"
+    ////////////////////////////////////
 }
 
 export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {

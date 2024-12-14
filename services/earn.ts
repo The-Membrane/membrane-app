@@ -57,6 +57,24 @@ export const getBoundedTVL = async () => {
   }) as Promise<Uint128>   
 
 }
+
+export const getBoundedIntents = async (address: string) => {
+  const cosmWasmClient = await getCosmWasmClient()  
+  return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
+    get_user_intent: {
+      users: [ address ]
+    }
+  }) as Promise<{
+    user: string,
+    intent: {
+      vault_tokens: string,
+      intents: any,
+      unstake_time: number,
+      fee_to_caller: string
+    }
+  }>  
+}
+
 export const getUnderlyingUSDC = async (vtAmount: string) => {
   const client = await EarnClient()
   return client.vaultTokenUnderlying({ vaultTokenAmount: vtAmount}).then((res) => res) as Promise<Uint128>    

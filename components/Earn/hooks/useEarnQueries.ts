@@ -224,7 +224,7 @@ export const getBoundedCDTBalance = () => {
             console.log("where are we")
             const intents = data
             console.log("hello")
-            const totalVTs = boundCDTBalance + intents.intent.vault_tokens
+            const totalVTs = num(boundCDTBalance).plus(intents.intent.vault_tokens).toString()
             console.log("made it here", intents, totalVTs)
             
             const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(totalVTs, 6)).toFixed(0))

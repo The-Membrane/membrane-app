@@ -68,7 +68,17 @@ export const getBoundedIntents = async (address: string) => {
     user: string,
     intent: {
       vault_tokens: string,
-      intents: any,
+      intents: {
+        user: string, 
+        last_conversion_rate: string,
+        purchase_intent: {
+          desired_asset: string,
+          route: any | undefined,
+          yield_percent: string,
+          position_id: number | undefined,
+          slippage: string | undefined
+        }[]
+      },
       unstake_time: number,
       fee_to_caller: string
     }

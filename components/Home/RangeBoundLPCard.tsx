@@ -33,8 +33,8 @@ const ActSlider = React.memo(() => {
     const cdtBalance = useBalanceByAsset(cdtAsset)
     
     //Set withdraw slider max to the total CDT deposit, not the VT deposit
-    const { data } = getBoundedCDTBalance()
-    const underlyingCDT = data ?? "0"
+    const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(boundCDTBalance, 6)).toFixed(0))
+    const underlyingCDT = underlyingData ?? "0"
     ////////////////////////////////////
 
     const { action: rbLP } = useRangeBoundLP();
@@ -154,7 +154,7 @@ const RangeBoundLPCard = () => {
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem fontFamily="Inter" fontSize="md"><a style={{fontWeight:"bold", color:"#20d6ff", }}>Yield:</a> Revenue & Swap Fees</ListItem>
               <ListItem fontFamily="Inter" fontSize="md">
-                <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).dividedBy(365).dividedBy(86400).toNumber() : 0} precision={8} />
+                <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(86400).toNumber() : 0} precision={8} />
               </ListItem>
             </List>
             <ActSlider />

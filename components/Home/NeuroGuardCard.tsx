@@ -187,8 +187,8 @@ const NeuroGuardCard = () => {
         ))}
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"42%"}>
-            {/* <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="35%"> Available CDT Balance: {num(cdtBalance).toFixed(1)}</Text> */}
-            { neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8) * 101) && <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="35%"> Warning: You are approaching the maximum LTV ratio for this asset</Text>}
+            { neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) && 
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="35%"> Requirements not met: The deopsit minimum for this asset is ${101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)}</Text>}
             
               <AssetsWithBalanceMenu 
                 value={neuroState?.selectedAsset} 

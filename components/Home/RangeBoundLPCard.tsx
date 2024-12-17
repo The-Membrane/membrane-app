@@ -139,7 +139,6 @@ const RangeBoundLPCard = () => {
     }, [clRewardList])
     console.log("rangeBoundAPR", rangeBoundAPR)
     
-    console.log("gsr", bidState.cdpExpectedAnnualRevenue, num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(86400 * 365).toNumber())
     
 
     const { bidState } = useBidState()
@@ -157,7 +156,7 @@ const RangeBoundLPCard = () => {
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem fontFamily="Inter" fontSize="md"><a style={{fontWeight:"bold", color:"#20d6ff", }}>Yield:</a> Revenue & Swap Fees</ListItem>
               <ListItem fontFamily="Inter" fontSize="md">
-                <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(86400 * 365).toNumber() : 0} precision={8} />
+                <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? shiftDigits(bidState.cdpExpectedAnnualRevenue, -6).times(0.80).dividedBy(86400 * 365).toNumber() : 0} precision={8} />
               </ListItem>
             </List>
             <ActSlider />

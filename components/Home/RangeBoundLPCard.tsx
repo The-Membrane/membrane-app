@@ -139,7 +139,7 @@ const RangeBoundLPCard = () => {
     }, [clRewardList])
     console.log("rangeBoundAPR", rangeBoundAPR)
     
-    console.log("gsr", num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(86400 * 365).toNumber())
+    console.log("gsr", bidState.cdpExpectedAnnualRevenue, num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(86400 * 365).toNumber())
     
 
     const { bidState } = useBidState()

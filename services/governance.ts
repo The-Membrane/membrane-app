@@ -95,7 +95,7 @@ const getDaysLeft = (proposal: any) => {
   const SECONDS_PER_HOUR = 3600
   const SECONDS_PER_MINUTE = 60
 
-  const votingPeriodInSeconds = (proposal.delayed_end_block - proposal.start_time) + 300 //Add 5 mins bc its been ending later than this calc for some reason
+  const votingPeriodInSeconds = (Math.max(proposal.delayed_end_block, proposal.end_block) - proposal.start_time) + 300 //Add 5 mins bc its been ending later than this calc for some reason
 
   const secondsRemaining = Math.max(
     votingPeriodInSeconds - (dayjs().unix() - proposal.start_time),

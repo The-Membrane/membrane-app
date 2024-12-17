@@ -71,6 +71,7 @@ const useNeuroGuard = ( ) => {
     
         const guardedBalance = useBalanceByAsset(guardedAsset)??"0"
         const funds = [{ amount: debouncedValue.selectedAsset.amount.toString(), denom: guardedAsset.base }]      
+        console.log(funds)
 
         //Deposit msg
         let depositMsg  = {

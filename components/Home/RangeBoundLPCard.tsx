@@ -138,6 +138,9 @@ const RangeBoundLPCard = () => {
         return totalrewards / 1000000 / daysSinceDeposit * 365
     }, [clRewardList])
     console.log("rangeBoundAPR", rangeBoundAPR)
+    
+    console.log("gsr", num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(86400 * 365).toNumber())
+    
 
     const { bidState } = useBidState()
     const isDisabled = useMemo(() => {return manage?.simulate.isError || !manage?.simulate.data }, [manage?.simulate.isError, manage?.simulate.data])

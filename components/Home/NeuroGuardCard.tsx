@@ -180,7 +180,7 @@ const NeuroGuardCard = () => {
       <>
         {existingGuards.map((guard) => (
           <Card key={guard.position_id} width={"100%"} borderColor={""} borderWidth={3} padding={4}>
-            <HStack gap={"42%"}>
+            <HStack gap={"4%"}>
               <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {guard.symbol} earning {num(rblpYield).times(guard.LTV).toFixed(1)}%</Text>
             </HStack>
           </Card>
@@ -197,6 +197,7 @@ const NeuroGuardCard = () => {
             />
               {/* @ts-ignore */}
             <NeuroAssetSlider key={neuroState?.selectedAsset?.base} asset={neuroState?.selectedAsset} label={neuroState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />  
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {neuroState?.selectedAsset?.symbol} could be earning {num(rblpYield).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
             
             <TxButton
               maxW="100%"

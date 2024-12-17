@@ -132,7 +132,7 @@ const useBoundedLP = ( ) => {
 
         // console.log("halfOfCDTDepositAmount", halfOfCDTDepositAmount, "usdcOutMinAmount", usdcOutMinAmount)
         
-        const funds = [{ amount: quickActionState.rangeBoundLPdeposit.toString(), denom: cdtAsset.base }]      
+        const funds = [{ amount: shiftDigits(quickActionState.rangeBoundLPdeposit, cdtAsset.decimal).dp(0).toString(), denom: cdtAsset.base }]      
         let enterMsg  = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({

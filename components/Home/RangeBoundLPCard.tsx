@@ -34,7 +34,7 @@ const ActSlider = React.memo(() => {
     
     //Set withdraw slider max to the total CDT deposit, not the VT deposit
     const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(boundCDTBalance, 6)).toFixed(0))
-    const underlyingCDT = underlyingData ?? "0"
+    const underlyingCDT = shiftDigits(underlyingData, -6).toString() ?? "0"
     ////////////////////////////////////
 
     const { action: rbLP } = useRangeBoundLP();
@@ -113,8 +113,8 @@ const RangeBoundLPCard = () => {
     useEstimatedAnnualInterest(false)
     //Get total deposit tokens
     const { data: TVL } = useBoundedTVL()    
-    const { data: intents } = getBoundedCDTBalance()
-    console.log("underlying laods in the main componeneT?", intents)
+    // const { data: intents } = getBoundedCDTBalance()
+    // console.log("underlying laods in the main componeneT?", intents)
 
     const { data: basket } = useBasket()
     const { data: realizedAPR } = useBoundedCDTRealizedAPR()  
@@ -154,7 +154,7 @@ const RangeBoundLPCard = () => {
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem fontFamily="Inter" fontSize="md"><a style={{fontWeight:"bold", color:"#20d6ff", }}>Yield:</a> Revenue & Swap Fees</ListItem>
               <ListItem fontFamily="Inter" fontSize="md">
-                <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(86400).toNumber() : 0} precision={8} />
+                <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(86400 * 365).toNumber() : 0} precision={8} />
               </ListItem>
             </List>
             <ActSlider />

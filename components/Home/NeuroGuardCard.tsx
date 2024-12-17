@@ -190,11 +190,11 @@ const NeuroGuardCard = () => {
             { neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) && 
             <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="35%"> Requirements not met: The deopsit minimum for this asset is ${101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)}</Text>}
             
-              <AssetsWithBalanceMenu 
-                value={neuroState?.selectedAsset} 
-                onChange={onAssetMenuChange}
-                assets={usableAssets}
-              />
+            <AssetsWithBalanceMenu 
+              value={neuroState?.selectedAsset} 
+              onChange={onAssetMenuChange}
+              assets={usableAssets}
+            />
               {/* @ts-ignore */}
             <NeuroAssetSlider key={neuroState?.selectedAsset?.base} asset={neuroState?.selectedAsset} label={neuroState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />  
             

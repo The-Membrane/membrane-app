@@ -9,7 +9,8 @@ export type ActionMenu = {
 }
 
 export type NeuroState = {
-    selectedAsset?: AssetWithBalance
+  selectedAsset?: AssetWithBalance
+  position_to_close?: number
   assets: AssetWithBalance[]
   guardedPositions: string[] 
 

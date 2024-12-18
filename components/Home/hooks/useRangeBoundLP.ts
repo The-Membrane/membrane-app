@@ -85,7 +85,7 @@ const useBoundedLP = ( ) => {
           sender: address,
           contract: contracts.rangeboundLP,
           msg: toUtf8(JSON.stringify({
-              exit_vault: {}
+              exit_vault: { swap_to_cdt: false }
           })),
           funds: funds
           })

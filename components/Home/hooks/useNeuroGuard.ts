@@ -66,8 +66,8 @@ const useNeuroGuard = ( ) => {
       assets
     ],
     queryFn: () => {
-      console.log("in query guardian", debouncedValue.selectedAsset.symbol)
-      const guardedAsset = useAssetBySymbol(debouncedValue.selectedAsset.symbol)
+      console.log("in query guardian", debouncedValue.selectedAsset.symbol.toString())
+      const guardedAsset = useAssetBySymbol("USDC")
       console.log("in query guardian", guardedAsset)
 
 

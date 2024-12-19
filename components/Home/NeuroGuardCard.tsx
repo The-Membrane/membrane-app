@@ -85,6 +85,7 @@ const NeuroGuardCard = () => {
       return totalrewards / 1000000 / daysSinceDeposit * 365
   }, [clRewardList])
   const rblpYield = useMemo(() => {
+    console.log("rblpYield", rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
     if (bidState.cdpExpectedAnnualRevenue)
       num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
     else return "0"

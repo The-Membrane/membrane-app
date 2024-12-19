@@ -81,14 +81,14 @@ const NeuroGuardCard = () => {
       if (!clRewardList) return 0
 
       const totalrewards = ( clRewardList[2].reward + clRewardList[3].reward + clRewardList[4].reward + clRewardList[10].reward + clRewardList[11].reward + clRewardList[12].reward) / 6
-      const middleAPR = ((clRewardList[5].reward + clRewardList[6].reward + clRewardList[7].reward + clRewardList[8].reward + clRewardList[9].reward) / 5) / 1000000 / daysSinceDeposit * 365
+      // const middleAPR = ((clRewardList[5].reward + clRewardList[6].reward + clRewardList[7].reward + clRewardList[8].reward + clRewardList[9].reward) / 5) / 1000000 / daysSinceDeposit * 365
       return totalrewards / 1000000 / daysSinceDeposit * 365
   }, [clRewardList])
   const rblpYield = useMemo(() => {
-    if (bidState)
+    if (bidState.cdpExpectedAnnualRevenue)
       num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
     else return "0"
-  }, [rangeBoundAPR, bidState.cdpExpectedAnnualRevenue])
+  }, [rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL])
 
   //Create an object for all positions that have an intent to compound
   const existingGuards = useMemo(() => {

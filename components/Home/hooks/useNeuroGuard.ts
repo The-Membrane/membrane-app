@@ -66,8 +66,10 @@ const useNeuroGuard = ( ) => {
       assets
     ],
     queryFn: () => {
-      console.log("in query guardian", address, debouncedValue, basket, assets)
+      console.log("in query guardian", debouncedValue.selectedAsset.symbol)
       const guardedAsset = useAssetBySymbol(debouncedValue.selectedAsset.symbol)
+      console.log("in query guardian", guardedAsset)
+
 
       if (!address || !debouncedValue || !guardedAsset || !basket || !assets) {console.log("neuroGuard early return", address, debouncedValue, guardedAsset, basket, assets); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]

@@ -51,6 +51,9 @@ const useNeuroGuard = ( ) => {
       };
   }, [neuroState.selectedAsset]);
 
+  useEffect(() => {console.log("debounced changed")}, [debouncedValue])
+  useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
+
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
   }
@@ -58,7 +61,7 @@ const useNeuroGuard = ( ) => {
     queryKey: [
       'neuroGuard_msg_creation',
       address,
-      debouncedValue,
+      debouncedValue.selectedAsset,
       basket,
       assets
     ],

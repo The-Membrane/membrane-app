@@ -200,6 +200,7 @@ const NeuroGuardCard = () => {
   }
 
   const yieldMsg = useMemo(() => {
+    console.log("yielgMsg", rblpYield,  neuroState?.selectedAsset)
     return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {neuroState?.selectedAsset?.symbol} could be earning {num(rblpYield).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
   }, [rblpYield, neuroState?.selectedAsset])
   // const isDisabled = useMemo(() => {return neuro?.simulate.isError || !neuro?.simulate.data }, [neuro?.simulate.isError, neuro?.simulate.data])

@@ -105,7 +105,7 @@ const Home = React.memo(() => {
             </b>
           </h5>
         </div>
-        {/* <NeuroGuardCard /> */}
+        <NeuroGuardCard />
         <Stack >          
           <Stack direction={isMobile ? 'column' : 'row'} width="100%" marginBottom={isExpanded ? "3vh" : "0"}>  
             <RangeBoundVisual />          

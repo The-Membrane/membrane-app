@@ -26,7 +26,7 @@ const useNeuroGuard = ( ) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()
-  const { neuroState, setNeuroState } = useNeuroState()
+  const { neuroState } = useNeuroState()
 
 //   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
 //   const underlyingCDT = data ?? "1"
@@ -51,8 +51,8 @@ const useNeuroGuard = ( ) => {
       };
   }, [neuroState.selectedAsset]);
 
-  useEffect(() => {console.log("debounced changed")}, [debouncedValue])
-  useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
+  // useEffect(() => {console.log("debounced changed")}, [debouncedValue])
+  // useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -66,6 +66,7 @@ const useNeuroGuard = ( ) => {
       assets
     ],
     queryFn: () => {
+      console.log("in query guardian", address, debouncedValue, basket, assets)
       const guardedAsset = useAssetBySymbol(debouncedValue.selectedAsset.symbol)
 
       if (!address || !debouncedValue || !guardedAsset || !basket || !assets) {console.log("neuroGuard early return", address, debouncedValue, guardedAsset, basket, assets); return { msgs: [] }}
@@ -134,15 +135,16 @@ const useNeuroGuard = ( ) => {
       return { msgs }
     },
     enabled: !!address,
-    staleTime: 5000,
+    // staleTime: 5000,
     // Disable automatic refetching
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-    retry: false
+    // refetchOnWindowFocus: false,
+    // refetchOnReconnect: false,
+    // refetchOnMount: false,
+    // retry: false
     /////ERRORS ON THE 3RD OR 4TH MODAL OPEN, CHECKING TO SEE IF ITS THE INVALIDATED QUERY////
   })
   
+  console.log("neuroGuard msgs:", "enabled", !!address)
   const  msgs = queryData?.msgs ?? []
 
   console.log("neuroGuard msgs:", msgs)

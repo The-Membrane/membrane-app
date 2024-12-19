@@ -50,7 +50,9 @@ const useNeuroGuard = ( ) => {
        clearTimeout(timer)
       };
   }, [neuroState.selectedAsset]);
-
+  
+  
+  const guardedAsset = useMemo(() => useAssetBySymbol(debouncedValue.selectedAsset.symbol), [debouncedValue.selectedAsset.symbol])
   // useEffect(() => {console.log("debounced changed")}, [debouncedValue])
   // useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
 
@@ -62,12 +64,11 @@ const useNeuroGuard = ( ) => {
       'neuroGuard_msg_creation',
       address,
       debouncedValue.selectedAsset,
+      guardedAsset,
       basket,
       assets
     ],
     queryFn: () => {
-      console.log("in query guardian", debouncedValue.selectedAsset.symbol.toString())
-      const guardedAsset = useAssetBySymbol("USDC")
       console.log("in query guardian", guardedAsset)
 
 

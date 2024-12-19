@@ -90,6 +90,13 @@ const NeuroGuardCard = () => {
       num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
     else return "0"
   }, [rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL])
+  
+  const yieldMsg = useMemo(() => {
+    console.log("yieldMsg", rblpYield,  neuroState?.selectedAsset, rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
+    if (neuroState?.selectedAsset && rblpYield)
+      return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {neuroState?.selectedAsset?.symbol} could be earning {num(rblpYield).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
+    else return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> Select an asset to see potential yield </Text>
+  }, [rblpYield, neuroState?.selectedAsset])
 
   //Create an object for all positions that have an intent to compound
   const existingGuards = useMemo(() => {
@@ -200,10 +207,7 @@ const NeuroGuardCard = () => {
     })
   }
 
-  const yieldMsg = useMemo(() => {
-    console.log("yielgMsg", rblpYield,  neuroState?.selectedAsset)
-    return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {neuroState?.selectedAsset?.symbol} could be earning {num(rblpYield).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
-  }, [rblpYield, neuroState?.selectedAsset])
+
   // const isDisabled = useMemo(() => {return neuro?.simulate.isError || !neuro?.simulate.data }, [neuro?.simulate.isError, neuro?.simulate.data])
   console.log("neuro error", neuro?.simulate.error, neuro?.simulate.isError, !neuro?.simulate.data)
     return (

@@ -69,7 +69,7 @@ const useNeuroGuard = ( ) => {
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
     
-        const guardedBalance = useBalanceByAsset(guardedAsset)??"0"
+        // const guardedBalance = useBalanceByAsset(guardedAsset)??"0"
         const funds = [{ amount: debouncedValue.selectedAsset.amount.toString(), denom: guardedAsset.base }]      
         console.log(funds)
 
@@ -130,7 +130,7 @@ const useNeuroGuard = ( ) => {
       
       return { msgs }
     },
-    enabled: !!address && !!debouncedValue.selectedAsset,
+    enabled: !!address,
     staleTime: 5000,
     // Disable automatic refetching
     refetchOnWindowFocus: false,

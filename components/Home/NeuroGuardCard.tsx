@@ -31,6 +31,30 @@ import {useBoundedIntents } from "../Earn/hooks/useEarnQueries"
 import { getBestCLRange } from "@/services/osmosis"
 import { LPJoinDate } from "@/config/defaults"
 import useNeuroGuard from "./hooks/useNeuroGuard"
+import useNeuroClose from "./hooks/useNeuroClose"
+
+
+const NeuroGuardCloseButton = ({ guardedPosition, RBYield }:{ guardedPosition: any, RBYield: any }) => {
+    const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
+
+  
+    return (<Card key={guardedPosition.position.position_id} width={"100%"} borderColor={""} borderWidth={3} padding={4}>
+      <HStack gap={"4%"}>
+        <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {guardedPosition.symbol} earning {num(RBYield).times(guardedPosition.LTV).toFixed(1)}%</Text>
+      <TxButton
+        maxW="100%"
+        isLoading={sheathe?.simulate.isLoading || sheathe?.tx.isPending}
+        isDisabled={sheathe?.simulate.isError || !sheathe?.simulate.data}
+        onClick={() => sheathe?.tx.mutate()}
+        toggleConnectLabel={false}
+        style={{ alignSelf: "center" }}
+      >
+        Sheathe
+      </TxButton>
+      </HStack>
+  </Card>)
+
+}
 
 const NeuroGuardCard = () => {
   const { data: basketPositions } = useUserPositions() 
@@ -174,27 +198,17 @@ const NeuroGuardCard = () => {
       selectedAsset: value
     })
   }
-  const isDisabled = useMemo(() => {return neuro?.simulate.isError || !neuro?.simulate.data }, [neuro?.simulate.isError, neuro?.simulate.data])
+
+  const yieldMsg = useMemo(() => {
+    return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {neuroState?.selectedAsset?.symbol} could be earning {num(rblpYield).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
+  }, [rblpYield, neuroState?.selectedAsset])
+  // const isDisabled = useMemo(() => {return neuro?.simulate.isError || !neuro?.simulate.data }, [neuro?.simulate.isError, neuro?.simulate.data])
   console.log("neuro error", neuro?.simulate.error)
     return (
       <>
-        {existingGuards.map((guard) => (
-          <Card key={guard.position_id} width={"100%"} borderColor={""} borderWidth={3} padding={4}>
-            <HStack gap={"4%"}>
-              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {guard.symbol} earning {num(rblpYield).times(guard.LTV).toFixed(1)}%</Text>
-            <TxButton
-              maxW="100%"
-              isLoading={neuro?.simulate.isLoading || neuro?.tx.isPending}
-              isDisabled={isDisabled}
-              onClick={() => neuro?.tx.mutate()}
-              toggleConnectLabel={false}
-              style={{ alignSelf: "center" }}
-            >
-              Sheathe
-            </TxButton>
-            </HStack>
-          </Card>
-        ))}
+        {existingGuards.map((guard) => 
+          <NeuroGuardCloseButton guardedPosition={guard.position} RBYield={rblpYield}/>
+        )}
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>
             { neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) && 
@@ -207,12 +221,12 @@ const NeuroGuardCard = () => {
             />
               {/* @ts-ignore */}
             <NeuroAssetSlider key={neuroState?.selectedAsset?.base} asset={neuroState?.selectedAsset} label={neuroState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />  
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {neuroState?.selectedAsset?.symbol} could be earning {num(rblpYield).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
+            {yieldMsg}
             
             <TxButton
               maxW="100%"
               isLoading={neuro?.simulate.isLoading || neuro?.tx.isPending}
-              isDisabled={isDisabled}
+              isDisabled={neuro?.simulate.isError || !neuro?.simulate.data}
               onClick={() => neuro?.tx.mutate()}
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}

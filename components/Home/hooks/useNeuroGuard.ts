@@ -100,7 +100,7 @@ const useNeuroGuard = ( ) => {
                 mint_intent: {
                   user: address,
                   position_id: basket.current_position_id,
-                  mint_to_ltv: num(assets.find((p: any) => p.base === debouncedValue.selectedAsset.base)?.maxBorrowLTV).times(0.80).toString()
+                  mint_to_ltv: num(assets.find((p: any) => p.base === debouncedValue.selectedAsset.base)?.maxBorrowLTV).times(1).toString()
                 }
             }
           })),

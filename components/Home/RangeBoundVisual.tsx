@@ -77,7 +77,7 @@ return (        //Remove height for desktop potentially
               display={"grid"}
               w="84%"
               h="22%"
-              marginTop="9%"
+              marginTop="1%"
               bg="#5f71ed"
               alignItems="center"
               justifyContent="center"

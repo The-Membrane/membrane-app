@@ -87,7 +87,7 @@ const NeuroGuardCard = () => {
         let LTV = creditValue.dividedBy(assetValue)
 
         return {
-          position_id: intent.position_id,
+          position: position,
           asset, //May not need this
           symbol: fullAssetInfo?.symbol,
           LTV
@@ -182,6 +182,16 @@ const NeuroGuardCard = () => {
           <Card key={guard.position_id} width={"100%"} borderColor={""} borderWidth={3} padding={4}>
             <HStack gap={"4%"}>
               <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {guard.symbol} earning {num(rblpYield).times(guard.LTV).toFixed(1)}%</Text>
+            <TxButton
+              maxW="100%"
+              isLoading={neuro?.simulate.isLoading || neuro?.tx.isPending}
+              isDisabled={isDisabled}
+              onClick={() => neuro?.tx.mutate()}
+              toggleConnectLabel={false}
+              style={{ alignSelf: "center" }}
+            >
+              Sheathe
+            </TxButton>
             </HStack>
           </Card>
         ))}

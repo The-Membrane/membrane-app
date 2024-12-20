@@ -51,9 +51,7 @@ const useNeuroGuard = ( ) => {
        clearTimeout(timer)
       };
   }, [neuroState.selectedAsset]);
-  
-  
-  const guardedAsset = useAssetBySymbol(debouncedValue.selectedAsset.symbol??"N/A")
+    
   // useEffect(() => {console.log("debounced changed")}, [debouncedValue])
   // useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
 

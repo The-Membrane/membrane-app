@@ -221,7 +221,7 @@ const NeuroGuardCard = () => {
     return (
       <>
         {existingGuards.map((guard) => 
-          {<NeuroGuardCloseButton guardedPosition={guard.position} RBYield={rblpYield}/>}
+          s<NeuroGuardCloseButton guardedPosition={guard.position} RBYield={rblpYield}/>
         )}
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>

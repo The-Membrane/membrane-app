@@ -18,8 +18,9 @@ import useNeuroState from "./useNeuroState"
 import { useBasket } from "@/hooks/useCDP"
 
 import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
+import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 
-const useNeuroClose = ({ position } : { position: any }) => { 
+const useNeuroClose = ({ position } : { position: PositionResponse }) => { 
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()

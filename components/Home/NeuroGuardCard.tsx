@@ -32,9 +32,10 @@ import { getBestCLRange } from "@/services/osmosis"
 import { LPJoinDate } from "@/config/defaults"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import useNeuroClose from "./hooks/useNeuroClose"
+import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 
 
-const NeuroGuardCloseButton = ({ guardedPosition, RBYield }:{ guardedPosition: any, RBYield: any }) => {
+const NeuroGuardCloseButton = ({ guardedPosition, RBYield }:{ guardedPosition: { position: PositionResponse, symbol: String, LTV: string}, RBYield: string }) => {
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
 
   
@@ -85,7 +86,7 @@ const NeuroGuardCard = () => {
       return totalrewards / 1000000 / daysSinceDeposit * 365
   }, [clRewardList])
   const rblpYield = useMemo(() => {
-    console.log("rblpYield", rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
+    // console.log("rblpYield", rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
     if (bidState.cdpExpectedAnnualRevenue)
       num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
     else return "0"
@@ -123,11 +124,10 @@ const NeuroGuardCard = () => {
         let assetValue = shiftDigits(asset.asset.amount, -(assetDecimals)).times(assetPrice)
         let creditPrice = basket.credit_price.price
         let creditValue = shiftDigits(position.credit_amount, -6).times(creditPrice)
-        let LTV = creditValue.dividedBy(assetValue)
+        let LTV = creditValue.dividedBy(assetValue).toString()
 
         return {
           position: position,
-          asset, //May not need this
           symbol: fullAssetInfo?.symbol,
           LTV
         }
@@ -217,11 +217,11 @@ const NeuroGuardCard = () => {
 
   // const isDisabled = useMemo(() => {return neuro?.simulate.isError || !neuro?.simulate.data }, [neuro?.simulate.isError, neuro?.simulate.data])
   console.log("neuro error", neuro?.simulate.error, neuro?.simulate.isError, !neuro?.simulate.data)
-  console.log("existingGuards", existingGuards)
+  console.log("existingGuards", existingGuards, rblpYield)
     return (
       <>
         {existingGuards.map((guard) => 
-          s<NeuroGuardCloseButton guardedPosition={guard.position} RBYield={rblpYield}/>
+          <NeuroGuardCloseButton guardedPosition={guard} RBYield={rblpYield??"0"}/>
         )}
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>

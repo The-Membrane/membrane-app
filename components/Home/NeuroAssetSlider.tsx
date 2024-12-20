@@ -15,21 +15,21 @@ export const NeuroAssetSlider = ({ asset, label, onChangeExt }: AssetWithSliderP
 
   const onChange = (value: number) => {
     onChangeExt(value)
-    let updatedAssets = neuroState.assets.map((asset) => {
-      const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
+    // let updatedAssets = neuroState.assets.map((asset) => {
+    //   const sliderValue = asset.symbol === label ? value : asset.sliderValue || 0
       
-      const newDeposit = num(sliderValue).toNumber()
-      const amount = num(newDeposit).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
-      console.log("Neurological W", asset.symbol, amount, asset.decimal, asset.price, sliderValue)
+    //   const newDeposit = num(sliderValue).toNumber()
+    //   const amount = num(newDeposit).dividedBy(asset.price).dp(asset.decimal??6).toNumber()
+    //   console.log("Neurological W", asset.symbol, amount, asset.decimal, asset.price, sliderValue)
 
-      return {
-        ...asset,
-        amount,
-        sliderValue,
-      }
-    })
+    //   return {
+    //     ...asset,
+    //     amount,
+    //     sliderValue,
+    //   }
+    // })
 
-    setNeuroState({ assets: updatedAssets })
+    // setNeuroState({ assets: updatedAssets })
   }
   
   return (

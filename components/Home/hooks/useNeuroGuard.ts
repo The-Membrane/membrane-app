@@ -75,9 +75,10 @@ const useNeuroGuard = ( ) => {
       if (!address || !debouncedValue.selectedAsset || !guardedAsset || !basket || !assets) {console.log("neuroGuard early return", address, debouncedValue, guardedAsset, basket, assets); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-    
-        // const guardedBalance = useBalanceByAsset(guardedAsset)??"0"
-        const funds = [{ amount: debouncedValue.selectedAsset.amount.toString(), denom: guardedAsset.base }]      
+        const newDeposit = num(debouncedValue.selectedAsset.sliderValue).toNumber()
+        const amount = num(newDeposit).dividedBy(debouncedValue.selectedAsset.price).dp(debouncedValue.selectedAsset.decimal??6).toString()
+        console.log("Neuro funds", newDeposit, amount, debouncedValue.selectedAsset)
+        const funds = [{ amount, denom: guardedAsset.base }]      
         console.log(funds)
 
         //Deposit msg

@@ -76,7 +76,7 @@ const useNeuroGuard = ( ) => {
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
         const newDeposit = num(debouncedValue.selectedAsset.sliderValue).toNumber()
-        const amount = num(newDeposit).dividedBy(debouncedValue.selectedAsset.price).dp(debouncedValue.selectedAsset.decimal??6).toString()
+        const amount = shiftDigits(num(newDeposit).dividedBy(debouncedValue.selectedAsset.price).toString(), debouncedValue.selectedAsset.decimal).toFixed(0)
         console.log("Neuro funds", newDeposit, amount, debouncedValue.selectedAsset)
         const funds = [{ amount, denom: guardedAsset.base }]      
         console.log(funds)

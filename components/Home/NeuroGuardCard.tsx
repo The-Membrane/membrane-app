@@ -92,9 +92,11 @@ const NeuroGuardCard = () => {
   }, [rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL])
   
   const yieldMsg = useMemo(() => {
-    console.log("yieldMsg", rblpYield,  neuroState?.selectedAsset, rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
-    if (neuroState?.selectedAsset && rblpYield)
-      return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {neuroState?.selectedAsset?.symbol} could be earning {num(rblpYield).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
+    console.log("yieldMsg", neuroState?.selectedAsset, rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
+    if (neuroState?.selectedAsset && bidState.cdpExpectedAnnualRevenue && TVL && rangeBoundAPR)
+      return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {neuroState?.selectedAsset?.symbol} could be earning {num(
+        num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
+      ).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
     else return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> Select an asset to see potential yield </Text>
   }, [rblpYield, neuroState?.selectedAsset])
 

@@ -32,8 +32,8 @@ const useNeuroGuard = ( ) => {
 //   const underlyingCDT = data ?? "1"
   
   // Debounce the slider value to prevent too many queries
-  const [debouncedValue, setDebouncedValue] = useState<{selectedAsset: any, guardedAsset: any}>(
-    { selectedAsset: undefined, guardedAsset: undefined }
+  const [debouncedValue, setDebouncedValue] = useState<{selectedAsset: any}>(
+    { selectedAsset: undefined}
   );
   
   useEffect(() => {
@@ -41,8 +41,7 @@ const useNeuroGuard = ( ) => {
     const timer = setTimeout(() => {
       console.log('Setting debounced values:', neuroState);
       setDebouncedValue({
-        selectedAsset: neuroState.selectedAsset,
-        guardedAsset: useAssetBySymbol(neuroState.selectedAsset?.symbol || "N/A")
+        selectedAsset: neuroState.selectedAsset
       });
     }, 300);
     
@@ -51,6 +50,8 @@ const useNeuroGuard = ( ) => {
        clearTimeout(timer)
       };
   }, [neuroState.selectedAsset]);
+
+  const guardedAsset = useMemo(() => {useAssetBySymbol(debouncedValue.selectedAsset?.symbol || "N/A")}, [debouncedValue.selectedAsset])
     
   // useEffect(() => {console.log("debounced changed")}, [debouncedValue])
   // useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
@@ -63,20 +64,20 @@ const useNeuroGuard = ( ) => {
       'neuroGuard_msg_creation',
       address,
       debouncedValue.selectedAsset,
-      debouncedValue.guardedAsset,
+      guardedAsset,
       basket,
       assets
     ],
     queryFn: () => {
-      console.log("in query guardian", debouncedValue.guardedAsset)
+      console.log("in query guardian", guardedAsset)
 
 
-      if (!address || !debouncedValue.selectedAsset || !debouncedValue.guardedAsset || !basket || !assets) {console.log("neuroGuard early return", address, debouncedValue, debouncedValue.guardedAsset, basket, assets); return { msgs: [] }}
+      if (!address || !debouncedValue.selectedAsset || !guardedAsset || !basket || !assets) {console.log("neuroGuard early return", address, debouncedValue, guardedAsset, basket, assets); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
     
         // const guardedBalance = useBalanceByAsset(guardedAsset)??"0"
-        const funds = [{ amount: debouncedValue.selectedAsset.amount.toString(), denom: debouncedValue.guardedAsset.base }]      
+        const funds = [{ amount: debouncedValue.selectedAsset.amount.toString(), denom: guardedAsset.base }]      
         console.log(funds)
 
         //Deposit msg

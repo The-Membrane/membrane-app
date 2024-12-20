@@ -112,7 +112,9 @@ const NeuroGuardCard = () => {
       //If there are neuroGuardIntents, create an object that saves the ID, the compounding asset & the LTV
       return neuroGuardIntents.map((intent) => {
         console.log("big checkers", neuroGuardIntents, intent, basketPositions)
-        let position = basketPositions[0].positions.find((position) => { position.position_id === (intent.position_id!.toString()) })!
+        let position = basketPositions[0].positions.find((position) => { position.position_id === (intent.position_id??0).toString() })
+        console.log("position", position)
+        if (position === undefined) return 
         let asset = position.collateral_assets[0] //@ts-ignore
         let assetPrice = Number(prices?.find((p: any) => p.denom === asset.asset.native_token.denom)?.price??"0") //@ts-ignore
         let fullAssetInfo = assets?.find((p: any) => p.base === asset.asset.native_token.denom)

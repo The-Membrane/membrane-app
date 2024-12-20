@@ -102,6 +102,7 @@ const NeuroGuardCard = () => {
 
   //Create an object for all positions that have an intent to compound
   const existingGuards = useMemo(() => {
+    console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
     if (userIntents && userIntents[0].intent.intents.purchase_intent && basket && prices && basketPositions && assets) {
       //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
       const neuroGuardIntents = userIntents[0].intent.intents.purchase_intent.filter((intent) => {

@@ -117,8 +117,8 @@ const NeuroGuardCard = () => {
         console.log("position", position)
         if (position === undefined) return 
         let asset = position.collateral_assets[0] //@ts-ignore
-        let assetPrice = Number(prices?.find((p: any) => p.denom === asset.asset.native_token.denom)?.price??"0") //@ts-ignore
-        let fullAssetInfo = assets?.find((p: any) => p.base === asset.asset.native_token.denom)
+        let assetPrice = Number(prices?.find((p: any) => p.denom === asset.asset.info.native_token.denom)?.price??"0") //@ts-ignore
+        let fullAssetInfo = assets?.find((p: any) => p.base === asset.asset.info.native_token.denom)
         let assetDecimals = fullAssetInfo?.decimal??0
         let assetValue = shiftDigits(asset.asset.amount, -(assetDecimals)).times(assetPrice)
         let creditPrice = basket.credit_price.price

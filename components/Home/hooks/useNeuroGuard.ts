@@ -103,8 +103,7 @@ const useNeuroGuard = ( ) => {
           sender: address,
           contract: contracts.cdp,
           msg: toUtf8(JSON.stringify({
-              increase_debt: { 
-                position_id: basket.current_position_id,
+              set_intent: { 
                 mint_intent: {
                   user: address,
                   position_id: basket.current_position_id,

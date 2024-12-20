@@ -112,7 +112,7 @@ const useNeuroGuard = ( ) => {
                 }
             }
           })),
-          funds: funds
+          funds: []
           })
         } as MsgExecuteContractEncodeObject
         msgs.push(mintMsg)
@@ -128,7 +128,7 @@ const useNeuroGuard = ( ) => {
                 users: [address],
               }
           })),
-          funds: funds
+          funds: []
           })
         } as MsgExecuteContractEncodeObject
         msgs.push(fulfillIntentMsg)

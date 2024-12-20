@@ -102,7 +102,7 @@ const NeuroGuardCard = () => {
 
   //Create an object for all positions that have an intent to compound
   const existingGuards = useMemo(() => {
-    console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
+    // console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
     if (userIntents && userIntents[0].intent.intents.purchase_intents && basket && prices && basketPositions && assets) {
       //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
       const neuroGuardIntents = userIntents[0].intent.intents.purchase_intents.filter((intent) => {
@@ -111,9 +111,9 @@ const NeuroGuardCard = () => {
 
       //If there are neuroGuardIntents, create an object that saves the ID, the compounding asset & the LTV
       return neuroGuardIntents.map((intent) => {
-        console.log("big checkers", neuroGuardIntents, intent, basketPositions)
+        // console.log("big checkers", neuroGuardIntents, intent, basketPositions)
         let position = basketPositions[0].positions.find((position) => position.position_id === (intent.position_id??0).toString())
-        console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
+        // console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
         console.log("position", position)
         if (position === undefined) return 
         let asset = position.collateral_assets[0] //@ts-ignore
@@ -217,10 +217,11 @@ const NeuroGuardCard = () => {
 
   // const isDisabled = useMemo(() => {return neuro?.simulate.isError || !neuro?.simulate.data }, [neuro?.simulate.isError, neuro?.simulate.data])
   console.log("neuro error", neuro?.simulate.error, neuro?.simulate.isError, !neuro?.simulate.data)
+  console.log("existingGuards", existingGuards)
     return (
       <>
         {existingGuards.map((guard) => 
-          {guard && <NeuroGuardCloseButton guardedPosition={guard.position} RBYield={rblpYield}/>}
+          {<NeuroGuardCloseButton guardedPosition={guard.position} RBYield={rblpYield}/>}
         )}
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>

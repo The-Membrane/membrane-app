@@ -113,7 +113,7 @@ const NeuroGuardCard = () => {
       return neuroGuardIntents.map((intent) => {
         console.log("big checkers", neuroGuardIntents, intent, basketPositions)
         let position = basketPositions[0].positions.find((position) => { position.position_id === (intent.position_id??0).toString() })
-        console.log("position", basketPositions[0].positions[0],(intent.position_id??0).toString())
+        console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
         console.log("position", position)
         if (position === undefined) return 
         let asset = position.collateral_assets[0] //@ts-ignore
@@ -219,8 +219,8 @@ const NeuroGuardCard = () => {
   console.log("neuro error", neuro?.simulate.error, neuro?.simulate.isError, !neuro?.simulate.data)
     return (
       <>
-        {existingGuards.length > 0 && existingGuards.map((guard) => 
-          <NeuroGuardCloseButton guardedPosition={guard.position} RBYield={rblpYield}/>
+        {existingGuards.map((guard) => 
+          {guard && <NeuroGuardCloseButton guardedPosition={guard.position} RBYield={rblpYield}/>}
         )}
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>

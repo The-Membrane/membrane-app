@@ -37,7 +37,7 @@ import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 
 const NeuroGuardCloseButton = ({ guardedPosition, RBYield }:{ guardedPosition: { position: PositionResponse, symbol: String, LTV: string}, RBYield: string }) => {
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
-
+    console.log("sheathe error", sheathe?.simulate.error, sheathe?.simulate.isError, !sheathe?.simulate.data)
   
     return (<Card key={guardedPosition.position.position_id} width={"100%"} borderColor={""} borderWidth={3} padding={4}>
       <HStack gap={"4%"}>
@@ -217,7 +217,6 @@ const NeuroGuardCard = () => {
 
   // const isDisabled = useMemo(() => {return neuro?.simulate.isError || !neuro?.simulate.data }, [neuro?.simulate.isError, neuro?.simulate.data])
   console.log("neuro error", neuro?.simulate.error, neuro?.simulate.isError, !neuro?.simulate.data)
-  console.log("existingGuards", existingGuards, rblpYield)
     return (
       <>
         {existingGuards.map((guard) => 

@@ -51,7 +51,7 @@ const useNeuroGuard = ( ) => {
       };
   }, [neuroState.selectedAsset]);
 
-  const guardedAsset = useMemo(() => {useAssetBySymbol(debouncedValue.selectedAsset?.symbol || "N/A")}, [debouncedValue.selectedAsset])
+  const guardedAsset = useAssetBySymbol(debouncedValue.selectedAsset?.symbol || "N/A")
     
   // useEffect(() => {console.log("debounced changed")}, [debouncedValue])
   // useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])

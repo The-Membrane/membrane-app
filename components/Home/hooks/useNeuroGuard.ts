@@ -32,8 +32,8 @@ const useNeuroGuard = ( ) => {
 //   const underlyingCDT = data ?? "1"
   
   // Debounce the slider value to prevent too many queries
-  const [debouncedValue, setDebouncedValue] = useState<{selectedAsset: any}>(
-    {selectedAsset: undefined}
+  const [debouncedValue, setDebouncedValue] = useState<{selectedAsset: any, guardedAsset: any}>(
+    { selectedAsset: undefined, guardedAsset: undefined }
   );
   
   useEffect(() => {
@@ -41,7 +41,8 @@ const useNeuroGuard = ( ) => {
     const timer = setTimeout(() => {
       console.log('Setting debounced values:', neuroState);
       setDebouncedValue({
-        selectedAsset: neuroState.selectedAsset
+        selectedAsset: neuroState.selectedAsset,
+        guardedAsset: useAssetBySymbol(neuroState.selectedAsset?.symbol || "N/A")
       });
     }, 300);
     
@@ -64,20 +65,20 @@ const useNeuroGuard = ( ) => {
       'neuroGuard_msg_creation',
       address,
       debouncedValue.selectedAsset,
-      guardedAsset,
+      debouncedValue.guardedAsset,
       basket,
       assets
     ],
     queryFn: () => {
-      console.log("in query guardian", guardedAsset)
+      console.log("in query guardian", debouncedValue.guardedAsset)
 
 
-      if (!address || !debouncedValue || !guardedAsset || !basket || !assets) {console.log("neuroGuard early return", address, debouncedValue, guardedAsset, basket, assets); return { msgs: [] }}
+      if (!address || !debouncedValue.selectedAsset || !debouncedValue.guardedAsset || !basket || !assets) {console.log("neuroGuard early return", address, debouncedValue, debouncedValue.guardedAsset, basket, assets); return { msgs: [] }}
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
     
         // const guardedBalance = useBalanceByAsset(guardedAsset)??"0"
-        const funds = [{ amount: debouncedValue.selectedAsset.amount.toString(), denom: guardedAsset.base }]      
+        const funds = [{ amount: debouncedValue.selectedAsset.amount.toString(), denom: debouncedValue.guardedAsset.base }]      
         console.log(funds)
 
         //Deposit msg

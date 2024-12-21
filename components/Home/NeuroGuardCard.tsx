@@ -133,7 +133,7 @@ const NeuroGuardCard = () => {
         }
       })
 
-    } else return []
+    } else return undefined
   }, [basketPositions, userIntents, assets, prices, basket])
   
   
@@ -219,9 +219,9 @@ const NeuroGuardCard = () => {
   console.log("neuro error", neuro?.simulate.error, neuro?.simulate.isError, !neuro?.simulate.data)
     return (
       <>
-        {existingGuards.map((guard) => 
+        { existingGuards ? existingGuards.map((guard) => 
           <NeuroGuardCloseButton guardedPosition={guard} RBYield={rblpYield??"0"}/>
-        )}
+        ) : null }
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>
             { neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) && 

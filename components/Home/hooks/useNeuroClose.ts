@@ -70,7 +70,7 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
       // //Calc the amount of vault tokens this intent holds
       // const guardedTokens = num(guardedIntent.yield_percent).times(userIntents[0].intent.vault_tokens).toFixed(0)
 
-
+      console.log("neuroClose position:", position)
       //1) Repay using intented VTs
       // Leave 1 CDT to allow the ClosePosition to never fail
       let intentRepayMsg  = {

@@ -38,7 +38,7 @@ import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 const NeuroGuardCloseButton = ({ guardedPosition, RBYield }:{ guardedPosition: { position: PositionResponse, symbol: String, LTV: string}, RBYield: string }) => {
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
     console.log("sheathe error", sheathe?.simulate.error, sheathe?.simulate.isError, !sheathe?.simulate.data)
-    console.log("guarded LTV in fn", guardedPosition.LTV)
+    console.log("guarded LTV in fn", guardedPosition.LTV, RBYield)
   
     return (<Card key={guardedPosition.position.position_id} width={"100%"} borderColor={""} borderWidth={3} padding={4}>
       <HStack gap={"4%"}>
@@ -86,12 +86,12 @@ const NeuroGuardCard = () => {
       // const middleAPR = ((clRewardList[5].reward + clRewardList[6].reward + clRewardList[7].reward + clRewardList[8].reward + clRewardList[9].reward) / 5) / 1000000 / daysSinceDeposit * 365
       return totalrewards / 1000000 / daysSinceDeposit * 365
   }, [clRewardList])
-  const rblpYield = useMemo(() => {
-    // console.log("rblpYield", rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
-    if (bidState.cdpExpectedAnnualRevenue)
-      num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
-    else return "0"
-  }, [rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL])
+  // const rblpYield = useMemo(() => {
+  //   // console.log("rblpYield", rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
+  //   if (bidState.cdpExpectedAnnualRevenue)
+  //     num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
+  //   else return "0"
+  // }, [rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL])
   
   const yieldMsg = useMemo(() => {
     console.log("yieldMsg", neuroState?.selectedAsset, rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
@@ -100,7 +100,7 @@ const NeuroGuardCard = () => {
         num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
       ).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
     else return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> Select an asset to see potential yield </Text>
-  }, [rblpYield, neuroState?.selectedAsset])
+  }, [bidState.cdpExpectedAnnualRevenue, TVL, rangeBoundAPR, neuroState?.selectedAsset])
 
   //Create an object for all positions that have an intent to compound
   const existingGuards = useMemo(() => {
@@ -223,7 +223,7 @@ const NeuroGuardCard = () => {
     return (
       <>
         { existingGuards ? existingGuards.map((guard) => 
-          <NeuroGuardCloseButton guardedPosition={guard} RBYield={rblpYield??"0"}/>
+          <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? shiftDigits(bidState.cdpExpectedAnnualRevenue, -6).times(0.80).dividedBy(86400 * 365).toString() : "0"}/>
         ) : null }
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>

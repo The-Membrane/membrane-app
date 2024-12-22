@@ -38,6 +38,7 @@ import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 const NeuroGuardCloseButton = ({ guardedPosition, RBYield }:{ guardedPosition: { position: PositionResponse, symbol: String, LTV: string}, RBYield: string }) => {
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
     console.log("sheathe error", sheathe?.simulate.error, sheathe?.simulate.isError, !sheathe?.simulate.data)
+    console.log("guarded LTV in fn", guardedPosition.LTV)
   
     return (<Card key={guardedPosition.position.position_id} width={"100%"} borderColor={""} borderWidth={3} padding={4}>
       <HStack gap={"4%"}>
@@ -126,6 +127,8 @@ const NeuroGuardCard = () => {
         let creditValue = shiftDigits(position.credit_amount, -6).times(creditPrice)
         let LTV = creditValue.dividedBy(assetValue).toString()
 
+        
+    console.log("guarded LTV in creation", LTV, creditValue, assetValue, position.credit_amount, asset.asset.amount, assetPrice, creditPrice)
         return {
           position: position,
           symbol: fullAssetInfo?.symbol,

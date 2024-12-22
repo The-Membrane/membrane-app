@@ -223,7 +223,7 @@ const NeuroGuardCard = () => {
     return (
       <>
         { existingGuards ? existingGuards.map((guard) => 
-          <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? shiftDigits(bidState.cdpExpectedAnnualRevenue, -6).times(0.80).dividedBy(86400 * 365).toString() : "0"}/>
+          <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"}/>
         ) : null }
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>

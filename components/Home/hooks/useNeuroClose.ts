@@ -146,6 +146,7 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
       //3) Split the yield_percent split from this intent to the remaining intents
       // & set intents to the new split
       const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
+      console.log("updateedIntent data", updatedIntents)
       const updatedIntentsMsg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
         value: MsgExecuteContract.fromPartial({
@@ -169,13 +170,13 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
       
       return { msgs }
     },
-    enabled: !!address && !!position.position_id,
-    staleTime: 5000,
+    enabled: !!address,
+    // staleTime: 5000,
     // Disable automatic refetching
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-    retry: false
+    // refetchOnWindowFocus: false,
+    // refetchOnReconnect: false,
+    // refetchOnMount: false,
+    // retry: false
     /////ERRORS ON THE 3RD OR 4TH MODAL OPEN, CHECKING TO SEE IF ITS THE INVALIDATED QUERY////
   })
   

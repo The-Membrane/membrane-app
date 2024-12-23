@@ -41,6 +41,7 @@ export const useUserPositions = () => {
     queryKey: ['positions', address],
     queryFn: async () => {
       if (!address) return
+      console.log("requerying basket positions")
       return getUserPositions(address)
     },
     enabled: !!address,

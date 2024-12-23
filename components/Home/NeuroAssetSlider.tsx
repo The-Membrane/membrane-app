@@ -33,7 +33,7 @@ export const NeuroAssetSlider = ({ asset, label, onChangeExt }: AssetWithSliderP
   }
   
   return (
-    <Stack gap="0">
+    <Stack gap="0" width="15%">
       <HStack justifyContent="space-between">
         <Text variant="lable" textTransform="unset">
           {label}

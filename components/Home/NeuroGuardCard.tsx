@@ -227,20 +227,21 @@ const NeuroGuardCard = () => {
         ) : null }
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>
-            { neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) && 
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="35%"> Requirements not met: The deposit minimum for this asset is ${101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)}</Text>}
-            
+            {yieldMsg}
             <AssetsWithBalanceMenu 
+              width="15%"
               value={neuroState?.selectedAsset} 
               onChange={onAssetMenuChange}
               assets={usableAssets}
             />
               {/* @ts-ignore */}
             <NeuroAssetSlider key={neuroState?.selectedAsset?.base} asset={neuroState?.selectedAsset} label={neuroState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />  
-            {yieldMsg}
+            
+            { neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) && 
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="18%"> Deposit minimum for {neuroState.selectedAsset?.symbol??"N/A"} is ${((101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) + 1).toFixed(0)}</Text>}
             
             <TxButton
-              maxW="100%"
+              w="25%"
               isLoading={neuro?.simulate.isLoading || neuro?.tx.isPending}
               isDisabled={neuro?.simulate.isError || !neuro?.simulate.data}
               onClick={() => neuro?.tx.mutate()}

@@ -71,7 +71,7 @@ export const getBoundedIntents = async (address: string) => {
       intents: {
         user: string, 
         last_conversion_rate: string,
-        purchase_intent: {
+        purchase_intents: {
           desired_asset: string,
           route: any | undefined,
           yield_percent: string,

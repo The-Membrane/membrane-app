@@ -20,32 +20,68 @@ import { useBasket } from "@/hooks/useCDP"
 import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 
+export type UserIntentData = {
+    vault_tokens: string,
+    intents: {
+      user: string, 
+      last_conversion_rate: string,
+      purchase_intents: {
+        desired_asset: string,
+        route: any | undefined,
+        yield_percent: string,
+        position_id: number | undefined,
+        slippage: string | undefined
+      }[]
+    }
+}
+
+/**
+ * Removes a specified position and redistributes its yield percentage among remaining intents
+ * @param data Original vault data
+ * @param positionIdToRemove Position ID to remove
+ * @returns Updated vault data with redistributed yields
+ */
+function redistributeYield(data: UserIntentData, positionIdToRemove: number): UserIntentData {
+  // Create a deep copy of the data to avoid mutations
+  const newData: UserIntentData = JSON.parse(JSON.stringify(data));
+  
+  const intents = newData.intents.purchase_intents;
+  const positionIndex = intents.findIndex(intent => intent.position_id === positionIdToRemove);
+  
+  // If position not found, return original data
+  if (positionIndex === -1) {
+    return data;
+  }
+  
+  // Get the yield percentage that needs to be redistributed
+  const yieldToRedistribute = parseFloat(intents[positionIndex].yield_percent);
+  
+  // Remove the position
+  intents.splice(positionIndex, 1);
+  
+  // If there are no remaining intents, return the data
+  if (intents.length === 0) {
+    return newData;
+  }
+  
+  // Calculate the additional yield each remaining intent will receive
+  const additionalYieldPerIntent = yieldToRedistribute / intents.length;
+  
+  // Redistribute the yield
+  intents.forEach(intent => {
+    const currentYield = parseFloat(intent.yield_percent);
+    intent.yield_percent = (currentYield + additionalYieldPerIntent).toString();
+  });
+  
+  return newData;
+}
+
 const useNeuroClose = ({ position } : { position: PositionResponse }) => { 
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()
   // const { neuroState, setNeuroState } = useNeuroState()
   const { data: userIntents } = useBoundedIntents()
-
-  // Debounce the slider value to prevent too many queries
-  // const [debouncedValue, setDebouncedValue] = useState<{position_to_close: number | undefined}>(
-  //   {position_to_close: undefined}
-  // );
-  
-  // useEffect(() => {
-  //   console.log('Debounce effect triggered:', neuroState);
-  //   const timer = setTimeout(() => {
-  //     console.log('Setting debounced values:', neuroState);
-  //     setDebouncedValue({
-  //       position_to_close: neuroState.position_to_close
-  //     });
-  //   }, 300);
-    
-  //   return () =>{
-  //     console.log('Cleaning up debounce effect');
-  //      clearTimeout(timer)
-  //     };
-  // }, [neuroState.position_to_close]);
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -105,9 +141,29 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
         })),
         funds: []
         })
-    } as MsgExecuteContractEncodeObject
-    msgs.push(closeMsg) 
-      
+      } as MsgExecuteContractEncodeObject
+      msgs.push(closeMsg)
+      //3) Split the yield_percent split from this intent to the remaining intents
+      // & set intents to the new split
+      const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
+      const updatedIntentsMsg = {
+        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+        value: MsgExecuteContract.fromPartial({
+        sender: address,
+        contract: contracts.rangeboundLP,
+        msg: toUtf8(JSON.stringify({
+          set_user_intents: {
+              intents: {                
+                user: address,
+                last_conversion_rate: "0", //this isn't updated
+                purchase_intents: updatedIntents.intents.purchase_intents
+              },
+            }
+        })),
+        funds: []
+        })
+      } as MsgExecuteContractEncodeObject
+      msgs.push(updatedIntentsMsg)      
 
       console.log("in query guardian msgs:", msgs)
       

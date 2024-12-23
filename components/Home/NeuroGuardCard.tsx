@@ -131,7 +131,7 @@ const NeuroGuardCard = () => {
     console.log("guarded LTV in creation", LTV, creditValue, assetValue, position.credit_amount, asset.asset.amount, assetPrice, creditPrice)
         return {
           position: position,
-          symbol: fullAssetInfo?.symbol,
+          symbol: fullAssetInfo?.symbol??"N/A",
           LTV
         }
       })
@@ -223,7 +223,7 @@ const NeuroGuardCard = () => {
     return (
       <>
         { existingGuards ? existingGuards.map((guard) => 
-          <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"}/>
+          <>{guard ? <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"}/> : null}</>
         ) : null }
         <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
           <HStack gap={"4%"}>

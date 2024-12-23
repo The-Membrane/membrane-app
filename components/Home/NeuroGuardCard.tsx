@@ -118,6 +118,7 @@ const NeuroGuardCard = () => {
         // console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
         console.log("position", position)
         if (position === undefined) return 
+        // if (position.credit_amount === "0") return
         let asset = position.collateral_assets[0] //@ts-ignore
         let assetPrice = Number(prices?.find((p: any) => p.denom === asset.asset.info.native_token.denom)?.price??"0") //@ts-ignore
         let fullAssetInfo = assets?.find((p: any) => p.base === asset.asset.info.native_token.denom)
@@ -128,7 +129,7 @@ const NeuroGuardCard = () => {
         let LTV = creditValue.dividedBy(assetValue).toString()
 
         
-    console.log("guarded LTV in creation", LTV, creditValue, assetValue, position.credit_amount, asset.asset.amount, assetPrice, creditPrice)
+      // console.log("guarded LTV in creation", LTV, creditValue, assetValue, position.credit_amount, asset.asset.amount, assetPrice, creditPrice)
         return {
           position: position,
           symbol: fullAssetInfo?.symbol??"N/A",

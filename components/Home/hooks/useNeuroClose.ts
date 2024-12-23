@@ -138,25 +138,28 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
         msgs.push(intentRepayMsg)
       }
       //2) Close Position
-      let closeMsg  = {
-        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-        value: MsgExecuteContract.fromPartial({
-        sender: address,
-        contract: contracts.cdp,
-        msg: toUtf8(JSON.stringify({
-          close_position: {            
-            position_id: position.position_id,
-            max_spread: "0.02"
-          }
-        })),
-        funds: []
-        })
-      } as MsgExecuteContractEncodeObject
-      msgs.push(closeMsg)
+      
+      if (Number(position.credit_amount) > 0) {
+        let closeMsg  = {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: MsgExecuteContract.fromPartial({
+          sender: address,
+          contract: contracts.cdp,
+          msg: toUtf8(JSON.stringify({
+            close_position: {            
+              position_id: position.position_id,
+              max_spread: "0.02"
+            }
+          })),
+          funds: []
+          })
+        } as MsgExecuteContractEncodeObject
+        msgs.push(closeMsg)
+      }
       //3) Split the yield_percent split from this intent to the remaining intents
       // & set intents to the new split
       const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
-      console.log("updateedIntent data", updatedIntents)
+      console.log("updatedIntent data", updatedIntents)
       const updatedIntentsMsg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
         value: MsgExecuteContract.fromPartial({

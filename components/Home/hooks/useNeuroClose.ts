@@ -42,22 +42,25 @@ export type UserIntentData = {
  * @returns Updated vault data with redistributed yields
  */
 function redistributeYield(data: UserIntentData, positionIdToRemove: number): UserIntentData {
-  // Create a deep copy of the data to avoid mutations
-  const newData: UserIntentData = JSON.parse(JSON.stringify(data));
+  const newData: UserIntentData = data;
   
   const intents = newData.intents.purchase_intents;
-  const positionIndex = intents.findIndex(intent => intent.position_id === positionIdToRemove);
+  
+  console.log("here")
+  const positionIndex = intents.findIndex(intent => intent.position_id !== undefined && intent.position_id === positionIdToRemove);
   
   // If position not found, return original data
   if (positionIndex === -1) {
     return data;
   }
+  console.log("here1")
   
   // Get the yield percentage that needs to be redistributed
   const yieldToRedistribute = parseFloat(intents[positionIndex].yield_percent);
   
   // Remove the position
   intents.splice(positionIndex, 1);
+  console.log("here2")
   
   // If there are no remaining intents, return the data
   if (intents.length === 0) {
@@ -67,11 +70,15 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
   // Calculate the additional yield each remaining intent will receive
   const additionalYieldPerIntent = yieldToRedistribute / intents.length;
   
+  console.log("here3")
   // Redistribute the yield
   intents.forEach(intent => {
     const currentYield = parseFloat(intent.yield_percent);
     intent.yield_percent = (currentYield + additionalYieldPerIntent).toString();
   });
+
+  newData.intents.purchase_intents = intents;
+  console.log("here4")
   
   return newData;
 }

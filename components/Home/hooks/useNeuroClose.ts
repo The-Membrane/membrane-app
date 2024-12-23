@@ -117,24 +117,26 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
       console.log("neuroClose position:", position)
       //1) Repay using intented VTs
       // Leave 1 CDT to allow the ClosePosition to never fail
-      let intentRepayMsg  = {
-          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-          value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: contracts.rangeboundLP,
-          msg: toUtf8(JSON.stringify({
-            repay_user_debt: {
-                user_info: {
-                  position_owner: address, 
-                  position_id: position.position_id
-                },
-                repayment: num(Math.max(parseInt(position.credit_amount), 1000000)).minus(1000000).toString(),
-              }
-          })),
-          funds: []
-          })
-      } as MsgExecuteContractEncodeObject
-      msgs.push(intentRepayMsg)      
+      if (Number(position.credit_amount) > 1000000) {
+        let intentRepayMsg  = {
+            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+            value: MsgExecuteContract.fromPartial({
+            sender: address,
+            contract: contracts.rangeboundLP,
+            msg: toUtf8(JSON.stringify({
+              repay_user_debt: {
+                  user_info: {
+                    position_owner: address, 
+                    position_id: position.position_id
+                  },
+                  repayment: num(position.credit_amount).minus(1000000).toString(),
+                }
+            })),
+            funds: []
+            })
+        } as MsgExecuteContractEncodeObject
+        msgs.push(intentRepayMsg)
+      }
       //2) Close Position
       let closeMsg  = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",

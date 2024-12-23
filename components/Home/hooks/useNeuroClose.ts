@@ -41,8 +41,9 @@ export type UserIntentData = {
  * @param positionIdToRemove Position ID to remove
  * @returns Updated vault data with redistributed yields
  */
-function redistributeYield(data: UserIntentData, positionIdToRemove: number): UserIntentData {
-  const newData: UserIntentData = data;
+function redistributeYield(data: UserIntentData, positionIdToRemove: number): UserIntentData {  
+  // Create a deep copy of the data to avoid mutations
+  const newData: UserIntentData = JSON.parse(JSON.stringify(data));
   
   const intents = newData.intents.purchase_intents;
   
@@ -127,7 +128,7 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
                   position_owner: address, 
                   position_id: position.position_id
                 },
-                repayment: num(position.credit_amount).minus(1000000).toString(),
+                repayment: num(Math.max(parseInt(position.credit_amount), 1000000)).minus(1000000).toString(),
               }
           })),
           funds: []

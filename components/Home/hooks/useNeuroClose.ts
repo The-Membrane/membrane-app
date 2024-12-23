@@ -200,6 +200,7 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })    
     queryClient.invalidateQueries({ queryKey: ['positions'] })
+    queryClient.invalidateQueries({ queryKey: ['useBoundedIntents'] })   
   }
 
   return {

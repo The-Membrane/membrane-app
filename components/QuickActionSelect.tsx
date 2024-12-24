@@ -22,6 +22,7 @@ const chakraStyles: ChakraStylesConfig = {
   }),
   container: (provided, state) => ({
     ...provided,
+    width: '15%',
     padding: 1,
     borderRadius: 16,
     bg: '#C445F0',

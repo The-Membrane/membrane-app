@@ -160,24 +160,28 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
       // & set intents to the new split
       const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
       console.log("updatedIntent data", updatedIntents)
-      const updatedIntentsMsg = {
-        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-        value: MsgExecuteContract.fromPartial({
-        sender: address,
-        contract: contracts.rangeboundLP,
-        msg: toUtf8(JSON.stringify({
-          set_user_intents: {
-              intents: {                
-                user: address,
-                last_conversion_rate: "0", //this isn't updated
-                purchase_intents: updatedIntents.intents.purchase_intents
-              },
-            }
-        })),
-        funds: []
-        })
-      } as MsgExecuteContractEncodeObject
-      msgs.push(updatedIntentsMsg)      
+      //4) Update intents
+      // We only Update if there were more than 1 intent, otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
+      if (userIntents[0].intent.intents.purchase_intents.length > 1 &&  updatedIntents.intents.purchase_intents.length > 0) {
+        const updatedIntentsMsg = {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: MsgExecuteContract.fromPartial({
+          sender: address,
+          contract: contracts.rangeboundLP,
+          msg: toUtf8(JSON.stringify({
+            set_user_intents: {
+                intents: {                
+                  user: address,
+                  last_conversion_rate: "0", //this isn't updated
+                  purchase_intents: updatedIntents.intents.purchase_intents
+                },
+              }
+          })),
+          funds: []
+          })
+        } as MsgExecuteContractEncodeObject
+        msgs.push(updatedIntentsMsg)
+      }
 
       console.log("in query guardian msgs:", msgs)
       

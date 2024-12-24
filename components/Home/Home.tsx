@@ -85,6 +85,7 @@ const Home = React.memo(() => {
       if (positionNum < totalPositions) {
         setPositionNum(positionNum + 1)
         setMintState({ positionNumber: positionNum + 1 })
+        console.log("positionNumber", positionNum + 1, "totalPositions", totalPositions)
       }
     } console.log("why costy", currentPositionCost)
     // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)

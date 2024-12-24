@@ -42,7 +42,7 @@ const NeuroGuardCloseButton = ({ guardedPosition, RBYield }:{ guardedPosition: {
   
     return (<Card key={guardedPosition.position.position_id} width={"100%"} borderColor={""} borderWidth={3} padding={4}>
       <HStack gap={"4%"}>
-        <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {guardedPosition.symbol} earning {num(RBYield).times(guardedPosition.LTV).toFixed(1)}%</Text>
+        <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%" display="flex" justifyContent="center"> {guardedPosition.symbol} earning {num(RBYield).times(guardedPosition.LTV).toFixed(1)}%</Text>
       <TxButton
         maxW="100%"
         isLoading={sheathe?.simulate.isLoading || sheathe?.tx.isPending}
@@ -96,10 +96,10 @@ const NeuroGuardCard = () => {
   const yieldMsg = useMemo(() => {
     console.log("yieldMsg", neuroState?.selectedAsset, rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
     if (neuroState?.selectedAsset && bidState.cdpExpectedAnnualRevenue && TVL && rangeBoundAPR)
-      return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> {neuroState?.selectedAsset?.symbol} could be earning {num(
+      return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%" display="flex" justifyContent="center"> {neuroState?.selectedAsset?.symbol} could be earning {num(
         num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
       ).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
-    else return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%"> Select an asset to see potential yield </Text>
+    else return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%" display="flex" justifyContent="center"> Select an asset to see potential yield </Text>
   }, [bidState.cdpExpectedAnnualRevenue, TVL, rangeBoundAPR, neuroState?.selectedAsset])
 
   //Create an object for all positions that have an intent to compound

@@ -15,6 +15,7 @@ const useVaultSummary = () => {
   const { data: prices } = useOraclePrice()
   const { data: discount } = useUserDiscount(address)
   const { mintState } = useMintState()
+  console.log("positionNumber on top", mintState.positionNumber)
   const { data } = useInitialVaultSummary(mintState.positionNumber-1)
   
   const SumData = useMemo(() => { return data }, [data])  
@@ -46,6 +47,7 @@ const useVaultSummary = () => {
     discount,
   ],
   queryFn: async () => {
+    console.log("positionNumber", mintState.positionNumber)
     console.log("LTVs", initialBorrowLTV, initialLTV, debtAmount, initialTVL, mintState.newDebtAmount,
       mintState.mint,
       mintState.repay)

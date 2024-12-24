@@ -29,6 +29,7 @@ const Home = React.memo(() => {
   const toaster = useToaster()
   const { data: basketPositions } = useUserPositions()
   
+  const { setMintState } = useMintState()
   const [positionNum, setPositionNum] = useState(0)
   const totalPositions = useMemo(() => {
     if (!basketPositions) return undefined
@@ -83,6 +84,7 @@ const Home = React.memo(() => {
       //Go to next position
       if (positionNum < totalPositions) {
         setPositionNum(positionNum + 1)
+        setMintState({ positionNumber: positionNum + 1 })
       }
     } console.log("why costy", currentPositionCost)
     // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)

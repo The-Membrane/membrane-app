@@ -30,7 +30,7 @@ const Home = React.memo(() => {
   const { data: basketPositions } = useUserPositions()
   
   const { setMintState } = useMintState()
-  const [positionNum, setPositionNum] = useState(0)
+  const [positionNum, setPositionNum] = useState(1)
   const totalPositions = useMemo(() => {
     if (!basketPositions) return undefined
     return Math.min(basketPositions[0].positions.length, MAX_CDP_POSITIONS)
@@ -69,7 +69,7 @@ const Home = React.memo(() => {
       // console.log("costy")
       //Toast
       toaster.message({
-        title: `Position ${positionNum+1}`,
+        title: `Position ${positionNum}`,
         message: <><Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a></Text>
         <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text>
         
@@ -81,11 +81,12 @@ const Home = React.memo(() => {
         </> : null}
         </>
       })
+      console.log("positionNumber", positionNum + 1, "totalPositions", totalPositions)
       //Go to next position
       if (positionNum < totalPositions) {
         setPositionNum(positionNum + 1)
         setMintState({ positionNumber: positionNum + 1 })
-        console.log("positionNumber", positionNum + 1, "totalPositions", totalPositions)
+        console.log("inside", positionNum, "totalPositions", totalPositions)
       }
     } console.log("why costy", currentPositionCost)
     // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)

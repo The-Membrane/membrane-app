@@ -164,6 +164,8 @@ const MintTabsCard = React.memo(() => {
 })
 
 const Mint = React.memo(() => {
+  const { setMintState } = useMintState()
+  setMintState({ positionNumber: 1 })
   
   const { data } = useVaultSummary()
   const [summary, setSummary] = useState({

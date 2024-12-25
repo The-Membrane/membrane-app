@@ -33,7 +33,7 @@ const Home = React.memo(() => {
   const [positionNum, setPositionNum] = useState(0)
   const totalPositions = useMemo(() => {
     if (!basketPositions) return undefined
-    return Math.min(basketPositions[0].positions.length - 1, MAX_CDP_POSITIONS)
+    return Math.min(basketPositions[0].positions.length, MAX_CDP_POSITIONS)
   }, [basketPositions])  
   //Memoize 
   const { data } = useVaultSummary()

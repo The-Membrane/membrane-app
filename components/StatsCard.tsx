@@ -41,14 +41,14 @@ export const StatsCard = React.memo(() => {
   const [ isOpen, setOpen ] = useState(false)
 
   return (    
-    <Stack gap={3}>
+    <Stack gap={5}>
       <HStack mt="auto" gap="24" justifyContent={"center"}>
       {titleToggle ?
       
-      <Stack gap={3}>
+      <Stack gap={5}>
         <Text  onClick={()=>setTitleToggle(!titleToggle)} fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
 
-        Scaling Decentralized Stablecoins Within Protective Harmony
+        Scaling Decentralized Stablecoins With Protective Harmony
 
         </Text>
         <Button alignSelf="center" width="20%" minWidth="130px" onClick={() => setOpen(true)}>
@@ -59,7 +59,9 @@ export const StatsCard = React.memo(() => {
         <HStack gap={16} onClick={()=>setTitleToggle(!titleToggle)} ><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
         <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></HStack>}
       </HStack>
+      {/*  */}
       <OnboardModal isOpen={isOpen} setOpen={setOpen}/>
+      {/*  */}
       <Divider mx="0" mb="5" />
     </Stack>
   )

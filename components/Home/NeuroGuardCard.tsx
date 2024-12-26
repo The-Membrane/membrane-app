@@ -44,7 +44,7 @@ const NeuroGuardCloseButton = ({ guardedPosition, RBYield }:{ guardedPosition: {
       <HStack gap={"4%"}>
         <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%" display="flex" justifyContent="center"> {guardedPosition.symbol} earning {num(RBYield).times(guardedPosition.LTV).toFixed(1)}%</Text>
       <TxButton
-        maxW="100%"
+        maxW="25%"
         isLoading={sheathe?.simulate.isLoading || sheathe?.tx.isPending}
         isDisabled={sheathe?.simulate.isError || !sheathe?.simulate.data}
         onClick={() => sheathe?.tx.mutate()}
@@ -96,7 +96,7 @@ const NeuroGuardCard = () => {
   const yieldMsg = useMemo(() => {
     console.log("yieldMsg", neuroState?.selectedAsset, rangeBoundAPR, bidState.cdpExpectedAnnualRevenue, TVL)
     if (neuroState?.selectedAsset && bidState.cdpExpectedAnnualRevenue && TVL && rangeBoundAPR)
-      return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%" display="flex" justifyContent="center"> {neuroState?.selectedAsset?.symbol} could be earning {num(
+      return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%" display="flex" justifyContent="center"> {neuroState?.selectedAsset?.symbol} can earn {num(
         num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1)
       ).times(neuroState?.selectedAsset?.maxBorrowLTV??0).times(0.80).toFixed(1)}%</Text>
     else return <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="35%" display="flex" justifyContent="center"> Select an asset to see potential yield </Text>
@@ -222,7 +222,7 @@ const NeuroGuardCard = () => {
   // const isDisabled = useMemo(() => {return neuro?.simulate.isError || !neuro?.simulate.data }, [neuro?.simulate.isError, neuro?.simulate.data])
   console.log("neuro error", neuro?.simulate.error, neuro?.simulate.isError, !neuro?.simulate.data)
     return (
-      <>
+      <Stack gap={1} marginBottom={"3%"}>
         { existingGuards ? existingGuards.map((guard) => 
           <>{guard ? <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"}/> : null}</>
         ) : null }
@@ -239,7 +239,7 @@ const NeuroGuardCard = () => {
             <NeuroAssetSlider key={neuroState?.selectedAsset?.base} asset={neuroState?.selectedAsset} label={neuroState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />  
             
             { neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) && 
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="18%"> Deposit minimum for {neuroState.selectedAsset?.symbol??"N/A"} is ${((101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) + 1).toFixed(0)}</Text>}
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}  width="18%"> Minimum for {neuroState.selectedAsset?.symbol??"N/A"}: ${((101 / ((neuroState.selectedAsset?.maxBorrowLTV??0) * 0.8)) + 1).toFixed(0)}</Text>}
             
             <TxButton
               w="25%"
@@ -253,7 +253,7 @@ const NeuroGuardCard = () => {
             </TxButton>
            </HStack> 
         </Card>
-      </>
+      </Stack>
     )
 }
 

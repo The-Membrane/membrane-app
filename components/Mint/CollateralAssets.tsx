@@ -4,6 +4,7 @@ import { AssetWithSlider } from './AssetWithSlider'
 import useMintState from './hooks/useMintState'
 import useCombinBalance, { AssetWithBalance } from './hooks/useCombinBalance'
 import { useEffect, useState } from 'react'
+import { colors } from '@/config/defaults'
 
 export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
   return combinBalance
@@ -22,7 +23,7 @@ export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => 
 const CollateralAssets = () => {
   const [toggle, setToggle] = useState<boolean>(false)
   const { mintState, setMintState } = useMintState()
-  const combinBalance = useCombinBalance(mintState.positionNumber-1)
+  const combinBalance = useCombinBalance(mintState.positionNumber - 1)
   const { assets } = mintState
 
   useEffect(() => {
@@ -30,9 +31,9 @@ const CollateralAssets = () => {
     setMintState({ assets: assetsWithValuesGreaterThanZero })
   }, [combinBalance])
 
-  useEffect(() => {    
+  useEffect(() => {
     const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance)
-    
+
     if (toggle) {
       //Replace assets in combinBalance that are in assetsWithValuesGreaterThanZero
       const combinedAssets = combinBalance.map((asset) => {
@@ -60,14 +61,14 @@ const CollateralAssets = () => {
           backgroundColor: 'transparent', // Set background color of the scrollbar to transparent
         },
         '::-webkit-scrollbar-thumb': {
-          backgroundColor: '#05071B', // Set color of the scrollbar thumb to blue
+          backgroundColor: colors.collateralScrollBG, // Set color of the scrollbar thumb to blue
           borderRadius: '6px', // Set border radius of the scrollbar thumb
         },
       }}
     >
-    <Checkbox onChange={()=>setToggle(!toggle)}>
-      Show All Assets
-    </Checkbox>
+      <Checkbox onChange={() => setToggle(!toggle)}>
+        Show All Assets
+      </Checkbox>
       {assets?.map((asset) => {
         return <AssetWithSlider key={asset?.base} asset={asset} label={asset?.symbol} />
       })}

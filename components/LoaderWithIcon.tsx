@@ -1,3 +1,4 @@
+import { colors } from '@/config/defaults'
 import useWallet from '@/hooks/useWallet'
 import { Box, Spinner, Image } from '@chakra-ui/react'
 import React from 'react'
@@ -10,8 +11,8 @@ const LoaderWithIcon = () => {
       <Spinner
         thickness="4px"
         speed="0.65s"
-        emptyColor="rgba(250, 129, 253, 0.57)"
-        color="primary.500"
+        emptyColor={colors.emptyLoader}
+        color={colors.loader}
         size="xl"
         width="100px"
         height="100px"

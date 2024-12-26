@@ -39,6 +39,72 @@ export const loopMax = 5;
 export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
 export const USDC_CL_RATIO = 0.115; //11.5% CL
 
+export const colors = {
+  tabBG: "primary.200",
+  summaryScheme: "rgb(76, 175, 80)",
+  noState: "rgb(158, 158, 158)",
+  link: "primary.200",
+  linkHover: "primary.300",
+  sliderCardBorder: "rgb(102, 51, 153)",
+  slider: "rgb(27, 182, 217)",
+  alert: "rgb(255, 67, 67)",
+  textHighlight: "rgb(225, 79, 255)",
+  earnText: "rgb(192, 184, 185)",
+  sliderThumb: "blue.500",
+  collateralScrollBG: "rgb(6, 8, 31)",
+  sliderTrack: "rgb(192, 184, 185)",
+  walletIcon: "rgb(225, 79, 255)",
+  emptyLoader: "rgba(250, 129, 253, 0.57)",
+  loader: "primary.500",
+  cardBG: "rgb(46, 35, 69)",
+  inputBorder: "rgb(150, 82, 152)",
+  inputBG: "rgb(14, 5, 18)",
+  modalBG: "rgb(23, 25, 46)",
+  textLight: "rgba(255, 255, 255, 0.6)",
+  p100: "rgb(152, 198, 217)",
+  p200: "rgb(0, 187, 255)",
+  p300: "rgb(0, 139, 246)",
+  p400: "rgb(0, 108, 205)",
+  p500: "rgb(0, 84, 175)",
+  p600: "rgb(0, 70, 143)",
+  p700: "rgb(0, 55, 112)",
+  p800: "rgb(0, 40, 79)",
+  p900: "rgb(0, 28, 48)"
+}
+
+// {
+//   tabBG: "primary.200",
+//   summaryScheme: "green",
+//   noState: "gray",
+//   link: "primary.200",
+//   linkHover: "primary.300",
+//   sliderCardBorder: "rebeccapurple",
+//   slider: "#20d6ff",
+//   alert: "#e73a3a",
+//   textHighlight: "rgb(196, 69, 240)",
+//   earnText: "rgb(226, 216, 218)",
+//   sliderThumb: "blue.500",
+//   collateralScrollBG: '#05071B',
+//   sliderTrack: "#E2D8DA",
+//   walletIcon: '#C445F0',
+//   emptyLoader: "rgba(250, 129, 253, 0.57)",
+//   loader: "primary.500",
+//   cardBG: '#281E3C',
+//   inputBorder: '#824784',
+//   inputBG: '#0C0410',
+//   modalBG: '#141628',
+//   textLight: 'rgba(255, 255, 255, 0.6)',
+//   p100: '#B3E9FF',
+//   p200: '#00A3F9',
+//   p300: '#0079D6',
+//   p400: '#005EB2',
+//   p500: '#004998',
+//   p600: '#003D7C',
+//   p700: '#003061',
+//   p800: '#002345',
+//   p900: '#00182A'
+// }
+
 
 /// Mainnet addrs
 export const mainnetAddrs = {
@@ -99,87 +165,87 @@ export const MAX_CDP_POSITIONS = 3;
 export const LPJoinDate = new Date("2024-10-25T17:15:59.903Z");
 //Position IDs of CL range testers
 export const clPositions = [{
-  lowerTick: -200000, 
+  lowerTick: -200000,
   upperTick: -190000,
   id: "9041881"
-},{
-  lowerTick: -190000, 
+}, {
+  lowerTick: -190000,
   upperTick: -180000,
   id: "9041869"
-},{
-  lowerTick: -180000, 
+}, {
+  lowerTick: -180000,
   upperTick: -170000,
   id: "9041865"
-},{
-  lowerTick: -170000, 
+}, {
+  lowerTick: -170000,
   upperTick: -160000,
   id: "9041855"
-},{
-  lowerTick: -160000, 
+}, {
+  lowerTick: -160000,
   upperTick: -150000,
   id: "9041894"
-},{
-  lowerTick: -150000, 
+}, {
+  lowerTick: -150000,
   upperTick: -140000,
   id: "9041827"
-},{
-  lowerTick: -140000, 
+}, {
+  lowerTick: -140000,
   upperTick: -130000,
   id: "9041820"
-},{
-  lowerTick: -130000, 
+}, {
+  lowerTick: -130000,
   upperTick: -120000,
   id: "9041380"
-},{
-  lowerTick: -120000, 
+}, {
+  lowerTick: -120000,
   upperTick: -110000,
   id: "9041365"
-},{
-  lowerTick: -110000, 
+}, {
+  lowerTick: -110000,
   upperTick: -100000,
   id: "9041353"
-},{
-    lowerTick: -100000,
-    upperTick: -90000,
-    id: "9041334"
-  },{
-    lowerTick: -90000, 
-    upperTick: -80000,
-    id: "9041327"
-  },{
-    lowerTick: -80000, 
-    upperTick: -70000,
-    id: "9041321"
-  },{
-    lowerTick: -70000, 
-    upperTick: -60000,
-    id: "9041320"
-  },{
-    lowerTick: -60000, 
-    upperTick: -50000,
-    id: "9041318"
-  },{
-    lowerTick: -50000, 
-    upperTick: -40000,
-    id: "9041313"
-  },{
-    lowerTick: -40000, 
-    upperTick: -30000,
-    id: "9041310"
-  },{
-    lowerTick: -30000, 
-    upperTick: -20000,
-    id: "9041305"
-  },{
-    lowerTick: -20000, 
-    upperTick: -10000,
-    id: "9041299"
-  },
-  {
-    lowerTick: -10000, 
-    upperTick: 100,
-    id: "9041292"
-  },]
+}, {
+  lowerTick: -100000,
+  upperTick: -90000,
+  id: "9041334"
+}, {
+  lowerTick: -90000,
+  upperTick: -80000,
+  id: "9041327"
+}, {
+  lowerTick: -80000,
+  upperTick: -70000,
+  id: "9041321"
+}, {
+  lowerTick: -70000,
+  upperTick: -60000,
+  id: "9041320"
+}, {
+  lowerTick: -60000,
+  upperTick: -50000,
+  id: "9041318"
+}, {
+  lowerTick: -50000,
+  upperTick: -40000,
+  id: "9041313"
+}, {
+  lowerTick: -40000,
+  upperTick: -30000,
+  id: "9041310"
+}, {
+  lowerTick: -30000,
+  upperTick: -20000,
+  id: "9041305"
+}, {
+  lowerTick: -20000,
+  upperTick: -10000,
+  id: "9041299"
+},
+{
+  lowerTick: -10000,
+  upperTick: 100,
+  id: "9041292"
+},]
 
 //all CDT pairs
 export const cdtRoutes = {
@@ -252,7 +318,7 @@ export const cdtRoutes = {
   ],
   "WBTC.axl": [
     {
-      poolId: BigInt(712), 
+      poolId: BigInt(712),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
@@ -264,109 +330,109 @@ export const cdtRoutes = {
   ],
   "WBTC": [
     {
-      poolId: BigInt(1422), 
+      poolId: BigInt(1422),
       tokenOutDenom: denoms["WBTC.axl"][0],
     }
   ],
   "INJ": [
     {
-      poolId: BigInt(1319), 
+      poolId: BigInt(1319),
       tokenOutDenom: denoms.USDC[0],
     }
   ],
   "AKT": [
     {
-      poolId: BigInt(1093), 
+      poolId: BigInt(1093),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "LAB": [
     {
-      poolId: BigInt(1655), 
+      poolId: BigInt(1655),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "DYM": [
     {
-      poolId: BigInt(1449), 
+      poolId: BigInt(1449),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "ISLM": [
     {
-      poolId: BigInt(1632), 
+      poolId: BigInt(1632),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "NLS": [
     {
-      poolId: BigInt(1797), 
+      poolId: BigInt(1797),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "FLIX": [
     {
-      poolId: BigInt(1895), 
+      poolId: BigInt(1895),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "DYDX": [
     {
-      poolId: BigInt(1246), 
+      poolId: BigInt(1246),
       tokenOutDenom: denoms.USDC[0],
     }
   ],
   "stDYDX": [
     {
-      poolId: BigInt(1423), 
+      poolId: BigInt(1423),
       tokenOutDenom: denoms.DYDX[0],
     }
   ],
   "UMEE": [
     {
-      poolId: BigInt(1110), 
+      poolId: BigInt(1110),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "LVN": [
     {
-      poolId: BigInt(1325), 
+      poolId: BigInt(1325),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "USTC": [
     {
-      poolId: BigInt(560), 
+      poolId: BigInt(560),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "JKL": [
     {
-      poolId: BigInt(832), 
+      poolId: BigInt(832),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "QSR": [
     {
-      poolId: BigInt(1314), 
+      poolId: BigInt(1314),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "DVPN": [
     {
-      poolId: BigInt(5), 
+      poolId: BigInt(5),
       tokenOutDenom: denoms.OSMO[0],
     }
   ],
   "SOL": [
     {
-      poolId: BigInt(1294), 
+      poolId: BigInt(1294),
       tokenOutDenom: denoms.USDC[0],
     }
   ],
   "SAGA": [
     {
-      poolId: BigInt(1671), 
+      poolId: BigInt(1671),
       tokenOutDenom: denoms.USDC[0],
     }
   ],

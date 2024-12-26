@@ -1,3 +1,4 @@
+import { colors } from '@/config/defaults'
 import type { ComponentStyleConfig } from '@chakra-ui/react'
 
 export const Input: ComponentStyleConfig = {
@@ -18,14 +19,14 @@ export const Input: ComponentStyleConfig = {
     outline: {
       field: {
         border: '1px solid',
-        borderColor: '#824784',
-        color: 'primary.200',
-        background: '#0C0410',
+        borderColor: colors.inputBorder,
+        color: colors.link,
+        background: colors.inputBG,
         _focusVisible: {
-          borderColor: 'primary.200',
+          borderColor: colors.link,
         },
         _hover: {
-          borderColor: 'primary.200',
+          borderColor: colors.link,
         },
       },
     },

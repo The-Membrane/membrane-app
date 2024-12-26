@@ -3,6 +3,7 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { Asset, getAssetLogo } from '@/helpers/chain'
 import useBidState from './hooks/useBidState'
+import { colors } from '@/config/defaults'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -52,7 +53,7 @@ const SummaryItem = ({
           </Text>
         </HStack>
 
-        <Badge fontSize="10px" colorScheme="green">
+        <Badge fontSize="10px" colorScheme={colors.summaryScheme}>
           {badge}
         </Badge>
       </HStack>

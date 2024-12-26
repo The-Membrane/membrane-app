@@ -13,7 +13,7 @@ const SelectFile = ({ openFilePicker }: { openFilePicker: () => void }) => {
       type="button"
       onClick={openFilePicker}
       bg="whiteAlpha.300"
-      color="blck"
+      color="black"
       boxShadow="none"
       fontSize="sm"
       w="fit-content"

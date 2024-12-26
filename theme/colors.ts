@@ -1,16 +1,18 @@
 import type { DeepPartial, Theme } from '@chakra-ui/react'
+import { colors as configColors } from '@/config/defaults'
+
 
 /** extend additional color here */
 export const colors: DeepPartial<Record<string, Theme['colors']['blackAlpha']>> = {
   primary: {
-    '100': '#B3E9FF',
-    '200': '#00A3F9',
-    '300': '#0079D6',
-    '400': '#005EB2',
-    '500': '#004998',
-    '600': '#003D7C',
-    '700': '#003061',
-    '800': '#002345',
-    '900': '#00182A',
+    '100': configColors.p100,
+    '200': configColors.p200,
+    '300': configColors.p300,
+    '400': configColors.p400,
+    '500': configColors.p500,
+    '600': configColors.p600,
+    '700': configColors.p700,
+    '800': configColors.p800,
+    '900': configColors.p900,
   },
 }

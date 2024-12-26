@@ -1,3 +1,4 @@
+import { colors } from '@/config/defaults'
 import { cardAnatomy } from '@chakra-ui/anatomy'
 import { createMultiStyleConfigHelpers } from '@chakra-ui/react'
 
@@ -11,7 +12,7 @@ const baseStyle = definePartsStyle({
     // boxShadow: '0px 0px 24px 0px rgba(250, 129, 253, 0.32)',
     // backdropFilter: 'blur(50px)',
     // bg: '#141628',
-    bg: '#281E3C',
+    bg: colors.cardBG,
     padding: '6',
   },
   header: {},

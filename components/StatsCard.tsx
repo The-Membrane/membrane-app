@@ -38,29 +38,29 @@ export const StatsCard = React.memo(() => {
 
   const [titleToggle, setTitleToggle] = React.useState(true)
   //Onboard Modal
-  const [ isOpen, setOpen ] = useState(false)
+  const [isOpen, setOpen] = useState(false)
 
-  return (    
+  return (
     <Stack gap={5}>
       <HStack mt="auto" gap="24" justifyContent={"center"}>
-      {titleToggle ?
-      
-      <Stack gap={5}>
-        <Text  onClick={()=>setTitleToggle(!titleToggle)} fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
+        {titleToggle ?
 
-        Scaling Decentralized Stablecoins With Protective Harmony
+          <Stack gap={5}>
+            <Text onClick={() => setTitleToggle(!titleToggle)} fontWeight="bold" fontSize="33px" fontFamily="monospace" justifyContent="center" display="flex" textAlign="center">
 
-        </Text>
-        <Button alignSelf="center" width="20%" minWidth="130px" onClick={() => setOpen(true)}>
-          Add Funds
-        </Button>
-      </Stack>
-           :
-        <HStack gap={16} onClick={()=>setTitleToggle(!titleToggle)} ><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
-        <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></HStack>}
+              Scaling Decentralized Stablecoins in Protective Harmony
+
+            </Text>
+            <Button alignSelf="center" width="20%" minWidth="130px" onClick={() => setOpen(true)}>
+              Add Funds
+            </Button>
+          </Stack>
+          :
+          <HStack gap={16} onClick={() => setTitleToggle(!titleToggle)} ><Stats label="TVL" value={Formatter.currency(tvl, 0)} />
+            <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /></HStack>}
       </HStack>
       {/*  */}
-      <OnboardModal isOpen={isOpen} setOpen={setOpen}/>
+      <OnboardModal isOpen={isOpen} setOpen={setOpen} />
       {/*  */}
       <Divider mx="0" mb="5" />
     </Stack>

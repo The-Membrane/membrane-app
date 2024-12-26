@@ -3,6 +3,7 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { Asset, getAssetLogo } from '@/helpers/chain'
 import useBidState from './hooks/useBidState'
+import { colors } from '@/config/defaults'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -29,11 +30,11 @@ const SummaryItem = ({
         Bidding on {premium === 10 ? 'All Assets' : null}
       </Text>
       <HStack>
-        {premium !== 10 ? <><Image src={selectedAsset?.logo} w="30px" h="30px" /> 
-        <Text variant="value" textTransform="unset">
-          {selectedAsset?.symbol}
-        </Text></>
-        : null}
+        {premium !== 10 ? <><Image src={selectedAsset?.logo} w="30px" h="30px" />
+          <Text variant="value" textTransform="unset">
+            {selectedAsset?.symbol}
+          </Text></>
+          : null}
       </HStack>
     </Stack>
 
@@ -53,7 +54,7 @@ const SummaryItem = ({
           </Text>
         </HStack>
 
-        <Badge fontSize="10px" colorScheme="green">
+        <Badge fontSize="10px" colorScheme={colors.summaryScheme}>
           {badge}
         </Badge>
         <Text variant="value" textTransform="unset">

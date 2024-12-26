@@ -21,6 +21,7 @@ import useStabilityAssetPool from './hooks/useStabilityAssetPool'
 import useWithdrawStabilityPool from './hooks/useWithdrawStabilityPool'
 import useBidState from './hooks/useBidState'
 import dayjs from 'dayjs'
+import { colors } from '@/config/defaults'
 
 
 export const getSPTimeLeft = (unstakeStartDate: number) => {
@@ -58,7 +59,7 @@ const WithdrawButton = ({ amount }: { amount: string }) => {
     <TxButton
       w="150px"
       px="10"
-      isDisabled={!isGreaterThanZero(amount)}      
+      isDisabled={!isGreaterThanZero(amount)}
       isLoading={withdraw.action.simulate.isLoading || withdraw.action.tx.isPending}
       onClick={() => withdraw.action.tx.mutate()}
     >
@@ -86,7 +87,7 @@ const CountDown = ({ timeString, amount }: { timeString: string; amount: string 
 }
 
 const Action = ({ deposit, amount }: { deposit: Deposit; amount: string }) => {
-  if (!deposit.unstake_time || getSPTimeLeft(deposit.unstake_time).minutesLeft > 0){
+  if (!deposit.unstake_time || getSPTimeLeft(deposit.unstake_time).minutesLeft > 0) {
     return <UnstakeButton amount={amount} />
   }
 
@@ -157,7 +158,7 @@ const StabilityPool = ({ setActiveTabIndex }: Props) => {
   const { bidState, setBidState } = useBidState()
 
   const changeTab = () => {
-    setBidState({placeBid: {...bidState?.placeBid, premium: 10}})
+    setBidState({ placeBid: { ...bidState?.placeBid, premium: 10 } })
     setActiveTabIndex(0)
   };
 
@@ -165,9 +166,9 @@ const StabilityPool = ({ setActiveTabIndex }: Props) => {
     return (
       <Card p="8" alignItems="center" gap={5}>
         <Text variant="title" fontSize="24px">
-        My Omni-Bids
+          My Omni-Bids
         </Text>
-        <Text color="gray">You don't have any deposits in the omni-asset pool.</Text>
+        <Text color={colors.noState}>You don't have any deposits in the omni-asset pool.</Text>
         <Button onClick={changeTab}>
           Bid in Omni-Pool - Set Premium to 10%
         </Button>

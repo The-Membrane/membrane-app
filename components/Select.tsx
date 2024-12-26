@@ -1,3 +1,4 @@
+import { colors } from '@/config/defaults'
 import { Select as ChakraSelect, ChakraStylesConfig, OptionProps } from 'chakra-react-select'
 
 const chakraStyles: ChakraStylesConfig = {
@@ -22,7 +23,7 @@ const chakraStyles: ChakraStylesConfig = {
     ...provided,
     padding: 1,
     borderRadius: 16,
-    bg: '#C445F0',
+    bg: colors.walletIcon,
     color: '#fff',
   }),
   option: (provided) => ({
@@ -32,10 +33,10 @@ const chakraStyles: ChakraStylesConfig = {
     cursor: 'pointer',
     width: 'full',
     _selected: {
-      bg: '#C445F0',
+      bg: colors.walletIcon,
     },
     _hover: {
-      bg: '#C445F0',
+      bg: colors.walletIcon,
     },
   }),
   menuList: (provided, state) => ({

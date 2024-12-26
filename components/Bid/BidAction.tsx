@@ -16,7 +16,7 @@ const CustomTab = ({ onClick, children }: TabProps) => (
     border="1px solid white"
     width={"40%"}
     onClick={onClick}
-    _selected={{ fontWeight: 'normal', color: 'white', bg: 'primary.200', border: 'none' }}
+    _selected={{ fontWeight: 'normal', color: "white", bg: "primary.200", border: 'none' }}
   >
     {children}
   </Tab>
@@ -29,7 +29,7 @@ const BidAction = () => {
     setActiveTabIndex(index);
     console.log("tab log", activeTabIndex)
   };
-  
+
   return (
     <Tabs variant="soft-rounded" size="sm" colorScheme="primary" index={activeTabIndex}>
       <HStack w="full">
@@ -48,7 +48,7 @@ const BidAction = () => {
           <MyBid />
         </TabPanel>
         <TabPanel px="0">
-          <StabilityPool setActiveTabIndex={setActiveTabIndex}/>
+          <StabilityPool setActiveTabIndex={setActiveTabIndex} />
         </TabPanel>
       </TabPanels>
     </Tabs>

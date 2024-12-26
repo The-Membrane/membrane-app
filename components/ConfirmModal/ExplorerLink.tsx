@@ -1,6 +1,7 @@
 import { Text, HStack, Link } from '@chakra-ui/react'
 import React, { useMemo } from 'react'
 import useWallet from '@/hooks/useWallet'
+import { colors } from '@/config/defaults'
 
 type Explorer = {
   name?: string
@@ -35,7 +36,7 @@ export const ExplorerLink = ({ txHash }: { txHash: string | undefined }) => {
       <Text fontWeight="bold" fontSize="xs" color="white">
         Transaction hash
       </Text>
-      <Link isExternal href={txLink} style={{ margin: 'unset' }} fontSize="xs" color="primary.200">
+      <Link isExternal href={txLink} style={{ margin: 'unset' }} fontSize="xs" color={colors.link}>
         {[first4, last4].join('...')}
       </Link>
     </HStack>

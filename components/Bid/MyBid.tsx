@@ -16,6 +16,7 @@ import UpdateBidSummary from './UpdateBidSummary'
 import useBidState from './hooks/useBidState'
 import useUpdateBid from './hooks/useUpdateBid'
 import useUserBids from './hooks/useUserBids'
+import { colors } from '@/config/defaults'
 
 type MyBidItemProps = {
   bid: Bid
@@ -103,14 +104,14 @@ const MyBid = () => {
         <Text variant="title" fontSize="24px" textAlign={"center"}>
           My {bidState?.selectedAsset?.symbol ?? ""} Bids
         </Text>
-        <Text color="gray">No active bids</Text>
+        <Text color={colors.noState}>No active bids</Text>
       </Card>
     )
   }
   return (
     <Card p="8" alignItems="center" gap={5}>
       <Text variant="title" fontSize="24px" textAlign={"center"}>
-          My {bidState?.selectedAsset?.symbol ?? ""} Bids
+        My {bidState?.selectedAsset?.symbol ?? ""} Bids
       </Text>
 
       {bids?.map((bid) => <MyBidItem key={bid?.id} bid={bid} />)}

@@ -9,10 +9,11 @@ import useCombinBalance from './hooks/useCombinBalance'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import React from 'react'
+import { colors } from '@/config/defaults'
 
 const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean }) => {
   return (
-    <Text fontSize="sm" color="red.500" mt="2" minH="21px">
+    <Text fontSize="sm" color={colors.alert} mt="2" minH="21px">
       {(overdraft && ltvChange) ? 'Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? 'Withdrawal amount exceeds the maximum LTV.' : minDebt ? 'Minimum debt is 100 CDT unless fully repaying' : ' '}
     </Text>
   )
@@ -20,7 +21,7 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = fals
 
 const TakeAction = React.memo(() => {
   const { mintState, setMintState } = useMintState()
-  const combinBalance = useCombinBalance(mintState.positionNumber-1)
+  const combinBalance = useCombinBalance(mintState.positionNumber - 1)
   const { data } = useVaultSummary()
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = data || {
     debtAmount: 0,

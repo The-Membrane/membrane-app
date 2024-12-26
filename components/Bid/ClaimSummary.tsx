@@ -4,6 +4,7 @@ import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { Asset } from '@chain-registry/types'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
+import { colors } from '@/config/defaults'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -46,7 +47,7 @@ const SummaryItem = ({
       </HStack>
 
       {showBadge && (
-        <Badge fontSize="10px" colorScheme="green">
+        <Badge fontSize="10px" colorScheme={colors.summaryScheme}>
           {badge}
         </Badge>
       )}

@@ -7,6 +7,7 @@ import { TxButton } from '../TxButton'
 import dayjs from 'dayjs'
 import useClaimUnstake from './hooks/useClaimUnstake'
 import useWallet from '@/hooks/useWallet'
+import { colors } from '@/config/defaults'
 
 type Props = {}
 
@@ -66,14 +67,14 @@ const Unstaking = (props: Props) => {
   const { data } = useStaked()
   const { unstaking } = useMemo(() => data || { unstaking: [] }, [data])
   const { address } = useWallet()
-  const { action: claim } = useClaimUnstake({address: address, sim: true})
+  const { action: claim } = useClaimUnstake({ address: address, sim: true })
 
   console.log("unstaking", data)
 
   if (!unstaking?.length)
     return (
       <HStack justifyContent="center" mt="5">
-        <Text fontSize="sm" color="gray">
+        <Text fontSize="sm" color={colors.noState}>
           You have no unstaking assets
         </Text>
       </HStack>

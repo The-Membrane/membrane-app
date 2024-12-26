@@ -20,6 +20,7 @@ import {
 import useAllocation from './hooks/useAllocation'
 import useClaimFees from './hooks/useClaimFees'
 import useWithdrawUnlocked from './hooks/useWithdrawUnlocked'
+import { colors } from '@/config/defaults'
 
 type Props = {}
 
@@ -103,7 +104,7 @@ const TokenAllocation = (props: Props) => {
         </TableContainer>
 
         {!claimables?.length && (
-          <Text color="gray.400" fontSize="sm" textAlign="center">
+          <Text color={colors.noState} fontSize="sm" textAlign="center">
             No claimable assets
           </Text>
         )}

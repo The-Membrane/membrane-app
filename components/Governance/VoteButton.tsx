@@ -5,6 +5,7 @@ import useCastVote from './hooks/useCastVote'
 import { ProposalVoteOption } from '@/contracts/codegen/governance/Governance.types'
 import { TxButton } from '@/components/TxButton'
 import useVotingPower from './hooks/useVotingPower'
+import { colors } from '@/config/defaults'
 
 type Props = {
   show: boolean
@@ -23,10 +24,10 @@ const VoteButton = ({ show, vote, proposalId, isEnded = false }: Props) => {
 
   if (!show || isLoading) return null
 
-  if (isEnded) return <Text color="gray">Voting period has ended</Text>
+  if (isEnded) return <Text color={colors.noState}>Voting period has ended</Text>
 
   if (Number(votingPower) === 0)
-    return <Text color="gray">You have no voting power for this proposal</Text>
+    return <Text color={colors.noState}>You have no voting power for this proposal</Text>
 
   return (
     <TxButton
@@ -36,7 +37,7 @@ const VoteButton = ({ show, vote, proposalId, isEnded = false }: Props) => {
       fontSize="sm"
       isDisabled={!!!vote}
       isLoading={castVote.tx.isPending}
-      onClick={() => castVote.simulate.refetch().then( () => {castVote.tx.mutate()})}
+      onClick={() => castVote.simulate.refetch().then(() => { castVote.tx.mutate() })}
       toggleConnectLabel={false}
     >
       Vote

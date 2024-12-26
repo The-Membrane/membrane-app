@@ -20,6 +20,7 @@ import {
 import { FaXTwitter, FaDiscord } from 'react-icons/fa6'
 import useDelegator from './hooks/useDelegator'
 import { num } from '@/helpers/num'
+import { colors } from '@/config/defaults'
 
 type Delegator = {
   name: string
@@ -59,7 +60,7 @@ const Delegator = ({ name, socials, address }: Delegator) => {
                 pb="1"
               >
                 <Text color="whiteAlpha.600">Address</Text>
-                <Link isExternal href={`https://www.mintscan.io/osmosis/address/${address}`}>
+                <Link isExternal href={`https://www.mintscan.io/osmosis/address/${address}`} color={colors.link}>
                   {truncate(address, 'osmo')}
                 </Link>
               </HStack>

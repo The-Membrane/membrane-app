@@ -1,17 +1,18 @@
 import type { ComponentStyleConfig } from '@chakra-ui/react'
+import { colors } from '@/config/defaults'
 
 export const Text: ComponentStyleConfig = {
   variants: {
     title: {
       fontSize: 'xl',
       fontWeight: 'bold',
-      color: '#E2D8DA',
+      color: colors.sliderTrack,
       // textShadow: '0px 0px 8px rgba(223, 140, 252, 0.80)',
       letterSpacing: '8px',
       textTransform: 'uppercase',
     },
     lable: {
-      color: '#E2D8DA',
+      color: colors.sliderTrack,
       // textShadow: '0px 0px 8px rgba(223, 140, 252, 0.80)',
       fontSize: 'md',
       fontWeight: 'bold',
@@ -19,7 +20,7 @@ export const Text: ComponentStyleConfig = {
       textTransform: 'uppercase',
     },
     value: {
-      color: '#E2D8DA',
+      color: colors.sliderTrack,
       // textShadow: '0px 0px 8px rgba(223, 140, 252, 0.80)',
       fontSize: 'xs',
       fontWeight: 'bold',
@@ -27,7 +28,7 @@ export const Text: ComponentStyleConfig = {
       textTransform: 'uppercase',
     },
     light: {
-      color: 'rgba(255, 255, 255, 0.6)',
+      color: colors.textLight,
     },
   },
 }

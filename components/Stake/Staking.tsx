@@ -11,6 +11,7 @@ import { Summary } from './Summary'
 import useStakeing from './hooks/useStake'
 import useStakeState from './hooks/useStakeState'
 import useStaked from './hooks/useStaked'
+import { colors } from '@/config/defaults'
 
 const Stakeing = () => {
   const [stakeAmount, setStakeAmount] = useState(0)
@@ -63,13 +64,13 @@ const Stakeing = () => {
   if (num(totalBalance).isLessThanOrEqualTo(0)) {
     return (
       <Stack gap="2" mt="5">
-        <Text fontSize="sm" color="gray">
+        <Text fontSize="sm" color={colors.noState}>
           You currently don't have any MBRN in your account. You can acquire MBRN tokens through
           Osmosis DEX.
         </Text>
         <Link
           alignSelf="flex-end"
-          color="primary.200"
+          color={colors.link}
           href="https://app.osmosis.zone/?from=OSMO&to=MBRN"
           isExternal
         >

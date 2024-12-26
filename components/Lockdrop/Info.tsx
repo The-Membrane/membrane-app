@@ -1,5 +1,6 @@
 import React from 'react'
 import { Card, Heading, Link, Stack, Text } from '@chakra-ui/react'
+import { colors } from '@/config/defaults'
 
 const Info = () => {
   return (
@@ -18,7 +19,7 @@ const Info = () => {
           unstaking) in accordance to the ratio of said shares. MBRN claims unlock daily for a year post-launch.
           <Link
             fontSize="sm"
-            color="primary.200"
+            color={colors.link}
             isExternal
             ml="1"
             href="https://membrane-finance.gitbook.io/membrane-docs-1/protocol/lockdrop-launch"
@@ -37,7 +38,7 @@ const Info = () => {
           control over vested stake.
           <Link
             fontSize="sm"
-            color="primary.200"
+            color={colors.link}
             isExternal
             ml="1"
             href="https://membrane-finance.gitbook.io/membrane-docs-1/protocol/mbrn-tokenomics"

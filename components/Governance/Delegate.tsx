@@ -24,7 +24,7 @@ const Delegate = () => {
     <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
       <HStack justifyContent="space-between" w="full">
         <Text variant="value">Delegate to Support</Text>
-        <BecomeDelegate />
+        {/* <BecomeDelegate /> */}
       </HStack>
       <DelegateList />
     </Card>

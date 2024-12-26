@@ -1,3 +1,4 @@
+import { colors } from '@/config/defaults'
 import { Slider, SliderFilledTrack, SliderThumb, SliderTrack } from '@chakra-ui/react'
 import React from 'react'
 
@@ -26,10 +27,10 @@ export const SliderWithState = ({ value = 0, onChange, min = 0, max = 100, walle
       onChange={onChange}
       isDisabled={max === 0 && (walletCDT === 0 || summary.length === 0)}
     >
-      <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
-        <SliderFilledTrack bg={color ?? "#C445F0"} />
+      <SliderTrack bg={colors.sliderTrack} h="2" borderRadius="80px">
+        <SliderFilledTrack bg={color ?? colors.slider} />
       </SliderTrack>
-      <SliderThumb boxSize={6} bg={color ?? "#C445F0"} cursor="grab" border="2px solid #E2D8DA" zIndex={0}/>
+      <SliderThumb boxSize={6} bg={color ?? colors.slider} cursor="grab" border="2px solid #E2D8DA" zIndex={0} />
     </Slider>
   )
 }

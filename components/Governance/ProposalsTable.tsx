@@ -8,6 +8,7 @@ import ProposalDetails from './ProposalDetails'
 import useProposals from './hooks/useProposals'
 import { Search } from './Search'
 import { ProposalResponse } from '@/services/governance'
+import { colors } from '@/config/defaults'
 
 export type Filter = {
   status: string
@@ -38,7 +39,7 @@ const NoProposals = ({ show }: { show: boolean }) => {
   if (!show) return null
   return (
     <Box p="3" bg="whiteAlpha.200" borderRadius="lg" textAlign="center">
-      <Text fontSize="md" color="gray.300">
+      <Text fontSize="md" color={colors.noState}>
         No proposals fit this filter
       </Text>
     </Box>
@@ -49,19 +50,19 @@ const EndsIn = ({ days, hours, minutes }: { days: number; hours: number; minutes
   if (!days && !hours && !minutes) return null
   if (days === 0 && hours === 0)
     return (
-      <Text color="gray" fontSize="sm">
+      <Text color={colors.noState} fontSize="sm">
         Ends in: {minutes} {minutes === 1 ? 'minute' : 'minutes'}
       </Text>
     )
   else if (days === 0)
     return (
-      <Text color="gray" fontSize="sm">
+      <Text color={colors.noState} fontSize="sm">
         Ends in: {hours} {hours === 1 ? 'hour' : 'hours'}
       </Text>
     )
   else
     return (
-      <Text color="gray" fontSize="sm">
+      <Text color={colors.noState} fontSize="sm">
         Ends in: {days} {days === 1 ? 'day' : 'days'}
       </Text>
     )

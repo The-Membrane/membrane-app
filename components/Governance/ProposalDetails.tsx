@@ -36,6 +36,7 @@ import useWallet from '@/hooks/useWallet'
 import ActionButtons from './ActionButtons'
 import useProposalById from './hooks/useProposalById'
 import { num } from '@/helpers/num'
+import { colors } from '@/config/defaults'
 
 type Props = {
   proposal: ProposalResponse
@@ -48,7 +49,7 @@ const CreatedBy = ({ submitter }: { submitter: string }) => {
       <Text fontSize="sm" color="whiteAlpha.700">
         Created by:
       </Text>
-      <Link isExternal href={url} color="primary.200">
+      <Link isExternal href={url} color={colors.link}>
         {truncate(submitter, 'osmo')}
       </Link>
     </HStack>
@@ -70,7 +71,7 @@ const ProposalLink = ({ link }: { link?: string | null }) => {
       <Text fontSize="sm" color="whiteAlpha.700">
         Link:
       </Text>
-      <Link isExternal href={link} color="primary.200">
+      <Link isExternal href={link} color={colors.link}>
         proposal discussion
       </Link>
     </HStack>
@@ -204,7 +205,7 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
   const isVoteAllowed =
     (proposal?.status === 'active' || proposal?.status === 'pending') && !proposalDetails?.voted
   const isPending = proposal?.status === 'pending'
-    
+
   const { days, hours, minutes } = proposal?.daysLeft || {}
   const isEnded = !days && !hours && !minutes
 

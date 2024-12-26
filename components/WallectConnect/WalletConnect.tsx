@@ -1,4 +1,5 @@
 import { WalletIcon } from '@/components/Icons'
+import { colors } from '@/config/defaults'
 import { truncate } from '@/helpers/truncate'
 import useWallet from '@/hooks/useWallet'
 import { Button, HStack, Icon, Stack, Text } from '@chakra-ui/react'
@@ -8,7 +9,7 @@ import { RxExit } from 'react-icons/rx'
 const hoverStyles = {
   borderRadius: '8px',
   border: '1px solid #C445F0',
-  color: '#C445F0',
+  color: colors.walletIcon,
 }
 
 const WalletConnect = () => {
@@ -26,20 +27,20 @@ const WalletConnect = () => {
         as={Button}
         variant="unstyled"
         _hover={hoverStyles}
-        justifyContent={{base: "center", md: "start"}}
+        justifyContent={{ base: "center", md: "start" }}
         fontWeight="normal"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => disconnect()}
-        leftIcon={<Icon as={RxExit} boxSize={5} color={isHovered ? '#C445F0' : 'white'} />}
-        color={isHovered ? '#C445F0' : 'white'}
+        leftIcon={<Icon as={RxExit} boxSize={5} color={isHovered ? colors.walletIcon : 'white'} />}
+        color={isHovered ? colors.walletIcon : 'white'}
         py="6"
         pl="2"
         bg="whiteAlpha.100"
       >
         <Stack gap="-2px" alignItems="flex-start" ml="-6px">
           <Text fontSize="sm">{username}</Text>
-          <Text fontSize="xs" color="gray">
+          <Text fontSize="xs" color={colors.noState}>
             {shortAddress}
           </Text>
         </Stack>
@@ -52,13 +53,13 @@ const WalletConnect = () => {
       as={Button}
       variant="unstyled"
       _hover={hoverStyles}
-      justifyContent={{base: "center", md: "start"}}
+      justifyContent={{ base: "center", md: "start" }}
       fontWeight="normal"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={connect}
     >
-      <WalletIcon color={isHovered ? '#C445F0' : 'white'} />
+      <WalletIcon color={isHovered ? colors.walletIcon : 'white'} />
       <Text fontSize="lg">Wallet</Text>
     </HStack>
   )

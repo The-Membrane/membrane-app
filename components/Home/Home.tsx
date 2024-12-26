@@ -14,6 +14,7 @@ import useToaster from '@/hooks/useToaster'
 import { num } from '@/helpers/num'
 import useMintState from '../Mint/hooks/useMintState'
 import NeuroGuardCard from './NeuroGuardCard'
+import { colors } from '@/theme/colors'
 
 
 const Home = React.memo(() => {
@@ -24,17 +25,17 @@ const Home = React.memo(() => {
     setIsExpanded(!isExpanded)
   }
 
-  
+
   ////Setting up the Toaster for all position Costs////
   const toaster = useToaster()
   const { data: basketPositions } = useUserPositions()
-  
+
   const { setMintState } = useMintState()
   const [positionNum, setPositionNum] = useState(1)
   const totalPositions = useMemo(() => {
     if (!basketPositions) return undefined
     return Math.min(basketPositions[0].positions.length, MAX_CDP_POSITIONS)
-  }, [basketPositions])  
+  }, [basketPositions])
   //Memoize 
   const { data } = useVaultSummary()
   const summary = useMemo(() => {
@@ -50,7 +51,7 @@ const Home = React.memo(() => {
       costRatios: []
     }
   }, [data])
-  
+
   const currentPositionCost = useMemo(() => {
     return summary.discountedCost
   }, [summary.discountedCost])
@@ -70,15 +71,15 @@ const Home = React.memo(() => {
       //Toast
       toaster.message({
         title: `Position ${positionNum}`,
-        message: <><Text>Health: <a style={health <= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{Math.min(health, 100)}%</a></Text>
-        <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? {fontWeight:"bold", color:"rgb(231, 58, 58)"} : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text>
-        
-        {ratesOverTen.length > 0 ? <>
-          <Text style={{marginTop:"5%"}}>{`\n`}Your Collateral Rates Over 10%:</Text>
-          {ratesOverTen.map((rate: any) => {
-            return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({num(rate.ratio).toFixed(2)}% of CDP)</Text>
-          })}
-        </> : null}
+        message: <><Text>Health: <a style={health <= 10 ? { fontWeight: "bold", color: colors.alert } : {}}>{Math.min(health, 100)}%</a></Text>
+          <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? { fontWeight: "bold", color: colors.alert } : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text>
+
+          {ratesOverTen.length > 0 ? <>
+            <Text style={{ marginTop: "5%" }}>{`\n`}Your Collateral Rates Over 10%:</Text>
+            {ratesOverTen.map((rate: any) => {
+              return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({num(rate.ratio).toFixed(2)}% of CDP)</Text>
+            })}
+          </> : null}
         </>
       })
       console.log("positionNumber", positionNum + 1, "totalPositions", totalPositions)
@@ -91,16 +92,16 @@ const Home = React.memo(() => {
     } console.log("why costy", currentPositionCost)
     // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)
   }, [currentPositionCost])
-  
-  
-  
+
+
+
   return (
     <Stack>
       <Stack>
         <StatsCard />
       </Stack>
       <Stack>
-        <div className="paddingBottom" onMouseEnter={()=>{setSign("on")}} onMouseLeave={()=>{setSign("on")}}>
+        <div className="paddingBottom" onMouseEnter={() => { setSign("on") }} onMouseLeave={() => { setSign("on") }}>
           <h5 className={`neonSign${sign}`}>
             <b>
               <a>E</a><span>X</span><a>P</a><span>E</span><a>R</a><span>I</span><a>M</a><span>E</span><a>N</a><span>T</span><a>A</a><span>L</span>
@@ -110,10 +111,10 @@ const Home = React.memo(() => {
           </h5>
         </div>
         <NeuroGuardCard />
-        <Stack >          
-          <Stack direction={isMobile ? 'column' : 'row'} width="100%" marginBottom={isExpanded ? "3vh" : "0"}>  
-            <RangeBoundVisual />          
-            <RangeBoundLPCard />  
+        <Stack >
+          <Stack direction={isMobile ? 'column' : 'row'} width="100%" marginBottom={isExpanded ? "3vh" : "0"}>
+            <RangeBoundVisual />
+            <RangeBoundLPCard />
           </Stack>
           {/* <Stack >
             <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center">

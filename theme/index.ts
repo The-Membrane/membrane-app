@@ -1,13 +1,14 @@
 import { extendTheme, withDefaultColorScheme } from '@chakra-ui/react'
 import { fonts, fontSizes, fontWeights } from './fonts'
 import { colors } from './colors'
+import { colors as configColors } from '@/config/defaults'
 import { components } from './components'
 
 const global = {
   'html, body': {
-    bg: '#05071B',
+    bg: configColors.globalBG,
     // background: "radial-gradient(66.3% 66.3% at 72.54% 59.91%, rgba(17, 16, 21, 0.00) 0%, rgba(17, 16, 21, 0.00) 42%, #111015 100%)",
-    color: '#E2D8D',
+    color: configColors.global,
     width: '100vw',
     height: '100vh',
   },

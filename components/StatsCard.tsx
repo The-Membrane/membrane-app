@@ -52,7 +52,7 @@ export const StatsCard = React.memo(() => {
 
             </Text>
             <Button alignSelf="center" width="20%" minWidth="130px" onClick={() => setOpen(true)}>
-              Add Funds
+              Add Funds to Osmosis
             </Button>
           </Stack>
           :

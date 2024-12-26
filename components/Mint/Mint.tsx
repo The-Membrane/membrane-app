@@ -163,10 +163,7 @@ const MintTabsCard = React.memo(() => {
   )
 })
 
-const Mint = React.memo(() => {
-  const { setMintState } = useMintState()
-  setMintState({ positionNumber: 1 })
-  
+const Mint = React.memo(() => {  
   const { data } = useVaultSummary()
   const [summary, setSummary] = useState({
     newDebtAmount: 0,

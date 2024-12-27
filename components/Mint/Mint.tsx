@@ -24,7 +24,7 @@ import React from "react"
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { Pagination } from '../Governance/Pagination'
 import { useUserPositions } from '@/hooks/useCDP'
-import { MAX_CDP_POSITIONS } from '@/config/defaults'
+import { colors, MAX_CDP_POSITIONS } from '@/config/defaults'
 import useVaultSummary from './hooks/useVaultSummary'
 import { num } from '@/helpers/num'
 
@@ -71,8 +71,8 @@ const PaginationBar = ({ pagination }: PaginationProps) => {
   )
 }
 
-const HealthSlider = ({ summary }: {summary: any}) => {
-  
+const HealthSlider = ({ summary }: { summary: any }) => {
+
   const health = useMemo(() => {
     if (summary.ltv === 0) return 100
     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
@@ -82,27 +82,27 @@ const HealthSlider = ({ summary }: {summary: any}) => {
   if (health <= (1 - summary.borrowLTV / summary.liqudationLTV) * 100 && health > 10 && health < 100)
     color = '#5e4220'
   if (health <= 10) color = 'red.400'
-  return(
+  return (
     <Slider
-        defaultValue={health}
-        isReadOnly
-        cursor="default"
-        min={0}
-        max={100}
-        value={health}
-        width={"100%"}
-      >
-        <SliderTrack h="9" display={"flex"} borderRadius={"xl"}>
-          <SliderFilledTrack bg={color} />
-          <Box width={"100%"} justifyContent="center"display="flex" zIndex="999">
-            <Text fontSize="large" color={"white"} zIndex="999" fontWeight="bold"  alignSelf="center">
-              Health: {health}%
-            </Text>
-          </Box>
-        </SliderTrack>
-      </Slider>
+      defaultValue={health}
+      isReadOnly
+      cursor="default"
+      min={0}
+      max={100}
+      value={health}
+      width={"100%"}
+    >
+      <SliderTrack h="9" display={"flex"} borderRadius={"xl"}>
+        <SliderFilledTrack bg={color} />
+        <Box width={"100%"} justifyContent="center" display="flex" zIndex="999">
+          <Text fontSize="large" color={"white"} zIndex="999" fontWeight="bold" alignSelf="center">
+            Health: {health}%
+          </Text>
+        </Box>
+      </SliderTrack>
+    </Slider>
   )
-  
+
 }
 
 const MintTabsCard = React.memo(() => {
@@ -116,7 +116,7 @@ const MintTabsCard = React.memo(() => {
 
   const onTabChange = (index: number) => {
     setMintState({ isTakeAction: index === 1 })
-  }  
+  }
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   const handleTabClick = (index: number) => {
@@ -140,7 +140,7 @@ const MintTabsCard = React.memo(() => {
             top="0"
             position="absolute"
             height="40px"
-            bg="#C445F0"
+            bg={colors.walletIcon}
             borderRadius="28px"
           />
           <TabPanels paddingBottom={activeTabIndex === 1 ? 0 : 4}>
@@ -157,13 +157,13 @@ const MintTabsCard = React.memo(() => {
           isFirst: mintState.positionNumber === 1,
           isLast: mintState.positionNumber === totalPages,
           setPage: undefined
-        }}/>
+        }} />
       </VStack>
     </Card>
   )
 })
 
-const Mint = React.memo(() => {  
+const Mint = React.memo(() => {
   const { data } = useVaultSummary()
   const [summary, setSummary] = useState({
     newDebtAmount: 0,
@@ -179,13 +179,13 @@ const Mint = React.memo(() => {
 
   useEffect(() => {
     if (data) {
-      setSummary({...data}); // Only update if data is available
+      setSummary({ ...data }); // Only update if data is available
     }
   }, [data]); // Runs when `data` changes
 
   return (
     <Stack gap="2rem" paddingTop="4%">
-      <HealthSlider summary={summary}/>
+      <HealthSlider summary={summary} />
       <HStack alignItems="flex-start">
         <MintTabsCard />
         <CurrentPositions />

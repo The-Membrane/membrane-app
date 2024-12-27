@@ -246,7 +246,7 @@ const NeuroGuardCard = () => {
             toggleConnectLabel={false}
             style={{ alignSelf: "center" }}
           >
-            Start Passive Yield
+            Open Loan for Passive Yield
           </TxButton>
         </HStack>
       </Card>

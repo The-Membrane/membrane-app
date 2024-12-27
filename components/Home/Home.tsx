@@ -8,13 +8,12 @@ import RangeBoundLPCard from './RangeBoundLPCard'
 import RangeBoundVisual from './RangeBoundVisual'
 import { FaArrowDown, FaArrowUp } from 'react-icons/fa6'
 import useVaultSummary from '../Mint/hooks/useVaultSummary'
-import { MAX_CDP_POSITIONS } from '@/config/defaults'
+import { colors, MAX_CDP_POSITIONS } from '@/config/defaults'
 import { useUserPositions } from '@/hooks/useCDP'
 import useToaster from '@/hooks/useToaster'
 import { num } from '@/helpers/num'
 import useMintState from '../Mint/hooks/useMintState'
 import NeuroGuardCard from './NeuroGuardCard'
-import { colors } from '@/theme/colors'
 
 
 const Home = React.memo(() => {

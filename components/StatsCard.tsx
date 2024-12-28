@@ -51,7 +51,7 @@ export const StatsCard = React.memo(() => {
               Scaling Decentralized Stablecoins in Protective Harmony
 
             </Text>
-            <Button alignSelf="center" width="20%" minWidth="130px" onClick={() => setOpen(true)}>
+            <Button alignSelf="center" width="21%" minWidth="130px" onClick={() => setOpen(true)}>
               Add Funds to Osmosis
             </Button>
           </Stack>

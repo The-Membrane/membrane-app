@@ -111,6 +111,7 @@ const Home = React.memo(() => {
         </div>
         <NeuroGuardCard />
         <Stack >
+          <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} display="flex" color={colors.earnText}>The Membrane</Text>
           <Stack direction={isMobile ? 'column' : 'row'} width="100%" marginBottom={isExpanded ? "3vh" : "0"}>
             <RangeBoundVisual />
             <RangeBoundLPCard />

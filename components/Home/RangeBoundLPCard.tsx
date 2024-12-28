@@ -149,12 +149,12 @@ const RangeBoundLPCard = () => {
       <Stack>
         <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Earn CDT</Text>
         <Stack>
-          <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: "#20d6ff" }}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
+          <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.earnText }}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
           <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.earnText }}>Estimated APR: &nbsp;</a>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
         </Stack>
         <Divider marginBottom={"3vh"} />
         <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-          <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: "#20d6ff", }}>Yield:</a> Revenue & Swap Fees</ListItem>
+          <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: colors.earnText, }}>Yield:</a> Revenue & Swap Fees</ListItem>
           <ListItem fontFamily="Inter" fontSize="md">
             <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? shiftDigits(bidState.cdpExpectedAnnualRevenue, -6).times(0.80).dividedBy(86400 * 365).toNumber() : 0} precision={8} />
           </ListItem>

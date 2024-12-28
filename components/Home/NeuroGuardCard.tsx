@@ -29,7 +29,7 @@ import { Coin } from '@cosmjs/stargate'
 import { NeuroAssetSlider } from "./NeuroAssetSlider"
 import { useBoundedIntents } from "../Earn/hooks/useEarnQueries"
 import { getBestCLRange } from "@/services/osmosis"
-import { LPJoinDate } from "@/config/defaults"
+import { colors, LPJoinDate } from "@/config/defaults"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import useNeuroClose from "./hooks/useNeuroClose"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
@@ -223,6 +223,7 @@ const NeuroGuardCard = () => {
   console.log("neuro error", neuro?.simulate.error, neuro?.simulate.isError, !neuro?.simulate.data)
   return (
     <Stack gap={1} marginBottom={"3%"}>
+      <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Neuro-Guards</Text>
       <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
         <HStack gap={"4%"}>
           {yieldMsg}

@@ -79,7 +79,7 @@ const RangeBoundVisual = () => {
               w="84%"
               h="22%"
               marginTop="1%"
-              bg="#5f71ed"
+              bg={colors.rangeBoundBox}
               alignItems="center"
               justifyContent="center"
               borderRadius="md"
@@ -95,7 +95,7 @@ const RangeBoundVisual = () => {
               w="84%"
               h="22%"
               marginBottom="9%"
-              bg="#5f71ed"
+              bg={colors.rangeBoundBox}
               alignItems="center"
               justifyContent="center"
               borderRadius="md"

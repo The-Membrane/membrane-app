@@ -235,8 +235,8 @@ const NeuroGuardCard = () => {
           {/* @ts-ignore */}
           <NeuroAssetSlider key={neuroState?.selectedAsset?.base} asset={neuroState?.selectedAsset} label={neuroState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />
 
-          {neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (101 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) &&
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="18%"> Minimum for {neuroState.selectedAsset?.symbol ?? "N/A"}: ${((101 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}</Text>}
+          {neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) &&
+            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} width="18%"> Minimum for {neuroState.selectedAsset?.symbol ?? "N/A"}: ${((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}</Text>}
 
           <TxButton
             w="25%"

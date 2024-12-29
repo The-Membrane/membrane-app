@@ -65,6 +65,7 @@ const NeuroGuardCard = () => {
   const { data: userIntents } = useBoundedIntents()
   const { neuroState, setNeuroState } = useNeuroState()
   const { assets: usableAssets } = neuroState
+  console.log("usable assets", usableAssets)
   const { action: neuro } = useNeuroGuard()
 
   // Define priority order for specific symbols

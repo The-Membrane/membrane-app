@@ -253,7 +253,7 @@ const NeuroGuardCard = () => {
       </Card>
       {/*  */}
       {existingGuards ? existingGuards.map((guard) =>
-        <HStack gap={"1%"} rowGap="3%" display={"grid"} gridTemplateColumns={"repeat(3, 1fr)"} gridTemplateRows={"repeat(1, 1fr)"}>{guard ? <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}</HStack>
+        <HStack gap={"1%"} rowGap="5%" display={"grid"} gridTemplateColumns={"repeat(3, 1fr)"} gridTemplateRows={"repeat(1, 1fr)"}>{guard ? <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}</HStack>
       ) : null}
     </Stack>
   )

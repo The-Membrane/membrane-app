@@ -262,11 +262,12 @@ const NeuroGuardCard = () => {
           <Stack justifyContent="center">
             {isExpanded ? <>
               <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-                <Text variant="title" mt={2} mb={1}>Can I get liquidated?  </Text>
+                <Divider mt={2} />
+                <Text variant="title" mb={1} fontSize="lg">Can I get liquidated?  </Text>
                 <ListItem fontFamily="Inter" fontSize="md">Potentially. The product is built to use your loan to repay instead of having to sell collateral for it. If it malfunctions, your loan will go through a normal liquidation cycle, liquidating collateral to repay 25% of the loan. The LTV is set from 36-45% for most assets. The position can be seen in detail on the Mint page. </ListItem>
-                <Text variant="title" mb={1}>Where does the yield come from?</Text>
+                <Text variant="title" mb={1} fontSize="lg">Where does the yield come from?</Text>
                 <ListItem fontFamily="Inter" fontSize="md">The Membrane vault right below this. Its a range bound concentrated liquidity position that is distributed 80% of protocol revenue, revenue sourced from loan interest rates.</ListItem>
-                <Text variant="title" mb={1}>Who automates this? Is it centralized?</Text>
+                <Text variant="title" fontSize="lg">Who automates this? Is it centralized?</Text>
                 <ListItem fontFamily="Inter" fontSize="md">You pay for automation with 1% of the collected yield on compounds. Compounds can be initiated by anyone and opportunities to do so will be available to search for in the app.</ListItem>
               </List>
             </> : null}

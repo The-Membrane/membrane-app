@@ -18,11 +18,7 @@ import NeuroGuardCard from './NeuroGuardCard'
 
 const Home = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
-  const [sign, setSign] = useState("on");
-  const [isExpanded, setIsExpanded] = useState(false)
-  const onExpansion = () => {
-    setIsExpanded(!isExpanded)
-  }
+  // const [sign, setSign] = useState("on");
 
 
   ////Setting up the Toaster for all position Costs////
@@ -112,28 +108,10 @@ const Home = React.memo(() => {
         <NeuroGuardCard />
         <Stack >
           <Text variant="title" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>The Membrane</Text>
-          <Stack direction={isMobile ? 'column' : 'row'} width="100%" marginBottom={isExpanded ? "3vh" : "0"}>
+          <Stack direction={isMobile ? 'column' : 'row'} width="100%" >
             <RangeBoundVisual />
             <RangeBoundLPCard />
           </Stack>
-          {/* <Stack >
-            <Stack direction={isMobile ? 'column' : 'row'} justifyContent="center">
-              {isExpanded ? <>
-                <SPCard />
-                <EarnCard /> 
-              </> : null }    
-            </Stack>
-            <Button 
-              variant="ghost" 
-              width={"fit-content"} 
-              padding={"16px"} 
-              alignSelf={"center"}
-              margin={"2%"}
-              rightIcon={!isExpanded ? <FaArrowDown /> : undefined} 
-              leftIcon={isExpanded ? <FaArrowUp /> : undefined}
-              onClick={onExpansion} 
-            > {!isExpanded ? "More" : "Less"} Vaults </Button>
-          </Stack>       */}
         </Stack>
       </Stack>
     </Stack>

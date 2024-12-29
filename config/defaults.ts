@@ -75,6 +75,7 @@ export const colors = {
   p900: "rgb(4, 24, 39)"
 }
 
+//Original colors
 // {
 //   tabBG: "primary.200",
 //     summaryScheme: "green",

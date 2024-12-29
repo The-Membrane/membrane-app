@@ -33,6 +33,7 @@ import { colors, LPJoinDate } from "@/config/defaults"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import useNeuroClose from "./hooks/useNeuroClose"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
+import { FaArrowDown, FaArrowUp } from "react-icons/fa6"
 
 
 const NeuroGuardCloseButton = ({ guardedPosition, RBYield }: { guardedPosition: { position: PositionResponse, symbol: String, LTV: string }, RBYield: string }) => {
@@ -220,6 +221,12 @@ const NeuroGuardCard = () => {
   }
 
 
+  const [isExpanded, setIsExpanded] = useState(false)
+  const onExpansion = () => {
+    setIsExpanded(!isExpanded)
+  }
+
+
   // const isDisabled = useMemo(() => {return neuro?.simulate.isError || !neuro?.simulate.data }, [neuro?.simulate.isError, neuro?.simulate.data])
   console.log("neuro error", neuro?.simulate.error, neuro?.simulate.isError, !neuro?.simulate.data)
   return (
@@ -251,6 +258,30 @@ const NeuroGuardCard = () => {
             Open Loan for Passive Yield
           </TxButton>
         </HStack>
+        <Stack >
+          <Stack justifyContent="center">
+            {isExpanded ? <>
+              <List spacing={3} styleType="disc" padding="6" paddingTop="0">
+                <Text variant="body" mb={1}>Can I get liquidated?  </Text>
+                <ListItem fontFamily="Inter" fontSize="md">Potentially. The product is built to use your loan to repay instead of having to sell collateral for it. If it malfunctions, your loan will go through a normal liquidation cycle, liquidating collateral to repay 25% of the loan. The LTV is set from 36-45% for most assets. The position can be seen in detail on the Mint page. </ListItem>
+                <Text variant="body" mb={1}>Where does the yield come from?</Text>
+                <ListItem fontFamily="Inter" fontSize="md">The Membrane vault right below this. Its a range bound concentrated liquidity position that is distributed 80% of protocol revenue, revenue sourced from loan interest rates.</ListItem>
+                <Text variant="body" mb={1}>Who automates this? Is it centralized?</Text>
+                <ListItem fontFamily="Inter" fontSize="md">You pay for automation with 1% of the collected yield on compounds. Compounds can be initiated by anyone and opportunities to do so will be available to search for in the app.</ListItem>
+              </List>
+            </> : null}
+          </Stack>
+          <Button
+            variant="ghost"
+            width={"fit-content"}
+            padding={"16px"}
+            alignSelf={"center"}
+            margin={"2%"}
+            rightIcon={!isExpanded ? <FaArrowDown /> : undefined}
+            leftIcon={isExpanded ? <FaArrowUp /> : undefined}
+            onClick={onExpansion}
+          > {!isExpanded ? "Open" : "Close"} FAQ </Button>
+        </Stack>
       </Card>
       {/*  */}
       {existingGuards ? existingGuards.map((guard) =>

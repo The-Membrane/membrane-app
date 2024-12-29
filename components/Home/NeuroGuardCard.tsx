@@ -233,40 +233,40 @@ const NeuroGuardCard = () => {
     <Stack gap={1} marginBottom={"3%"}>
       <Text variant="title" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} marginBottom={"1%"} display="flex" color={colors.earnText}>Neuro-Guards</Text>
       <Card width={"100%"} borderColor={""} borderWidth={3} padding={4}>
-        <HStack gap={"4%"}>
-          {yieldMsg}
-          <AssetsWithBalanceMenu
-            width="15%"
-            value={neuroState?.selectedAsset}
-            onChange={onAssetMenuChange}
-            assets={usableAssets}
-          />
-          {/* @ts-ignore */}
-          <NeuroAssetSlider key={neuroState?.selectedAsset?.base} asset={neuroState?.selectedAsset} label={neuroState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />
-
-          {neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) &&
-            <Text variant="title" textAlign={"center"} fontSize={"lg"} letterSpacing={"1px"} width="18%"> Minimum for {neuroState.selectedAsset?.symbol ?? "N/A"}: ${((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}</Text>}
-
-          <TxButton
-            w="30%"
-            isLoading={neuro?.simulate.isLoading || neuro?.tx.isPending}
-            isDisabled={neuro?.simulate.isError || !neuro?.simulate.data}
-            onClick={() => neuro?.tx.mutate()}
-            toggleConnectLabel={false}
-            style={{ alignSelf: "center" }}
-          >
-            Open Loan for Passive Yield
-          </TxButton>
-        </HStack>
         <Stack >
+          <HStack gap={"4%"}>
+            {yieldMsg}
+            <AssetsWithBalanceMenu
+              width="15%"
+              value={neuroState?.selectedAsset}
+              onChange={onAssetMenuChange}
+              assets={usableAssets}
+            />
+            {/* @ts-ignore */}
+            <NeuroAssetSlider key={neuroState?.selectedAsset?.base} asset={neuroState?.selectedAsset} label={neuroState?.selectedAsset?.symbol} onChangeExt={onSliderChange} />
+
+            {neuroState.selectedAsset?.combinUsdValue && neuroState.selectedAsset?.combinUsdValue < (21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) &&
+              <Text variant="title" textAlign={"center"} fontSize={"lg"} letterSpacing={"1px"} width="18%"> Minimum for {neuroState.selectedAsset?.symbol ?? "N/A"}: ${((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}</Text>}
+
+            <TxButton
+              w="30%"
+              isLoading={neuro?.simulate.isLoading || neuro?.tx.isPending}
+              isDisabled={neuro?.simulate.isError || !neuro?.simulate.data}
+              onClick={() => neuro?.tx.mutate()}
+              toggleConnectLabel={false}
+              style={{ alignSelf: "center" }}
+            >
+              Open Loan for Passive Yield
+            </TxButton>
+          </HStack>
           <Stack justifyContent="center">
             {isExpanded ? <>
               <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-                <Text variant="body" mb={1}>Can I get liquidated?  </Text>
+                <Text variant="title" mt={2} mb={1}>Can I get liquidated?  </Text>
                 <ListItem fontFamily="Inter" fontSize="md">Potentially. The product is built to use your loan to repay instead of having to sell collateral for it. If it malfunctions, your loan will go through a normal liquidation cycle, liquidating collateral to repay 25% of the loan. The LTV is set from 36-45% for most assets. The position can be seen in detail on the Mint page. </ListItem>
-                <Text variant="body" mb={1}>Where does the yield come from?</Text>
+                <Text variant="title" mb={1}>Where does the yield come from?</Text>
                 <ListItem fontFamily="Inter" fontSize="md">The Membrane vault right below this. Its a range bound concentrated liquidity position that is distributed 80% of protocol revenue, revenue sourced from loan interest rates.</ListItem>
-                <Text variant="body" mb={1}>Who automates this? Is it centralized?</Text>
+                <Text variant="title" mb={1}>Who automates this? Is it centralized?</Text>
                 <ListItem fontFamily="Inter" fontSize="md">You pay for automation with 1% of the collected yield on compounds. Compounds can be initiated by anyone and opportunities to do so will be available to search for in the app.</ListItem>
               </List>
             </> : null}
@@ -274,9 +274,9 @@ const NeuroGuardCard = () => {
           <Button
             variant="ghost"
             width={"fit-content"}
-            padding={"16px"}
+            padding={"0"}
             alignSelf={"center"}
-            margin={"2%"}
+            margin={"0"}
             rightIcon={!isExpanded ? <FaArrowDown /> : undefined}
             leftIcon={isExpanded ? <FaArrowUp /> : undefined}
             onClick={onExpansion}

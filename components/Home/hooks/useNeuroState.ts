@@ -12,7 +12,7 @@ export type NeuroState = {
   selectedAsset?: AssetWithBalance
   position_to_close?: number
   assets: AssetWithBalance[]
-  guardedPositions: string[] 
+  guardedPositions: string[]
 
 }
 
@@ -23,8 +23,9 @@ type Store = {
 }
 
 const initialState: NeuroState = {
-    assets: [],
-    guardedPositions: [],
+  assets: [{ symbol: "WBTC" }],
+  guardedPositions: [],
+  selectedAsset: { symbol: "WBTC" },
 }
 
 // @ts-ignore

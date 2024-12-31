@@ -75,11 +75,11 @@ export const RulesModal = () => {
           />
           <ModalBody p="58px 23px" position="relative" zIndex={1}>
             <Stack h="full">
-              <Text variant="title" fontSize={isMobile ? "md" : "45px"} textAlign="center" py={4}>
+              <Text variant="title" fontSize={isMobile ? "45px" : "45px"} textAlign="center" py={4}>
                 MEMBRANE RULES
               </Text>
 
-              <UnorderedList spacing={1} pl="10">
+              <UnorderedList spacing={1} pl="7">
                 {rules.map((rule, index) => (
                   <ListItem key={index} fontSize={isMobile ? "sm" : "lg"} fontWeight="bold">
                     {rule}

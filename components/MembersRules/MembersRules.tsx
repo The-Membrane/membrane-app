@@ -5,7 +5,7 @@ import { RulesModal } from './RulesModal'
 export const rules = [
   'Sovereign individuals only',
   "Your experience is your own responsibility/liability, not the website host's",
-  'If your jurisdiction is banned, do not enter',
+  "If your jurisdiction is banned, don't enter",
   "Once you're in, you're within",
 ]
 

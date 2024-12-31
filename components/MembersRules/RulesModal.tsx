@@ -75,7 +75,7 @@ export const RulesModal = () => {
           />
           <ModalBody p="58px 23px" position="relative" zIndex={1}>
             <Stack h="full">
-              <Text variant="title" fontSize={isMobile ? "45px" : "45px"} textAlign="center" py={4}>
+              <Text variant="title" fontSize={isMobile ? "20px" : "45px"} textAlign="center" py={4}>
                 MEMBRANE RULES
               </Text>
 

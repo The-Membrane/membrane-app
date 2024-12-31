@@ -21,18 +21,18 @@ import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 
 export type UserIntentData = {
-    vault_tokens: string,
-    intents: {
-      user: string, 
-      last_conversion_rate: string,
-      purchase_intents: {
-        desired_asset: string,
-        route: any | undefined,
-        yield_percent: string,
-        position_id: number | undefined,
-        slippage: string | undefined
-      }[]
-    }
+  vault_tokens: string,
+  intents: {
+    user: string,
+    last_conversion_rate: string,
+    purchase_intents: {
+      desired_asset: string,
+      route: any | undefined,
+      yield_percent: string,
+      position_id: number | undefined,
+      slippage: string | undefined
+    }[]
+  }
 }
 
 /**
@@ -41,36 +41,36 @@ export type UserIntentData = {
  * @param positionIdToRemove Position ID to remove
  * @returns Updated vault data with redistributed yields
  */
-function redistributeYield(data: UserIntentData, positionIdToRemove: number): UserIntentData {  
+function redistributeYield(data: UserIntentData, positionIdToRemove: number): UserIntentData {
   // Create a deep copy of the data to avoid mutations
   const newData: UserIntentData = JSON.parse(JSON.stringify(data));
-  
+
   const intents = newData.intents.purchase_intents;
-  
+
   console.log("here")
   const positionIndex = intents.findIndex(intent => intent.position_id !== undefined && intent.position_id === positionIdToRemove);
-  
+
   // If position not found, return original data
   if (positionIndex === -1) {
     return data;
   }
   console.log("here1")
-  
+
   // Get the yield percentage that needs to be redistributed
   const yieldToRedistribute = parseFloat(intents[positionIndex].yield_percent);
-  
+
   // Remove the position
   intents.splice(positionIndex, 1);
   console.log("here2")
-  
+
   // If there are no remaining intents, return the data
   if (intents.length === 0) {
     return newData;
   }
-  
+
   // Calculate the additional yield each remaining intent will receive
   const additionalYieldPerIntent = yieldToRedistribute / intents.length;
-  
+
   console.log("here3")
   // Redistribute the yield
   intents.forEach(intent => {
@@ -80,11 +80,11 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
 
   newData.intents.purchase_intents = intents;
   console.log("here4")
-  
+
   return newData;
 }
 
-const useNeuroClose = ({ position } : { position: PositionResponse }) => { 
+const useNeuroClose = ({ position }: { position: PositionResponse }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()
@@ -104,9 +104,9 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
       userIntents
     ],
     queryFn: () => {
-    //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
+      //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
 
-      if (!address || !position || !basket || !assets || !userIntents) {console.log("neuroClose early return", address, position, basket, assets, userIntents); return { msgs: [] }}
+      if (!address || !position || !basket || !assets || !userIntents) { console.log("neuroClose early return", address, position, basket, assets, userIntents); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       //Find the user intent for the position to close
@@ -118,40 +118,40 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
       //1) Repay using intented VTs
       // Leave 1 CDT to allow the ClosePosition to never fail
       if (Number(position.credit_amount) > 1000000) {
-        let intentRepayMsg  = {
-            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-            value: MsgExecuteContract.fromPartial({
+        let intentRepayMsg = {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: MsgExecuteContract.fromPartial({
             sender: address,
             contract: contracts.rangeboundLP,
             msg: toUtf8(JSON.stringify({
               repay_user_debt: {
-                  user_info: {
-                    position_owner: address, 
-                    position_id: position.position_id
-                  },
-                  repayment: num(position.credit_amount).minus(1000000).toString(),
-                }
+                user_info: {
+                  position_owner: address,
+                  position_id: position.position_id
+                },
+                repayment: num(position.credit_amount).minus(1000000).toString(),
+              }
             })),
             funds: []
-            })
+          })
         } as MsgExecuteContractEncodeObject
         msgs.push(intentRepayMsg)
       }
       //2) Close Position
-      
+
       if (Number(position.credit_amount) > 0) {
-        let closeMsg  = {
+        let closeMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: contracts.cdp,
-          msg: toUtf8(JSON.stringify({
-            close_position: {            
-              position_id: position.position_id,
-              max_spread: "0.02"
-            }
-          })),
-          funds: []
+            sender: address,
+            contract: contracts.cdp,
+            msg: toUtf8(JSON.stringify({
+              close_position: {
+                position_id: position.position_id,
+                max_spread: "0.02"
+              }
+            })),
+            funds: []
           })
         } as MsgExecuteContractEncodeObject
         msgs.push(closeMsg)
@@ -162,29 +162,29 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
       console.log("updatedIntent data", updatedIntents)
       //4) Update intents
       // We only Update if there were more than 1 intent, otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
-      if (userIntents[0].intent.intents.purchase_intents.length > 1 &&  updatedIntents.intents.purchase_intents.length > 0) {
+      if (userIntents[0].intent.intents.purchase_intents.length > 1 && updatedIntents.intents.purchase_intents.length > 0) {
         const updatedIntentsMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: contracts.rangeboundLP,
-          msg: toUtf8(JSON.stringify({
-            set_user_intents: {
-                intents: {                
+            sender: address,
+            contract: contracts.rangeboundLP,
+            msg: toUtf8(JSON.stringify({
+              set_user_intents: {
+                intents: {
                   user: address,
                   last_conversion_rate: "0", //this isn't updated
                   purchase_intents: updatedIntents.intents.purchase_intents
                 },
               }
-          })),
-          funds: []
+            })),
+            funds: []
           })
         } as MsgExecuteContractEncodeObject
         msgs.push(updatedIntentsMsg)
       }
 
       console.log("in query guardian msgs:", msgs)
-      
+
       return { msgs }
     },
     enabled: !!address,
@@ -196,24 +196,25 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
     // retry: false
     /////ERRORS ON THE 3RD OR 4TH MODAL OPEN, CHECKING TO SEE IF ITS THE INVALIDATED QUERY////
   })
-  
-  const  msgs = queryData?.msgs ?? []
+
+  const msgs = queryData?.msgs ?? []
 
   console.log("neuroClose msgs:", msgs)
 
   const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })    
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['useBoundedIntents'] })   
+    queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
   }
 
   return {
     action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['home_page_neuroClose', (msgs?.toString()??"0")],
-    onSuccess: onInitialSuccess,
-    enabled: !!msgs,
-  })}
+      msgs,
+      queryKey: ['home_page_neuroClose', (msgs?.toString() ?? "0")],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs,
+    })
+  }
 }
 
 export default useNeuroClose

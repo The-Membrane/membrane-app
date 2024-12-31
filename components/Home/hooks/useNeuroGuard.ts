@@ -155,7 +155,7 @@ const useNeuroGuard = () => {
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['useBoundedIntents'] })
+    queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
   }
 
   return {

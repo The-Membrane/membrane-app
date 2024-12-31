@@ -22,8 +22,9 @@ import { GrPowerReset } from "react-icons/gr"
 import useBoundedManage from "./hooks/useRangeBoundLPManage"
 import useRangeBoundLP from "./hooks/useRangeBoundLP"
 import { getBestCLRange } from "@/services/osmosis"
-import { colors, LPJoinDate } from "@/config/defaults"
+import { colors, LPJoinDate, mainnetAddrs } from "@/config/defaults"
 import YieldCounter from "./YieldCounter"
+import { useRpcClient } from "@/hooks/useRpcClient"
 
 const ActSlider = React.memo(() => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -113,8 +114,26 @@ const RangeBoundLPCard = () => {
   useEstimatedAnnualInterest(false)
   //Get total deposit tokens
   const { data: TVL } = useBoundedTVL()
-  // const { data: intents } = getBoundedCDTBalance()
-  // console.log("underlying laods in the main componeneT?", intents)
+  //Query balance of the buffer in the vault
+  const { getRpcClient } = useRpcClient("osmosis")
+  const rpcClient = await getRpcClient()
+  const rbLPBalances = await rpcClient.cosmos.bank.v1beta1
+    .allBalances({
+      address: mainnetAddrs.rangeboundLP,
+      pagination: {
+        key: new Uint8Array(),
+        offset: BigInt(0),
+        limit: BigInt(1000),
+        countTotal: false,
+        reverse: false,
+      },
+    })
+    .then((res) => {
+      return res.balances
+    })
+  //Find the amount of the buffer
+  const amountToManage = rbLPBalances?.find((balance) => balance.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.amount ?? "0"
+
 
   const { data: basket } = useBasket()
   const { data: realizedAPR } = useBoundedCDTRealizedAPR()
@@ -142,7 +161,7 @@ const RangeBoundLPCard = () => {
 
 
   const { bidState } = useBidState()
-  const isDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data }, [manage?.simulate.isError, manage?.simulate.data])
+  const isDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero() }, [manage?.simulate.isError, manage?.simulate.data])
 
   return (
     <Card width={isMobile ? "100%" : "50%"} borderColor={""} borderWidth={3} padding={4}>

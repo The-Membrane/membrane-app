@@ -15,7 +15,7 @@ const MembersRules = () => {
   return (
     <Center
       w="1440px"
-      h="1080px"
+      h="80vh"
       margin="auto"
       bg="#111015"
       position="relative"

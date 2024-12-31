@@ -36,14 +36,14 @@ import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import { FaArrowDown, FaArrowUp } from "react-icons/fa6"
 
 
-const NeuroGuardCloseButton = ({ guardedPosition, RBYield }: { guardedPosition: { position: PositionResponse, symbol: String, LTV: string }, RBYield: string }) => {
+const NeuroGuardCloseButton = ({ guardedPosition, RBYield }: { guardedPosition: { position: PositionResponse, symbol: String, LTV: string, amount: string }, RBYield: string }) => {
   const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
   console.log("sheathe error", sheathe?.simulate.error, sheathe?.simulate.isError, !sheathe?.simulate.data)
   console.log("guarded LTV in fn", guardedPosition.LTV, RBYield)
 
   return (<Card key={guardedPosition.position.position_id} width={"100%"} borderColor={""} borderWidth={3} padding={4}>
     <HStack gap={"11%"}>
-      <Text variant="title" textAlign={"center"} fontSize={"lg"} letterSpacing={"1px"} width="55%" display="flex" justifyContent="center"> {guardedPosition.symbol} earning {num(RBYield).times(guardedPosition.LTV).toFixed(1)}%</Text>
+      <Text variant="title" textAlign={"center"} fontSize={"lg"} letterSpacing={"1px"} width="55%" display="flex" justifyContent="center"> {guardedPosition.amount} {guardedPosition.symbol} earning {num(RBYield).times(guardedPosition.LTV).toFixed(1)}%</Text>
       <TxButton
         maxW="25%"
         isLoading={sheathe?.simulate.isLoading || sheathe?.tx.isPending}
@@ -134,6 +134,7 @@ const NeuroGuardCard = () => {
         // console.log("guarded LTV in creation", LTV, creditValue, assetValue, position.credit_amount, asset.asset.amount, assetPrice, creditPrice)
         return {
           position: position,
+          amount: shiftDigits(asset.asset.amount, -(assetDecimals)).toFixed(2),
           symbol: fullAssetInfo?.symbol ?? "N/A",
           LTV
         }

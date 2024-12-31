@@ -12,6 +12,7 @@ import { useBalanceByAsset } from "@/hooks/useBalance"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
 import { use } from "react"
+import { mainnetAddrs } from "@/config/defaults"
 
 export const useBoundedConfig = () => {
     return useQuery({
@@ -215,6 +216,35 @@ export const useBoundedCDTRealizedAPR = () => {
             return { apr: APR.dividedBy(runningDuration / (86400 * 365)).toString(), negative, runningDuration: num(runningDuration).dividedBy(86400).dp(0) }
 
         },
+    })
+}
+
+//Get the CDTBalance of the rangebound LP vault
+export const useRBLPCDTBalance = () => {
+    const { getRpcClient } = useRpcClient("osmosis")
+
+    return useQuery({
+        queryKey: ['useRBLPCDTBalance'],
+        queryFn: async () => {
+            //Query balance of the buffer in the vault
+            const rpcClient = await getRpcClient()
+            const rbLPBalances = await rpcClient.cosmos.bank.v1beta1
+                .allBalances({
+                    address: mainnetAddrs.rangeboundLP,
+                    pagination: {
+                        key: new Uint8Array(),
+                        offset: BigInt(0),
+                        limit: BigInt(1000),
+                        countTotal: false,
+                        reverse: false,
+                    },
+                })
+                .then((res) => {
+                    return res.balances
+                })
+            //Find the amount of the buffer
+            return rbLPBalances?.find((balance) => balance.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.amount ?? "0"
+        }
     })
 }
 

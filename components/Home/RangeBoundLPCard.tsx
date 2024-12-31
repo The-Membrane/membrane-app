@@ -4,7 +4,7 @@ import useSPCompound from "./hooks/useSPCompound"
 import { useEffect, useMemo, useState } from "react"
 import useStabilityAssetPool from "../Bid/hooks/useStabilityAssetPool"
 import { isGreaterThanZero, num } from "@/helpers/num"
-import { useBoundedCDTVaultTokenUnderlying, useBoundedCDTRealizedAPR, getBoundedCDTBalance, useBoundedCDTBalance, useEstimatedAnnualInterest, useBoundedTVL } from "../Earn/hooks/useEarnQueries"
+import { useBoundedCDTVaultTokenUnderlying, useBoundedCDTRealizedAPR, getBoundedCDTBalance, useBoundedCDTBalance, useEstimatedAnnualInterest, useBoundedTVL, useRBLPCDTBalance } from "../Earn/hooks/useEarnQueries"
 import useBidState from "../Bid/hooks/useBidState"
 import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
@@ -108,32 +108,15 @@ const ActSlider = React.memo(() => {
   )
 });
 
+
+
 const RangeBoundLPCard = () => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   const { action: manage } = useBoundedManage()
   useEstimatedAnnualInterest(false)
   //Get total deposit tokens
   const { data: TVL } = useBoundedTVL()
-  //Query balance of the buffer in the vault
-  const { getRpcClient } = useRpcClient("osmosis")
-  const rpcClient = await getRpcClient()
-  const rbLPBalances = await rpcClient.cosmos.bank.v1beta1
-    .allBalances({
-      address: mainnetAddrs.rangeboundLP,
-      pagination: {
-        key: new Uint8Array(),
-        offset: BigInt(0),
-        limit: BigInt(1000),
-        countTotal: false,
-        reverse: false,
-      },
-    })
-    .then((res) => {
-      return res.balances
-    })
-  //Find the amount of the buffer
-  const amountToManage = rbLPBalances?.find((balance) => balance.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.amount ?? "0"
-
+  const { data: amountToManage } = useRBLPCDTBalance()
 
   const { data: basket } = useBasket()
   const { data: realizedAPR } = useBoundedCDTRealizedAPR()

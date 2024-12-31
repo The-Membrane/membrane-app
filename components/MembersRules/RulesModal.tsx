@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   IconButton,
   ListItem,
@@ -60,8 +61,19 @@ export const RulesModal = () => {
           w="534px"
           backdropFilter="none"
           style={isMobile ? { zoom: "69%" } : { zoom: "90%" }}
-        >
-          <ModalBody bgImage="url('/images/rules_frame.svg')" p="58px 23px" bgRepeat="no-repeat">
+        ><Box
+            position="absolute"
+            top="0"
+            left="0"
+            right="0"
+            bottom="0"
+            bgImage="url('/images/rules_frame.svg')"
+            bgRepeat="no-repeat"
+            bgPosition="center"
+            bgSize="100% 100%"
+            zIndex={0}
+          />
+          <ModalBody p="58px 23px" position="relative" zIndex={1}>
             <Stack h="full">
               <Text variant="title" fontSize="45px" textAlign="center" py={4}>
                 MEMBRANE RULES

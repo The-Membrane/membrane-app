@@ -57,7 +57,7 @@ export const RulesModal = () => {
           m="0"
           bg="transparent"
           boxShadow="none"
-          h={isMobile ? "80vh" : "493px"}
+          h={"493px"}
           w="534px"
           backdropFilter="none"
           style={isMobile ? { zoom: "69%" } : { zoom: "90%" }}

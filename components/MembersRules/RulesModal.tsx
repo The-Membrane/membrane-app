@@ -16,7 +16,7 @@ import { rules } from './MembersRules'
 
 export const RulesModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { setShow } = useMembersRulesState()  
+  const { setShow } = useMembersRulesState()
   const isMobile = useBreakpointValue({ base: true, md: false })
 
   const handleAgree = () => {
@@ -49,14 +49,14 @@ export const RulesModal = () => {
         }}
       />
 
-      <Modal isOpen={isOpen || (isMobile??false)} onClose={onClose} size="xl" isCentered>
+      <Modal isOpen={isOpen || (isMobile ?? false)} onClose={onClose} size="xl" isCentered>
         <ModalContent
           p="0"
           border="none"
           m="0"
           bg="transparent"
           boxShadow="none"
-          h="493px"
+          h={isMobile ? "80vh" : "493px"}
           w="534px"
           backdropFilter="none"
           style={isMobile ? { zoom: "69%" } : { zoom: "90%" }}

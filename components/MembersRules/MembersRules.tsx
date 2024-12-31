@@ -14,8 +14,9 @@ const MembersRules = () => {
   if (!show) return null
   return (
     <Center
+      style={{ zoom: "133%" }}
       w="1440px"
-      h="80vh"
+      h="1080px"
       margin="auto"
       bg="#111015"
       position="relative"

@@ -213,40 +213,41 @@ const NeuroGuardCard = () => {
 
   // Memoize existing guards calculation
   const existingGuards = useMemo(() => {
-    if (!userIntents?.[0]?.intent?.intents?.purchase_intents || !basket || !prices || !basketPositions || !assets) {
-      return undefined
-    }
+    // console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
+    if (userIntents && userIntents[0].intent.intents.purchase_intents && basket && prices && basketPositions && assets) {
+      //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
+      const neuroGuardIntents = userIntents[0].intent.intents.purchase_intents.filter((intent) => {
+        return intent.position_id !== undefined
+      })
 
-    const neuroGuardIntents = userIntents[0].intent.intents.purchase_intents.filter(
-      intent => intent.position_id !== undefined
-    )
+      //If there are neuroGuardIntents, create an object that saves the ID, the compounding asset & the LTV
+      return neuroGuardIntents.map((intent) => {
+        // console.log("big checkers", neuroGuardIntents, intent, basketPositions)
+        let position = basketPositions[0].positions.find((position) => position.position_id === (intent.position_id ?? 0).toString())
+        // console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
+        console.log("position", position)
+        if (position === undefined) return
+        // if (position.credit_amount === "0") return
+        let asset = position.collateral_assets[0] //@ts-ignore
+        let assetPrice = Number(prices?.find((p: any) => p.denom === asset.asset.info.native_token.denom)?.price ?? "0") //@ts-ignore
+        let fullAssetInfo = assets?.find((p: any) => p.base === asset.asset.info.native_token.denom)
+        let assetDecimals = fullAssetInfo?.decimal ?? 0
+        let assetValue = shiftDigits(asset.asset.amount, -(assetDecimals)).times(assetPrice)
+        let creditPrice = basket.credit_price.price
+        let creditValue = shiftDigits(position.credit_amount, -6).times(creditPrice)
+        let LTV = creditValue.dividedBy(assetValue).toString()
 
-    return neuroGuardIntents
-      .map(intent => {
-        const position = basketPositions[0].positions.find(
-          pos => pos.position_id === (intent.position_id ?? 0).toString()
-        )
-        if (!position || position.credit_amount === "0") return null
 
-        const asset = position.collateral_assets[0]
-        const assetPrice = Number(prices?.find(
-          p => p.denom === asset.asset.info.native_token.denom
-        )?.price ?? "0")
-        const fullAssetInfo = assets?.find(
-          p => p.base === asset.asset.info.native_token.denom
-        )
-        const assetDecimals = fullAssetInfo?.decimal ?? 0
-        const assetValue = shiftDigits(asset.asset.amount, -assetDecimals).times(assetPrice)
-        const creditValue = shiftDigits(position.credit_amount, -6).times(basket.credit_price.price)
-
+        // console.log("guarded LTV in creation", LTV, creditValue, assetValue, position.credit_amount, asset.asset.amount, assetPrice, creditPrice)
         return {
-          position,
-          value: assetValue.toFixed(2),
+          position: position,
+          amount: shiftDigits(asset.asset.amount, -(assetDecimals)).toFixed(2),
           symbol: fullAssetInfo?.symbol ?? "N/A",
-          LTV: creditValue.dividedBy(assetValue).toString()
+          LTV
         }
       })
-      .filter(Boolean)
+
+    } else return undefined
   }, [basketPositions, userIntents, assets, prices, basket])
 
   const onSliderChange = useCallback((value: number) => {

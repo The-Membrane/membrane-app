@@ -67,7 +67,7 @@ const PositionCostManager = React.memo(({ summary, totalPositions }: PositionCos
   }, [summary.costRatios])
 
   useEffect(() => {
-    if (summary.cost === 0 || !totalPositions || !summary.discountedCost || !mintState.alreadyToasted) return
+    if (summary.cost === 0 || !totalPositions || !summary.discountedCost || mintState.alreadyToasted) return
 
     const showToast = () => {
       toaster.message({

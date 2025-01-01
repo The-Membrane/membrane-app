@@ -89,7 +89,7 @@ const ActSlider = React.memo(() => {
   }, [setQuickActionState])
 
   return (
-    <Stack gap="0" borderWidth={3} borderColor={colors.} borderRadius="2rem">
+    <Stack gap="0" borderWidth={3} borderRadius="2rem">
       <HStack justifyContent="space-between" padding="4%">
         <Text fontSize="lg" fontFamily="Inter" variant="lable" textTransform="unset">
           CDT in Vault

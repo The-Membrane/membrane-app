@@ -268,6 +268,8 @@ const NeuroGuardCard = () => {
     setIsExpanded(prev => !prev)
   }, [])
 
+  console.log("existingGuard", existingGuards)
+
   return (
     <Stack gap={1} marginBottom="3%">
       <Text variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px" marginBottom="1%" display="flex" color={colors.earnText}>

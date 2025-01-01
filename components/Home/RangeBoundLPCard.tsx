@@ -89,7 +89,7 @@ const ActSlider = React.memo(() => {
   }, [setQuickActionState])
 
   return (
-    <Stack gap="0" borderWidth={3} borderRadius="2rem">
+    <Stack gap="0" borderWidth={3} borderColor={colors.} borderRadius="2rem">
       <HStack justifyContent="space-between" padding="4%">
         <Text fontSize="lg" fontFamily="Inter" variant="lable" textTransform="unset">
           CDT in Vault
@@ -175,7 +175,7 @@ const RangeBoundLPCard = () => {
   const isDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero() }, [manage?.simulate.isError, manage?.simulate.data])
 
   return (
-    <Card width={isMobile ? "100%" : "50%"} borderColor={""} borderWidth={3} padding={4}>
+    <Card width={isMobile ? "100%" : "50%"} borderWidth={3} padding={4}>
       <Stack>
         <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Earn CDT</Text>
         <Stack>

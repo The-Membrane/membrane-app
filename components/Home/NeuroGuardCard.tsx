@@ -331,4 +331,4 @@ const NeuroGuardCard = () => {
   )
 }
 
-export default React.memo(NeuroGuardCard)
+export default NeuroGuardCard

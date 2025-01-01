@@ -3,7 +3,7 @@ import { StatsCard } from '../StatsCard'
 import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import RangeBoundLPCard from './RangeBoundLPCard'
 import RangeBoundVisual from './RangeBoundVisual'
 import { FaArrowDown, FaArrowUp } from 'react-icons/fa6'
@@ -49,6 +49,7 @@ interface PositionCostManagerProps {
 const PositionCostManager = React.memo(({ summary, totalPositions }: PositionCostManagerProps) => {
   const toaster = useToaster()
   const { setMintState } = useMintState()
+  const processedPositions = useRef<Set<number>>(new Set())
   const [positionNum, setPositionNum] = React.useState(1)
 
   const health = useMemo(() => {
@@ -68,6 +69,9 @@ const PositionCostManager = React.memo(({ summary, totalPositions }: PositionCos
 
   useEffect(() => {
     if (summary.cost === 0 || !totalPositions || !summary.discountedCost) return
+
+    // Check if we've already processed this position
+    if (processedPositions.current.has(positionNum)) return
 
     const showToast = () => {
       toaster.message({
@@ -101,6 +105,10 @@ const PositionCostManager = React.memo(({ summary, totalPositions }: PositionCos
       })
     }
 
+    // Mark this position as processed
+    processedPositions.current.add(positionNum)
+
+
     showToast()
 
     if (positionNum < totalPositions) {
@@ -108,6 +116,12 @@ const PositionCostManager = React.memo(({ summary, totalPositions }: PositionCos
       setMintState({ positionNumber: positionNum + 1 })
     }
   }, [summary.discountedCost, totalPositions, positionNum, health, ratesOverTen])
+
+  // Reset processed positions when totalPositions changes
+  useEffect(() => {
+    processedPositions.current = new Set()
+    setPositionNum(1)
+  }, [totalPositions])
 
   return null
 })

@@ -19,7 +19,7 @@ import NeuroGuardCard from './NeuroGuardCard'
 // Memoize child components
 const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
 const MemoizedRangeBoundLPCard = React.memo(RangeBoundLPCard)
-
+const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
 
 interface CostRatio {
   symbol: string;
@@ -143,7 +143,7 @@ const Home = () => {
     <Stack>
       <StatsCard />
       <Stack>
-        <NeuroGuardCard />
+        <MemoizedNeuroGuardCard />
         <Stack>
           <Text variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px"
             display="flex" color={colors.earnText}>

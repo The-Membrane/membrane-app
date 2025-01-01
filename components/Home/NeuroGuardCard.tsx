@@ -11,7 +11,7 @@ import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
 import useNeuroClose from "./hooks/useNeuroClose"
 import { useBasket, useUserPositions } from "@/hooks/useCDP"
-import { useBoundedIntents, useBoundedTVL } from "../Earn/hooks/useEarnQueries"
+import { useBoundedIntents, useBoundedTVL, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
 import { getBestCLRange } from "@/services/osmosis"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useBidState from "../Bid/hooks/useBidState"
@@ -94,7 +94,8 @@ const NeuroGuardCard = () => {
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
   const { data: TVL } = useBoundedTVL()
-  const { data: userIntents } = useBoundedIntents()
+  const { data: userIntents } = useUserBoundedIntents()
+  console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
   const { action: neuro } = useNeuroGuard()
   const { data: walletBalances } = useBalance()

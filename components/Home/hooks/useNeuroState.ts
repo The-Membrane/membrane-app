@@ -25,7 +25,7 @@ type Store = {
 const initialState: NeuroState = {
   assets: [{ label: "WBTC", display: "WBTC", value: "WBTC" }],
   guardedPositions: [],
-  selectedAsset: { symbol: "WBTC", label: "WBTC", display: "WBTC", value: "WBTC" },
+  selectedAsset: { symbol: "WBTC", label: "WBTC", display: "WBTC", value: "WBTC", maxBorrowLTV: "0.5" },
 }
 
 // @ts-ignore

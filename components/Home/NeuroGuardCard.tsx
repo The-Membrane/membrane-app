@@ -19,6 +19,7 @@ import useCollateralAssets from "../Bid/hooks/useCollateralAssets"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import useNeuroState from "./hooks/useNeuroState"
 import useBalance from "@/hooks/useBalance"
+import { Coin } from "@cosmjs/stargate"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -145,6 +146,67 @@ const NeuroGuardCard = () => {
       </Text>
     )
   }, [bidState.cdpExpectedAnnualRevenue, TVL, rangeBoundAPR, neuroState?.selectedAsset])
+
+  ////Get all assets that have a wallet balance///////
+  //List of all denoms in the wallet
+  const walletDenoms = (walletBalances ?? []).map((coin: Coin) => {
+    if (num(coin.amount).isGreaterThan(0)) return coin.denom
+    else return ""
+  }).filter((asset: string) => asset != "");
+
+  //Create an object of assets that only holds assets that have a walletBalance
+  useMemo(() => {
+    if (prices && walletBalances && assets) {
+      const assetsWithBalance = assets?.filter((asset) => {
+        if (asset !== undefined) return walletDenoms.includes(asset.base)
+        else return false
+      }).map((asset) => {
+        if (!asset) return
+
+        return {
+          ...asset,
+          value: asset?.symbol,
+          label: asset?.symbol,
+          sliderValue: 0,
+          balance: num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount ?? 0), -(asset?.decimal ?? 6))).toNumber(),
+          price: Number(prices?.find((p: any) => p.denom === asset.base)?.price ?? "0"),
+          combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount ?? 0), -(asset?.decimal ?? 6))).times(num(prices?.find((p: any) => p.denom === asset.base)?.price ?? "0"))).toNumber()
+        }
+      })
+        //Filter out assets with zero balance
+        .filter((asset) => asset?.combinUsdValue ?? 0 > 1)
+
+      // Sort assets with priority symbols first, then alphabetically
+      const sortedAssets = assetsWithBalance.sort((a, b) => { // @ts-ignore
+        const aIndex = prioritySymbols.indexOf(a.symbol ?? "N/A") // @ts-ignore
+        const bIndex = prioritySymbols.indexOf(b.symbol ?? "N/A")
+
+        // If both assets are in priority list, sort by priority order
+        if (aIndex !== -1 && bIndex !== -1) {
+          return aIndex - bIndex
+        }
+        // If only first asset is in priority list, it comes first
+        if (aIndex !== -1) {
+          return -1
+        }
+        // If only second asset is in priority list, it comes first
+        if (bIndex !== -1) {
+          return 1
+        }
+        // For non-priority assets, sort alphabetically by symbol 
+        // @ts-ignore
+        return a.symbol.localeCompare(b.symbol)
+      })
+
+
+      setNeuroState({
+        // @ts-ignore
+        assets: (sortedAssets ?? []),
+        // @ts-ignore
+        selectedAsset: sortedAssets[0] ?? {}
+      })
+    }
+  }, [assets, walletBalances, prices])
 
   // Memoize existing guards calculation
   const existingGuards = useMemo(() => {

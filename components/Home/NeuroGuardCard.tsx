@@ -241,7 +241,7 @@ const NeuroGuardCard = () => {
         // console.log("guarded LTV in creation", LTV, creditValue, assetValue, position.credit_amount, asset.asset.amount, assetPrice, creditPrice)
         return {
           position: position,
-          amount: shiftDigits(asset.asset.amount, -(assetDecimals)).toFixed(2),
+          value: assetValue.toFixed(2),
           symbol: fullAssetInfo?.symbol ?? "N/A",
           LTV
         }

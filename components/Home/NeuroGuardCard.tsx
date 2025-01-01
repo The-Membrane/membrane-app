@@ -103,6 +103,9 @@ const NeuroGuardCard = () => {
   const { bidState } = useBidState()
   const { data: clRewardList } = getBestCLRange()
 
+  // Define priority order for specific symbols
+  const prioritySymbols = ['WBTC', 'stATOM', 'stOSMO', 'stTIA']
+
   // Calculate daysSinceDeposit once
   const daysSinceDeposit = useMemo(() =>
     num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber(),

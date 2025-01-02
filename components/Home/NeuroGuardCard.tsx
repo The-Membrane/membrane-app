@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react"
-import { Card, Text, Stack, HStack, Button, List, ListItem, Image } from "@chakra-ui/react"
+import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren } from "react"
+import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
@@ -51,6 +51,92 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
 })
 
 // Extracted NeuroGuardCloseButton component
+const NeuroGuardOpenEntry = React.memo(({
+  asset,
+  RBYield
+}: {
+  asset: any
+  RBYield: string
+}) => {
+  // const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
+  // const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
+  // const isLoading = sheathe?.simulate.isLoading || sheathe?.tx.isPending
+  const yieldValue = num(RBYield).times(asset.borrowLTV).times(0.8).toFixed(1)
+
+  return (
+    <Card width="100%" borderWidth={3} padding={4}>
+      <HStack gap="9%">
+        <HStack  width="20%"  justifyContent="left">
+          <Image src={asset.logo} w="30px" h="30px" />
+          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          {asset.symbol}
+          </Text>        
+        </HStack>
+        <Text  width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
+          ${asset.combinUsdValue}
+        </Text>
+        <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+          {yieldValue}%
+        </Text>    
+        <TxButton
+          width="20%"
+          isLoading={false}
+          isDisabled={true}
+          // onClick={() => sheathe?.tx.mutate()}
+          toggleConnectLabel={false}
+          style={{ alignSelf: "center" }}
+        >
+          Deposit
+        </TxButton>
+      </HStack>
+    </Card>
+  )
+})
+
+const FAQModal = React.memo(({
+  isOpen, onClose, children
+}: PropsWithChildren<{isOpen: boolean, onClose: () => void}>) => {
+  
+    return (<>
+    <Button onClick={()=>{}} variant="unstyled" fontWeight="normal" mb="3">
+      {children}
+    </Button>
+
+    <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
+      <ModalOverlay />
+      <ModalContent maxW="800px">
+        <ModalHeader>
+          <Text variant="title">Neuro-Guard FAQ</Text>
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb="5">
+        <FAQ isExpanded={true} />
+        </ModalBody>
+        {/* {(
+          <ModalFooter
+            as={HStack}
+            justifyContent="end"
+            borderTop="1px solid"
+            borderColor="whiteAlpha.200"
+            pt="5"
+            gap="5"
+          >
+            <ActionButtons
+              proposal={proposal}
+              isExecuteAllowed={isExecuteAllowed}
+              isRemoveAllowed={isRemoveAllowed}
+              isVoteAllowed={isVoteAllowed}
+              isPending={isPending}
+              vote={vote}
+            />
+          </ModalFooter>
+        )} */}
+      </ModalContent>
+    </Modal>
+  </>)
+})
+
+// Extracted NeuroGuardCloseButton component
 const NeuroGuardCloseButton = React.memo(({
   guardedPosition,
   RBYield
@@ -73,7 +159,7 @@ const NeuroGuardCloseButton = React.memo(({
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
         <HStack  width="20%"  justifyContent="left">
-          <Image src={guardedPosition.image} w="20px" h="20px" />
+          <Image src={guardedPosition.image} w="30px" h="30px" />
           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {guardedPosition.symbol}
           </Text>        
@@ -88,7 +174,7 @@ const NeuroGuardCloseButton = React.memo(({
           N/A
         </Text>
         <TxButton
-          width="20%"  justifyContent="left"
+          width="20%"
           isLoading={isLoading}
           isDisabled={isDisabled}
           onClick={() => sheathe?.tx.mutate()}
@@ -184,6 +270,7 @@ const NeuroGuardCard = () => {
           ...asset,
           value: asset?.symbol,
           label: asset?.symbol,
+          borrowLTV: asset?.maxBorrowLTV ?? 0,
           sliderValue: 0,
           balance: num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount ?? 0), -(asset?.decimal ?? 6))).toNumber(),
           price: Number(prices?.find((p: any) => p.denom === asset.base)?.price ?? "0"),
@@ -287,9 +374,48 @@ const NeuroGuardCard = () => {
 
   return (
     <Stack gap={1} marginBottom="3%">
-      <Text variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px" marginBottom="1%" display="flex" color={colors.earnText}>
-        Neuro-Guards
-      </Text>
+      <HStack>
+        <Text variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px" marginBottom="1%" display="flex" color={colors.earnText}>
+          Neuro-Guards
+        </Text>        
+        <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
+          <Button
+            variant="ghost"
+            width="fit-content"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            rightIcon={!isExpanded ? <FaArrowDown /> : undefined}
+            leftIcon={isExpanded ? <FaArrowUp /> : undefined}
+            onClick={toggleExpanded}
+          >
+            {!isExpanded ? "Open" : "Close"} FAQ
+          </Button>
+        </FAQModal>
+      </HStack>
+      {neuroState.assets.length > 0 ?       
+      <Stack>         
+        <HStack gap="9%" p={4}>
+          <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            Asset
+          </Text>
+          <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            TVL
+          </Text>
+          <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+           Potential APR
+          </Text>       
+          <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            Actions
+          </Text>
+        </HStack>
+        {neuroState.assets.map((asset) =>
+          <HStack gap={"1%"} rowGap="5%" display={"grid"} gridTemplateColumns={"repeat(1, 1fr)"} gridTemplateRows={"repeat(1, 1fr)"}>
+            {asset ? <NeuroGuardOpenEntry asset={asset} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
+          </HStack>
+        )}
+        </Stack>
+      : null}
       <Card width="100%" borderWidth={3} padding={4}>
         <Stack>
           <HStack gap="4%">
@@ -324,38 +450,25 @@ const NeuroGuardCard = () => {
               Open Loan for Passive Yield
             </TxButton>
           </HStack>
-          <FAQ isExpanded={isExpanded} />
-          <Button
-            variant="ghost"
-            width="fit-content"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            rightIcon={!isExpanded ? <FaArrowDown /> : undefined}
-            leftIcon={isExpanded ? <FaArrowUp /> : undefined}
-            onClick={toggleExpanded}
-          >
-            {!isExpanded ? "Open" : "Close"} FAQ
-          </Button>
         </Stack>
       </Card>
       
       {existingGuards ?       
       <Stack>         
         <HStack gap="9%" p={4}>
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             Asset
           </Text>
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             TVL
           </Text>
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             APR
           </Text>        
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             Historical Profit
           </Text>
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             Actions
           </Text>
         </HStack>

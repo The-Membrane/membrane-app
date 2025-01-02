@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react"
-import { Card, Text, Stack, HStack, Button, List, ListItem } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Button, List, ListItem, Image } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
@@ -58,6 +58,7 @@ const NeuroGuardCloseButton = React.memo(({
   guardedPosition: {
     position: PositionResponse;
     symbol: string;
+    image: string;
     LTV: string;
     value: string
   };
@@ -70,21 +71,24 @@ const NeuroGuardCloseButton = React.memo(({
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>
-      <HStack gap="11%">
-        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="55%" display="flex" justifyContent="center">
+      <HStack gap="9%">
+        <HStack  width="20%"  justifyContent="left">
+          <Image src={guardedPosition.image} w="20px" h="20px" />
+          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {guardedPosition.symbol}
-        </Text>        
-        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="55%" display="flex" justifyContent="center">
+          </Text>        
+        </HStack>
+        <Text  width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
           ${guardedPosition.value}
         </Text>
-        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="55%" display="flex" justifyContent="center">
+        <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
         </Text>        
-        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="55%" display="flex" justifyContent="center">
+        <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           N/A
         </Text>
         <TxButton
-          maxW="25%"
+          width="20%"  justifyContent="left"
           isLoading={isLoading}
           isDisabled={isDisabled}
           onClick={() => sheathe?.tx.mutate()}
@@ -253,6 +257,7 @@ const NeuroGuardCard = () => {
           position: position,
           value: assetValue.toFixed(2),
           symbol: fullAssetInfo?.symbol ?? "N/A",
+          image: fullAssetInfo?.logo,
           LTV
         }
       })
@@ -337,20 +342,20 @@ const NeuroGuardCard = () => {
       
       {existingGuards ?       
       <Stack>         
-        <HStack gap="9%">
-          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+        <HStack gap="9%" p={4}>
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
             Asset
           </Text>
-          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
             TVL
           </Text>
-          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
             APR
           </Text>        
-          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
             Historical Profit
           </Text>
-          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex">
             Actions
           </Text>
         </HStack>

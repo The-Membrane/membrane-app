@@ -31,29 +31,29 @@ const Layout = ({ children }: Props) => {
 
   return (
     //<Fragment>
-      //<Mobile />
+    //<Mobile />
 
-      <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{base: "column", md: "row"}}>
-        <HexagonBackground />
-        <Stack flexGrow={1} flexBasis="240px" alignItems="flex-end" overflow="auto">
-          <SideNav />
-        </Stack>
-        <Stack
-          h="full"
-          flexGrow={1}
-          flexBasis="1200px"
-          overflow="auto"
-          alignItems="self-start"
-          zIndex={1}
-        >
-          {/* <Header /> */}
-          <Stack as="main" p={{base: "2"}} maxW="1200px" w="full" flex={1} mt={{base: "0px", md: "15px"}}>
-            <RPCStatus />
-            {children}
-          </Stack>
+    <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{ base: "column", md: "row" }}>
+      <HexagonBackground />
+      <Stack marginRight={"2.5%"} flexBasis="240px" overflow="auto">
+        <SideNav />
+      </Stack>
+      <Stack
+        h="full"
+        flexGrow={1}
+        flexBasis="1200px"
+        overflow="auto"
+        alignItems="self-start"
+        zIndex={1}
+      >
+        {/* <Header /> */}
+        <Stack as="main" p={{ base: "2" }} w="full" flex={1} mt={{ base: "0px", md: "15px" }}>
+          <RPCStatus />
+          {children}
         </Stack>
       </Stack>
-      //</Fragment>
+    </Stack>
+    //</Fragment>
   )
 }
 

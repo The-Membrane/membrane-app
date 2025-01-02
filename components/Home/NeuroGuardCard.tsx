@@ -72,7 +72,16 @@ const NeuroGuardCloseButton = React.memo(({
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="11%">
         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="55%" display="flex" justifyContent="center">
-          ${guardedPosition.value} {guardedPosition.symbol} earning {yieldValue}%
+          {guardedPosition.symbol}
+        </Text>        
+        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="55%" display="flex" justifyContent="center">
+          ${guardedPosition.value}
+        </Text>
+        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="55%" display="flex" justifyContent="center">
+          {yieldValue}%
+        </Text>        
+        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="55%" display="flex" justifyContent="center">
+          N/A
         </Text>
         <TxButton
           maxW="25%"
@@ -325,11 +334,33 @@ const NeuroGuardCard = () => {
           </Button>
         </Stack>
       </Card>
-      {existingGuards ? existingGuards.map((guard) =>
-        <HStack gap={"1%"} rowGap="5%" display={"grid"} gridTemplateColumns={"repeat(3, 1fr)"} gridTemplateRows={"repeat(1, 1fr)"}>
-          {guard ? <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
+      
+      {existingGuards ?       
+      <Stack>         
+        <HStack gap="9%">
+          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+            Asset
+          </Text>
+          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+            TVL
+          </Text>
+          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+            APR
+          </Text>        
+          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+            Historical Profit
+          </Text>
+          <Text variant="title" textAlign="center" color={colors.earnText} fontSize="sm" letterSpacing="1px" display="flex" justifyContent="center">
+            Actions
+          </Text>
         </HStack>
-      ) : null}
+        {existingGuards.map((guard) =>
+          <HStack gap={"1%"} rowGap="5%" display={"grid"} gridTemplateColumns={"repeat(1, 1fr)"} gridTemplateRows={"repeat(1, 1fr)"}>
+            {guard ? <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
+          </HStack>
+        )}
+        </Stack>
+      : null}
     </Stack>
   )
 }

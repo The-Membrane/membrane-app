@@ -56,6 +56,9 @@ const useNeuroGuard = () => {
   // useEffect(() => {console.log("debounced changed")}, [debouncedValue])
   // useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
 
+  
+  console.log('above neuro', debouncedValue.selectedAsset);
+
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
   }

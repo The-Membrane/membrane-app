@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren } from "react"
-import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter } from "@chakra-ui/react"
+import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent } from "react"
+import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
@@ -50,49 +50,6 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
   )
 })
 
-// Extracted NeuroGuardCloseButton component
-const NeuroGuardOpenEntry = React.memo(({
-  asset,
-  RBYield
-}: {
-  asset: any
-  RBYield: string
-}) => {
-  // const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
-  // const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
-  // const isLoading = sheathe?.simulate.isLoading || sheathe?.tx.isPending
-  const yieldValue = num(RBYield).times(asset.borrowLTV).times(0.8).toFixed(1)
-
-  return (
-    <Card width="100%" borderWidth={3} padding={4}>
-      <HStack gap="9%">
-        <HStack  width="20%"  justifyContent="left">
-          {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
-          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {asset.symbol}
-          </Text>        
-        </HStack>
-        <Text  width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
-          ${num(asset.combinUsdValue).toFixed(2)}
-        </Text>
-        <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {yieldValue}%
-        </Text>    
-        <TxButton
-          width="20%"
-          isLoading={false}
-          isDisabled={true}
-          // onClick={() => sheathe?.tx.mutate()}
-          toggleConnectLabel={false}
-          style={{ alignSelf: "center" }}
-        >
-          Deposit
-        </TxButton>
-      </HStack>
-    </Card>
-  )
-})
-
 const FAQModal = React.memo(({
   isOpen, onClose, children
 }: PropsWithChildren<{isOpen: boolean, onClose: () => void}>) => {
@@ -134,6 +91,152 @@ const FAQModal = React.memo(({
       </ModalContent>
     </Modal>
   </>)
+})
+
+const NeuroOpenModal = React.memo(({
+  isOpen, onClose, children
+}: PropsWithChildren<{isOpen: boolean, onClose: () => void}>) => {
+  
+  
+  
+    const { neuroState, setNeuroState } = useNeuroState()
+    const { action: neuro } = useNeuroGuard()
+    const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
+    const isDisabled = neuro?.simulate.isError || !neuro?.simulate.data
+
+    
+    // const onAssetMenuChange = useCallback((value: string) => {
+    //   setNeuroState({ selectedAsset: value })
+    // }, [setNeuroState])
+
+    
+    const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+      e.preventDefault()
+      const value = Number(e.target.value)
+      const max = neuroState?.selectedAsset?.combinUsdValue ?? 0
+
+      setNeuroState({
+        selectedAsset: {
+          ...neuroState?.selectedAsset,
+          sliderValue: num(value).isGreaterThan(max) ? max : value
+        }
+      })
+    }, [neuroState?.selectedAsset, setNeuroState])
+
+  
+    return (<>
+    <Button onClick={()=>{}} variant="unstyled" fontWeight="normal" mb="3">
+      {children}
+    </Button>
+
+    <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
+      <ModalOverlay />
+      <ModalContent maxW="800px">
+        <ModalHeader>
+          <Text variant="title">Enlist in the Neuro-Guard</Text>
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb="5">          
+            <HStack  width="15%"  justifyContent="left">
+              {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
+              <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+              {neuroState?.selectedAsset?.symbol}
+              </Text>        
+            </HStack>           
+            <Input 
+              width={"49%"} 
+              textAlign={"center"} 
+              placeholder="0" 
+              type="number" 
+              variant={"ghost"}
+              value={neuroState?.selectedAsset?.sliderValue} 
+              onChange={onInputChange}
+              />
+        </ModalBody>
+        {(
+          <ModalFooter
+            as={HStack}
+            justifyContent="end"
+            borderTop="1px solid"
+            borderColor="whiteAlpha.200"
+            pt="5"
+            gap="5"
+          >
+          <TxButton
+            w="30%"
+            isLoading={isLoading}
+            isDisabled={isDisabled}
+            onClick={() => neuro?.tx.mutate()}
+            toggleConnectLabel={false}
+            style={{ alignSelf: "center" }}
+          >
+            Open Loan for Passive Yield
+          </TxButton>
+            
+          </ModalFooter>
+        )}
+      </ModalContent>
+    </Modal>
+  </>)
+})
+
+// Extracted NeuroGuardCloseButton component
+const NeuroGuardOpenEntry = React.memo(({
+  asset,
+  RBYield
+}: {
+  asset: any
+  RBYield: string
+}) => {
+  const { setNeuroState } = useNeuroState()
+  const [isOpen, setIsOpen] = useState(false)
+
+  const toggleOpen = useCallback(() => {
+    setIsOpen(prev => !prev)
+  }, [])
+              
+  const yieldValue = num(RBYield).times(asset.borrowLTV).times(0.8).toFixed(1)
+
+  return (
+    <Card width="100%" borderWidth={3} padding={4}>
+      <HStack gap="9%">
+        <HStack  width="20%"  justifyContent="left">
+          {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
+          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          {asset.symbol}
+          </Text>        
+        </HStack>
+        <Text  width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
+          ${num(asset.combinUsdValue).toFixed(2)}
+        </Text>
+        <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+          {yieldValue}%
+        </Text>  
+        <NeuroOpenModal isOpen={isOpen} onClose={toggleOpen}>                   
+          <Button
+              display="flex"
+              width="fit-content"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={() => {setNeuroState({ selectedAsset: asset }); toggleOpen()}}
+            >
+              Deposit
+            </Button>
+        </NeuroOpenModal>
+        {/* <TxButton
+          width="20%"
+          isLoading={isLoading}
+          isDisabled={isDisabled}
+          onClick={() => neuro?.tx.mutate()}
+          toggleConnectLabel={false}
+          style={{ alignSelf: "center" }}
+        >
+          Deposit
+        </TxButton> */}
+      </HStack>
+    </Card>
+  )
 })
 
 // Extracted NeuroGuardCloseButton component
@@ -196,7 +299,7 @@ const NeuroGuardCard = () => {
   const { data: userIntents } = useUserBoundedIntents()
   console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
-  const { action: neuro } = useNeuroGuard()
+  // const { action: neuro } = useNeuroGuard()
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
@@ -352,19 +455,6 @@ const NeuroGuardCard = () => {
     } else return undefined
   }, [basketPositions, userIntents, assets, prices, basket])
 
-  const onSliderChange = useCallback((value: number) => {
-    const max = neuroState?.selectedAsset?.combinUsdValue ?? 0
-    setNeuroState({
-      selectedAsset: {
-        ...neuroState?.selectedAsset,
-        sliderValue: num(value).isGreaterThan(max) ? max : value
-      }
-    })
-  }, [neuroState?.selectedAsset, setNeuroState])
-
-  const onAssetMenuChange = useCallback((value: string) => {
-    setNeuroState({ selectedAsset: value })
-  }, [setNeuroState])
 
   const toggleExpanded = useCallback(() => {
     setIsExpanded(prev => !prev)
@@ -415,7 +505,7 @@ const NeuroGuardCard = () => {
         )}
         </Stack>
       : null}
-      <Card width="100%" borderWidth={3} padding={4}>
+      {/* <Card width="100%" borderWidth={3} padding={4}>
         <Stack>
           <HStack gap="4%">
             {yieldMsg}
@@ -425,6 +515,7 @@ const NeuroGuardCard = () => {
               onChange={onAssetMenuChange}
               assets={neuroState.assets}
             />
+            
             <NeuroAssetSlider
               key={neuroState?.selectedAsset?.base}
               asset={neuroState?.selectedAsset}
@@ -450,7 +541,7 @@ const NeuroGuardCard = () => {
             </TxButton>
           </HStack>
         </Stack>
-      </Card>
+      </Card> */}
       
       {existingGuards ?       
       <Stack>         

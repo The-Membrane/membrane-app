@@ -375,7 +375,7 @@ const NeuroGuardCard = () => {
   return (
     <Stack gap={1} marginBottom="3%">
       <HStack>
-        <Text variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px" marginBottom="1%" display="flex" color={colors.earnText}>
+        <Text width="20%" variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px" marginBottom="1%" display="flex" color={colors.earnText}>
           Neuro-Guards
         </Text>        
         <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
@@ -399,7 +399,7 @@ const NeuroGuardCard = () => {
             Asset
           </Text>
           <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            TVL
+            Balance
           </Text>
           <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
            Potential APR

@@ -67,13 +67,13 @@ const NeuroGuardOpenEntry = React.memo(({
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
         <HStack  width="20%"  justifyContent="left">
-          <Image src={asset.logo} w="30px" h="30px" />
+          {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {asset.symbol}
           </Text>        
         </HStack>
         <Text  width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
-          ${asset.combinUsdValue}
+          ${num(asset.combinUsdValue).toFixed(2)}
         </Text>
         <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
@@ -277,7 +277,7 @@ const NeuroGuardCard = () => {
           combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount ?? 0), -(asset?.decimal ?? 6))).times(num(prices?.find((p: any) => p.denom === asset.base)?.price ?? "0"))).toNumber()
         }
       })
-        //Filter out assets with zero balance
+        //Filter out assets with zero value
         .filter((asset) => asset?.combinUsdValue ?? 0 > 1)
 
       // Sort assets with priority symbols first, then alphabetically
@@ -410,7 +410,7 @@ const NeuroGuardCard = () => {
         </HStack>
         {neuroState.assets.map((asset) =>
           <HStack gap={"1%"} rowGap="5%" display={"grid"} gridTemplateColumns={"repeat(1, 1fr)"} gridTemplateRows={"repeat(1, 1fr)"}>
-            {asset ? <NeuroGuardOpenEntry asset={asset} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
+            {asset && num(asset.combinUsdValue).isGreaterThan(1) ? <NeuroGuardOpenEntry asset={asset} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
           </HStack>
         )}
         </Stack>

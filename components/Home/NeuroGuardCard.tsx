@@ -380,16 +380,15 @@ const NeuroGuardCard = () => {
         </Text>        
         <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
           <Button
+            display="flex"
             variant="ghost"
             width="fit-content"
             padding="0"
             alignSelf="center"
             margin="0"
-            rightIcon={!isExpanded ? <FaArrowDown /> : undefined}
-            leftIcon={isExpanded ? <FaArrowUp /> : undefined}
             onClick={toggleExpanded}
           >
-            {!isExpanded ? "Open" : "Close"} FAQ
+            FAQ
           </Button>
         </FAQModal>
       </HStack>

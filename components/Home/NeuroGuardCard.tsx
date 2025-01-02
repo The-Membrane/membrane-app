@@ -72,7 +72,7 @@ const NeuroGuardCloseButton = React.memo(({
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="11%">
         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="55%" display="flex" justifyContent="center">
-          {guardedPosition.value} {guardedPosition.symbol} earning {yieldValue}%
+          ${guardedPosition.value} {guardedPosition.symbol} earning {yieldValue}%
         </Text>
         <TxButton
           maxW="25%"

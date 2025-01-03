@@ -113,6 +113,7 @@ const NeuroOpenModal = React.memo(({
       const max = neuroState?.selectedAsset?.combinUsdValue ?? 0
 
       setNeuroState({
+        //@ts-ignore
         selectedAsset: {
           ...neuroState?.selectedAsset,
           sliderValue: num(value).isGreaterThan(max) ? max : value
@@ -161,7 +162,7 @@ const NeuroOpenModal = React.memo(({
           >
             {/* <TxError action={neuro}/> */}
             {neuroState.selectedAsset?.combinUsdValue && (
-                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="18%">
+                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="58%">
                   Minimum for {neuroState.selectedAsset?.symbol ?? "N/A"}: $
                   {((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}
                 </Text>
@@ -479,8 +480,8 @@ const NeuroGuardCard = () => {
   return (
     <Stack gap={1} marginBottom="3%">
       <Stack alignItems={""}>
-        <Text width="20%" variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-          Neuro-Guards
+        <Text width="35%" variant="title" textTransform={undefined} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+          <a style={{ fontWeight: "bold", color: colors.rangeBoundBox, }}>Neuro-Guards:</a> Market Make with Peace of Mind
         </Text>        
         <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
           <Button

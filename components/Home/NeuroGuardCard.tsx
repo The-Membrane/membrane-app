@@ -159,7 +159,14 @@ const NeuroOpenModal = React.memo(({
             pt="5"
             gap="5"
           >
-            <TxError action={neuro}/>
+            {/* <TxError action={neuro}/> */}
+            {neuroState.selectedAsset?.combinUsdValue && (
+                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="18%">
+                  Minimum for {neuroState.selectedAsset?.symbol ?? "N/A"}: $
+                  {((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}
+                </Text>
+              )}
+
             <TxButton
               w="40%"
               isLoading={isLoading}
@@ -489,7 +496,7 @@ const NeuroGuardCard = () => {
           </Button>
         </FAQModal>
       </Stack>
-      {neuroState.assets.length > 0 ?       
+      {neuroState.assets.length > 0 && num(neuroState.assets[0].combinUsdValue).isGreaterThan(1)?       
       <Stack>         
         <HStack gap="9%" p={4}>
           <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">

@@ -184,7 +184,7 @@ const RangeBoundLPCard = () => {
         </Stack>
         <Divider marginBottom={"3vh"} />
         <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-          <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: colors.earnText, }}>Yield:</a> Revenue & Swap Fees</ListItem>
+          <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: colors.earnText}}>Yield:</a> Revenue & Swap Fees</ListItem>
           <ListItem fontFamily="Inter" fontSize="md">
             <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? shiftDigits(bidState.cdpExpectedAnnualRevenue, -6).times(0.80).dividedBy(86400 * 365).toNumber() : 0} precision={8} />
           </ListItem>

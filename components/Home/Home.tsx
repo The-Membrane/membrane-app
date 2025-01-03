@@ -148,9 +148,9 @@ const Home = () => {
       <Stack>
         <MemoizedNeuroGuardCard />
         <Stack>
-          <Text variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px"
+          <Text variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px"
             display="flex" color={colors.earnText}>
-            The Membrane
+            <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>The Membrane: </a> Range Bound Liquidity Provision
           </Text>
           <Stack direction={isMobile ? 'column' : 'row'} width="100%">
             <MemoizedRangeBoundVisual />

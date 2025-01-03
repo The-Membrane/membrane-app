@@ -131,7 +131,7 @@ const NeuroOpenModal = React.memo(({
       <ModalOverlay />
       <ModalContent maxW="800px">
         <ModalHeader>
-          <Text variant="title" textTransform={undefined} letterSpacing={"1px"}>Enlist in the Neuro-Guard</Text>
+          <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Enlist in the Neuro-Guard</Text>
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb="5">          
@@ -456,7 +456,7 @@ const NeuroGuardCard = () => {
         let LTV = creditValue.dividedBy(assetValue).toString()
 
 
-        // console.log("guarded LTV in creation", LTV, creditValue, assetValue, position.credit_amount, asset.asset.amount, assetPrice, creditPrice)
+        console.log("basketAssets", basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate , asset.asset.info.native_token.denom, basketAssets)
         return {
           position: position,
           amount: shiftDigits(asset.asset.amount, -(assetDecimals)).toFixed(2),
@@ -480,8 +480,8 @@ const NeuroGuardCard = () => {
   return (
     <Stack gap={1} marginBottom="3%">
       <Stack alignItems={""}>
-        <Text width="35%" variant="title" textTransform={undefined} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-          <a style={{ fontWeight: "bold", color: colors.rangeBoundBox, }}>Neuro-Guards:</a> Market Make with Peace of Mind
+        <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+          <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>Neuro-Guard: </a> Earn with Peace of Mind
         </Text>        
         <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
           <Button

@@ -96,90 +96,93 @@ const FAQModal = React.memo(({
 })
 
 const NeuroOpenModal = React.memo(({
-  isOpen, onClose, children
+  isOpen,
+  onClose,
+  children
 }: PropsWithChildren<{isOpen: boolean, onClose: () => void}>) => {
+  const { neuroState, setNeuroState } = useNeuroState();
+  const { action: neuro } = useNeuroGuard();
+  const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending;
+  const isDisabled = neuro?.simulate.isError || !neuro?.simulate.data;
   
-  
-    const { neuroState, setNeuroState } = useNeuroState()
-    const { action: neuro } = useNeuroGuard()
-    const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
-    const isDisabled = neuro?.simulate.isError || !neuro?.simulate.data
-
+  const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const value = Number(e.target.value);
+    const maxValue = neuroState?.selectedAsset?.combinUsdValue ?? 0;
     
-    // const onAssetMenuChange = useCallback((value: string) => {
-    //   setNeuroState({ selectedAsset: value })
-    // }, [setNeuroState])
+    // Update state directly with Partial<NeuroState>
+    setNeuroState({
+      selectedAsset: {
+        ...neuroState?.selectedAsset,
+        sliderValue: value > maxValue ? maxValue : value
+      }
+    });
+  }, [neuroState?.selectedAsset, setNeuroState]);
 
-    
-    const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault()
-      const value = Number(e.target.value)
-      const max = neuroState?.selectedAsset?.combinUsdValue ?? 0
+  // Safely access asset properties with optional chaining
+  const assetLogo = neuroState?.selectedAsset?.logo;
+  const assetSymbol = neuroState?.selectedAsset?.symbol;
+  const sliderValue = neuroState?.selectedAsset?.sliderValue;
 
-      setNeuroState({
-        selectedAsset: {
-          ...neuroState?.selectedAsset,
-          sliderValue: num(value).isGreaterThan(max) ? max : value
-        }
-      })
-    }, [neuroState?.selectedAsset, setNeuroState])
+  return (
+    <>
+      <Button 
+        onClick={() => {}} 
+        className="w-1/4 font-normal mb-3"
+        variant="ghost"
+      >
+        {children}
+      </Button>
 
-  
-    return (<>
-    <Button onClick={()=>{}} width="25%" variant="unstyled" fontWeight="normal" mb="3">
-      {children}
-    </Button>
-
-    <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
-      <ModalOverlay />
-      <ModalContent maxW="800px">
-        <ModalHeader>
-          <Text variant="title" textTransform={undefined} letterSpacing={"1px"}>Enlist in the Neuro-Guard</Text>
-        </ModalHeader>
-        <ModalCloseButton />
-        <ModalBody pb="5">          
-            <HStack  width="15%"  justifyContent="left">
-              {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
-              <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-              {neuroState?.selectedAsset?.symbol}
-              </Text>        
-            </HStack>           
-            <Input 
-              width={"49%"} 
-              textAlign={"center"} 
-              placeholder="0" 
-              type="number" 
-              variant={"ghost"}
-              value={neuroState?.selectedAsset?.sliderValue} 
+      <Modal open={isOpen} onOpenChange={onClose}>
+        <ModalContent className="max-w-4xl">
+          <ModalHeader>
+            <Text className="tracking-wider">
+              Enlist in the Neuro-Guard
+            </Text>
+          </ModalHeader>
+          <ModalCloseButton />
+          
+          <ModalBody className="pb-5">
+            <HStack className="w-[15%] justify-start">
+              {assetLogo && (
+                <Image 
+                  src={assetLogo} 
+                  className="w-8 h-8" 
+                  alt={`${assetSymbol} logo`}
+                />
+              )}
+              <Text className="text-lg tracking-wider flex">
+                {assetSymbol}
+              </Text>
+            </HStack>
+            
+            <Input
+              className="w-[49%] text-center"
+              placeholder="0"
+              type="number"
+              value={sliderValue ?? ''}
               onChange={onInputChange}
-              />
-        </ModalBody>
-        {(
-          <ModalFooter
-            as={HStack}
-            justifyContent="end"
-            borderTop="1px solid"
-            borderColor="whiteAlpha.200"
-            pt="5"
-            gap="5"
-          >
-            <TxError action={neuro}/>
+            />
+          </ModalBody>
+
+          <ModalFooter className="justify-end border-t border-white/20 pt-5 gap-5">
+            <TxError action={neuro} />
             <TxButton
-              w="40%"
+              className="w-2/5 self-center"
               isLoading={isLoading}
               isDisabled={isDisabled}
               onClick={() => neuro?.tx.mutate()}
               toggleConnectLabel={false}
-              style={{ alignSelf: "center" }}
             >
               Open Loan for Passive Yield
-            </TxButton>            
+            </TxButton>
           </ModalFooter>
-        )}
-      </ModalContent>
-    </Modal>
-  </>)
-})
+        </ModalContent>
+      </Modal>
+    </>
+  );
+});
 
 // Extracted NeuroGuardCloseEntry component
 const NeuroGuardOpenEntry = React.memo(({

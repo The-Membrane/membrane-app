@@ -506,45 +506,7 @@ const NeuroGuardCard = () => {
         )}
         </Stack>
       : null}
-      {/* <Card width="100%" borderWidth={3} padding={4}>
-        <Stack>
-          <HStack gap="4%">
-            {yieldMsg}
-            <AssetsWithBalanceMenu
-              width="15%"
-              value={neuroState?.selectedAsset}
-              onChange={onAssetMenuChange}
-              assets={neuroState.assets}
-            />
-            
-            <NeuroAssetSlider
-              key={neuroState?.selectedAsset?.base}
-              asset={neuroState?.selectedAsset}
-              label={neuroState?.selectedAsset?.symbol}
-              onChangeExt={onSliderChange}
-            />
-            {neuroState.selectedAsset?.combinUsdValue &&
-              neuroState.selectedAsset?.combinUsdValue < (21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) && (
-                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="18%">
-                  Minimum for {neuroState.selectedAsset?.symbol ?? "N/A"}: $
-                  {((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}
-                </Text>
-              )}
-            <TxButton
-              w="30%"
-              isLoading={neuro?.simulate.isLoading || neuro?.tx.isPending}
-              isDisabled={neuro?.simulate.isError || !neuro?.simulate.data}
-              onClick={() => neuro?.tx.mutate()}
-              toggleConnectLabel={false}
-              style={{ alignSelf: "center" }}
-            >
-              Open Loan for Passive Yield
-            </TxButton>
-          </HStack>
-        </Stack>
-      </Card> */}
-      
-      {existingGuards ?       
+      {existingGuards && existingGuards.length > 0 ?       
       <Stack>         
         <HStack gap="9%" p={4}>
           <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">

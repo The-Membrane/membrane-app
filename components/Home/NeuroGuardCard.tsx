@@ -20,6 +20,7 @@ import useNeuroGuard from "./hooks/useNeuroGuard"
 import useNeuroState from "./hooks/useNeuroState"
 import useBalance from "@/hooks/useBalance"
 import { Coin } from "@cosmjs/stargate"
+import TxError from "../TxError"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -162,17 +163,17 @@ const NeuroOpenModal = React.memo(({
             pt="5"
             gap="5"
           >
-          <TxButton
-            w="40%"
-            isLoading={isLoading}
-            isDisabled={isDisabled}
-            onClick={() => neuro?.tx.mutate()}
-            toggleConnectLabel={false}
-            style={{ alignSelf: "center" }}
-          >
-            Open Loan for Passive Yield
-          </TxButton>
-            
+            <TxError action={neuro}/>
+            <TxButton
+              w="40%"
+              isLoading={isLoading}
+              isDisabled={isDisabled}
+              onClick={() => neuro?.tx.mutate()}
+              toggleConnectLabel={false}
+              style={{ alignSelf: "center" }}
+            >
+              Open Loan for Passive Yield
+            </TxButton>            
           </ModalFooter>
         )}
       </ModalContent>

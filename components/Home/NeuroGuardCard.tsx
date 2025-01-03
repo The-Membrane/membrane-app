@@ -111,7 +111,7 @@ const NeuroOpenModal = React.memo(({
     const maxValue = neuroState?.selectedAsset?.combinUsdValue ?? 0;
     
     // Update state directly with Partial<NeuroState>
-    setNeuroState({
+    setNeuroState({ //@ts-ignore
       selectedAsset: {
         ...neuroState?.selectedAsset,
         sliderValue: value > maxValue ? maxValue : value
@@ -134,7 +134,7 @@ const NeuroOpenModal = React.memo(({
         {children}
       </Button>
 
-      <Modal open={isOpen} onOpenChange={onClose}>
+      <Modal isOpen={isOpen} onClose={onClose}>
         <ModalContent className="max-w-4xl">
           <ModalHeader>
             <Text className="tracking-wider">
@@ -201,7 +201,7 @@ const NeuroGuardOpenEntry = React.memo(({
     setIsOpen(prev => !prev)
   }, [])
   
-  const cost = basketAssets.find((asset) => asset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0
+  const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0
   const yieldValue = num(RBYield).times(asset.borrowLTV).times(0.8).minus(cost).toFixed(1)
 
   return (
@@ -460,9 +460,9 @@ const NeuroGuardCard = () => {
         return {
           position: position,
           amount: shiftDigits(asset.asset.amount, -(assetDecimals)).toFixed(2),
-          symbol: fullAssetInfo?.symbol ?? "N/A",
-          image: fullAssetInfo?.logo,
-          cost: basketAssets.find((asset) => asset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0,
+          symbol: fullAssetInfo?.symbol ?? "N/A", //@ts-ignore
+          image: fullAssetInfo?.logo, //@ts-ignore
+          cost: basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0,
           LTV
         }
       })

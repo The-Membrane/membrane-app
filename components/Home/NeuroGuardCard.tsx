@@ -126,7 +126,7 @@ const NeuroOpenModal = React.memo(({
 
   
     return (<>
-    <Button onClick={()=>{}} variant="unstyled" fontWeight="normal" mb="3">
+    <Button onClick={()=>{}} width="25%" variant="unstyled" fontWeight="normal" mb="3">
       {children}
     </Button>
 
@@ -208,14 +208,14 @@ const NeuroGuardOpenEntry = React.memo(({
           </Text>        
         </HStack>
         <Text  width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
-          ${num(asset.combinUsdValue).toFixed(2)}
+          {num(asset.combinUsdValue).toFixed(2)}
         </Text>
         <Text width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
         </Text>  
         <NeuroOpenModal isOpen={isOpen} onClose={toggleOpen}>                   
           <Button
-              width="25%"
+              width="100%"
               display="flex"
               padding="0"
               alignSelf="center"
@@ -250,7 +250,7 @@ const NeuroGuardCloseButton = React.memo(({
     symbol: string;
     image: string;
     LTV: string;
-    value: string
+    amount: string
   };
   RBYield: string
 }) => {
@@ -269,7 +269,7 @@ const NeuroGuardCloseButton = React.memo(({
           </Text>        
         </HStack>
         <Text  width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
-          ${guardedPosition.value}
+          {guardedPosition.amount}
         </Text>
         <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
@@ -446,7 +446,7 @@ const NeuroGuardCard = () => {
         // console.log("guarded LTV in creation", LTV, creditValue, assetValue, position.credit_amount, asset.asset.amount, assetPrice, creditPrice)
         return {
           position: position,
-          value: assetValue.toFixed(2),
+          amount: shiftDigits(asset.asset.amount, -(assetDecimals)).toFixed(2),
           symbol: fullAssetInfo?.symbol ?? "N/A",
           image: fullAssetInfo?.logo,
           LTV
@@ -490,7 +490,7 @@ const NeuroGuardCard = () => {
             Asset
           </Text>
           <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Balance
+            TVL
           </Text>
           <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
            Potential APR
@@ -500,9 +500,9 @@ const NeuroGuardCard = () => {
           </Text>
         </HStack>
         {neuroState.assets.map((asset) =>
-          <HStack gap={"1%"} rowGap="5%" display={"grid"} gridTemplateColumns={"repeat(1, 1fr)"} gridTemplateRows={"repeat(1, 1fr)"}>
+          <>
             {asset && num(asset.combinUsdValue).isGreaterThan(1) ? <NeuroGuardOpenEntry asset={asset} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
-          </HStack>
+          </>
         )}
         </Stack>
       : null}
@@ -551,7 +551,7 @@ const NeuroGuardCard = () => {
             Asset
           </Text>
           <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            TVL
+            Balance
           </Text>
           <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             APR
@@ -564,9 +564,7 @@ const NeuroGuardCard = () => {
           </Text>
         </HStack>
         {existingGuards.map((guard) =>
-          <HStack gap={"1%"} rowGap="5%" display={"grid"} gridTemplateColumns={"repeat(1, 1fr)"} gridTemplateRows={"repeat(1, 1fr)"}>
-            {guard ? <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
-          </HStack>
+            <>{guard ? <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}</>
         )}
         </Stack>
       : null}

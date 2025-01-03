@@ -160,11 +160,16 @@ const NeuroOpenModal = React.memo(({
             pt="5"
             gap="5"
           >
-            {/* <TxError action={neuro}/> */}
             {neuroState.selectedAsset?.combinUsdValue && (
                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="58%">
                   Minimum for {neuroState.selectedAsset?.symbol ?? "N/A"}: $
                   {((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}
+                </Text>
+              )}
+              
+            {neuro.simulate.isError && (
+                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="58%">
+                  Error: {neuro.simulate.errorMessage}
                 </Text>
               )}
 

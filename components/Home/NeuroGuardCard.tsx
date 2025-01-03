@@ -10,7 +10,7 @@ import { NeuroAssetSlider } from "./NeuroAssetSlider"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
 import useNeuroClose from "./hooks/useNeuroClose"
-import { useBasket, useUserPositions } from "@/hooks/useCDP"
+import { useBasket, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
 import { useBoundedIntents, useBoundedTVL, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
 import { getBestCLRange } from "@/services/osmosis"
 import { useOraclePrice } from "@/hooks/useOracle"
@@ -21,6 +21,7 @@ import useNeuroState from "./hooks/useNeuroState"
 import useBalance from "@/hooks/useBalance"
 import { Coin } from "@cosmjs/stargate"
 import TxError from "../TxError"
+import { BasketAsset, getBasketAssets } from "@/services/cdp"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -97,7 +98,6 @@ const FAQModal = React.memo(({
 const NeuroOpenModal = React.memo(({
   isOpen, onClose, children
 }: PropsWithChildren<{isOpen: boolean, onClose: () => void}>) => {
-  
   
   
     const { neuroState, setNeuroState } = useNeuroState()
@@ -181,13 +181,15 @@ const NeuroOpenModal = React.memo(({
   </>)
 })
 
-// Extracted NeuroGuardCloseButton component
+// Extracted NeuroGuardCloseEntry component
 const NeuroGuardOpenEntry = React.memo(({
   asset,
-  RBYield
+  RBYield,
+  basketAssets
 }: {
   asset: any
   RBYield: string
+  basketAssets: BasketAsset[]
 }) => {
   const { setNeuroState } = useNeuroState()
   const [isOpen, setIsOpen] = useState(false)
@@ -195,8 +197,9 @@ const NeuroGuardOpenEntry = React.memo(({
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
   }, [])
-              
-  const yieldValue = num(RBYield).times(asset.borrowLTV).times(0.8).toFixed(1)
+  
+  const cost = basketAssets.find((asset) => asset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0
+  const yieldValue = num(RBYield).times(asset.borrowLTV).times(0.8).minus(cost).toFixed(1)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>
@@ -208,7 +211,7 @@ const NeuroGuardOpenEntry = React.memo(({
           </Text>        
         </HStack>
         <Text  width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
-          {num(asset.combinUsdValue).toFixed(2)}
+          ${num(asset.combinUsdValue).toFixed(2)}
         </Text>
         <Text width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
@@ -240,8 +243,8 @@ const NeuroGuardOpenEntry = React.memo(({
   )
 })
 
-// Extracted NeuroGuardCloseButton component
-const NeuroGuardCloseButton = React.memo(({
+// Extracted NeuroGuardCloseEntry component
+const NeuroGuardCloseEntry = React.memo(({
   guardedPosition,
   RBYield
 }: {
@@ -250,14 +253,15 @@ const NeuroGuardCloseButton = React.memo(({
     symbol: string;
     image: string;
     LTV: string;
-    amount: string
+    amount: string,
+    cost: number
   };
   RBYield: string
 }) => {
   const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
   const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
   const isLoading = sheathe?.simulate.isLoading || sheathe?.tx.isPending
-  const yieldValue = num(RBYield).times(guardedPosition.LTV).toFixed(1)
+  const yieldValue = num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).toFixed(1)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>
@@ -292,6 +296,7 @@ const NeuroGuardCloseButton = React.memo(({
   )
 })
 
+
 const NeuroGuardCard = () => {
   const [isExpanded, setIsExpanded] = useState(false)
   const { data: basketPositions } = useUserPositions()
@@ -306,6 +311,11 @@ const NeuroGuardCard = () => {
   const { data: prices } = useOraclePrice()
   const { bidState } = useBidState()
   const { data: clRewardList } = getBestCLRange()
+  const { data: interest } = useCollateralInterest()
+  const basketAssets = useMemo(() => {
+    if (!basket || !interest) return []
+    return getBasketAssets(basket, interest) ?? []
+  }, [basket, interest])
 
   // Define priority order for specific symbols
   const prioritySymbols = ['WBTC', 'stATOM', 'stOSMO', 'stTIA']
@@ -449,6 +459,7 @@ const NeuroGuardCard = () => {
           amount: shiftDigits(asset.asset.amount, -(assetDecimals)).toFixed(2),
           symbol: fullAssetInfo?.symbol ?? "N/A",
           image: fullAssetInfo?.logo,
+          cost: basketAssets.find((asset) => asset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0,
           LTV
         }
       })
@@ -501,7 +512,7 @@ const NeuroGuardCard = () => {
         </HStack>
         {neuroState.assets.map((asset) =>
           <>
-            {asset && num(asset.combinUsdValue).isGreaterThan(1) ? <NeuroGuardOpenEntry asset={asset} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
+            {asset && num(asset.combinUsdValue).isGreaterThan(1) ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
           </>
         )}
         </Stack>
@@ -526,7 +537,7 @@ const NeuroGuardCard = () => {
           </Text>
         </HStack>
         {existingGuards.map((guard) =>
-            <>{guard ? <NeuroGuardCloseButton guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}</>
+            <>{guard ? <NeuroGuardCloseEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}</>
         )}
         </Stack>
       : null}

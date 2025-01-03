@@ -150,7 +150,7 @@ const Home = () => {
         <Stack>
           <Text variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px"
             display="flex" color={colors.earnText}>
-            <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>The Membrane: </a> Range Bound Liquidity Provision
+            <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>The Membrane: &nbsp;</a> Range Bound Liquidity Provision
           </Text>
           <Stack direction={isMobile ? 'column' : 'row'} width="100%">
             <MemoizedRangeBoundVisual />

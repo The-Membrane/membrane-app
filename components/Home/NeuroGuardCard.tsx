@@ -203,7 +203,7 @@ const NeuroGuardOpenEntry = React.memo(({
   }, [])
   
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
-  const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).toFixed(1)
+  const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toFixed(1)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>
@@ -265,7 +265,7 @@ const NeuroGuardCloseEntry = React.memo(({
   const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
   const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
   const isLoading = sheathe?.simulate.isLoading || sheathe?.tx.isPending
-  const yieldValue = num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).toFixed(1)
+  const yieldValue = num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toFixed(1)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>
@@ -456,7 +456,7 @@ const NeuroGuardCard = () => {
         let LTV = creditValue.dividedBy(assetValue).toString()
 
 
-        console.log("basketAssets", basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate , asset.asset.info.native_token.denom, basketAssets)
+        // console.log("basketAssets", basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate , asset.asset.info.native_token.denom, basketAssets)
         return {
           position: position,
           amount: shiftDigits(asset.asset.amount, -(assetDecimals)).toFixed(2),
@@ -481,7 +481,7 @@ const NeuroGuardCard = () => {
     <Stack gap={1} marginBottom="3%">
       <Stack alignItems={""}>
         <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-          <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>Neuro-Guard: </a> Earn with Peace of Mind
+          <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>Neuro-Guard: &nbsp;</a> Earn with Peace of Mind
         </Text>        
         <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
           <Button
@@ -492,6 +492,7 @@ const NeuroGuardCard = () => {
             alignSelf="center"
             margin="0"
             onClick={toggleExpanded}
+            color={colors.noState}
           >
             FAQ
           </Button>
@@ -515,7 +516,7 @@ const NeuroGuardCard = () => {
         </HStack>
         {neuroState.assets.map((asset) =>
           <>
-            {asset && num(asset.combinUsdValue).isGreaterThan(1) ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}
+            {asset && num(asset.combinUsdValue).isGreaterThan(1) ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
           </>
         )}
         </Stack>
@@ -540,7 +541,7 @@ const NeuroGuardCard = () => {
           </Text>
         </HStack>
         {existingGuards.map((guard) =>
-            <>{guard ? <NeuroGuardCloseEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) : "0"} /> : null}</>
+            <>{guard ? <NeuroGuardCloseEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}</>
         )}
         </Stack>
       : null}

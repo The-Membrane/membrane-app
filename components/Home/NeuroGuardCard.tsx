@@ -22,6 +22,7 @@ import useBalance from "@/hooks/useBalance"
 import { Coin } from "@cosmjs/stargate"
 import TxError from "../TxError"
 import { BasketAsset, getBasketAssets } from "@/services/cdp"
+import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -190,7 +191,7 @@ const NeuroGuardOpenEntry = React.memo(({
   RBYield,
   basketAssets
 }: {
-  asset: any
+  asset: AssetWithBalance
   RBYield: string
   basketAssets: BasketAsset[]
 }) => {
@@ -201,8 +202,8 @@ const NeuroGuardOpenEntry = React.memo(({
     setIsOpen(prev => !prev)
   }, [])
   
-  const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0
-  const yieldValue = num(RBYield).times(asset.borrowLTV).times(0.8).minus(cost).toFixed(1)
+  const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
+  const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).toFixed(1)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>
@@ -387,7 +388,6 @@ const NeuroGuardCard = () => {
           ...asset,
           value: asset?.symbol,
           label: asset?.symbol,
-          borrowLTV: asset?.maxBorrowLTV ?? 0,
           sliderValue: 0,
           balance: num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount ?? 0), -(asset?.decimal ?? 6))).toNumber(),
           price: Number(prices?.find((p: any) => p.denom === asset.base)?.price ?? "0"),

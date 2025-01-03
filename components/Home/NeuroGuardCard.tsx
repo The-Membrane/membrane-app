@@ -133,7 +133,7 @@ const NeuroOpenModal = React.memo(({
       <ModalOverlay />
       <ModalContent maxW="800px">
         <ModalHeader>
-          <Text variant="title">Enlist in the Neuro-Guard</Text>
+          <Text variant="title" textTransform={undefined} letterSpacing={"1px"}>Enlist in the Neuro-Guard</Text>
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb="5">          
@@ -163,7 +163,7 @@ const NeuroOpenModal = React.memo(({
             gap="5"
           >
           <TxButton
-            w="30%"
+            w="40%"
             isLoading={isLoading}
             isDisabled={isDisabled}
             onClick={() => neuro?.tx.mutate()}
@@ -200,22 +200,22 @@ const NeuroGuardOpenEntry = React.memo(({
   return (
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
-        <HStack  width="20%"  justifyContent="left">
+        <HStack  width="25%"  justifyContent="left">
           {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {asset.symbol}
           </Text>        
         </HStack>
-        <Text  width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
+        <Text  width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
           ${num(asset.combinUsdValue).toFixed(2)}
         </Text>
-        <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+        <Text width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
         </Text>  
         <NeuroOpenModal isOpen={isOpen} onClose={toggleOpen}>                   
           <Button
+              width="25%"
               display="flex"
-              width="fit-content"
               padding="0"
               alignSelf="center"
               margin="0"
@@ -464,8 +464,8 @@ const NeuroGuardCard = () => {
 
   return (
     <Stack gap={1} marginBottom="3%">
-      <HStack>
-        <Text width="20%" variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px" marginBottom="1%" display="flex" color={colors.earnText}>
+      <Stack alignItems={""}>
+        <Text width="20%" variant="title" fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           Neuro-Guards
         </Text>        
         <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
@@ -481,7 +481,7 @@ const NeuroGuardCard = () => {
             FAQ
           </Button>
         </FAQModal>
-      </HStack>
+      </Stack>
       {neuroState.assets.length > 0 ?       
       <Stack>         
         <HStack gap="9%" p={4}>

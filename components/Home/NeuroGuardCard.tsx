@@ -153,7 +153,7 @@ const NeuroOpenModal = React.memo(({
 
     <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
       <ModalOverlay />
-      <ModalContent maxW="800px">
+      <ModalContent maxW="400px">
         <ModalHeader>
           <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Enlist in the Neuro-Guard</Text>
         </ModalHeader>
@@ -161,18 +161,21 @@ const NeuroOpenModal = React.memo(({
         <ModalBody pb="5">    
           <Stack>
             <HStack  width="100%"  justifyContent="left">
-              {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
-              <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-              {neuroState?.selectedAsset?.symbol}
-              </Text>              
-              {neuroState.selectedAsset?.combinUsdValue && (
-                  <Text variant="title" textTransform="none" textAlign="left" fontSize="lg" letterSpacing="1px" width="58%">
-                    | min: ${minValue.toFixed(0)}
-                  </Text>
-                )}
-            </HStack>           
+              <HStack width="75%">
+                {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
+                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                {neuroState?.selectedAsset?.symbol}
+                </Text>
+                <Text variant="title" textTransform="none" textAlign="left" fontSize="lg" letterSpacing="1px" width="100%">
+                  | min: {minAmount.toFixed(2)}
+                </Text>
+              </HStack>
+              <Text variant="title" textTransform="none" textAlign="left" fontSize="lg" letterSpacing="1px" width="25%" color={colors.noState}>
+                ~${num(neuroState?.selectedAsset?.sliderValue).times(neuroState?.selectedAsset?.price??0).toFixed(2)}
+              </Text>
+            </HStack>
             <Input 
-              width={"49%"} 
+              width={"100%"} 
               textAlign={"center"} 
               placeholder="0" 
               type="number" 
@@ -180,7 +183,7 @@ const NeuroOpenModal = React.memo(({
               value={neuroState?.selectedAsset?.sliderValue?.toFixed(2)} 
               onChange={onInputChange}
               />
-              <HStack alignContent={"right"} width={"49%"} justifyContent={"right"}>   
+              <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>   
                 
                 <Button onClick={onMinClick} width="10%" variant="unstyled" fontWeight="normal">                   
                   <Text variant="body"  textTransform="none" fontSize="sm"  letterSpacing="1px" display="flex">

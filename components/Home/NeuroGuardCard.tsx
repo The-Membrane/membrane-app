@@ -121,6 +121,8 @@ const NeuroOpenModal = React.memo(({
       })
     }, [neuroState?.selectedAsset, setNeuroState])
 
+    console.log("neuro", neuro)
+
   
     return (<>
     <Button onClick={()=>{}} width="25%" variant="unstyled" fontWeight="normal" mb="3">
@@ -167,9 +169,9 @@ const NeuroOpenModal = React.memo(({
                 </Text>
               )}
               
-            {neuro.simulate.isError && (
+            {neuro.simulate.isError && num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && (
                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="58%">
-                  Error: {neuro.simulate.errorMessage}
+                  Error: {neuro.simulate.error?.message}
                 </Text>
               )}
 

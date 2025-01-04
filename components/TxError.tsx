@@ -12,7 +12,7 @@ const TxError = ({ action, ...textProps }: Props) => {
   
   const errorMessage = useMemo(() => {
     if (!error) return null
-    return parseError(error)
+    return parseError(error?.message ?? "")
   }, [error])
 
   if (!isError) return null

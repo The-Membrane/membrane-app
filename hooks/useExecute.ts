@@ -29,7 +29,7 @@ const useExecute = ({ onSubmit, onSuccess }: Transaction) => {
       onSuccess?.()
     },
     onError: (error) => {
-      const parsedError = parseError(error)
+      const parsedError = parseError(error?.message ?? "")
       toaster.error({
         message: parsedError || 'Transaction Failed',
       })

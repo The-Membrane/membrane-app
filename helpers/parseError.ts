@@ -14,12 +14,12 @@ const collateralSupplyCapErrors = () => {
     const assetSymbol = getAssetByDenom(assetDenom)?.symbol
     return {
       regex: new RegExp(`Supply cap ratio for ${assetDenom}`, 'i'),
-      message: `This transaction puts ${assetSymbol} over its supply cap. If withdrawing, withdraw ${assetSymbol}. If depositing, withdraw ${assetSymbol} first or deposit enough of a different asset to reduce ${assetSymbol}'s cap. If minting from zero debt, withdraw ${assetSymbol} first & attempt to deposit it after the mint.`,
+      message: `This transaction puts ${assetSymbol} over its supply cap. If withdrawing, withdraw ${assetSymbol}. If depositing with debt, withdraw ${assetSymbol} first. If depositing without debt, deposit enough of a different asset to reduce ${assetSymbol}'s cap so you can deposit it. If minting from zero debt with multiple cllateral, withdraw ${assetSymbol} first & attempt to deposit it after the mint.`,
     }
   })
 }
 
-export const parseError = (error: Error) => {
+export const parseError = (error: string) => {
   var customErrors = [
     { regex: /insufficient funds/i, message: 'Insufficient funds' },
     { regex: /overflow: cannot sub with/i, message: 'Insufficient funds' },
@@ -59,7 +59,7 @@ export const parseError = (error: Error) => {
   ]
   customErrors = customErrors.concat(collateralSupplyCapErrors()??[])
 
-  const errorMessage = error?.message || ''
+  const errorMessage = error || ''
     console.log("error:", errorMessage)
 
   const matchedError = customErrors.find(({ regex }) => regex.test(errorMessage))

@@ -349,33 +349,33 @@ const NeuroGuardCard = () => {
   }, [clRewardList, daysSinceDeposit])
 
   // Memoize yield message calculation
-  const yieldMsg = useMemo(() => {
-    if (!neuroState?.selectedAsset || !bidState.cdpExpectedAnnualRevenue || !TVL || !rangeBoundAPR) {
-      return (
-        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="35%" display="flex" justifyContent="center">
-          Select an asset to see potential yield
-        </Text>
-      )
-    }
+  // const yieldMsg = useMemo(() => {
+  //   if (!neuroState?.selectedAsset || !bidState.cdpExpectedAnnualRevenue || !TVL || !rangeBoundAPR) {
+  //     return (
+  //       <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="35%" display="flex" justifyContent="center">
+  //         Select an asset to see potential yield
+  //       </Text>
+  //     )
+  //   }
 
-    const yieldTotal = num(bidState.cdpExpectedAnnualRevenue)
-      .times(0.80)
-      .dividedBy(TVL)
-      .plus(rangeBoundAPR)
-      .multipliedBy(100)
-      .toFixed(1)
+  //   const yieldTotal = num(bidState.cdpExpectedAnnualRevenue)
+  //     .times(0.80)
+  //     .dividedBy(TVL)
+  //     .plus(rangeBoundAPR)
+  //     .multipliedBy(100)
+  //     .toFixed(1)
 
-    const finalYield = num(yieldTotal)
-      .times(neuroState.selectedAsset.maxBorrowLTV ?? 0)
-      .times(0.80)
-      .toFixed(1)
+  //   const finalYield = num(yieldTotal)
+  //     .times(neuroState.selectedAsset.maxBorrowLTV ?? 0)
+  //     .times(0.80)
+  //     .toFixed(1)
 
-    return (
-      <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="35%" display="flex" justifyContent="center">
-        {neuroState.selectedAsset.symbol} can earn {finalYield}%
-      </Text>
-    )
-  }, [bidState.cdpExpectedAnnualRevenue, TVL, rangeBoundAPR, neuroState?.selectedAsset])
+  //   return (
+  //     <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="35%" display="flex" justifyContent="center">
+  //       {neuroState.selectedAsset.symbol} can earn {finalYield}%
+  //     </Text>
+  //   )
+  // }, [bidState.cdpExpectedAnnualRevenue, TVL, rangeBoundAPR, neuroState?.selectedAsset])
 
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -531,7 +531,10 @@ const NeuroGuardCard = () => {
         </Stack>
       : null}
       {existingGuards && existingGuards.length > 0 ?       
-      <Stack>         
+      <Stack>        
+        <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+          Your Guardians
+        </Text>        
         <HStack gap="9%" p={4}>
           <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             Asset

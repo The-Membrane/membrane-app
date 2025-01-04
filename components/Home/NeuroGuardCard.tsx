@@ -172,7 +172,7 @@ const NeuroOpenModal = React.memo(({
               
             
             <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="50%">
-              {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) ? neuro.simulate.error?.message ?? "" : "")}
+              {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && neuro.simulate.isError ? neuro.simulate.error?.message ?? "" : "")}
             </Text>
              
 
@@ -489,7 +489,7 @@ const NeuroGuardCard = () => {
   return (
     <Stack gap={1} marginBottom="3%">
       <Stack alignItems={""}>
-        <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+        <Text width="100%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>Neuro-Guard: &nbsp;</a> Earn with Peace of Mind
         </Text>        
         <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>

@@ -29,7 +29,7 @@ export const parseError = (error: Error) => {
     { regex: /no liquidity in pool/i, message: 'No liquidity available' },
     { regex: /token amount calculated/i, message: 'Try increasing slippage' },
     { regex: /Must stake at least 1 MBRN/i, message: "You aren't claiming enough to stake, must be more than 1 MBRN" },
-    { regex: /is below minimum/i, message: 'Minimum 100 CDT to mint' },
+    { regex: /is below minimum/i, message: 'Minimum 20 CDT to mint' },
     { regex: /invalid coin/i, message: 'Invalid coins provided' },
     { regex: /tx already exists in cache/i, message: 'Transaction already exists in cache' },
     { regex: /Makes position insolvent/i, message: 'Amount exceeds the maximum LTV' },

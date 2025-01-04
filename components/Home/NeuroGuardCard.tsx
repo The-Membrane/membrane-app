@@ -23,6 +23,7 @@ import { Coin } from "@cosmjs/stargate"
 import TxError from "../TxError"
 import { BasketAsset, getBasketAssets } from "@/services/cdp"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
+import { parseError } from "@/helpers/parseError"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -141,7 +142,13 @@ const NeuroOpenModal = React.memo(({
               {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
               <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
               {neuroState?.selectedAsset?.symbol}
-              </Text>        
+              </Text>              
+              {neuroState.selectedAsset?.combinUsdValue && (
+                  <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="58%">
+                    - Minimum: $
+                    {((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}
+                  </Text>
+                )}
             </HStack>           
             <Input 
               width={"49%"} 
@@ -162,16 +169,10 @@ const NeuroOpenModal = React.memo(({
             pt="5"
             gap="5"
           >
-            {neuroState.selectedAsset?.combinUsdValue && (
-                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="58%">
-                  Minimum for {neuroState.selectedAsset?.symbol ?? "N/A"}: $
-                  {((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}
-                </Text>
-              )}
               
             {neuro.simulate.isError && num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && (
-                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="58%">
-                  Error: {neuro.simulate.error?.message}
+                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="50%">
+                  Error: {parseError(neuro.simulate.error)}
                 </Text>
               )}
 
@@ -211,6 +212,7 @@ const NeuroGuardOpenEntry = React.memo(({
   
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
   const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toFixed(1)
+
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>
@@ -482,7 +484,7 @@ const NeuroGuardCard = () => {
     setIsExpanded(prev => !prev)
   }, [])
 
-  console.log("existingGuard", existingGuards)
+  // console.log("existingGuard", existingGuards)
 
   return (
     <Stack gap={1} marginBottom="3%">
@@ -501,7 +503,7 @@ const NeuroGuardCard = () => {
             onClick={toggleExpanded}
             color={colors.noState}
           >
-            FAQ
+            Beta - FAQ
           </Button>
         </FAQModal>
       </Stack>

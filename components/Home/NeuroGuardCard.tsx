@@ -170,11 +170,11 @@ const NeuroOpenModal = React.memo(({
             gap="5"
           >
               
-            {num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && (
-                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="50%">
-                  {parseError(neuro.simulate.error?.message ?? "")}
-                </Text>
-              )}
+            
+            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="50%">
+              {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) ? neuro.simulate.error?.message ?? "" : "")}
+            </Text>
+             
 
             <TxButton
               w="40%"

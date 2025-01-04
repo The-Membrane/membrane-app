@@ -532,7 +532,7 @@ const NeuroGuardCard = () => {
       : null}
       {existingGuards && existingGuards.length > 0 ?       
       <Stack>        
-        <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+        <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           Your Guardians
         </Text>        
         <HStack gap="9%" p={4}>

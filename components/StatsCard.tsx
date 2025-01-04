@@ -50,7 +50,7 @@ export const StatsCard = React.memo(() => {
             <Text onClick={onTitleClick} fontWeight="bold" fontSize="33px"
               fontFamily="monospace" justifyContent="center"
               display="flex" textAlign="center">
-              Scaling Decentralized Stablecoins in Protective Harmony
+              Decentralized Stablecoins: A New Age of Empowerment
             </Text>
             <Button alignSelf="center" width="21%" minWidth="130px"
               onClick={() => setOpen(true)}>

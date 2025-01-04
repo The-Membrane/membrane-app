@@ -106,36 +106,20 @@ const NeuroOpenModal = React.memo(({
     const { action: neuro } = useNeuroGuard()
     const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
     const isDisabled = neuro?.simulate.isError || !neuro?.simulate.data
-
-    // State to store the temporary input value
-    const [inputValue, setInputValue] = useState('');
     
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault();
-      setInputValue(e.target.value);
-    }, []);
-
-    useEffect(() => {
-      // Don't run on initial mount
-      if (!inputValue) return;
-
-      // Create a timer that will run after 500ms of no typing
-      const timer = setTimeout(() => {
-        const value = Number(inputValue);
-        const max = neuroState?.selectedAsset?.combinUsdValue ?? 0;
-
-        setNeuroState({
-          //@ts-ignore
-          selectedAsset: {
-            ...neuroState?.selectedAsset,
-            sliderValue: num(value).isGreaterThan(max) ? max : value
-          }
-        });
-      }, 500); // Adjust this delay as needed
-
-      // Cleanup the timer if the component unmounts or inputValue changes
-      return () => clearTimeout(timer);
-    }, [inputValue, neuroState?.selectedAsset, setNeuroState]);
+      e.preventDefault()
+      const value = Number(e.target.value)
+      //@ts-ignore
+      const max = neuroState?.selectedAsset?.balance ?? 0
+      setNeuroState({
+        //@ts-ignore
+        selectedAsset: {
+          ...neuroState?.selectedAsset,
+          sliderValue: num(value).isGreaterThan(max) ? max : value
+        }
+      })
+    }, [neuroState?.selectedAsset, setNeuroState])
     console.log("neuro", neuro)
 
   
@@ -151,7 +135,8 @@ const NeuroOpenModal = React.memo(({
           <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Enlist in the Neuro-Guard</Text>
         </ModalHeader>
         <ModalCloseButton />
-        <ModalBody pb="5">          
+        <ModalBody pb="5">    
+          <Stack>
             <HStack  width="100%"  justifyContent="left">
               {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
               <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
@@ -169,9 +154,23 @@ const NeuroOpenModal = React.memo(({
               placeholder="0" 
               type="number" 
               variant={"ghost"}
-              value={inputValue} 
+              value={neuroState?.selectedAsset?.sliderValue} 
               onChange={onInputChange}
               />
+              <HStack alignContent={"right"} width={"49%"} justifyContent={"right"}>   
+                
+                <Button onClick={()=>{}} width="10%" variant="unstyled" fontWeight="normal">                   
+                  <Text variant="body"  textTransform="none" fontSize="sm"  letterSpacing="1px" display="flex">
+                    min
+                  </Text>     
+                </Button>                
+                <Button onClick={()=>{}} width="10%" variant="unstyled" fontWeight="normal">     
+                  <Text variant="body"  textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                    max
+                  </Text>   
+                </Button>           
+              </HStack>
+          </Stack>      
         </ModalBody>
         {(
           <ModalFooter
@@ -522,6 +521,9 @@ const NeuroGuardCard = () => {
       </Stack>
       {neuroState.assets.length > 0 && num(neuroState.assets[0].combinUsdValue).isGreaterThan(1)?       
       <Stack>         
+        <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+          Your Wallet
+        </Text>      
         <HStack gap="9%" p={4}>
           <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             Asset

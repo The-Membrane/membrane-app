@@ -40,6 +40,7 @@ export const parseError = (error: string) => {
     { regex: /big.Int: tx parse error/i, message: "Max amount per deposit for this token is 999, if this error seems wrong, just jiggle the slider." },
     { regex: /invalid Uint128/i, message: "Max amount per deposit for this token is 999, if this error seems wrong, just jiggle the slider." },
     { regex: /rate assurance failed/i, message: "Depositor safety check failed, operational error." },
+    { regex: / Invalid target_LTV for debt increase/i, message: "Intent failed, are you above the minimum amount?" },
     {
       regex: /Invalid withdrawal, can't leave less than the minimum bid/i,
       message: 'Minimum bid amount is 5 CDT',

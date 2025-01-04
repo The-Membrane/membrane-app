@@ -25,7 +25,6 @@ EventEmitter.defaultMaxListeners = 25; // Increase the limit
 const useNeuroGuard = () => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
-  const assets = useCollateralAssets()
   const { neuroState } = useNeuroState()
 
   //   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
@@ -68,14 +67,13 @@ const useNeuroGuard = () => {
       address,
       debouncedValue.selectedAsset,
       guardedAsset,
-      basket,
-      assets
+      basket
     ],
     queryFn: () => {
       console.log("in query guardian", guardedAsset)
 
 
-      if (!address || !debouncedValue.selectedAsset || !guardedAsset || !basket || !assets) { console.log("neuroGuard early return", address, debouncedValue, guardedAsset, basket, assets); return { msgs: [] } }
+      if (!address || !debouncedValue.selectedAsset || !guardedAsset || !basket) { console.log("neuroGuard early return", address, debouncedValue, guardedAsset, basket); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       const newDeposit = num(debouncedValue.selectedAsset.sliderValue).toNumber()
@@ -110,7 +108,7 @@ const useNeuroGuard = () => {
               mint_intent: {
                 user: address,
                 position_id: basket.current_position_id,
-                mint_to_ltv: num(assets.find((p: any) => p.base === debouncedValue.selectedAsset.base)?.maxBorrowLTV).times(0.8).toString()
+                mint_to_ltv: num(debouncedValue.selectedAsset?.maxBorrowLTV).times(0.8).toString()
               }
             }
           })),

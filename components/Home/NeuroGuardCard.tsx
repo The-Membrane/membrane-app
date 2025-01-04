@@ -107,21 +107,35 @@ const NeuroOpenModal = React.memo(({
     const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
     const isDisabled = neuro?.simulate.isError || !neuro?.simulate.data
 
+    // State to store the temporary input value
+    const [inputValue, setInputValue] = useState('');
     
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault()
-      const value = Number(e.target.value)
-      const max = neuroState?.selectedAsset?.combinUsdValue ?? 0
+      e.preventDefault();
+      setInputValue(e.target.value);
+    }, []);
 
-      setNeuroState({
-        //@ts-ignore
-        selectedAsset: {
-          ...neuroState?.selectedAsset,
-          sliderValue: num(value).isGreaterThan(max) ? max : value
-        }
-      })
-    }, [neuroState?.selectedAsset, setNeuroState])
+    useEffect(() => {
+      // Don't run on initial mount
+      if (!inputValue) return;
 
+      // Create a timer that will run after 500ms of no typing
+      const timer = setTimeout(() => {
+        const value = Number(inputValue);
+        const max = neuroState?.selectedAsset?.combinUsdValue ?? 0;
+
+        setNeuroState({
+          //@ts-ignore
+          selectedAsset: {
+            ...neuroState?.selectedAsset,
+            sliderValue: num(value).isGreaterThan(max) ? max : value
+          }
+        });
+      }, 500); // Adjust this delay as needed
+
+      // Cleanup the timer if the component unmounts or inputValue changes
+      return () => clearTimeout(timer);
+    }, [inputValue, neuroState?.selectedAsset, setNeuroState]);
     console.log("neuro", neuro)
 
   
@@ -138,15 +152,14 @@ const NeuroOpenModal = React.memo(({
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb="5">          
-            <HStack  width="15%"  justifyContent="left">
+            <HStack  width="100%"  justifyContent="left">
               {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
               <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
               {neuroState?.selectedAsset?.symbol}
               </Text>              
               {neuroState.selectedAsset?.combinUsdValue && (
-                  <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="58%">
-                    - Minimum: $
-                    {((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}
+                  <Text variant="title" textTransform="none" textAlign="left" fontSize="lg" letterSpacing="1px" width="58%">
+                    | min: ${((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}
                   </Text>
                 )}
             </HStack>           
@@ -156,7 +169,7 @@ const NeuroOpenModal = React.memo(({
               placeholder="0" 
               type="number" 
               variant={"ghost"}
-              value={neuroState?.selectedAsset?.sliderValue} 
+              value={inputValue} 
               onChange={onInputChange}
               />
         </ModalBody>
@@ -211,7 +224,7 @@ const NeuroGuardOpenEntry = React.memo(({
   }, [])
   
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
-  const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toFixed(1)
+  const yieldValue = Math.max(num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toNumber(), 0).toFixed(1)
 
 
   return (
@@ -274,7 +287,7 @@ const NeuroGuardCloseEntry = React.memo(({
   const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
   const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
   const isLoading = sheathe?.simulate.isLoading || sheathe?.tx.isPending
-  const yieldValue = num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toFixed(1)
+  const yieldValue = Math.max(num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toNumber(), 0).toFixed(1)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>

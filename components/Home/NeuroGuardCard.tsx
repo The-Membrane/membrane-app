@@ -107,20 +107,43 @@ const NeuroOpenModal = React.memo(({
     const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
     const isDisabled = neuro?.simulate.isError || !neuro?.simulate.data
     
-    const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault()
-      const value = Number(e.target.value)
-      //@ts-ignore
-      const max = neuroState?.selectedAsset?.balance ?? 0
+  
+    const minValue = ((21 / ((neuroState?.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
+    const minAmount = num(minValue).dividedBy(neuroState?.selectedAsset?.price??0).toNumber()
+    //@ts-ignore
+    const maxAmount = num(neuroState?.selectedAsset?.balance).toNumber()
+
+    const onMaxClick = () => {
       setNeuroState({
         //@ts-ignore
         selectedAsset: {
           ...neuroState?.selectedAsset,
-          sliderValue: num(value).isGreaterThan(max) ? max : value
+          sliderValue: maxAmount
+        }})
+    }
+    const onMinClick = () => {
+      setNeuroState({
+        //@ts-ignore
+        selectedAsset: {
+          ...neuroState?.selectedAsset,
+          sliderValue: minAmount
+        }})
+    }
+
+
+    const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+      e.preventDefault()
+      const value = Number(e.target.value)
+
+      setNeuroState({
+        //@ts-ignore
+        selectedAsset: {
+          ...neuroState?.selectedAsset,
+          sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
         }
       })
     }, [neuroState?.selectedAsset, setNeuroState])
-    console.log("neuro", neuro)
+    
 
   
     return (<>
@@ -144,7 +167,7 @@ const NeuroOpenModal = React.memo(({
               </Text>              
               {neuroState.selectedAsset?.combinUsdValue && (
                   <Text variant="title" textTransform="none" textAlign="left" fontSize="lg" letterSpacing="1px" width="58%">
-                    | min: ${((21 / ((neuroState.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1).toFixed(0)}
+                    | min: ${minValue.toFixed(0)}
                   </Text>
                 )}
             </HStack>           
@@ -154,17 +177,17 @@ const NeuroOpenModal = React.memo(({
               placeholder="0" 
               type="number" 
               variant={"ghost"}
-              value={neuroState?.selectedAsset?.sliderValue} 
+              value={neuroState?.selectedAsset?.sliderValue?.toFixed(2)} 
               onChange={onInputChange}
               />
               <HStack alignContent={"right"} width={"49%"} justifyContent={"right"}>   
                 
-                <Button onClick={()=>{}} width="10%" variant="unstyled" fontWeight="normal">                   
+                <Button onClick={onMinClick} width="10%" variant="unstyled" fontWeight="normal">                   
                   <Text variant="body"  textTransform="none" fontSize="sm"  letterSpacing="1px" display="flex">
                     min
                   </Text>     
                 </Button>                
-                <Button onClick={()=>{}} width="10%" variant="unstyled" fontWeight="normal">     
+                <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">     
                   <Text variant="body"  textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
                     max
                   </Text>   

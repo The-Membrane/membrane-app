@@ -50,7 +50,7 @@ const useNeuroGuard = () => {
     };
   }, [neuroState.selectedAsset]);
 
-  const guardedAsset = useAssetBySymbol(debouncedValue.selectedAsset?.symbol || "N/A")
+  // const guardedAsset = useAssetBySymbol(debouncedValue.selectedAsset?.symbol || "N/A")
 
   // useEffect(() => {console.log("debounced changed")}, [debouncedValue])
   // useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
@@ -66,20 +66,20 @@ const useNeuroGuard = () => {
       'neuroGuard_msg_creation',
       address,
       debouncedValue.selectedAsset,
-      guardedAsset,
       basket
     ],
     queryFn: () => {
-      console.log("in query guardian", guardedAsset)
+      console.log("in query guardian", debouncedValue.selectedAsset)
 
 
-      if (!address || !debouncedValue.selectedAsset || !guardedAsset || !basket) { console.log("neuroGuard early return", address, debouncedValue, guardedAsset, basket); return { msgs: [] } }
+      if (!address || !debouncedValue.selectedAsset || !basket) { console.log("neuroGuard early return", address, debouncedValue, basket); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       const newDeposit = num(debouncedValue.selectedAsset.sliderValue).toNumber()
-      const amount = shiftDigits(num(newDeposit).dividedBy(debouncedValue.selectedAsset.price).toString(), debouncedValue.selectedAsset.decimal).toFixed(0)
+      // const amount = shiftDigits(num(newDeposit).dividedBy(debouncedValue.selectedAsset.price).toString(), debouncedValue.selectedAsset.decimal).toFixed(0)
+      const amount = shiftDigits(newDeposit, debouncedValue.selectedAsset.decimal).toFixed(0)
       console.log("Neuro funds", newDeposit, amount, debouncedValue.selectedAsset)
-      const funds = [{ amount, denom: guardedAsset.base }]
+      const funds = [{ amount, denom: debouncedValue.selectedAsset.base }]
       console.log(funds)
 
       //Deposit msg

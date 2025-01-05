@@ -56,10 +56,10 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
 
 const FAQModal = React.memo(({
   isOpen, onClose, children
-}: PropsWithChildren<{isOpen: boolean, onClose: () => void}>) => {
-  
-    return (<>
-    <Button onClick={()=>{}} variant="unstyled" fontWeight="normal" mb="3">
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void }>) => {
+
+  return (<>
+    <Button onClick={() => { }} variant="unstyled" fontWeight="normal" mb="3">
       {children}
     </Button>
 
@@ -71,7 +71,7 @@ const FAQModal = React.memo(({
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb="5">
-        <FAQ isExpanded={true} />
+          <FAQ isExpanded={true} />
         </ModalBody>
         {/* {(
           <ModalFooter
@@ -99,55 +99,57 @@ const FAQModal = React.memo(({
 
 const NeuroOpenModal = React.memo(({
   isOpen, onClose, children
-}: PropsWithChildren<{isOpen: boolean, onClose: () => void}>) => {
-  
-  
-    const { neuroState, setNeuroState } = useNeuroState()
-    const { action: neuro } = useNeuroGuard()
-    const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
-    const isDisabled = neuro?.simulate.isError || !neuro?.simulate.data
-    
-  
-    const minValue = ((21 / ((neuroState?.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
-    const minAmount = num(minValue).dividedBy(neuroState?.selectedAsset?.price??0).toNumber()
-    //@ts-ignore
-    const maxAmount = num(neuroState?.selectedAsset?.balance).toNumber()
-
-    const onMaxClick = () => {
-      setNeuroState({
-        //@ts-ignore
-        selectedAsset: {
-          ...neuroState?.selectedAsset,
-          sliderValue: maxAmount
-        }})
-    }
-    const onMinClick = () => {
-      setNeuroState({
-        //@ts-ignore
-        selectedAsset: {
-          ...neuroState?.selectedAsset,
-          sliderValue: minAmount
-        }})
-    }
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void }>) => {
 
 
-    const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault()
-      const value = Number(e.target.value)
+  const { neuroState, setNeuroState } = useNeuroState()
+  const { action: neuro } = useNeuroGuard()
+  const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
+  const isDisabled = neuro?.simulate.isError || !neuro?.simulate.data
 
-      setNeuroState({
-        //@ts-ignore
-        selectedAsset: {
-          ...neuroState?.selectedAsset,
-          sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-        }
-      })
-    }, [neuroState?.selectedAsset, setNeuroState])
-    
 
-  
-    return (<>
-    <Button onClick={()=>{}} width="25%" variant="unstyled" fontWeight="normal" mb="3">
+  const minValue = ((21 / ((neuroState?.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
+  const minAmount = num(minValue).dividedBy(neuroState?.selectedAsset?.price ?? 0).toNumber()
+  //@ts-ignore
+  const maxAmount = num(neuroState?.selectedAsset?.balance).toNumber()
+
+  const onMaxClick = () => {
+    setNeuroState({
+      //@ts-ignore
+      selectedAsset: {
+        ...neuroState?.selectedAsset,
+        sliderValue: maxAmount
+      }
+    })
+  }
+  const onMinClick = () => {
+    setNeuroState({
+      //@ts-ignore
+      selectedAsset: {
+        ...neuroState?.selectedAsset,
+        sliderValue: minAmount
+      }
+    })
+  }
+
+
+  const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const value = Number(e.target.value)
+
+    setNeuroState({
+      //@ts-ignore
+      selectedAsset: {
+        ...neuroState?.selectedAsset,
+        sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+      }
+    })
+  }, [neuroState?.selectedAsset, setNeuroState])
+
+
+
+  return (<>
+    <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="3">
       {children}
     </Button>
 
@@ -158,42 +160,42 @@ const NeuroOpenModal = React.memo(({
           <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
         </ModalHeader>
         <ModalCloseButton />
-        <ModalBody pb="5">    
+        <ModalBody pb="5">
           <Stack>
-            <HStack  width="100%"  justifyContent="left">
+            <HStack width="100%" justifyContent="left">
               <HStack width="75%">
                 {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                {neuroState?.selectedAsset?.symbol}
+                  {neuroState?.selectedAsset?.symbol}
                 </Text>
               </HStack>
               <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                ~${num(neuroState?.selectedAsset?.sliderValue).times(neuroState?.selectedAsset?.price??0).toFixed(2)}
+                ~${num(neuroState?.selectedAsset?.sliderValue).times(neuroState?.selectedAsset?.price ?? 0).toFixed(2)}
               </Text>
             </HStack>
-            <Input 
-              width={"100%"} 
-              textAlign={"right"} 
-              placeholder="0" 
-              type="number" 
+            <Input
+              width={"100%"}
+              textAlign={"right"}
+              placeholder="0"
+              type="number"
               variant={"ghost"}
-              value={neuroState?.selectedAsset?.sliderValue?.toFixed(2)} 
+              value={neuroState?.selectedAsset?.sliderValue?.toFixed(2)}
               onChange={onInputChange}
-              />
-              <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>   
-                
-                <Button onClick={onMinClick} width="10%" variant="unstyled" fontWeight="normal">                   
-                  <Text variant="body"  textTransform="none" fontSize="sm"  letterSpacing="1px" display="flex">
-                    min
-                  </Text>     
-                </Button>                
-                <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">     
-                  <Text variant="body"  textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                    max
-                  </Text>   
-                </Button>           
-              </HStack>
-          </Stack>      
+            />
+            <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+
+              <Button onClick={onMinClick} width="10%" variant="unstyled" fontWeight="normal">
+                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                  min
+                </Text>
+              </Button>
+              <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
+                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                  max
+                </Text>
+              </Button>
+            </HStack>
+          </Stack>
         </ModalBody>
         {(
           <ModalFooter
@@ -204,12 +206,12 @@ const NeuroOpenModal = React.memo(({
             pt="5"
             gap="5"
           >
-              
-            
+
+
             <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
               {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && neuro.simulate.isError ? neuro.simulate.error?.message ?? "" : "")}
             </Text>
-             
+
 
             <TxButton
               w="100%"
@@ -220,7 +222,7 @@ const NeuroOpenModal = React.memo(({
               style={{ alignSelf: "center" }}
             >
               Open Loan for Passive Yield
-            </TxButton>            
+            </TxButton>
           </ModalFooter>
         )}
       </ModalContent>
@@ -244,9 +246,9 @@ const NeuroGuardOpenEntry = React.memo(({
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
   }, [])
-  
+
   const minValue = ((21 / ((asset.maxBorrowLTV ?? 0) * 0.8)) + 1)
-  const minAmount = num(minValue).dividedBy(asset.price??0).toNumber()
+  const minAmount = num(minValue).dividedBy(asset.price ?? 0).toNumber()
   const isDisabled = minAmount > asset.balance
 
 
@@ -257,30 +259,30 @@ const NeuroGuardOpenEntry = React.memo(({
   return (
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
-        <HStack  width="25%"  justifyContent="left">
+        <HStack width="25%" justifyContent="left">
           {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {asset.symbol}
-          </Text>        
+            {asset.symbol}
+          </Text>
         </HStack>
-        <Text  width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
+        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {num(asset.balance).toFixed(2)}
         </Text>
-        <Text width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
-        </Text>  
-        <NeuroOpenModal isOpen={isOpen} onClose={toggleOpen}>                   
+        </Text>
+        <NeuroOpenModal isOpen={isOpen} onClose={toggleOpen}>
           <Button
-              width="100%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={() => {setNeuroState({ selectedAsset: asset }); toggleOpen()}}
-              isDisabled={isDisabled}
-            >
-              {isDisabled ? `Need ${minAmount - neuroState?.selectedAsset?.balance} more to Deposit` : "Deposit"}
-            </Button>
+            width="100%"
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={() => { setNeuroState({ selectedAsset: asset }); toggleOpen() }}
+            isDisabled={isDisabled}
+          >
+            {isDisabled ? `Need ${minAmount - asset?.balance} more to Deposit` : "Deposit"}
+          </Button>
         </NeuroOpenModal>
         {/* <TxButton
           width="20%"
@@ -320,19 +322,19 @@ const NeuroGuardCloseEntry = React.memo(({
   return (
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
-        <HStack  width="20%"  justifyContent="left">
+        <HStack width="20%" justifyContent="left">
           <Image src={guardedPosition.image} w="30px" h="30px" />
           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {guardedPosition.symbol}
-          </Text>        
+            {guardedPosition.symbol}
+          </Text>
         </HStack>
-        <Text  width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
+        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {guardedPosition.amount}
         </Text>
-        <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
-        </Text>        
-        <Text width="20%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+        </Text>
+        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           N/A
         </Text>
         <TxButton
@@ -532,7 +534,7 @@ const NeuroGuardCard = () => {
       <Stack alignItems={""}>
         <Text width="100%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>Neuro-Guard: &nbsp;</a> Earn with Peace of Mind
-        </Text>        
+        </Text>
         <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
           <Button
             display="flex"
@@ -548,59 +550,59 @@ const NeuroGuardCard = () => {
           </Button>
         </FAQModal>
       </Stack>
-      {neuroState.assets.length > 0 && num(neuroState.assets[0].combinUsdValue).isGreaterThan(1)?       
-      <Stack>         
-        <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-          Your Wallet
-        </Text>      
-        <HStack gap="9%" p={4}>
-          <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Asset
+      {neuroState.assets.length > 0 && num(neuroState.assets[0].combinUsdValue).isGreaterThan(1) ?
+        <Stack>
+          <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+            Your Wallet
           </Text>
-          <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Balance
-          </Text>
-          <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-           Potential APR
-          </Text>       
-          <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Actions
-          </Text>
-        </HStack>
-        {neuroState.assets.map((asset) =>
-          <>
-            {asset && num(asset.combinUsdValue).isGreaterThan(1) ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
-          </>
-        )}
+          <HStack gap="9%" p={4}>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Asset
+            </Text>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Balance
+            </Text>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Potential APR
+            </Text>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Actions
+            </Text>
+          </HStack>
+          {neuroState.assets.map((asset) =>
+            <>
+              {asset && num(asset.combinUsdValue).isGreaterThan(1) ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
+            </>
+          )}
         </Stack>
-      : null}
-      {existingGuards && existingGuards.length > 0 ?       
-      <Stack>        
-        <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-          Your Guardians
-        </Text>        
-        <HStack gap="9%" p={4}>
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Asset
+        : null}
+      {existingGuards && existingGuards.length > 0 ?
+        <Stack>
+          <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+            Your Guardians
           </Text>
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Balance
-          </Text>
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            APR
-          </Text>        
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Historical Profit
-          </Text>
-          <Text width="20%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Actions
-          </Text>
-        </HStack>
-        {existingGuards.map((guard) =>
+          <HStack gap="9%" p={4}>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Asset
+            </Text>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Balance
+            </Text>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              APR
+            </Text>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Historical Profit
+            </Text>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Actions
+            </Text>
+          </HStack>
+          {existingGuards.map((guard) =>
             <>{guard ? <NeuroGuardCloseEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}</>
-        )}
+          )}
         </Stack>
-      : null}
+        : null}
     </Stack>
   )
 }

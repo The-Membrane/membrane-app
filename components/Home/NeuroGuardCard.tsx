@@ -155,7 +155,7 @@ const NeuroOpenModal = React.memo(({
       <ModalOverlay />
       <ModalContent maxW="400px">
         <ModalHeader>
-          <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Enlist in the Neuro-Guard</Text>
+          <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb="5">    
@@ -166,17 +166,14 @@ const NeuroOpenModal = React.memo(({
                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                 {neuroState?.selectedAsset?.symbol}
                 </Text>
-                <Text variant="title" textTransform="none" textAlign="left" fontSize="lg" letterSpacing="1px" width="100%">
-                  | min: {minAmount.toFixed(2)}
-                </Text>
               </HStack>
-              <Text variant="title" textTransform="none" textAlign="left" fontSize="lg" letterSpacing="1px" width="25%" color={colors.noState}>
+              <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
                 ~${num(neuroState?.selectedAsset?.sliderValue).times(neuroState?.selectedAsset?.price??0).toFixed(2)}
               </Text>
             </HStack>
             <Input 
               width={"100%"} 
-              textAlign={"center"} 
+              textAlign={"right"} 
               placeholder="0" 
               type="number" 
               variant={"ghost"}
@@ -200,7 +197,7 @@ const NeuroOpenModal = React.memo(({
         </ModalBody>
         {(
           <ModalFooter
-            as={HStack}
+            as={Stack}
             justifyContent="end"
             borderTop="1px solid"
             borderColor="whiteAlpha.200"
@@ -209,13 +206,13 @@ const NeuroOpenModal = React.memo(({
           >
               
             
-            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="50%">
+            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
               {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && neuro.simulate.isError ? neuro.simulate.error?.message ?? "" : "")}
             </Text>
              
 
             <TxButton
-              w="40%"
+              w="100%"
               isLoading={isLoading}
               isDisabled={isDisabled}
               onClick={() => neuro?.tx.mutate()}
@@ -248,6 +245,11 @@ const NeuroGuardOpenEntry = React.memo(({
     setIsOpen(prev => !prev)
   }, [])
   
+  const minValue = ((21 / ((asset.maxBorrowLTV ?? 0) * 0.8)) + 1)
+  const minAmount = num(minValue).dividedBy(asset.price??0).toNumber()
+  const isDisabled = minAmount > asset.balance
+
+
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
   const yieldValue = Math.max(num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toNumber(), 0).toFixed(1)
 
@@ -262,7 +264,7 @@ const NeuroGuardOpenEntry = React.memo(({
           </Text>        
         </HStack>
         <Text  width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px"  display="flex">
-          ${num(asset.combinUsdValue).toFixed(2)}
+          {num(asset.balance).toFixed(2)}
         </Text>
         <Text width="25%"  justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
@@ -275,8 +277,9 @@ const NeuroGuardOpenEntry = React.memo(({
               alignSelf="center"
               margin="0"
               onClick={() => {setNeuroState({ selectedAsset: asset }); toggleOpen()}}
+              isDisabled={isDisabled}
             >
-              Deposit
+              {isDisabled ? `Need ${minAmount - neuroState?.selectedAsset?.balance} more to Deposit` : "Deposit"}
             </Button>
         </NeuroOpenModal>
         {/* <TxButton
@@ -369,7 +372,7 @@ const NeuroGuardCard = () => {
   }, [basket, interest])
 
   // Define priority order for specific symbols
-  const prioritySymbols = ['WBTC', 'stATOM', 'stOSMO', 'stTIA']
+  const prioritySymbols = ['WBTC.ETH.AXL', 'stATOM', 'stOSMO', 'stTIA']
 
   // Calculate daysSinceDeposit once
   const daysSinceDeposit = useMemo(() =>
@@ -547,7 +550,7 @@ const NeuroGuardCard = () => {
       </Stack>
       {neuroState.assets.length > 0 && num(neuroState.assets[0].combinUsdValue).isGreaterThan(1)?       
       <Stack>         
-        <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+        <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           Your Wallet
         </Text>      
         <HStack gap="9%" p={4}>
@@ -555,7 +558,7 @@ const NeuroGuardCard = () => {
             Asset
           </Text>
           <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            TVL
+            Balance
           </Text>
           <Text width="25%"  justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
            Potential APR

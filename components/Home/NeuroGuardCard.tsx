@@ -259,16 +259,16 @@ const NeuroGuardOpenEntry = React.memo(({
   return (
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
-        <HStack width="25%" justifyContent="left">
+        <HStack width="25%" justifyContent="center">
           {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
             {asset.symbol}
           </Text>
         </HStack>
-        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+        <Text width="25%" justifyContent="center" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {num(asset.balance).toFixed(2)}
         </Text>
-        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+        <Text width="25%" justifyContent="center" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
         </Text>
         <NeuroOpenModal isOpen={isOpen} onClose={toggleOpen}>
@@ -281,7 +281,7 @@ const NeuroGuardOpenEntry = React.memo(({
             onClick={() => { setNeuroState({ selectedAsset: asset }); toggleOpen() }}
             isDisabled={isDisabled}
           >
-            {isDisabled ? `Need ${minAmount - asset?.balance} more to Deposit` : "Deposit"}
+            {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2)} more to Deposit` : "Deposit"}
           </Button>
         </NeuroOpenModal>
         {/* <TxButton
@@ -322,19 +322,19 @@ const NeuroGuardCloseEntry = React.memo(({
   return (
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
-        <HStack width="20%" justifyContent="left">
+        <HStack width="20%" justifyContent="center">
           <Image src={guardedPosition.image} w="30px" h="30px" />
           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
             {guardedPosition.symbol}
           </Text>
         </HStack>
-        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+        <Text width="20%" justifyContent="center" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {guardedPosition.amount}
         </Text>
-        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+        <Text width="20%" justifyContent="center" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
         </Text>
-        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+        <Text width="20%" justifyContent="center" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           N/A
         </Text>
         <TxButton
@@ -556,16 +556,16 @@ const NeuroGuardCard = () => {
             Your Wallet
           </Text>
           <HStack gap="9%" p={4}>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            <Text width="25%" justifyContent="center" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Asset
             </Text>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            <Text width="25%" justifyContent="center" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Balance
             </Text>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            <Text width="25%" justifyContent="center" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Potential APR
             </Text>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            <Text width="25%" justifyContent="center" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Actions
             </Text>
           </HStack>
@@ -582,19 +582,19 @@ const NeuroGuardCard = () => {
             Your Guardians
           </Text>
           <HStack gap="9%" p={4}>
-            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            <Text width="20%" justifyContent="center" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Asset
             </Text>
-            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            <Text width="20%" justifyContent="center" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Balance
             </Text>
-            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-              APR
+            <Text width="20%" justifyContent="center" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Estimated APR
             </Text>
-            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            <Text width="20%" justifyContent="center" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Historical Profit
             </Text>
-            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+            <Text width="20%" justifyContent="center" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Actions
             </Text>
           </HStack>

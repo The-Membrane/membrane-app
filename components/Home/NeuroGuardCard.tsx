@@ -249,6 +249,7 @@ const NeuroGuardOpenEntry = React.memo(({
 
   const minValue = ((21 / ((asset.maxBorrowLTV ?? 0) * 0.8)) + 1)
   const minAmount = num(minValue).dividedBy(asset.price ?? 0).toNumber()
+  {/* @ts-ignore */ }
   const isDisabled = minAmount > asset.balance
 
 
@@ -266,6 +267,7 @@ const NeuroGuardOpenEntry = React.memo(({
           </Text>
         </HStack>
         <Text width="25%" justifyContent="center" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          {/* @ts-ignore */}
           {num(asset.balance).toFixed(2)}
         </Text>
         <Text width="25%" justifyContent="center" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
@@ -281,6 +283,7 @@ const NeuroGuardOpenEntry = React.memo(({
             onClick={() => { setNeuroState({ selectedAsset: asset }); toggleOpen() }}
             isDisabled={isDisabled}
           >
+            {/* @ts-ignore */}
             {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2)} more to Deposit` : "Deposit"}
           </Button>
         </NeuroOpenModal>
@@ -338,7 +341,17 @@ const NeuroGuardCloseEntry = React.memo(({
           N/A
         </Text>
         <TxButton
-          width="20%"
+          width="10%"
+          isLoading={isLoading}
+          isDisabled={isDisabled}
+          onClick={() => sheathe?.tx.mutate()}
+          toggleConnectLabel={false}
+          style={{ alignSelf: "center" }}
+        >
+          Close
+        </TxButton>
+        <TxButton
+          width="10%"
           isLoading={isLoading}
           isDisabled={isDisabled}
           onClick={() => sheathe?.tx.mutate()}

@@ -188,6 +188,7 @@ const NeuroGuardExistingEntry = React.memo(({
 }) => {
   const { neuroState, setNeuroState } = useNeuroState()
   //find the asset in the assets array
+  //@ts-ignore
   const asset = neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
   console.log("FOUND IT", asset)
 
@@ -503,7 +504,7 @@ const NeuroGuardCard = () => {
             </Text>
           </HStack>
           {existingGuards.map((guard) =>
-            <>{guard ? <NeuroGuardExistingEntry guardedPosition={guard} asset={asset} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}</>
+            <>{guard ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}</>
           )}
         </Stack>
         : null}

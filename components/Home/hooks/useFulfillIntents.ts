@@ -1,0 +1,93 @@
+import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
+import useWallet from '@/hooks/useWallet'
+import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import { useQuery } from '@tanstack/react-query'
+import { queryClient } from '@/pages/_app'
+import { useEffect, useMemo, useState } from 'react'
+
+import contracts from '@/config/contracts.json'
+import { useAssetBySymbol } from '@/hooks/useAssets'
+import { shiftDigits } from '@/helpers/math'
+import useQuickActionState from './useQuickActionState'
+import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import { toUtf8 } from "@cosmjs/encoding";
+import { useBalanceByAsset } from '@/hooks/useBalance'
+import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents, useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
+import { num } from '@/helpers/num'
+import useNeuroState from "./useNeuroState"
+import { useBasket } from "@/hooks/useCDP"
+
+
+import EventEmitter from 'events';
+import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
+EventEmitter.defaultMaxListeners = 25; // Increase the limit
+
+const useFulfillIntents = (run: boolean) => {
+    const { address } = useWallet()
+    //Get users' intents
+    const { data: intents } = useBoundedIntents()
+    //Get current conversion rate
+    const { data: currentConversionRate } = useBoundedCDTVaultTokenUnderlying("1000000000000")
+
+    type QueryData = {
+        msgs: MsgExecuteContractEncodeObject[] | undefined
+    }
+    const { data: queryData } = useQuery<QueryData>({
+        queryKey: ['fillIntents_msg_creator', intents, currentConversionRate, run],
+        queryFn: async () => {
+            if (!intents || !currentConversionRate || !run) { console.log("neuroGuard early return", address, intents, currentConversionRate, run); return { msgs: [] } }
+
+            var msgs = [] as MsgExecuteContractEncodeObject[]
+            var users = [] as string[]
+
+            //Parse user intents, if any last_conversion_rates are above the current rate, add a fill_intent msg
+            intents.forEach((intent: any) => {
+                console.log("intent logs", intent.intent.intents.last_conversion_rate, intent)
+                if (num(intent.intent.intents.last_conversion_rate).gt(currentConversionRate)) {
+                    users.push(intent.user)
+                }
+            })
+
+            if (users.length > 0) {
+                let fillMsg = {
+                    typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+                    value: MsgExecuteContract.fromPartial({
+                        sender: address,
+                        contract: contracts.rangeboundLP,
+                        msg: toUtf8(JSON.stringify({
+                            ful_fill_user_intents: {
+                                users
+                            }
+                        })),
+                        funds: []
+                    })
+                } as MsgExecuteContractEncodeObject
+                msgs.push(fillMsg)
+            }
+
+            return { msgs }
+        },
+        enabled: !!address,
+    })
+
+    const msgs = queryData?.msgs ?? []
+
+    console.log("fulfillment msgs:", msgs)
+
+    const onInitialSuccess = () => {
+        queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+        queryClient.invalidateQueries({ queryKey: ['positions'] })
+        queryClient.invalidateQueries({ queryKey: ['useBoundedIntents'] })
+    }
+
+    return {
+        action: useSimulateAndBroadcast({
+            msgs,
+            queryKey: ['home_page_fulfillment', (msgs?.toString() ?? "0")],
+            onSuccess: onInitialSuccess,
+            enabled: !!msgs,
+        })
+    }
+}
+
+export default useFulfillIntents

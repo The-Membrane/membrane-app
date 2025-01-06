@@ -19,6 +19,7 @@ import { useBasket } from "@/hooks/useCDP"
 
 import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
+import { getAssetByDenom } from '@/helpers/chain'
 
 export type UserIntentData = {
   vault_tokens: string,
@@ -88,8 +89,12 @@ const useNeuroClose = ({ position }: { position: PositionResponse }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()
-  // const { neuroState, setNeuroState } = useNeuroState()
+  const { neuroState } = useNeuroState()
   const { data: userIntents } = useBoundedIntents()
+  //Get asset by symbol
+  const collateralAsset = position.collateral_assets[0].asset
+  //@ts-ignore
+  const assetInfo = getAssetByDenom(collateralAsset.info.native_token.denom)
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -98,26 +103,31 @@ const useNeuroClose = ({ position }: { position: PositionResponse }) => {
     queryKey: [
       'neuroClose_msg_creation',
       address,
-      position,
+      position.position_id,
       basket,
       assets,
-      userIntents
+      userIntents,
+      assetInfo,
+      neuroState.selectedAsset?.sliderValue
     ],
     queryFn: () => {
       //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
 
-      if (!address || !position || !basket || !assets || !userIntents) { console.log("neuroClose early return", address, position, basket, assets, userIntents); return { msgs: [] } }
+      if (!address || !position || !basket || !assets || !userIntents || !assetInfo || !neuroState.selectedAsset?.sliderValue) { console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.selectedAsset?.sliderValue); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      //Find the user intent for the position to close
-      // const guardedIntent = userIntents[0].intent.intents.purchase_intent.find((intent: any) => intent?.position_id === position.position_id)!
-      // //Calc the amount of vault tokens this intent holds
-      // const guardedTokens = num(guardedIntent.yield_percent).times(userIntents[0].intent.vault_tokens).toFixed(0)
+      //calc the % of the position to close     
+      //@ts-ignore
+      const maxAmount = shiftDigits(collateralAsset.amount, -assetInfo?.decimal).toNumber()
+      const percentToClose = num(maxAmount).dividedBy(neuroState.selectedAsset?.sliderValue).toString()
+      var debtToRepay = num(position.credit_amount).times(percentToClose).toString()
+      const remainingDebt = num(position.credit_amount).minus(debtToRepay).toString()
+      // Leave 1 CDT to ensure ClosePosition never fails
+      if (Number(remainingDebt) < 1000000) { debtToRepay = num(debtToRepay).minus(1000000).toString() }
 
       console.log("neuroClose position:", position)
       //1) Repay using intented VTs
-      // Leave 1 CDT to allow the ClosePosition to never fail
-      if (Number(position.credit_amount) > 1000000) {
+      if (Number(debtToRepay) > 1000000) {
         let intentRepayMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
@@ -129,7 +139,7 @@ const useNeuroClose = ({ position }: { position: PositionResponse }) => {
                   position_owner: address,
                   position_id: position.position_id
                 },
-                repayment: num(position.credit_amount).minus(1000000).toString(),
+                repayment: debtToRepay
               }
             })),
             funds: []
@@ -137,8 +147,9 @@ const useNeuroClose = ({ position }: { position: PositionResponse }) => {
         } as MsgExecuteContractEncodeObject
         msgs.push(intentRepayMsg)
       }
-      //2) Close Position
 
+      //2) Close Position
+      //This execution flow doesn't work for undebted positions
       if (Number(position.credit_amount) > 0) {
         let closeMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -148,7 +159,8 @@ const useNeuroClose = ({ position }: { position: PositionResponse }) => {
             msg: toUtf8(JSON.stringify({
               close_position: {
                 position_id: position.position_id,
-                max_spread: "0.02"
+                max_spread: "0.02",
+                close_percentage: percentToClose,
               }
             })),
             funds: []
@@ -161,8 +173,9 @@ const useNeuroClose = ({ position }: { position: PositionResponse }) => {
       const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
       console.log("updatedIntent data", updatedIntents)
       //4) Update intents
-      // We only Update if there were more than 1 intent, otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
-      if (userIntents[0].intent.intents.purchase_intents.length > 1 && updatedIntents.intents.purchase_intents.length > 0) {
+      // We only Update if there were more than 1 intent && the percentToClose is 100%
+      // , otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
+      if (userIntents[0].intent.intents.purchase_intents.length > 1 && updatedIntents.intents.purchase_intents.length > 0 && percentToClose === "1") {
         const updatedIntentsMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({

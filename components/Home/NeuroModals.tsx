@@ -298,6 +298,8 @@ export const NeuroWithdrawModal = React.memo(({
         })
     }
 
+    console.log("neuroState?.selectedAsset", neuroState?.selectedAsset)
+
 
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault()
@@ -330,9 +332,9 @@ export const NeuroWithdrawModal = React.memo(({
                     <Stack>
                         <HStack width="100%" justifyContent="left">
                             <HStack width="75%">
-                                {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
+                                {guardedPosition?.image ? <Image src={guardedPosition.image} w="30px" h="30px" /> : null}
                                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {neuroState?.selectedAsset?.symbol}
+                                    {guardedPosition.symbol}
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>

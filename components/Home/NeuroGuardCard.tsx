@@ -478,7 +478,7 @@ const NeuroGuardCard = () => {
           </HStack>
           {neuroState.assets.map((asset) =>
             <>
-              {asset && num(asset.combinUsdValue).isGreaterThan(0.01) ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
+              {asset && num(asset.combinUsdValue).isGreaterThan(0.01) && existingGuards?.find(((guard) => guard?.symbol === asset.symbol)) == undefined ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
             </>
           )}
         </Stack>

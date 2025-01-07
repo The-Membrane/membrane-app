@@ -119,7 +119,7 @@ const NeuroGuardOpenEntry = React.memo(({
   const minValue = ((21 / ((asset.maxBorrowLTV ?? 0) * 0.8)) + 1)
   const minAmount = num(minValue).dividedBy(asset.price ?? 0).toNumber()
   {/* @ts-ignore */ }
-  const isDisabled = asset ? minAmount > asset.balance : false
+  const isDisabled = asset ? minAmount > asset.balance ?? 0 : false
 
 
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
@@ -137,7 +137,7 @@ const NeuroGuardOpenEntry = React.memo(({
         </HStack>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {/* @ts-ignore */}
-          {num((asset.balance ?? 0)).toFixed(2)}
+          {num((asset?.balance ?? 0)).toFixed(2)}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
@@ -204,7 +204,7 @@ const NeuroGuardExistingEntry = React.memo(({
   }, [])
 
   {/* @ts-ignore */ }
-  const isDisabled = asset.balance == 0
+  const isDisabled = asset?.balance ?? 0 == 0
   const yieldValue = Math.max(num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toNumber(), 0).toFixed(1)
 
   return (

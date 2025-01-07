@@ -457,7 +457,7 @@ const NeuroGuardCard = () => {
           </Button>
         </FAQModal>
       </Stack>
-      {neuroState.assets.length > 0 && num(neuroState.assets[0].combinUsdValue).isGreaterThan(1) ?
+      {neuroState.assets.length > 1 || (neuroState.assets.length > 0 && num(neuroState.assets[0].combinUsdValue).isGreaterThan(0.01)) ?
         <Stack>
           <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
             Your Wallet
@@ -478,12 +478,12 @@ const NeuroGuardCard = () => {
           </HStack>
           {neuroState.assets.map((asset) =>
             <>
-              {asset && num(asset.combinUsdValue).isGreaterThan(1) ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
+              {asset && num(asset.combinUsdValue).isGreaterThan(0.01) ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
             </>
           )}
         </Stack>
         : null}
-      {existingGuards && existingGuards.length > 0 ?
+      {existingGuards && existingGuards.length > 0 && existingGuards[0] ?
         <Stack>
           <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
             Your Guardians

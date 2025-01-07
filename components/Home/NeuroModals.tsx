@@ -20,7 +20,7 @@ export const NeuroOpenModal = React.memo(({
     const { neuroState, setNeuroState } = useNeuroState()
     const { action: neuro } = useNeuroGuard()
     const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
-    const isDisabled = asset !== neuroState?.selectedAsset?.base || neuro?.simulate.isError || !neuro?.simulate.data
+    const isDisabled = asset !== neuroState?.selectedAsset?.base || neuroState?.selectedAsset?.sliderValue == 0 || neuro?.simulate.isError || !neuro?.simulate.data
 
 
     const minValue = ((21 / ((neuroState?.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
@@ -151,7 +151,7 @@ export const NeuroDepositModal = React.memo(({
 
 
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: existingNeuro } = useExistingNeuroGuard({ position_id })
+    const { action: existingNeuro } = useExistingNeuroGuard({ position_id }) //add onClose fn to onSuccess()
     const isLoading = existingNeuro?.simulate.isLoading || existingNeuro?.tx.isPending
     const isDisabled = asset !== neuroState?.selectedAsset?.base || existingNeuro?.simulate.isError || !existingNeuro?.simulate.data
 

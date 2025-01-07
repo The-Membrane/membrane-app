@@ -27,36 +27,7 @@ const useNeuroGuard = () => {
   const { data: basket } = useBasket()
   const { neuroState } = useNeuroState()
 
-  //   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
-  //   const underlyingCDT = data ?? "1"
-
-  // Debounce the slider value to prevent too many queries
-  const [debouncedValue, setDebouncedValue] = useState<{ selectedAsset: any }>(
-    { selectedAsset: undefined }
-  );
-
-  useEffect(() => {
-    console.log('Debounce effect triggered:', neuroState);
-    const timer = setTimeout(() => {
-      console.log('Setting debounced values:', neuroState);
-      setDebouncedValue({
-        selectedAsset: neuroState.selectedAsset
-      });
-    }, 300);
-
-    return () => {
-      console.log('Cleaning up debounce effect');
-      clearTimeout(timer)
-    };
-  }, [neuroState.selectedAsset]);
-
-  // const guardedAsset = useAssetBySymbol(debouncedValue.selectedAsset?.symbol || "N/A")
-
-  // useEffect(() => {console.log("debounced changed")}, [debouncedValue])
-  // useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
-
-  
-  console.log('above neuro', debouncedValue.selectedAsset);
+  console.log('above neuro', neuroState.selectedAsset);
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -65,21 +36,21 @@ const useNeuroGuard = () => {
     queryKey: [
       'neuroGuard_msg_creation',
       address,
-      debouncedValue.selectedAsset,
+      neuroState.selectedAsset,
       basket
     ],
     queryFn: () => {
-      console.log("in query guardian", debouncedValue.selectedAsset)
+      console.log("in query guardian", neuroState.selectedAsset)
 
 
-      if (!address || !debouncedValue.selectedAsset || !basket) { console.log("neuroGuard early return", address, debouncedValue, basket); return { msgs: [] } }
+      if (!address || !neuroState.selectedAsset || (neuroState.selectedAsset && neuroState.selectedAsset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      const newDeposit = num(debouncedValue.selectedAsset.sliderValue).toNumber()
-      // const amount = shiftDigits(num(newDeposit).dividedBy(debouncedValue.selectedAsset.price).toString(), debouncedValue.selectedAsset.decimal).toFixed(0)
-      const amount = shiftDigits(newDeposit, debouncedValue.selectedAsset.decimal).toFixed(0)
-      console.log("Neuro funds", newDeposit, amount, debouncedValue.selectedAsset)
-      const funds = [{ amount, denom: debouncedValue.selectedAsset.base }]
+      const newDeposit = num(neuroState.selectedAsset.sliderValue).toNumber()
+      // const amount = shiftDigits(num(newDeposit).dividedBy(neuroState.selectedAsset.price).toString(), neuroState.selectedAsset.decimal).toFixed(0)
+      const amount = shiftDigits(newDeposit, neuroState.selectedAsset.decimal).toFixed(0)
+      console.log("Neuro funds", newDeposit, amount, neuroState.selectedAsset)
+      const funds = [{ amount, denom: neuroState.selectedAsset.base }]
       console.log(funds)
 
       //Deposit msg
@@ -108,7 +79,7 @@ const useNeuroGuard = () => {
               mint_intent: {
                 user: address,
                 position_id: basket.current_position_id,
-                mint_to_ltv: num(debouncedValue.selectedAsset?.maxBorrowLTV).times(0.8).toString()
+                mint_to_ltv: num(neuroState.selectedAsset?.maxBorrowLTV).times(0.8).toString()
               }
             }
           })),

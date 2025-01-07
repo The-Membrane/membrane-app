@@ -486,7 +486,7 @@ const NeuroGuardCard = () => {
           <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
             Your Guardians
           </Text>
-          <HStack gap="9%" p={4}>
+          <HStack gap="0%" p={4}>
             <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Asset
             </Text>

@@ -188,7 +188,7 @@ export const NeuroDepositModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="10%" variant="unstyled" fontWeight="normal" mb="3">
+        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="3">
             {children}
         </Button>
 
@@ -317,7 +317,7 @@ export const NeuroWithdrawModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="10%" variant="unstyled" fontWeight="normal" mb="3">
+        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="3">
             {children}
         </Button>
 

@@ -225,33 +225,34 @@ const NeuroGuardExistingEntry = React.memo(({
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           N/A
         </Text>
-
-        <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} >
-          <Button
-            width="100%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={() => { setNeuroState({ selectedAsset: asset }); toggleDepositOpen() }}
-            isDisabled={isDisabled}
-          >
-            Deposit
-          </Button>
-        </NeuroDepositModal>
-        <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} >
-          <Button
-            width="100%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={() => { setNeuroState({ selectedAsset: asset }); toggleWithdrawOpen() }}
-            isDisabled={false}
-          >
-            Withdraw
-          </Button>
-        </NeuroWithdrawModal>
+        <HStack width={"20%"} gap="0">
+          <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} >
+            <Button
+              width="100%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={() => { setNeuroState({ selectedAsset: asset }); toggleDepositOpen() }}
+              isDisabled={isDisabled}
+            >
+              Deposit
+            </Button>
+          </NeuroDepositModal>
+          <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} >
+            <Button
+              width="100%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={() => { setNeuroState({ selectedAsset: asset }); toggleWithdrawOpen() }}
+              isDisabled={false}
+            >
+              Withdraw
+            </Button>
+          </NeuroWithdrawModal>
+        </HStack>
       </HStack>
     </Card>
   )

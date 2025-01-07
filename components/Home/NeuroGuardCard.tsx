@@ -433,7 +433,7 @@ const NeuroGuardCard = () => {
     setIsExpanded(prev => !prev)
   }, [])
 
-  // console.log("existingGuard", existingGuards)
+  console.log("existingGuard", existingGuards)
 
   return (
     <Stack gap={1} marginBottom="3%">

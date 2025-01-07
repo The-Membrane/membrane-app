@@ -276,8 +276,6 @@ export const NeuroWithdrawModal = React.memo(({
         cost: number
     }
 }>) => {
-
-
     const { neuroState, setNeuroState } = useNeuroState()
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
     const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data

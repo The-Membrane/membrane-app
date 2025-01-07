@@ -170,30 +170,53 @@ const useNeuroClose = ({ position }: { position: PositionResponse }) => {
       }
       //3) Split the yield_percent split from this intent to the remaining intents
       // & set intents to the new split
-      const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
-      console.log("updatedIntent data", updatedIntents)
       //4) Update intents
-      // We only Update if there were more than 1 intent && the percentToClose is 100%
+      // We only Update if there was more than 1 intent && the percentToClose is 100%
       // , otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
-      if (userIntents[0].intent.intents.purchase_intents.length > 1 && updatedIntents.intents.purchase_intents.length > 0 && percentToClose === "1") {
-        const updatedIntentsMsg = {
-          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-          value: MsgExecuteContract.fromPartial({
-            sender: address,
-            contract: contracts.rangeboundLP,
-            msg: toUtf8(JSON.stringify({
-              set_user_intents: {
-                intents: {
-                  user: address,
-                  last_conversion_rate: "0", //this isn't updated
-                  purchase_intents: updatedIntents.intents.purchase_intents
-                },
-              }
-            })),
-            funds: []
-          })
-        } as MsgExecuteContractEncodeObject
-        msgs.push(updatedIntentsMsg)
+      if (userIntents && percentToClose === "1") {
+
+        const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
+        // console.log("updatedIntent data", updatedIntents)
+        if (updatedIntents.intents.purchase_intents.length > 0) {
+          const updatedIntentsMsg = {
+            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+            value: MsgExecuteContract.fromPartial({
+              sender: address,
+              contract: contracts.rangeboundLP,
+              msg: toUtf8(JSON.stringify({
+                set_user_intents: {
+                  intents: {
+                    user: address,
+                    last_conversion_rate: "0", //this isn't updated
+                    purchase_intents: updatedIntents.intents.purchase_intents
+                  },
+                }
+              })),
+              funds: []
+            })
+          } as MsgExecuteContractEncodeObject
+          msgs.push(updatedIntentsMsg)
+        } else {
+          //If there are no intents left, we withdraw the remaining vault tokens
+          const clearIntentsMsg = {
+            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+            value: MsgExecuteContract.fromPartial({
+              sender: address,
+              contract: contracts.rangeboundLP,
+              msg: toUtf8(JSON.stringify({
+                set_user_intents: {
+                  reduce_vault_tokens: {
+                    exit_vault: true,
+                    amount: "10000000000000000" //big number so that the execution uses the max from state instead
+                  }
+                }
+              })),
+              funds: []
+            })
+          } as MsgExecuteContractEncodeObject
+          msgs.push(clearIntentsMsg)
+
+        }
       }
 
       console.log("in query guardian msgs:", msgs)

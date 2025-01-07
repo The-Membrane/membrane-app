@@ -12,7 +12,7 @@ import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useBoundedIntents, useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
+import { useBoundedIntents, useCDTVaultTokenUnderlying, useUserBoundedIntents } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 import useNeuroState from "./useNeuroState"
 import { useBasket } from "@/hooks/useCDP"
@@ -90,7 +90,7 @@ const useNeuroClose = ({ position }: { position: PositionResponse }) => {
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()
   const { neuroState } = useNeuroState()
-  const { data: userIntents } = useBoundedIntents()
+  const { data: userIntents } = useUserBoundedIntents()
   //Get asset by symbol
   const collateralAsset = position.collateral_assets[0].asset
   //@ts-ignore

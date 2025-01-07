@@ -190,7 +190,7 @@ const NeuroGuardExistingEntry = React.memo(({
   //find the asset in the assets array
   //@ts-ignore
   const asset = neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
-  console.log("FOUND IT", asset)
+  console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {

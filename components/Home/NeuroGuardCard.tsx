@@ -205,6 +205,7 @@ const NeuroGuardExistingEntry = React.memo(({
 
   {/* @ts-ignore */ }
   const isDisabled = asset?.balance ?? 0 == 0
+  console.log("isDisabled", isDisabled, asset?.balance, asset)
   const yieldValue = Math.max(num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toNumber(), 0).toFixed(1)
 
   return (

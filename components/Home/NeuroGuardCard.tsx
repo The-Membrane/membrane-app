@@ -309,7 +309,7 @@ const VaultEntry = React.memo(({
   // }, [])
 
   {/* @ts-ignore */ }
-  const isDisabled = (asset?.balance ?? 0) === 0
+  // const isDisabled = (asset?.balance ?? 0) === 0
   // console.log("isDisabled", isDisabled, asset?.balance, asset)
 
   return (

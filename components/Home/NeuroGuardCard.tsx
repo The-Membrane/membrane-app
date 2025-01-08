@@ -326,19 +326,18 @@ const VaultEntry = React.memo(({
         </Text>
         <HStack width={"25%"}>
           <HStack
+            width={"50%"}
             as={NextLink}
             href={'/mint'}
             cursor="pointer"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            _hover={hoverStyles}
-            {...(isActive && hoverStyles)}
+            // onMouseEnter={() => setIsHovered(true)}
+            // onMouseLeave={() => setIsHovered(false)}
+            bg={'primary.200'}
             p={'0'}
             pr={'10px'}
           >
-            <MintIcon color={isActive || isHovered ? 'white' : 'white'} />
             <Text fontSize="lg" fontWeight="400">
-              {'Mint'}
+              {'Edit'}
             </Text>
           </HStack>
           {/* <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} >

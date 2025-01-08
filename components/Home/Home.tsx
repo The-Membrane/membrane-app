@@ -75,6 +75,8 @@ const PositionCostManager = React.memo(({ summary, totalPositions, neuroGuards }
     )
   }, [summary.costRatios])
 
+  console.log("neuroGuards", neuroGuards)
+
   useEffect(() => {
     if (summary.cost === 0 || neuroGuards.find((guard) => (guard?.position_id ?? 1).toString() === summary.positionId) != undefined || !totalPositions || !summary.discountedCost || mintState.alreadyToasted) return
 
@@ -158,7 +160,8 @@ const Home = () => {
       borrowLTV: 0,
       liquidValue: 0,
       liqudationLTV: 0,
-      costRatios: []
+      costRatios: [],
+      positionId: "0"
     }
   }, [vaultSummary])
 

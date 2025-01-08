@@ -25,6 +25,10 @@ import { BasketAsset, getBasketAssets } from "@/services/cdp"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import { parseError } from "@/helpers/parseError"
 import { NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal } from "./NeuroModals"
+import useVaultSummary from "../Mint/hooks/useVaultSummary"
+import { useRouter } from "next/router"
+import NextLink from 'next/link'
+import { MintIcon } from "../Icons"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -190,7 +194,7 @@ const NeuroGuardExistingEntry = React.memo(({
   //find the asset in the assets array
   //@ts-ignore
   const asset = neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
-  console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
+  // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {
@@ -205,7 +209,7 @@ const NeuroGuardExistingEntry = React.memo(({
 
   {/* @ts-ignore */ }
   const isDisabled = (asset?.balance ?? 0) === 0
-  console.log("isDisabled", isDisabled, asset?.balance, asset)
+  // console.log("isDisabled", isDisabled, asset?.balance, asset)
   const yieldValue = Math.max(num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toNumber(), 0).toFixed(1)
 
   return (
@@ -259,6 +263,103 @@ const NeuroGuardExistingEntry = React.memo(({
   )
 })
 
+// Extracted NeuroGuardExistingEntry component
+const VaultEntry = React.memo(({
+  cdp,
+  positionNumber
+}: {
+  cdp: PositionResponse;
+  positionNumber: number
+}) => {
+  const { data } = useVaultSummary({ positionNumber })
+  const { ltv, liqudationLTV, tvl, debtAmount } = data || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
+
+  const health = useMemo(() => {
+    if (ltv === 0) return 100
+    return num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
+  }, [ltv, liqudationLTV])
+
+  const router = useRouter()
+  const isActive = router.asPath === '/mint'
+  const [isHovered, setIsHovered] = useState(false)
+  const hoverStyles = {
+    borderRadius: '8px',
+    bg: 'primary.200',
+  }
+
+
+
+  // const [isDepositOpen, setIsDepositOpen] = useState(false)
+  // const toggleDepositOpen = useCallback(() => {
+  //   setIsDepositOpen(prev => !prev)
+  // }, [])
+
+
+  // const [isWithdrawOpen, setIsWithdrawOpenOpen] = useState(false)
+  // const toggleWithdrawOpen = useCallback(() => {
+  //   setIsWithdrawOpenOpen(prev => !prev)
+  // }, [])
+
+  {/* @ts-ignore */ }
+  const isDisabled = (asset?.balance ?? 0) === 0
+  // console.log("isDisabled", isDisabled, asset?.balance, asset)
+
+  return (
+    <Card width="100%" borderWidth={3} padding={4}>
+      <HStack gap="9%">
+        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          {tvl}
+        </Text>
+        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          {debtAmount}
+        </Text>
+        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+          {Math.min(health, 100)}%
+        </Text>
+        <HStack width={"25%"}>
+          <HStack
+            as={NextLink}
+            href={'/mint'}
+            cursor="pointer"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            _hover={hoverStyles}
+            {...(isActive && hoverStyles)}
+            p={'0'}
+            pr={'10px'}
+          >
+            <MintIcon color={isActive || isHovered ? 'white' : 'white'} />
+            <Text fontSize="lg" fontWeight="400">
+              {'Mint'}
+            </Text>
+          </HStack>
+          {/* <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} >
+            <Button
+              width="100%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={() => { setNeuroState({ selectedAsset: asset }); toggleWithdrawOpen() }}
+              isDisabled={false}
+            >
+              Close
+            </Button>
+          </NeuroWithdrawModal> */}
+        </HStack>
+      </HStack>
+    </Card>
+  )
+})
+
 
 const NeuroGuardCard = () => {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -275,6 +376,7 @@ const NeuroGuardCard = () => {
   const { bidState } = useBidState()
   const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
+
   const basketAssets = useMemo(() => {
     if (!basket || !interest) return []
     return getBasketAssets(basket, interest) ?? []
@@ -297,35 +399,6 @@ const NeuroGuardCard = () => {
       clRewardList[11].reward + clRewardList[12].reward) / 6
     return totalrewards / 1000000 / daysSinceDeposit * 365
   }, [clRewardList, daysSinceDeposit])
-
-  // Memoize yield message calculation
-  // const yieldMsg = useMemo(() => {
-  //   if (!neuroState?.selectedAsset || !bidState.cdpExpectedAnnualRevenue || !TVL || !rangeBoundAPR) {
-  //     return (
-  //       <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="35%" display="flex" justifyContent="center">
-  //         Select an asset to see potential yield
-  //       </Text>
-  //     )
-  //   }
-
-  //   const yieldTotal = num(bidState.cdpExpectedAnnualRevenue)
-  //     .times(0.80)
-  //     .dividedBy(TVL)
-  //     .plus(rangeBoundAPR)
-  //     .multipliedBy(100)
-  //     .toFixed(1)
-
-  //   const finalYield = num(yieldTotal)
-  //     .times(neuroState.selectedAsset.maxBorrowLTV ?? 0)
-  //     .times(0.80)
-  //     .toFixed(1)
-
-  //   return (
-  //     <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="35%" display="flex" justifyContent="center">
-  //       {neuroState.selectedAsset.symbol} can earn {finalYield}%
-  //     </Text>
-  //   )
-  // }, [bidState.cdpExpectedAnnualRevenue, TVL, rangeBoundAPR, neuroState?.selectedAsset])
 
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -388,14 +461,37 @@ const NeuroGuardCard = () => {
     }
   }, [assets, walletBalances, prices])
 
+  //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
+  const neuroGuardIntents = useMemo(() => {
+    if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents) {
+      return userIntents[0].intent.intents.purchase_intents.filter((intent) => {
+        return intent.position_id !== undefined
+      })
+    } else return []
+
+  }, [userIntents])
+
+  //Iterate thru positions and find all positions that aren't for NeuroGuard (i.e. don't have a position ID)
+  const nonNeuroGuardPositions = useMemo(() => {
+    if (basketPositions) {
+      return basketPositions[0].positions
+        .map((position, index) => ({ position, positionNumber: index + 1 }))
+        .filter(({ position }) =>
+          neuroGuardIntents.find(
+            (intent) => (intent.position_id ?? 0).toString() === position.position_id
+          ) === undefined
+        );
+    } else return []
+  }, [basketPositions, neuroGuardIntents])
+
   // Memoize existing guards calculation
   const existingGuards = useMemo(() => {
     // console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
     if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents && basket && prices && basketPositions && assets) {
       //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
-      const neuroGuardIntents = userIntents[0].intent.intents.purchase_intents.filter((intent) => {
-        return intent.position_id !== undefined
-      })
+      // const neuroGuardIntents = userIntents[0].intent.intents.purchase_intents.filter((intent) => {
+      //   return intent.position_id !== undefined
+      // })
 
       //If there are neuroGuardIntents, create an object that saves the ID, the compounding asset & the LTV
       return neuroGuardIntents.map((intent) => {
@@ -507,6 +603,31 @@ const NeuroGuardCard = () => {
           </HStack>
           {existingGuards.map((guard) =>
             <>{guard ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}</>
+          )}
+        </Stack>
+        : null}
+
+      {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?
+        <Stack>
+          <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+            Your Vaults
+          </Text>
+          <HStack gap="0%" p={4}>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              TVL
+            </Text>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Debt
+            </Text>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Health
+            </Text>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Actions
+            </Text>
+          </HStack>
+          {nonNeuroGuardPositions.map((cdpInfo) =>
+            <>{cdpInfo ? <VaultEntry cdp={cdpInfo.position} positionNumber={cdpInfo.positionNumber} /> : null}</>
           )}
         </Stack>
         : null}

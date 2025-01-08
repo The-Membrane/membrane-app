@@ -325,21 +325,18 @@ const VaultEntry = React.memo(({
           {Math.min(health, 100)}%
         </Text>
         <HStack width={"25%"}>
-          <HStack
+          <Button
             width={"50%"}
             as={NextLink}
             href={'/mint'}
-            cursor="pointer"
-            // onMouseEnter={() => setIsHovered(true)}
-            // onMouseLeave={() => setIsHovered(false)}
-            bg={'primary.200'}
-            p={'0'}
-            pr={'10px'}
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            isDisabled={false}
           >
-            <Text fontSize="lg" fontWeight="400">
-              {'Edit'}
-            </Text>
-          </HStack>
+            Edit
+          </Button>
           {/* <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} >
             <Button
               width="100%"

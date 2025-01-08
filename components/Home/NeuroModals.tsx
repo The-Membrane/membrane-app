@@ -18,7 +18,7 @@ export const NeuroOpenModal = React.memo(({
 
 
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: neuro } = useNeuroGuard()
+    const { action: neuro } = useNeuroGuard({ onSuccess: onClose })
     const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
     const isDisabled = asset !== neuroState?.selectedAsset?.base || neuroState?.selectedAsset?.sliderValue == 0 || neuro?.simulate.isError || !neuro?.simulate.data
 
@@ -151,7 +151,7 @@ export const NeuroDepositModal = React.memo(({
 
 
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: existingNeuro } = useExistingNeuroGuard({ position_id }) //add onClose fn to onSuccess()
+    const { action: existingNeuro } = useExistingNeuroGuard({ position_id, onSuccess: onClose })
     const isLoading = existingNeuro?.simulate.isLoading || existingNeuro?.tx.isPending
     const isDisabled = asset !== neuroState?.selectedAsset?.base || existingNeuro?.simulate.isError || !existingNeuro?.simulate.data
 
@@ -277,7 +277,7 @@ export const NeuroWithdrawModal = React.memo(({
     }
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: sheathe } = useNeuroClose({ position: guardedPosition.position })
+    const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose })
     const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
     const isLoading = sheathe?.simulate.isLoading || sheathe?.tx.isPending
 

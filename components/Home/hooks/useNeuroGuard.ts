@@ -22,7 +22,7 @@ import EventEmitter from 'events';
 import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
-const useNeuroGuard = () => {
+const useNeuroGuard = ({ onSuccess }: { onSuccess: () => void }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const { neuroState } = useNeuroState()
@@ -125,6 +125,7 @@ const useNeuroGuard = () => {
   console.log("neuroGuard msgs:", msgs)
 
   const onInitialSuccess = () => {
+    onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })

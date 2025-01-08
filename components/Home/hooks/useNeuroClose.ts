@@ -85,7 +85,7 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
   return newData;
 }
 
-const useNeuroClose = ({ position }: { position: PositionResponse }) => {
+const useNeuroClose = ({ position, onSuccess }: { position: PositionResponse, onSuccess: () => void }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()
@@ -238,6 +238,7 @@ const useNeuroClose = ({ position }: { position: PositionResponse }) => {
   console.log("neuroClose msgs:", msgs)
 
   const onInitialSuccess = () => {
+    onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })

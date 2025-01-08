@@ -14,6 +14,7 @@ import useToaster from '@/hooks/useToaster'
 import { num } from '@/helpers/num'
 import useMintState from '../Mint/hooks/useMintState'
 import NeuroGuardCard from './NeuroGuardCard'
+import { useUserBoundedIntents } from '../Earn/hooks/useEarnQueries'
 
 
 // Memoize child components
@@ -37,16 +38,24 @@ interface VaultSummary {
   liquidValue: number;
   liqudationLTV: number;
   costRatios: CostRatio[];
+  positionId: string
 }
 
 
 interface PositionCostManagerProps {
   summary: VaultSummary;
   totalPositions?: number;
+  neuroGuards: {
+    desired_asset: string;
+    route: any | undefined;
+    yield_percent: string;
+    position_id: number | undefined;
+    slippage: string | undefined;
+  }[];
 }
 
 // Extract position cost logic to a separate component
-const PositionCostManager = React.memo(({ summary, totalPositions }: PositionCostManagerProps) => {
+const PositionCostManager = React.memo(({ summary, totalPositions, neuroGuards }: PositionCostManagerProps) => {
   const toaster = useToaster()
   const { mintState, setMintState } = useMintState()
   const [positionNum, setPositionNum] = React.useState(1)
@@ -67,7 +76,7 @@ const PositionCostManager = React.memo(({ summary, totalPositions }: PositionCos
   }, [summary.costRatios])
 
   useEffect(() => {
-    if (summary.cost === 0 || !totalPositions || !summary.discountedCost || mintState.alreadyToasted) return
+    if (summary.cost === 0 || neuroGuards.find((guard) => (guard?.position_id ?? 1).toString() === summary.positionId) != undefined || !totalPositions || !summary.discountedCost || mintState.alreadyToasted) return
 
     const showToast = () => {
       toaster.message({
@@ -122,6 +131,17 @@ const Home = () => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   const { data: basketPositions } = useUserPositions()
   const { data: vaultSummary } = useVaultSummary()
+  const { data: userIntents } = useUserBoundedIntents()
+
+  //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
+  const neuroGuardIntents = useMemo(() => {
+    if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents) {
+      return userIntents[0].intent.intents.purchase_intents.filter((intent) => {
+        return intent.position_id !== undefined
+      })
+    } else return []
+
+  }, [userIntents])
 
   const totalPositions = useMemo(() => {
     if (!basketPositions) return undefined
@@ -158,7 +178,7 @@ const Home = () => {
           </Stack>
         </Stack>
       </Stack>
-      <PositionCostManager summary={summary} totalPositions={totalPositions} />
+      <PositionCostManager summary={summary} totalPositions={totalPositions} neuroGuards={neuroGuardIntents} />
     </Stack>
   )
 }

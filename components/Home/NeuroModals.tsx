@@ -65,7 +65,7 @@ export const NeuroOpenModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="3">
+        <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 
@@ -189,7 +189,7 @@ export const NeuroDepositModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="3">
+        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 
@@ -318,7 +318,7 @@ export const NeuroWithdrawModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="3">
+        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 
@@ -394,17 +394,20 @@ export const NeuroWithdrawModal = React.memo(({
 })
 
 export const NeuroCloseModal = React.memo(({
-    isOpen, onClose, position, debtAmount, positionNumber, children
+    isOpen, onClose, position, debtAmount, positionNumber, cdtMarketPrice, children
 }: PropsWithChildren<{
     isOpen: boolean, onClose: () => void,
     position: PositionResponse
     debtAmount: number
     positionNumber: number
+    cdtMarketPrice: string
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
     const { action: close } = useCloseCDP({ position: position, onSuccess: onClose })
     const isDisabled = close?.simulate.isError || !close?.simulate.data
     const isLoading = close?.simulate.isLoading || close?.tx.isPending
+
+    const maxAmount = debtAmount
 
 
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -415,7 +418,7 @@ export const NeuroCloseModal = React.memo(({
             //@ts-ignore
             selectedAsset: {
                 ...neuroState?.selectedAsset,
-                sliderValue: num(value).isGreaterThan(100) ? 100 : value
+                sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
             }
         })
     }, [neuroState?.selectedAsset, setNeuroState])
@@ -425,14 +428,14 @@ export const NeuroCloseModal = React.memo(({
             //@ts-ignore
             selectedAsset: {
                 ...neuroState?.selectedAsset,
-                sliderValue: 100
+                sliderValue: maxAmount
             }
         })
     }
 
 
     return (<>
-        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="3">
+        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 
@@ -440,7 +443,7 @@ export const NeuroCloseModal = React.memo(({
             <ModalOverlay />
             <ModalContent maxW="400px">
                 <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Percent of Debt to Close</Text>
+                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Debt to Repay</Text>
                 </ModalHeader>
                 <ModalCloseButton />
                 <ModalBody pb="5">
@@ -448,11 +451,11 @@ export const NeuroCloseModal = React.memo(({
                         <HStack width="100%" justifyContent="left">
                             <HStack width="75%">
                                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {positionNumber}
+                                    Position {positionNumber}
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(neuroState?.selectedAsset?.sliderValue).dividedBy(100).times(debtAmount).toFixed(2)}
+                                ~${num(neuroState?.selectedAsset?.sliderValue).times(cdtMarketPrice).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -467,7 +470,7 @@ export const NeuroCloseModal = React.memo(({
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
                             <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
                                 <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    100%
+                                    max
                                 </Text>
                             </Button>
                         </HStack>
@@ -497,7 +500,7 @@ export const NeuroCloseModal = React.memo(({
                             toggleConnectLabel={false}
                             style={{ alignSelf: "center" }}
                         >
-                            Close Vault
+                            Sell Collateral to Repay Debt
                         </TxButton>
                     </ModalFooter>
                 )}

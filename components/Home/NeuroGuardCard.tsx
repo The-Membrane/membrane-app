@@ -3,7 +3,7 @@ import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalO
 import { TxButton } from "../TxButton"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
-import { colors, LPJoinDate } from "@/config/defaults"
+import { colors, denoms, LPJoinDate } from "@/config/defaults"
 import { FaArrowDown, FaArrowUp } from "react-icons/fa6"
 import { AssetsWithBalanceMenu } from "../NFT/NFTSliderInput"
 import { NeuroAssetSlider } from "./NeuroAssetSlider"
@@ -29,6 +29,7 @@ import useVaultSummary from "../Mint/hooks/useVaultSummary"
 import { useRouter } from "next/router"
 import NextLink from 'next/link'
 import { MintIcon } from "../Icons"
+import useMintState from "../Mint/hooks/useMintState"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -266,11 +267,14 @@ const NeuroGuardExistingEntry = React.memo(({
 // Extracted NeuroGuardExistingEntry component
 const VaultEntry = React.memo(({
   cdp,
-  positionNumber
+  positionNumber,
+  cdtMarketPrice
 }: {
   cdp: PositionResponse;
   positionNumber: number
+  cdtMarketPrice: string
 }) => {
+  const { setMintState } = useMintState()
   const { data } = useVaultSummary({ positionNumber })
   const { ltv, liqudationLTV, tvl, debtAmount } = data || {
     debtAmount: 0,
@@ -281,6 +285,7 @@ const VaultEntry = React.memo(({
     liquidValue: 0,
     liqudationLTV: 0,
   }
+
 
   const health = useMemo(() => {
     if (ltv === 0) return 100
@@ -293,9 +298,6 @@ const VaultEntry = React.memo(({
     setIsCloseOpen(prev => !prev)
   }, [])
 
-  {/* @ts-ignore */ }
-  // const isDisabled = (asset?.balance ?? 0) === 0
-  // console.log("isDisabled", isDisabled, asset?.balance, asset)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>
@@ -319,10 +321,11 @@ const VaultEntry = React.memo(({
             alignSelf="center"
             margin="0"
             isDisabled={false}
+            onClick={() => { setMintState({ positionNumber }) }}
           >
             Edit
           </Button>
-          <NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} >
+          <NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice}>
             <Button
               width="100%"
               display="flex"
@@ -357,6 +360,9 @@ const NeuroGuardCard = () => {
   const { bidState } = useBidState()
   const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
+
+
+  const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price.price
 
   const basketAssets = useMemo(() => {
     if (!basket || !interest) return []
@@ -608,7 +614,7 @@ const NeuroGuardCard = () => {
             </Text>
           </HStack>
           {nonNeuroGuardPositions.map((cdpInfo) =>
-            <>{cdpInfo ? <VaultEntry cdp={cdpInfo.position} positionNumber={cdpInfo.positionNumber} /> : null}</>
+            <>{cdpInfo ? <VaultEntry cdp={cdpInfo.position} positionNumber={cdpInfo.positionNumber} cdtMarketPrice={cdtMarketPrice ?? "1"} /> : null}</>
           )}
         </Stack>
         : null}

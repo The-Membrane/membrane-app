@@ -62,15 +62,12 @@ const useMint = () => {
     queryClient.invalidateQueries({ queryKey: ['one users points'] })
     queryClient.invalidateQueries({ queryKey: ['one users level'] })
   }
-  console.log("mint msgs:", msgs)
+  // console.log("mint msgs:", msgs)
   return useSimulateAndBroadcast({
     msgs,
-    queryKey: [
-      String(mintState?.mint) || '0',
-      String(mintState?.repay) || '0',
-      summary ? JSON.stringify(summary.map(s => String(s.amount))) : '0',
-    ],
+    queryKey: ['mint_msg_sim', (msgs?.toString() ?? "0")],
     onSuccess,
+    enabled: !!msgs,
   })
 }
 

@@ -394,22 +394,15 @@ export const NeuroWithdrawModal = React.memo(({
 })
 
 export const NeuroCloseModal = React.memo(({
-    isOpen, onClose, guardedPosition, debtAmount, positionNumber, children
+    isOpen, onClose, position, debtAmount, positionNumber, children
 }: PropsWithChildren<{
     isOpen: boolean, onClose: () => void,
-    guardedPosition: {
-        position: PositionResponse;
-        symbol: string;
-        image: string;
-        LTV: string;
-        amount: string,
-        cost: number
-    };
+    position: PositionResponse
     debtAmount: number
     positionNumber: number
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: close } = useCloseCDP({ position: guardedPosition.position, onSuccess: onClose })
+    const { action: close } = useCloseCDP({ position: position, onSuccess: onClose })
     const isDisabled = close?.simulate.isError || !close?.simulate.data
     const isLoading = close?.simulate.isLoading || close?.tx.isPending
 

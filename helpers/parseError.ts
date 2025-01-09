@@ -55,16 +55,16 @@ export const parseError = (error: string) => {
     },
     {
       regex: /Unexpected end of JSON input/i,
-      message: 'Success despite error', 
+      message: 'Success despite error',
     },
   ]
-  customErrors = customErrors.concat(collateralSupplyCapErrors()??[])
+  customErrors = customErrors.concat(collateralSupplyCapErrors() ?? [])
 
   const errorMessage = error || ''
-    console.log("error:", errorMessage)
+  // console.log("error:", errorMessage)
 
   const matchedError = customErrors.find(({ regex }) => regex.test(errorMessage))
   if (!matchedError) console.log("error:", errorMessage)
-  
+
   return matchedError ? matchedError.message : errorMessage//'Something went wrong, please try again'
 }

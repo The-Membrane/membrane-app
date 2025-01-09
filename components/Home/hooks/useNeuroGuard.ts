@@ -19,7 +19,6 @@ import { useBasket } from "@/hooks/useCDP"
 
 
 import EventEmitter from 'events';
-import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useNeuroGuard = ({ onSuccess }: { onSuccess: () => void }) => {
@@ -27,7 +26,7 @@ const useNeuroGuard = ({ onSuccess }: { onSuccess: () => void }) => {
   const { data: basket } = useBasket()
   const { neuroState } = useNeuroState()
 
-  console.log('above neuro', neuroState.openSelectedAsset);
+  // console.log('above neuro', neuroState.openSelectedAsset);
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -119,10 +118,10 @@ const useNeuroGuard = ({ onSuccess }: { onSuccess: () => void }) => {
     /////ERRORS ON THE 3RD OR 4TH MODAL OPEN, CHECKING TO SEE IF ITS THE INVALIDATED QUERY////
   })
 
-  console.log("neuroGuard msgs:", "enabled", !!address)
+  // console.log("neuroGuard msgs:", "enabled", !!address)
   const msgs = queryData?.msgs ?? []
 
-  console.log("neuroGuard msgs:", msgs)
+  // console.log("neuroGuard msgs:", msgs)
 
   const onInitialSuccess = () => {
     onSuccess()

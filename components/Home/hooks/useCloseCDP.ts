@@ -33,7 +33,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess }: { position: PositionRe
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
 
-            const percentToClose = num(debtAmount).dividedBy(neuroState.closeInputValue).toFixed(4)
+            const percentToClose = num(neuroState.closeInputValue).dividedBy(debtAmount).toFixed(4)
             console.log("percentToClose:", percentToClose, debtAmount, neuroState.closeInputValue)
 
             //Close Position
@@ -88,7 +88,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess }: { position: PositionRe
 
     const msgs = queryData?.msgs ?? []
 
-    console.log("closeCDP msgs:", msgs)
+    // console.log("closeCDP msgs:", msgs)
 
     const onInitialSuccess = () => {
         onSuccess()

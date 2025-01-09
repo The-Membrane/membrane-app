@@ -484,7 +484,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
 
   // console.log("user discount", getUserDiscountValue("osmo1fd8z9npe5gd6afm0wj60tryzx04gn5jl84hcm2"))
 
-  console.log("basketPositions", basketPositions)
+  // console.log("basketPositions", basketPositions)
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
@@ -527,7 +527,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
       const tvl = getTVL(positions)
       const debt = getDebt([basketPosition])
       //skip if no debt
-      if (debt === 0) { console.log("debt is 0"); return undefined }
+      if (debt === 0) { return undefined }
       ////////////////////////////////
       const debtValue = num(debt).times(basket.credit_price.price).toNumber()
       const ltv = getLTV(tvl, debtValue)

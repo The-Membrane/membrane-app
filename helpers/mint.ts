@@ -159,10 +159,12 @@ export const getDepostAndWithdrawMsgs = ({
     if (num(asset.amount).isGreaterThan(0)) {
       deposit.push(asset)
     } else {
-      if(asset.sliderValue == 0 && basketPositions){
+      console.log("asset.sliderValue", asset.sliderValue)
+      if (asset.sliderValue == 0 && basketPositions) {
         //Find asset in basketPositions
         const amount = basketPositions[0].positions.find((p: any) => p.position_id === positionId)?.collateral_assets.find((a: any) => a.base === asset.base)?.asset.amount
-        if(amount) asset.amount = amount
+        console.log("full withdrawal amount", amount)
+        if (amount) asset.amount = amount
       }
       withdraw.push(asset)
     }
@@ -179,8 +181,8 @@ export const getDepostAndWithdrawMsgs = ({
         amount: amount,
       }
     })
-    
-  
+
+
   if (depositFunds.length > 0) {
     if (hasPosition) {
       const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
@@ -231,13 +233,13 @@ export const getMintAndRepayMsgs = ({
     //Add points check/allocate before and after
     const pointsMessageComposer = new PointsMsgComposer(address, contracts.points)
     msgs.push(pointsMessageComposer.checkClaims({
-        cdpRepayment: {
-          position_id: positionId,
-          position_owner: address
-        },
-        spClaims: false,
-        lqClaims: false,
-      }))
+      cdpRepayment: {
+        position_id: positionId,
+        position_owner: address
+      },
+      spClaims: false,
+      lqClaims: false,
+    }))
 
     const cdt = getAssetBySymbol('CDT')
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
@@ -259,7 +261,7 @@ export const getMintAndRepayMsgs = ({
 type GetLiqMsgs = {
   address: string
   liq_info: any[]
-} 
+}
 export const getLiquidationMsgs = ({
   address,
   liq_info

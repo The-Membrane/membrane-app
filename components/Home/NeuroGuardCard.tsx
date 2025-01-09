@@ -309,7 +309,7 @@ const VaultEntry = React.memo(({
           {debtAmount.toFixed(0)} CDT
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {Math.min(health, 100) == Infinity ? "N/A" : `${Math.min(health, 100)}%`}
+          {Math.min(health, 100) == -Infinity ? "N/A" : `${Math.min(health, 100)}%`}
         </Text>
         <HStack width={"25%"}>
           <Button

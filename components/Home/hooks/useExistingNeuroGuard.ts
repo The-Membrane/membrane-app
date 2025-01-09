@@ -27,7 +27,7 @@ const useExistingNeuroGuard = ({ position_id, onSuccess }: { position_id: string
     const { neuroState } = useNeuroState()
 
 
-    console.log('above neuro', neuroState.selectedAsset);
+    console.log('above neuro', neuroState.depositSelectedAsset);
 
     type QueryData = {
         msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -36,21 +36,21 @@ const useExistingNeuroGuard = ({ position_id, onSuccess }: { position_id: string
         queryKey: [
             'existing_neuroGuard_msg_creation',
             address,
-            neuroState.selectedAsset,
+            neuroState.depositSelectedAsset,
             basket,
             position_id
         ],
         queryFn: () => {
-            console.log("in query guardian", neuroState.selectedAsset)
+            console.log("in query guardian", neuroState.depositSelectedAsset)
 
 
-            if (!address || !neuroState.selectedAsset || (neuroState.selectedAsset && neuroState.selectedAsset?.sliderValue == 0) || !basket || !position_id) { console.log("existing neuroGuard early return", address, neuroState, basket, position_id); return { msgs: [] } }
+            if (!address || !neuroState.depositSelectedAsset || (neuroState.depositSelectedAsset && neuroState.depositSelectedAsset?.sliderValue == 0) || !basket || !position_id) { console.log("existing neuroGuard early return", address, neuroState, basket, position_id); return { msgs: [] } }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
-            const newDeposit = num(neuroState.selectedAsset.sliderValue).toNumber()
-            const amount = shiftDigits(newDeposit, neuroState.selectedAsset.decimal).toFixed(0)
-            console.log("existingNeuro funds", newDeposit, amount, neuroState.selectedAsset)
-            const funds = [{ amount, denom: neuroState.selectedAsset.base }]
+            const newDeposit = num(neuroState.depositSelectedAsset.sliderValue).toNumber()
+            const amount = shiftDigits(newDeposit, neuroState.depositSelectedAsset.decimal).toFixed(0)
+            console.log("existingNeuro funds", newDeposit, amount, neuroState.depositSelectedAsset)
+            const funds = [{ amount, denom: neuroState.depositSelectedAsset.base }]
             console.log(funds)
 
             //Deposit msg

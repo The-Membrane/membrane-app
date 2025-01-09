@@ -21,19 +21,19 @@ export const NeuroOpenModal = React.memo(({
     const { neuroState, setNeuroState } = useNeuroState()
     const { action: neuro } = useNeuroGuard({ onSuccess: onClose })
     const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
-    const isDisabled = asset !== neuroState?.selectedAsset?.base || neuroState?.selectedAsset?.sliderValue == 0 || neuro?.simulate.isError || !neuro?.simulate.data
+    const isDisabled = asset !== neuroState?.openSelectedAsset?.base || neuroState?.openSelectedAsset?.sliderValue == 0 || neuro?.simulate.isError || !neuro?.simulate.data
 
 
-    const minValue = ((21 / ((neuroState?.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
-    const minAmount = num(minValue).dividedBy(neuroState?.selectedAsset?.price ?? 0).toNumber()
+    const minValue = ((21 / ((neuroState?.openSelectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
+    const minAmount = num(minValue).dividedBy(neuroState?.openSelectedAsset?.price ?? 0).toNumber()
     //@ts-ignore
-    const maxAmount = num(neuroState?.selectedAsset?.balance).toNumber()
+    const maxAmount = num(neuroState?.openSelectedAsset?.balance).toNumber()
 
     const onMaxClick = () => {
         setNeuroState({
             //@ts-ignore
-            selectedAsset: {
-                ...neuroState?.selectedAsset,
+            openSelectedAsset: {
+                ...neuroState?.openSelectedAsset,
                 sliderValue: maxAmount
             }
         })
@@ -41,8 +41,8 @@ export const NeuroOpenModal = React.memo(({
     const onMinClick = () => {
         setNeuroState({
             //@ts-ignore
-            selectedAsset: {
-                ...neuroState?.selectedAsset,
+            openSelectedAsset: {
+                ...neuroState?.openSelectedAsset,
                 sliderValue: minAmount
             }
         })
@@ -55,12 +55,12 @@ export const NeuroOpenModal = React.memo(({
 
         setNeuroState({
             //@ts-ignore
-            selectedAsset: {
-                ...neuroState?.selectedAsset,
+            openSelectedAsset: {
+                ...neuroState?.openSelectedAsset,
                 sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
             }
         })
-    }, [neuroState?.selectedAsset, setNeuroState])
+    }, [neuroState?.openSelectedAsset, setNeuroState])
 
 
 
@@ -80,13 +80,13 @@ export const NeuroOpenModal = React.memo(({
                     <Stack>
                         <HStack width="100%" justifyContent="left">
                             <HStack width="75%">
-                                {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
+                                {neuroState?.openSelectedAsset?.logo ? <Image src={neuroState?.openSelectedAsset?.logo} w="30px" h="30px" /> : null}
                                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {neuroState?.selectedAsset?.symbol}
+                                    {neuroState?.openSelectedAsset?.symbol}
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(neuroState?.selectedAsset?.sliderValue).times(neuroState?.selectedAsset?.price ?? 0).toFixed(2)}
+                                ~${num(neuroState?.openSelectedAsset?.sliderValue).times(neuroState?.openSelectedAsset?.price ?? 0).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -95,7 +95,7 @@ export const NeuroOpenModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={neuroState?.selectedAsset?.sliderValue?.toFixed(2)}
+                            value={neuroState?.openSelectedAsset?.sliderValue?.toFixed(2)}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
@@ -125,7 +125,7 @@ export const NeuroOpenModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && neuro.simulate.isError ? neuro.simulate.error?.message ?? "" : "")}
+                            {parseError(num(neuroState?.openSelectedAsset?.sliderValue).isGreaterThan(0) && neuro.simulate.isError ? neuro.simulate.error?.message ?? "" : "")}
                         </Text>
 
 
@@ -154,19 +154,19 @@ export const NeuroDepositModal = React.memo(({
     const { neuroState, setNeuroState } = useNeuroState()
     const { action: existingNeuro } = useExistingNeuroGuard({ position_id, onSuccess: onClose })
     const isLoading = existingNeuro?.simulate.isLoading || existingNeuro?.tx.isPending
-    const isDisabled = asset !== neuroState?.selectedAsset?.base || existingNeuro?.simulate.isError || !existingNeuro?.simulate.data
+    const isDisabled = asset !== neuroState?.depositSelectedAsset?.base || existingNeuro?.simulate.isError || !existingNeuro?.simulate.data
 
 
-    // const minValue = ((21 / ((neuroState?.selectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
-    // const minAmount = num(minValue).dividedBy(neuroState?.selectedAsset?.price ?? 0).toNumber()
+    // const minValue = ((21 / ((neuroState?.depositSelectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
+    // const minAmount = num(minValue).dividedBy(neuroState?.depositSelectedAsset?.price ?? 0).toNumber()
     //@ts-ignore
-    const maxAmount = num(neuroState?.selectedAsset?.balance).toNumber()
+    const maxAmount = num(neuroState?.depositSelectedAsset?.balance).toNumber()
 
     const onMaxClick = () => {
         setNeuroState({
             //@ts-ignore
-            selectedAsset: {
-                ...neuroState?.selectedAsset,
+            depositSelectedAsset: {
+                ...neuroState?.depositSelectedAsset,
                 sliderValue: maxAmount
             }
         })
@@ -179,12 +179,12 @@ export const NeuroDepositModal = React.memo(({
 
         setNeuroState({
             //@ts-ignore
-            selectedAsset: {
-                ...neuroState?.selectedAsset,
+            depositSelectedAsset: {
+                ...neuroState?.depositSelectedAsset,
                 sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
             }
         })
-    }, [neuroState?.selectedAsset, setNeuroState])
+    }, [neuroState?.depositSelectedAsset, setNeuroState])
 
 
 
@@ -204,13 +204,13 @@ export const NeuroDepositModal = React.memo(({
                     <Stack>
                         <HStack width="100%" justifyContent="left">
                             <HStack width="75%">
-                                {neuroState?.selectedAsset?.logo ? <Image src={neuroState?.selectedAsset?.logo} w="30px" h="30px" /> : null}
+                                {neuroState?.depositSelectedAsset?.logo ? <Image src={neuroState?.depositSelectedAsset?.logo} w="30px" h="30px" /> : null}
                                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {neuroState?.selectedAsset?.symbol}
+                                    {neuroState?.depositSelectedAsset?.symbol}
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(neuroState?.selectedAsset?.sliderValue).times(neuroState?.selectedAsset?.price ?? 0).toFixed(2)}
+                                ~${num(neuroState?.depositSelectedAsset?.sliderValue).times(neuroState?.depositSelectedAsset?.price ?? 0).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -219,7 +219,7 @@ export const NeuroDepositModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={neuroState?.selectedAsset?.sliderValue?.toFixed(2)}
+                            value={neuroState?.depositSelectedAsset?.sliderValue?.toFixed(2)}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
@@ -243,7 +243,7 @@ export const NeuroDepositModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && existingNeuro.simulate.isError ? existingNeuro.simulate.error?.message ?? "" : "")}
+                            {parseError(num(neuroState?.depositSelectedAsset?.sliderValue).isGreaterThan(0) && existingNeuro.simulate.isError ? existingNeuro.simulate.error?.message ?? "" : "")}
                         </Text>
 
 
@@ -292,14 +292,14 @@ export const NeuroWithdrawModal = React.memo(({
     const onMaxClick = () => {
         setNeuroState({
             //@ts-ignore
-            selectedAsset: {
-                ...neuroState?.selectedAsset,
+            withdrawSelectedAsset: {
+                ...neuroState?.withdrawSelectedAsset,
                 sliderValue: maxAmount
             }
         })
     }
 
-    console.log("neuroState?.selectedAsset", neuroState?.selectedAsset)
+    console.log("neuroState?.withdrawSelectedAsset", neuroState?.withdrawSelectedAsset)
 
 
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -308,12 +308,12 @@ export const NeuroWithdrawModal = React.memo(({
 
         setNeuroState({
             //@ts-ignore
-            selectedAsset: {
-                ...neuroState?.selectedAsset,
+            withdrawSelectedAsset: {
+                ...neuroState?.withdrawSelectedAsset,
                 sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
             }
         })
-    }, [neuroState?.selectedAsset, setNeuroState])
+    }, [neuroState?.withdrawSelectedAsset, setNeuroState])
 
 
 
@@ -339,7 +339,7 @@ export const NeuroWithdrawModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(neuroState?.selectedAsset?.sliderValue).times(neuroState?.selectedAsset?.price ?? 0).toFixed(2)}
+                                ~${num(neuroState?.withdrawSelectedAsset?.sliderValue).times(neuroState?.withdrawSelectedAsset?.price ?? 0).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -348,7 +348,7 @@ export const NeuroWithdrawModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={neuroState?.selectedAsset?.sliderValue?.toFixed(2)}
+                            value={neuroState?.withdrawSelectedAsset?.sliderValue?.toFixed(2)}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
@@ -372,7 +372,7 @@ export const NeuroWithdrawModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && sheathe.simulate.isError ? sheathe.simulate.error?.message ?? "" : "")}
+                            {parseError(num(neuroState?.withdrawSelectedAsset?.sliderValue).isGreaterThan(0) && sheathe.simulate.isError ? sheathe.simulate.error?.message ?? "" : "")}
                         </Text>
 
 
@@ -416,20 +416,15 @@ export const NeuroCloseModal = React.memo(({
 
         setNeuroState({
             //@ts-ignore
-            selectedAsset: {
-                ...neuroState?.selectedAsset,
-                sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-            }
+            closeInputValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
         })
-    }, [neuroState?.selectedAsset, setNeuroState])
+    }, [neuroState?.closeInputValue, setNeuroState])
 
     const onMaxClick = () => {
         setNeuroState({
             //@ts-ignore
-            selectedAsset: {
-                ...neuroState?.selectedAsset,
-                sliderValue: maxAmount
-            }
+            closeInputValue: maxAmount
+
         })
     }
 
@@ -455,7 +450,7 @@ export const NeuroCloseModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(neuroState?.selectedAsset?.sliderValue).times(cdtMarketPrice).toFixed(2)}
+                                ~${num(neuroState?.closeInputValue).times(cdtMarketPrice).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -464,7 +459,7 @@ export const NeuroCloseModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={neuroState?.selectedAsset?.sliderValue?.toFixed(2)}
+                            value={neuroState?.closeInputValue?.toFixed(2)}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
@@ -488,7 +483,7 @@ export const NeuroCloseModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && close.simulate.isError ? close.simulate.error?.message ?? "" : "")}
+                            {parseError((num(neuroState?.closeInputValue).isGreaterThan(0) || debtAmount == 0) && close.simulate.isError ? close.simulate.error?.message ?? "" : "")}
                         </Text>
 
 
@@ -500,7 +495,7 @@ export const NeuroCloseModal = React.memo(({
                             toggleConnectLabel={false}
                             style={{ alignSelf: "center" }}
                         >
-                            Sell Collateral to Repay Debt
+                            {debtAmount == 0 ? "Withdraw All Collateral" : "Sell Collateral to Repay Debt"}
                         </TxButton>
                     </ModalFooter>
                 )}

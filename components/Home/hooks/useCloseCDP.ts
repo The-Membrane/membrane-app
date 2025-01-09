@@ -25,16 +25,16 @@ const useCloseCDP = ({ position, debtAmount, onSuccess }: { position: PositionRe
             'closeCDP_msg_creation',
             address,
             position.position_id,
-            neuroState.selectedAsset?.sliderValue
+            neuroState.closeInputValue
         ],
         queryFn: () => {
 
-            if (!address || !position || !neuroState.selectedAsset?.sliderValue || (neuroState.selectedAsset && position.credit_amount == "0" && neuroState.selectedAsset?.sliderValue == 0)) { console.log("closeCDP early return", address, position, neuroState.selectedAsset?.sliderValue); return { msgs: [] } }
+            if (!address || !position || !neuroState.closeInputValue || (neuroState.closeInputValue && position.credit_amount != "0" && neuroState.closeInputValue == 0)) { console.log("closeCDP early return", address, position, neuroState.closeInputValue); return { msgs: [] } }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
 
-            const percentToClose = num(debtAmount).dividedBy(neuroState.selectedAsset?.sliderValue).toFixed(4)
-            console.log("percentToClose:", percentToClose, debtAmount, neuroState.selectedAsset?.sliderValue)
+            const percentToClose = num(debtAmount).dividedBy(neuroState.closeInputValue).toFixed(4)
+            console.log("percentToClose:", percentToClose, debtAmount, neuroState.closeInputValue)
 
             //Close Position
             //This execution flow doesn't work for undebted positions
@@ -47,7 +47,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess }: { position: PositionRe
                         msg: toUtf8(JSON.stringify({
                             close_position: {
                                 position_id: position.position_id,
-                                max_spread: "0.02",
+                                max_spread: "0.03",
                                 close_percentage: percentToClose,
                             }
                         })),

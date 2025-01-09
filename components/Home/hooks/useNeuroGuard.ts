@@ -27,7 +27,7 @@ const useNeuroGuard = ({ onSuccess }: { onSuccess: () => void }) => {
   const { data: basket } = useBasket()
   const { neuroState } = useNeuroState()
 
-  console.log('above neuro', neuroState.selectedAsset);
+  console.log('above neuro', neuroState.openSelectedAsset);
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -36,21 +36,21 @@ const useNeuroGuard = ({ onSuccess }: { onSuccess: () => void }) => {
     queryKey: [
       'neuroGuard_msg_creation',
       address,
-      neuroState.selectedAsset,
+      neuroState.openSelectedAsset,
       basket
     ],
     queryFn: () => {
-      console.log("in query guardian", neuroState.selectedAsset)
+      console.log("in query guardian", neuroState.openSelectedAsset)
 
 
-      if (!address || !neuroState.selectedAsset || (neuroState.selectedAsset && neuroState.selectedAsset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
+      if (!address || !neuroState.openSelectedAsset || (neuroState.openSelectedAsset && neuroState.openSelectedAsset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      const newDeposit = num(neuroState.selectedAsset.sliderValue).toNumber()
-      // const amount = shiftDigits(num(newDeposit).dividedBy(neuroState.selectedAsset.price).toString(), neuroState.selectedAsset.decimal).toFixed(0)
-      const amount = shiftDigits(newDeposit, neuroState.selectedAsset.decimal).toFixed(0)
-      console.log("Neuro funds", newDeposit, amount, neuroState.selectedAsset)
-      const funds = [{ amount, denom: neuroState.selectedAsset.base }]
+      const newDeposit = num(neuroState.openSelectedAsset.sliderValue).toNumber()
+      // const amount = shiftDigits(num(newDeposit).dividedBy(neuroState.openSelectedAsset.price).toString(), neuroState.openSelectedAsset.decimal).toFixed(0)
+      const amount = shiftDigits(newDeposit, neuroState.openSelectedAsset.decimal).toFixed(0)
+      console.log("Neuro funds", newDeposit, amount, neuroState.openSelectedAsset)
+      const funds = [{ amount, denom: neuroState.openSelectedAsset.base }]
       console.log(funds)
 
       //Deposit msg
@@ -79,7 +79,7 @@ const useNeuroGuard = ({ onSuccess }: { onSuccess: () => void }) => {
               mint_intent: {
                 user: address,
                 position_id: basket.current_position_id,
-                mint_to_ltv: num(neuroState.selectedAsset?.maxBorrowLTV).times(0.8).toString()
+                mint_to_ltv: num(neuroState.openSelectedAsset?.maxBorrowLTV).times(0.8).toString()
               }
             }
           })),

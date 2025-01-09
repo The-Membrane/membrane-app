@@ -108,18 +108,18 @@ const useNeuroClose = ({ position, onSuccess }: { position: PositionResponse, on
       assets,
       userIntents,
       assetInfo,
-      neuroState.selectedAsset?.sliderValue
+      neuroState.withdrawSelectedAsset?.sliderValue
     ],
     queryFn: () => {
       //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
 
-      if (!address || !position || !basket || !assets || !userIntents || !assetInfo || !neuroState.selectedAsset?.sliderValue || (neuroState.selectedAsset && neuroState.selectedAsset?.sliderValue == 0)) { console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.selectedAsset?.sliderValue); return { msgs: [] } }
+      if (!address || !position || !basket || !assets || !userIntents || !assetInfo || !neuroState.withdrawSelectedAsset?.sliderValue || (neuroState.withdrawSelectedAsset && neuroState.withdrawSelectedAsset?.sliderValue == 0)) { console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.withdrawSelectedAsset?.sliderValue); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       //calc the % of the position to close     
       //@ts-ignore
       const maxAmount = shiftDigits(collateralAsset.amount, -assetInfo?.decimal).toNumber()
-      const percentToClose = num(maxAmount).dividedBy(neuroState.selectedAsset?.sliderValue).toString()
+      const percentToClose = num(maxAmount).dividedBy(neuroState.withdrawSelectedAsset?.sliderValue).toString()
       var debtToRepay = num(position.credit_amount).times(percentToClose).toString()
       const remainingDebt = num(position.credit_amount).minus(debtToRepay).toString()
       // Leave 1 CDT to ensure ClosePosition never fails

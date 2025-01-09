@@ -9,7 +9,10 @@ export type ActionMenu = {
 }
 
 export type NeuroState = {
-  selectedAsset?: AssetWithBalance
+  openSelectedAsset?: AssetWithBalance
+  depositSelectedAsset?: AssetWithBalance
+  withdrawSelectedAsset?: AssetWithBalance
+  closeInputValue?: number
   position_to_close?: number
   assets: AssetWithBalance[]
   guardedPositions: string[]
@@ -25,7 +28,7 @@ type Store = {
 const initialState: NeuroState = {
   assets: [{ label: "WBTC", display: "WBTC", value: "WBTC" }],
   guardedPositions: [],
-  selectedAsset: { symbol: "WBTC", label: "WBTC", display: "WBTC", value: "WBTC", maxBorrowLTV: "0.5" },
+  openSelectedAsset: { symbol: "WBTC", label: "WBTC", display: "WBTC", value: "WBTC", maxBorrowLTV: 0.5 },
 }
 
 // @ts-ignore

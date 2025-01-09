@@ -13,7 +13,7 @@ import useNeuroState from "./useNeuroState"
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 
 
-const useCloseCDP = ({ position, onSuccess }: { position: PositionResponse, onSuccess: () => void }) => {
+const useCloseCDP = ({ position, debtAmount, onSuccess }: { position: PositionResponse, debtAmount: number, onSuccess: () => void }) => {
     const { address } = useWallet()
     const { neuroState } = useNeuroState()
 
@@ -29,11 +29,12 @@ const useCloseCDP = ({ position, onSuccess }: { position: PositionResponse, onSu
         ],
         queryFn: () => {
 
-            if (!address || !position || !neuroState.selectedAsset?.sliderValue || (neuroState.selectedAsset && neuroState.selectedAsset?.sliderValue == 0)) { console.log("closeCDP early return", address, position, neuroState.selectedAsset?.sliderValue); return { msgs: [] } }
+            if (!address || !position || !neuroState.selectedAsset?.sliderValue || (neuroState.selectedAsset && position.credit_amount == "0" && neuroState.selectedAsset?.sliderValue == 0)) { console.log("closeCDP early return", address, position, neuroState.selectedAsset?.sliderValue); return { msgs: [] } }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
 
-            const percentToClose = num(100).dividedBy(neuroState.selectedAsset?.sliderValue).toString()
+            const percentToClose = num(debtAmount).dividedBy(neuroState.selectedAsset?.sliderValue).toFixed(4)
+            console.log("percentToClose:", percentToClose)
 
             //Close Position
             //This execution flow doesn't work for undebted positions

@@ -155,7 +155,7 @@ export const getDepostAndWithdrawMsgs = ({
   const withdraw: Summary[] = []
   const msgs = []
 
-  summary?.forEach((asset) => {
+  summary?.map((asset) => {
     if (num(asset.amount).isGreaterThan(0)) {
       deposit.push(asset)
     } else {

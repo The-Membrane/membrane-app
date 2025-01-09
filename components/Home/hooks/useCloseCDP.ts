@@ -47,7 +47,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess }: { position: PositionRe
                         msg: toUtf8(JSON.stringify({
                             close_position: {
                                 position_id: position.position_id,
-                                max_spread: "0.03",
+                                max_spread: "0.05",
                                 close_percentage: percentToClose,
                             }
                         })),

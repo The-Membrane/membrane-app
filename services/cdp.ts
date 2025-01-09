@@ -551,6 +551,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
       //   undiscountedTER += annualInterest
       // }
 
+      console.log(ltv, "<", liquidationLTV)
       if (ltv > liquidationLTV) {
         let ltv_diff = num(ltv).minus(liquidationLTV)
         let liq_ratio = ltv_diff.div(ltv)

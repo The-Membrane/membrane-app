@@ -403,7 +403,7 @@ export const NeuroCloseModal = React.memo(({
     cdtMarketPrice: string
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: close } = useCloseCDP({ position: position, onSuccess: onClose })
+    const { action: close } = useCloseCDP({ position, debtAmount, onSuccess: onClose })
     const isDisabled = close?.simulate.isError || !close?.simulate.data
     const isLoading = close?.simulate.isLoading || close?.tx.isPending
 

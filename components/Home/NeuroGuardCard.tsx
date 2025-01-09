@@ -24,7 +24,7 @@ import TxError from "../TxError"
 import { BasketAsset, getBasketAssets } from "@/services/cdp"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import { parseError } from "@/helpers/parseError"
-import { NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal } from "./NeuroModals"
+import { NeuroCloseModal, NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal } from "./NeuroModals"
 import useVaultSummary from "../Mint/hooks/useVaultSummary"
 import { useRouter } from "next/router"
 import NextLink from 'next/link'
@@ -265,9 +265,18 @@ const NeuroGuardExistingEntry = React.memo(({
 
 // Extracted NeuroGuardExistingEntry component
 const VaultEntry = React.memo(({
+  guardedPosition,
   cdp,
   positionNumber
 }: {
+  guardedPosition: {
+    position: PositionResponse;
+    symbol: string;
+    image: string;
+    LTV: string;
+    amount: string,
+    cost: number
+  };
   cdp: PositionResponse;
   positionNumber: number
 }) => {
@@ -287,26 +296,11 @@ const VaultEntry = React.memo(({
     return num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
   }, [ltv, liqudationLTV])
 
-  const router = useRouter()
-  const isActive = router.asPath === '/mint'
-  const [isHovered, setIsHovered] = useState(false)
-  const hoverStyles = {
-    borderRadius: '8px',
-    bg: 'primary.200',
-  }
 
-
-
-  // const [isDepositOpen, setIsDepositOpen] = useState(false)
-  // const toggleDepositOpen = useCallback(() => {
-  //   setIsDepositOpen(prev => !prev)
-  // }, [])
-
-
-  // const [isWithdrawOpen, setIsWithdrawOpenOpen] = useState(false)
-  // const toggleWithdrawOpen = useCallback(() => {
-  //   setIsWithdrawOpenOpen(prev => !prev)
-  // }, [])
+  const [isCloseOpen, setIsCloseOpen] = useState(false)
+  const toggleCloseOpen = useCallback(() => {
+    setIsCloseOpen(prev => !prev)
+  }, [])
 
   {/* @ts-ignore */ }
   // const isDisabled = (asset?.balance ?? 0) === 0
@@ -316,10 +310,10 @@ const VaultEntry = React.memo(({
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {tvl}
+          ${tvl.toFixed(2)}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {debtAmount}
+          {debtAmount.toFixed(0)} CDT
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {Math.min(health, 100)}%
@@ -337,19 +331,19 @@ const VaultEntry = React.memo(({
           >
             Edit
           </Button>
-          {/* <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} >
+          <NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} guardedPosition={guardedPosition} debtAmount={debtAmount} positionNumber={positionNumber} >
             <Button
               width="100%"
               display="flex"
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => { setNeuroState({ selectedAsset: asset }); toggleWithdrawOpen() }}
+              onClick={toggleCloseOpen}
               isDisabled={false}
             >
               Close
             </Button>
-          </NeuroWithdrawModal> */}
+          </NeuroCloseModal>
         </HStack>
       </HStack>
     </Card>
@@ -608,7 +602,7 @@ const NeuroGuardCard = () => {
           <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
             Your Vaults
           </Text>
-          <HStack gap="0%" p={4}>
+          <HStack gap="9%" p={4}>
             <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               TVL
             </Text>

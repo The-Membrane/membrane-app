@@ -11,6 +11,7 @@ import { getAssetBySymbol } from "@/helpers/chain"
 import { shiftDigits } from "@/helpers/math"
 import useNeuroClose from "./hooks/useNeuroClose"
 import useExistingNeuroGuard from "./hooks/useExistingNeuroGuard"
+import useCloseCDP from "./hooks/useCloseCDP"
 
 export const NeuroOpenModal = React.memo(({
     isOpen, onClose, asset, children
@@ -384,6 +385,126 @@ export const NeuroWithdrawModal = React.memo(({
                             style={{ alignSelf: "center" }}
                         >
                             Withdraw from Guardian
+                        </TxButton>
+                    </ModalFooter>
+                )}
+            </ModalContent>
+        </Modal>
+    </>)
+})
+
+export const NeuroCloseModal = React.memo(({
+    isOpen, onClose, guardedPosition, debtAmount, positionNumber, children
+}: PropsWithChildren<{
+    isOpen: boolean, onClose: () => void,
+    guardedPosition: {
+        position: PositionResponse;
+        symbol: string;
+        image: string;
+        LTV: string;
+        amount: string,
+        cost: number
+    };
+    debtAmount: number
+    positionNumber: number
+}>) => {
+    const { neuroState, setNeuroState } = useNeuroState()
+    const { action: close } = useCloseCDP({ position: guardedPosition.position, onSuccess: onClose })
+    const isDisabled = close?.simulate.isError || !close?.simulate.data
+    const isLoading = close?.simulate.isLoading || close?.tx.isPending
+
+
+    const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault()
+        const value = Number(e.target.value)
+
+        setNeuroState({
+            //@ts-ignore
+            selectedAsset: {
+                ...neuroState?.selectedAsset,
+                sliderValue: num(value).isGreaterThan(100) ? 100 : value
+            }
+        })
+    }, [neuroState?.selectedAsset, setNeuroState])
+
+    const onMaxClick = () => {
+        setNeuroState({
+            //@ts-ignore
+            selectedAsset: {
+                ...neuroState?.selectedAsset,
+                sliderValue: 100
+            }
+        })
+    }
+
+
+    return (<>
+        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="3">
+            {children}
+        </Button>
+
+        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
+            <ModalOverlay />
+            <ModalContent maxW="400px">
+                <ModalHeader>
+                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Percent of Debt to Close</Text>
+                </ModalHeader>
+                <ModalCloseButton />
+                <ModalBody pb="5">
+                    <Stack>
+                        <HStack width="100%" justifyContent="left">
+                            <HStack width="75%">
+                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                    {positionNumber}
+                                </Text>
+                            </HStack>
+                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                                ~${num(neuroState?.selectedAsset?.sliderValue).dividedBy(100).times(debtAmount).toFixed(2)}
+                            </Text>
+                        </HStack>
+                        <Input
+                            width={"100%"}
+                            textAlign={"right"}
+                            placeholder="0"
+                            type="number"
+                            variant={"ghost"}
+                            value={neuroState?.selectedAsset?.sliderValue?.toFixed(2)}
+                            onChange={onInputChange}
+                        />
+                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                            <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
+                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                    100%
+                                </Text>
+                            </Button>
+                        </HStack>
+                    </Stack>
+                </ModalBody>
+                {(
+                    <ModalFooter
+                        as={Stack}
+                        justifyContent="end"
+                        borderTop="1px solid"
+                        borderColor="whiteAlpha.200"
+                        pt="5"
+                        gap="5"
+                    >
+
+
+                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                            {parseError(num(neuroState?.selectedAsset?.sliderValue).isGreaterThan(0) && close.simulate.isError ? close.simulate.error?.message ?? "" : "")}
+                        </Text>
+
+
+                        <TxButton
+                            w="100%"
+                            isLoading={isLoading}
+                            isDisabled={isDisabled}
+                            onClick={() => close?.tx.mutate()}
+                            toggleConnectLabel={false}
+                            style={{ alignSelf: "center" }}
+                        >
+                            Close Vault
                         </TxButton>
                     </ModalFooter>
                 )}

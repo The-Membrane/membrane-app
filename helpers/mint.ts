@@ -163,12 +163,12 @@ export const getDepostAndWithdrawMsgs = ({
         //Find asset in basketPositions
         const position = basketPositions[0].positions.find((p: any) => p.position_id === positionId)
         console.log("pID", position, asset.base, position?.collateral_assets)
-        const assetFound = position?.collateral_assets.find((a: any) => a.info.native_token.denom === asset.base)
+        const assetFound = position?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === asset.base)
         console.log("pID", assetFound)
         console.log("pID", assetFound?.asset.amount)
 
 
-        const amount = basketPositions[0].positions.find((p: any) => p.position_id === positionId)?.collateral_assets.find((a: any) => a.info.native_token.denom === asset.base)?.asset.amount
+        const amount = basketPositions[0].positions.find((p: any) => p.position_id === positionId)?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === asset.base)?.asset.amount
         console.log("full withdrawal amount", amount)
         if (amount) asset.amount = amount
       }

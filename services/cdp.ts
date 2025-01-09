@@ -484,6 +484,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
 
   // console.log("user discount", getUserDiscountValue("osmo1fd8z9npe5gd6afm0wj60tryzx04gn5jl84hcm2"))
 
+  console.log("basketPositions", basketPositions)
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated

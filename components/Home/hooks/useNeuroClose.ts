@@ -113,7 +113,7 @@ const useNeuroClose = ({ position, onSuccess }: { position: PositionResponse, on
     queryFn: () => {
       //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
 
-      if (!address || !position || !basket || !assets || !userIntents || !assetInfo || !neuroState.selectedAsset?.sliderValue || (neuroState.selectedAsset && neuroState.selectedAsset?.sliderValue == 0)) { console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.selectedAsset?.sliderValue); return { msgs: [] } }
+      if (!address || !position || !basket || !assets || !userIntents || !assetInfo || !neuroState.selectedAsset?.sliderValue || (neuroState.selectedAsset && position.credit_amount == "0" && neuroState.selectedAsset?.sliderValue == 0)) { console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.selectedAsset?.sliderValue); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       //calc the % of the position to close     

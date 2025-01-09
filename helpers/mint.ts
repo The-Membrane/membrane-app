@@ -169,7 +169,7 @@ export const getDepostAndWithdrawMsgs = ({
 
 
         const amount = basketPositions[0].positions.find((p: any) => p.position_id === positionId)?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === asset.base)?.asset.amount
-        console.log("full withdrawal amount", amount)
+        console.log("full withdrawal amount", amount, shiftDigits(amount, -asset.decimal).toString())
         if (amount) asset.amount = shiftDigits(amount, -asset.decimal).toString()
       }
       withdraw.push(asset)

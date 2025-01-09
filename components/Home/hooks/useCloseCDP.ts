@@ -34,7 +34,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess }: { position: PositionRe
 
 
             const percentToClose = num(debtAmount).dividedBy(neuroState.selectedAsset?.sliderValue).toFixed(4)
-            console.log("percentToClose:", percentToClose)
+            console.log("percentToClose:", percentToClose, debtAmount, neuroState.selectedAsset?.sliderValue)
 
             //Close Position
             //This execution flow doesn't work for undebted positions

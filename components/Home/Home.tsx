@@ -170,7 +170,7 @@ const Home = () => {
       <StatsCard />
       <Stack>
         <MemoizedNeuroGuardCard />
-        <Stack>
+        {/* <Stack>
           <Text variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px"
             display="flex" color={colors.earnText}>
             <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>The Membrane: &nbsp;</a> Range Bound Liquidity Provision
@@ -179,9 +179,9 @@ const Home = () => {
             <MemoizedRangeBoundVisual />
             <MemoizedRangeBoundLPCard />
           </Stack>
-        </Stack>
+        </Stack> */}
       </Stack>
-      <PositionCostManager summary={summary} totalPositions={totalPositions} neuroGuards={neuroGuardIntents} />
+      {/* <PositionCostManager summary={summary} totalPositions={totalPositions} neuroGuards={neuroGuardIntents} /> */}
     </Stack>
   )
 }

@@ -147,30 +147,19 @@ const NeuroGuardOpenEntry = React.memo(({
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
         </Text>
-        <NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} >
-          <Button
-            width="100%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={() => { setNeuroState({ openSelectedAsset: asset }); toggleOpen() }}
-            isDisabled={isDisabled}
-          >
-            {/* @ts-ignore */}
-            {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2)} more to Deposit` : "Deposit"}
-          </Button>
-        </NeuroOpenModal>
-        {/* <TxButton
-          width="20%"
-          isLoading={isLoading}
+        {isOpen && (<NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />)}
+        <Button
+          width="100%"
+          display="flex"
+          padding="0"
+          alignSelf="center"
+          margin="0"
+          onClick={() => { setNeuroState({ openSelectedAsset: asset }); toggleOpen() }}
           isDisabled={isDisabled}
-          onClick={() => neuro?.tx.mutate()}
-          toggleConnectLabel={false}
-          style={{ alignSelf: "center" }}
         >
-          Deposit
-        </TxButton> */}
+          {/* @ts-ignore */}
+          {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2)} more to Deposit` : "Deposit"}
+        </Button>
       </HStack>
     </Card >
   )
@@ -247,19 +236,18 @@ const NeuroGuardExistingEntry = React.memo(({
             <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
           )}
 
-          <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} >
-            <Button
-              width="100%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={() => { setNeuroState({ withdrawSelectedAsset: asset }); toggleWithdrawOpen() }}
-              isDisabled={guardedPosition.symbol == "N/A" ? true : false}
-            >
-              Withdraw
-            </Button>
-          </NeuroWithdrawModal>
+          {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} />)}
+          <Button
+            width="100%"
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={() => { setNeuroState({ withdrawSelectedAsset: asset }); toggleWithdrawOpen() }}
+            isDisabled={guardedPosition.symbol == "N/A" ? true : false}
+          >
+            Withdraw
+          </Button>
         </HStack>
       </HStack>
     </Card>
@@ -327,19 +315,18 @@ const VaultEntry = React.memo(({
           >
             Edit
           </Button>
-          <NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice}>
-            <Button
-              width="100%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={toggleCloseOpen}
-              isDisabled={positionNumber == 0 ? true : false}
-            >
-              Close
-            </Button>
-          </NeuroCloseModal>
+          {isCloseOpen && (<NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />)}
+          <Button
+            width="100%"
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={toggleCloseOpen}
+            isDisabled={positionNumber == 0 ? true : false}
+          >
+            Close
+          </Button>
         </HStack>
       </HStack>
     </Card>

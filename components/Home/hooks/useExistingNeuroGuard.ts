@@ -21,7 +21,7 @@ import { useBasket } from "@/hooks/useCDP"
 import EventEmitter from 'events';
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
-const useExistingNeuroGuard = ({ position_id, onSuccess }: { position_id: string, onSuccess: () => void }) => {
+const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: string, onSuccess: () => void, run: boolean }) => {
     const { address } = useWallet()
     const { data: basket } = useBasket()
     const { neuroState } = useNeuroState()
@@ -38,13 +38,14 @@ const useExistingNeuroGuard = ({ position_id, onSuccess }: { position_id: string
             address,
             neuroState.depositSelectedAsset,
             basket,
-            position_id
+            position_id,
+            run
         ],
         queryFn: () => {
             console.log("in query guardian", neuroState.depositSelectedAsset)
 
 
-            if (!address || !neuroState.depositSelectedAsset || (neuroState.depositSelectedAsset && neuroState.depositSelectedAsset?.sliderValue == 0) || !basket || !position_id || (position_id && position_id === "0")) { console.log("existing neuroGuard early return", address, neuroState, basket, position_id); return { msgs: [] } }
+            if (!run || !address || !neuroState.depositSelectedAsset || (neuroState.depositSelectedAsset && neuroState.depositSelectedAsset?.sliderValue == 0) || !basket || !position_id || (position_id && position_id === "0")) { console.log("existing neuroGuard early return", address, neuroState, basket, position_id); return { msgs: [] } }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
             const newDeposit = num(neuroState.depositSelectedAsset.sliderValue).toNumber()

@@ -13,7 +13,7 @@ import useNeuroState from "./useNeuroState"
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 
 
-const useCloseCDP = ({ position, debtAmount, onSuccess }: { position: PositionResponse, debtAmount: number, onSuccess: () => void }) => {
+const useCloseCDP = ({ position, debtAmount, onSuccess, run }: { position: PositionResponse, debtAmount: number, onSuccess: () => void, run: boolean }) => {
     const { address } = useWallet()
     const { neuroState } = useNeuroState()
 
@@ -25,11 +25,12 @@ const useCloseCDP = ({ position, debtAmount, onSuccess }: { position: PositionRe
             'closeCDP_msg_creation',
             address,
             position.position_id,
-            neuroState.closeInputValue
+            neuroState.closeInputValue,
+            run
         ],
         queryFn: () => {
 
-            if (!address || !position || !neuroState.closeInputValue || (neuroState.closeInputValue && position.credit_amount != "0" && neuroState.closeInputValue == 0)) { console.log("closeCDP early return", address, position, neuroState.closeInputValue); return { msgs: [] } }
+            if (!run || !address || !position || !neuroState.closeInputValue || (neuroState.closeInputValue && position.credit_amount != "0" && neuroState.closeInputValue == 0)) { console.log("closeCDP early return", address, position, neuroState.closeInputValue); return { msgs: [] } }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
 

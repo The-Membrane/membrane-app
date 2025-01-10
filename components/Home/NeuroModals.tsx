@@ -19,7 +19,7 @@ export const NeuroOpenModal = React.memo(({
 
 
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: neuro } = useNeuroGuard({ onSuccess: onClose })
+    const { action: neuro } = useNeuroGuard({ onSuccess: onClose, run: isOpen })
     const isLoading = neuro?.simulate.isLoading || neuro?.tx.isPending
     const isDisabled = asset !== neuroState?.openSelectedAsset?.base || neuroState?.openSelectedAsset?.sliderValue == 0 || neuro?.simulate.isError || !neuro?.simulate.data
 
@@ -152,7 +152,7 @@ export const NeuroDepositModal = React.memo(({
 
 
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: existingNeuro } = useExistingNeuroGuard({ position_id, onSuccess: onClose })
+    const { action: existingNeuro } = useExistingNeuroGuard({ position_id, onSuccess: onClose, run: isOpen })
     const isLoading = existingNeuro?.simulate.isLoading || existingNeuro?.tx.isPending
     const isDisabled = asset !== neuroState?.depositSelectedAsset?.base || existingNeuro?.simulate.isError || !existingNeuro?.simulate.data
 
@@ -278,7 +278,7 @@ export const NeuroWithdrawModal = React.memo(({
     }
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose })
+    const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, run: isOpen })
     const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
     const isLoading = sheathe?.simulate.isLoading || sheathe?.tx.isPending
 
@@ -403,7 +403,7 @@ export const NeuroCloseModal = React.memo(({
     cdtMarketPrice: string
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: close } = useCloseCDP({ position, debtAmount, onSuccess: onClose })
+    const { action: close } = useCloseCDP({ position, debtAmount, onSuccess: onClose, run: isOpen })
     const isDisabled = close?.simulate.isError || !close?.simulate.data
     const isLoading = close?.simulate.isLoading || close?.tx.isPending
 

@@ -21,7 +21,7 @@ import { useBasket } from "@/hooks/useCDP"
 import EventEmitter from 'events';
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
-const useNeuroGuard = ({ onSuccess }: { onSuccess: () => void }) => {
+const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const { neuroState } = useNeuroState()
@@ -36,13 +36,14 @@ const useNeuroGuard = ({ onSuccess }: { onSuccess: () => void }) => {
       'neuroGuard_msg_creation',
       address,
       neuroState.openSelectedAsset,
-      basket
+      basket,
+      run
     ],
     queryFn: () => {
       console.log("in query guardian", neuroState.openSelectedAsset)
 
 
-      if (!address || !neuroState.openSelectedAsset || (neuroState.openSelectedAsset && neuroState.openSelectedAsset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
+      if (!run || !address || !neuroState.openSelectedAsset || (neuroState.openSelectedAsset && neuroState.openSelectedAsset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       const newDeposit = num(neuroState.openSelectedAsset.sliderValue).toNumber()

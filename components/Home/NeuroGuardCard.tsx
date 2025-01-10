@@ -518,7 +518,6 @@ const NeuroGuardCard = () => {
       position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
       amount: "0",
       symbol: "N/A",
-      image: "",
       cost: 0,
       LTV: "0"
     }]
@@ -571,7 +570,7 @@ const NeuroGuardCard = () => {
               Actions
             </Text>
           </HStack>
-          <Stack gap={"1%"}>{neuroState.assets.map((asset) =>
+          <Stack gap={"1rem"}>{neuroState.assets.map((asset) =>
             <>
               {asset && num(asset.combinUsdValue).isGreaterThan(0.01) && existingGuards?.find(((guard) => guard?.symbol === asset.symbol)) == undefined ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
             </>

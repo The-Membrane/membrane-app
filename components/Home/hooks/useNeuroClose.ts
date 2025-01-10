@@ -85,7 +85,7 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
   return newData;
 }
 
-const useNeuroClose = ({ position, onSuccess }: { position: PositionResponse, onSuccess: () => void }) => {
+const useNeuroClose = ({ position, onSuccess, run }: { position: PositionResponse, onSuccess: () => void, run: boolean }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()
@@ -108,12 +108,13 @@ const useNeuroClose = ({ position, onSuccess }: { position: PositionResponse, on
       assets,
       userIntents,
       assetInfo,
-      neuroState.withdrawSelectedAsset?.sliderValue
+      neuroState.withdrawSelectedAsset?.sliderValue,
+      run
     ],
     queryFn: () => {
       //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
 
-      if (!address || !position || (position && position.position_id === "0") || !basket || !assets || !userIntents || !assetInfo || !neuroState.withdrawSelectedAsset?.sliderValue || (neuroState.withdrawSelectedAsset && neuroState.withdrawSelectedAsset?.sliderValue == 0)) { console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.withdrawSelectedAsset?.sliderValue); return { msgs: [] } }
+      if (!run || !address || !position || (position && position.position_id === "0") || !basket || !assets || !userIntents || !assetInfo || !neuroState.withdrawSelectedAsset?.sliderValue || (neuroState.withdrawSelectedAsset && neuroState.withdrawSelectedAsset?.sliderValue == 0)) { console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.withdrawSelectedAsset?.sliderValue); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       //calc the % of the position to close     

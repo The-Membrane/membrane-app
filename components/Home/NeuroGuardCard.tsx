@@ -154,7 +154,7 @@ const NeuroGuardOpenEntry = React.memo(({
             padding="0"
             alignSelf="center"
             margin="0"
-            onClick={() => { setNeuroState({ selectedAsset: asset }); toggleOpen() }}
+            onClick={() => { setNeuroState({ openSelectedAsset: asset }); toggleOpen() }}
             isDisabled={isDisabled}
           >
             {/* @ts-ignore */}
@@ -209,7 +209,7 @@ const NeuroGuardExistingEntry = React.memo(({
   }, [])
 
   {/* @ts-ignore */ }
-  const isDisabled = (asset?.balance ?? 0) === 0
+  const isDisabled = (asset?.balance ?? 0) === 0 || guardedPosition.symbol === "N/A"
   // console.log("isDisabled", isDisabled, asset?.balance, asset)
   const yieldValue = Math.max(num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toNumber(), 0).toFixed(1)
 
@@ -239,7 +239,7 @@ const NeuroGuardExistingEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => { setNeuroState({ selectedAsset: asset }); toggleDepositOpen() }}
+              onClick={() => { setNeuroState({ depositSelectedAsset: asset }); toggleDepositOpen() }}
               isDisabled={isDisabled}
             >
               Deposit
@@ -252,8 +252,8 @@ const NeuroGuardExistingEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => { setNeuroState({ selectedAsset: asset }); toggleWithdrawOpen() }}
-              isDisabled={false}
+              onClick={() => { setNeuroState({ withdrawSelectedAsset: asset }); toggleWithdrawOpen() }}
+              isDisabled={guardedPosition.symbol == "N/A" ? true : false}
             >
               Withdraw
             </Button>
@@ -303,10 +303,10 @@ const VaultEntry = React.memo(({
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          ${tvl.toFixed(2)}
+          {positionNumber == 0 ? "N/A" : `${tvl.toFixed(2)}`}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {debtAmount.toFixed(0)} CDT
+          {positionNumber == 0 ? "N/A" : `${debtAmount.toFixed(0)} CDT`}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {Math.min(health, 100) == -Infinity ? "N/A" : `${Math.min(health, 100)}%`}
@@ -333,7 +333,7 @@ const VaultEntry = React.memo(({
               alignSelf="center"
               margin="0"
               onClick={toggleCloseOpen}
-              isDisabled={false}
+              isDisabled={positionNumber == 0 ? true : false}
             >
               Close
             </Button>
@@ -468,7 +468,12 @@ const NeuroGuardCard = () => {
             (intent) => (intent.position_id ?? 0).toString() === position.position_id
           ) === undefined
         );
-    } else return []
+    } else return [
+      {
+        position: {},
+        positionNumber: 0
+      }
+    ]
   }, [basketPositions, neuroGuardIntents])
 
   // Memoize existing guards calculation
@@ -509,7 +514,14 @@ const NeuroGuardCard = () => {
         }
       })
 
-    } else return undefined
+    } else return [{
+      position: { position_id: 0 },
+      amount: "0",
+      symbol: "N/A",
+      image: "",
+      cost: 0,
+      LTV: "0"
+    }]
   }, [basketPositions, userIntents, assets, prices, basket])
 
 

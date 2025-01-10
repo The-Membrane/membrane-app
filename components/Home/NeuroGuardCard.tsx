@@ -217,7 +217,7 @@ const NeuroGuardExistingEntry = React.memo(({
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
         <HStack width="20%" justifyContent="left">
-          <Image src={guardedPosition.image} w="30px" h="30px" />
+          {guardedPosition.image ? <Image src={guardedPosition.image} w="30px" h="30px" /> : null}
           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
             {guardedPosition.symbol}
           </Text>
@@ -232,19 +232,19 @@ const NeuroGuardExistingEntry = React.memo(({
           N/A
         </Text>
         <HStack width={"36%"}>
-          <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} >
-            <Button
-              width="100%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={() => { setNeuroState({ depositSelectedAsset: asset }); toggleDepositOpen() }}
-              isDisabled={isDisabled}
-            >
-              Deposit
-            </Button>
-          </NeuroDepositModal>
+          <Button
+            width="50%"
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={() => { setNeuroState({ depositSelectedAsset: asset }); toggleDepositOpen() }}
+            isDisabled={isDisabled}
+          >
+            Deposit
+          </Button>
+          <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
+
           <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} >
             <Button
               width="100%"

@@ -27,7 +27,7 @@ const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: s
     const { neuroState } = useNeuroState()
 
 
-    console.log('above neuro', neuroState.depositSelectedAsset);
+    console.log('RENDERED EXISTING', neuroState.depositSelectedAsset);
 
     type QueryData = {
         msgs: MsgExecuteContractEncodeObject[] | undefined

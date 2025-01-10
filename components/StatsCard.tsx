@@ -59,8 +59,9 @@ export const StatsCard = React.memo(() => {
           </Stack>
         ) : (
           <HStack gap={16} onClick={onTitleClick}>
-            <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
-            <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
+            surprise!
+            {/* <Stats label="TVL" value={Formatter.currency(tvl, 0)} /> */}
+            {/* <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} /> */}
           </HStack>
         )}
       </HStack>

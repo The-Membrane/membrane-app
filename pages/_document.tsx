@@ -5,7 +5,7 @@ export default function Document() {
     <Html lang="en">
       <Head>
         <title>Membrane</title>
-        <meta name="description" content="Guard the most resilient stablecoin in protective harmony" />
+        <meta name="description" content="Life is uncertain, yet we still provide you stability." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png" />

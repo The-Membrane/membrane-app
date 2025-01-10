@@ -131,15 +131,31 @@ type GetDepostAndWithdrawMsgs = {
   hasPosition?: boolean
 }
 
-const getAsset = (asset: any): Asset => {
-  return {
+const getAsset = (asset: any, basketPositions: BasketPositionsResponse[] | undefined, positionId: string): Asset => {
+
+  //@ts-ignore
+  var assetObject = {
     amount: shiftDigits(Math.abs(asset.amount), asset.decimal).dp(0).toNumber().toString(),
     info: {
       native_token: {
         denom: asset.base,
       },
     },
+  } as Asset
+
+  if (asset.sliderValue == 0 && basketPositions) {
+    //Find asset in basketPositions
+    const position = basketPositions[0].positions.find((p: any) => p.position_id === positionId)
+    const assetFound = position?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === asset.base)
+    const amount = assetFound?.asset.amount
+
+    console.log("full withdrawal amount", amount)
+    if (amount) assetObject.amount = amount
   }
+
+  console.log("assetObject", assetObject)
+
+  return assetObject
 }
 
 export const getDepostAndWithdrawMsgs = ({
@@ -159,19 +175,6 @@ export const getDepostAndWithdrawMsgs = ({
     if (num(asset.amount).isGreaterThan(0)) {
       deposit.push(asset)
     } else {
-      if (asset.sliderValue == 0 && basketPositions) {
-        //Find asset in basketPositions
-        const position = basketPositions[0].positions.find((p: any) => p.position_id === positionId)
-        console.log("pID", position, asset.base, position?.collateral_assets)
-        const assetFound = position?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === asset.base)
-        console.log("pID", assetFound)
-        console.log("pID", assetFound?.asset.amount)
-
-
-        const amount = basketPositions[0].positions.find((p: any) => p.position_id === positionId)?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === asset.base)?.asset.amount
-        console.log("full withdrawal amount", amount, shiftDigits(amount, -asset.decimal).toString())
-        if (amount) asset.amount = shiftDigits(amount, -asset.decimal).toString()
-      }
       withdraw.push(asset)
     }
   })

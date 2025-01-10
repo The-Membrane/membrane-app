@@ -206,7 +206,7 @@ export const getDepostAndWithdrawMsgs = ({
   if (withdraw.length > 0) {
     const withdrawMsg = messageComposer.withdraw({
       positionId,
-      assets: withdraw?.map((asset) => getAsset(asset)),
+      assets: withdraw?.map((asset) => getAsset(asset, basketPositions, positionId)),
     })
     msgs.push(withdrawMsg)
   }

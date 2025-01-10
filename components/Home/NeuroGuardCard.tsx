@@ -515,7 +515,7 @@ const NeuroGuardCard = () => {
       })
 
     } else return [{
-      position: { position_id: 0 },
+      position: { position_id: "0" },
       amount: "0",
       symbol: "N/A",
       image: "",

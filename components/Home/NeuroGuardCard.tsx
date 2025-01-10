@@ -11,7 +11,7 @@ import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
 import useNeuroClose from "./hooks/useNeuroClose"
 import { useBasket, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
-import { useBoundedIntents, useBoundedTVL, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
+import { useBoundedIntents, useBoundedTVL, useEstimatedAnnualInterest, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
 import { getBestCLRange } from "@/services/osmosis"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useBidState from "../Bid/hooks/useBidState"
@@ -194,7 +194,7 @@ const NeuroGuardExistingEntry = React.memo(({
   const { neuroState, setNeuroState } = useNeuroState()
   //find the asset in the assets array
   //@ts-ignore
-  const asset = neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
+  const asset = guardedPosition.symbol === "N/A" ? undefined : neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
   // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
@@ -353,7 +353,7 @@ const NeuroGuardCard = () => {
   const { data: userIntents } = useUserBoundedIntents()
   console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
-  // const { action: neuro } = useNeuroGuard()
+  useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()

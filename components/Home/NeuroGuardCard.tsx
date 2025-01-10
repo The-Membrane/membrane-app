@@ -351,7 +351,7 @@ const NeuroGuardCard = () => {
   const { data: basket } = useBasket()
   const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()
-  console.log("userIntents", userIntents)
+  // console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
   useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
@@ -571,11 +571,11 @@ const NeuroGuardCard = () => {
               Actions
             </Text>
           </HStack>
-          {neuroState.assets.map((asset) =>
+          <Stack gap={"1%"}>{neuroState.assets.map((asset) =>
             <>
               {asset && num(asset.combinUsdValue).isGreaterThan(0.01) && existingGuards?.find(((guard) => guard?.symbol === asset.symbol)) == undefined ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
             </>
-          )}
+          )}</Stack>
         </Stack>
         : null}
       {existingGuards && existingGuards.length > 0 && existingGuards[0] ?

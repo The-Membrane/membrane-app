@@ -515,7 +515,7 @@ const NeuroGuardCard = () => {
       })
 
     } else return [{
-      position: { position_id: "0" },
+      position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
       amount: "0",
       symbol: "N/A",
       image: "",

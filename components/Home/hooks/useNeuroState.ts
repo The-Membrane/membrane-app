@@ -12,7 +12,7 @@ export type NeuroState = {
   openSelectedAsset?: AssetWithBalance
   depositSelectedAsset?: AssetWithBalance
   withdrawSelectedAsset?: AssetWithBalance
-  closeInputValue?: number
+  closeInputValue: number
   position_to_close?: number
   assets: AssetWithBalance[]
   guardedPositions: string[]
@@ -28,6 +28,7 @@ type Store = {
 const initialState: NeuroState = {
   assets: [{ symbol: "WBTC", label: "WBTC", display: "WBTC", value: "WBTC", combinUsdValue: 1, maxBorrowLTV: 0.5, balance: 0, logo: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/wbtc.axl.png" }],
   guardedPositions: [],
+  closeInputValue: 0,
   openSelectedAsset: { symbol: "WBTC", label: "WBTC", display: "WBTC", value: "WBTC", maxBorrowLTV: 0.5 },
 }
 

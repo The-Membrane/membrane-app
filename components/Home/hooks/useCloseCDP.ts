@@ -30,7 +30,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess, run }: { position: Posit
         ],
         queryFn: () => {
 
-            if (!run || !address || !position || !neuroState.closeInputValue || (neuroState.closeInputValue && position.credit_amount != "0" && neuroState.closeInputValue == 0)) { console.log("closeCDP early return", address, position, neuroState.closeInputValue); return { msgs: [] } }
+            if (!run || !address || !position || !neuroState.closeInputValue || (neuroState.closeInputValue && position.credit_amount != "0" && neuroState.closeInputValue == 0)) { console.log("closeCDP early return", run, address, position, neuroState.closeInputValue, position.credit_amount != "0", position.credit_amount); return { msgs: [] } }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
 

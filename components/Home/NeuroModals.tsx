@@ -27,7 +27,7 @@ export const RBLPDepositModal = React.memo(({
     const isDisabled = quickActionState?.rangeBoundLPdeposit == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
     //@ts-ignore
-    const maxAmount = num(neuroState?.openSelectedAsset?.balance).toNumber()
+    const maxAmount = num(cdtAsset.balance).toNumber()
 
     const onMaxClick = () => {
         setQuickActionState({

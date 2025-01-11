@@ -130,40 +130,40 @@ PositionCostManager.displayName = 'PositionCostManager'
 
 
 const Home = () => {
-  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
-  const { data: basketPositions } = useUserPositions()
-  const { data: vaultSummary } = useVaultSummary()
-  const { data: userIntents } = useUserBoundedIntents()
+  // const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
+  // const { data: basketPositions } = useUserPositions()
+  // const { data: vaultSummary } = useVaultSummary()
+  // const { data: userIntents } = useUserBoundedIntents()
 
   //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
-  const neuroGuardIntents = useMemo(() => {
-    if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents) {
-      return userIntents[0].intent.intents.purchase_intents.filter((intent) => {
-        return intent.position_id !== undefined
-      })
-    } else return []
+  // const neuroGuardIntents = useMemo(() => {
+  //   if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents) {
+  //     return userIntents[0].intent.intents.purchase_intents.filter((intent) => {
+  //       return intent.position_id !== undefined
+  //     })
+  //   } else return []
 
-  }, [userIntents])
+  // }, [userIntents])
 
-  const totalPositions = useMemo(() => {
-    if (!basketPositions) return undefined
-    return Math.min(basketPositions[0].positions.length, MAX_CDP_POSITIONS)
-  }, [basketPositions])
+  // const totalPositions = useMemo(() => {
+  //   if (!basketPositions) return undefined
+  //   return Math.min(basketPositions[0].positions.length, MAX_CDP_POSITIONS)
+  // }, [basketPositions])
 
-  const summary = useMemo(() => {
-    return vaultSummary || {
-      debtAmount: 0,
-      cost: 0,
-      discountedCost: 0,
-      tvl: 0,
-      ltv: 0,
-      borrowLTV: 0,
-      liquidValue: 0,
-      liqudationLTV: 0,
-      costRatios: [],
-      positionId: "0"
-    }
-  }, [vaultSummary])
+  // const summary = useMemo(() => {
+  //   return vaultSummary || {
+  //     debtAmount: 0,
+  //     cost: 0,
+  //     discountedCost: 0,
+  //     tvl: 0,
+  //     ltv: 0,
+  //     borrowLTV: 0,
+  //     liquidValue: 0,
+  //     liqudationLTV: 0,
+  //     costRatios: [],
+  //     positionId: "0"
+  //   }
+  // }, [vaultSummary])
 
   return (
     <Stack>

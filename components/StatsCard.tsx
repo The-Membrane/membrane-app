@@ -52,7 +52,7 @@ export const StatsCard = React.memo(() => {
               display="flex" textAlign="center">
               Decentralized Stablecoins: A New Age of Empowerment
             </Text>
-            <Button alignSelf="center" width="21%" minWidth="130px"
+            <Button alignSelf="center" width="31%" minWidth="130px"
               onClick={() => setOpen(true)}>
               Add Funds to Osmosis
             </Button>

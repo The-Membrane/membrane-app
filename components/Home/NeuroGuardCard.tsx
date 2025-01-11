@@ -293,7 +293,7 @@ const VaultEntry = React.memo(({
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {positionNumber == 0 ? "N/A" : `${tvl.toFixed(2)}`}
+          {positionNumber == 0 ? "N/A" : `$${tvl.toFixed(2)}`}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
           {positionNumber == 0 ? "N/A" : `${debtAmount.toFixed(0)} CDT`}

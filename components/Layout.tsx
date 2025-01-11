@@ -9,14 +9,14 @@ import useMembersRulesState from './MembersRules/useRules'
 
 type Props = PropsWithChildren & {}
 
-const Mobile = () => (
-  <Center h="90vh" p={10} flexDir="column" display={['flex', 'none']} gap={10}>
-    <Logo />
-    <Text fontSize="xl" textAlign="center" variant="label">
-      Mobile support <br /> coming soon
-    </Text>
-  </Center>
-)
+// const Mobile = () => (
+//   <Center h="90vh" p={10} flexDir="column" display={['flex', 'none']} gap={10}>
+//     <Logo />
+//     <Text fontSize="xl" textAlign="center" variant="label">
+//       Mobile support <br /> coming soon
+//     </Text>
+//   </Center>
+// )
 
 const HexagonBackground = () => (
   <Box position="absolute" top="0" right="0" zIndex={0} display={['block']}>

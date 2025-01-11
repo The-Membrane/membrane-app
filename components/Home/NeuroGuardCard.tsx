@@ -24,7 +24,7 @@ import TxError from "../TxError"
 import { BasketAsset, getBasketAssets } from "@/services/cdp"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import { parseError } from "@/helpers/parseError"
-import { NeuroCloseModal, NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal } from "./NeuroModals"
+import { NeuroCloseModal, NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal, RBLPDepositModal } from "./NeuroModals"
 import useVaultSummary from "../Mint/hooks/useVaultSummary"
 import { useRouter } from "next/router"
 import NextLink from 'next/link'
@@ -101,6 +101,59 @@ const FAQModal = React.memo(({
       </ModalContent>
     </Modal>
   </>)
+})
+
+// Extracted RBLPDepositEntry component
+const RBLPDepositEntry = React.memo(({
+  asset,
+  RBYield
+}: {
+  asset: AssetWithBalance
+  RBYield: string
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const toggleOpen = useCallback(() => {
+    setIsOpen(prev => !prev)
+  }, [])
+
+  {/* @ts-ignore */ }
+  const isDisabled = false
+
+  const yieldValue = num(RBYield).times(100).toFixed(2)
+
+
+  return (
+    <Card width="100%" borderWidth={3} padding={4}>
+      <HStack gap="9%">
+        <HStack width="25%" justifyContent="left">
+          {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
+          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {asset.symbol}
+          </Text>
+        </HStack>
+        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          {/* @ts-ignore */}
+          {num((asset?.balance ?? 0)).toFixed(2)}
+        </Text>
+        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+          {yieldValue}%
+        </Text>
+        {isOpen && (<RBLPDepositModal isOpen={isOpen} onClose={toggleOpen} cdtAsset={asset} />)}
+        <Button
+          width="25%"
+          display="flex"
+          padding="0"
+          alignSelf="center"
+          margin="0"
+          onClick={() => { toggleOpen() }}
+          isDisabled={isDisabled}
+        >
+          Deposit
+        </Button>
+      </HStack>
+    </Card >
+  )
 })
 
 
@@ -386,7 +439,7 @@ const NeuroGuardCard = () => {
   //Create an object of assets that only holds assets that have a walletBalance
   useMemo(() => {
     if (prices && walletBalances && assets) {
-      const assetsPlusCDT = [...assets, { base: denoms.CDT[0], symbol: "CDT", decimal: 6 }]
+      const assetsPlusCDT = [...assets, { base: denoms.CDT[0], symbol: "CDT", decimal: 6, logo: "/images/cdt.svg" }]
       const assetsWithBalance = assetsPlusCDT?.filter((asset) => {
         if (asset !== undefined) return walletDenoms.includes(asset.base)
         else return false
@@ -562,7 +615,9 @@ const NeuroGuardCard = () => {
           </HStack>
           <Stack gap={"1rem"}>{neuroState.assets.map((asset) =>
             <>
-              {asset && num(asset.combinUsdValue).isGreaterThan(0.01) && existingGuards?.find(((guard) => guard?.symbol === asset.symbol)) == undefined ? <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}
+              {asset && num(asset.combinUsdValue).isGreaterThan(0.01) && existingGuards?.find(((guard) => guard?.symbol === asset.symbol)) == undefined ?
+                asset.base == denoms.CDT[0] ? <RBLPDepositEntry asset={asset} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} />
+                : null}
             </>
           )}</Stack>
         </Stack>

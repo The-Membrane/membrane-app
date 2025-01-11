@@ -149,7 +149,7 @@ const NeuroGuardOpenEntry = React.memo(({
         </Text>
         {isOpen && (<NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />)}
         <Button
-          width="100%"
+          width="25%"
           display="flex"
           padding="0"
           alignSelf="center"
@@ -238,7 +238,7 @@ const NeuroGuardExistingEntry = React.memo(({
 
           {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} />)}
           <Button
-            width="100%"
+            width="50%"
             display="flex"
             padding="0"
             alignSelf="center"
@@ -317,7 +317,7 @@ const VaultEntry = React.memo(({
           </Button>
           {isCloseOpen && (<NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />)}
           <Button
-            width="100%"
+            width="50%"
             display="flex"
             padding="0"
             alignSelf="center"

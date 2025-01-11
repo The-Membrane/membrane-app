@@ -439,7 +439,7 @@ const NeuroGuardCard = () => {
   //Create an object of assets that only holds assets that have a walletBalance
   useMemo(() => {
     if (prices && walletBalances && assets) {
-      const assetsPlusCDT = [...assets, { base: denoms.CDT[0], symbol: "CDT", decimal: 6, logo: "/images/cdt.svg" }]
+      const assetsPlusCDT = [...assets, { base: denoms.CDT[0], symbol: "CDT", decimal: 6, logo: "/images/cdt.svg", combinedUsdValue: 1 }]
       const assetsWithBalance = assetsPlusCDT?.filter((asset) => {
         if (asset !== undefined) return walletDenoms.includes(asset.base)
         else return false

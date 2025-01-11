@@ -68,7 +68,7 @@ export const RBLPDepositModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(cdtAsset.balance).times(cdtAsset.price ?? 0).toFixed(2)}
+                                ~${num(quickActionState?.rangeBoundLPdeposit).times(cdtAsset.price ?? 0).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input

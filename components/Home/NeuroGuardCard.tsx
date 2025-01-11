@@ -42,19 +42,19 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
         Can I get liquidated?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
-        Potentially. The product is built to use your loan to repay instead of having to sell collateral for it. If it malfunctions, your loan will go through a normal liquidation cycle, liquidating collateral to repay 25% of the loan. The LTV is set from 36-45% for most assets. The position can be seen in detail on the Mint page.
+        Only if the smart contract malfunctions. Otherwise, once the position's health hits 0%, your loan will be withdrawn from The Membrane LP and used to repay the debt.
       </ListItem>
       <Text variant="title" mb={1} letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
         Where does the yield come from?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
-        The Membrane vault right below this. Its a range bound concentrated liquidity position that is distributed 80% of protocol revenue, revenue sourced from loan interest rates.
+        The Membrane LP vault. It's a range bound concentrated liquidity position that is distributed protocol revenue.
       </ListItem>
       <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
         Who automates this? Is it centralized?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
-        You pay for automation with 1% of the collected yield on compounds. Compounds can be initiated by anyone and opportunities to do so will be available to search for in the app.
+        Compounds can be initiated by anyone and opportunities to do so will be available to search for in the app.
       </ListItem>
     </List>
   )
@@ -386,7 +386,8 @@ const NeuroGuardCard = () => {
   //Create an object of assets that only holds assets that have a walletBalance
   useMemo(() => {
     if (prices && walletBalances && assets) {
-      const assetsWithBalance = assets?.filter((asset) => {
+      const assetsPlusCDT = [...assets, { base: denoms.CDT[0], symbol: "CDT", decimal: 6 }]
+      const assetsWithBalance = assetsPlusCDT?.filter((asset) => {
         if (asset !== undefined) return walletDenoms.includes(asset.base)
         else return false
       }).map((asset) => {

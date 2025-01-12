@@ -339,7 +339,7 @@ const RBLPExistingEntry = React.memo(({
   const { setQuickActionState } = useQuickActionState()
   //find the asset in the assets array
   //@ts-ignore
-  const asset = guardedPosition.symbol === "N/A" ? undefined : neuroState.assets.find((asset) => asset.base === denoms.CDT[0])
+  const asset = neuroState.assets.find((asset) => asset.base === denoms.CDT[0])
   console.log("cdtAsset", asset, neuroState.assets)
 
   const cookie = getCookie("rblp " + address)

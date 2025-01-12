@@ -234,7 +234,7 @@ const NeuroGuardExistingEntry = React.memo(({
     symbol: string;
     image: string;
     LTV: string;
-    amount: any,
+    amount: BigNumber,
     cost: number
   };
   RBYield: string
@@ -571,7 +571,7 @@ const NeuroGuardCard = () => {
 
     } else return [{
       position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
-      amount: "0",
+      amount: num("0"),
       symbol: "N/A",
       cost: 0,
       LTV: "0"

@@ -224,7 +224,8 @@ const NeuroGuardOpenEntry = React.memo(({
 // Extracted NeuroGuardExistingEntry component
 const NeuroGuardExistingEntry = React.memo(({
   guardedPosition,
-  RBYield
+  RBYield,
+  prices
 }: {
   guardedPosition: {
     position: PositionResponse;
@@ -235,12 +236,13 @@ const NeuroGuardExistingEntry = React.memo(({
     cost: number
   };
   RBYield: string
+  prices: any
 }) => {
   const { neuroState, setNeuroState } = useNeuroState()
   //find the asset in the assets array
   //@ts-ignore
   const asset = guardedPosition.symbol === "N/A" ? undefined : neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
-  console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
+  // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {
@@ -292,7 +294,7 @@ const NeuroGuardExistingEntry = React.memo(({
             <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
           )}
 
-          {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} />)}
+          {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} prices={prices} />)}
           <Button
             width="50%"
             display="flex"
@@ -648,7 +650,7 @@ const NeuroGuardCard = () => {
             </Text>
           </HStack>
           {existingGuards.map((guard) =>
-            <>{guard ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}</>
+            <>{guard ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} prices={prices} /> : null}</>
           )}
         </Stack>
         : null}

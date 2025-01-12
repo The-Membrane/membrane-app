@@ -674,7 +674,15 @@ const NeuroGuardCard = () => {
           cost: basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0,
           LTV
         }
-      })
+      }).concat([{
+        position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
+        amount: num("0"),
+        symbol: "CDT",
+        image: "",
+        cost: 0,
+        LTV: "0"
+
+      }])
 
     } else return [{
       position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
@@ -765,7 +773,7 @@ const NeuroGuardCard = () => {
           </HStack>
           {existingGuards.map((guard) =>
             <>{guard && guard.symbol != "CDT" ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} prices={prices} />
-              : guard && guard.symbol == "CDT" ? < RBLPExistingEntry address={address} rblpDeposit={Number(underlyingCDT)} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}</>
+              : guard && guard.symbol == "CDT" ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}</>
           )}
         </Stack>
         : null}

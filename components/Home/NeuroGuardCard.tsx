@@ -234,7 +234,7 @@ const NeuroGuardExistingEntry = React.memo(({
     symbol: string;
     image: string;
     LTV: string;
-    amount: BigNumber,
+    amount: any,
     cost: number
   };
   RBYield: string

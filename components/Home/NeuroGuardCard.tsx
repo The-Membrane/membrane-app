@@ -31,6 +31,7 @@ import NextLink from 'next/link'
 import { MintIcon } from "../Icons"
 import useMintState from "../Mint/hooks/useMintState"
 import { getCookie } from "@/helpers/cookies"
+import BigNumber from "bignumber.js"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -233,7 +234,7 @@ const NeuroGuardExistingEntry = React.memo(({
     symbol: string;
     image: string;
     LTV: string;
-    amount: string,
+    amount: BigNumber,
     cost: number
   };
   RBYield: string
@@ -276,7 +277,7 @@ const NeuroGuardExistingEntry = React.memo(({
           </Text>
         </HStack>
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {guardedPosition.amount}
+          {guardedPosition.amount.toFixed(2)}
         </Text>
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
           {yieldValue}%
@@ -560,7 +561,7 @@ const NeuroGuardCard = () => {
         // console.log("basketAssets", basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate , asset.asset.info.native_token.denom, basketAssets)
         return {
           position: position,
-          amount: shiftDigits(asset.asset.amount, -(assetDecimals)).toFixed(2),
+          amount: shiftDigits(asset.asset.amount, -(assetDecimals)),
           symbol: fullAssetInfo?.symbol ?? "N/A", //@ts-ignore
           image: fullAssetInfo?.logo, //@ts-ignore
           cost: basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0,

@@ -15,6 +15,7 @@ import useCloseCDP from "./hooks/useCloseCDP"
 import useQuickActionState from "./hooks/useQuickActionState"
 import useBoundedLP from "./hooks/useRangeBoundLP"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
+import BigNumber from "bignumber.js"
 
 export const RBLPDepositModal = React.memo(({
     isOpen, onClose, cdtAsset, children
@@ -394,7 +395,7 @@ export const NeuroWithdrawModal = React.memo(({
         symbol: string;
         image: string;
         LTV: string;
-        amount: string,
+        amount: BigNumber;
         cost: number
     },
     prices: any

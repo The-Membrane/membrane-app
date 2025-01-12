@@ -30,6 +30,7 @@ import { useRouter } from "next/router"
 import NextLink from 'next/link'
 import { MintIcon } from "../Icons"
 import useMintState from "../Mint/hooks/useMintState"
+import { getCookie } from "@/helpers/cookies"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -244,6 +245,11 @@ const NeuroGuardExistingEntry = React.memo(({
   const asset = guardedPosition.symbol === "N/A" ? undefined : neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
   // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
+  const cookie = getCookie("neuroGuard " + guardedPosition.position.position_id)
+  console.log("cookie", cookie)
+  const previousDepositAmount = Number(cookie) || 1
+  console.log("previousDepositAmount", previousDepositAmount)
+
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {
     setIsDepositOpen(prev => !prev)
@@ -276,7 +282,7 @@ const NeuroGuardExistingEntry = React.memo(({
           {yieldValue}%
         </Text>
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          N/A
+          {num(guardedPosition.amount).dividedBy(previousDepositAmount).minus(1).times(100).toFixed(2)}%
         </Text>
         <HStack width={"36%"}>
           <Button

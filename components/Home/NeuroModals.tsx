@@ -246,7 +246,8 @@ export const NeuroOpenModal = React.memo(({
 
                         <Checkbox
                             checked={neuroState?.setCookie}
-                            onChange={handleToggle}>
+                            onChange={handleToggle}
+                            fontFamily="Inter">
                             Accept cookies for APR calcs
                         </Checkbox>
                         <TxButton

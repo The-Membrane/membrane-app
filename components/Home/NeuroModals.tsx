@@ -385,7 +385,7 @@ export const NeuroDepositModal = React.memo(({
 })
 
 export const NeuroWithdrawModal = React.memo(({
-    isOpen, onClose, guardedPosition, children
+    isOpen, onClose, guardedPosition, prices, children
 }: PropsWithChildren<{
     isOpen: boolean, onClose: () => void,
     guardedPosition: {
@@ -395,17 +395,18 @@ export const NeuroWithdrawModal = React.memo(({
         LTV: string;
         amount: string,
         cost: number
-    }
+    },
+    prices: any
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, run: isOpen })
     const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
     const isLoading = sheathe?.simulate.isLoading || sheathe?.tx.isPending
 
-
     //Get asset by symbol
-    // const collateralAsset = guardedPosition.position.collateral_assets[0].asset
     const assetInfo = getAssetBySymbol(guardedPosition.symbol)
+    //Get asset price
+    const assetPrice = Number(prices?.find((p: any) => p.denom === assetInfo?.base)?.price ?? "0")
     //@ts-ignore
     const maxAmount = shiftDigits(guardedPosition.position.collateral_assets[0].asset.amount, -assetInfo?.decimal).toNumber()
 
@@ -459,7 +460,7 @@ export const NeuroWithdrawModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(neuroState?.withdrawSelectedAsset?.sliderValue).times(neuroState?.withdrawSelectedAsset?.price ?? 0).toFixed(2)}
+                                ~${num(neuroState?.withdrawSelectedAsset?.sliderValue).times(assetPrice).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input

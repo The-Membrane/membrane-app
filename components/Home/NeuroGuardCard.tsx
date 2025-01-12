@@ -112,9 +112,11 @@ const RBLPDepositEntry = React.memo(({
   RBYield: string
 }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const { setNeuroState } = useNeuroState()
 
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
+    setNeuroState({ setCookie: false })
   }, [])
 
   {/* @ts-ignore */ }
@@ -172,6 +174,7 @@ const NeuroGuardOpenEntry = React.memo(({
 
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
+    setNeuroState({ setCookie: false })
   }, [])
 
   const minValue = ((21 / ((asset.maxBorrowLTV ?? 0) * 0.8)) + 1)
@@ -237,7 +240,7 @@ const NeuroGuardExistingEntry = React.memo(({
   //find the asset in the assets array
   //@ts-ignore
   const asset = guardedPosition.symbol === "N/A" ? undefined : neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
-  // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
+  console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {

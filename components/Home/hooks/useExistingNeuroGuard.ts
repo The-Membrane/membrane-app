@@ -19,6 +19,7 @@ import { useBasket } from "@/hooks/useCDP"
 
 
 import EventEmitter from 'events';
+import { getCookie } from '@/helpers/cookies'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: string, onSuccess: () => void, run: boolean }) => {
@@ -26,6 +27,10 @@ const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: s
     const { data: basket } = useBasket()
     const { neuroState } = useNeuroState()
 
+    //Get cookie for the position_id. If cookie exists, we add the deposit to it.
+    const cookie = getCookie("neuroGuard " + position_id)
+    //parse the cookie
+    const cookiedDepositAmount = num(cookie ?? "0").toNumber()
 
     console.log('RENDERED EXISTING', neuroState.depositSelectedAsset);
 

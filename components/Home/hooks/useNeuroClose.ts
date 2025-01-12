@@ -20,6 +20,7 @@ import { useBasket } from "@/hooks/useCDP"
 import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { getAssetByDenom } from '@/helpers/chain'
+import { deleteCookie, getCookie, setCookie } from '@/helpers/cookies'
 
 export type UserIntentData = {
   vault_tokens: string,
@@ -95,6 +96,16 @@ const useNeuroClose = ({ position, onSuccess, run }: { position: PositionRespons
   const collateralAsset = position.collateral_assets[0].asset
   //@ts-ignore
   const assetInfo = getAssetByDenom(collateralAsset.info.native_token.denom)
+
+  //Get cookie for the position_id. If cookie exists, we add the deposit to it.
+  const cookie = getCookie("neuroGuard " + position.position_id)
+  //parse the cookie
+  const cookiedDepositAmount = num(cookie ?? "0").toNumber()
+  //set withdraw amount
+  const newCookieAmount =
+    neuroState.withdrawSelectedAsset?.sliderValue && neuroState.withdrawSelectedAsset?.sliderValue > 0 && cookiedDepositAmount > 0
+      ? num(cookiedDepositAmount).minus(neuroState.withdrawSelectedAsset?.sliderValue).toNumber()
+      : undefined;
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -225,13 +236,6 @@ const useNeuroClose = ({ position, onSuccess, run }: { position: PositionRespons
       return { msgs }
     },
     enabled: !!address,
-    // staleTime: 5000,
-    // Disable automatic refetching
-    // refetchOnWindowFocus: false,
-    // refetchOnReconnect: false,
-    // refetchOnMount: false,
-    // retry: false
-    /////ERRORS ON THE 3RD OR 4TH MODAL OPEN, CHECKING TO SEE IF ITS THE INVALIDATED QUERY////
   })
 
   const msgs = queryData?.msgs ?? []
@@ -239,6 +243,7 @@ const useNeuroClose = ({ position, onSuccess, run }: { position: PositionRespons
   console.log("neuroClose msgs:", msgs)
 
   const onInitialSuccess = () => {
+    newCookieAmount && newCookieAmount > 0 ? setCookie("neuroGuard " + position.position_id, newCookieAmount.toString(), 3650) : deleteCookie("neuroGuard " + position.position_id)
     onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['positions'] })

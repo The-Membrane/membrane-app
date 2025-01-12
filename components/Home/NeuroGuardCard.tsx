@@ -11,20 +11,20 @@ import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
 import useNeuroClose from "./hooks/useNeuroClose"
 import { useBasket, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
-import { useBoundedIntents, useBoundedTVL, useEstimatedAnnualInterest, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
+import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents, useBoundedTVL, useEstimatedAnnualInterest, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
 import { getBestCLRange } from "@/services/osmosis"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useBidState from "../Bid/hooks/useBidState"
 import useCollateralAssets from "../Bid/hooks/useCollateralAssets"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import useNeuroState from "./hooks/useNeuroState"
-import useBalance from "@/hooks/useBalance"
+import useBalance, { useBalanceByAsset } from "@/hooks/useBalance"
 import { Coin } from "@cosmjs/stargate"
 import TxError from "../TxError"
 import { BasketAsset, getBasketAssets } from "@/services/cdp"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import { parseError } from "@/helpers/parseError"
-import { NeuroCloseModal, NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal, RBLPDepositModal } from "./NeuroModals"
+import { NeuroCloseModal, NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal, RBLPDepositModal, RBLPWithdrawModal } from "./NeuroModals"
 import useVaultSummary from "../Mint/hooks/useVaultSummary"
 import { useRouter } from "next/router"
 import NextLink from 'next/link'
@@ -32,6 +32,9 @@ import { MintIcon } from "../Icons"
 import useMintState from "../Mint/hooks/useMintState"
 import { getCookie } from "@/helpers/cookies"
 import BigNumber from "bignumber.js"
+import useQuickActionState from "./hooks/useQuickActionState"
+import { useAssetBySymbol } from "@/hooks/useAssets"
+import useWallet from "@/hooks/useWallet"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -248,8 +251,8 @@ const NeuroGuardExistingEntry = React.memo(({
 
   const cookie = getCookie("neuroGuard " + guardedPosition.position.position_id)
   console.log("cookie", cookie)
-  const previousDepositAmount = Number(cookie) || 1
-  console.log("previousDepositAmount", previousDepositAmount)
+  const initialDepositAmount = Number(cookie) || 1
+  console.log("initialDepositAmount", initialDepositAmount)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {
@@ -283,7 +286,7 @@ const NeuroGuardExistingEntry = React.memo(({
           {yieldValue}%
         </Text>
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {Math.max(0, num(guardedPosition.amount).dividedBy(previousDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
+          {Math.max(0, num(guardedPosition.amount).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
         </Text>
         <HStack width={"36%"}>
           <Button
@@ -319,7 +322,99 @@ const NeuroGuardExistingEntry = React.memo(({
   )
 })
 
-// Extracted NeuroGuardExistingEntry component
+// Extracted RBLPExistingEntry component
+const RBLPExistingEntry = React.memo(({
+  rblpDeposit,
+  RBYield,
+  // cdtMarketPrice,
+  address
+}: {
+  rblpDeposit: number
+  RBYield: string
+  // cdtMarketPrice: number
+  address: string
+}) => {
+
+  const { neuroState } = useNeuroState()
+  const { setQuickActionState } = useQuickActionState()
+  //find the asset in the assets array
+  //@ts-ignore
+  const asset = guardedPosition.symbol === "N/A" ? undefined : neuroState.assets.find((asset) => asset.base === denoms.CDT[0])
+  console.log("cdtAsset", asset, neuroState.assets)
+
+  const cookie = getCookie("rblp " + address)
+  console.log("rblp cookie", cookie)
+  const initialDepositAmount = Number(cookie) || 1
+  console.log("rblp initialDepositAmount", initialDepositAmount)
+
+  const [isDepositOpen, setIsDepositOpen] = useState(false)
+  const toggleDepositOpen = useCallback(() => {
+    setIsDepositOpen(prev => !prev)
+  }, [])
+
+
+  const [isWithdrawOpen, setIsWithdrawOpenOpen] = useState(false)
+  const toggleWithdrawOpen = useCallback(() => {
+    setIsWithdrawOpenOpen(prev => !prev)
+  }, [])
+
+  {/* @ts-ignore */ }
+  const isDisabled = asset.symbol === "N/A"
+  // console.log("isDisabled", isDisabled, asset?.balance, asset)
+  const yieldValue = Math.max(num(RBYield).times(100).toNumber(), 0).toFixed(1)
+
+  return (
+    <Card width="100%" borderWidth={3} padding={4}>
+      <HStack gap="9%">
+        <HStack width="20%" justifyContent="left">
+          {asset?.logo ? <Image src={asset?.logo} w="30px" h="30px" /> : null}
+          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {asset?.symbol}
+          </Text>
+        </HStack>
+        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          {rblpDeposit.toFixed(2)}
+        </Text>
+        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+          {yieldValue}%
+        </Text>
+        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          {Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
+        </Text>
+        <HStack width={"36%"}>
+          {isDepositOpen && (<RBLPDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} cdtAsset={asset} />)}
+          <Button
+            width="25%"
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={() => { toggleDepositOpen(); setQuickActionState({ rangeBoundLPwithdrawal: 0 }) }}
+            isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
+          >
+            Deposit
+          </Button>
+
+          {isWithdrawOpen && (<RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtAsset={asset} />)}
+          <Button
+            width="25%"
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={() => { toggleWithdrawOpen(); setQuickActionState({ rangeBoundLPdeposit: 0 }) }}
+            isDisabled={isDisabled || rblpDeposit === 0}
+          >
+            Withdraw
+          </Button>
+        </HStack>
+      </HStack>
+    </Card>
+  )
+})
+
+
+// Extracted VaultEntry component
 const VaultEntry = React.memo(({
   cdp,
   positionNumber,
@@ -401,6 +496,7 @@ const VaultEntry = React.memo(({
 
 const NeuroGuardCard = () => {
   const [isExpanded, setIsExpanded] = useState(false)
+  const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
   const { data: TVL } = useBoundedTVL()
@@ -414,6 +510,17 @@ const NeuroGuardCard = () => {
   const { bidState } = useBidState()
   const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
+
+  ////
+  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
+  const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
+  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
+    num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
+  )
+  const underlyingCDT = useMemo(() =>
+    shiftDigits(underlyingData, -6).toString() ?? "0"
+    , [underlyingData])
+  ////
 
 
   const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price.price
@@ -657,7 +764,8 @@ const NeuroGuardCard = () => {
             </Text>
           </HStack>
           {existingGuards.map((guard) =>
-            <>{guard ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} prices={prices} /> : null}</>
+            <>{guard && guard.symbol != "CDT" ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} prices={prices} />
+              : guard && guard.symbol == "CDT" ? < RBLPExistingEntry address={address} rblpDeposit={Number(underlyingCDT)} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : null}</>
           )}
         </Stack>
         : null}

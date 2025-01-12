@@ -123,6 +123,112 @@ export const RBLPDepositModal = React.memo(({
     </>)
 })
 
+export const RBLPWithdrawModal = React.memo(({
+    isOpen, onClose, cdtAsset, rblpDeposit, children
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, cdtAsset: AssetWithBalance, rblpDeposit: number }>) => {
+
+
+    const { quickActionState, setQuickActionState } = useQuickActionState()
+    const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
+    const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
+    const isDisabled = quickActionState?.rangeBoundLPwithdrawal == 0 || rblp?.simulate.isError || !rblp?.simulate.data
+
+    //@ts-ignore
+    const maxAmount = rblpDeposit
+
+    const onMaxClick = () => {
+        setQuickActionState({
+            rangeBoundLPwithdrawal: maxAmount
+        })
+    }
+
+    const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault()
+        const value = Number(e.target.value)
+
+        setQuickActionState({
+            rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+        })
+    }, [quickActionState?.rangeBoundLPwithdrawal, setQuickActionState])
+
+
+
+    return (<>
+        <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
+            {children}
+        </Button>
+
+        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
+            <ModalOverlay />
+            <ModalContent maxW="400px">
+                <ModalHeader>
+                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+                </ModalHeader>
+                <ModalCloseButton />
+                <ModalBody pb="5">
+                    <Stack>
+                        <HStack width="100%" justifyContent="left">
+                            <HStack width="75%">
+                                {cdtAsset.logo ? <Image src={cdtAsset.logo} w="30px" h="30px" /> : null}
+                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                    {cdtAsset.symbol}
+                                </Text>
+                            </HStack>
+                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                                ~${num(quickActionState?.rangeBoundLPwithdrawal).times(cdtAsset.price ?? 0).toFixed(2)}
+                            </Text>
+                        </HStack>
+                        <Input
+                            width={"100%"}
+                            textAlign={"right"}
+                            placeholder="0"
+                            type="number"
+                            variant={"ghost"}
+                            value={quickActionState?.rangeBoundLPwithdrawal.toFixed(2)}
+                            onChange={onInputChange}
+                        />
+                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                            <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                    max
+                                </Text>
+                            </Button>
+                        </HStack>
+                    </Stack>
+                </ModalBody>
+                {(
+                    <ModalFooter
+                        as={Stack}
+                        justifyContent="end"
+                        borderTop="1px solid"
+                        borderColor="whiteAlpha.200"
+                        pt="5"
+                        gap="5"
+                    >
+
+
+                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                            {parseError(num(quickActionState?.rangeBoundLPwithdrawal).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                        </Text>
+
+
+                        <TxButton
+                            w="100%"
+                            isLoading={isLoading}
+                            isDisabled={isDisabled}
+                            onClick={() => rblp?.tx.mutate()}
+                            toggleConnectLabel={false}
+                            style={{ alignSelf: "center" }}
+                        >
+                            Withdraw from The Membrane
+                        </TxButton>
+                    </ModalFooter>
+                )}
+            </ModalContent>
+        </Modal>
+    </>)
+})
+
 export const NeuroOpenModal = React.memo(({
     isOpen, onClose, asset, children
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: string }>) => {

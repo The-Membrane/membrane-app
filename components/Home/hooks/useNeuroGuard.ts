@@ -19,6 +19,7 @@ import { useBasket } from "@/hooks/useCDP"
 
 
 import EventEmitter from 'events';
+import { setCookie } from '@/helpers/cookies'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
@@ -125,6 +126,7 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
   // console.log("neuroGuard msgs:", msgs)
 
   const onInitialSuccess = () => {
+    if (neuroState.setCookie) setCookie("neuroGuard " + basket?.current_position_id, (neuroState?.openSelectedAsset?.sliderValue ?? 0).toString(), 3650)
     onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['positions'] })

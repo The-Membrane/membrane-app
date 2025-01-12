@@ -3,7 +3,7 @@ import useNeuroState from "./hooks/useNeuroState"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import { num } from "@/helpers/num"
 import { TxButton } from "../TxButton"
-import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, Checkbox } from "@chakra-ui/react"
 import { parseError } from "@/helpers/parseError"
 import { colors } from "@/config/defaults"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
@@ -171,6 +171,13 @@ export const NeuroOpenModal = React.memo(({
         })
     }, [neuroState?.openSelectedAsset, setNeuroState])
 
+    // Function to handle cookie checkbox toggle
+    const handleToggle = (event) => {
+        setNeuroState({ setCookie: event.target.checked });
+        console.log("setCookie", event.target.checked)
+    };
+
+
 
 
     return (<>
@@ -237,7 +244,11 @@ export const NeuroOpenModal = React.memo(({
                             {parseError(num(neuroState?.openSelectedAsset?.sliderValue).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
                         </Text>
 
-
+                        <Checkbox
+                            checked={neuroState?.setCookie}
+                            onChange={handleToggle}>
+                            Accept cookies for APR calcs
+                        </Checkbox>
                         <TxButton
                             w="100%"
                             isLoading={isLoading}

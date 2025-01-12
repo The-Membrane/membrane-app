@@ -283,7 +283,7 @@ const NeuroGuardExistingEntry = React.memo(({
           {yieldValue}%
         </Text>
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {num(guardedPosition.amount).dividedBy(previousDepositAmount).minus(1).times(100).toFixed(2)}%
+          {Math.max(0, num(guardedPosition.amount).dividedBy(previousDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
         </Text>
         <HStack width={"36%"}>
           <Button

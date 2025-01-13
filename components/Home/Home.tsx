@@ -132,6 +132,7 @@ const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
 
 const Home = () => {
   const { neuroState, setNeuroState } = useNeuroState()
+  const [hasShownToast, setHasShownToast] = useState(false);
   const toaster = useToaster()
   // Function to handle cookie checkbox toggle
   const handleToggle = (event) => {
@@ -150,12 +151,17 @@ const Home = () => {
             Accept cookies to track profits
           </Checkbox>
         </>
-      )
+      ), duration: null
     }
     )
   }
-
-  showToast()
+  useEffect(() => {
+    // Only show toast if it hasn't been shown before
+    if (!hasShownToast) {
+      showToast();
+      setHasShownToast(true);
+    }
+  }, []); // Empty dependency array means this runs once on mount
   // const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   // const { data: basketPositions } = useUserPositions()
   // const { data: vaultSummary } = useVaultSummary()

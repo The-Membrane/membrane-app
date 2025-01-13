@@ -345,7 +345,7 @@ const RBLPExistingEntry = React.memo(({
 
   var cookie = getCookie("rblp " + address)
   console.log("rblp cookie", cookie)
-  if (cookie == null) { setCookie("rblp " + address, rblpDeposit.toString(), 3650); cookie = rblpDeposit.toString() }
+  if (cookie == null && neuroState.setCookie) { setCookie("rblp " + address, rblpDeposit.toString(), 3650); cookie = rblpDeposit.toString() }
   const initialDepositAmount = Number(cookie)
   console.log("rblp initialDepositAmount", initialDepositAmount)
 
@@ -386,7 +386,7 @@ const RBLPExistingEntry = React.memo(({
         <HStack width={"36%"}>
           {isDepositOpen && (<RBLPDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} cdtAsset={asset} />)}
           <Button
-            width="25%"
+            width="50%"
             display="flex"
             padding="0"
             alignSelf="center"
@@ -399,7 +399,7 @@ const RBLPExistingEntry = React.memo(({
 
           {isWithdrawOpen && (<RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtAsset={asset} rblpDeposit={rblpDeposit} />)}
           <Button
-            width="25%"
+            width="50%"
             display="flex"
             padding="0"
             alignSelf="center"

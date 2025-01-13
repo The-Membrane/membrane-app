@@ -33,7 +33,7 @@ type ToastProps = {
   chainName?: string
   txHash?: string
   explorer?: Explorer
-  duration?: number
+  duration?: number | null
 }
 export interface IToaster {
   dismiss: any

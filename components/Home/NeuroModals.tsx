@@ -278,14 +278,6 @@ export const NeuroOpenModal = React.memo(({
         })
     }, [neuroState?.openSelectedAsset, setNeuroState])
 
-    // Function to handle cookie checkbox toggle
-    const handleToggle = (event) => {
-        setNeuroState({ setCookie: event.target.checked });
-        console.log("setCookie", event.target.checked)
-    };
-
-
-
     return (<>
         <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
@@ -350,12 +342,6 @@ export const NeuroOpenModal = React.memo(({
                             {parseError(num(neuroState?.openSelectedAsset?.sliderValue).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
                         </Text>
 
-                        <Checkbox
-                            checked={neuroState?.setCookie}
-                            onChange={handleToggle}
-                            fontFamily="Inter">
-                            Accept cookies for APR calcs
-                        </Checkbox>
                         <TxButton
                             w="100%"
                             isLoading={isLoading}

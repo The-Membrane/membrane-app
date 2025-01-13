@@ -121,7 +121,7 @@ const RBLPDepositEntry = React.memo(({
 
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
-    setNeuroState({ setCookie: false })
+    // setNeuroState({ setCookie: false })
   }, [])
 
   {/* @ts-ignore */ }
@@ -179,7 +179,7 @@ const NeuroGuardOpenEntry = React.memo(({
 
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
-    setNeuroState({ setCookie: false })
+    // setNeuroState({ setCookie: false })
   }, [])
 
   const minValue = ((21 / ((asset.maxBorrowLTV ?? 0) * 0.8)) + 1)
@@ -250,9 +250,21 @@ const NeuroGuardExistingEntry = React.memo(({
   const asset = guardedPosition.symbol === "N/A" ? undefined : neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
   // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
-  const cookie = getCookie("neuroGuard " + guardedPosition.position.position_id)
-  console.log("cookie", cookie)
-  const initialDepositAmount = Number(cookie) || 1
+  //We need the cookie to be set even if these render before the user has checked the cookie box
+  const [initialDepositAmount, setInitialDepositAmount] = useState(0);
+  useEffect(() => {
+    const cookieKey = "neuroGuard " + guardedPosition.position.position_id;
+    let cookie = getCookie(cookieKey);
+    console.log("cookie", cookie)
+
+    if (cookie == null && neuroState.setCookie) {
+      setCookie(cookieKey, guardedPosition.amount.toString(), 3650);
+      cookie = guardedPosition.amount.toString();
+    }
+
+    setInitialDepositAmount(Number(cookie || 1));
+  }, [neuroState.setCookie]);
+
   console.log("initialDepositAmount", initialDepositAmount)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
@@ -343,11 +355,22 @@ const RBLPExistingEntry = React.memo(({
   const asset = neuroState.assets.find((asset) => asset.base === denoms.CDT[0])
   console.log("cdtAsset", asset, neuroState.assets)
 
-  var cookie = getCookie("rblp " + address)
-  console.log("rblp cookie", cookie)
-  if (cookie == null && neuroState.setCookie) { setCookie("rblp " + address, rblpDeposit.toString(), 3650); cookie = rblpDeposit.toString() }
-  const initialDepositAmount = Number(cookie)
-  console.log("rblp initialDepositAmount", initialDepositAmount)
+  //We need the cookie to be set even if these render before the user has checked the cookie box
+  const [initialDepositAmount, setInitialDepositAmount] = useState(0);
+  useEffect(() => {
+    const cookieKey = "rblp " + address;
+    let cookie = getCookie(cookieKey);
+    console.log("rblp cookie", cookie)
+
+    if (cookie == null && neuroState.setCookie) {
+      setCookie(cookieKey, rblpDeposit.toString(), 3650);
+      cookie = rblpDeposit.toString();
+    }
+
+    setInitialDepositAmount(Number(cookie || 1));
+  }, [neuroState.setCookie]);
+
+  console.log("initialDepositAmount", initialDepositAmount)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {
@@ -701,6 +724,24 @@ const NeuroGuardCard = () => {
   }, [])
 
   console.log("existingGuard", existingGuards)
+  ///Toaster will dismiss once the user has set the cookie due to Home's useEffect
+  // const toaster = useToaster()
+  if (existingGuards && existingGuards.length > 0 && existingGuards[0]) {
+    //Check if the guarded positions have cookies set, if yes, dismiss the toaster
+    existingGuards.map((guard) => {
+      const cookieKey = "neuroGuard " + guard?.position.position_id;
+      let cookie = getCookie(cookieKey);
+      if (cookie != null) {
+        setNeuroState({ setCookie: true })
+        // toaster.dismiss()
+      }
+    })
+  }
+  if (getCookie("rblp " + address) != null) {
+    setNeuroState({ setCookie: true })
+    // toaster.dismiss()
+  }
+  ////
 
   return (
     <Stack gap={1} marginBottom="3%">

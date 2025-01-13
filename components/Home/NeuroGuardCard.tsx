@@ -189,6 +189,7 @@ const NeuroGuardOpenEntry = React.memo(({
 
 
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
+  console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
   const yieldValue = Math.max(num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toNumber(), 0).toFixed(1)
 
 

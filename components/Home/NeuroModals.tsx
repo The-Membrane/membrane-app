@@ -48,7 +48,7 @@ export const RBLPDepositModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
+        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 
@@ -154,7 +154,7 @@ export const RBLPWithdrawModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
+        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 

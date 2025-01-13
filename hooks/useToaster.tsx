@@ -137,7 +137,7 @@ const useToaster = (): IToaster => {
 
   //dismiss logic is missing for now
   return {
-    dismiss: () => { },
+    dismiss: () => { toast.closeAll() },
     message,
     success,
     error,

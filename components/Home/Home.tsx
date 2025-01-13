@@ -162,6 +162,12 @@ const Home = () => {
       setHasShownToast(true);
     }
   }, []); // Empty dependency array means this runs once on mount
+
+  //Dismiss toaster if setCookie is true
+  useEffect(() => {
+    if (neuroState?.setCookie) toaster.dismiss()
+  }, [neuroState?.setCookie]);
+
   // const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   // const { data: basketPositions } = useUserPositions()
   // const { data: vaultSummary } = useVaultSummary()

@@ -251,19 +251,20 @@ const NeuroGuardExistingEntry = React.memo(({
   // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
-  const [initialDepositAmount, setInitialDepositAmount] = useState(0);
+  const [initialDepositAmount, setInitialDepositAmount] = useState(1);
   useEffect(() => {
     const cookieKey = "neuroGuard " + guardedPosition.position.position_id;
     let cookie = getCookie(cookieKey);
     console.log("cookie", cookie)
 
     if (cookie == null && neuroState.setCookie) {
+      console.log("setting NG cookie", cookie)
       setCookie(cookieKey, guardedPosition.amount.toString(), 3650);
       cookie = guardedPosition.amount.toString();
     }
 
     setInitialDepositAmount(Number(cookie || 1));
-  }, [neuroState.setCookie]);
+  }, [neuroState.setCookie, guardedPosition.amount]);
 
   console.log("initialDepositAmount", initialDepositAmount)
 
@@ -356,19 +357,20 @@ const RBLPExistingEntry = React.memo(({
   console.log("cdtAsset", asset, neuroState.assets)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
-  const [initialDepositAmount, setInitialDepositAmount] = useState(0);
+  const [initialDepositAmount, setInitialDepositAmount] = useState(1);
   useEffect(() => {
     const cookieKey = "rblp " + address;
     let cookie = getCookie(cookieKey);
     console.log("rblp cookie", cookie)
 
     if (cookie == null && neuroState.setCookie) {
+      console.log("setting RBLP cookie", cookie)
       setCookie(cookieKey, rblpDeposit.toString(), 3650);
       cookie = rblpDeposit.toString();
     }
 
     setInitialDepositAmount(Number(cookie || 1));
-  }, [neuroState.setCookie]);
+  }, [neuroState.setCookie, rblpDeposit]);
 
   console.log("initialDepositAmount", initialDepositAmount)
 

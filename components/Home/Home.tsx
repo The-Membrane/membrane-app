@@ -164,7 +164,7 @@ const Home = () => {
   }, []); // Empty dependency array means this runs once on mount
 
   //Dismiss toaster if setCookie is true
-  useEffect(() => {
+  useMemo(() => {
     if (neuroState?.setCookie) toaster.dismiss()
   }, [neuroState?.setCookie]);
 

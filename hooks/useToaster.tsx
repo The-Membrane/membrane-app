@@ -33,6 +33,7 @@ type ToastProps = {
   chainName?: string
   txHash?: string
   explorer?: Explorer
+  duration?: number
 }
 export interface IToaster {
   dismiss: any
@@ -123,20 +124,20 @@ const useToaster = (): IToaster => {
       position: 'top-right',
     })
   }
-  const message = ({ title, message }: ToastProps) => {
+  const message = ({ title, message, duration = 7000 }: ToastProps) => {
     toast({
       ...defaultSettings,
       title: title,
       description: <ToastContent explorer={_explorer} message={message} />,
       status: ToastTypes.Info,
       position: 'top-right',
-      duration: 7000,
+      duration,
     })
   }
 
   //dismiss logic is missing for now
   return {
-    dismiss: () => {},
+    dismiss: () => { },
     message,
     success,
     error,

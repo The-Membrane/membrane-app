@@ -30,7 +30,7 @@ import { useRouter } from "next/router"
 import NextLink from 'next/link'
 import { MintIcon } from "../Icons"
 import useMintState from "../Mint/hooks/useMintState"
-import { getCookie } from "@/helpers/cookies"
+import { getCookie, setCookie } from "@/helpers/cookies"
 import BigNumber from "bignumber.js"
 import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
@@ -343,9 +343,10 @@ const RBLPExistingEntry = React.memo(({
   const asset = neuroState.assets.find((asset) => asset.base === denoms.CDT[0])
   console.log("cdtAsset", asset, neuroState.assets)
 
-  const cookie = getCookie("rblp " + address)
+  var cookie = getCookie("rblp " + address)
   console.log("rblp cookie", cookie)
-  const initialDepositAmount = Number(cookie) || 1
+  if (cookie == null) { setCookie("rblp " + address, rblpDeposit.toString(), 3650); cookie = rblpDeposit.toString() }
+  const initialDepositAmount = Number(cookie)
   console.log("rblp initialDepositAmount", initialDepositAmount)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
@@ -396,7 +397,7 @@ const RBLPExistingEntry = React.memo(({
             Deposit
           </Button>
 
-          {isWithdrawOpen && (<RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtAsset={asset} />)}
+          {isWithdrawOpen && (<RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtAsset={asset} rblpDeposit={rblpDeposit} />)}
           <Button
             width="25%"
             display="flex"

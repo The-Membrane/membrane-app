@@ -1,4 +1,4 @@
-import { Button, Grid, GridItem, Text, Stack, useBreakpointValue } from '@chakra-ui/react'
+import { Button, Grid, GridItem, Text, Stack, useBreakpointValue, Checkbox } from '@chakra-ui/react'
 import { StatsCard } from '../StatsCard'
 import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
@@ -15,121 +15,147 @@ import { num } from '@/helpers/num'
 import useMintState from '../Mint/hooks/useMintState'
 import NeuroGuardCard from './NeuroGuardCard'
 import { useUserBoundedIntents } from '../Earn/hooks/useEarnQueries'
+import useNeuroState from './hooks/useNeuroState'
 
 
 // Memoize child components
-const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
-const MemoizedRangeBoundLPCard = React.memo(RangeBoundLPCard)
-const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
+// const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
+// const MemoizedRangeBoundLPCard = React.memo(RangeBoundLPCard)
+// const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
 
-interface CostRatio {
-  symbol: string;
-  rate: string;
-  ratio: string;
-}
+// interface CostRatio {
+//   symbol: string;
+//   rate: string;
+//   ratio: string;
+// }
 
-interface VaultSummary {
-  debtAmount: number;
-  cost: number;
-  discountedCost: number;
-  tvl: number;
-  ltv: number;
-  borrowLTV: number;
-  liquidValue: number;
-  liqudationLTV: number;
-  costRatios: CostRatio[];
-  positionId: string
-}
+// interface VaultSummary {
+//   debtAmount: number;
+//   cost: number;
+//   discountedCost: number;
+//   tvl: number;
+//   ltv: number;
+//   borrowLTV: number;
+//   liquidValue: number;
+//   liqudationLTV: number;
+//   costRatios: CostRatio[];
+//   positionId: string
+// }
 
 
-interface PositionCostManagerProps {
-  summary: VaultSummary;
-  totalPositions?: number;
-  neuroGuards: {
-    desired_asset: string;
-    route: any | undefined;
-    yield_percent: string;
-    position_id: number | undefined;
-    slippage: string | undefined;
-  }[];
-}
+// interface PositionCostManagerProps {
+//   summary: VaultSummary;
+//   totalPositions?: number;
+//   neuroGuards: {
+//     desired_asset: string;
+//     route: any | undefined;
+//     yield_percent: string;
+//     position_id: number | undefined;
+//     slippage: string | undefined;
+//   }[];
+// }
 
-// Extract position cost logic to a separate component
-const PositionCostManager = React.memo(({ summary, totalPositions, neuroGuards }: PositionCostManagerProps) => {
-  const toaster = useToaster()
-  const { mintState, setMintState } = useMintState()
-  const [positionNum, setPositionNum] = React.useState(1)
+// // Extract position cost logic to a separate component
+// const PositionCostManager = React.memo(({ summary, totalPositions, neuroGuards }: PositionCostManagerProps) => {
+//   const toaster = useToaster()
+//   const { mintState, setMintState } = useMintState()
+//   const [positionNum, setPositionNum] = React.useState(1)
 
-  const health = useMemo(() => {
-    if (summary.ltv === 0) return 100
-    return num(1)
-      .minus(num(summary.ltv).dividedBy(summary.liqudationLTV))
-      .times(100)
-      .dp(0)
-      .toNumber()
-  }, [summary.ltv, summary.liqudationLTV])
+//   const health = useMemo(() => {
+//     if (summary.ltv === 0) return 100
+//     return num(1)
+//       .minus(num(summary.ltv).dividedBy(summary.liqudationLTV))
+//       .times(100)
+//       .dp(0)
+//       .toNumber()
+//   }, [summary.ltv, summary.liqudationLTV])
 
-  const ratesOverTen = useMemo(() => {
-    return summary.costRatios.filter((rate) =>
-      num(rate.rate).times(100).toNumber() >= 10
-    )
-  }, [summary.costRatios])
+//   const ratesOverTen = useMemo(() => {
+//     return summary.costRatios.filter((rate) =>
+//       num(rate.rate).times(100).toNumber() >= 10
+//     )
+//   }, [summary.costRatios])
 
-  console.log("neuroGuards", neuroGuards)
+//   console.log("neuroGuards", neuroGuards)
 
-  useEffect(() => {
-    if (summary.cost === 0 || neuroGuards.find((guard) => (guard?.position_id ?? 1).toString() === summary.positionId) != undefined || !totalPositions || !summary.discountedCost || mintState.alreadyToasted) return
+//   useEffect(() => {
+//     if (summary.cost === 0 || neuroGuards.find((guard) => (guard?.position_id ?? 1).toString() === summary.positionId) != undefined || !totalPositions || !summary.discountedCost || mintState.alreadyToasted) return
 
-    const showToast = () => {
-      toaster.message({
-        title: `Position ${positionNum}`,
-        message: (
-          <>
-            <Text>
-              Health: <a style={health <= 10 ? { fontWeight: "bold", color: colors.alert } : {}}>
-                {Math.min(health, 100)}%
-              </a>
-            </Text>
-            <Text>
-              Cost: <a style={num(summary.discountedCost).times(100).toNumber() >= 10 ?
-                { fontWeight: "bold", color: colors.alert } : {}}>
-                {num(summary.discountedCost).times(100).toFixed(2)}
-              </a>%
-            </Text>
-            {ratesOverTen.length > 0 && (
-              <>
-                <Text style={{ marginTop: "5%" }}>Your Collateral Rates Over 10%:</Text>
-                {ratesOverTen.map((rate) => (
-                  <Text key={rate.symbol}>
-                    {rate.symbol}: {num(rate.rate).times(100).toFixed(2)}%
-                    ({num(rate.ratio).toFixed(2)}% of CDP)
-                  </Text>
-                ))}
-              </>
-            )}
-          </>
-        )
-      })
-    }
+//     const showToast = () => {
+//       toaster.message({
+//         title: `Position ${positionNum}`,
+//         message: (
+//           <>
+//             <Text>
+//               Health: <a style={health <= 10 ? { fontWeight: "bold", color: colors.alert } : {}}>
+//                 {Math.min(health, 100)}%
+//               </a>
+//             </Text>
+//             <Text>
+//               Cost: <a style={num(summary.discountedCost).times(100).toNumber() >= 10 ?
+//                 { fontWeight: "bold", color: colors.alert } : {}}>
+//                 {num(summary.discountedCost).times(100).toFixed(2)}
+//               </a>%
+//             </Text>
+//             {ratesOverTen.length > 0 && (
+//               <>
+//                 <Text style={{ marginTop: "5%" }}>Your Collateral Rates Over 10%:</Text>
+//                 {ratesOverTen.map((rate) => (
+//                   <Text key={rate.symbol}>
+//                     {rate.symbol}: {num(rate.rate).times(100).toFixed(2)}%
+//                     ({num(rate.ratio).toFixed(2)}% of CDP)
+//                   </Text>
+//                 ))}
+//               </>
+//             )}
+//           </>
+//         )
+//       })
+//     }
 
-    showToast()
+//     showToast()
 
-    if (positionNum < totalPositions) {
-      setPositionNum(prev => prev + 1)
-      setMintState({ positionNumber: positionNum + 1 })
-    } else {
-      console.log("Already toasted")
-      setMintState({ alreadyToasted: true })
-    }
-  }, [summary.discountedCost, totalPositions, positionNum, health, ratesOverTen])
+//     if (positionNum < totalPositions) {
+//       setPositionNum(prev => prev + 1)
+//       setMintState({ positionNumber: positionNum + 1 })
+//     } else {
+//       console.log("Already toasted")
+//       setMintState({ alreadyToasted: true })
+//     }
+//   }, [summary.discountedCost, totalPositions, positionNum, health, ratesOverTen])
 
-  return null
-})
+//   return null
+// })
 
-PositionCostManager.displayName = 'PositionCostManager'
+// PositionCostManager.displayName = 'PositionCostManager'
 
 
 const Home = () => {
+  const { neuroState, setNeuroState } = useNeuroState()
+  const toaster = useToaster()
+  // Function to handle cookie checkbox toggle
+  const handleToggle = (event) => {
+    setNeuroState({ setCookie: event.target.checked });
+    console.log("setCookie", event.target.checked)
+  };
+  const showToast = () => {
+    toaster.message({
+      title: `Accept Cookies`,
+      message: (
+        <>
+          <Checkbox
+            checked={neuroState?.setCookie}
+            onChange={handleToggle}
+            fontFamily="Inter">
+            Accept cookies to track profits
+          </Checkbox>
+        </>
+      )
+    }
+    )
+  }
+
+  showToast()
   // const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   // const { data: basketPositions } = useUserPositions()
   // const { data: vaultSummary } = useVaultSummary()

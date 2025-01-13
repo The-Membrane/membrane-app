@@ -286,7 +286,6 @@ export const NeuroOpenModal = React.memo(({
 
 
 
-
     return (<>
         <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
             {children}

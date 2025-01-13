@@ -21,7 +21,7 @@ import useNeuroState from './hooks/useNeuroState'
 // Memoize child components
 // const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
 // const MemoizedRangeBoundLPCard = React.memo(RangeBoundLPCard)
-// const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
+const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
 
 // interface CostRatio {
 //   symbol: string;

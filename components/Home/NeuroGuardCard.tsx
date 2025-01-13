@@ -117,7 +117,7 @@ const RBLPDepositEntry = React.memo(({
   RBYield: string
 }) => {
   const [isOpen, setIsOpen] = useState(false)
-  const { setNeuroState } = useNeuroState()
+  // const { setNeuroState } = useNeuroState()
 
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
@@ -207,7 +207,7 @@ const NeuroGuardOpenEntry = React.memo(({
           {num((asset?.balance ?? 0)).toFixed(2)}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {yieldValue}%
+          {asset?.test ? 20.0 : yieldValue}%
         </Text>
         {isOpen && (<NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />)}
         <Button
@@ -251,7 +251,7 @@ const NeuroGuardExistingEntry = React.memo(({
   // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
-  const [initialDepositAmount, setInitialDepositAmount] = useState(1);
+  const [initialDepositAmount, setInitialDepositAmount] = useState(0);
   useEffect(() => {
     const cookieKey = "neuroGuard " + guardedPosition.position.position_id;
     let cookie = getCookie(cookieKey);
@@ -263,7 +263,7 @@ const NeuroGuardExistingEntry = React.memo(({
       cookie = guardedPosition.amount.toString();
     }
 
-    setInitialDepositAmount(Number(cookie || 1));
+    setInitialDepositAmount(Number(cookie || 0));
   }, [neuroState.setCookie, guardedPosition.amount]);
 
   console.log("initialDepositAmount", initialDepositAmount)
@@ -300,7 +300,7 @@ const NeuroGuardExistingEntry = React.memo(({
           {yieldValue}%
         </Text>
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {Math.max(0, num(guardedPosition.amount).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
+          {initialDepositAmount == 0 ? "0.00%" : Math.max(0, num(guardedPosition.amount).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
         </Text>
         <HStack width={"36%"}>
           <Button
@@ -357,7 +357,7 @@ const RBLPExistingEntry = React.memo(({
   console.log("cdtAsset", asset, neuroState.assets)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
-  const [initialDepositAmount, setInitialDepositAmount] = useState(1);
+  const [initialDepositAmount, setInitialDepositAmount] = useState(0);
   useEffect(() => {
     const cookieKey = "rblp " + address;
     let cookie = getCookie(cookieKey);
@@ -369,7 +369,7 @@ const RBLPExistingEntry = React.memo(({
       cookie = rblpDeposit.toString();
     }
 
-    setInitialDepositAmount(Number(cookie || 1));
+    setInitialDepositAmount(Number(cookie || 0));
   }, [neuroState.setCookie, rblpDeposit]);
 
   console.log("initialDepositAmount", initialDepositAmount)
@@ -406,7 +406,7 @@ const RBLPExistingEntry = React.memo(({
           {yieldValue}%
         </Text>
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
+          {initialDepositAmount == 0 ? "0.00%" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
         </Text>
         <HStack width={"36%"}>
           {isDepositOpen && (<RBLPDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} cdtAsset={asset} />)}
@@ -788,7 +788,8 @@ const NeuroGuardCard = () => {
           <Stack gap={"1rem"}>{neuroState.assets.map((asset) =>
             <>
               {asset && num(asset.combinUsdValue).isGreaterThan(0.01) && existingGuards?.find(((guard) => guard?.symbol === asset.symbol)) == undefined ?
-                asset.base == denoms.CDT[0] ? <RBLPDepositEntry asset={asset} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} /> : <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} />
+                asset.base == denoms.CDT[0] ? <RBLPDepositEntry asset={asset} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} />
+                  : <NeuroGuardOpenEntry asset={asset} basketAssets={basketAssets} RBYield={bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).toString() : "0"} />
                 : null}
             </>
           )}</Stack>

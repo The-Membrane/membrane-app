@@ -731,13 +731,13 @@ const NeuroGuardCard = () => {
     existingGuards.map((guard) => {
       const cookieKey = "neuroGuard " + guard?.position.position_id;
       let cookie = getCookie(cookieKey);
-      if (cookie != null) {
+      if (cookie != null && !neuroState.setCookie) {
         setNeuroState({ setCookie: true })
         // toaster.dismiss()
       }
     })
   }
-  if (getCookie("rblp " + address) != null) {
+  if (getCookie("rblp " + address) != null && !neuroState.setCookie) {
     setNeuroState({ setCookie: true })
     // toaster.dismiss()
   }

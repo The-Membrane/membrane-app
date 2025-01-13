@@ -207,7 +207,7 @@ const NeuroGuardOpenEntry = React.memo(({
           {num((asset?.balance ?? 0)).toFixed(2)}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {asset?.test ? 20.0 : yieldValue}%
+          {asset?.test == true ? 20.0 : yieldValue}%
         </Text>
         {isOpen && (<NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />)}
         <Button

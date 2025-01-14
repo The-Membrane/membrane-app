@@ -18,6 +18,7 @@ import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getCLPositionsForVault } from '@/services/osmosis'
 import useBoundedManage from "./useRangeBoundLPManage"
+import { getCookie, setCookie } from '@/helpers/cookies'
 
 const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?: boolean }) => {
   const { address } = useWallet()
@@ -27,6 +28,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
   const boundedCDTBalance = useBalanceByAsset(boundedCDTAsset) ?? "1"
   const { data: positionInfo } = getCLPositionsForVault()
   const { action: manageAction, msgs: manageMsg } = useBoundedManage()
+  const { nueroState } = useNeuroState()
   // const ManageMsgs = useMemo(() => { return manageMsg }, [manageMsg])
 
   //Get USDC asset
@@ -158,7 +160,12 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
 
   console.log("bounded msgs:", msgs)
 
+  const cookie = getCookie("rblp " + address)
+
   const onInitialSuccess = () => {
+    if (cookie == null && nueroState.setCookie && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, quickActionState.rangeBoundLPdeposit.toString(), 3650)
+    if (cookie != null && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, num(cookie).plus(quickActionState.rangeBoundLPdeposit).toString(), 3650)
+    if (cookie != null && quickActionState.rangeBoundLPwithdrawal != 0) setCookie("rblp " + address, Math.max(0, num(cookie).minus(quickActionState.rangeBoundLPwithdrawal).toNumber()).toString(), 3650)
     if (onSuccess) onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     setQuickActionState({ rangeBoundLPdeposit: 0, rangeBoundLPwithdrawal: 0 })

@@ -722,7 +722,7 @@ const NeuroGuardCard = () => {
       cost: 0,
       LTV: "0"
     }]
-  }, [basketPositions, userIntents, assets, prices, basket])
+  }, [basketPositions, userIntents, assets, prices, basket, underlyingCDT])
 
 
   const toggleExpanded = useCallback(() => {

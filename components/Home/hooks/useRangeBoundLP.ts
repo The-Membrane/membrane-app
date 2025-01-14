@@ -164,7 +164,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
   const cookie = getCookie("rblp " + address)
 
   const onInitialSuccess = () => {
-    if (cookie == null && nueroState.setCookie && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, quickActionState.rangeBoundLPdeposit.toString(), 3650)
+    if (cookie == null && neuroState.setCookie && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, quickActionState.rangeBoundLPdeposit.toString(), 3650)
     if (cookie != null && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, num(cookie).plus(quickActionState.rangeBoundLPdeposit).toString(), 3650)
     if (cookie != null && quickActionState.rangeBoundLPwithdrawal != 0) setCookie("rblp " + address, Math.max(0, num(cookie).minus(quickActionState.rangeBoundLPwithdrawal).toNumber()).toString(), 3650)
     if (onSuccess) onSuccess()

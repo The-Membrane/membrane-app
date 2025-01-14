@@ -48,7 +48,7 @@ export const RBLPDepositModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
+        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 
@@ -154,7 +154,7 @@ export const RBLPWithdrawModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
+        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 
@@ -402,7 +402,7 @@ export const NeuroDepositModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
+        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 
@@ -532,7 +532,7 @@ export const NeuroWithdrawModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
+        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 
@@ -644,7 +644,7 @@ export const NeuroCloseModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="50%" variant="unstyled" fontWeight="normal" mb="0">
+        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
         </Button>
 

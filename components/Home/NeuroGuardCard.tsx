@@ -500,7 +500,7 @@ const VaultEntry = React.memo(({
             isDisabled={false}
             onClick={() => { setMintState({ positionNumber }) }}
           >
-            Edit
+            {positionNumber == 0 ? "Create" : "Edit"}
           </Button>
           {isCloseOpen && (<NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />)}
           <Button

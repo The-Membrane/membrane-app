@@ -18,7 +18,7 @@ import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getCLPositionsForVault } from '@/services/osmosis'
 import useBoundedManage from "./useRangeBoundLPManage"
-import { getCookie, setCookie } from '@/helpers/cookies'
+import { deleteCookie, getCookie, setCookie } from '@/helpers/cookies'
 import useNeuroState from './useNeuroState'
 
 const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?: boolean }) => {
@@ -166,7 +166,8 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
   const onInitialSuccess = () => {
     if (cookie == null && neuroState.setCookie && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, quickActionState.rangeBoundLPdeposit.toString(), 3650)
     if (cookie != null && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, num(cookie).plus(quickActionState.rangeBoundLPdeposit).toString(), 3650)
-    if (cookie != null && quickActionState.rangeBoundLPwithdrawal != 0) setCookie("rblp " + address, Math.max(0, num(cookie).minus(quickActionState.rangeBoundLPwithdrawal).toNumber()).toString(), 3650)
+    if (cookie != null && quickActionState.rangeBoundLPwithdrawal != 0 && num(cookie).minus(quickActionState.rangeBoundLPwithdrawal).isGreaterThan(0)) setCookie("rblp " + address, Math.max(0, num(cookie).minus(quickActionState.rangeBoundLPwithdrawal).toNumber()).toString(), 3650)
+    else if (cookie != null && quickActionState.rangeBoundLPwithdrawal != 0 && num(cookie).minus(quickActionState.rangeBoundLPwithdrawal).isLessThanOrEqualTo(0)) deleteCookie("rblp " + address)
     if (onSuccess) onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     setQuickActionState({ rangeBoundLPdeposit: 0, rangeBoundLPwithdrawal: 0 })

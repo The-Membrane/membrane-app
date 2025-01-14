@@ -48,9 +48,9 @@ export const RBLPDepositModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
+        {/* <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
-        </Button>
+        </Button> */}
 
         <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
             <ModalOverlay />
@@ -154,15 +154,15 @@ export const RBLPWithdrawModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
+        {/* <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
-        </Button>
+        </Button> */}
 
         <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
             <ModalOverlay />
             <ModalContent maxW="400px">
                 <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Withdraw</Text>
                 </ModalHeader>
                 <ModalCloseButton />
                 <ModalBody pb="5">
@@ -279,9 +279,9 @@ export const NeuroOpenModal = React.memo(({
     }, [neuroState?.openSelectedAsset, setNeuroState])
 
     return (<>
-        <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
+        {/* <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
-        </Button>
+        </Button> */}
 
         <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
             <ModalOverlay />
@@ -402,9 +402,9 @@ export const NeuroDepositModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
+        {/* <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
-        </Button>
+        </Button> */}
 
         <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
             <ModalOverlay />
@@ -532,9 +532,9 @@ export const NeuroWithdrawModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
+        {/* <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
-        </Button>
+        </Button> */}
 
         <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
             <ModalOverlay />
@@ -644,9 +644,9 @@ export const NeuroCloseModal = React.memo(({
 
 
     return (<>
-        <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
+        {/* <Button onClick={() => { }} width="100%" variant="unstyled" fontWeight="normal" mb="0">
             {children}
-        </Button>
+        </Button> */}
 
         <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
             <ModalOverlay />

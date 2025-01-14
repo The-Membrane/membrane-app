@@ -675,7 +675,7 @@ const NeuroGuardCard = () => {
       // })
 
       //If there are neuroGuardIntents, create an object that saves the ID, the compounding asset & the LTV
-      return neuroGuardIntents.map((intent) => {
+      const returningGuards = neuroGuardIntents.map((intent) => {
         // console.log("big checkers", neuroGuardIntents, intent, basketPositions)
         let position = basketPositions[0].positions.find((position) => position.position_id === (intent.position_id ?? 0).toString())
         // console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
@@ -701,15 +701,19 @@ const NeuroGuardCard = () => {
           cost: basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate || 0,
           LTV
         }
-      }).concat([{
-        position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
-        amount: num("0"),
-        symbol: "CDT",
-        image: "",
-        cost: 0,
-        LTV: "0"
+      })
+      if (Number(underlyingCDT) > 0.01) {
+        return returningGuards
+          .concat([{
+            position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
+            amount: num("0"),
+            symbol: "CDT",
+            image: "",
+            cost: 0,
+            LTV: "0"
 
-      }])
+          }])
+      } else return returningGuards
 
     } else return [{
       position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },

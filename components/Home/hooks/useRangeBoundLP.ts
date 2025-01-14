@@ -19,6 +19,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { getCLPositionsForVault } from '@/services/osmosis'
 import useBoundedManage from "./useRangeBoundLPManage"
 import { getCookie, setCookie } from '@/helpers/cookies'
+import useNeuroState from './useNeuroState'
 
 const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?: boolean }) => {
   const { address } = useWallet()
@@ -28,7 +29,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
   const boundedCDTBalance = useBalanceByAsset(boundedCDTAsset) ?? "1"
   const { data: positionInfo } = getCLPositionsForVault()
   const { action: manageAction, msgs: manageMsg } = useBoundedManage()
-  const { nueroState } = useNeuroState()
+  const { neuroState } = useNeuroState()
   // const ManageMsgs = useMemo(() => { return manageMsg }, [manageMsg])
 
   //Get USDC asset

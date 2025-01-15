@@ -703,6 +703,8 @@ const NeuroGuardCard = () => {
           LTV
         }
       })
+        .filter(Boolean);
+
       if (Number(underlyingCDT) > 0.01) {
         return returningGuards
           .concat([{

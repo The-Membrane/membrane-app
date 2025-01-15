@@ -528,7 +528,7 @@ const NeuroGuardCard = () => {
   const { data: basket } = useBasket()
   const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()
-  // console.log("userIntents", userIntents)
+  console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
   useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
@@ -831,7 +831,7 @@ const NeuroGuardCard = () => {
       {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?
         <Stack>
           <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-            Your Vaults
+            Your CDPs
           </Text>
           <HStack gap="9%" p={4}>
             <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">

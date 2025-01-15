@@ -61,6 +61,18 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
       <ListItem fontFamily="Inter" fontSize="md">
         Compounds can be initiated by anyone and opportunities to do so will be available to search for in the app.
       </ListItem>
+      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+        Is the CDT Guardian different?
+      </Text>
+      <ListItem fontFamily="Inter" fontSize="md">
+        The CDT Guardian deposits CDT directly into The Membrane. Sometimes this requires a swap into USDC (max slippage: 0.5%).
+      </ListItem>
+      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+        Why can't I see my Guardian in the "Your CDPs" section?
+      </Text>
+      <ListItem fontFamily="Inter" fontSize="md">
+        You can see your Guardian's CDP on the Mint page to edit it intricately. It's not on the Home page to reduce confusion with duplicates.
+      </ListItem>
     </List>
   )
 })

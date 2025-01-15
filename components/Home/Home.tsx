@@ -157,7 +157,7 @@ const Home = () => {
   }
   useEffect(() => {
     // Only show toast if it hasn't been shown before
-    if (!hasShownToast) {
+    if (!hasShownToast && neuroState?.setCookie === undefined) {
       showToast();
       setHasShownToast(true);
     }

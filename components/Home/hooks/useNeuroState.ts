@@ -12,11 +12,11 @@ export type NeuroState = {
   openSelectedAsset?: AssetWithBalance
   depositSelectedAsset?: AssetWithBalance
   withdrawSelectedAsset?: AssetWithBalance
+  setCookie?: boolean
   closeInputValue: number
   position_to_close?: number
   assets: AssetWithBalance[]
   guardedPositions: string[]
-  setCookie: boolean
 
 }
 
@@ -31,7 +31,6 @@ const initialState: NeuroState = {
   guardedPositions: [],
   closeInputValue: 0,
   openSelectedAsset: { symbol: "WBTC", label: "WBTC", display: "WBTC", value: "WBTC", maxBorrowLTV: 0.5 },
-  setCookie: false
 }
 
 // @ts-ignore

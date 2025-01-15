@@ -42,7 +42,7 @@ export const useUserPositions = () => {
     queryFn: async () => {
       if (!address) return
       console.log("requerying basket positions")
-      return getUserPositions(address)
+      return getUserPositions("osmo1lgdwng93exmdfjkerg7spadkl9tzc22v549tp7")
     },
     enabled: !!address,
   })

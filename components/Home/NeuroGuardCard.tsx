@@ -394,9 +394,9 @@ const RBLPExistingEntry = React.memo(({
     <Card width="100%" borderWidth={3} padding={4}>
       <HStack gap="9%">
         <HStack width="20%" justifyContent="left">
-          {asset?.logo ? <Image src={asset?.logo} w="30px" h="30px" /> : null}
+          <Image src={"/images/cdt.svg"} w="30px" h="30px" />
           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            {asset?.symbol}
+            CDT
           </Text>
         </HStack>
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">

@@ -525,6 +525,7 @@ const NeuroGuardCard = () => {
   const [isExpanded, setIsExpanded] = useState(false)
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
+  console.log("basketPositions", basketPositions)
   const { data: basket } = useBasket()
   const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()

@@ -386,7 +386,7 @@ const RBLPExistingEntry = React.memo(({
   }, [])
 
   {/* @ts-ignore */ }
-  const isDisabled = asset.symbol === "N/A"
+  const isDisabled = (asset?.symbol === "N/A") || false
   // console.log("isDisabled", isDisabled, asset?.balance, asset)
   const yieldValue = Math.max(num(RBYield).times(100).toNumber(), 0).toFixed(1)
 

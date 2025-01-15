@@ -39,8 +39,7 @@ export const useUserBoundedIntents = () => {
         queryFn: async () => {
             if (!address) return
             return getBoundedIntents().then((intents) => {
-                console.log("intents", intents)
-                return intents.filter((intent) => intent.user === "osmo1lgdwng93exmdfjkerg7spadkl9tzc22v549tp7")
+                return intents.filter((intent) => intent.user === address)
             })
         },
     })

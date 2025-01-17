@@ -3,7 +3,7 @@ import { StatsCard } from '../StatsCard'
 import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import RangeBoundLPCard from './RangeBoundLPCard'
 import RangeBoundVisual from './RangeBoundVisual'
 import { FaArrowDown, FaArrowUp } from 'react-icons/fa6'
@@ -25,52 +25,57 @@ const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
 
 const Home = () => {
   console.log("Home")
-  const { neuroState, setNeuroState } = useNeuroState()
+  const { neuroState, setNeuroState } = useNeuroState();
   const [hasShownToast, setHasShownToast] = useState(false);
-  const toaster = useToaster()
-  // Function to handle cookie checkbox toggle
-  const handleToggle = (event) => {
+  const toaster = useToaster();
+
+  // Memoize the toggle handler to prevent recreating on each render
+  const handleToggle = useCallback((event) => {
     setNeuroState({ setCookie: event.target.checked });
-    console.log("setCookie", event.target.checked)
-  };
-  const showToast = () => {
-    toaster.message({
-      title: `Accept Cookies`,
-      message: (
-        <>
-          <Checkbox
-            checked={neuroState?.setCookie}
-            onChange={handleToggle}
-            fontFamily="Inter">
-            Accept cookies to track profits
-          </Checkbox>
-        </>
-      ), duration: null
-    }
-    )
-  }
+  }, [setNeuroState]);
+
+  // Memoize the toast content to prevent recreating on each render
+  const toastContent = useMemo(() => ({
+    title: 'Accept Cookies',
+    message: (
+      <Checkbox
+        checked={neuroState?.setCookie}
+        onChange={handleToggle}
+        fontFamily="Inter"
+      >
+        Accept cookies to track profits
+      </Checkbox>
+    ),
+    duration: null
+  }), [neuroState?.setCookie, handleToggle]);
+
+  // Show toast effect with proper dependencies
   useEffect(() => {
-    // Only show toast if it hasn't been shown before
     if (!hasShownToast && neuroState?.setCookie === undefined) {
-      showToast();
+      toaster.message(toastContent);
       setHasShownToast(true);
     }
-  }, []); // Empty dependency array means this runs once on mount
+  }, [hasShownToast, neuroState?.setCookie, toastContent, toaster]);
 
-  //Dismiss toaster if setCookie is true
-  useMemo(() => {
-    if (neuroState?.setCookie) toaster.dismiss()
-  }, [neuroState?.setCookie]);
+  // Handle toaster dismissal with proper effect
+  useEffect(() => {
+    if (neuroState?.setCookie) {
+      toaster.dismiss();
+    }
+  }, [neuroState?.setCookie, toaster]);
 
-
-  return (
+  // Memoize the entire content to prevent unnecessary re-renders
+  const content = useMemo(() => (
     <Stack>
       <StatsCard />
       <Stack>
         <MemoizedNeuroGuardCard />
       </Stack>
     </Stack>
-  )
-}
+  ), []);
 
-export default React.memo(Home)
+  return content;
+};
+
+// Only use memo if this component's parent might cause unnecessary re-renders
+export default Home;

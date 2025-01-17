@@ -201,7 +201,7 @@ const NeuroGuardOpenEntry = React.memo(({
 
 
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
-  console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
+  // console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
   const yieldValue = Math.max(num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toNumber(), 0).toFixed(1)
 
 
@@ -278,7 +278,7 @@ const NeuroGuardExistingEntry = React.memo(({
     setInitialDepositAmount(Number(cookie || 0));
   }, [neuroState.setCookie, guardedPosition.amount]);
 
-  console.log("initialDepositAmount", initialDepositAmount)
+  // console.log("initialDepositAmount", initialDepositAmount)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {
@@ -366,7 +366,7 @@ const RBLPExistingEntry = React.memo(({
   //find the asset in the assets array
   //@ts-ignore
   const asset = neuroState.assets.find((asset) => asset.base === denoms.CDT[0])
-  console.log("cdtAsset", asset, neuroState.assets)
+  // console.log("cdtAsset", asset, neuroState.assets)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
   const [initialDepositAmount, setInitialDepositAmount] = useState(0);
@@ -384,7 +384,7 @@ const RBLPExistingEntry = React.memo(({
     setInitialDepositAmount(Number(cookie || 0));
   }, [neuroState.setCookie, rblpDeposit]);
 
-  console.log("initialDepositAmount", initialDepositAmount)
+  // console.log("initialDepositAmount", initialDepositAmount)
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {
@@ -540,6 +540,7 @@ const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
 const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
 
 const NeuroGuardCard = () => {
+  console.log("NG render")
   const [isExpanded, setIsExpanded] = useState(false)
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
@@ -854,10 +855,10 @@ const NeuroGuardCard = () => {
     setIsExpanded(prev => !prev)
   }, [])
 
-  console.log("existingGuard", existingGuards)
+  // console.log("existingGuard", existingGuards)
   ///Toaster will dismiss once the user has set the cookie due to Home's useEffect
   // const toaster = useToaster()
-  if (existingGuards && existingGuards.length > 0 && existingGuards[0]) {
+  if (existingGuards && existingGuards.length > 0 && existingGuards[0] && !neuroState.setCookie) {
     //Check if the guarded positions have cookies set, if yes, dismiss the toaster
     existingGuards.map((guard) => {
       const cookieKey = "neuroGuard " + guard?.position.position_id;

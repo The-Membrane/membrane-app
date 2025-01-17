@@ -44,6 +44,7 @@ function SoloLeveling() {
         </SliderMark>
       </Slider>
       <TxButton
+        fontSize="sm"
         w="100%"
         height="20px"
         isLoading={claimPoints.simulate.isLoading || claimPoints.tx.isPending}

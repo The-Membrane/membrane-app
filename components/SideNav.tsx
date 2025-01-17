@@ -103,13 +103,12 @@ function SideNav() {
   const [cdtPrice, setcdtPrice] = useState(" ");
   const [enable_msgs, setEnableMsgs] = useState(false);
 
-  // Move price check to useEffect
-  useEffect(() => {
-    const price = getCDTPrice();
-    if (price !== cdtPrice && price !== '0') {
-      setcdtPrice(price);
-    }
-  }, [cdtPrice]);
+  // useEffect(() => {
+  const price = getCDTPrice();
+  if (price !== cdtPrice && price !== '0') {
+    setcdtPrice(price);
+  }
+  // }, [cdtPrice]);
 
   // Memoize handlers
   const handleMobileMenuToggle = useCallback(() => {

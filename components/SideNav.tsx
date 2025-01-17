@@ -98,6 +98,7 @@ const MemoizedSoloLeveling = memo(SoloLeveling);
 const MemoizedNavItem = memo(NavItem);
 
 function SideNav() {
+  console.log("render heavy")
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cdtPrice, setcdtPrice] = useState(" ");
   const [enable_msgs, setEnableMsgs] = useState(false);

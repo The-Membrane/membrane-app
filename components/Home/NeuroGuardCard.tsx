@@ -1012,7 +1012,11 @@ const NeuroGuardCard = () => {
         </FAQModal>
       </Stack>
 
-      {neuroState.assets.length > 1 || (neuroState.assets.length > 0 && num(neuroState.assets[0].combinUsdValue).isGreaterThan(0.01)) ?
+      {neuroState.assets.length > 0 && neuroState.assets.some(asset =>
+        asset && // check if defined
+        Number(asset.combinUsdValue) > 0.01 && // check USD value
+        !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
+      ) ?
         <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} />
         : null}
 

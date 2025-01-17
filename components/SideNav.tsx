@@ -91,6 +91,7 @@ const getCDTPrice = () => {
 }
 
 function SideNav() {
+  console.log("render heavy")
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleMobileMenuToggle = () => {

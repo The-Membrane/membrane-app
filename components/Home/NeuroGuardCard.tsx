@@ -537,7 +537,7 @@ const MemoizedNeuroGuardOpenEntry = memo(NeuroGuardOpenEntry);
 const MemoizedNeuroGuardExistingEntry = memo(NeuroGuardExistingEntry);
 const MemoizedVaultEntry = memo(VaultEntry);
 const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
-const MemoizedRBLPExistingEntry = memo(RblpExistingEntry);
+const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
 
 const NeuroGuardCard = () => {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -654,7 +654,7 @@ const NeuroGuardCard = () => {
   useEffect(() => {
     if (sortedAssets && sortedAssets.length > 0) {
       setNeuroState({
-        assets: sortedAssets,
+        assets: sortedAssets ?? [],
         selectedAsset: sortedAssets[0] ?? {}
       });
     }

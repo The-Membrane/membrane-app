@@ -10,7 +10,7 @@ import {
 } from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
-import React, { useState } from 'react'
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { BidIcon, EarnIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon } from './Icons'
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
@@ -90,50 +90,90 @@ const getCDTPrice = () => {
   return parseFloat((price.price)).toFixed(4)
 }
 
+// Memoize static components
+const MemoizedLogo = memo(Logo);
+const MemoizedBalanceCard = memo(BalanceCard);
+const MemoizedUniversalButtons = memo(UniversalButtons);
+const MemoizedSoloLeveling = memo(SoloLeveling);
+const MemoizedNavItem = memo(NavItem);
+
 function SideNav() {
-  console.log("render heavy")
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cdtPrice, setcdtPrice] = useState(" ");
+  const [enable_msgs, setEnableMsgs] = useState(false);
 
-  const handleMobileMenuToggle = () => {
-    setMobileMenuOpen(!isMobileMenuOpen);
-  };
+  // Move price check to useEffect
+  useEffect(() => {
+    const price = getCDTPrice();
+    if (price !== cdtPrice && price !== '0') {
+      setcdtPrice(price);
+    }
+  }, [cdtPrice]);
 
-  const close = () => {
+  // Memoize handlers
+  const handleMobileMenuToggle = useCallback(() => {
+    setMobileMenuOpen(prev => !prev);
+  }, []);
+
+  const close = useCallback(() => {
     setMobileMenuOpen(false);
-  };
-  const [cdtPrice, setcdtPrice] = useState(" ")
-  const price = getCDTPrice()
-  if (price != cdtPrice && price != '0') setcdtPrice(price)
+  }, []);
 
-  const [enable_msgs, setEnableMsgs] = useState(false)
+  const handleEnableMsgs = useCallback(() => {
+    setEnableMsgs(true);
+  }, []);
+
+  // Memoize static nav items
+  const memoizedNavItems = useMemo(() =>
+    navItems.map((item, index) => (
+      <MemoizedNavItem key={index} {...item} />
+    ))
+    , []);
+
+  // Memoize static mobile nav items
+  const memoizedMobileNavItems = useMemo(() =>
+    mobileNavItems.map((item, index) => (
+      <MemoizedNavItem key={index} {...item} />
+    ))
+    , []);
+
+  // Memoize price display
+  const priceDisplay = useMemo(() => (
+    <HStack justifyContent={"center"}>
+      <Image src={"/images/cdt.svg"} w="18px" h="18px" />
+      <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize={"medium"}>
+        {cdtPrice != " " && cdtPrice != "0" ? "$" : null}{cdtPrice}
+      </Text>
+    </HStack>
+  ), [cdtPrice]);
 
   return (
     <>
       <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" p="6" gap="1rem" bg="whiteAlpha.100" height="100%" display={{ base: "none", md: "flex" }}>
         <Stack as="ul" gap="7">
           <Stack marginTop={"6%"}>
-            <Logo />
-            <HStack justifyContent={"center"}>
-              <Image src={"/images/cdt.svg"} w="18px" h="18px" />
-              <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize={"medium"}>
-                {cdtPrice != " " && cdtPrice != "0" ? "$" : null}{cdtPrice}
-              </Text>
-            </HStack>
+            <MemoizedLogo />
+            {priceDisplay}
           </Stack>
-          {/* Put level here "D Rank Generator: 3403489 Juoules" */}
-          <SoloLeveling />
+          <MemoizedSoloLeveling />
           <Box h="3" />
-          {navItems.map((item, index) => (
-            <NavItem key={index} {...item} />
-          ))}
+          {memoizedNavItems}
           <WallectConnect />
         </Stack>
-        <Button textAlign="center" whiteSpace={"prewrap"} fontSize="14px" onClick={() => setEnableMsgs(true)} justifyContent={"center"} display={enable_msgs ? "none" : "flex"}>
+
+        <Button
+          textAlign="center"
+          whiteSpace={"prewrap"}
+          fontSize="14px"
+          onClick={handleEnableMsgs}
+          justifyContent={"center"}
+          display={enable_msgs ? "none" : "flex"}
+        >
           Check For Claims & Liquidations
         </Button>
-        {enable_msgs && <UniversalButtons />}
 
-        <BalanceCard />
+        {enable_msgs && <MemoizedUniversalButtons />}
+        <MemoizedBalanceCard />
       </Stack>
 
       {/* Mobile Menu */}
@@ -156,16 +196,15 @@ function SideNav() {
           <ModalCloseButton mr={2} />
           <ModalBody mt={8}>
             <VStack spacing={8} mt={12} onClick={close}>
-              {mobileNavItems.map((item, index) => (
-                <NavItem key={index} {...item} />
-              ))}
+              {memoizedMobileNavItems}
               <WallectConnect />
             </VStack>
           </ModalBody>
         </ModalContent>
       </Modal>
     </>
-  )
+  );
 }
 
-export default SideNav
+// Memoize the entire SideNav if its parent might cause unnecessary rerenders
+export default memo(SideNav);

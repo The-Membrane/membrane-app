@@ -56,6 +56,12 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
         The Membrane LP vault. It's a range bound concentrated liquidity position that is distributed protocol revenue.
       </ListItem>
       <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+        Why is the yield negative?
+      </Text>
+      <ListItem fontFamily="Inter" fontSize="md">
+        The APR is derived from the cost of the position. If the cost is higher than the yield, the yield will be negative. Because yield comes directly from revenue, negative yields are more common for high risk assets with low caps. Otherwise, costs will transfer to the yield and balance out. In other words, the collateral's cost must be way over the average cost for the yield to be negative.
+      </ListItem>
+      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
         Who automates this? Is it centralized?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
@@ -202,7 +208,7 @@ const NeuroGuardOpenEntry = React.memo(({
 
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
   // console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
-  const yieldValue = Math.max(num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toNumber(), 0).toFixed(1)
+  const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toFixed(1)
 
 
   return (
@@ -294,7 +300,7 @@ const NeuroGuardExistingEntry = React.memo(({
   {/* @ts-ignore */ }
   const isDisabled = (asset?.balance ?? 0) === 0 || guardedPosition.symbol === "N/A"
   // console.log("isDisabled", isDisabled, asset?.balance, asset)
-  const yieldValue = Math.max(num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toNumber(), 0).toFixed(1)
+  const yieldValue = num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toFixed(1)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>
@@ -400,7 +406,7 @@ const RBLPExistingEntry = React.memo(({
   {/* @ts-ignore */ }
   const isDisabled = (asset?.symbol === "N/A") || false
   // console.log("isDisabled", isDisabled, asset?.balance, asset)
-  const yieldValue = Math.max(num(RBYield).times(100).toNumber(), 0).toFixed(1)
+  const yieldValue = num(RBYield).times(100).toFixed(1)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>

@@ -50,6 +50,7 @@ function SoloLeveling() {
         isLoading={claimPoints.simulate.isLoading || claimPoints.tx.isPending}
         isDisabled={claimPoints.simulate.isError || !claimPoints.simulate.data}
         onClick={() => claimPoints.tx.mutate()}
+        toggleConnectLabel={false}
       >
         Claim MBRN
       </TxButton>

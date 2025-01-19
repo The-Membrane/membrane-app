@@ -142,7 +142,8 @@ export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsRespo
   // // 
   // var debtTallies = [0,0,0, 0]
   //   console.log("above map", basketPositions)
-  basketPositions?.map((basketPosition, index) => {
+  const basketAssets = getBasketAssets(basket, interest)
+  basketPositions?.forEach((basketPosition, index) => {
     var debt = getDebt([basketPosition])
     if (!debt || debt <= 1000) return
     if (basketPosition.user == contracts.earn) debt = debt * 0.75
@@ -150,14 +151,13 @@ export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsRespo
     // console.log("in map", basketPosition)
     const positions = getPositions([basketPosition], prices)
     const tvl = getTVL(positions)
-    const basketAssets = getBasketAssets(basket, interest)
     const positionsWithRatio = getAssetRatio(false, tvl, positions)
 
     // console.log("above discount")
-    const discountRatio = (userDiscountQueries.length !== 0 && userDiscountQueries[index].data) ? userDiscountQueries[index].data.discount : "0"
+    const discountRatio = userDiscountQueries[index]?.data?.discount || "0";
     // console.log("discount", discountRatio)
     const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
-    const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
+    const discountedCost = cost * (1 - Number(discountRatio))
     const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
     const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
     // console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)

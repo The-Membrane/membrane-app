@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { num } from '@/helpers/num';
-import { getBasket, getBasketPositions, getCollateralInterest, getUserDiscount } from '@/services/cdp';
+import { getBasket, getBasketAssets, getBasketPositions, getCollateralInterest, getUserDiscount } from '@/services/cdp';
 import { getBoundedTVL, getEstimatedAnnualInterest } from '@/services/earn';
 import { getOraclePrices } from '@/services/oracle';
 import type { NextApiRequest, NextApiResponse } from 'next'
@@ -16,26 +16,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       res.setHeader('Allow', ['GET']);
       return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
-    console.time("bulk queries");
-    const [allPositions, basket, interest, vaultTVL] = await Promise.all([
-      getBasketPositions(),
+    const [basket, interest, vaultTVL] = await Promise.all([
       getBasket(),
       getCollateralInterest(),
       getBoundedTVL()
     ]);
-    const prices = await getOraclePrices(basket);
-    console.timeEnd("bulk queries");
 
-
-    if (!prices || !allPositions || !basket || !interest || !vaultTVL) {
+    if (!basket || !interest || !vaultTVL) {
       return res.status(500).json({ error: 'Failed to fetch required data.' });
     }
 
-    console.time("getEstimatedAnnualInterest");
-    const cdpCalcs = getEstimatedAnnualInterest(allPositions, prices, basket, interest, []);
-    console.timeEnd("getEstimatedAnnualInterest");
+    //Get the lowest rate
+    const sortedRates = interest.rates
+      .filter(rate => !isNaN(Number(rate)))  // Ensure all elements are numbers
+      .sort((a, b) => Number(a) - Number(b));
 
-    const apr = num(cdpCalcs.totalExpectedRevenue)
+    const estimatedRate = sortedRates.length > 0 ? sortedRates[0] : null;
+    const estimatedRevenue = estimatedRate ? num(estimatedRate).times(basket.credit_asset.amount) : num(0);
+
+    const apr = num(estimatedRevenue)
       .times(0.80)
       .dividedBy(vaultTVL)
       .toString()

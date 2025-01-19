@@ -78,8 +78,7 @@ export const getBasketAssets = (
       maxLTV,
       maxBorrowLTV,
       supplyCapRatio: basket?.collateral_supply_caps[index].supply_cap_ratio,
-      SPCapRatio: basket?.collateral_supply_caps[index].stability_pool_ratio_for_debt_cap,
-
+      SPCapRatio: basket?.collateral_supply_caps[index].stability_pool_ratio_for_debt_cap
     }
   }) as BasketAsset[]
 }

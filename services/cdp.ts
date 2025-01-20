@@ -489,8 +489,8 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
-  return {
-    liquidatibleCDPs: basketPositions?.map((basketPosition, index) => {
+  {
+    basketPositions?.map((basketPosition, index) => {
       //check every position index
       if (basketPosition && basketPosition.positions.length > 0) {
 
@@ -574,4 +574,6 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
       }
     })
   }
+
+  return { liquidatibleCDPs }
 }

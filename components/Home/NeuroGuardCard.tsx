@@ -812,33 +812,33 @@ const NeuroGuardCard = () => {
   }, [bidState.cdpExpectedAnnualRevenue, TVL, rangeBoundAPR]);
 
   // Render optimization: Only map through arrays if they exist and have items
-  const renderGuardedPositions = useCallback(() => {
-    if (!existingGuards?.length || !existingGuards[0]) return null;
-    return existingGuards.map(guard => {
-      if (!guard) return null;
-      if (guard.symbol === "CDT" && Number(underlyingCDT) > 0) {
-        return (
-          <MemoizedRBLPExistingEntry
-            key={guard.position.position_id}
-            address={address ?? ""}
-            rblpDeposit={Number(underlyingCDT)}
-            RBYield={calculatedRBYield}
-          />
-        );
-      }
-      if (guard.symbol !== "CDT") {
-        return (
-          <MemoizedNeuroGuardExistingEntry
-            key={guard.position.position_id}
-            guardedPosition={guard}
-            RBYield={calculatedRBYield}
-            prices={prices}
-          />
-        );
-      }
-      return null;
-    });
-  }, [existingGuards, underlyingCDT, address, calculatedRBYield, prices]);
+  // const renderGuardedPositions = useCallback(() => {
+  //   if (!existingGuards?.length || !existingGuards[0]) return null;
+  //   return existingGuards.map(guard => {
+  //     if (!guard) return null;
+  //     if (guard.symbol === "CDT" && Number(underlyingCDT) > 0) {
+  //       return (
+  //         <MemoizedRBLPExistingEntry
+  //           key={guard.position.position_id}
+  //           address={address ?? ""}
+  //           rblpDeposit={Number(underlyingCDT)}
+  //           RBYield={calculatedRBYield}
+  //         />
+  //       );
+  //     }
+  //     if (guard.symbol !== "CDT") {
+  //       return (
+  //         <MemoizedNeuroGuardExistingEntry
+  //           key={guard.position.position_id}
+  //           guardedPosition={guard}
+  //           RBYield={calculatedRBYield}
+  //           prices={prices}
+  //         />
+  //       );
+  //     }
+  //     return null;
+  //   });
+  // }, [existingGuards, underlyingCDT, address, calculatedRBYield, prices]);
 
   //Iterate thru positions and find all positions that aren't for NeuroGuard (i.e. don't have a position ID)
   const nonNeuroGuardPositions = useMemo(() => {
@@ -936,7 +936,7 @@ const NeuroGuardCard = () => {
     );
   });
 
-  const GuardiansSection = memo(({ renderGuardedPositions }: { renderGuardedPositions: any }) => {
+  const GuardiansSection = ({ RBYield }: { RBYield: string }) => {
     return (
       <Stack>
         <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
@@ -959,10 +959,13 @@ const NeuroGuardCard = () => {
             Actions
           </Text>
         </HStack>
-        {renderGuardedPositions()}
+        {existingGuards.map((guard) =>
+          <>{guard && guard.symbol != "CDT" ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={RBYield} prices={prices} />
+            : guard && guard.symbol == "CDT" && Number(underlyingCDT) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} RBYield={RBYield} /> : null}</>
+        )}
       </Stack>
     );
-  });
+  };
 
   const CDPsSection = memo(({ positions, cdtMarketPrice }: { positions: any[], cdtMarketPrice: string }) => {
     return (
@@ -1030,7 +1033,7 @@ const NeuroGuardCard = () => {
         : null}
 
       {existingGuards && existingGuards.length > 0 && existingGuards[0] ?
-        <GuardiansSection renderGuardedPositions={renderGuardedPositions} />
+        <GuardiansSection RBYield={calculatedRBYield} />
         : null}
 
       {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?

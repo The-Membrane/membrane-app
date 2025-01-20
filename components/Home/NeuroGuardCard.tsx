@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent, memo, useRef } from "react"
+import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent, memo } from "react"
 import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import { num } from "@/helpers/num"
@@ -286,18 +286,10 @@ const NeuroGuardExistingEntry = React.memo(({
 
   // console.log("initialDepositAmount", initialDepositAmount)
 
-  const [isDepositOpen, setisDepositOpen] = useState(false);
-  const isDepositOpenRef = useRef(false); // Persist state across renders  
+  const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {
-    const newState = !isDepositOpenRef.current; // Toggle the ref
-    isDepositOpenRef.current = newState; // Update the ref value
-    setisDepositOpen(newState); // Trigger a re-render for the UI
-  }, []);
-
-  // const toggleDepositOpen = () => {
-  //   isDepositOpenRef.current = !isDepositOpenRef.current; // Update the ref value
-  //   console.log("isDepositOpenRef", isDepositOpenRef.current); // Debugging log
-  // };
+    setIsDepositOpen(prev => !prev)
+  }, [])
 
 
   const [isWithdrawOpen, setIsWithdrawOpenOpen] = useState(false)
@@ -335,14 +327,14 @@ const NeuroGuardExistingEntry = React.memo(({
             padding="0"
             alignSelf="center"
             margin="0"
-            onClick={() => { setNeuroState({ depositSelectedAsset: asset }); toggleDepositOpen() }}
+            onClick={() => { toggleDepositOpen(); setNeuroState({ depositSelectedAsset: asset }); }}
             isDisabled={isDisabled}
           >
             Deposit
           </Button>
-          {/* {isDepositOpenRef.current && ( */}
-          <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
-          {/* )} */}
+          {isDepositOpen && (
+            <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
+          )}
 
           {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} prices={prices} />)}
           <Button
@@ -801,11 +793,11 @@ const NeuroGuardCard = () => {
 
 
   // Pre-calculate values used in render
-  // const showWallet = useMemo(() => {
-  //   return neuroState.assets.length > 1 ||
-  //     (neuroState.assets.length > 0 &&
-  //       num(neuroState.assets[0].combinUsdValue).isGreaterThan(0.01));
-  // }, [neuroState.assets]);
+  const showWallet = useMemo(() => {
+    return neuroState.assets.length > 1 ||
+      (neuroState.assets.length > 0 &&
+        num(neuroState.assets[0].combinUsdValue).isGreaterThan(0.01));
+  }, [neuroState.assets]);
 
   const calculatedRBYield = useMemo(() => {
     if (!bidState.cdpExpectedAnnualRevenue || !TVL) return "0";

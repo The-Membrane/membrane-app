@@ -327,7 +327,10 @@ const NeuroGuardExistingEntry = React.memo(({
             padding="0"
             alignSelf="center"
             margin="0"
-            onClick={() => { toggleDepositOpen(); setNeuroState({ depositSelectedAsset: asset }); }}
+            onClick={() => {
+              toggleDepositOpen();
+              // setNeuroState({ depositSelectedAsset: asset });
+            }}
             isDisabled={isDisabled}
           >
             Deposit

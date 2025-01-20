@@ -333,9 +333,9 @@ const NeuroGuardExistingEntry = React.memo(({
           >
             Deposit
           </Button>
-          {isDepositOpen && (
-            <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
-          )}
+          {/* {isDepositOpen && ( */}
+          <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
+          {/* )} */}
 
           {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} prices={prices} />)}
           <Button
@@ -794,11 +794,11 @@ const NeuroGuardCard = () => {
 
 
   // Pre-calculate values used in render
-  const showWallet = useMemo(() => {
-    return neuroState.assets.length > 1 ||
-      (neuroState.assets.length > 0 &&
-        num(neuroState.assets[0].combinUsdValue).isGreaterThan(0.01));
-  }, [neuroState.assets]);
+  // const showWallet = useMemo(() => {
+  //   return neuroState.assets.length > 1 ||
+  //     (neuroState.assets.length > 0 &&
+  //       num(neuroState.assets[0].combinUsdValue).isGreaterThan(0.01));
+  // }, [neuroState.assets]);
 
   const calculatedRBYield = useMemo(() => {
     if (!bidState.cdpExpectedAnnualRevenue || !TVL) return "0";

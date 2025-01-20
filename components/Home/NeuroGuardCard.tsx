@@ -936,11 +936,6 @@ const NeuroGuardCard = () => {
     );
   });
 
-  // const GuardiansSection = ({ RBYield }: { RBYield: string }) => {
-  //   return (
-  //   );
-  // };
-
   const CDPsSection = memo(({ positions, cdtMarketPrice }: { positions: any[], cdtMarketPrice: string }) => {
     return (
       <Stack>

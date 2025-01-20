@@ -9,10 +9,9 @@ type Props = TextProps & {
 
 const TxError = ({ action, ...textProps }: Props) => {
   const { isError, error } = action?.simulate || {}
-  
+
   const errorMessage = useMemo(() => {
-    if (!error) return null
-    return parseError(error?.message ?? "")
+    return parseError(isError ? error?.message : "")
   }, [error])
 
   if (!isError) return null

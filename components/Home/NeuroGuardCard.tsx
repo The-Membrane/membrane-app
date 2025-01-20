@@ -286,11 +286,18 @@ const NeuroGuardExistingEntry = React.memo(({
 
   // console.log("initialDepositAmount", initialDepositAmount)
 
+  const [isDepositOpen, setisDepositOpen] = useState(false);
   const isDepositOpenRef = useRef(false); // Persist state across renders  
-  const toggleDepositOpen = () => {
-    isDepositOpenRef.current = !isDepositOpenRef.current; // Update the ref value
-    console.log("isDepositOpenRef", isDepositOpenRef.current); // Debugging log
-  };
+  const toggleDepositOpen = useCallback(() => {
+    const newState = !isDepositOpenRef.current; // Toggle the ref
+    isDepositOpenRef.current = newState; // Update the ref value
+    setisDepositOpen(newState); // Trigger a re-render for the UI
+  }, []);
+
+  // const toggleDepositOpen = () => {
+  //   isDepositOpenRef.current = !isDepositOpenRef.current; // Update the ref value
+  //   console.log("isDepositOpenRef", isDepositOpenRef.current); // Debugging log
+  // };
 
 
   const [isWithdrawOpen, setIsWithdrawOpenOpen] = useState(false)
@@ -334,7 +341,7 @@ const NeuroGuardExistingEntry = React.memo(({
             Deposit
           </Button>
           {/* {isDepositOpenRef.current && ( */}
-          <NeuroDepositModal isOpen={isDepositOpenRef.current} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
+          <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
           {/* )} */}
 
           {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} prices={prices} />)}

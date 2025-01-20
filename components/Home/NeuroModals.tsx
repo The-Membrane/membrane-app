@@ -364,6 +364,9 @@ export const NeuroDepositModal = React.memo(({
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: string, position_id: string }>) => {
 
 
+    console.log("isOpen?", isOpen)
+
+
     const { neuroState, setNeuroState } = useNeuroState()
     const { action: existingNeuro } = useExistingNeuroGuard({ position_id, onSuccess: onClose, run: isOpen })
     const isLoading = existingNeuro?.simulate.isLoading || existingNeuro?.tx.isPending

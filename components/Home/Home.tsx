@@ -43,7 +43,7 @@ const Home = () => {
         onChange={handleToggle}
         fontFamily="Inter"
       >
-        Accept cookies to track profits
+        Accept cookies to track profits & optimize load times
       </Checkbox>
     ),
     duration: null

@@ -536,6 +536,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
           if (debt === 0) { console.log("no debt"); return undefined }
           ////////////////////////////////
           const debtValue = num(debt).times(basket.credit_price.price).toNumber()
+          if (debt === 0) { console.log("no debt"); return undefined }
           const ltv = getLTV(tvl, debtValue)
           const positionsWithRatio = getAssetRatio(false, tvl, positions)
           const basketAssets = getBasketAssets(basket!, interest!)

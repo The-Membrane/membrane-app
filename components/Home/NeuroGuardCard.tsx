@@ -333,9 +333,9 @@ const NeuroGuardExistingEntry = React.memo(({
           >
             Deposit
           </Button>
-          {isDepositOpenRef.current && (
-            <NeuroDepositModal isOpen={isDepositOpenRef.current} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
-          )}
+          {/* {isDepositOpenRef.current && ( */}
+          <NeuroDepositModal isOpen={isDepositOpenRef.current} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
+          {/* )} */}
 
           {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} prices={prices} />)}
           <Button

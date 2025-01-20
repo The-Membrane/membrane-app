@@ -68,10 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             return res.status(500).json({ error: 'Failed to fetch required underlyingData.' });
         }
 
-        const underlyingCDT = useMemo(() =>
-            shiftDigits(underlyingData, -6).toString() ?? "0"
-            , [underlyingData])
-
+        const underlyingCDT = shiftDigits(underlyingData, -6).toString() ?? "0"
 
         return res.status(200).json({
             balance: underlyingCDT

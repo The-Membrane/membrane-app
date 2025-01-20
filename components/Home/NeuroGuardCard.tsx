@@ -346,7 +346,7 @@ const NeuroGuardExistingEntry = React.memo(({
             padding="0"
             alignSelf="center"
             margin="0"
-            onClick={() => { setNeuroState({ withdrawSelectedAsset: asset }); toggleWithdrawOpen() }}
+            onClick={() => { toggleWithdrawOpen(); setNeuroState({ withdrawSelectedAsset: asset }); }}
             isDisabled={guardedPosition.symbol == "N/A" ? true : false}
           >
             Withdraw
@@ -938,32 +938,6 @@ const NeuroGuardCard = () => {
 
   const GuardiansSection = ({ RBYield }: { RBYield: string }) => {
     return (
-      <Stack>
-        <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-          Your Guardians
-        </Text>
-        <HStack gap="0%" p={4}>
-          <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Asset
-          </Text>
-          <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Balance
-          </Text>
-          <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Estimated APR
-          </Text>
-          <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Historical Profit
-          </Text>
-          <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Actions
-          </Text>
-        </HStack>
-        {existingGuards.map((guard) =>
-          <>{guard && guard.symbol != "CDT" ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={RBYield} prices={prices} />
-            : guard && guard.symbol == "CDT" && Number(underlyingCDT) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} RBYield={RBYield} /> : null}</>
-        )}
-      </Stack>
     );
   };
 
@@ -1033,7 +1007,32 @@ const NeuroGuardCard = () => {
         : null}
 
       {existingGuards && existingGuards.length > 0 && existingGuards[0] ?
-        <GuardiansSection RBYield={calculatedRBYield} />
+        <Stack>
+          <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+            Your Guardians
+          </Text>
+          <HStack gap="0%" p={4}>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Asset
+            </Text>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Balance
+            </Text>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Estimated APR
+            </Text>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Historical Profit
+            </Text>
+            <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Actions
+            </Text>
+          </HStack>
+          {existingGuards.map((guard) =>
+            <>{guard && guard.symbol != "CDT" ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} />
+              : guard && guard.symbol == "CDT" && Number(underlyingCDT) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} RBYield={calculatedRBYield} /> : null}</>
+          )}
+        </Stack>
         : null}
 
       {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?

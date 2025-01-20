@@ -288,6 +288,7 @@ const NeuroGuardExistingEntry = React.memo(({
 
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const toggleDepositOpen = useCallback(() => {
+    console.log("isDepositOpen?", isDepositOpen)
     setIsDepositOpen(prev => !prev)
   }, [])
 

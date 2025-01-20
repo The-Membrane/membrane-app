@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent, memo } from "react"
+import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent, memo, useRef } from "react"
 import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import { num } from "@/helpers/num"
@@ -286,11 +286,11 @@ const NeuroGuardExistingEntry = React.memo(({
 
   // console.log("initialDepositAmount", initialDepositAmount)
 
-  const [isDepositOpen, setIsDepositOpen] = useState(false)
-  const toggleDepositOpen = useCallback(() => {
-    console.log("isDepositOpen?", isDepositOpen)
-    setIsDepositOpen(prev => !prev)
-  }, [])
+  const isDepositOpenRef = useRef(false); // Persist state across renders  
+  const toggleDepositOpen = () => {
+    isDepositOpenRef.current = !isDepositOpenRef.current; // Update the ref value
+    console.log("isDepositOpenRef", isDepositOpenRef.current); // Debugging log
+  };
 
 
   const [isWithdrawOpen, setIsWithdrawOpenOpen] = useState(false)
@@ -333,9 +333,9 @@ const NeuroGuardExistingEntry = React.memo(({
           >
             Deposit
           </Button>
-          {/* {isDepositOpen && ( */}
-          <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
-          {/* )} */}
+          {isDepositOpenRef.current && (
+            <NeuroDepositModal isOpen={isDepositOpenRef.current} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
+          )}
 
           {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} prices={prices} />)}
           <Button

@@ -43,7 +43,7 @@ const useProtocolLiquidations = () => {
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       const cdpCalcs = getRiskyPositions(allPositions, prices, basket, interest)
-      console.log("liquidatible positions:", liq)
+      console.log("liquidatible positions:", cdpCalcs.liquidatibleCDPs)
       const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as { address: string, id: string, fee: string }[]
       console.log("liquidatible positions:", liq)
 

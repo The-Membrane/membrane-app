@@ -485,82 +485,92 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
 
   // console.log("basketPositions", basketPositions)
 
+  var liquidatibleCDPs: any[] = []
+
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   return {
     liquidatibleCDPs: basketPositions?.map((basketPosition, index) => {
-      const positions = getPositions([basketPosition], prices)
+      //check every position index
+      if (basketPosition && basketPosition.positions.length > 0) {
+
+        basketPosition.positions.forEach((position, index) => {
+
+          const positions = getPositions([basketPosition], prices, index)
 
 
-      // Create a list of the position's assets and sort alphabetically
-      // const assetList = positions.map((position) => position.symbol).sort()
-      // // If the asset list is already in the bundles, increment the tally array of the same index & add the total value of the position to the totalValue array
-      // // Otherwise, add the asset list to the bundles, add 1 to the tally & add the total value of the position to the totalValue array
-      // const index = bundles.findIndex((bundle) => bundle.join('') === assetList.join(''))
-      // if (index !== -1) {
-      //   tally[index] += 1
-      //   totalValue[index] += positions.reduce((acc, position) => { 
-      //     if (!position) return acc
-      //     return acc + position.usdValue
-      //   }, 0)
-      // } else {
-      //   bundles.push(assetList)
-      //   tally.push(1)
-      //   totalValue.push(positions.reduce((acc, position) => { 
-      //     if (!position) return acc
-      //     return acc + position.usdValue
-      //   }, 0))
-      // }
+          // Create a list of the position's assets and sort alphabetically
+          // const assetList = positions.map((position) => position.symbol).sort()
+          // // If the asset list is already in the bundles, increment the tally array of the same index & add the total value of the position to the totalValue array
+          // // Otherwise, add the asset list to the bundles, add 1 to the tally & add the total value of the position to the totalValue array
+          // const index = bundles.findIndex((bundle) => bundle.join('') === assetList.join(''))
+          // if (index !== -1) {
+          //   tally[index] += 1
+          //   totalValue[index] += positions.reduce((acc, position) => { 
+          //     if (!position) return acc
+          //     return acc + position.usdValue
+          //   }, 0)
+          // } else {
+          //   bundles.push(assetList)
+          //   tally.push(1)
+          //   totalValue.push(positions.reduce((acc, position) => { 
+          //     if (!position) return acc
+          //     return acc + position.usdValue
+          //   }, 0))
+          // }
 
-      // //Log the top 5 most common asset bundles
-      // const topBundles = tally.map((count, i) => {
-      //   return { bundle: bundles[i], count }
-      // }).sort((a, b) => b.count - a.count)//.slice(0, 5)
-      // console.log(topBundles)
-      // //Log the highest value bundles
-      // const topValue = totalValue.map((value, i) => {
-      //   return { bundle: bundles[i], value }
-      // }).sort((a, b) => b.value - a.value)//.slice(0, 5)
-      // console.log(topValue)
+          // //Log the top 5 most common asset bundles
+          // const topBundles = tally.map((count, i) => {
+          //   return { bundle: bundles[i], count }
+          // }).sort((a, b) => b.count - a.count)//.slice(0, 5)
+          // console.log(topBundles)
+          // //Log the highest value bundles
+          // const topValue = totalValue.map((value, i) => {
+          //   return { bundle: bundles[i], value }
+          // }).sort((a, b) => b.value - a.value)//.slice(0, 5)
+          // console.log(topValue)
 
-      const tvl = getTVL(positions)
-      const debt = getDebt([basketPosition])
-      //skip if no debt
-      if (debt === 0) { return undefined }
-      ////////////////////////////////
-      const debtValue = num(debt).times(basket.credit_price.price).toNumber()
-      const ltv = getLTV(tvl, debtValue)
-      const positionsWithRatio = getAssetRatio(false, tvl, positions)
-      const basketAssets = getBasketAssets(basket!, interest!)
-      const liquidationLTV = getLiqudationLTV(
-        tvl,
-        positions,
-        basketAssets,
-        positionsWithRatio,
-      )
+          const tvl = getTVL(positions)
+          const debt = getDebt([basketPosition])
+          //skip if no debt
+          if (debt === 0) { console.log("no debt"); return undefined }
+          ////////////////////////////////
+          const debtValue = num(debt).times(basket.credit_price.price).toNumber()
+          const ltv = getLTV(tvl, debtValue)
+          const positionsWithRatio = getAssetRatio(false, tvl, positions)
+          const basketAssets = getBasketAssets(basket!, interest!)
+          const liquidationLTV = getLiqudationLTV(
+            tvl,
+            positions,
+            basketAssets,
+            positionsWithRatio,
+          )
 
-      // const discountRatio = userDiscountQueries[index].data ? userDiscountQueries[index].data.discount : "0"
-      // if (getRevenue){
-      //   console.log("discount", discountRatio)
-      //   const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
-      //   const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
-      //   const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
-      //   const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
-      //   console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
-      //   totalExpectedRevenue += discountedAnnualInterest
-      //   undiscountedTER += annualInterest
-      // }
+          // const discountRatio = userDiscountQueries[index].data ? userDiscountQueries[index].data.discount : "0"
+          // if (getRevenue){
+          //   console.log("discount", discountRatio)
+          //   const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
+          //   const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
+          //   const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
+          //   const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
+          //   console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
+          //   totalExpectedRevenue += discountedAnnualInterest
+          //   undiscountedTER += annualInterest
+          // }
 
-      console.log(ltv, "<", liquidationLTV)
-      if (ltv > liquidationLTV) {
-        let ltv_diff = num(ltv).minus(liquidationLTV)
-        let liq_ratio = ltv_diff.div(ltv)
-        let liq_debt = liq_ratio.times(debtValue)
-        return {
-          address: basketPosition.user,
-          id: basketPosition.positions[0].position_id,
-          fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
-        }
+          console.log(ltv, "<", liquidationLTV)
+          if (ltv > liquidationLTV) {
+            let ltv_diff = num(ltv).minus(liquidationLTV)
+            let liq_ratio = ltv_diff.div(ltv)
+            let liq_debt = liq_ratio.times(debtValue)
+            liquidatibleCDPs.push({
+              address: basketPosition.user,
+              id: basketPosition.positions[0].position_id,
+              fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
+            })
+          }
+        })
+
       }
     })
   }

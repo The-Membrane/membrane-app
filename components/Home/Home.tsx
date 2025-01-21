@@ -27,43 +27,43 @@ import useAppState from '../useAppState'
 const Home = () => {
   console.log("Home")
   const { appState, setAppState } = useAppState();
-  const [hasShownToast, setHasShownToast] = useState(false);
-  const toaster = useToaster();
+  // const [hasShownToast, setHasShownToast] = useState(false);
+  // const toaster = useToaster();
 
   // Memoize the toggle handler to prevent recreating on each render
-  const handleToggle = useCallback((event) => {
-    setAppState({ setCookie: event.target.checked });
-  }, [setAppState]);
+  // const handleToggle = useCallback((event) => {
+  //   setAppState({ setCookie: event.target.checked });
+  // }, [setAppState]);
 
-  // Memoize the toast content to prevent recreating on each render
-  const toastContent = useMemo(() => ({
-    title: 'Accept Cookies',
-    message: (
-      <Checkbox
-        checked={appState?.setCookie}
-        onChange={handleToggle}
-        fontFamily="Inter"
-      >
-        Accept cookies to track profits & optimize load times
-      </Checkbox>
-    ),
-    duration: null
-  }), [appState?.setCookie, handleToggle]);
+  // // Memoize the toast content to prevent recreating on each render
+  // const toastContent = useMemo(() => ({
+  //   title: 'Accept Cookies',
+  //   message: (
+  //     <Checkbox
+  //       checked={appState?.setCookie}
+  //       onChange={handleToggle}
+  //       fontFamily="Inter"
+  //     >
+  //       Accept cookies to track profits & optimize load times
+  //     </Checkbox>
+  //   ),
+  //   duration: null
+  // }), [appState?.setCookie, handleToggle]);
 
-  // Show toast effect with proper dependencies
-  useEffect(() => {
-    if (!hasShownToast && appState?.setCookie === undefined) {
-      toaster.message(toastContent);
-      setHasShownToast(true);
-    }
-  }, [hasShownToast, appState?.setCookie, toastContent, toaster]);
+  // // Show toast effect with proper dependencies
+  // useEffect(() => {
+  //   if (!hasShownToast && appState?.setCookie === undefined) {
+  //     toaster.message(toastContent);
+  //     setHasShownToast(true);
+  //   }
+  // }, [hasShownToast, appState?.setCookie, toastContent, toaster]);
 
-  // Handle toaster dismissal with proper effect
-  useEffect(() => {
-    if (appState?.setCookie) {
-      toaster.dismiss();
-    }
-  }, [appState?.setCookie, toaster]);
+  // // Handle toaster dismissal with proper effect
+  // useEffect(() => {
+  //   if (appState?.setCookie) {
+  //     toaster.dismiss();
+  //   }
+  // }, [appState?.setCookie, toaster]);
 
   // Memoize the entire content to prevent unnecessary re-renders
   const content = () => (

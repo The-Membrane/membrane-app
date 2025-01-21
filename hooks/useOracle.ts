@@ -6,7 +6,7 @@ export const useOraclePrice = () => {
   const { data: basket, dataUpdatedAt } = useBasket()
 
   return useQuery({
-    queryKey: ['oraclePrice', dataUpdatedAt],
+    queryKey: ['oraclePrice', dataUpdatedAt, basket],
     queryFn: async () => {
       if (!basket) return
       return getOraclePrices(basket)

@@ -42,7 +42,7 @@ const ConfrimDetails = ({ children, action }: Props) => {
         >
           Confirm
         </TxButton>
-        <TxError action={action!} />
+        <TxError action={action} />
       </ModalFooter>
     </ModalContent>
   )

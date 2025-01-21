@@ -105,7 +105,7 @@ const HealthSlider = ({ summary }: { summary: any }) => {
 
 }
 
-const MintTabsCard = () => {
+const MintTabsCard = React.memo(() => {
   const { mintState, setMintState } = useMintState()
   const { data: basketPositions } = useUserPositions()
 
@@ -161,9 +161,9 @@ const MintTabsCard = () => {
       </VStack>
     </Card>
   )
-}
+})
 
-const Mint = () => {
+const Mint = React.memo(() => {
   const { data } = useVaultSummary()
   const [summary, setSummary] = useState({
     newDebtAmount: 0,
@@ -192,6 +192,6 @@ const Mint = () => {
       </HStack>
     </Stack>
   )
-}
+})
 
 export default Mint

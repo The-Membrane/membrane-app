@@ -21,7 +21,7 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = fals
   )
 }
 
-const TakeAction = () => {
+const TakeAction = React.memo(() => {
   const { mintState, setMintState } = useMintState()
   const { reset } = useBasketState()
   const combinBalance = useCombinBalance(mintState.positionNumber - 1)
@@ -51,8 +51,8 @@ const TakeAction = () => {
       //newDebtAmount: 0,
     });
     //Requery basket to get updated current_position_id
-    // reset();
-    // queryClient.invalidateQueries({ queryKey: ['basket'] });
+    reset();
+    queryClient.invalidateQueries({ queryKey: ['basket'] });
     //
   }
 
@@ -74,6 +74,6 @@ const TakeAction = () => {
       <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
     </TabPanel>
   )
-}
+})
 
 export default TakeAction

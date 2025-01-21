@@ -19,7 +19,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { getCLPositionsForVault } from '@/services/osmosis'
 import useBoundedManage from "./useRangeBoundLPManage"
 import { deleteCookie, getCookie, setCookie } from '@/helpers/cookies'
-import useAppState from '@/components/useAppState'
+import useAppState from '@/persisted-state/useAppState'
 
 const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?: boolean }) => {
   const { address } = useWallet()

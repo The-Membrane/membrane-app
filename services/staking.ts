@@ -45,19 +45,11 @@ export const getStaked = async (address: Addr) => {
     staker: address,
   })
 
-  const staking = response?.deposit_list?.filter((s) => !s.unstake_start_time)
-  const unstaking = response?.deposit_list?.filter((s) => s.unstake_start_time)
-
-  const staked = staking?.reduce((acc, s) => {
-    return acc.plus(s.amount)
-  }, num(0))
-
-  console.log("unstaking in fn", unstaking)
   return {
-    staked: staked.toNumber(),
-    unstaking,
+    deposit_list: response?.deposit_list || [],
   }
 }
+
 const parseClaimable = (claimable: LiqAsset[]) => {
   return claimable?.map((c) => {
     const denom = c.info.native_token?.denom

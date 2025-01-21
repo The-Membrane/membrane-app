@@ -9,17 +9,17 @@ import { Coin, StdFee } from "@cosmjs/amino";
 import { Addr, Decimal, Config, StakeDistribution, Uint128, DelegationResponse, DelegationInfo, Delegation, ExecuteMsg, AssetInfo, FeeEventsResponse, FeeEvent, LiqAsset, InstantiateMsg, QueryMsg, RewardsResponse, Asset, StakeDistributionLog, StakedResponse, StakeDeposit, StakerResponse, TotalStakedResponse } from "./Staking.types";
 export interface StakingReadOnlyInterface {
   contractAddress: string;
-  config: () => Promise<ConfigResponse>;
+  config: () => Promise<Config>;
   userStake: ({
     staker
   }: {
     staker: string;
-  }) => Promise<UserStakeResponse>;
+  }) => Promise<StakerResponse>;
   userRewards: ({
     user
   }: {
     user: string;
-  }) => Promise<UserRewardsResponse>;
+  }) => Promise<RewardsResponse>;
   staked: ({
     endBefore,
     limit,
@@ -39,7 +39,7 @@ export interface StakingReadOnlyInterface {
     limit?: number;
     startAfter?: string;
     user?: string;
-  }) => Promise<DelegationsResponse>;
+  }) => Promise<DelegationResponse>;
   feeEvents: ({
     limit,
     startAfter
@@ -48,7 +48,7 @@ export interface StakingReadOnlyInterface {
     startAfter?: number;
   }) => Promise<FeeEventsResponse>;
   totalStaked: () => Promise<TotalStakedResponse>;
-  incentiveSchedule: () => Promise<IncentiveScheduleResponse>;
+  incentiveSchedule: () => Promise<StakeDistributionLog>;
 }
 export class StakingQueryClient implements StakingReadOnlyInterface {
   client: CosmWasmClient;
@@ -67,7 +67,7 @@ export class StakingQueryClient implements StakingReadOnlyInterface {
     this.incentiveSchedule = this.incentiveSchedule.bind(this);
   }
 
-  config = async (): Promise<ConfigResponse> => {
+  config = async (): Promise<Config> => {
     return this.client.queryContractSmart(this.contractAddress, {
       config: {}
     });
@@ -76,7 +76,7 @@ export class StakingQueryClient implements StakingReadOnlyInterface {
     staker
   }: {
     staker: string;
-  }): Promise<UserStakeResponse> => {
+  }): Promise<StakerResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       user_stake: {
         staker
@@ -87,7 +87,7 @@ export class StakingQueryClient implements StakingReadOnlyInterface {
     user
   }: {
     user: string;
-  }): Promise<UserRewardsResponse> => {
+  }): Promise<RewardsResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       user_rewards: {
         user
@@ -122,7 +122,7 @@ export class StakingQueryClient implements StakingReadOnlyInterface {
     limit?: number;
     startAfter?: string;
     user?: string;
-  }): Promise<DelegationsResponse> => {
+  }): Promise<DelegationResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       delegations: {
         limit,
@@ -150,7 +150,7 @@ export class StakingQueryClient implements StakingReadOnlyInterface {
       total_staked: {}
     });
   };
-  incentiveSchedule = async (): Promise<IncentiveScheduleResponse> => {
+  incentiveSchedule = async (): Promise<StakeDistributionLog> => {
     return this.client.queryContractSmart(this.contractAddress, {
       incentive_schedule: {}
     });

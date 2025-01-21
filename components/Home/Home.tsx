@@ -16,7 +16,7 @@ import useMintState from '../Mint/hooks/useMintState'
 import NeuroGuardCard from './NeuroGuardCard'
 import { useUserBoundedIntents } from '../Earn/hooks/useEarnQueries'
 import useNeuroState from './hooks/useNeuroState'
-import useAppState from '../useAppState'
+import useAppState from '../../persisted-state/useAppState'
 
 
 // Memoize child components

@@ -16,7 +16,7 @@ import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 import { setCookie } from '@/helpers/cookies'
-import useAppState from '@/components/useAppState'
+import useAppState from '@/persisted-state/useAppState'
 
 const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()

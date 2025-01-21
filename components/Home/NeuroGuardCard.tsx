@@ -35,7 +35,7 @@ import BigNumber from "bignumber.js"
 import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
-import useAppState from "../useAppState"
+import useAppState from "../../persisted-state/useAppState"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {

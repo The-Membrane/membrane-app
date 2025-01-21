@@ -1,38 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscount } from '@/services/cdp'
 import useWallet from './useWallet'
-import { useOraclePrice } from './useOracle'
-import { denoms } from '@/config/defaults'
-import useStaked from '@/components/Stake/hooks/useStaked'
-import { shiftDigits } from '@/helpers/math'
-import { Price } from '@/services/oracle'
 import { useCallback } from 'react'
-import { Basket } from '@/contracts/codegen/positions/Positions.types'
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import { set } from 'lodash'
-
-type Store = {
-  basketState: Basket
-  setBasketState: (partialState: Partial<Basket>) => void
-  reset: () => void
-}
-
-const initialState = {}
-
-// @ts-ignore
-const store = (set) => ({
-  basketState: initialState,
-  setBasketState: (partialState: Partial<Basket>) =>
-    set(
-      (state: Store) => ({ basketState: { ...state.basketState, ...partialState } }),
-      false,
-      `@update/${Object.keys(partialState).join(',')}`,
-    ),
-  reset: () => set((state: Store) => ({ ...state, basketState: initialState }), false, '@reset'),
-})
-
-export const useBasketState = create<Store>(persist(store, { name: 'basketState' }))
+import useBasketState from '@/persisted-state/useBasketState'
 
 
 export const useBasket = () => {
@@ -55,7 +25,6 @@ export const useBasket = () => {
       // If we need fresh data, fetch from API
       return getBasket()
     },
-    // Only fetch if shouldFetchBasket returns true
     enabled: true,
     // You might want to add staleTime to prevent unnecessary refetches
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -66,7 +35,6 @@ export const useBasket = () => {
   console.log("basket hook result", result, shouldFetchBasket(), basketState)
 
   return result
-
 }
 
 export const useCollateralInterest = () => {

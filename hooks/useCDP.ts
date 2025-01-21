@@ -3,6 +3,7 @@ import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getB
 import useWallet from './useWallet'
 import { useCallback } from 'react'
 import useBasketState from '@/persisted-state/useBasketState'
+import useUserPositionState from '@/persisted-state/useUserPositionState'
 
 
 export const useBasket = () => {
@@ -57,16 +58,38 @@ export const useCreditRate = () => {
 
 export const useUserPositions = () => {
   const { address } = useWallet()
+  const { userPositionState, setUserPositionState } = useUserPositionState()
 
-  return useQuery({
+
+  // Function to determine if we need to fetch from API
+  const shouldFetchUserPositions = useCallback(() => {
+    // Add any conditions here that would require a fresh fetch
+    // For example, if certain required data is missing from userPositionState
+    return !userPositionState || Object.keys(userPositionState).length === 0
+  }, [userPositionState])
+
+  const result = useQuery({
     queryKey: ['positions', address],
     queryFn: async () => {
+      // First check if we can use userPositionState
+      if (!shouldFetchUserPositions()) {
+        return userPositionState
+      }
+
       if (!address) return
       console.log("requerying basket positions")
       return getUserPositions(address)
     },
-    enabled: !!address,
+    enabled: true,
+    // You might want to add staleTime to prevent unnecessary refetches
+    staleTime: 1000 * 60 * 5, // 5 minutes
   })
+
+  if (shouldFetchUserPositions() && result.data) {
+    setUserPositionState(result.data)
+  }
+
+  return result
 }
 
 export const useUserDiscount = (address: string | undefined) => {

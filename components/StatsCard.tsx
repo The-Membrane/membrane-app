@@ -22,8 +22,9 @@ export const Stats = React.memo(({ label, value }) => (
   </Stack>
 ))
 
-export const StatsCard = React.memo(() => {
+export const StatsCard = () => {
   const { data: basket } = useBasket()
+  console.log("stats card basket", basket)
   const { data: prices } = useOraclePrice()
 
   const tvl = useMemo(() =>
@@ -68,4 +69,4 @@ export const StatsCard = React.memo(() => {
       <Divider mx="0" mb="5" />
     </Stack>
   )
-})
+}

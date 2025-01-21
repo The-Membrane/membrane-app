@@ -544,10 +544,10 @@ const VaultEntry = React.memo(({
 
 // Memoize child components
 const MemoizedNeuroGuardOpenEntry = memo(NeuroGuardOpenEntry);
-const MemoizedNeuroGuardExistingEntry = memo(NeuroGuardExistingEntry);
+// const MemoizedNeuroGuardExistingEntry = memo(NeuroGuardExistingEntry);
 const MemoizedVaultEntry = memo(VaultEntry);
 const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
-const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
+// const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
 
 const NeuroGuardCard = () => {
   console.log("NG render")
@@ -556,6 +556,7 @@ const NeuroGuardCard = () => {
   const { data: basketPositions } = useUserPositions()
   // console.log("basketPositions", basketPositions)
   const { data: basket } = useBasket()
+  console.log("basketPositions", basketPositions)
   const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()
   // console.log("userIntents", userIntents)

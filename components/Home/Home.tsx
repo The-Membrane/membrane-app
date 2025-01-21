@@ -22,7 +22,7 @@ import useAppState from '../useAppState'
 // Memoize child components
 // const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
 // const MemoizedRangeBoundLPCard = React.memo(RangeBoundLPCard)
-const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
+// const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
 
 const Home = () => {
   console.log("Home")
@@ -70,7 +70,7 @@ const Home = () => {
     <Stack>
       <StatsCard />
       <Stack>
-        <MemoizedNeuroGuardCard />
+        <NeuroGuardCard />
       </Stack>
     </Stack>
   );

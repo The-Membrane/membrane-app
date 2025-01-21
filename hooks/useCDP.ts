@@ -56,7 +56,7 @@ export const useBasket = () => {
       return getBasket()
     },
     // Only fetch if shouldFetchBasket returns true
-    enabled: shouldFetchBasket(),
+    enabled: true,
     // You might want to add staleTime to prevent unnecessary refetches
     staleTime: 1000 * 60 * 5, // 5 minutes
   })

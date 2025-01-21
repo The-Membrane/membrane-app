@@ -6,14 +6,63 @@ import { denoms } from '@/config/defaults'
 import useStaked from '@/components/Stake/hooks/useStaked'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from '@/services/oracle'
+import { useCallback } from 'react'
+import { Basket } from '@/contracts/codegen/positions/Positions.types'
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { set } from 'lodash'
+
+type Store = {
+  basketState: Basket
+  setBasketState: (partialState: Partial<Basket>) => void
+  reset: () => void
+}
+
+const initialState = {}
+
+// @ts-ignore
+const store = (set) => ({
+  basketState: initialState,
+  setBasketState: (partialState: Partial<Basket>) =>
+    set(
+      (state: Store) => ({ basketState: { ...state.basketState, ...partialState } }),
+      false,
+      `@update/${Object.keys(partialState).join(',')}`,
+    ),
+  reset: () => set((state: Store) => ({ ...state, basketState: initialState }), false, '@reset'),
+})
+
+export const useBasketState = create<Store>(persist(store, { name: 'basketState' }))
+
 
 export const useBasket = () => {
-  return useQuery({
+  const { basketState, setBasketState } = useBasketState()
+
+  // Function to determine if we need to fetch from API
+  const shouldFetchBasket = useCallback(() => {
+    // Add any conditions here that would require a fresh fetch
+    // For example, if certain required data is missing from basketState
+    return !basketState || Object.keys(basketState).length === 0
+  }, [basketState])
+
+  const { data } = useQuery({
     queryKey: ['basket'],
     queryFn: async () => {
+      // First check if we can use basketState
+      if (!shouldFetchBasket()) {
+        return basketState
+      }
+      // If we need fresh data, fetch from API
       return getBasket()
     },
+    // Only fetch if shouldFetchBasket returns true
+    enabled: shouldFetchBasket(),
+    // You might want to add staleTime to prevent unnecessary refetches
+    staleTime: 1000 * 60 * 5, // 5 minutes
   })
+
+  if (shouldFetchBasket() && data) setBasketState(data)
+
 }
 
 export const useCollateralInterest = () => {

@@ -41,13 +41,9 @@ export const getConfig = async () => {
 
 export const getStaked = async (address: Addr) => {
   const client = await stakingClient()
-  const response = await client.userStake({
+  return client.userStake({
     staker: address,
   })
-
-  return {
-    deposit_list: response?.deposit_list || [],
-  }
 }
 
 const parseClaimable = (claimable: LiqAsset[]) => {

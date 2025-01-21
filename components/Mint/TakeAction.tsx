@@ -51,8 +51,8 @@ const TakeAction = () => {
       //newDebtAmount: 0,
     });
     //Requery basket to get updated current_position_id
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['basket'] });
+    // reset();
+    // queryClient.invalidateQueries({ queryKey: ['basket'] });
     //
   }
 

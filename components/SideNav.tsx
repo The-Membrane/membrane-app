@@ -93,7 +93,7 @@ const getCDTPrice = () => {
 // Memoize static components
 const MemoizedLogo = memo(Logo);
 const MemoizedBalanceCard = memo(BalanceCard);
-const MemoizedUniversalButtons = memo(UniversalButtons);
+// const MemoizedUniversalButtons = memo(UniversalButtons);
 const MemoizedSoloLeveling = memo(SoloLeveling);
 const MemoizedNavItem = memo(NavItem);
 
@@ -172,7 +172,7 @@ function SideNav() {
           Check For Claims & Liquidations
         </Button>
 
-        {enable_msgs && <MemoizedUniversalButtons />}
+        {enable_msgs && <UniversalButtons />}
         <MemoizedBalanceCard />
       </Stack>
 

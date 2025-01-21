@@ -45,7 +45,7 @@ export const useBasket = () => {
     return !basketState || Object.keys(basketState).length === 0
   }, [basketState])
 
-  const { data } = useQuery({
+  const result = useQuery({
     queryKey: ['basket'],
     queryFn: async () => {
       // First check if we can use basketState
@@ -60,8 +60,11 @@ export const useBasket = () => {
     // You might want to add staleTime to prevent unnecessary refetches
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
+  if (shouldFetchBasket() && result.data) {
+    setBasketState(result.data)
+  }
 
-  if (shouldFetchBasket() && data) setBasketState(data)
+  return result
 
 }
 

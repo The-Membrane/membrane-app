@@ -65,14 +65,14 @@ const Home = () => {
   }, [neuroState?.setCookie, toaster]);
 
   // Memoize the entire content to prevent unnecessary re-renders
-  const content = useMemo(() => (
+  const content = () => (
     <Stack>
       <StatsCard />
       <Stack>
         <MemoizedNeuroGuardCard />
       </Stack>
     </Stack>
-  ), []);
+  ), [];
 
   return content;
 };

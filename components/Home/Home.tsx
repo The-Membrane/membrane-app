@@ -16,6 +16,7 @@ import useMintState from '../Mint/hooks/useMintState'
 import NeuroGuardCard from './NeuroGuardCard'
 import { useUserBoundedIntents } from '../Earn/hooks/useEarnQueries'
 import useNeuroState from './hooks/useNeuroState'
+import useAppState from '../useAppState'
 
 
 // Memoize child components
@@ -25,21 +26,21 @@ const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
 
 const Home = () => {
   console.log("Home")
-  const { neuroState, setNeuroState } = useNeuroState();
+  const { appState, setAppState } = useAppState();
   const [hasShownToast, setHasShownToast] = useState(false);
   const toaster = useToaster();
 
   // Memoize the toggle handler to prevent recreating on each render
   const handleToggle = useCallback((event) => {
-    setNeuroState({ setCookie: event.target.checked });
-  }, [setNeuroState]);
+    setAppState({ setCookie: event.target.checked });
+  }, [setAppState]);
 
   // Memoize the toast content to prevent recreating on each render
   const toastContent = useMemo(() => ({
     title: 'Accept Cookies',
     message: (
       <Checkbox
-        checked={neuroState?.setCookie}
+        checked={appState?.setCookie}
         onChange={handleToggle}
         fontFamily="Inter"
       >
@@ -47,22 +48,22 @@ const Home = () => {
       </Checkbox>
     ),
     duration: null
-  }), [neuroState?.setCookie, handleToggle]);
+  }), [appState?.setCookie, handleToggle]);
 
   // Show toast effect with proper dependencies
   useEffect(() => {
-    if (!hasShownToast && neuroState?.setCookie === undefined) {
+    if (!hasShownToast && appState?.setCookie === undefined) {
       toaster.message(toastContent);
       setHasShownToast(true);
     }
-  }, [hasShownToast, neuroState?.setCookie, toastContent, toaster]);
+  }, [hasShownToast, appState?.setCookie, toastContent, toaster]);
 
   // Handle toaster dismissal with proper effect
   useEffect(() => {
-    if (neuroState?.setCookie) {
+    if (appState?.setCookie) {
       toaster.dismiss();
     }
-  }, [neuroState?.setCookie, toaster]);
+  }, [appState?.setCookie, toaster]);
 
   // Memoize the entire content to prevent unnecessary re-renders
   const content = () => (
@@ -72,7 +73,7 @@ const Home = () => {
         <MemoizedNeuroGuardCard />
       </Stack>
     </Stack>
-  ), [];
+  );
 
   return content;
 };

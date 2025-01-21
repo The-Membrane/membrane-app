@@ -35,6 +35,7 @@ import BigNumber from "bignumber.js"
 import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
+import useAppState from "../useAppState"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -135,11 +136,9 @@ const RBLPDepositEntry = React.memo(({
   RBYield: string
 }) => {
   const [isOpen, setIsOpen] = useState(false)
-  // const { setNeuroState } = useNeuroState()
 
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
-    // setNeuroState({ setCookie: false })
   }, [])
 
   {/* @ts-ignore */ }
@@ -197,7 +196,6 @@ const NeuroGuardOpenEntry = React.memo(({
 
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
-    // setNeuroState({ setCookie: false })
   }, [])
 
   const minValue = ((21 / ((asset.maxBorrowLTV ?? 0) * 0.8)) + 1)
@@ -263,6 +261,8 @@ const NeuroGuardExistingEntry = React.memo(({
   prices: any
 }) => {
   const { neuroState, setNeuroState } = useNeuroState()
+  const { appState, setAppState } = useAppState();
+
   //find the asset in the assets array
   //@ts-ignore
   const asset = guardedPosition.symbol === "N/A" ? undefined : neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
@@ -275,14 +275,14 @@ const NeuroGuardExistingEntry = React.memo(({
     let cookie = getCookie(cookieKey);
     console.log("cookie", cookie)
 
-    if (cookie == null && neuroState.setCookie) {
+    if (cookie == null && appState.setCookie) {
       console.log("setting NG cookie", cookie)
       setCookie(cookieKey, guardedPosition.amount.toString(), 3650);
       cookie = guardedPosition.amount.toString();
     }
 
     setInitialDepositAmount(Number(cookie || 0));
-  }, [neuroState.setCookie, guardedPosition.amount]);
+  }, [appState.setCookie, guardedPosition.amount]);
 
   // console.log("initialDepositAmount", initialDepositAmount)
 
@@ -371,6 +371,7 @@ const RBLPExistingEntry = React.memo(({
 }) => {
 
   const { neuroState } = useNeuroState()
+  const { appState } = useAppState();
   const { setQuickActionState } = useQuickActionState()
   //find the asset in the assets array
   //@ts-ignore
@@ -384,14 +385,14 @@ const RBLPExistingEntry = React.memo(({
     let cookie = getCookie(cookieKey);
     console.log("rblp cookie", cookie)
 
-    if (cookie == null && neuroState.setCookie) {
+    if (cookie == null && appState.setCookie) {
       console.log("setting RBLP cookie", cookie)
       setCookie(cookieKey, rblpDeposit.toString(), 3650);
       cookie = rblpDeposit.toString();
     }
 
     setInitialDepositAmount(Number(cookie || 0));
-  }, [neuroState.setCookie, rblpDeposit]);
+  }, [appState.setCookie, rblpDeposit]);
 
   // console.log("initialDepositAmount", initialDepositAmount)
 
@@ -559,6 +560,7 @@ const NeuroGuardCard = () => {
   const { data: userIntents } = useUserBoundedIntents()
   // console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
+  const { appState, setAppState } = useAppState();
   useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
@@ -669,62 +671,6 @@ const NeuroGuardCard = () => {
       });
     }
   }, [sortedAssets]);
-
-  // //Create an object of assets that only holds assets that have a walletBalance
-  // useMemo(() => {
-  //   if (prices && walletBalances && assets) {
-  //     const assetsPlusCDT = [...assets, { base: denoms.CDT[0], symbol: "CDT", decimal: 6, logo: "/images/cdt.svg", combinedUsdValue: 1 }]
-  //     const assetsWithBalance = assetsPlusCDT?.filter((asset) => {
-  //       if (asset !== undefined) return walletDenoms.includes(asset.base)
-  //       else return false
-  //     }).map((asset) => {
-  //       if (!asset) return
-
-  //       return {
-  //         ...asset,
-  //         value: asset?.symbol,
-  //         label: asset?.symbol,
-  //         sliderValue: 0,
-  //         balance: num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount ?? 0), -(asset?.decimal ?? 6))).toNumber(),
-  //         price: Number(prices?.find((p: any) => p.denom === asset.base)?.price ?? "0"),
-  //         combinUsdValue: num(num(shiftDigits((walletBalances?.find((b: any) => b.denom === asset.base)?.amount ?? 0), -(asset?.decimal ?? 6))).times(num(prices?.find((p: any) => p.denom === asset.base)?.price ?? "0"))).toNumber()
-  //       }
-  //     })
-  //       //Filter out assets with zero value
-  //       .filter((asset) => asset?.combinUsdValue ?? 0 > 1)
-
-  //     // Sort assets with priority symbols first, then alphabetically
-  //     const sortedAssets = assetsWithBalance.sort((a, b) => { // @ts-ignore
-  //       const aIndex = prioritySymbols.indexOf(a.symbol ?? "N/A") // @ts-ignore
-  //       const bIndex = prioritySymbols.indexOf(b.symbol ?? "N/A")
-
-  //       // If both assets are in priority list, sort by priority order
-  //       if (aIndex !== -1 && bIndex !== -1) {
-  //         return aIndex - bIndex
-  //       }
-  //       // If only first asset is in priority list, it comes first
-  //       if (aIndex !== -1) {
-  //         return -1
-  //       }
-  //       // If only second asset is in priority list, it comes first
-  //       if (bIndex !== -1) {
-  //         return 1
-  //       }
-  //       // For non-priority assets, sort alphabetically by symbol 
-  //       // @ts-ignore
-  //       return a.symbol.localeCompare(b.symbol)
-  //     })
-
-
-  //     setNeuroState({
-  //       // @ts-ignore
-  //       assets: (sortedAssets ?? []),
-  //       // @ts-ignore
-  //       selectedAsset: sortedAssets[0] ?? {}
-  //     })
-  //   }
-  // }, [assets, walletBalances, prices])
-
   //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
   const neuroGuardIntents = useMemo(() => {
     if (!userIntents?.[0]?.intent?.intents?.purchase_intents) return [];
@@ -811,34 +757,6 @@ const NeuroGuardCard = () => {
       .toString();
   }, [bidState.cdpExpectedAnnualRevenue, TVL, rangeBoundAPR]);
 
-  // Render optimization: Only map through arrays if they exist and have items
-  // const renderGuardedPositions = useCallback(() => {
-  //   if (!existingGuards?.length || !existingGuards[0]) return null;
-  //   return existingGuards.map(guard => {
-  //     if (!guard) return null;
-  //     if (guard.symbol === "CDT" && Number(underlyingCDT) > 0) {
-  //       return (
-  //         <MemoizedRBLPExistingEntry
-  //           key={guard.position.position_id}
-  //           address={address ?? ""}
-  //           rblpDeposit={Number(underlyingCDT)}
-  //           RBYield={calculatedRBYield}
-  //         />
-  //       );
-  //     }
-  //     if (guard.symbol !== "CDT") {
-  //       return (
-  //         <MemoizedNeuroGuardExistingEntry
-  //           key={guard.position.position_id}
-  //           guardedPosition={guard}
-  //           RBYield={calculatedRBYield}
-  //           prices={prices}
-  //         />
-  //       );
-  //     }
-  //     return null;
-  //   });
-  // }, [existingGuards, underlyingCDT, address, calculatedRBYield, prices]);
 
   //Iterate thru positions and find all positions that aren't for NeuroGuard (i.e. don't have a position ID)
   const nonNeuroGuardPositions = useMemo(() => {
@@ -867,20 +785,18 @@ const NeuroGuardCard = () => {
   // console.log("existingGuard", existingGuards)
   ///Toaster will dismiss once the user has set the cookie due to Home's useEffect
   // const toaster = useToaster()
-  if (existingGuards && existingGuards.length > 0 && existingGuards[0] && !neuroState.setCookie) {
+  if (existingGuards && existingGuards.length > 0 && existingGuards[0] && !appState.setCookie) {
     //Check if the guarded positions have cookies set, if yes, dismiss the toaster
     existingGuards.map((guard) => {
       const cookieKey = "neuroGuard " + guard?.position.position_id;
       let cookie = getCookie(cookieKey);
-      if (cookie != null && !neuroState.setCookie) {
-        setNeuroState({ setCookie: true })
-        // toaster.dismiss()
+      if (cookie != null && !appState.setCookie) {
+        setAppState({ setCookie: true })
       }
     })
   }
-  if (getCookie("rblp " + address) != null && !neuroState.setCookie) {
-    setNeuroState({ setCookie: true })
-    // toaster.dismiss()
+  if (getCookie("rblp " + address) != null && !appState.setCookie) {
+    setAppState({ setCookie: true })
   }
   ////
 

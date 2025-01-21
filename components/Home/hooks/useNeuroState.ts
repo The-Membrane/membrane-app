@@ -12,7 +12,6 @@ export type NeuroState = {
   openSelectedAsset?: AssetWithBalance
   depositSelectedAsset?: AssetWithBalance
   withdrawSelectedAsset?: AssetWithBalance
-  setCookie?: boolean
   closeInputValue: number
   position_to_close?: number
   assets: AssetWithBalance[]

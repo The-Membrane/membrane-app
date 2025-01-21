@@ -156,6 +156,7 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
       ...assetInfo,
       denom,
       amount,
+      assetPrice,
       usdValue,
     }
   }) as Positions[]
@@ -561,6 +562,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
 
           console.log(ltv, "<", liquidationLTV)
           if (ltv > liquidationLTV) {
+            console.log("liquidatible pos ass", positions)
             let ltv_diff = num(ltv).minus(liquidationLTV)
             let liq_ratio = ltv_diff.div(ltv)
             let liq_debt = liq_ratio.times(debtValue)

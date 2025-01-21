@@ -63,6 +63,7 @@ export const useBasket = () => {
   if (shouldFetchBasket() && result.data) {
     setBasketState(result.data)
   }
+  console.log("basket hook result", result)
 
   return result
 

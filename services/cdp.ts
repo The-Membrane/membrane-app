@@ -532,7 +532,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
           // console.log(topValue)
 
           const tvl = getTVL(positions)
-          const debt = getDebt([basketPosition])
+          const debt = getDebt([basketPosition], index)
           //skip if no debt
           if (debt === 0) { console.log("no debt"); return undefined }
           ////////////////////////////////
@@ -562,13 +562,13 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
 
           console.log(ltv, "<", liquidationLTV)
           if (ltv > liquidationLTV) {
-            console.log("liquidatible pos ass", positions)
+            console.log("liquidatible pos ass", positions,)
             let ltv_diff = num(ltv).minus(liquidationLTV)
             let liq_ratio = ltv_diff.div(ltv)
             let liq_debt = liq_ratio.times(debtValue)
             liquidatibleCDPs.push({
               address: basketPosition.user,
-              id: basketPosition.positions[0].position_id,
+              id: basketPosition.positions[index].position_id,
               fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
             })
           }

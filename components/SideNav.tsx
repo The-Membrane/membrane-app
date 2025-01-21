@@ -172,7 +172,9 @@ function SideNav() {
           Check For Claims & Liquidations
         </Button>
 
-        {enable_msgs && <UniversalButtons />}
+        <div style={{ display: enable_msgs ? "block" : "none" }}>
+          <UniversalButtons />
+        </div>
         <MemoizedBalanceCard />
       </Stack>
 

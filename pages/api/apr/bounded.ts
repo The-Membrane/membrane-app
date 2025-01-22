@@ -5,7 +5,7 @@ import { getBoundedTVL } from '@/services/earn';
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 type Data = {
-  apr?: string,
+  apr?: number,
   error?: string
 }
 
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const apr = num(estimatedRevenue)
       .times(0.80)
       .dividedBy(vaultTVL)
-      .toString()
+      .toNumber()
 
     return res.status(200).json({
       apr

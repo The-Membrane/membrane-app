@@ -11,7 +11,7 @@ import { osmosis } from 'osmojs';
 import { useMemo } from 'react';
 
 type Data = {
-    balance?: string,
+    balance?: number,
     error?: string
 }
 
@@ -68,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             return res.status(500).json({ error: 'Failed to fetch required underlyingData.' });
         }
 
-        const underlyingCDT = shiftDigits(underlyingData, -6).toString() ?? "0"
+        const underlyingCDT = Number(shiftDigits(underlyingData, -6)) ?? 0
 
         return res.status(200).json({
             balance: underlyingCDT

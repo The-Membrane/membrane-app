@@ -4,7 +4,7 @@ import { getBoundedTVL } from '@/services/earn';
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 type Data = {
-    tvl?: string,
+    tvl?: number,
     error?: string
 }
 
@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             return res.status(500).json({ error: 'Failed to fetch required data.' });
         }
 
-        const tvl = shiftDigits(vaultTVL, -6).toString()
+        const tvl = Number(shiftDigits(vaultTVL, -6))
 
         return res.status(200).json({
             tvl,

@@ -11,8 +11,9 @@ import { getCLPositionsForVault } from "@/services/osmosis"
 import { useBalanceByAsset } from "@/hooks/useBalance"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
-import { use } from "react"
+import { use, useCallback } from "react"
 import { mainnetAddrs } from "@/config/defaults"
+import useUserIntentState from "@/persisted-state/useUserIntentState"
 
 export const useBoundedConfig = () => {
     return useQuery({
@@ -34,15 +35,42 @@ export const useBoundedConfig = () => {
 
 export const useUserBoundedIntents = () => {
     const { address } = useWallet()
-    return useQuery({
+    const { userIntentState, setUserIntentState } = useUserIntentState()
+
+
+    // Function to determine if we need to fetch from API
+    const shouldFetchIntent = useCallback(() => {
+        // Add any conditions here that would require a fresh fetch
+        // For example, if certain required data is missing from userIntentState
+        return !userIntentState || Object.keys(userIntentState).length === 0
+    }, [userIntentState])
+
+    const result = useQuery({
         queryKey: ['useUserBoundedIntents', address],
         queryFn: async () => {
+
+            // First check if we can use userIntentState
+            if (!shouldFetchIntent()) {
+                return userIntentState
+            }
+
             if (!address) return
+            // If we need fresh data, fetch from API
             return getBoundedIntents().then((intents) => {
                 return intents.filter((intent) => intent.user === address)
             })
         },
+        enabled: true,
+        // You might want to add staleTime to prevent unnecessary refetches
+        staleTime: 1000 * 60 * 5, // 5 minutes
     })
+
+    if (shouldFetchIntent() && result.data) {
+        setUserIntentState(result.data)
+    }
+
+    return result
+
 }
 
 export const useBoundedIntents = () => {

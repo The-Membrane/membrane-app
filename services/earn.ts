@@ -11,6 +11,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { Price } from './oracle'
+import { IntentResponse } from '@/persisted-state/useUserIntentState'
 
 export const EarnClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -64,25 +65,7 @@ export const getBoundedIntents = async () => {
     get_user_intent: {
       users: []
     }
-  }) as Promise<{
-    user: string,
-    intent: {
-      vault_tokens: string,
-      intents: {
-        user: string,
-        last_conversion_rate: string,
-        purchase_intents: {
-          desired_asset: string,
-          route: any | undefined,
-          yield_percent: string,
-          position_id: number | undefined,
-          slippage: string | undefined
-        }[]
-      },
-      unstake_time: number,
-      fee_to_caller: string
-    }
-  }[]>
+  }) as Promise<IntentResponse[]>
 }
 
 export const getUnderlyingUSDC = async (vtAmount: string) => {

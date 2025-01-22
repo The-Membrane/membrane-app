@@ -261,7 +261,7 @@ const NeuroGuardExistingEntry = React.memo(({
   prices: any
 }) => {
   const { neuroState, setNeuroState } = useNeuroState()
-  const { appState, setAppState } = useAppState();
+  const { appState } = useAppState();
 
   //find the asset in the assets array
   //@ts-ignore
@@ -559,7 +559,7 @@ const NeuroGuardCard = () => {
   const { data: basket } = useBasket()
   console.log("basketPositions", basketPositions)
   const { data: TVL } = useBoundedTVL()
-  const { data: userIntents } = useUserBoundedIntents() //can persist
+  const { data: userIntents } = useUserBoundedIntents()
   // console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
   const { appState, setAppState } = useAppState();

@@ -22,7 +22,7 @@ type QueryData = {
   liquidating_positions: Liq[]
 }
 
-const useProtocolLiquidations = () => {
+const useProtocolLiquidations = ({ run }: { run: boolean }) => {
   const liquidating_positions: Liq[] = [];
   const { address } = useWallet()
 
@@ -34,9 +34,9 @@ const useProtocolLiquidations = () => {
 
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
+    queryKey: ['msg liquidations', run, address, allPositions, prices, basket, interest],
     queryFn: () => {
-      if (!address || !allPositions || !prices || !basket || !interest) { console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] } }
+      if (!address || !allPositions || !prices || !basket || !interest || !run) { console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest, !run); return { msgs: [], liquidating_positions: [] } }
 
       //For metric purposes
       console.log("total # of CDPs: ", allPositions?.length)

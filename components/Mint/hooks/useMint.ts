@@ -8,9 +8,11 @@ import useMintState from './useMintState'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
+import useUserPositionState from '@/persisted-state/useUserPositionState'
 
 const useMint = () => {
   const { mintState, setMintState } = useMintState()
+  const { reset } = useUserPositionState()
   const { summary = [] } = mintState
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useUserPositions()
@@ -54,6 +56,7 @@ const useMint = () => {
   })
 
   const onSuccess = () => {
+    reset()
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     setMintState({ positionNumber: 1, mint: 0, repay: 0, summary: [] })

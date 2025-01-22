@@ -21,6 +21,7 @@ import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { getAssetByDenom } from '@/helpers/chain'
 import { deleteCookie, getCookie, setCookie } from '@/helpers/cookies'
+import useUserPositionState from '@/persisted-state/useUserPositionState'
 
 export type UserIntentData = {
   vault_tokens: string,
@@ -92,6 +93,7 @@ const useNeuroClose = ({ position, onSuccess, run }: { position: PositionRespons
   const assets = useCollateralAssets()
   const { neuroState } = useNeuroState()
   const { data: userIntents } = useUserBoundedIntents()
+  const { reset } = useUserPositionState()
   //Get asset by symbol
   const collateralAsset = position.collateral_assets[0].asset
   //@ts-ignore
@@ -246,6 +248,7 @@ const useNeuroClose = ({ position, onSuccess, run }: { position: PositionRespons
     newCookieAmount && newCookieAmount > 0 ? setCookie("neuroGuard " + position.position_id, newCookieAmount.toString(), 3650) : deleteCookie("neuroGuard " + position.position_id)
     onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    reset()
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
   }

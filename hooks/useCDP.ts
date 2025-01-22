@@ -60,13 +60,13 @@ export const useUserPositions = () => {
   const { address } = useWallet()
   const { userPositionState, setUserPositionState } = useUserPositionState()
 
-  console.log((userPositionState && userPositionState.length > 0 && userPositionState[0].user !== address), userPositionState, userPositionState.length > 0, userPositionState[0].user, address)
+  console.log((userPositionState && userPositionState[0].positions.length > 0 && userPositionState.length > 0 && userPositionState[0].user !== address), userPositionState[0].positions.length > 0, userPositionState, userPositionState.length > 0, userPositionState[0].user, address)
 
   // Function to determine if we need to fetch from API
   const shouldFetchUserPositions = useCallback(() => {
     // Add any conditions here that would require a fresh fetch
     // For example, if certain required data is missing from userPositionState
-    return !userPositionState || Object.keys(userPositionState).length === 0 || (userPositionState && userPositionState.length > 0 && userPositionState[0].user !== address)
+    return !userPositionState || Object.keys(userPositionState).length === 0 || (userPositionState && userPositionState[0].positions.length > 0 && userPositionState[0].user !== address)
   }, [userPositionState])
 
   const result = useQuery({

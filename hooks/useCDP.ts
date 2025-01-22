@@ -65,7 +65,7 @@ export const useUserPositions = () => {
   const shouldFetchUserPositions = useCallback(() => {
     // Add any conditions here that would require a fresh fetch
     // For example, if certain required data is missing from userPositionState
-    return !userPositionState || Object.keys(userPositionState).length === 0
+    return !userPositionState || Object.keys(userPositionState).length === 0 || (userPositionState && userPositionState.length > 0 && userPositionState[0].user !== address)
   }, [userPositionState])
 
   const result = useQuery({

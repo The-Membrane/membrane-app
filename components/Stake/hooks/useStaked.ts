@@ -1,6 +1,6 @@
 import { num } from '@/helpers/num'
 import useWallet from '@/hooks/useWallet'
-import useStakeState from '@/persisted-state/useStakeState'
+import useStakeState from '@/persisted-state/useUserStakeState'
 import { getRewards, getStaked } from '@/services/staking'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback } from 'react'
@@ -14,7 +14,7 @@ const useStaked = () => {
   const shouldFetchStake = useCallback(() => {
     // Add any conditions here that would require a fresh fetch
     // For example, if certain required data is missing from stakeState
-    return !stakeState || Object.keys(stakeState).length === 0
+    return !stakeState || Object.keys(stakeState).length === 0 || (stakeState && stakeState.staker !== address)
   }, [stakeState])
 
   return useQuery({

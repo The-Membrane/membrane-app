@@ -60,6 +60,7 @@ export const useUserPositions = () => {
   const { address } = useWallet()
   const { userPositionState, setUserPositionState } = useUserPositionState()
 
+  console.log((userPositionState && userPositionState.length > 0 && userPositionState[0].user !== address), userPositionState, userPositionState.length > 0, userPositionState[0].user, address)
 
   // Function to determine if we need to fetch from API
   const shouldFetchUserPositions = useCallback(() => {

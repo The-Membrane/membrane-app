@@ -52,8 +52,8 @@ export const useUserPoints = () => {
       console.log("under points", address, points)
       console.log("under points", address, points[0])
       console.log("under points", address, points[0].user)
-      console.log("under points", address, points.find((point) => point.user === address))
-      return points.find((point) => point.user === address)
+      console.log("under points", address, Array.from(points).find((point) => point.user === address))
+      return Array.from(points).find((point) => point.user === address)
     },
   })
 }

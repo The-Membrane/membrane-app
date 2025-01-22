@@ -48,21 +48,18 @@ export const useUserBoundedIntents = () => {
     const result = useQuery({
         queryKey: ['useUserBoundedIntents', address],
         queryFn: async () => {
+            if (!address) return
 
             // First check if we can use userIntentState
             if (!shouldFetchIntent()) {
                 return userIntentState
             }
 
-            if (!address) return
             // If we need fresh data, fetch from API
             return getBoundedIntents().then((intents) => {
                 return intents.filter((intent) => intent.user === address)
             })
         },
-        enabled: true,
-        // You might want to add staleTime to prevent unnecessary refetches
-        staleTime: 1000 * 60 * 5, // 5 minutes
     })
 
     if (shouldFetchIntent() && result.data) {

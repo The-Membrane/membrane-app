@@ -1,17 +1,42 @@
 import { useQuery } from '@tanstack/react-query'
 import { getAllUserPoints } from '@/services/points'
 import useWallet from './useWallet'
+import usePointsState from '@/persisted-state/usePointsState'
+import { useCallback } from 'react'
 
 export const useAllUserPoints = () => {
   // console.log("run pls")
+  const { pointsState, setPointsState } = usePointsState()
 
-  return useQuery({
+  // Function to determine if we need to fetch from API
+  const shouldFetchPoints = useCallback(() => {
+    // Add any conditions here that would require a fresh fetch
+    // For example, if certain required data is missing from pointsState
+    return !pointsState || Object.keys(pointsState).length === 0
+  }, [pointsState])
+
+  const result = useQuery({
     queryKey: ['all users points'],
     queryFn: async () => {
-      console.log("query all user points")
+      // console.log("query all user points")
+      // First check if we can use pointsState
+      if (!shouldFetchPoints()) {
+        return pointsState
+      }
+
+      // If we need fresh data, fetch from RPC
       return getAllUserPoints()
     },
+    enabled: true,
+    // You might want to add staleTime to prevent unnecessary refetches
+    staleTime: 1000 * 60 * 5, // 5 minutes
   })
+
+  if (shouldFetchPoints() && result.data) {
+    setPointsState(result.data)
+  }
+
+  return result
 }
 
 export const useUserPoints = () => {

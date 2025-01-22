@@ -30,7 +30,7 @@ import { useRouter } from "next/router"
 import NextLink from 'next/link'
 import { MintIcon } from "../Icons"
 import useMintState from "../Mint/hooks/useMintState"
-import { getCookie, setCookie } from "@/helpers/cookies"
+import { getCookie, getCookieExpirationDate, setCookie } from "@/helpers/cookies"
 import BigNumber from "bignumber.js"
 import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
@@ -273,7 +273,8 @@ const NeuroGuardExistingEntry = React.memo(({
   useEffect(() => {
     const cookieKey = "neuroGuard " + guardedPosition.position.position_id;
     let cookie = getCookie(cookieKey);
-    console.log("cookie", cookie)
+    // getCookieExpirationDate(cookieKey);
+    console.log("cookie", cookie, getCookieExpirationDate(cookieKey))
 
     if (cookie == null && appState.setCookie) {
       console.log("setting NG cookie", cookie)
@@ -558,7 +559,7 @@ const NeuroGuardCard = () => {
   const { data: basket } = useBasket()
   console.log("basketPositions", basketPositions)
   const { data: TVL } = useBoundedTVL()
-  const { data: userIntents } = useUserBoundedIntents()
+  const { data: userIntents } = useUserBoundedIntents() //can persist
   // console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
   const { appState, setAppState } = useAppState();
@@ -567,7 +568,7 @@ const NeuroGuardCard = () => {
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { bidState } = useBidState()
-  const { data: clRewardList } = getBestCLRange()
+  // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
 
   ////
@@ -593,19 +594,19 @@ const NeuroGuardCard = () => {
   const prioritySymbols = ['WBTC.ETH.AXL', 'stATOM', 'stOSMO', 'stTIA']
 
   // Calculate daysSinceDeposit once
-  const daysSinceDeposit = useMemo(() =>
-    num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber(),
-    []
-  )
+  // const daysSinceDeposit = useMemo(() =>
+  //   num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber(),
+  //   []
+  // )
 
   // Memoize rangeBoundAPR calculation
-  const rangeBoundAPR = useMemo(() => {
-    if (!clRewardList) return 0
-    const totalrewards = (clRewardList[2].reward + clRewardList[3].reward +
-      clRewardList[4].reward + clRewardList[10].reward +
-      clRewardList[11].reward + clRewardList[12].reward) / 6
-    return totalrewards / 1000000 / daysSinceDeposit * 365
-  }, [clRewardList, daysSinceDeposit])
+  // const rangeBoundAPR = useMemo(() => {
+  //   if (!clRewardList) return 0
+  //   const totalrewards = (clRewardList[2].reward + clRewardList[3].reward +
+  //     clRewardList[4].reward + clRewardList[10].reward +
+  //     clRewardList[11].reward + clRewardList[12].reward) / 6
+  //   return totalrewards / 1000000 / daysSinceDeposit * 365
+  // }, [clRewardList, daysSinceDeposit])
 
 
 
@@ -754,9 +755,9 @@ const NeuroGuardCard = () => {
     return num(bidState.cdpExpectedAnnualRevenue)
       .times(0.80)
       .dividedBy(TVL)
-      .plus(rangeBoundAPR)
+      // .plus(rangeBoundAPR)
       .toString();
-  }, [bidState.cdpExpectedAnnualRevenue, TVL, rangeBoundAPR]);
+  }, [bidState.cdpExpectedAnnualRevenue, TVL]);
 
 
   //Iterate thru positions and find all positions that aren't for NeuroGuard (i.e. don't have a position ID)

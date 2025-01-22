@@ -1,34 +1,22 @@
 import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent, memo } from "react"
 import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input } from "@chakra-ui/react"
-import { TxButton } from "../TxButton"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
-import { colors, denoms, LPJoinDate } from "@/config/defaults"
-import { FaArrowDown, FaArrowUp } from "react-icons/fa6"
-import { AssetsWithBalanceMenu } from "../NFT/NFTSliderInput"
-import { NeuroAssetSlider } from "./NeuroAssetSlider"
+import { colors, denoms } from "@/config/defaults"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
-import useNeuroClose from "./hooks/useNeuroClose"
 import { useBasket, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
-import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents, useBoundedTVL, useEstimatedAnnualInterest, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
-import { getBestCLRange } from "@/services/osmosis"
+import { useBoundedCDTVaultTokenUnderlying, useBoundedTVL, useEstimatedAnnualInterest, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useBidState from "../Bid/hooks/useBidState"
 import useCollateralAssets from "../Bid/hooks/useCollateralAssets"
-import useNeuroGuard from "./hooks/useNeuroGuard"
 import useNeuroState from "./hooks/useNeuroState"
 import useBalance, { useBalanceByAsset } from "@/hooks/useBalance"
-import { Coin } from "@cosmjs/stargate"
-import TxError from "../TxError"
 import { BasketAsset, getBasketAssets } from "@/services/cdp"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
-import { parseError } from "@/helpers/parseError"
 import { NeuroCloseModal, NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal, RBLPDepositModal, RBLPWithdrawModal } from "./NeuroModals"
 import useVaultSummary from "../Mint/hooks/useVaultSummary"
-import { useRouter } from "next/router"
 import NextLink from 'next/link'
-import { MintIcon } from "../Icons"
 import useMintState from "../Mint/hooks/useMintState"
 import { getCookie, setCookie } from "@/helpers/cookies"
 import BigNumber from "bignumber.js"
@@ -561,7 +549,6 @@ const NeuroGuardCard = () => {
   const { data: userIntents } = useUserBoundedIntents()
   // console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
-  const { appState, setAppState } = useAppState();
   useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
@@ -591,23 +578,6 @@ const NeuroGuardCard = () => {
 
   // Define priority order for specific symbols
   const prioritySymbols = ['WBTC.ETH.AXL', 'stATOM', 'stOSMO', 'stTIA']
-
-  // Calculate daysSinceDeposit once
-  // const daysSinceDeposit = useMemo(() =>
-  //   num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber(),
-  //   []
-  // )
-
-  // Memoize rangeBoundAPR calculation
-  // const rangeBoundAPR = useMemo(() => {
-  //   if (!clRewardList) return 0
-  //   const totalrewards = (clRewardList[2].reward + clRewardList[3].reward +
-  //     clRewardList[4].reward + clRewardList[10].reward +
-  //     clRewardList[11].reward + clRewardList[12].reward) / 6
-  //   return totalrewards / 1000000 / daysSinceDeposit * 365
-  // }, [clRewardList, daysSinceDeposit])
-
-
 
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
@@ -681,8 +651,10 @@ const NeuroGuardCard = () => {
 
   // Memoize existing guards calculation
   const existingGuards = useMemo(() => {
+    console.log(" top  guards")
     // console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
     if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents && basket && prices && basketPositions && assets) {
+      console.log(" in guards")
       //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
       // const neuroGuardIntents = userIntents[0].intent.intents.purchase_intents.filter((intent) => {
       //   return intent.position_id !== undefined
@@ -743,11 +715,11 @@ const NeuroGuardCard = () => {
 
 
   // Pre-calculate values used in render
-  const showWallet = useMemo(() => {
-    return neuroState.assets.length > 1 ||
-      (neuroState.assets.length > 0 &&
-        num(neuroState.assets[0].combinUsdValue).isGreaterThan(0.01));
-  }, [neuroState.assets]);
+  // const showWallet = useMemo(() => {
+  //   return neuroState.assets.length > 1 ||
+  //     (neuroState.assets.length > 0 &&
+  //       num(neuroState.assets[0].combinUsdValue).isGreaterThan(0.01));
+  // }, [neuroState.assets]);
 
   const calculatedRBYield = useMemo(() => {
     if (!bidState.cdpExpectedAnnualRevenue || !TVL) return "0";
@@ -786,19 +758,19 @@ const NeuroGuardCard = () => {
   // console.log("existingGuard", existingGuards)
   ///Toaster will dismiss once the user has set the cookie due to Home's useEffect
   // const toaster = useToaster()
-  if (existingGuards && existingGuards.length > 0 && existingGuards[0] && !appState.setCookie) {
-    //Check if the guarded positions have cookies set, if yes, dismiss the toaster
-    existingGuards.map((guard) => {
-      const cookieKey = "neuroGuard " + guard?.position.position_id;
-      let cookie = getCookie(cookieKey);
-      if (cookie != null && !appState.setCookie) {
-        setAppState({ setCookie: true })
-      }
-    })
-  }
-  if (getCookie("rblp " + address) != null && !appState.setCookie) {
-    setAppState({ setCookie: true })
-  }
+  // if (existingGuards && existingGuards.length > 0 && existingGuards[0] && !appState.setCookie) {
+  //   //Check if the guarded positions have cookies set, if yes, dismiss the toaster
+  //   existingGuards.map((guard) => {
+  //     const cookieKey = "neuroGuard " + guard?.position.position_id;
+  //     let cookie = getCookie(cookieKey);
+  //     if (cookie != null && !appState.setCookie) {
+  //       setAppState({ setCookie: true })
+  //     }
+  //   })
+  // }
+  // if (getCookie("rblp " + address) != null && !appState.setCookie) {
+  //   setAppState({ setCookie: true })
+  // }
   ////
 
 

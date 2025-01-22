@@ -37,7 +37,7 @@ export const useUserBoundedIntents = () => {
     const { address } = useWallet()
     const { userIntentState, setUserIntentState } = useUserIntentState()
 
-
+    console.log((userIntentState && userIntentState[0] && userIntentState[0].user !== address), userIntentState, userIntentState[0], userIntentState[0].user !== address)
     // Function to determine if we need to fetch from API
     const shouldFetchIntent = useCallback(() => {
         // Add any conditions here that would require a fresh fetch

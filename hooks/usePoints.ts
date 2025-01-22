@@ -47,7 +47,9 @@ export const useUserPoints = () => {
   return useQuery({
     queryKey: ['one users points', address, points],
     queryFn: async () => {
+      console.log("in points", address)
       if (!points) return
+      console.log("under points", address)
       return points.find((point) => point.user === address)
     },
   })

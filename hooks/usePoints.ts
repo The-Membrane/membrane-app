@@ -42,7 +42,7 @@ export const useAllUserPoints = () => {
 export const useUserPoints = () => {
   const { address } = useWallet()
   const { data: points } = useAllUserPoints()
-  console.log("points", points)
+  console.log("all points", points)
 
   return useQuery({
     queryKey: ['one users points', address, points],
@@ -55,6 +55,7 @@ export const useUserPoints = () => {
 
 export const useSoloLevel = () => {
   const { data: points } = useUserPoints()
+  console.log("user points", points)
 
   return useQuery({
     queryKey: ['one users level', points],

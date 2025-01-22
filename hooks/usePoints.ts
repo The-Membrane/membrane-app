@@ -42,18 +42,18 @@ export const useAllUserPoints = () => {
 export const useUserPoints = () => {
   const { address } = useWallet()
   const { data: points } = useAllUserPoints()
-  console.log("all points", points)
+  // console.log("all points", points)
 
   return useQuery({
     queryKey: ['one users points', address, points],
     queryFn: async () => {
-      console.log("in points", address)
+      // console.log("in points", address)
       if (!points) return
-      console.log("under points", address, points)
-      console.log("under points", address, points[0])
-      console.log("under points", address, points[0].user)
-      console.log("under points", address, Array.from(points).find((point) => point.user === address))
-      return Array.from(points).find((point) => point.user === address)
+      // console.log("under points", address, points)
+      // console.log("under points", address, points[0])
+      // console.log("under points", address, points[0].user)
+      // console.log("under points", address, Array.from(points).find((point) => point.user === address))
+      return points.find((point) => point.user === address)
     },
   })
 }

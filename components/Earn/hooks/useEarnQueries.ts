@@ -35,15 +35,15 @@ export const useBoundedConfig = () => {
 
 export const useUserBoundedIntents = () => {
     const { address } = useWallet()
-    const { userIntentState, setUserIntentState } = useUserIntentState()
+    // const { userIntentState, setUserIntentState } = useUserIntentState()
 
-    console.log((userIntentState && userIntentState[0] && userIntentState[0].user !== address), userIntentState, userIntentState[0], userIntentState[0].user !== address)
-    // Function to determine if we need to fetch from API
-    const shouldFetchIntent = useCallback(() => {
-        // Add any conditions here that would require a fresh fetch
-        // For example, if certain required data is missing from userIntentState
-        return !userIntentState || Object.keys(userIntentState).length === 0 || (userIntentState && userIntentState[0] && userIntentState[0].user !== address)
-    }, [userIntentState])
+    // console.log((userIntentState && userIntentState[0] && userIntentState[0].user !== address), userIntentState, userIntentState[0], userIntentState[0].user !== address)
+    // // Function to determine if we need to fetch from API
+    // const shouldFetchIntent = useCallback(() => {
+    //     // Add any conditions here that would require a fresh fetch
+    //     // For example, if certain required data is missing from userIntentState
+    //     return !userIntentState || Object.keys(userIntentState).length === 0 || (userIntentState && userIntentState[0] && userIntentState[0].user !== address)
+    // }, [userIntentState])
 
     const result = useQuery({
         queryKey: ['useUserBoundedIntents', address],
@@ -51,9 +51,9 @@ export const useUserBoundedIntents = () => {
             if (!address) return
 
             // First check if we can use userIntentState
-            if (!shouldFetchIntent()) {
-                return userIntentState
-            }
+            // if (!shouldFetchIntent()) {
+            //     return userIntentState
+            // }
 
             // If we need fresh data, fetch from API
             return getBoundedIntents().then((intents) => {
@@ -62,9 +62,9 @@ export const useUserBoundedIntents = () => {
         },
     })
 
-    if (shouldFetchIntent() && result.data) {
-        setUserIntentState(result.data)
-    }
+    // if (shouldFetchIntent() && result.data) {
+    //     setUserIntentState(result.data)
+    // }
 
     return result
 

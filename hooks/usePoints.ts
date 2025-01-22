@@ -42,6 +42,7 @@ export const useAllUserPoints = () => {
 export const useUserPoints = () => {
   const { address } = useWallet()
   const { data: points } = useAllUserPoints()
+  console.log("points", points)
 
   return useQuery({
     queryKey: ['one users points', address, points],

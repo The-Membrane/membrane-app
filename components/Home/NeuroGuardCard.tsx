@@ -30,7 +30,7 @@ import { useRouter } from "next/router"
 import NextLink from 'next/link'
 import { MintIcon } from "../Icons"
 import useMintState from "../Mint/hooks/useMintState"
-import { getCookie, getCookieExpirationDate, setCookie } from "@/helpers/cookies"
+import { getCookie, setCookie } from "@/helpers/cookies"
 import BigNumber from "bignumber.js"
 import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
@@ -273,8 +273,7 @@ const NeuroGuardExistingEntry = React.memo(({
   useEffect(() => {
     const cookieKey = "neuroGuard " + guardedPosition.position.position_id;
     let cookie = getCookie(cookieKey);
-    // getCookieExpirationDate(cookieKey);
-    console.log("cookie", cookie, getCookieExpirationDate(cookieKey))
+    console.log("cookie", cookie)
 
     if (cookie == null && appState.setCookie) {
       console.log("setting NG cookie", cookie)

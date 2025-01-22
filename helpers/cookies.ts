@@ -48,30 +48,3 @@ export function getObjectCookie(name: string): T | null {
   }
   return null;
 }
-
-export function getCookieExpirationDate(name: string) {
-  const cookie = document.cookie
-    .split('; ')
-    .find(row => row.startsWith(name + '='));
-
-  if (!cookie) return null;
-
-  // Get all cookies and find the target cookie's full string
-  const allCookies = document.cookie.split('; ');
-  const cookieString = allCookies.find(c => c.includes(`${name}=`));
-
-  if (!cookieString) return null;
-
-  // Extract expiration from cookie string
-  const match = cookieString.match(/expires=([^;]+)/);
-  if (match && match[1]) {
-    return new Date(match[1]);
-  }
-
-  // Alternative method: Parse Set-Cookie header
-  // Note: This only works if you have access to the response headers
-  const cookieHeader = document.cookie;
-  const expires = cookieHeader.match(/expires=([^;]+)/);
-
-  return expires ? new Date(expires[1]) : null;
-}

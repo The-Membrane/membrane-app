@@ -42,7 +42,7 @@ export const useUserBoundedIntents = () => {
     const shouldFetchIntent = useCallback(() => {
         // Add any conditions here that would require a fresh fetch
         // For example, if certain required data is missing from userIntentState
-        return !userIntentState || Object.keys(userIntentState).length === 0 || || (userIntentState && userIntentState.length > 0 && userIntentState[0].user !== address)
+        return !userIntentState || Object.keys(userIntentState).length === 0 || (userIntentState && userIntentState.length > 0 && userIntentState[0].user !== address)
     }, [userIntentState])
 
     const result = useQuery({

@@ -3,7 +3,6 @@ import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
-import { useEffect, useMemo, useState } from 'react'
 
 import contracts from '@/config/contracts.json'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
@@ -35,8 +34,8 @@ const useFulfillIntents = (run: boolean) => {
 
             //Parse user intents, if any last_conversion_rates are above the current rate, add a fill_intent msg
             intents.forEach((intent: any) => {
-                console.log("intent logs", intent.intent.intents.last_conversion_rate, currentConversionRate)
-                if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate)) {
+                console.log("intent logs", intent, intent.intent.intents.last_conversion_rate, currentConversionRate)
+                if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate) && intent.intent.intents.purchase_intents.length > 0) {
                     users.push(intent.user)
                 }
             })

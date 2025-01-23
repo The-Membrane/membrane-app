@@ -661,7 +661,7 @@ const NeuroGuardCard = () => {
       // })
 
       //If there are neuroGuardIntents, create an object that saves the ID, the compounding asset & the LTV
-      const returningGuards = neuroGuardIntents.map((intent) => {
+      return neuroGuardIntents.map((intent) => {
         // console.log("big checkers", neuroGuardIntents, intent, basketPositions)
         let position = basketPositions[0].positions.find((position) => position.position_id === (intent.position_id ?? 0).toString())
         // console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
@@ -689,19 +689,6 @@ const NeuroGuardCard = () => {
         }
       })
         .filter(Boolean);
-      console.log(underlyingCDT)
-      if (Number(underlyingCDT) > 0.01) {
-        return returningGuards
-          .concat([{
-            position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
-            amount: num("0"),
-            symbol: "CDT",
-            image: "/images/cdt.svg",
-            cost: 0,
-            LTV: "0"
-
-          }])
-      } else return returningGuards
 
     } else return [{
       position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
@@ -913,9 +900,9 @@ const NeuroGuardCard = () => {
               Actions
             </Text>
           </HStack>
+          {Number(underlyingCDT) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
           {existingGuards.map((guard) =>
-            <>{guard && guard.symbol != "CDT" ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} />
-              : guard && guard.symbol == "CDT" && Number(underlyingCDT) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}</>
+            <>{guard && guard.symbol != "CDT" ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} /> : null}</>
           )}
         </Stack>
         : null}

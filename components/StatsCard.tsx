@@ -9,45 +9,45 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import OnboardModal from './Home/LeapOnboarding'
 
 
-export const Stats = React.memo(({ label, value }) => (
-  <Stack gap="1">
-    <Text variant="title" letterSpacing="unset" textTransform="none"
-      textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize="4xl">
-      {label}
-    </Text>
-    <Text variant="title" letterSpacing="unset"
-      textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize="4xl">
-      {value}
-    </Text>
-  </Stack>
-))
+// export const Stats = React.memo(({ label, value }) => (
+//   <Stack gap="1">
+//     <Text variant="title" letterSpacing="unset" textTransform="none"
+//       textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize="4xl">
+//       {label}
+//     </Text>
+//     <Text variant="title" letterSpacing="unset"
+//       textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize="4xl">
+//       {value}
+//     </Text>
+//   </Stack>
+// ))
 
 export const StatsCard = React.memo(() => {
   const { data: basket } = useBasket()
   const { data: prices } = useOraclePrice()
 
-  const tvl = useMemo(() =>
-    getProjectTVL({ basket, prices })
-    , [basket, prices])
+  // const tvl = useMemo(() =>
+  //   getProjectTVL({ basket, prices })
+  //   , [basket, prices])
 
-  const mintedAmount = useMemo(() => {
-    const cdtAmount = basket?.credit_asset?.amount || 0
-    return shiftDigits(cdtAmount, -6).dp(0).toNumber()
-  }, [basket])
+  // const mintedAmount = useMemo(() => {
+  //   const cdtAmount = basket?.credit_asset?.amount || 0
+  //   return shiftDigits(cdtAmount, -6).dp(0).toNumber()
+  // }, [basket])
 
-  const [titleToggle, setTitleToggle] = useState(true)
+  // const [titleToggle, setTitleToggle] = useState(true)
   const [isOpen, setOpen] = useState(false)
 
-  const onTitleClick = useCallback(() =>
-    setTitleToggle(prev => !prev)
-    , [])
+  // const onTitleClick = useCallback(() =>
+  //   setTitleToggle(prev => !prev)
+  //   , [])
 
   return (
     <Stack gap={5}>
       <HStack mt="auto" gap="24" justifyContent="center">
         {/* {titleToggle ? ( */}
         <Stack gap={5}>
-          <Text onClick={onTitleClick} fontWeight="bold" fontSize="33px"
+          <Text onClick={ } fontWeight="bold" fontSize="33px"
             fontFamily="monospace" justifyContent="center"
             display="flex" textAlign="center">
             Decentralized Stablecoins: A New Age of Empowerment

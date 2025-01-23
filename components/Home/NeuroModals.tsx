@@ -124,8 +124,8 @@ export const RBLPDepositModal = React.memo(({
 })
 
 export const RBLPWithdrawModal = React.memo(({
-    isOpen, onClose, cdtAsset, rblpDeposit, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, cdtAsset: AssetWithBalance, rblpDeposit: number }>) => {
+    isOpen, onClose, rblpDeposit, cdtMarketPrice, children
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, rblpDeposit: number, cdtMarketPrice: string }>) => {
 
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -169,13 +169,13 @@ export const RBLPWithdrawModal = React.memo(({
                     <Stack>
                         <HStack width="100%" justifyContent="left">
                             <HStack width="75%">
-                                {cdtAsset.logo ? <Image src={cdtAsset.logo} w="30px" h="30px" /> : null}
+                                <Image src={"/images/cdt.svg"} w="30px" h="30px" />
                                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {cdtAsset.symbol}
+                                    CDT
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(quickActionState?.rangeBoundLPwithdrawal).times(cdtAsset.price ?? 0).toFixed(2)}
+                                ~${num(quickActionState?.rangeBoundLPwithdrawal).times(cdtMarketPrice).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input

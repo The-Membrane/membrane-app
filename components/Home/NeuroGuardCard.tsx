@@ -349,12 +349,12 @@ const NeuroGuardExistingEntry = React.memo(({
 const RBLPExistingEntry = React.memo(({
   rblpDeposit,
   RBYield,
-  // cdtMarketPrice,
+  cdtMarketPrice,
   address
 }: {
   rblpDeposit: number
   RBYield: string
-  // cdtMarketPrice: number
+  cdtMarketPrice: string
   address: string
 }) => {
 
@@ -363,7 +363,7 @@ const RBLPExistingEntry = React.memo(({
   const { setQuickActionState } = useQuickActionState()
   //find the asset in the assets array
   //@ts-ignore
-  const asset = neuroState.assets.find((asset) => asset.base === denoms.CDT[0])
+  const asset = neuroState.assets.find((asset) => asset.base === denoms.CDT[0]) || { logo: "/images/cdt.svg", symbol: "CDT", balance: 0 }
   // console.log("cdtAsset", asset, neuroState.assets)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
@@ -432,7 +432,7 @@ const RBLPExistingEntry = React.memo(({
             Deposit
           </Button>
 
-          {isWithdrawOpen && (<RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtAsset={asset} rblpDeposit={rblpDeposit} />)}
+          {isWithdrawOpen && (<RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtMarketPrice={cdtMarketPrice} rblpDeposit={rblpDeposit} />)}
           <Button
             width="50%"
             display="flex"
@@ -689,14 +689,14 @@ const NeuroGuardCard = () => {
         }
       })
         .filter(Boolean);
-
+      console.log(underlyingCDT)
       if (Number(underlyingCDT) > 0.01) {
         return returningGuards
           .concat([{
             position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
             amount: num("0"),
             symbol: "CDT",
-            image: "",
+            image: "/images/cdt.svg",
             cost: 0,
             LTV: "0"
 
@@ -707,6 +707,7 @@ const NeuroGuardCard = () => {
       position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
       amount: num("0"),
       symbol: "N/A",
+      image: "",
       cost: 0,
       LTV: "0"
     }]
@@ -914,7 +915,7 @@ const NeuroGuardCard = () => {
           </HStack>
           {existingGuards.map((guard) =>
             <>{guard && guard.symbol != "CDT" ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} />
-              : guard && guard.symbol == "CDT" && Number(underlyingCDT) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} RBYield={calculatedRBYield} /> : null}</>
+              : guard && guard.symbol == "CDT" && Number(underlyingCDT) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}</>
           )}
         </Stack>
         : null}

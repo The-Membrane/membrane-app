@@ -47,7 +47,7 @@ export const StatsCard = React.memo(() => {
       <HStack mt="auto" gap="24" justifyContent="center">
         {/* {titleToggle ? ( */}
         <Stack gap={5}>
-          <Text onClick={ } fontWeight="bold" fontSize="33px"
+          <Text fontWeight="bold" fontSize="33px"
             fontFamily="monospace" justifyContent="center"
             display="flex" textAlign="center">
             Decentralized Stablecoins: A New Age of Empowerment

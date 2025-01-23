@@ -790,6 +790,8 @@ const NeuroGuardCard = () => {
             return null;
           }
 
+          console.log(!(Number(underlyingCDT) > 0), underlyingCDT)
+
           if (asset.base === denoms.CDT[0] && !(Number(underlyingCDT) > 0)) {
             return (
               <MemoizedRBLPDepositEntry

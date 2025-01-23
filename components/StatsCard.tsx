@@ -47,11 +47,12 @@ export const StatsCard = React.memo(() => {
       <HStack mt="auto" gap="24" justifyContent="center">
         {/* {titleToggle ? ( */}
         <Stack gap={5}>
-          <Text fontWeight="bold" fontSize="33px"
-            fontFamily="monospace" justifyContent="center"
-            display="flex" textAlign="center">
+
+          <h1
+            className="font-mono font-bold text-[33px] flex justify-center text-center"
+          >
             Decentralized Stablecoins: A New Age of Empowerment
-          </Text>
+          </h1>
           <Button alignSelf="center" width="31%" minWidth="180px"
             onClick={() => setOpen(true)}>
             Add Funds to Osmosis

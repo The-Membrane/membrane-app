@@ -11,7 +11,7 @@ import {
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { BidIcon, EarnIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon } from './Icons'
+import { BidIcon, EarnIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon, DashboardIcon } from './Icons'
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
@@ -20,9 +20,6 @@ import { useOraclePrice } from '@/hooks/useOracle'
 
 import { HamburgerIcon } from "@chakra-ui/icons";
 import UniversalButtons from './Nav/UniversalButtons'
-import useProtocolLiquidations from './Nav/hooks/useLiquidations'
-import ConfirmModal from './ConfirmModal'
-import { LiqSummary } from './Nav/LiqSummary'
 import SoloLeveling from './Nav/PointsLevel'
 
 type NavItems = {
@@ -34,6 +31,7 @@ type NavItems = {
 }
 
 const navItems: NavItems[] = [
+  { label: 'Dashboard', href: '/dashboard', ItemIcon: DashboardIcon },
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
   { label: 'Earn', href: '/earn', ItemIcon: EarnIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
@@ -44,6 +42,7 @@ const navItems: NavItems[] = [
 ]
 
 const mobileNavItems: NavItems[] = [
+  { label: 'Dashboard', href: '/dashboard', ItemIcon: DashboardIcon },
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
   { label: 'Earn', href: '/earn', ItemIcon: EarnIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },

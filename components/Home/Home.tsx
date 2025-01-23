@@ -1,5 +1,4 @@
 import { Button, Grid, GridItem, Text, Stack, useBreakpointValue, Checkbox } from '@chakra-ui/react'
-import { StatsCard } from '../StatsCard'
 import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
 
@@ -17,6 +16,7 @@ import NeuroGuardCard from './NeuroGuardCard'
 import { useUserBoundedIntents } from '../Earn/hooks/useEarnQueries'
 import useNeuroState from './hooks/useNeuroState'
 import useAppState from '../../persisted-state/useAppState'
+import { HomeTitle } from './HomeTitle'
 
 
 // Memoize child components
@@ -68,7 +68,7 @@ const Home = () => {
   // Memoize the entire content to prevent unnecessary re-renders
   return (
     <Stack>
-      <StatsCard />
+      <HomeTitle />
       <Stack>
         <NeuroGuardCard />
       </Stack>

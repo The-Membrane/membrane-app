@@ -3,23 +3,15 @@ import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
-import { useEffect, useMemo, useState } from 'react'
 
 import contracts from '@/config/contracts.json'
-import { useAssetBySymbol } from '@/hooks/useAssets'
-import { shiftDigits } from '@/helpers/math'
-import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
-import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents, useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
+import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
-import useNeuroState from "./useNeuroState"
-import { useBasket } from "@/hooks/useCDP"
 
 
 import EventEmitter from 'events';
-import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useFulfillIntents = (run: boolean) => {
@@ -35,14 +27,14 @@ const useFulfillIntents = (run: boolean) => {
     const { data: queryData } = useQuery<QueryData>({
         queryKey: ['fillIntents_msg_creator', intents, currentConversionRate, run],
         queryFn: async () => {
-            if (!intents || !currentConversionRate || !run) { console.log("neuroGuard early return", address, intents, currentConversionRate, run); return { msgs: [] } }
+            if (!intents || !currentConversionRate || !run) { console.log("fulfill intents early return", address, intents, currentConversionRate, run); return { msgs: [] } }
 
             var msgs = [] as MsgExecuteContractEncodeObject[]
             var users = [] as string[]
 
             //Parse user intents, if any last_conversion_rates are above the current rate, add a fill_intent msg
             intents.forEach((intent: any) => {
-                console.log("intent logs", intent.intent.intents.last_conversion_rate, intent)
+                console.log("intent logs", intent.intent.intents.last_conversion_rate, currentConversionRate)
                 if (num(intent.intent.intents.last_conversion_rate).gt(currentConversionRate)) {
                     users.push(intent.user)
                 }
@@ -83,7 +75,7 @@ const useFulfillIntents = (run: boolean) => {
     return {
         action: useSimulateAndBroadcast({
             msgs,
-            queryKey: ['home_page_fulfillment', (msgs?.toString() ?? "0")],
+            queryKey: ['dashboard_fulfillment', (msgs?.toString() ?? "0")],
             onSuccess: onInitialSuccess,
             enabled: !!msgs,
         })

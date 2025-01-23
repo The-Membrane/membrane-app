@@ -49,7 +49,14 @@ export const StatsCard = React.memo(() => {
         <Stack gap={5}>
 
           <h1
-            className="font-mono font-bold text-[33px] flex justify-center text-center"
+            style={{
+              fontWeight: 'bold',
+              fontSize: '33px',
+              fontFamily: 'monospace',
+              justifyContent: 'center',
+              display: 'flex',
+              textAlign: 'center'
+            }}
           >
             Decentralized Stablecoins: A New Age of Empowerment
           </h1>

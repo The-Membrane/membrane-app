@@ -46,14 +46,7 @@ export const StatsCard = React.memo(() => {
         <Stack gap={5}>
 
           <h1
-            style={{
-              fontWeight: 'bold',
-              fontSize: '33px',
-              // fontFamily: 'monospace',
-              justifyContent: 'center',
-              display: 'flex',
-              textAlign: 'center'
-            }}
+            className={"home-title"}
           >
             Decentralized Stablecoins: A New Age of Empowerment
           </h1>

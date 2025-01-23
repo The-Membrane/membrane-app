@@ -416,7 +416,7 @@ const RBLPExistingEntry = React.memo(({
           {yieldValue}%
         </Text>
         <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {initialDepositAmount == 0 ? "0.00%" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
+          {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
         </Text>
         <HStack width={"36%"}>
           {isDepositOpen && (<RBLPDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} cdtAsset={asset} />)}

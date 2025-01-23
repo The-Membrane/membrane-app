@@ -52,7 +52,7 @@ export const StatsCard = React.memo(() => {
             style={{
               fontWeight: 'bold',
               fontSize: '33px',
-              fontFamily: 'monospace',
+              // fontFamily: 'monospace',
               justifyContent: 'center',
               display: 'flex',
               textAlign: 'center'

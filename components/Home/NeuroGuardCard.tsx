@@ -790,7 +790,7 @@ const NeuroGuardCard = () => {
             return null;
           }
 
-          if (asset.base === denoms.CDT[0]) {
+          if (asset.base === denoms.CDT[0] && !(Number(underlyingCDT) > 0)) {
             return (
               <MemoizedRBLPDepositEntry
                 key={asset.symbol}

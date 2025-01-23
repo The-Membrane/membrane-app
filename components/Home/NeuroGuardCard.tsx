@@ -764,7 +764,7 @@ const NeuroGuardCard = () => {
 
 
   // Separate complex sections into components
-  const WalletSection = memo(({ assets, existingGuards, RBYield }: { assets: any[], existingGuards: any[], RBYield: string }) => {
+  const WalletSection = memo(({ assets, existingGuards, RBYield, underlyingCDT }: { assets: any[], existingGuards: any[], RBYield: string, underlyingCDT: number }) => {
     return (
       <Stack>
         <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
@@ -790,9 +790,9 @@ const NeuroGuardCard = () => {
             return null;
           }
 
-          console.log(!(Number(underlyingCDT) > 0), underlyingCDT)
+          console.log(!(underlyingCDT > 0), underlyingCDT)
 
-          if (asset.base === denoms.CDT[0] && !(Number(underlyingCDT) > 0)) {
+          if (asset.base === denoms.CDT[0] && !(underlyingCDT > 0)) {
             return (
               <MemoizedRBLPDepositEntry
                 key={asset.symbol}
@@ -877,10 +877,10 @@ const NeuroGuardCard = () => {
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
       ) ?
-        <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} />
+        <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} underlyingCDT={Number(underlyingCDT)} />
         : null}
 
-      {existingGuards && existingGuards.length > 0 && existingGuards[0] ?
+      {(existingGuards && existingGuards.length > 0 && existingGuards[0]) || Number(underlyingCDT) > 0 ?
         <Stack>
           <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
             Your Guardians

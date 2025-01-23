@@ -77,14 +77,14 @@ const App = ({ Component, pageProps }: AppProps) => {
           chains={chains}
           assetLists={assets}
           wallets={[
-            ...keplrWallets?.slice(0,1),
-            ...keplrMobile?.slice(0,1),
-            ...cosmostationWallets?.slice(0,1),
-            ...ledgerWallets?.slice(0,1),
-            ...leapWallets?.slice(0,1),
-            ...leapMobile?.slice(0,1),
-            ...stationWallets?.slice(0,1),
-            ...tailwindWallets?.slice(0,1),
+            ...keplrWallets?.slice(0, 1),
+            ...keplrMobile?.slice(0, 1),
+            ...cosmostationWallets?.slice(0, 1),
+            ...ledgerWallets?.slice(0, 1),
+            ...leapWallets?.slice(0, 1),
+            ...leapMobile?.slice(0, 1),
+            ...stationWallets?.slice(0, 1),
+            ...tailwindWallets?.slice(0, 1),
           ]}
           walletModal={WalletModal}
           signerOptions={signerOptions}
@@ -92,7 +92,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             isLazy: true,
             endpoints: {
               osmosis: {
-                rpc: [rpcUrl],
+                rpc: ['https://osmosis-rpc.polkachu.com/'],
               },
             },
           }}

@@ -58,7 +58,7 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     }, [basket])
     const isManageDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero() }, [manage?.simulate.isError, manage?.simulate.data])
     const isFulfillDisabled = useMemo(() => { return fulfill?.simulate.isError || !fulfill?.simulate.data }, [fulfill?.simulate.isError, fulfill?.simulate.data])
-
+    if (isFulfillDisabled) console.log("isFulfillDisabled", fulfill?.simulate.errorMessage, !fulfill?.simulate)
     return (
         <Card gap={16} >
             <TxButton

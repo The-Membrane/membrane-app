@@ -8,7 +8,7 @@ const Governance = React.memo(() => {
     <Stack w="full">
       <HStack justifyContent="space-between" w="full">
         <Text variant="title">Proposals</Text>
-        <SubmitProposal />
+        {/* <SubmitProposal /> */}
       </HStack>
       <ProposalsTable />
     </Stack>

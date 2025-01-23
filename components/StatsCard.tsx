@@ -45,22 +45,22 @@ export const StatsCard = React.memo(() => {
   return (
     <Stack gap={5}>
       <HStack mt="auto" gap="24" justifyContent="center">
-        {titleToggle ? (
-          <Stack gap={5}>
-            <Text onClick={onTitleClick} fontWeight="bold" fontSize="33px"
-              fontFamily="monospace" justifyContent="center"
-              display="flex" textAlign="center">
-              Decentralized Stablecoins: A New Age of Empowerment
-            </Text>
-            <Button alignSelf="center" width="31%" minWidth="180px"
-              onClick={() => setOpen(true)}>
-              Add Funds to Osmosis
-            </Button>
-          </Stack>
-        ) : (
-
-
+        {/* {titleToggle ? ( */}
+        <Stack gap={5}>
           <Text onClick={onTitleClick} fontWeight="bold" fontSize="33px"
+            fontFamily="monospace" justifyContent="center"
+            display="flex" textAlign="center">
+            Decentralized Stablecoins: A New Age of Empowerment
+          </Text>
+          <Button alignSelf="center" width="31%" minWidth="180px"
+            onClick={() => setOpen(true)}>
+            Add Funds to Osmosis
+          </Button>
+        </Stack>
+        {/* ) : ( */}
+
+
+        {/* <Text onClick={onTitleClick} fontWeight="bold" fontSize="33px"
             fontFamily="monospace" justifyContent="center"
             display="flex" textAlign="center">
             welcome within.
@@ -69,7 +69,7 @@ export const StatsCard = React.memo(() => {
           //   <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
           //   <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
           // </HStack>
-        )}
+        )} */}
       </HStack>
       <OnboardModal isOpen={isOpen} setOpen={setOpen} />
       <Divider mx="0" mb="5" />

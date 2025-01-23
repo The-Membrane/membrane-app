@@ -800,16 +800,16 @@ const NeuroGuardCard = () => {
                 RBYield={RBYield}
               />
             );
+          } else {
+            return (
+              <MemoizedNeuroGuardOpenEntry
+                key={asset.symbol}
+                asset={asset}
+                basketAssets={basketAssets}
+                RBYield={RBYield}
+              />
+            )
           }
-
-          return (
-            <MemoizedNeuroGuardOpenEntry
-              key={asset.symbol}
-              asset={asset}
-              basketAssets={basketAssets}
-              RBYield={RBYield}
-            />
-          );
         })}</Stack>
       </Stack>
     );

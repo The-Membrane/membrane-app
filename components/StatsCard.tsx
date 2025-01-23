@@ -23,9 +23,6 @@ import OnboardModal from './Home/LeapOnboarding'
 // ))
 
 export const StatsCard = React.memo(() => {
-  const { data: basket } = useBasket()
-  const { data: prices } = useOraclePrice()
-
   // const tvl = useMemo(() =>
   //   getProjectTVL({ basket, prices })
   //   , [basket, prices])

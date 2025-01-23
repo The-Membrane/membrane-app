@@ -800,7 +800,7 @@ const NeuroGuardCard = () => {
                 RBYield={RBYield}
               />
             );
-          } else {
+          } else if (asset.base != denoms.CDT[0]) {
             return (
               <MemoizedNeuroGuardOpenEntry
                 key={asset.symbol}

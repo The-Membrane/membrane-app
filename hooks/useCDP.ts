@@ -7,33 +7,33 @@ import useUserPositionState from '@/persisted-state/useUserPositionState'
 
 
 export const useBasket = () => {
-  const { basketState, setBasketState } = useBasketState()
+  // const { basketState, setBasketState } = useBasketState()
 
   // Function to determine if we need to fetch from API
-  const shouldFetchBasket = useCallback(() => {
-    // Add any conditions here that would require a fresh fetch
-    // For example, if certain required data is missing from basketState
-    return !basketState || Object.keys(basketState).length === 0
-  }, [basketState])
+  // const shouldFetchBasket = useCallback(() => {
+  //   // Add any conditions here that would require a fresh fetch
+  //   // For example, if certain required data is missing from basketState
+  //   return !basketState || Object.keys(basketState).length === 0
+  // }, [basketState])
 
   const result = useQuery({
     queryKey: ['basket'],
     queryFn: async () => {
       // First check if we can use basketState
-      if (!shouldFetchBasket()) {
-        return basketState
-      }
+      // if (!shouldFetchBasket()) {
+      //   return basketState
+      // }
       // If we need fresh data, fetch from API
       return getBasket()
     },
-    enabled: true,
+    // enabled: true,
     // You might want to add staleTime to prevent unnecessary refetches
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    // staleTime: 1000 * 60 * 5, // 5 minutes
   })
-  if (shouldFetchBasket() && result.data) {
-    setBasketState(result.data)
-  }
-  console.log("basket hook result", result, shouldFetchBasket(), basketState)
+  // if (shouldFetchBasket() && result.data) {
+  //   setBasketState(result.data)
+  // }
+  // console.log("basket hook result", result, shouldFetchBasket(), basketState)
 
   return result
 }

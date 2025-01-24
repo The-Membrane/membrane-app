@@ -5,7 +5,6 @@ import { SignerOptions } from '@cosmos-kit/core'
 import { ChainProvider } from '@cosmos-kit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { assets, chains } from 'chain-registry'
-import { GasPrice } from 'cosmwasm'
 import { wallets as cosmostationWallets } from '@cosmos-kit/cosmostation'
 import { wallets as keplrWallets } from '@cosmos-kit/keplr'
 import { wallets as keplrMobile } from '@cosmos-kit/keplr-mobile'
@@ -57,6 +56,7 @@ export const queryClient = new QueryClient({
 })
 
 import '../styles/global.css';
+import { GasPrice } from '@cosmjs/stargate'
 const App = ({ Component, pageProps }: AppProps) => {
   const [isLoaded, setIsLoaded] = useState(false)
 

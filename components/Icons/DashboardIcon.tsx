@@ -9,8 +9,8 @@ type Props = {
 const DashboardIcon = ({ color = 'white', width = '30', height = 'auto' }: Props) => {
     return (
         <svg
-            width={width}
-            height={height}
+            width={0}
+            height={0}
             viewBox="0 0 24 25"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"

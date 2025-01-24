@@ -42,7 +42,7 @@ const navItems: NavItems[] = [
 ]
 
 const mobileNavItems: NavItems[] = [
-  { label: 'Dashboard', href: '/dashboard', ItemIcon: DashboardIcon },
+  { label: 'Upper Management', href: '/management', ItemIcon: DashboardIcon },
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
   { label: 'Earn', href: '/earn', ItemIcon: EarnIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
@@ -69,12 +69,15 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       _hover={hoverStyles}
+      justifyContent={label === 'Upper Management' ? "center" : "none"}
       {...(isActive && hoverStyles)}
       p={label === 'Home' ? '5px' : '0'}
-      pr={'10px'}
+      pr={label === 'Upper Management' ? '0' : '10px'}
+      pt={label === 'Upper Management' ? '10px' : '0'}
+      pb={label === 'Upper Management' ? '10px' : '0'}
     >
       <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />
-      <Text fontSize="lg" fontWeight="400">
+      <Text fontSize="lg" fontWeight="400" >
         {label}
       </Text>
     </HStack>

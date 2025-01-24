@@ -10,6 +10,8 @@ import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import React from 'react'
 import { colors } from '@/config/defaults'
+// import { queryClient } from '@/pages/_app'
+// import useBasketState from '@/persisted-state/useBasketState'
 
 const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean }) => {
   return (
@@ -21,6 +23,7 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = fals
 
 const TakeAction = React.memo(() => {
   const { mintState, setMintState } = useMintState()
+  // const { reset } = useBasketState()
   const combinBalance = useCombinBalance(mintState.positionNumber - 1)
   const { data } = useVaultSummary()
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = data || {
@@ -46,7 +49,11 @@ const TakeAction = React.memo(() => {
       borrowLTV: initialBorrowLTV,
       setMintState,
       //newDebtAmount: 0,
-    })
+    });
+    //Requery basket to get updated current_position_id
+    // reset();
+    // queryClient.invalidateQueries({ queryKey: ['basket'] });
+    //
   }
 
   return (

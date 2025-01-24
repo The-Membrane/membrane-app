@@ -34,7 +34,7 @@ type QueryData = {
   claims: ClaimsSummary
 }
 
-const useProtocolClaims = () => {
+const useProtocolClaims = ({ run }: { run: boolean }) => {
   const claims_summary: ClaimsSummary = {
     liquidation: [],
     sp_unstaking: [],
@@ -53,14 +53,14 @@ const useProtocolClaims = () => {
   const { deposits = [] } = stabilityPoolAssets || {}
 
   //Staking
-  const { data } = useStaked()        
-  const { staked = [], unstaking = [], rewards = []} = data || {}  
+  const { data } = useStaked()
+  const { staked = [], unstaking = [], rewards = [] } = data || {}
   const stakingClaim = useStakingClaim(false, false)
   const unstakeClaim = useClaimUnstake({ address: address, sim: false })
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {
-  if (!rewards || !mbrnAsset) return '0.00'
+    if (!rewards || !mbrnAsset) return '0.00'
 
     const reward = rewards.reduce((acc, reward) => {
       if (reward?.asset?.symbol === 'MBRN') {
@@ -91,100 +91,101 @@ const useProtocolClaims = () => {
   const { data: allocations } = useAllocation()
   const { claimables } = allocations || {}
 
-  
+
   const Claimables = useMemo(() => { return claimables }, [claimables])
   const Deposits = useMemo(() => { return deposits }, [deposits])
   const ClaimMsgs = useMemo(() => { return claimLiq.msgs }, [claimLiq.msgs])
-  const StakingMsgs = useMemo(() => { return  stakingClaim.msgs }, [ stakingClaim.msgs])
+  const StakingMsgs = useMemo(() => { return stakingClaim.msgs }, [stakingClaim.msgs])
   const UnstakeMsgs = useMemo(() => { return unstakeClaim.msgs }, [unstakeClaim.msgs])
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg all protocol claims', address, ClaimMsgs, StakingMsgs, UnstakeMsgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
+    queryKey: ['msg all protocol claims', run, address, ClaimMsgs, StakingMsgs, UnstakeMsgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
     queryFn: () => {
-      console.log("claim attempt"); 
-        var msgs = [] as MsgExecuteContractEncodeObject[]
+      console.log("claim attempt");
+      if (!run) { console.log("claim early return", !run); return { msgs: [], claims: claims_summary } }
+      var msgs = [] as MsgExecuteContractEncodeObject[]
 
-        /////Add Liquidation claims/////        
-        if ((claims || SP_claims)){
-          //If SP_claims is undefined, make sure LQ_claims aren't all 0
-          let nonZeroClaims = claims?.filter((claim) => num(claim.pending_liquidated_collateral).isGreaterThan(0)) || []
-          //add msg
-          if (nonZeroClaims.length > 0 || SP_claims){
-            msgs = msgs.concat(claimLiq.msgs ?? [])
-          }
+      /////Add Liquidation claims/////        
+      if ((claims || SP_claims)) {
+        //If SP_claims is undefined, make sure LQ_claims aren't all 0
+        let nonZeroClaims = claims?.filter((claim) => num(claim.pending_liquidated_collateral).isGreaterThan(0)) || []
+        //add msg
+        if (nonZeroClaims.length > 0 || SP_claims) {
+          msgs = msgs.concat(claimLiq.msgs ?? [])
         }
-        /////Add Staking reward and Stake Claims////
-        //If there is anything to claim, claim
-        if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
-          // if (!stakingClaim?.action.simulate.isError){
-            msgs = msgs.concat(stakingClaim.msgs ?? [])
-          // }
-        }
-        //If there is anything to unstake, unstake
-        if (unstaking.find((unstake: any, index: number) => {            
-            const { minutesLeft } = getTimeLeft(unstake.unstake_start_time)
-            return minutesLeft <= 0
-        })){          
-          // console.log("made it here")
-          // if (!unstakeClaim.action.simulate.isError){
-            // console.log("adding unstaking claim")
-            msgs = msgs.concat(unstakeClaim.msgs ?? [])         
-          // }
-        }
-        /////Add Vesting Claims////
-        if ((claimables?.length??0) > 0){
-          msgs = msgs.concat(claimFees.msgs ?? [])
-        }
-
-        ///Add SP Unstaking////
-        //sum the deposits that are ready to be withdrawn
-        // const totalwithdrawableDeposits = deposits.reduce((acc, deposit) => {
-        //     if (deposit.unstake_time) {
-        //       //How much time left
-        //       const { minutesLeft } = getSPTimeLeft(deposit.unstake_time)
-        //       if (minutesLeft <= 0) {
-        //         return acc + Number(deposit.amount)
-        //       }
-        //     }
-        //     return acc
-        // }, 0)
-        // if (totalwithdrawableDeposits > 0){
-        //     const SPwithdraw = useWithdrawStabilityPool(totalwithdrawableDeposits.toString())
-            
-        //     if (!SPwithdraw?.action.simulate.isError){
-        //       msgs = msgs.concat(SPwithdraw.msgs ?? [])
-        //       //Update claims summary
-        //       claims_summary.sp_unstaking = [{
-        //         denom: denoms.CDT[0] as string,
-        //         amount: totalwithdrawableDeposits.toString()              
-        //       }]
-        //     }
+      }
+      /////Add Staking reward and Stake Claims////
+      //If there is anything to claim, claim
+      if (isGreaterThanZero(mbrnClaimable) || isGreaterThanZero(cdtClaimable)) {
+        // if (!stakingClaim?.action.simulate.isError){
+        msgs = msgs.concat(stakingClaim.msgs ?? [])
         // }
+      }
+      //If there is anything to unstake, unstake
+      if (unstaking.find((unstake: any, index: number) => {
+        const { minutesLeft } = getTimeLeft(unstake.unstake_start_time)
+        return minutesLeft <= 0
+      })) {
+        // console.log("made it here")
+        // if (!unstakeClaim.action.simulate.isError){
+        // console.log("adding unstaking claim")
+        msgs = msgs.concat(unstakeClaim.msgs ?? [])
+        // }
+      }
+      /////Add Vesting Claims////
+      if ((claimables?.length ?? 0) > 0) {
+        msgs = msgs.concat(claimFees.msgs ?? [])
+      }
 
-        ///Summary        
-        if (claims){
-          claims_summary.liquidation = claimstoCoins(claims)
-        }
-        if (SP_claims){
-          claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
-        }
-        if (claimables){
-          claims_summary.vesting = claimables.map((claimable) => {
-            if (!claimable) return { denom: '', amount: '0'}
-            return {
-              denom: claimable.info.native_token.denom,
-              amount: claimable.amount
-            }
-          })
-        }        
+      ///Add SP Unstaking////
+      //sum the deposits that are ready to be withdrawn
+      // const totalwithdrawableDeposits = deposits.reduce((acc, deposit) => {
+      //     if (deposit.unstake_time) {
+      //       //How much time left
+      //       const { minutesLeft } = getSPTimeLeft(deposit.unstake_time)
+      //       if (minutesLeft <= 0) {
+      //         return acc + Number(deposit.amount)
+      //       }
+      //     }
+      //     return acc
+      // }, 0)
+      // if (totalwithdrawableDeposits > 0){
+      //     const SPwithdraw = useWithdrawStabilityPool(totalwithdrawableDeposits.toString())
+
+      //     if (!SPwithdraw?.action.simulate.isError){
+      //       msgs = msgs.concat(SPwithdraw.msgs ?? [])
+      //       //Update claims summary
+      //       claims_summary.sp_unstaking = [{
+      //         denom: denoms.CDT[0] as string,
+      //         amount: totalwithdrawableDeposits.toString()              
+      //       }]
+      //     }
+      // }
+
+      ///Summary        
+      if (claims) {
+        claims_summary.liquidation = claimstoCoins(claims)
+      }
+      if (SP_claims) {
+        claims_summary.liquidation = claims_summary.liquidation.concat(SP_claims.claims)
+      }
+      if (claimables) {
+        claims_summary.vesting = claimables.map((claimable) => {
+          if (!claimable) return { denom: '', amount: '0' }
+          return {
+            denom: claimable.info.native_token.denom,
+            amount: claimable.amount
+          }
+        })
+      }
       //Add claims to summary
-      if (isGreaterThanZero(mbrnClaimable)){
+      if (isGreaterThanZero(mbrnClaimable)) {
         claims_summary.staking.push({
           denom: mbrnAsset?.base as string,
           amount: mbrnClaimable
-        })        
+        })
       }
-      if (isGreaterThanZero(cdtClaimable)){
+      if (isGreaterThanZero(cdtClaimable)) {
         claims_summary.staking.push({
           denom: denoms.CDT[0] as string,
           amount: cdtClaimable
@@ -193,23 +194,24 @@ const useProtocolClaims = () => {
       //Update claims summary with unstaking
       claims_summary.staking = claims_summary.staking.concat(unstaking.map((unstake) => {
         if (!unstake) return
-        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {           
-        return {
-          denom: mbrnAsset?.base as string,
-          amount: unstake?.amount
+        if (getTimeLeft(unstake?.unstake_start_time).minutesLeft <= 0) {
+          return {
+            denom: mbrnAsset?.base as string,
+            amount: unstake?.amount
+          }
         }
-      }}))      
+      }))
 
       return { msgs, claims: claims_summary }
     },
     enabled: !!address,
   })
-  
+
   const { msgs, claims: queryclaimsSummary } = useMemo(() => {
     if (!queryData) return { msgs: [], claims: claims_summary }
     else return queryData
   }, [queryData])
-  
+
   console.log("claims msgs:", msgs)
 
   const onSuccess = () => {
@@ -220,34 +222,36 @@ const useProtocolClaims = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
-  
+
   //Transform claim summary to a single list of Coin
   const claims_summ = Object.values(queryclaimsSummary).reduce((acc, val) => acc.concat(val), [])
   //Aggregate coins in claims that have the same denom
   const definedClaims = claims_summ.filter((coin) => coin !== undefined)
   const agg_claims = definedClaims.filter((coin) => num(coin.amount).isGreaterThan(0))
-  .reduce((acc, claim) => {
-    const existing = acc.find((c) => c.denom === claim.denom)
-    if (existing) {
-      //Remove claim from acc
-      acc = acc.filter((c) => c.denom !== claim.denom)
-      //Add new
-      acc.push({
-        denom: claim.denom,
-        amount: num(claim.amount).plus(existing.amount).toString(),
-      })
-    } else {
-      acc.push(claim)
-    }
-    return acc
-  }, [] as Coin[])
+    .reduce((acc, claim) => {
+      const existing = acc.find((c) => c.denom === claim.denom)
+      if (existing) {
+        //Remove claim from acc
+        acc = acc.filter((c) => c.denom !== claim.denom)
+        //Add new
+        acc.push({
+          denom: claim.denom,
+          amount: num(claim.amount).plus(existing.amount).toString(),
+        })
+      } else {
+        acc.push(claim)
+      }
+      return acc
+    }, [] as Coin[])
 
-  return {action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['protocol_claim_sim', (msgs?.toString() ?? '0')],
-    onSuccess,
-    enabled: !!msgs,
-  }), claims_summary: agg_claims}
+  return {
+    action: useSimulateAndBroadcast({
+      msgs,
+      queryKey: ['protocol_claim_sim', (msgs?.toString() ?? '0')],
+      onSuccess,
+      enabled: !!msgs,
+    }), claims_summary: agg_claims
+  }
 }
 
 export default useProtocolClaims

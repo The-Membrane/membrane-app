@@ -1,10 +1,10 @@
 import { Card, Text, Stack, HStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, List, ListItem, useBreakpointValue } from "@chakra-ui/react"
 import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import useStabilityAssetPool from "../Bid/hooks/useStabilityAssetPool"
 import { isGreaterThanZero, num } from "@/helpers/num"
-import { useBoundedCDTVaultTokenUnderlying, useBoundedCDTRealizedAPR, getBoundedCDTBalance, useBoundedCDTBalance, useEstimatedAnnualInterest, useBoundedTVL } from "../Earn/hooks/useEarnQueries"
+import { useBoundedCDTVaultTokenUnderlying, useBoundedCDTRealizedAPR, getBoundedCDTBalance, useBoundedCDTBalance, useEstimatedAnnualInterest, useBoundedTVL, useRBLPCDTBalance } from "../Earn/hooks/useEarnQueries"
 import useBidState from "../Bid/hooks/useBidState"
 import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
@@ -31,52 +31,66 @@ const ActSlider = React.memo(() => {
   const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
   const cdtAsset = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdtAsset)
+  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
+    num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
+  )
 
-  //Set withdraw slider max to the total CDT deposit, not the VT deposit
-  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(boundCDTBalance, 6)).toFixed(0))
-  const underlyingCDT = shiftDigits(underlyingData, -6).toString() ?? "0"
-  ////////////////////////////////////
+  const underlyingCDT = useMemo(() =>
+    shiftDigits(underlyingData, -6).toString() ?? "0"
+    , [underlyingData])
 
-  const { action: rbLP } = useRangeBoundLP();
+  const { action: rbLP } = useRangeBoundLP({})
+  const logo = useMemo(() => cdtAsset?.logo, [cdtAsset])
 
-  const logo = useMemo(() => { return cdtAsset?.logo }, [cdtAsset])
-  console.log("cdtAsset logo", logo)
+  const totalBalance = useMemo(() =>
+    num(underlyingCDT).plus(cdtBalance).toString()
+    , [cdtBalance, underlyingCDT])
 
-  const totalBalance = useMemo(() => {
-    return num(underlyingCDT).plus(cdtBalance).toString()
-  }, [cdtBalance, underlyingCDT])
+  const pendingBalance = useMemo(() =>
+    num(underlyingCDT)
+      .plus(quickActionState.rangeBoundLPdeposit)
+      .minus(quickActionState.rangeBoundLPwithdrawal)
+      .toNumber()
+    , [underlyingCDT, quickActionState.rangeBoundLPdeposit, quickActionState.rangeBoundLPwithdrawal])
 
-  const pendingBalance = useMemo(() => {
-    return num(underlyingCDT).plus(quickActionState.rangeBoundLPdeposit).minus(quickActionState.rangeBoundLPwithdrawal).toNumber()
-  }, [underlyingCDT, quickActionState.rangeBoundLPdeposit, quickActionState.rangeBoundLPwithdrawal])
-  //set amount label 
-  const actingAmount = useMemo(() => {
-    return (quickActionState.rangeBoundLPdeposit > 0 ? quickActionState.rangeBoundLPdeposit : quickActionState.rangeBoundLPwithdrawal).toFixed(0)
-  }, [quickActionState.rangeBoundLPdeposit, quickActionState.rangeBoundLPwithdrawal])
+  const actingAmount = useMemo(() => (
+    quickActionState.rangeBoundLPdeposit > 0
+      ? quickActionState.rangeBoundLPdeposit
+      : quickActionState.rangeBoundLPwithdrawal
+  ).toFixed(0), [quickActionState.rangeBoundLPdeposit, quickActionState.rangeBoundLPwithdrawal])
 
-
-  const onSliderChange = (value: number) => {
+  const onSliderChange = useCallback((value: number) => {
     if (value > parseFloat(underlyingCDT)) {
-      let diff = num(value).minus(underlyingCDT).toNumber()
-      setQuickActionState({ rangeBoundLPdeposit: diff, rangeBoundLPwithdrawal: 0, autoSPdeposit: 0, autoSPwithdrawal: 0 })
-      console.log("deposit", diff)
-
+      const diff = num(value).minus(underlyingCDT).toNumber()
+      setQuickActionState({
+        rangeBoundLPdeposit: diff,
+        rangeBoundLPwithdrawal: 0,
+        autoSPdeposit: 0,
+        autoSPwithdrawal: 0
+      })
     } else if (value < parseFloat(underlyingCDT)) {
-      let diff = num(underlyingCDT).minus(value).toNumber()
-      setQuickActionState({ rangeBoundLPdeposit: 0, rangeBoundLPwithdrawal: diff, autoSPdeposit: 0, autoSPwithdrawal: 0 })
-      console.log("withdraw", diff)
+      const diff = num(underlyingCDT).minus(value).toNumber()
+      setQuickActionState({
+        rangeBoundLPdeposit: 0,
+        rangeBoundLPwithdrawal: diff,
+        autoSPdeposit: 0,
+        autoSPwithdrawal: 0
+      })
     }
+  }, [underlyingCDT, setQuickActionState])
 
-  }
-
-  const onReset = () => {
-    setQuickActionState({ rangeBoundLPdeposit: 0, rangeBoundLPwithdrawal: 0, autoSPdeposit: 0, autoSPwithdrawal: 0 })
-  }
-  console.log("rbLP", rbLP)
+  const onReset = useCallback(() => {
+    setQuickActionState({
+      rangeBoundLPdeposit: 0,
+      rangeBoundLPwithdrawal: 0,
+      autoSPdeposit: 0,
+      autoSPwithdrawal: 0
+    })
+  }, [setQuickActionState])
 
   return (
-    <Stack gap="0" borderWidth={"1px"} borderColor={colors.earnText} borderRadius={"2rem"}>
-      <HStack justifyContent="space-between" padding={"4%"}>
+    <Stack gap="0" borderWidth={3} borderRadius="2rem">
+      <HStack justifyContent="space-between" padding="4%">
         <Text fontSize="lg" fontFamily="Inter" variant="lable" textTransform="unset">
           CDT in Vault
         </Text>
@@ -84,28 +98,45 @@ const ActSlider = React.memo(() => {
           <Text fontFamily="Inter" variant="value">{pendingBalance.toFixed(2)}</Text>
         </HStack>
       </HStack>
+
       <SliderWithState
         color={colors.slider}
         width="92%"
         padding="4%"
-        value={num(underlyingCDT).minus(quickActionState.rangeBoundLPwithdrawal).plus(quickActionState.rangeBoundLPdeposit).toNumber()}
+        value={num(underlyingCDT)
+          .minus(quickActionState.rangeBoundLPwithdrawal)
+          .plus(quickActionState.rangeBoundLPdeposit)
+          .toNumber()}
         onChange={onSliderChange}
         max={Number(totalBalance)}
       />
 
-
       <HStack gap={0} padding="4%">
-        <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onReset} />
+        <Button
+          variant="ghost"
+          width="10"
+          padding={0}
+          leftIcon={<GrPowerReset />}
+          onClick={onReset}
+        />
         <ConfirmModal
-          label={quickActionState.rangeBoundLPdeposit > 0 ? `Deposit ${actingAmount.toString()} CDT` : quickActionState.rangeBoundLPwithdrawal > 0 ? `Withdraw ${actingAmount.toString()} CDT` : "Act"}
+          label={quickActionState.rangeBoundLPdeposit > 0
+            ? `Deposit ${actingAmount} CDT`
+            : quickActionState.rangeBoundLPwithdrawal > 0
+              ? `Withdraw ${actingAmount} CDT`
+              : "Act"
+          }
           action={rbLP}
-          isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingCDT).toNumber()}>
+          isDisabled={Number(totalBalance) < 1 || pendingBalance === num(underlyingCDT).toNumber()}
+        >
           <QASummary logo={logo} />
         </ConfirmModal>
       </HStack>
     </Stack>
   )
-});
+})
+
+
 
 const RangeBoundLPCard = () => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
@@ -113,8 +144,7 @@ const RangeBoundLPCard = () => {
   useEstimatedAnnualInterest(false)
   //Get total deposit tokens
   const { data: TVL } = useBoundedTVL()
-  // const { data: intents } = getBoundedCDTBalance()
-  // console.log("underlying laods in the main componeneT?", intents)
+  const { data: amountToManage } = useRBLPCDTBalance()
 
   const { data: basket } = useBasket()
   const { data: realizedAPR } = useBoundedCDTRealizedAPR()
@@ -142,10 +172,10 @@ const RangeBoundLPCard = () => {
 
 
   const { bidState } = useBidState()
-  const isDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data }, [manage?.simulate.isError, manage?.simulate.data])
+  const isDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero() }, [manage?.simulate.isError, manage?.simulate.data])
 
   return (
-    <Card width={isMobile ? "100%" : "50%"} borderColor={""} borderWidth={3} padding={4}>
+    <Card width={isMobile ? "100%" : "50%"} borderWidth={3} padding={4}>
       <Stack>
         <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Earn CDT</Text>
         <Stack>
@@ -154,7 +184,7 @@ const RangeBoundLPCard = () => {
         </Stack>
         <Divider marginBottom={"3vh"} />
         <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-          <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: colors.earnText, }}>Yield:</a> Revenue & Swap Fees</ListItem>
+          <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: colors.earnText }}>Yield:</a> Revenue & Swap Fees</ListItem>
           <ListItem fontFamily="Inter" fontSize="md">
             <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? shiftDigits(bidState.cdpExpectedAnnualRevenue, -6).times(0.80).dividedBy(86400 * 365).toNumber() : 0} precision={8} />
           </ListItem>

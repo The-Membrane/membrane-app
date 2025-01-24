@@ -30,7 +30,7 @@ export const registry = new Registry(protoRegistry)
 export const aminoTypes = new AminoTypes(aminoConverters)
 
 export const stargazeRPCUrl = 'https://rpc.cosmos.directory/stargaze'
-export const rpcUrl = 'https://osmosis-rpc.polkachu.com/'//'https://g.w.lavanet.xyz:443/gateway/osmosis/rpc-http/c6667993e9a0fac0a9c98d29502aa0a7'//'https://rpc.cosmos.directory/osmosis' //'https://rpc.osmosis.zone/'//// //
+export const rpcUrl = 'https://g.w.lavanet.xyz:443/gateway/osmosis/rpc-http/c6667993e9a0fac0a9c98d29502aa0a7'//'https://osmosis-rpc.polkachu.com/'////'https://rpc.cosmos.directory/osmosis' //'https://rpc.osmosis.zone/'//// //
 
 export const delayTime = 1200; // State update Delay time in millisecond
 export const loopMax = 5;
@@ -166,7 +166,7 @@ export const denoms = {
 
 export const stableSymbols = ["USDC", "USDT", "USDC.axl"];
 export const stableDenoms = ["ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4", "ibc/4ABBEF4C8926DDDB320AE5188CFD63267ABBCEFC0583E4AE05D6E5AA2401DDAB", "ibc/D189335C6E4A68B513C10AB227BF1C1D38C746766278BA3EEB4FB14124F1D858"];
-export const MAX_CDP_POSITIONS = 3;
+export const MAX_CDP_POSITIONS = 9;
 
 export const LPJoinDate = new Date("2024-10-25T17:15:59.903Z");
 //Position IDs of CL range testers

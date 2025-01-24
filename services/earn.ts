@@ -1,6 +1,6 @@
 
 import contracts from '@/config/contracts.json'
-import { getCosmWasmClient } from '@/helpers/cosmwasmClient' 
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { EarnQueryClient } from '@/contracts/codegen/earn/Earn.client'
 import { APRResponse, ClaimTracker } from '@/contracts/codegen/earn/Earn.types'
 import { Basket, BasketPositionsResponse, CollateralInterestResponse, Uint128 } from '@/contracts/codegen/positions/Positions.types'
@@ -11,6 +11,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { Price } from './oracle'
+import { IntentResponse } from '@/persisted-state/useUserIntentState'
 
 export const EarnClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -21,9 +22,9 @@ export const EarnClient = async () => {
 // }
 
 export const getBoundedConfig = async () => {
-  const cosmWasmClient = await getCosmWasmClient()  
+  const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
-    config: { }
+    config: {}
   }) as Promise<{
     owner: string,
     osmosis_proxy_contract_addr: string,
@@ -47,117 +48,99 @@ export const getBoundedConfig = async () => {
       ceiling: number,
       floor: number
     }
-  }>   
+  }>
 }
 
 export const getBoundedTVL = async () => {
-  const cosmWasmClient = await getCosmWasmClient()  
+  const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
-    total_t_v_l: { }
-  }) as Promise<Uint128>   
+    total_t_v_l: {}
+  }) as Promise<Uint128>
 
 }
 
-export const getBoundedIntents = async (address: string) => {
-  const cosmWasmClient = await getCosmWasmClient()  
+export const getBoundedIntents = async () => {
+  const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     get_user_intent: {
-      users: [ address ]
+      users: []
     }
-  }) as Promise<{
-    user: string,
-    intent: {
-      vault_tokens: string,
-      intents: {
-        user: string, 
-        last_conversion_rate: string,
-        purchase_intents: {
-          desired_asset: string,
-          route: any | undefined,
-          yield_percent: string,
-          position_id: number | undefined,
-          slippage: string | undefined
-        }[]
-      },
-      unstake_time: number,
-      fee_to_caller: string
-    }
-  }[]>  
+  }) as Promise<IntentResponse[]>
 }
 
 export const getUnderlyingUSDC = async (vtAmount: string) => {
   const client = await EarnClient()
-  return client.vaultTokenUnderlying({ vaultTokenAmount: vtAmount}).then((res) => res) as Promise<Uint128>    
+  return client.vaultTokenUnderlying({ vaultTokenAmount: vtAmount }).then((res) => res) as Promise<Uint128>
 }
 
 export const getUnderlyingCDT = async (vtAmount: string) => {
-  const cosmWasmClient = await getCosmWasmClient()  
+  const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.autoStabilityPool, {
     vault_token_underlying: {
       vault_token_amount: vtAmount
     }
-  }) as Promise<Uint128>   
+  }) as Promise<Uint128>
 }
 
 export const getBoundedUnderlyingCDT = async (vtAmount: string) => {
-  const cosmWasmClient = await getCosmWasmClient()  
+  const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     vault_token_underlying: {
       vault_token_amount: vtAmount
     }
-  }) as Promise<Uint128>   
+  }) as Promise<Uint128>
 }
 
 
 export const getVaultAPRResponse = async () => {
-  const cosmWasmClient = await getCosmWasmClient()  
+  const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.marsUSDCvault, {
     a_p_r: {}
-  }) as Promise<APRResponse>   
+  }) as Promise<APRResponse>
 }
 
 export const getEarnUSDCRealizedAPR = async () => {
   const client = await EarnClient()
-  return client.aPR().then((res) => res) as Promise<ClaimTracker> 
+  return client.aPR().then((res) => res) as Promise<ClaimTracker>
 }
 
 export const getEarnCDTRealizedAPR = async () => {
-  const cosmWasmClient = await getCosmWasmClient()  
+  const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.autoStabilityPool, {
-    claim_tracker: { }
-  }) as Promise<ClaimTracker> 
+    claim_tracker: {}
+  }) as Promise<ClaimTracker>
 }
 
 export const getBoundedCDTRealizedAPR = async () => {
-  const cosmWasmClient = await getCosmWasmClient()  
+  const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
-    claim_tracker: { }
-  }) as Promise<ClaimTracker> 
+    claim_tracker: {}
+  }) as Promise<ClaimTracker>
 }
 
 export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse, userDiscountQueries: any[]) => {
   var totalExpectedRevenue = 0
   var undiscountedTER = 0
   //  
-// // 
-    // var debtTallies = [0,0,0, 0]
-//   console.log("above map", basketPositions)
-  basketPositions?.map((basketPosition, index) => {
+  // // 
+  // var debtTallies = [0,0,0, 0]
+  //   console.log("above map", basketPositions)
+  const basketAssets = getBasketAssets(basket, interest)
+  basketPositions?.forEach((basketPosition, index) => {
     var debt = getDebt([basketPosition])
-    if (!debt || debt <= 1000 ) return
+    if (!debt || debt <= 1000) return
     if (basketPosition.user == contracts.earn) debt = debt * 0.75
     // debtTallies[0] += 1
-  // console.log("in map", basketPosition)
+    // console.log("in map", basketPosition)
     const positions = getPositions([basketPosition], prices)
     const tvl = getTVL(positions)
-    const basketAssets = getBasketAssets(basket, interest)
     const positionsWithRatio = getAssetRatio(false, tvl, positions)
 
     // console.log("above discount")
-    const discountRatio = (userDiscountQueries.length !== 0 && userDiscountQueries[index].data) ? userDiscountQueries[index].data.discount : "0"
+    const discountRatio = userDiscountQueries[index]?.data?.discount || "0";
     // console.log("discount", discountRatio)
     const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
-    const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
+    const discountedCost = cost * (1 - Number(discountRatio))
     const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
     const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
     // console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
@@ -166,7 +149,7 @@ export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsRespo
   })
   // console.log("debtTallies", debtTallies)
 
-  return { totalExpectedRevenue, undiscountedTER }  
+  return { totalExpectedRevenue, undiscountedTER }
 }
 
 

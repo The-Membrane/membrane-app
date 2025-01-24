@@ -6,8 +6,9 @@ import { useRpcClient } from './useRpcClient'
 import useWallet from './useWallet'
 import { Asset } from '@/helpers/chain'
 
-export const useBalance = (chainID: string = "osmosis") => {  
+export const useBalance = (chainID: string = "osmosis") => {
   const { address, chain } = useWallet(chainID)
+  // console.log("useBalance", address, chain)
   const { getRpcClient } = useRpcClient(chain.chain_name)
 
   return useQuery<QueryAllBalancesResponse['balances'] | null>({
@@ -35,7 +36,7 @@ export const useBalance = (chainID: string = "osmosis") => {
   })
 }
 
-export const useBalanceByAsset = (asset: Asset | null, chainID: string = "osmosis")  => {
+export const useBalanceByAsset = (asset: Asset | null, chainID: string = "osmosis") => {
   const { data: balances } = useBalance(chainID)
   const { address } = useWallet(chainID)
 

@@ -13,8 +13,8 @@ import useBidState from '@/components/Bid/hooks/useBidState'
 import useStaked from '@/components/Stake/hooks/useStaked'
 
 export type Liq = {
-    position_id: string
-    position_fee: string
+  position_id: string
+  position_fee: string
 }
 
 type QueryData = {
@@ -22,7 +22,7 @@ type QueryData = {
   liquidating_positions: Liq[]
 }
 
-const useProtocolLiquidations = () => {
+const useProtocolLiquidations = ({ run }: { run: boolean }) => {
   const liquidating_positions: Liq[] = [];
   const { address } = useWallet()
 
@@ -31,44 +31,45 @@ const useProtocolLiquidations = () => {
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
 
-    
+
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg liquidations', address, allPositions, prices, basket, interest],
+    queryKey: ['msg liquidations', run, address, allPositions, prices, basket, interest],
     queryFn: () => {
-        if (!address || !allPositions || !prices || !basket || !interest) {console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest); return { msgs: [], liquidating_positions: [] }}
+      if (!address || !allPositions || !prices || !basket || !interest || !run) { console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest, !run); return { msgs: [], liquidating_positions: [] } }
 
-        //For metric purposes
-        console.log("total # of CDPs: ", allPositions?.length)
-        var msgs = [] as MsgExecuteContractEncodeObject[]
-        
-        const cdpCalcs = getRiskyPositions(allPositions, prices, basket, interest)
-        const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as {address: string, id: string, fee: string}[]
-        console.log("liquidatible positions:", liq)
-        
+      //For metric purposes
+      console.log("total # of CDPs: ", allPositions?.length)
+      var msgs = [] as MsgExecuteContractEncodeObject[]
 
-        if (liq.length > 0) {
-            const liq_msgs = getLiquidationMsgs({address, liq_info: liq})
-            msgs = msgs.concat( liq_msgs )
+      const cdpCalcs = getRiskyPositions(allPositions, prices, basket, interest)
+      // console.log("liquidatible positions:", cdpCalcs.liquidatibleCDPs)
+      const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as { address: string, id: string, fee: string }[]
+      console.log("liquidatible positions:", liq)
 
-            liq.map((pos) => {
-                liquidating_positions.push({
-                    position_id: pos.id,
-                    position_fee: pos.fee
-                })
-            })
-        }
 
-        return {msgs, liquidating_positions}
+      if (liq.length > 0) {
+        const liq_msgs = getLiquidationMsgs({ address, liq_info: liq })
+        msgs = msgs.concat(liq_msgs)
+
+        liq.map((pos) => {
+          liquidating_positions.push({
+            position_id: pos.id,
+            position_fee: pos.fee
+          })
+        })
+      }
+
+      return { msgs, liquidating_positions }
     },
     enabled: !!address,
   })
-  
+
   const { msgs, liquidating_positions: liq_pos } = useMemo(() => {
     if (!queryData) return { msgs: [], liquidating_positions: liquidating_positions }
     else return queryData
   }, [queryData])
-  
+
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
@@ -79,11 +80,13 @@ const useProtocolLiquidations = () => {
     queryClient.invalidateQueries({ queryKey: ['one users level'] })
   }
 
-  return {action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['protocol liquidation sim', (msgs?.toString() ?? '0')],
-    onSuccess,
-  }), liquidating_positions: liq_pos}
+  return {
+    action: useSimulateAndBroadcast({
+      msgs,
+      queryKey: ['protocol liquidation sim', (msgs?.toString() ?? '0')],
+      onSuccess,
+    }), liquidating_positions: liq_pos
+  }
 }
 
 export default useProtocolLiquidations

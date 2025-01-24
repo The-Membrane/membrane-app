@@ -1,11 +1,8 @@
-import { Button, Grid, GridItem, Text, Stack, useBreakpointValue } from '@chakra-ui/react'
-import { StatsCard } from '../StatsCard'
+import { Button, Grid, GridItem, Text, Stack, useBreakpointValue, Checkbox } from '@chakra-ui/react'
 import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
 
-import { Html, Head, Main, NextScript } from 'next/document'
-
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import RangeBoundLPCard from './RangeBoundLPCard'
 import RangeBoundVisual from './RangeBoundVisual'
 import useVaultSummary from '../Mint/hooks/useVaultSummary'
@@ -15,113 +12,69 @@ import useToaster from '@/hooks/useToaster'
 import { num } from '@/helpers/num'
 import useMintState from '../Mint/hooks/useMintState'
 import NeuroGuardCard from './NeuroGuardCard'
+import { useUserBoundedIntents } from '../Earn/hooks/useEarnQueries'
+import useNeuroState from './hooks/useNeuroState'
+import useAppState from '../../persisted-state/useAppState'
+import { HomeTitle } from './HomeTitle'
 
 
-const Home = React.memo(() => {
-  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
-  // const [sign, setSign] = useState("on");
+// Memoize child components
+// const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
+// const MemoizedRangeBoundLPCard = React.memo(RangeBoundLPCard)
+// const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
 
+const Home = () => {
+  console.log("Home")
+  const { appState, setAppState } = useAppState();
+  const [hasShownToast, setHasShownToast] = useState(false);
+  const toaster = useToaster();
 
-  ////Setting up the Toaster for all position Costs////
-  const toaster = useToaster()
-  const { data: basketPositions } = useUserPositions()
+  // Memoize the toggle handler to prevent recreating on each render
+  const handleToggle = useCallback((event) => {
+    setAppState({ setCookie: event.target.checked });
+  }, [setAppState]);
 
-  const { setMintState } = useMintState()
-  const [positionNum, setPositionNum] = useState(1)
-  const totalPositions = useMemo(() => {
-    if (!basketPositions) return undefined
-    return Math.min(basketPositions[0].positions.length, MAX_CDP_POSITIONS)
-  }, [basketPositions])
-  //Memoize 
-  const { data } = useVaultSummary()
-  const summary = useMemo(() => {
-    return data || {
-      debtAmount: 0,
-      cost: 0,
-      discountedCost: 0,
-      tvl: 0,
-      ltv: 0,
-      borrowLTV: 0,
-      liquidValue: 0,
-      liqudationLTV: 0,
-      costRatios: []
-    }
-  }, [data])
+  // Memoize the toast content to prevent recreating on each render
+  const toastContent = useMemo(() => ({
+    title: 'Accept Cookies',
+    message: (
+      <Checkbox
+        checked={appState?.setCookie}
+        onChange={handleToggle}
+        fontFamily="Inter"
+      >
+        Accept cookies to track profits & optimize load times
+      </Checkbox>
+    ),
+    duration: null
+  }), [appState?.setCookie, handleToggle]);
 
-  const currentPositionCost = useMemo(() => {
-    return summary.discountedCost
-  }, [summary.discountedCost])
-  const ratesOverTen = useMemo(() => {
-    //Find any rate costs Over 10%
-    return summary.costRatios.filter((rate: any) => {
-      return num(rate.rate).times(100).toNumber() >= 10
-    })
-  }, [summary.costRatios])
-  const health = useMemo(() => {
-    if (summary.ltv === 0) return 100
-    return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
-  }, [summary.ltv, summary.liqudationLTV])
+  // Show toast effect with proper dependencies
   useEffect(() => {
-    if (summary.cost != 0 && totalPositions != undefined && currentPositionCost != undefined) {
-      // console.log("costy")
-      //Toast
-      toaster.message({
-        title: `Position ${positionNum}`,
-        message: <><Text>Health: <a style={health <= 10 ? { fontWeight: "bold", color: colors.alert } : {}}>{Math.min(health, 100)}%</a></Text>
-          <Text>Cost: <a style={num(currentPositionCost).times(100).toNumber() >= 10 ? { fontWeight: "bold", color: colors.alert } : {}}>{num(currentPositionCost).times(100).toFixed(2)}</a>%</Text>
+    if (!hasShownToast && appState?.setCookie === undefined) {
+      toaster.message(toastContent);
+      setHasShownToast(true);
+    }
+  }, [hasShownToast, appState?.setCookie, toastContent, toaster]);
 
-          {ratesOverTen.length > 0 ? <>
-            <Text style={{ marginTop: "5%" }}>{`\n`}Your Collateral Rates Over 10%:</Text>
-            {ratesOverTen.map((rate: any) => {
-              return <Text key={rate.symbol}>{rate.symbol}: {num(rate.rate).times(100).toFixed(2)}% ({num(rate.ratio).toFixed(2)}% of CDP)</Text>
-            })}
-          </> : null}
-        </>
-      })
-      console.log("positionNumber", positionNum + 1, "totalPositions", totalPositions)
-      //Go to next position
-      if (positionNum < totalPositions) {
-        setPositionNum(positionNum + 1)
-        setMintState({ positionNumber: positionNum + 1 })
-        console.log("inside", positionNum, "totalPositions", totalPositions)
-      }
-    } console.log("why costy", currentPositionCost)
-    // else console.log("no costy", summary.cost, totalPositions, currentPositionCost)
-  }, [currentPositionCost])
+  // Handle toaster dismissal with proper effect
+  useEffect(() => {
+    if (appState?.setCookie) {
+      toaster.dismiss();
+    }
+  }, [appState?.setCookie, toaster]);
 
-
-
+  // Memoize the entire content to prevent unnecessary re-renders
   return (
     <Stack>
-      <Head>
-        <title>Membrane</title>
-        <meta name="description" content="Guard the most resilient stablecoin in protective harmony" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+      <HomeTitle />
       <Stack>
-        <StatsCard />
-      </Stack>
-      <Stack>
-        {/* <div className="paddingBottom" onMouseEnter={() => { setSign("on") }} onMouseLeave={() => { setSign("on") }}>
-          <h5 className={`neonSign${sign}`}>
-            <b>
-              <a>E</a><span>X</span><a>P</a><span>E</span><a>R</a><span>I</span><a>M</a><span>E</span><a>N</a><span>T</span><a>A</a><span>L</span>
-              &nbsp;
-              <a>V</a><span>A</span><a>U</a><span>L</span><a>T</a><span>S</span>
-            </b>
-          </h5>
-        </div> */}
         <NeuroGuardCard />
-        <Stack >
-          <Text variant="title" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>The Membrane</Text>
-          <Stack direction={isMobile ? 'column' : 'row'} width="100%" >
-            <RangeBoundVisual />
-            <RangeBoundLPCard />
-          </Stack>
-        </Stack>
       </Stack>
     </Stack>
-  )
-})
+  );
 
-export default Home
+};
+
+// Only use memo if this component's parent might cause unnecessary re-renders
+export default Home;

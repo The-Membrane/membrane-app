@@ -181,7 +181,7 @@ export interface StakeDeposit {
   unstake_start_time?: number | null;
 }
 export interface StakerResponse {
-  deposit_list: [Uint128, number][];
+  deposit_list: StakeDeposit[];
   staker: string;
   total_staked: Uint128;
 }

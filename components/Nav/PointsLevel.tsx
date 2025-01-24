@@ -2,8 +2,11 @@ import { colors } from '@/config/defaults'
 import { useUserPoints, useSoloLevel } from '@/hooks/usePoints'
 import { Stack, Text, Slider, SliderTrack, SliderFilledTrack, SliderMark, Box } from '@chakra-ui/react'
 import React, { useMemo } from 'react'
+import { TxButton } from '../TxButton'
+import useClaimPoints from './hooks/usePointsClaim'
 
 function SoloLeveling() {
+  const { action: claimPoints } = useClaimPoints()
   const { data: pointsData } = useUserPoints()
   const points = useMemo(() => {
     console.log("total points", pointsData)
@@ -40,6 +43,17 @@ function SoloLeveling() {
           <Box bg="white" w="0.5" h="4" mt="-2" />
         </SliderMark>
       </Slider>
+      <TxButton
+        fontSize="12px"
+        w="100%"
+        height="20px"
+        isLoading={claimPoints.simulate.isLoading || claimPoints.tx.isPending}
+        isDisabled={claimPoints.simulate.isError || !claimPoints.simulate.data}
+        onClick={() => claimPoints.tx.mutate()}
+        toggleConnectLabel={false}
+      >
+        Claim MBRN
+      </TxButton>
     </Stack>
   )
 }

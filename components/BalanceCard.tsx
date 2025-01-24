@@ -11,7 +11,7 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 
 export const Stats = ({ label, value }) => (
   <Stack gap="1">
-    
+
     {label != "" ? <Text
       variant="title"
       letterSpacing="unset"
@@ -28,13 +28,13 @@ export const Stats = ({ label, value }) => (
 )
 
 export const BalanceCard = () => {
-    const cdt = useAssetBySymbol('CDT')
-    const cdtBalance = useBalanceByAsset(cdt)
-    const mbrn = useAssetBySymbol('MBRN')
-    const mbrnBalance = useBalanceByAsset(mbrn)
+  const cdt = useAssetBySymbol('CDT')
+  const cdtBalance = useBalanceByAsset(cdt)
+  const mbrn = useAssetBySymbol('MBRN')
+  const mbrnBalance = useBalanceByAsset(mbrn)
 
   return (
-    <Stack mt="auto" gap="3">
+    <Stack gap="3">
       <Divider mx="0" mb="5" />
       <Stats label="Wallet Balances" value={`${Formatter.tvl(mbrnBalance)} MBRN`} />
       <Stats label="" value={`${Formatter.tvl(cdtBalance)} CDT`} />

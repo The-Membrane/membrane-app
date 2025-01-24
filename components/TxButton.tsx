@@ -6,6 +6,7 @@ interface ConnectionButtonProps {
   disabledTooltip?: string
   chain_name?: string
   toggleConnectLabel?: boolean
+  fontSize?: string
 }
 
 export const TxButton: FC<PropsWithChildren<ConnectionButtonProps & ButtonProps>> = ({
@@ -13,6 +14,7 @@ export const TxButton: FC<PropsWithChildren<ConnectionButtonProps & ButtonProps>
   chain_name = 'osmosis',
   toggleConnectLabel = true,
   children,
+  fontSize = 'md',
   ...buttonProps
 }) => {
   const { isWalletConnected, connect } = useWallet(chain_name)
@@ -24,7 +26,7 @@ export const TxButton: FC<PropsWithChildren<ConnectionButtonProps & ButtonProps>
 
   return (
     <Tooltip hasArrow label={buttonProps.isDisabled ? disabledTooltip : ''}>
-      <Button {...buttonProps}>{children}</Button>
+      <Button {...buttonProps} fontSize={fontSize}>{children}</Button>
     </Tooltip>
   )
 }

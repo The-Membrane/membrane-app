@@ -14,12 +14,12 @@ const collateralSupplyCapErrors = () => {
     const assetSymbol = getAssetByDenom(assetDenom)?.symbol
     return {
       regex: new RegExp(`Supply cap ratio for ${assetDenom}`, 'i'),
-      message: `This transaction puts ${assetSymbol} over its supply cap. If withdrawing, withdraw ${assetSymbol}. If depositing, withdraw ${assetSymbol} first or deposit enough of a different asset to reduce ${assetSymbol}'s cap. If minting from zero debt, withdraw ${assetSymbol} first & attempt to deposit it after the mint.`,
+      message: `This transaction puts ${assetSymbol} over its supply cap. If withdrawing, withdraw ${assetSymbol}. If depositing with debt, withdraw ${assetSymbol} first. If depositing without debt, deposit enough of a different asset to reduce ${assetSymbol}'s cap so you can deposit it. If minting from zero debt with multiple cllateral, withdraw ${assetSymbol} first & attempt to deposit it after the mint.`,
     }
   })
 }
 
-export const parseError = (error: Error) => {
+export const parseError = (error: string) => {
   var customErrors = [
     { regex: /insufficient funds/i, message: 'Insufficient funds' },
     { regex: /overflow: cannot sub with/i, message: 'Insufficient funds' },
@@ -29,7 +29,7 @@ export const parseError = (error: Error) => {
     { regex: /no liquidity in pool/i, message: 'No liquidity available' },
     { regex: /token amount calculated/i, message: 'Try increasing slippage' },
     { regex: /Must stake at least 1 MBRN/i, message: "You aren't claiming enough to stake, must be more than 1 MBRN" },
-    { regex: /is below minimum/i, message: 'Minimum 100 CDT to mint' },
+    { regex: /is below minimum/i, message: 'Minimum 20 CDT to mint' },
     { regex: /invalid coin/i, message: 'Invalid coins provided' },
     { regex: /tx already exists in cache/i, message: 'Transaction already exists in cache' },
     { regex: /Makes position insolvent/i, message: 'Amount exceeds the maximum LTV' },
@@ -40,6 +40,7 @@ export const parseError = (error: Error) => {
     { regex: /big.Int: tx parse error/i, message: "Max amount per deposit for this token is 999, if this error seems wrong, just jiggle the slider." },
     { regex: /invalid Uint128/i, message: "Max amount per deposit for this token is 999, if this error seems wrong, just jiggle the slider." },
     { regex: /rate assurance failed/i, message: "Depositor safety check failed, operational error." },
+    { regex: / Invalid target_LTV for debt increase/i, message: "Intent failed, are you above the minimum amount?" },
     {
       regex: /Invalid withdrawal, can't leave less than the minimum bid/i,
       message: 'Minimum bid amount is 5 CDT',
@@ -54,16 +55,16 @@ export const parseError = (error: Error) => {
     },
     {
       regex: /Unexpected end of JSON input/i,
-      message: 'Success despite error', 
+      message: 'Success despite error',
     },
   ]
-  customErrors = customErrors.concat(collateralSupplyCapErrors()??[])
+  customErrors = customErrors.concat(collateralSupplyCapErrors() ?? [])
 
-  const errorMessage = error?.message || ''
-    console.log("error:", errorMessage)
+  const errorMessage = error || ''
+  // console.log("error:", errorMessage)
 
   const matchedError = customErrors.find(({ regex }) => regex.test(errorMessage))
   if (!matchedError) console.log("error:", errorMessage)
-  
+
   return matchedError ? matchedError.message : errorMessage//'Something went wrong, please try again'
 }

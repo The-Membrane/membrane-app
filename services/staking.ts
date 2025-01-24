@@ -41,23 +41,11 @@ export const getConfig = async () => {
 
 export const getStaked = async (address: Addr) => {
   const client = await stakingClient()
-  const response = await client.userStake({
+  return client.userStake({
     staker: address,
   })
-
-  const staking = response?.deposit_list?.filter((s) => !s.unstake_start_time)
-  const unstaking = response?.deposit_list?.filter((s) => s.unstake_start_time)
-
-  const staked = staking?.reduce((acc, s) => {
-    return acc.plus(s.amount)
-  }, num(0))
-
-  console.log("unstaking in fn", unstaking)
-  return {
-    staked: staked.toNumber(),
-    unstaking,
-  }
 }
+
 const parseClaimable = (claimable: LiqAsset[]) => {
   return claimable?.map((c) => {
     const denom = c.info.native_token?.denom

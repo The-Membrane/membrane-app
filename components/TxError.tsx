@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { Text, TextProps } from '@chakra-ui/react'
 import { parseError } from '@/helpers/parseError'
 import { Action } from '@/types/tx'
@@ -9,18 +9,16 @@ type Props = TextProps & {
 
 const TxError = ({ action, ...textProps }: Props) => {
   const { isError, error } = action?.simulate || {}
-  if (!isError) return null
 
-  const errorMessage = useMemo(() => {
-    if (!error) return null
-    return parseError(error)
-  }, [error])
+  const errorMsg = parseError(isError ? error?.message : "")
+
+
+  if (!errorMsg || errorMsg == " ") return null
 
   return (
     <Text fontSize="sm" color="red.500" {...textProps}>
-      {errorMessage}
+      {errorMsg}
     </Text>
   )
 }
-
 export default TxError

@@ -4,7 +4,9 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <meta name="description" content="Guard the most resilient stablecoin in protective harmony" />
+        <title>Membrane</title>
+        <meta name="description" content="Life is uncertain, yet we still provide you stability." />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png" />

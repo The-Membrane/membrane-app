@@ -19,42 +19,21 @@ import { useBasket } from "@/hooks/useCDP"
 
 
 import EventEmitter from 'events';
-import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
+import { getCookie, setCookie } from '@/helpers/cookies'
+import useUserPositionState from '@/persisted-state/useUserPositionState'
+import useAppState from '@/persisted-state/useAppState'
+import useUserIntentState from '@/persisted-state/useUserIntentState'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
-const useNeuroGuard = () => {
+const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
-  const assets = useCollateralAssets()
+  const { reset } = useUserPositionState()
+  const { reset: resetIntents } = useUserIntentState()
+  const { appState } = useAppState()
   const { neuroState } = useNeuroState()
 
-  //   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
-  //   const underlyingCDT = data ?? "1"
-
-  // Debounce the slider value to prevent too many queries
-  const [debouncedValue, setDebouncedValue] = useState<{ selectedAsset: any }>(
-    { selectedAsset: undefined }
-  );
-
-  useEffect(() => {
-    console.log('Debounce effect triggered:', neuroState);
-    const timer = setTimeout(() => {
-      console.log('Setting debounced values:', neuroState);
-      setDebouncedValue({
-        selectedAsset: neuroState.selectedAsset
-      });
-    }, 300);
-
-    return () => {
-      console.log('Cleaning up debounce effect');
-      clearTimeout(timer)
-    };
-  }, [neuroState.selectedAsset]);
-
-  const guardedAsset = useAssetBySymbol(debouncedValue.selectedAsset?.symbol || "N/A")
-
-  // useEffect(() => {console.log("debounced changed")}, [debouncedValue])
-  // useEffect(() => {console.log("debounced selectedAsset changed")}, [debouncedValue.selectedAsset])
+  // console.log('above neuro', neuroState.openSelectedAsset);
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -63,22 +42,22 @@ const useNeuroGuard = () => {
     queryKey: [
       'neuroGuard_msg_creation',
       address,
-      debouncedValue.selectedAsset,
-      guardedAsset,
+      neuroState.openSelectedAsset,
       basket,
-      assets
+      run
     ],
     queryFn: () => {
-      console.log("in query guardian", guardedAsset)
+      console.log("in query guardian", neuroState.openSelectedAsset)
 
 
-      if (!address || !debouncedValue.selectedAsset || !guardedAsset || !basket || !assets) { console.log("neuroGuard early return", address, debouncedValue, guardedAsset, basket, assets); return { msgs: [] } }
+      if (!run || !address || !neuroState.openSelectedAsset || (neuroState.openSelectedAsset && neuroState.openSelectedAsset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      const newDeposit = num(debouncedValue.selectedAsset.sliderValue).toNumber()
-      const amount = shiftDigits(num(newDeposit).dividedBy(debouncedValue.selectedAsset.price).toString(), debouncedValue.selectedAsset.decimal).toFixed(0)
-      console.log("Neuro funds", newDeposit, amount, debouncedValue.selectedAsset)
-      const funds = [{ amount, denom: guardedAsset.base }]
+      const newDeposit = num(neuroState.openSelectedAsset.sliderValue).toNumber()
+      // const amount = shiftDigits(num(newDeposit).dividedBy(neuroState.openSelectedAsset.price).toString(), neuroState.openSelectedAsset.decimal).toFixed(0)
+      const amount = shiftDigits(newDeposit, neuroState.openSelectedAsset.decimal).toFixed(0)
+      console.log("Neuro funds", newDeposit, amount, neuroState.openSelectedAsset)
+      const funds = [{ amount, denom: neuroState.openSelectedAsset.base }]
       console.log(funds)
 
       //Deposit msg
@@ -107,7 +86,7 @@ const useNeuroGuard = () => {
               mint_intent: {
                 user: address,
                 position_id: basket.current_position_id,
-                mint_to_ltv: num(assets.find((p: any) => p.base === debouncedValue.selectedAsset.base)?.maxBorrowLTV).times(0.8).toString()
+                mint_to_ltv: num(neuroState.openSelectedAsset?.maxBorrowLTV).times(0.8).toString()
               }
             }
           })),
@@ -147,15 +126,21 @@ const useNeuroGuard = () => {
     /////ERRORS ON THE 3RD OR 4TH MODAL OPEN, CHECKING TO SEE IF ITS THE INVALIDATED QUERY////
   })
 
-  console.log("neuroGuard msgs:", "enabled", !!address)
+  // console.log("neuroGuard msgs:", "enabled", !!address)
   const msgs = queryData?.msgs ?? []
 
-  console.log("neuroGuard msgs:", msgs)
+  // console.log("neuroGuard msgs:", msgs)
+
+  const cookie = getCookie("neuroGuard " + basket?.current_position_id)
 
   const onInitialSuccess = () => {
+    if (cookie == null && appState.setCookie) setCookie("neuroGuard " + basket?.current_position_id, (neuroState?.openSelectedAsset?.sliderValue ?? 0).toString(), 3650)
+    onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    reset()
     queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['useBoundedIntents'] })
+    resetIntents()
+    queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
   }
 
   return {

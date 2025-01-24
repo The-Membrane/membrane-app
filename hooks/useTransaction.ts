@@ -49,7 +49,7 @@ const useTransaction = ({ msgs, onSuccess, fee, chain_id }: Transaction) => {
       onSuccess?.()
     },
     onError: (error) => {
-      const parsedError = parseError(error)
+      const parsedError = parseError(error?.message ?? "")
       toaster.error({
         message: parsedError || 'Transaction Failed',
       })

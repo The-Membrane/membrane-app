@@ -12,27 +12,31 @@ import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useBoundedIntents, useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
+import { useBoundedIntents, useCDTVaultTokenUnderlying, useUserBoundedIntents } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 import useNeuroState from "./useNeuroState"
 import { useBasket } from "@/hooks/useCDP"
 
 import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
+import { getAssetByDenom } from '@/helpers/chain'
+import { deleteCookie, getCookie, setCookie } from '@/helpers/cookies'
+import useUserPositionState from '@/persisted-state/useUserPositionState'
+import useUserIntentState from '@/persisted-state/useUserIntentState'
 
 export type UserIntentData = {
-    vault_tokens: string,
-    intents: {
-      user: string, 
-      last_conversion_rate: string,
-      purchase_intents: {
-        desired_asset: string,
-        route: any | undefined,
-        yield_percent: string,
-        position_id: number | undefined,
-        slippage: string | undefined
-      }[]
-    }
+  vault_tokens: string,
+  intents: {
+    user: string,
+    last_conversion_rate: string,
+    purchase_intents: {
+      desired_asset: string,
+      route: any | undefined,
+      yield_percent: string,
+      position_id: number | undefined,
+      slippage: string | undefined
+    }[]
+  }
 }
 
 /**
@@ -41,36 +45,36 @@ export type UserIntentData = {
  * @param positionIdToRemove Position ID to remove
  * @returns Updated vault data with redistributed yields
  */
-function redistributeYield(data: UserIntentData, positionIdToRemove: number): UserIntentData {  
+function redistributeYield(data: UserIntentData, positionIdToRemove: number): UserIntentData {
   // Create a deep copy of the data to avoid mutations
   const newData: UserIntentData = JSON.parse(JSON.stringify(data));
-  
+
   const intents = newData.intents.purchase_intents;
-  
+
   console.log("here")
   const positionIndex = intents.findIndex(intent => intent.position_id !== undefined && intent.position_id === positionIdToRemove);
-  
+
   // If position not found, return original data
   if (positionIndex === -1) {
     return data;
   }
   console.log("here1")
-  
+
   // Get the yield percentage that needs to be redistributed
   const yieldToRedistribute = parseFloat(intents[positionIndex].yield_percent);
-  
+
   // Remove the position
   intents.splice(positionIndex, 1);
   console.log("here2")
-  
+
   // If there are no remaining intents, return the data
   if (intents.length === 0) {
     return newData;
   }
-  
+
   // Calculate the additional yield each remaining intent will receive
   const additionalYieldPerIntent = yieldToRedistribute / intents.length;
-  
+
   console.log("here3")
   // Redistribute the yield
   intents.forEach(intent => {
@@ -80,16 +84,32 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
 
   newData.intents.purchase_intents = intents;
   console.log("here4")
-  
+
   return newData;
 }
 
-const useNeuroClose = ({ position } : { position: PositionResponse }) => { 
+const useNeuroClose = ({ position, onSuccess, run }: { position: PositionResponse, onSuccess: () => void, run: boolean }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()
-  // const { neuroState, setNeuroState } = useNeuroState()
-  const { data: userIntents } = useBoundedIntents()
+  const { neuroState } = useNeuroState()
+  const { data: userIntents } = useUserBoundedIntents()
+  const { reset: resetIntents } = useUserIntentState()
+  const { reset } = useUserPositionState()
+  //Get asset by symbol
+  const collateralAsset = position.collateral_assets[0].asset
+  //@ts-ignore
+  const assetInfo = getAssetByDenom(collateralAsset.info.native_token.denom)
+
+  //Get cookie for the position_id. If cookie exists, we add the deposit to it.
+  const cookie = getCookie("neuroGuard " + position.position_id)
+  //parse the cookie
+  const cookiedDepositAmount = num(cookie ?? "0").toNumber()
+  //set withdraw amount
+  const newCookieAmount =
+    neuroState.withdrawSelectedAsset?.sliderValue && neuroState.withdrawSelectedAsset?.sliderValue > 0 && cookiedDepositAmount > 0
+      ? num(cookiedDepositAmount).minus(neuroState.withdrawSelectedAsset?.sliderValue).toNumber()
+      : undefined;
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -98,122 +118,152 @@ const useNeuroClose = ({ position } : { position: PositionResponse }) => {
     queryKey: [
       'neuroClose_msg_creation',
       address,
-      position,
+      position.position_id,
       basket,
       assets,
-      userIntents
+      userIntents,
+      assetInfo,
+      neuroState.withdrawSelectedAsset?.sliderValue,
+      run
     ],
     queryFn: () => {
-    //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
+      //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
 
-      if (!address || !position || !basket || !assets || !userIntents) {console.log("neuroClose early return", address, position, basket, assets, userIntents); return { msgs: [] }}
+      if (!run || !address || !position || (position && position.position_id === "0") || !basket || !assets || !userIntents || !assetInfo || !neuroState.withdrawSelectedAsset?.sliderValue || (neuroState.withdrawSelectedAsset && neuroState.withdrawSelectedAsset?.sliderValue == 0)) { console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.withdrawSelectedAsset?.sliderValue); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      //Find the user intent for the position to close
-      // const guardedIntent = userIntents[0].intent.intents.purchase_intent.find((intent: any) => intent?.position_id === position.position_id)!
-      // //Calc the amount of vault tokens this intent holds
-      // const guardedTokens = num(guardedIntent.yield_percent).times(userIntents[0].intent.vault_tokens).toFixed(0)
+      //calc the % of the position to close     
+      //@ts-ignore
+      const maxAmount = shiftDigits(collateralAsset.amount, -assetInfo?.decimal).toNumber()
+      const percentToClose = num(maxAmount).dividedBy(neuroState.withdrawSelectedAsset?.sliderValue).toString()
+      var debtToRepay = num(position.credit_amount).times(percentToClose).toString()
+      const remainingDebt = num(position.credit_amount).minus(debtToRepay).toString()
+      // Leave 1 CDT to ensure ClosePosition never fails
+      if (Number(remainingDebt) < 1000000) { debtToRepay = num(debtToRepay).minus(1000000).toString() }
 
       console.log("neuroClose position:", position)
       //1) Repay using intented VTs
-      // Leave 1 CDT to allow the ClosePosition to never fail
-      if (Number(position.credit_amount) > 1000000) {
-        let intentRepayMsg  = {
-            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-            value: MsgExecuteContract.fromPartial({
+      if (Number(debtToRepay) > 1000000) {
+        let intentRepayMsg = {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: MsgExecuteContract.fromPartial({
             sender: address,
             contract: contracts.rangeboundLP,
             msg: toUtf8(JSON.stringify({
               repay_user_debt: {
-                  user_info: {
-                    position_owner: address, 
-                    position_id: position.position_id
-                  },
-                  repayment: num(position.credit_amount).minus(1000000).toString(),
-                }
+                user_info: {
+                  position_owner: address,
+                  position_id: position.position_id
+                },
+                repayment: debtToRepay
+              }
             })),
             funds: []
-            })
+          })
         } as MsgExecuteContractEncodeObject
         msgs.push(intentRepayMsg)
       }
+
       //2) Close Position
-      
+      //This execution flow doesn't work for undebted positions
       if (Number(position.credit_amount) > 0) {
-        let closeMsg  = {
+        let closeMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: contracts.cdp,
-          msg: toUtf8(JSON.stringify({
-            close_position: {            
-              position_id: position.position_id,
-              max_spread: "0.02"
-            }
-          })),
-          funds: []
+            sender: address,
+            contract: contracts.cdp,
+            msg: toUtf8(JSON.stringify({
+              close_position: {
+                position_id: position.position_id,
+                max_spread: "0.02",
+                close_percentage: percentToClose,
+              }
+            })),
+            funds: []
           })
         } as MsgExecuteContractEncodeObject
         msgs.push(closeMsg)
       }
       //3) Split the yield_percent split from this intent to the remaining intents
       // & set intents to the new split
-      const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
-      console.log("updatedIntent data", updatedIntents)
       //4) Update intents
-      // We only Update if there were more than 1 intent, otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
-      if (userIntents[0].intent.intents.purchase_intents.length > 1 &&  updatedIntents.intents.purchase_intents.length > 0) {
-        const updatedIntentsMsg = {
-          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-          value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: contracts.rangeboundLP,
-          msg: toUtf8(JSON.stringify({
-            set_user_intents: {
-                intents: {                
-                  user: address,
-                  last_conversion_rate: "0", //this isn't updated
-                  purchase_intents: updatedIntents.intents.purchase_intents
-                },
-              }
-          })),
-          funds: []
-          })
-        } as MsgExecuteContractEncodeObject
-        msgs.push(updatedIntentsMsg)
+      // We only Update if there was more than 1 intent && the percentToClose is 100%
+      // , otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
+      if (userIntents && userIntents[0] && percentToClose === "1") {
+
+        const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
+        // console.log("updatedIntent data", updatedIntents)
+        if (updatedIntents.intents.purchase_intents.length > 0) {
+          const updatedIntentsMsg = {
+            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+            value: MsgExecuteContract.fromPartial({
+              sender: address,
+              contract: contracts.rangeboundLP,
+              msg: toUtf8(JSON.stringify({
+                set_user_intents: {
+                  intents: {
+                    user: address,
+                    last_conversion_rate: "0", //this isn't updated
+                    purchase_intents: updatedIntents.intents.purchase_intents
+                  },
+                }
+              })),
+              funds: []
+            })
+          } as MsgExecuteContractEncodeObject
+          msgs.push(updatedIntentsMsg)
+        } else {
+          //If there are no intents left, we withdraw the remaining vault tokens
+          const clearIntentsMsg = {
+            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+            value: MsgExecuteContract.fromPartial({
+              sender: address,
+              contract: contracts.rangeboundLP,
+              msg: toUtf8(JSON.stringify({
+                set_user_intents: {
+                  reduce_vault_tokens: {
+                    exit_vault: true,
+                    amount: "10000000000000000" //big number so that the execution uses the max from state instead
+                  }
+                }
+              })),
+              funds: []
+            })
+          } as MsgExecuteContractEncodeObject
+          msgs.push(clearIntentsMsg)
+
+        }
       }
 
       console.log("in query guardian msgs:", msgs)
-      
+
       return { msgs }
     },
     enabled: !!address,
-    // staleTime: 5000,
-    // Disable automatic refetching
-    // refetchOnWindowFocus: false,
-    // refetchOnReconnect: false,
-    // refetchOnMount: false,
-    // retry: false
-    /////ERRORS ON THE 3RD OR 4TH MODAL OPEN, CHECKING TO SEE IF ITS THE INVALIDATED QUERY////
   })
-  
-  const  msgs = queryData?.msgs ?? []
+
+  const msgs = queryData?.msgs ?? []
 
   console.log("neuroClose msgs:", msgs)
 
   const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })    
+    newCookieAmount && newCookieAmount > 0 ? setCookie("neuroGuard " + position.position_id, newCookieAmount.toString(), 3650) : deleteCookie("neuroGuard " + position.position_id)
+    onSuccess()
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    reset()
     queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['useBoundedIntents'] })   
+    resetIntents()
+    queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
   }
 
   return {
     action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['home_page_neuroClose', (msgs?.toString()??"0")],
-    onSuccess: onInitialSuccess,
-    enabled: !!msgs,
-  })}
+      msgs,
+      queryKey: ['home_page_neuroClose', (msgs?.toString() ?? "0")],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs,
+    })
+  }
 }
 
 export default useNeuroClose

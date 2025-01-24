@@ -131,15 +131,31 @@ type GetDepostAndWithdrawMsgs = {
   hasPosition?: boolean
 }
 
-const getAsset = (asset: any): Asset => {
-  return {
+const getAsset = (asset: any, basketPositions: BasketPositionsResponse[] | undefined, positionId: string): Asset => {
+
+  //@ts-ignore
+  var assetObject = {
     amount: shiftDigits(Math.abs(asset.amount), asset.decimal).dp(0).toNumber().toString(),
     info: {
       native_token: {
         denom: asset.base,
       },
     },
+  } as Asset
+
+  if (asset.sliderValue == 0 && basketPositions) {
+    //Find asset in basketPositions
+    const position = basketPositions[0].positions.find((p: any) => p.position_id === positionId)
+    const assetFound = position?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === asset.base)
+    const amount = assetFound?.asset.amount
+
+    console.log("full withdrawal amount", amount)
+    if (amount) assetObject.amount = amount
   }
+
+  console.log("assetObject", assetObject)
+
+  return assetObject
 }
 
 export const getDepostAndWithdrawMsgs = ({
@@ -159,11 +175,6 @@ export const getDepostAndWithdrawMsgs = ({
     if (num(asset.amount).isGreaterThan(0)) {
       deposit.push(asset)
     } else {
-      if(asset.sliderValue == 0 && basketPositions){
-        //Find asset in basketPositions
-        const amount = basketPositions[0].positions.find((p: any) => p.position_id === positionId)?.collateral_assets.find((a: any) => a.base === asset.base)?.asset.amount
-        if(amount) asset.amount = amount
-      }
       withdraw.push(asset)
     }
   })
@@ -179,8 +190,8 @@ export const getDepostAndWithdrawMsgs = ({
         amount: amount,
       }
     })
-    
-  
+
+
   if (depositFunds.length > 0) {
     if (hasPosition) {
       const depositMsg = messageComposer.deposit({ positionId, positionOwner: address }, depositFunds)
@@ -195,7 +206,7 @@ export const getDepostAndWithdrawMsgs = ({
   if (withdraw.length > 0) {
     const withdrawMsg = messageComposer.withdraw({
       positionId,
-      assets: withdraw?.map((asset) => getAsset(asset)),
+      assets: withdraw?.map((asset) => getAsset(asset, basketPositions, positionId)),
     })
     msgs.push(withdrawMsg)
   }
@@ -231,13 +242,13 @@ export const getMintAndRepayMsgs = ({
     //Add points check/allocate before and after
     const pointsMessageComposer = new PointsMsgComposer(address, contracts.points)
     msgs.push(pointsMessageComposer.checkClaims({
-        cdpRepayment: {
-          position_id: positionId,
-          position_owner: address
-        },
-        spClaims: false,
-        lqClaims: false,
-      }))
+      cdpRepayment: {
+        position_id: positionId,
+        position_owner: address
+      },
+      spClaims: false,
+      lqClaims: false,
+    }))
 
     const cdt = getAssetBySymbol('CDT')
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
@@ -259,7 +270,7 @@ export const getMintAndRepayMsgs = ({
 type GetLiqMsgs = {
   address: string
   liq_info: any[]
-} 
+}
 export const getLiquidationMsgs = ({
   address,
   liq_info

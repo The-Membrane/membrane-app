@@ -8,9 +8,11 @@ import useMintState from './useMintState'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
+import useUserPositionState from '@/persisted-state/useUserPositionState'
 
 const useMint = () => {
   const { mintState, setMintState } = useMintState()
+  const { reset } = useUserPositionState()
   const { summary = [] } = mintState
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useUserPositions()
@@ -18,19 +20,20 @@ const useMint = () => {
 
   //Use the current position id or use the basket's next position ID (for new positions)
   const positionId = useMemo(() => {
-  if (basketPositions !== undefined && (mintState.positionNumber < Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS) || (basketPositions[0].positions.length === MAX_CDP_POSITIONS))) {
-    return basketPositions?.[0]?.positions?.[mintState.positionNumber-1]?.position_id
-  } else {
-    //Use the next position ID
-    return basket?.current_position_id ?? ""    
-  }}, [basketPositions, mintState.positionNumber, basket])
+    if (basketPositions !== undefined && (mintState.positionNumber < Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS) || (basketPositions[0].positions.length === MAX_CDP_POSITIONS))) {
+      return basketPositions?.[0]?.positions?.[mintState.positionNumber - 1]?.position_id
+    } else {
+      //Use the next position ID
+      return basket?.current_position_id ?? ""
+    }
+  }, [basketPositions, mintState.positionNumber, basket])
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
     queryKey: [
       'mint',
       address,
       positionId,
-      summary?.map((s: any) => String(s.amount)) || '0',
+      summary ? JSON.stringify(summary.map(s => String(s.amount))) : '0',
       mintState?.mint,
       mintState?.repay,
     ],
@@ -52,24 +55,22 @@ const useMint = () => {
     enabled: !!address && !mintState.overdraft,
   })
 
-  const onSuccess = () => {    
+  const onSuccess = () => {
+    reset()
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    setMintState({positionNumber: 1, mint: 0, repay: 0, summary: []})
+    setMintState({ positionNumber: 1, mint: 0, repay: 0, summary: [] })
     //Reset points queries
     queryClient.invalidateQueries({ queryKey: ['all users points'] })
     queryClient.invalidateQueries({ queryKey: ['one users points'] })
     queryClient.invalidateQueries({ queryKey: ['one users level'] })
   }
-  console.log("mint msgs:", msgs)
+  // console.log("mint msgs:", msgs)
   return useSimulateAndBroadcast({
     msgs,
-    queryKey: [
-      String(mintState?.mint) || '0',
-      String(mintState?.repay) || '0',
-      ...summary?.map((s: any) => String(s.amount)),
-    ],
+    queryKey: ['mint_msg_sim', (msgs?.toString() ?? "0")],
     onSuccess,
+    enabled: !!msgs,
   })
 }
 

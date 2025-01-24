@@ -25,13 +25,13 @@ import SoloLeveling from './Nav/PointsLevel'
 type NavItems = {
   label: string
   href: string
-  ItemIcon?: React.FC<{
+  ItemIcon: React.FC<{
     color?: string
   }>
 }
 
 const navItems: NavItems[] = [
-  { label: 'Upper Management', href: '/management' },
+  { label: 'Upper Management', href: '/management', ItemIcon: DashboardIcon },
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
   { label: 'Earn', href: '/earn', ItemIcon: EarnIcon },
   { label: 'Mint', href: '/mint', ItemIcon: MintIcon },
@@ -73,7 +73,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
       p={label === 'Home' ? '5px' : '0'}
       pr={'10px'}
     >
-      {ItemIcon && <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />}
+      <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />
       <Text fontSize="lg" fontWeight="400">
         {label}
       </Text>

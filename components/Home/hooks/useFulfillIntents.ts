@@ -61,11 +61,10 @@ const useFulfillIntents = (run: boolean) => {
 
     const msgs = queryData?.msgs ?? []
 
-    console.log("fulfillment msgs:", msgs)
-
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
         queryClient.invalidateQueries({ queryKey: ['positions'] })
+        queryClient.invalidateQueries({ queryKey: ['fillIntents_msg_creator'] })
         queryClient.invalidateQueries({ queryKey: ['useBoundedIntents'] })
     }
 

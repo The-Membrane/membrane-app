@@ -6,23 +6,26 @@ import { parseError } from "@/helpers/parseError"
 import { colors } from "@/config/defaults"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import BigNumber from "bignumber.js"
+import useRedemptionState from "./hooks/useRedemptionState"
 
 export const RBLPDepositModal = React.memo(({
-    isOpen, onClose, cdtAsset, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, cdtAsset: AssetWithBalance }>) => {
+    isOpen, onClose, marsUSDCAsset, children
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, marsUSDCAsset: AssetWithBalance }>) => {
 
 
-    const { quickActionState, setQuickActionState } = useQuickActionState()
+    const { redemptionState, setRedemptionState } = useRedemptionState()
+    //
     const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
-    const isDisabled = quickActionState?.rangeBoundLPdeposit == 0 || rblp?.simulate.isError || !rblp?.simulate.data
+    const isDisabled = redemptionState?.deposit == 0 || rblp?.simulate.isError || !rblp?.simulate.data
+    //
 
     //@ts-ignore
-    const maxAmount = num(cdtAsset.balance).toNumber()
+    const maxAmount = num(marsUSDCAsset.balance).toNumber()
 
     const onMaxClick = () => {
-        setQuickActionState({
-            rangeBoundLPdeposit: maxAmount
+        setRedemptionState({
+            deposit: maxAmount
         })
     }
 
@@ -30,10 +33,10 @@ export const RBLPDepositModal = React.memo(({
         e.preventDefault()
         const value = Number(e.target.value)
 
-        setQuickActionState({
-            rangeBoundLPdeposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+        setRedemptionState({
+            deposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value
         })
-    }, [quickActionState?.rangeBoundLPdeposit, setQuickActionState])
+    }, [redemptionState?.deposit, setRedemptionState])
 
 
 
@@ -53,13 +56,13 @@ export const RBLPDepositModal = React.memo(({
                     <Stack>
                         <HStack width="100%" justifyContent="left">
                             <HStack width="75%">
-                                {cdtAsset.logo ? <Image src={cdtAsset.logo} w="30px" h="30px" /> : null}
+                                {marsUSDCAsset.logo ? <Image src={marsUSDCAsset.logo} w="30px" h="30px" /> : null}
                                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {cdtAsset.symbol}
+                                    {marsUSDCAsset.symbol}
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(quickActionState?.rangeBoundLPdeposit).times(cdtAsset.price ?? 0).toFixed(2)}
+                                ~${num(redemptionState?.deposit).times(marsUSDCAsset.price ?? 0).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -68,7 +71,7 @@ export const RBLPDepositModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={quickActionState?.rangeBoundLPdeposit.toFixed(2)}
+                            value={redemptionState?.deposit.toFixed(2)}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
@@ -92,7 +95,7 @@ export const RBLPDepositModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(quickActionState?.rangeBoundLPdeposit).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                            {parseError(num(redemptionState?.deposit).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
                         </Text>
 
 
@@ -118,10 +121,10 @@ export const RBLPWithdrawModal = React.memo(({
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void, rblpDeposit: number, cdtMarketPrice: string }>) => {
 
 
-    const { quickActionState, setQuickActionState } = useQuickActionState()
+    const { redemptionState, setQuickActionState } = useQuickActionState()
     const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
-    const isDisabled = quickActionState?.rangeBoundLPwithdrawal == 0 || rblp?.simulate.isError || !rblp?.simulate.data
+    const isDisabled = redemptionState?.rangeBoundLPwithdrawal == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
     //@ts-ignore
     const maxAmount = rblpDeposit
@@ -139,7 +142,7 @@ export const RBLPWithdrawModal = React.memo(({
         setQuickActionState({
             rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
         })
-    }, [quickActionState?.rangeBoundLPwithdrawal, setQuickActionState])
+    }, [redemptionState?.rangeBoundLPwithdrawal, setQuickActionState])
 
 
 
@@ -165,7 +168,7 @@ export const RBLPWithdrawModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(quickActionState?.rangeBoundLPwithdrawal).times(cdtMarketPrice).toFixed(2)}
+                                ~${num(redemptionState?.rangeBoundLPwithdrawal).times(cdtMarketPrice).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -174,7 +177,7 @@ export const RBLPWithdrawModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={quickActionState?.rangeBoundLPwithdrawal.toFixed(2)}
+                            value={redemptionState?.rangeBoundLPwithdrawal.toFixed(2)}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
@@ -198,7 +201,7 @@ export const RBLPWithdrawModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(quickActionState?.rangeBoundLPwithdrawal).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                            {parseError(num(redemptionState?.rangeBoundLPwithdrawal).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
                         </Text>
 
 

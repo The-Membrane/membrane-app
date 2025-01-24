@@ -21,7 +21,7 @@ import { useEffect, useState } from 'react'
 import Layout from '@/components/Layout'
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 //pnpm install @cosmos-kit/keplr-mobile@^2.4.3
-import '@interchain-ui/react/styles'
+// import '@interchain-ui/react/styles'
 // import MembersRules from '@/components/MembersRules'
 
 const signerOptions: SignerOptions = {
@@ -77,14 +77,14 @@ const App = ({ Component, pageProps }: AppProps) => {
           chains={chains}
           assetLists={assets}
           wallets={[
-            ...keplrWallets?.slice(0,1),
-            ...keplrMobile?.slice(0,1),
-            ...cosmostationWallets?.slice(0,1),
-            ...ledgerWallets?.slice(0,1),
-            ...leapWallets?.slice(0,1),
-            ...leapMobile?.slice(0,1),
-            ...stationWallets?.slice(0,1),
-            ...tailwindWallets?.slice(0,1),
+            ...keplrWallets?.slice(0, 1),
+            ...keplrMobile?.slice(0, 1),
+            ...cosmostationWallets?.slice(0, 1),
+            ...ledgerWallets?.slice(0, 1),
+            ...leapWallets?.slice(0, 1),
+            ...leapMobile?.slice(0, 1),
+            ...stationWallets?.slice(0, 1),
+            ...tailwindWallets?.slice(0, 1),
           ]}
           walletModal={WalletModal}
           signerOptions={signerOptions}

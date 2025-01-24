@@ -3,10 +3,11 @@ import { StatsCard } from '../StatsCard'
 import SPCard from './QASPCard'
 import EarnCard from './QAEarnCard'
 
+import { Html, Head, Main, NextScript } from 'next/document'
+
 import React, { useEffect, useMemo, useState } from "react"
 import RangeBoundLPCard from './RangeBoundLPCard'
 import RangeBoundVisual from './RangeBoundVisual'
-import { FaArrowDown, FaArrowUp } from 'react-icons/fa6'
 import useVaultSummary from '../Mint/hooks/useVaultSummary'
 import { colors, MAX_CDP_POSITIONS } from '@/config/defaults'
 import { useUserPositions } from '@/hooks/useCDP'
@@ -92,6 +93,11 @@ const Home = React.memo(() => {
 
   return (
     <Stack>
+      <Head>
+        <title>Membrane</title>
+        <meta name="description" content="Guard the most resilient stablecoin in protective harmony" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
       <Stack>
         <StatsCard />
       </Stack>

@@ -148,7 +148,7 @@ function SideNav() {
 
   return (
     <>
-      <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" p="6" gap="1rem" bg="whiteAlpha.100" height="fit-content" display={{ base: "none", md: "flex" }}>
+      <Stack as="aside" w={[0, 'full']} maxW="256px" minW="200px" p="6" gap="1rem" bg="whiteAlpha.100" height="200%" display={{ base: "none", md: "flex" }}>
         <Stack as="ul" gap="7">
           <Stack marginTop={"6%"}>
             <MemoizedLogo />

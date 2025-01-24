@@ -30,32 +30,29 @@ const useFulfillIntents = (run: boolean) => {
             if (!intents || !currentConversionRate || !run) { console.log("fulfill intents early return", address, intents, currentConversionRate, run); return { msgs: [] } }
 
             var msgs = [] as MsgExecuteContractEncodeObject[]
-            var users = [] as string[]
 
             //Parse user intents, if any last_conversion_rates are above the current rate, add a fill_intent msg
             intents.forEach((intent: any) => {
                 console.log("intent logs", intent, intent.intent.intents.last_conversion_rate, currentConversionRate)
-                if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate) && intent.intent.intents.purchase_intents.length > 0) {
-                    users.push(intent.user)
+                //we cap msg length in order to allow ledgers to sign the transaction
+                if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate) && intent.intent.intents.purchase_intents.length > 0 && msgs.length < 2) {
+                    msgs.push({
+                        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+                        value: MsgExecuteContract.fromPartial({
+                            sender: address,
+                            contract: contracts.rangeboundLP,
+                            msg: toUtf8(JSON.stringify({
+                                ful_fill_user_intents: {
+                                    user: intent.user,
+                                }
+                            })),
+                            funds: []
+                        })
+                    } as MsgExecuteContractEncodeObject
+                    )
                 }
             })
 
-            if (users.length > 0) {
-                let fillMsg = {
-                    typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                    value: MsgExecuteContract.fromPartial({
-                        sender: address,
-                        contract: contracts.rangeboundLP,
-                        msg: toUtf8(JSON.stringify({
-                            ful_fill_user_intents: {
-                                users
-                            }
-                        })),
-                        funds: []
-                    })
-                } as MsgExecuteContractEncodeObject
-                msgs.push(fillMsg)
-            }
 
             return { msgs }
         },

@@ -554,7 +554,6 @@ const NeuroGuardCard = () => {
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
-  const { bidState } = useBidState()
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
 
@@ -563,6 +562,7 @@ const NeuroGuardCard = () => {
     if (!basket || interest || !TVL) return "0";
     return simpleBoundedAPRCalc(basket, interest, TVL)
   }, [basket, interest, TVL]);
+  console.log(calculatedRBYield)
 
   ////
   const boundCDTAsset = useAssetBySymbol('range-bound-CDT')

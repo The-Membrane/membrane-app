@@ -539,6 +539,7 @@ const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
 // const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
 
 const NeuroGuardCard = () => {
+  console.time("MyFunctionTimer");
   console.log("NG render")
   const [isExpanded, setIsExpanded] = useState(false)
   const { address } = useWallet()
@@ -556,13 +557,14 @@ const NeuroGuardCard = () => {
   const { data: prices } = useOraclePrice()
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
+  console.timeEnd("MyFunctionTimer");
 
 
   const calculatedRBYield = useMemo(() => {
     if (!basket || !interest || !TVL) return "0";
     return simpleBoundedAPRCalc(basket, interest, TVL)
   }, [basket, interest, TVL]);
-  console.log(calculatedRBYield, basket, interest, TVL)
+  // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////
   const boundCDTAsset = useAssetBySymbol('range-bound-CDT')

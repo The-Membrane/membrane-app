@@ -17,7 +17,7 @@ export const HomeTitle = React.memo(() => {
           <h1
             className={"home-title"}
           >
-            Decentralized Stablecoins: A New Age of Empowerment
+            A New Age of Empowerment
           </h1>
           <Button alignSelf="center" width="31%" minWidth="180px"
             onClick={() => setOpen(true)}>

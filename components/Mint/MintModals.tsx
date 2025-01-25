@@ -5,7 +5,6 @@ import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, ModalCon
 import { parseError } from "@/helpers/parseError"
 import { colors } from "@/config/defaults"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
-import BigNumber from "bignumber.js"
 import useRedemptionState from "./hooks/useRedemptionState"
 
 export const RBLPDepositModal = React.memo(({

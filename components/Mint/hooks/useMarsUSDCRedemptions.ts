@@ -9,7 +9,10 @@ import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import useUserPositionState from '@/persisted-state/useUserPositionState'
+import useRedemptionState from './useRedemptionState'
+import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
 
+import contracts from '@/config/contracts.json'
 //Run down
 //This component will be a card that accepts Mars USDC into redemptions. Following the Modal flow.
 //FAQ
@@ -20,64 +23,78 @@ import useUserPositionState from '@/persisted-state/useUserPositionState'
 // ___ USDC earning __% in wait for a 2% arbitrage opportunity.
 
 const useMarsUSDCRedemptions = () => {
-    const { mintState, setMintState } = useMintState()
+    const { redemptionState, setRedemptionState } = useRedemptionState()
+    const { mintState } = useMintState()
     const { reset } = useUserPositionState()
-    const { summary = [] } = mintState
     const { address } = useWallet()
-    const { data: basketPositions, ...basketErrors } = useUserPositions()
+    const { data: basketPositions } = useUserPositions()
     const { data: basket } = useBasket()
 
     //Use the current position id or use the basket's next position ID (for new positions)
     const positionId = useMemo(() => {
-        if (basketPositions !== undefined && (mintState.positionNumber < Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS) || (basketPositions[0].positions.length === MAX_CDP_POSITIONS))) {
-            return basketPositions?.[0]?.positions?.[mintState.positionNumber - 1]?.position_id
-        } else {
-            //Use the next position ID
-            return basket?.current_position_id ?? ""
-        }
-    }, [basketPositions, mintState.positionNumber, basket])
+        return basketPositions?.[0]?.positions?.[mintState.positionNumber - 1]?.position_id || 0
+    }, [basketPositions, mintState.positionNumber])
 
-    const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+    type QueryData = {
+        msgs: MsgExecuteContractEncodeObject[] | undefined
+    }
+    const { data: queryData } = useQuery<QueryData>({
         queryKey: [
-            'mint',
+            'productized_redemptions',
             address,
             positionId,
-            summary ? JSON.stringify(summary.map(s => String(s.amount))) : '0',
-            mintState?.mint,
-            mintState?.repay,
+            redemptionState.deposit
         ],
-        queryFn: () => {
-            if (!address) return
-            const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, basketPositions, positionId, hasPosition: basketPositions !== undefined && mintState.positionNumber <= basketPositions.length })
-            const mintAndRepay = getMintAndRepayMsgs({
-                address,
-                positionId,
-                mintAmount: mintState?.mint,
-                repayAmount: mintState?.repay,
-            })
-            //if repaying and updating assets, repay first
-            if (mintState.repay > 0) {
-                return [...mintAndRepay, ...depositAndWithdraw] as MsgExecuteContractEncodeObject[]
-            }
-            return [...depositAndWithdraw, ...mintAndRepay] as MsgExecuteContractEncodeObject[]
+        queryFn: async () => {
+            if (!address || positionId == 0 || redemptionState.deposit == 0) return { msgs: [] }
+            var msgs = [] as MsgExecuteContractEncodeObject[]
+
+            //Get the position we're working with
+            const position = basketPositions?.[0]?.positions?.find((pos) => pos.position_id === positionId)
+            //Set restricted collateral assets to any asset that isn't the mars USDC asset
+            const restrictedCollateralAssets = position?.collateral_assets?.filter((asset) => asset.asset.info.native_token.denom !== "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized").map((asset) => asset.asset.info.native_token.denom as string) || [] as string[]
+
+            const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
+
+            //Create redemption msg
+            const set_redemption_msg =
+                messageComposer.editRedeemability({
+                    positionIds: [positionId],
+                    maxLoanRepayment: "1",
+                    redeemable: true,
+                    premium: redemptionState?.premium,
+                    restrictedCollateralAssets
+                })
+            msgs.push(set_redemption_msg)
+            //Create deposit msg
+            const deposit_msg = messageComposer.deposit({
+                positionId
+            },
+                [
+                    {
+                        denom: "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized",
+                        amount: redemptionState?.deposit.toString(),
+                    }
+                ]
+            )
+            msgs.push(deposit_msg)
+
+            return { msgs }
         },
-        enabled: !!address && !mintState.overdraft,
+        enabled: !!address,
     })
+
+    const msgs = queryData?.msgs ?? []
 
     const onSuccess = () => {
         reset()
         queryClient.invalidateQueries({ queryKey: ['positions'] })
         queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-        setMintState({ positionNumber: 1, mint: 0, repay: 0, summary: [] })
-        //Reset points queries
-        queryClient.invalidateQueries({ queryKey: ['all users points'] })
-        queryClient.invalidateQueries({ queryKey: ['one users points'] })
-        queryClient.invalidateQueries({ queryKey: ['one users level'] })
     }
-    // console.log("mint msgs:", msgs)
+    console.log("redemption msgs:", msgs)
     return useSimulateAndBroadcast({
         msgs,
-        queryKey: ['mint_msg_sim', (msgs?.toString() ?? "0")],
+        queryKey: ['marsUSDC_redemption_sim', (msgs?.toString() ?? "0")],
         onSuccess,
         enabled: !!msgs,
     })

@@ -161,7 +161,7 @@ const RBLPDepositEntry = React.memo(({
           onClick={() => { toggleOpen() }}
           isDisabled={isDisabled}
         >
-          Deposit
+          Enlist
         </Button>
       </HStack>
     </Card >
@@ -224,7 +224,7 @@ const NeuroGuardOpenEntry = React.memo(({
           isDisabled={isDisabled}
         >
           {/* @ts-ignore */}
-          {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2)} more to Deposit` : "Deposit"}
+          {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2)} more to Enlist` : "Enlist"}
         </Button>
       </HStack>
     </Card >
@@ -321,7 +321,7 @@ const NeuroGuardExistingEntry = React.memo(({
             }}
             isDisabled={isDisabled}
           >
-            Deposit
+            Enlist
           </Button>
           {isDepositOpen && (
             <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
@@ -337,7 +337,7 @@ const NeuroGuardExistingEntry = React.memo(({
             onClick={() => { toggleWithdrawOpen(); setNeuroState({ withdrawSelectedAsset: asset }); }}
             isDisabled={guardedPosition.symbol == "N/A" ? true : false}
           >
-            Withdraw
+            Quit
           </Button>
         </HStack>
       </HStack>
@@ -429,7 +429,7 @@ const RBLPExistingEntry = React.memo(({
             onClick={() => { toggleDepositOpen(); setQuickActionState({ rangeBoundLPwithdrawal: 0 }) }}
             isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
           >
-            Deposit
+            Enlist
           </Button>
 
           {isWithdrawOpen && (<RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtMarketPrice={cdtMarketPrice} rblpDeposit={rblpDeposit} />)}
@@ -442,7 +442,7 @@ const RBLPExistingEntry = React.memo(({
             onClick={() => { toggleWithdrawOpen(); setQuickActionState({ rangeBoundLPdeposit: 0 }) }}
             isDisabled={isDisabled || rblpDeposit === 0}
           >
-            Withdraw
+            Quit
           </Button>
         </HStack>
       </HStack>

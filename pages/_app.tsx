@@ -29,12 +29,16 @@ const signerOptions: SignerOptions = {
     return {
       aminoTypes,
       registry,
+      gasPrice: GasPrice.fromString('0.0075uosmo'),
     }
   },
   signingCosmwasm: (chain: Chain) => {
     switch (chain.chain_name) {
       case 'osmosis':
       case 'osmosistestnet5':
+        return {
+          gasPrice: GasPrice.fromString('0.0075uosmo'),
+        }
     }
   },
 }
@@ -53,6 +57,7 @@ export const queryClient = new QueryClient({
 })
 
 import '../styles/global.css';
+import { GasPrice } from '@cosmjs/stargate'
 const App = ({ Component, pageProps }: AppProps) => {
   const [isLoaded, setIsLoaded] = useState(false)
 

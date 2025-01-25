@@ -54,6 +54,7 @@ export const getBasketAssets = (
   collateralInterest: CollateralInterestResponse,
 ) => {
   const chainAssets = useAssets("osmosis")
+  console.log("chainAssets", chainAssets)
 
   return basket?.collateral_types.map((asset, index) => {
     //@ts-ignore

@@ -553,6 +553,7 @@ const NeuroGuardCard = () => {
   // useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
+  console.log("useCollateralAssets", assets)
   const { data: prices } = useOraclePrice()
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()

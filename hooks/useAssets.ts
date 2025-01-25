@@ -6,6 +6,8 @@ const useAssets = (chainID: string = 'osmosis') => {
   const { data: assets } = useQuery({
     queryKey: [chainID + ' assets'],
     queryFn: async () => {
+
+      console.log("bove getAssets")
       return getAssets(chainID)
     },
   })

@@ -53,6 +53,7 @@ export const getBasketAssets = (
   basket: Basket,
   collateralInterest: CollateralInterestResponse,
 ) => {
+  console.log("above useAssets")
   const chainAssets = useAssets("osmosis")
   console.log("chainAssets", chainAssets)
 

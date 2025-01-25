@@ -3,13 +3,9 @@ import contracts from '@/config/contracts.json'
 import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { EarnQueryClient } from '@/contracts/codegen/earn/Earn.client'
 import { APRResponse, ClaimTracker } from '@/contracts/codegen/earn/Earn.types'
-import { Basket, BasketPositionsResponse, CollateralInterestResponse, Uint128 } from '@/contracts/codegen/positions/Positions.types'
-import { useQueries } from '@tanstack/react-query'
-import { getAssetRatio, getBasketAssets, getDebt, getPositions, getRateCost, getTVL, getUserDiscount } from './cdp'
-import { useBasket, useBasketPositions, useCollateralInterest } from '@/hooks/useCDP'
-import { useOraclePrice } from '@/hooks/useOracle'
+import { BasketPositionsResponse, Uint128 } from '@/contracts/codegen/positions/Positions.types'
+import { BasketAsset, getAssetRatio, getDebt, getPositions, getRateCost, getTVL } from './cdp'
 import { shiftDigits } from '@/helpers/math'
-import { num } from '@/helpers/num'
 import { Price } from './oracle'
 import { IntentResponse } from '@/persisted-state/useUserIntentState'
 
@@ -118,14 +114,13 @@ export const getBoundedCDTRealizedAPR = async () => {
   }) as Promise<ClaimTracker>
 }
 
-export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse, userDiscountQueries: any[]) => {
+export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsResponse[], prices: Price[], userDiscountQueries: any[], basketAssets: BasketAsset[]) => {
   var totalExpectedRevenue = 0
   var undiscountedTER = 0
   //  
   // // 
   // var debtTallies = [0,0,0, 0]
   //   console.log("above map", basketPositions)
-  const basketAssets = getBasketAssets(basket, interest)
   basketPositions?.forEach((basketPosition, index) => {
     var debt = getDebt([basketPosition])
     if (!debt || debt <= 1000) return

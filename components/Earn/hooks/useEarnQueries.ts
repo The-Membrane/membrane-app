@@ -4,7 +4,7 @@ import { cdpClient, getUserDiscount } from "@/services/cdp"
 import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig, getBoundedIntents } from "@/services/earn"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
-import { useBasket, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
+import { useBasket, useBasketAssets, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
 import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
 import { getCLPositionsForVault } from "@/services/osmosis"
@@ -336,8 +336,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
     const { data: prices } = useOraclePrice()
     const { data: allPositions } = useBasketPositions()
     // console.log("AP in interstquery", allPositions) 
-    const { data: basket } = useBasket()
-    const { data: interest } = useCollateralInterest()
+    const { data: basketAssets } = useBasketAssets()
     const { setBidState } = useBidState()
 
 
@@ -357,15 +356,14 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
         queryKey: ['useEstimatedAnnualInterest',
             allPositions,
             prices,
-            basket,
-            interest,
+            basketAssets,
             userDiscountQueries.map((query) => query.data), // Extract data for stability
             setBidState
         ],
         queryFn: async () => {
-            if (!allPositions || !prices || !basket || !setBidState || !interest || !userDiscountQueries.every(query => query.isSuccess || query.failureReason?.message === "Query failed with (6): Generic error: Querier contract error: alloc::vec::Vec<membrane::types::StakeDeposit> not found: query wasm contract failed: query wasm contract failed: unknown request")) { console.log("revenue calc attempt", allPositions, !prices, !basket, !interest); return { totalExpectedRevenue: 0, undiscountedTER: 0 } }
+            if (!allPositions || !prices || !basketAssets || !setBidState || !userDiscountQueries.every(query => query.isSuccess || query.failureReason?.message === "Query failed with (6): Generic error: Querier contract error: alloc::vec::Vec<membrane::types::StakeDeposit> not found: query wasm contract failed: query wasm contract failed: unknown request")) { console.log("revenue calc attempt", allPositions, !prices, !basketAssets); return { totalExpectedRevenue: 0, undiscountedTER: 0 } }
 
-            const cdpCalcs = getEstimatedAnnualInterest(allPositions, prices, basket, interest, userDiscountQueries)
+            const cdpCalcs = getEstimatedAnnualInterest(allPositions, prices, userDiscountQueries, basketAssets)
             // console.log("cdpCalcs", cdpCalcs)
 
             setBidState({ cdpExpectedAnnualRevenue: cdpCalcs.totalExpectedRevenue })
@@ -375,7 +373,6 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
 
             return cdpCalcs
         },
-        enabled: !!allPositions && !!prices && !!basket && !!interest,
     })
 }
 

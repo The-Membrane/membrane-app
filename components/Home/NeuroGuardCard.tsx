@@ -12,7 +12,7 @@ import useBidState from "../Bid/hooks/useBidState"
 import useCollateralAssets from "../Bid/hooks/useCollateralAssets"
 import useNeuroState from "./hooks/useNeuroState"
 import useBalance, { useBalanceByAsset } from "@/hooks/useBalance"
-import { BasketAsset, getBasketAssets } from "@/services/cdp"
+import { BasketAsset } from "@/services/cdp"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import { NeuroCloseModal, NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal, RBLPDepositModal, RBLPWithdrawModal } from "./NeuroModals"
 import useVaultSummary from "../Mint/hooks/useVaultSummary"
@@ -666,7 +666,7 @@ const NeuroGuardCard = () => {
   const existingGuards = useMemo(() => {
     console.log(" top  guards")
     // console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
-    if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents && basket && prices && basketPositions && assets) {
+    if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents && basket && prices && basketPositions && assets && basketAssets) {
       console.log(" in guards")
       //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
       // const neuroGuardIntents = userIntents[0].intent.intents.purchase_intents.filter((intent) => {
@@ -711,7 +711,7 @@ const NeuroGuardCard = () => {
       cost: 0,
       LTV: "0"
     }]
-  }, [basketPositions, userIntents, assets, prices, basket, underlyingCDT])
+  }, [basketPositions, userIntents, assets, prices, basket, underlyingCDT, basketAssets])
   console.timeEnd("neuroGuardIntents");
 
 
@@ -792,7 +792,7 @@ const NeuroGuardCard = () => {
               <MemoizedNeuroGuardOpenEntry
                 key={asset.symbol}
                 asset={asset}
-                basketAssets={basketAssets}
+                basketAssets={basketAssets ?? []}
                 RBYield={RBYield}
               />
             )

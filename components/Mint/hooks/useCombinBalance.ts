@@ -2,9 +2,9 @@ import { Asset } from '@/helpers/chain'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import useBalance from '@/hooks/useBalance'
-import { useBasket, useUserPositions, useCollateralInterest } from '@/hooks/useCDP'
+import { useBasket, useUserPositions, useCollateralInterest, useBasketAssets } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
-import { getBasketAssets, getPositions } from '@/services/cdp'
+import { getPositions } from '@/services/cdp'
 import { useMemo } from 'react'
 import useMintState from './useMintState'
 
@@ -23,14 +23,13 @@ export type AssetWithBalance = Asset & {
 }
 
 const useCombinBalance = (positionIndex: number = 0) => {
-  const { data: collateralInterest } = useCollateralInterest()
   const { data: prices } = useOraclePrice()
   const { data: balances } = useBalance()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket()
+  const { data: basketAssets } = useBasketAssets()
 
   return useMemo(() => {
-    const basketAssets = getBasketAssets(basket!, collateralInterest!)
     const positions = getPositions(basketPositions, prices, positionIndex)
     if (!positions) return []
 
@@ -60,7 +59,7 @@ const useCombinBalance = (positionIndex: number = 0) => {
         combinUsdValue: 0,
         price,
       }
-      
+
       return {
         ...asset.asset,
         walletBalance: Number(balanceInMicro),
@@ -72,7 +71,7 @@ const useCombinBalance = (positionIndex: number = 0) => {
         price,
       }
     }) as AssetWithBalance[]
-  }, [balances, basketPositions, basket, prices, positionIndex])
+  }, [balances, basketPositions, basket, prices, positionIndex, basketAssets])
 }
 
 export default useCombinBalance

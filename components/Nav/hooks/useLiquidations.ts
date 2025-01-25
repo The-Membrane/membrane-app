@@ -6,7 +6,7 @@ import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 
 import { getRiskyPositions, getUserDiscount } from '@/services/cdp'
-import { useBasket, useBasketPositions, useCollateralInterest, useUserDiscount } from '@/hooks/useCDP'
+import { useBasket, useBasketAssets, useBasketPositions, useCollateralInterest, useUserDiscount } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getLiquidationMsgs } from '@/helpers/mint'
 import useBidState from '@/components/Bid/hooks/useBidState'
@@ -29,20 +29,20 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
   const { data: prices } = useOraclePrice()
   const { data: allPositions } = useBasketPositions()
   const { data: basket } = useBasket()
-  const { data: interest } = useCollateralInterest()
+  const { data: basketAssets } = useBasketAssets()
 
 
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg liquidations', run, address, allPositions, prices, basket, interest],
+    queryKey: ['msg liquidations', run, address, allPositions, prices, basket],
     queryFn: () => {
-      if (!address || !allPositions || !prices || !basket || !interest || !run) { console.log("liq attempt", !address, !allPositions, !prices, !basket, !interest, !run); return { msgs: [], liquidating_positions: [] } }
+      if (!address || !allPositions || !prices || !basket || !basketAssets || !run) { console.log("liq attempt", !address, !allPositions, !prices, !basket, !basketAssets, !run); return { msgs: [], liquidating_positions: [] } }
 
       //For metric purposes
       console.log("total # of CDPs: ", allPositions?.length)
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      const cdpCalcs = getRiskyPositions(allPositions, prices, basket, interest)
+      const cdpCalcs = getRiskyPositions(allPositions, prices, basket, basketAssets)
       // console.log("liquidatible positions:", cdpCalcs.liquidatibleCDPs)
       const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as { address: string, id: string, fee: string }[]
       console.log("liquidatible positions:", liq)

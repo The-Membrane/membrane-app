@@ -1,14 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { Asset, getAssets } from '@/helpers/chain';
 import { num, shiftDigits } from '@/helpers/num';
-import { useAssetBySymbol } from '@/hooks/useAssets';
-import { useBalanceByAsset } from '@/hooks/useBalance';
-import { getBasket, getBasketAssets, getBasketPositions, getCollateralInterest, getUserDiscount } from '@/services/cdp';
-import { getBoundedTVL, getBoundedUnderlyingCDT, getEstimatedAnnualInterest } from '@/services/earn';
-import { getOraclePrices } from '@/services/oracle';
+import { getBoundedUnderlyingCDT } from '@/services/earn';
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { osmosis } from 'osmojs';
-import { useMemo } from 'react';
 
 type Data = {
     balance?: number,

@@ -474,7 +474,7 @@ export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Pr
   }, 0)
 }
 
-export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, interest: CollateralInterestResponse) => {
+export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], prices: Price[], basket: Basket, basketAssets: BasketAsset[]) => {
 
   // if (!basketPositions || !prices || !basket || !interest) return { liquidatibleCDPs: [], totalExpectedRevenue: 0, undiscountedTER: 0 }
 
@@ -541,7 +541,6 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
           if (debtValue === 0) { console.log("no debt"); return undefined }
           const ltv = getLTV(tvl, debtValue)
           const positionsWithRatio = getAssetRatio(false, tvl, positions)
-          const basketAssets = getBasketAssets(basket!, interest!)
           const liquidationLTV = getLiqudationLTV(
             tvl,
             positions,

@@ -4,7 +4,8 @@ import { getBoundedTVL } from '@/services/earn';
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 type Data = {
-    tvl?: number,
+    tvlUsd?: string,
+    assets?: { coinMinimalDenom: string, tvl: string }[]
     error?: string
 }
 
@@ -22,10 +23,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             return res.status(500).json({ error: 'Failed to fetch required data.' });
         }
 
-        const tvl = Number(shiftDigits(vaultTVL, -6))
+        const tvl = shiftDigits(vaultTVL, -6)
 
         return res.status(200).json({
-            tvl,
+            tvlUsd: tvl,
+            assets: [
+                {
+                    coinMinimalDenom: 'factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt',
+                    tvl: tvl
+                }
+            ]
         });
     } catch (error) {
         console.error('API Error:', error);

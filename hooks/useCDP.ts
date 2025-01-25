@@ -46,6 +46,8 @@ export const useBasketAssets = () => {
     queryKey: ['get_basket_assets', basket, interest],
     queryFn: async () => {
       if (!basket || !interest) return []
+
+      console.log("is this running at all?")
       return getBasketAssets(basket, interest)
     },
   })

@@ -73,8 +73,8 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
       {...(isActive && hoverStyles)}
       p={label === 'Home' ? '5px' : '0'}
       pr={label === 'Upper Management' ? '0' : '10px'}
-      pt={label === 'Upper Management' ? '10px' : '0'}
-      pb={label === 'Upper Management' ? '10px' : '0'}
+      pt={label === 'Upper Management' ? '10px' : label === 'Home' ? "5px" : '0'}
+      pb={label === 'Upper Management' ? '10px' : label === 'Home' ? "5px" : '0'}
     >
       <ItemIcon color={isActive || isHovered ? 'white' : 'white'} />
       <Text fontSize="lg" fontWeight="400" >

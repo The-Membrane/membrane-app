@@ -552,18 +552,18 @@ const NeuroGuardCard = () => {
   const { neuroState, setNeuroState } = useNeuroState()
   // useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
-  console.time("useCollateralAssets");
   const assets = useCollateralAssets()
-  console.timeEnd("useCollateralAssets");
   const { data: prices } = useOraclePrice()
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
 
 
+  console.time("APR calc");
   const calculatedRBYield = useMemo(() => {
     if (!basket || !interest || !TVL) return "0";
     return simpleBoundedAPRCalc(basket, interest, TVL)
   }, [basket, interest, TVL]);
+  console.timeEnd("APR calc");
   // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////
@@ -580,14 +580,17 @@ const NeuroGuardCard = () => {
 
   const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price.price || "1"
 
+  console.time("basketAssets");
   const basketAssets = useMemo(() => {
     if (!basket || !interest) return []
     return getBasketAssets(basket, interest) ?? []
   }, [basket, interest])
+  console.timeEnd("basketAssets");
 
   // Define priority order for specific symbols
   const prioritySymbols = ['WBTC.ETH.AXL', 'stATOM', 'stOSMO', 'stTIA']
 
+  console.time("walletDenoms");
   ////Get all assets that have a wallet balance///////
   //List of all denoms in the wallet
   const walletDenoms = useMemo(() => {
@@ -595,7 +598,9 @@ const NeuroGuardCard = () => {
       .filter(coin => num(coin.amount).isGreaterThan(0))
       .map(coin => coin.denom);
   }, [walletBalances]);
+  console.timeEnd("walletDenoms");
 
+  console.time("sortedAssets");
   const sortedAssets = useMemo(() => {
     if (!prices || !walletBalances || !assets) return [];
 
@@ -640,6 +645,7 @@ const NeuroGuardCard = () => {
         return a.symbol.localeCompare(b.symbol)
       });
   }, [assets, walletBalances, prices, walletDenoms]);
+  console.timeEnd("sortedAssets");
 
 
   // Update state in a separate effect
@@ -651,6 +657,7 @@ const NeuroGuardCard = () => {
       });
     }
   }, [sortedAssets]);
+  console.time("neuroGuardIntents");
   //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
   const neuroGuardIntents = useMemo(() => {
     if (!userIntents?.[0]?.intent?.intents?.purchase_intents) return [];
@@ -708,6 +715,7 @@ const NeuroGuardCard = () => {
       LTV: "0"
     }]
   }, [basketPositions, userIntents, assets, prices, basket, underlyingCDT])
+  console.timeEnd("neuroGuardIntents");
 
 
 
@@ -719,6 +727,7 @@ const NeuroGuardCard = () => {
   // }, [neuroState.assets]);
 
 
+  console.time("nonNeuroGuardPositions");
   //Iterate thru positions and find all positions that aren't for NeuroGuard (i.e. don't have a position ID)
   const nonNeuroGuardPositions = useMemo(() => {
     if (basketPositions) {
@@ -736,6 +745,7 @@ const NeuroGuardCard = () => {
       }
     ]
   }, [basketPositions, neuroGuardIntents])
+  console.timeEnd("nonNeuroGuardPositions");
 
 
 

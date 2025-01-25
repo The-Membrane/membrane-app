@@ -559,7 +559,7 @@ const NeuroGuardCard = () => {
 
 
   const calculatedRBYield = useMemo(() => {
-    if (!basket || interest || !TVL) return "0";
+    if (!basket || !interest || !TVL) return "0";
     return simpleBoundedAPRCalc(basket, interest, TVL)
   }, [basket, interest, TVL]);
   console.log(calculatedRBYield, basket, interest, TVL)

@@ -14,6 +14,7 @@ import useWallet from "@/hooks/useWallet"
 import { use, useCallback } from "react"
 import { mainnetAddrs } from "@/config/defaults"
 import useUserIntentState from "@/persisted-state/useUserIntentState"
+import { CollateralInterestResponse } from "@/contracts/codegen/positions/Positions.types"
 
 export const useBoundedConfig = () => {
     return useQuery({
@@ -310,7 +311,7 @@ export const useBoundedCDTBalance = () => {
     })
 }
 
-export const simpleBoundedAPRCalc = (basket: any, interest: any, vaultTVL: any) => {
+export const simpleBoundedAPRCalc = (basket: any, interest: CollateralInterestResponse, vaultTVL: any) => {
     if (!basket || !interest || !vaultTVL) {
         return "0"
     }

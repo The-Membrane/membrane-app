@@ -742,6 +742,7 @@ const NeuroGuardCard = () => {
       }
     ]
   }, [basketPositions, neuroGuardIntents])
+  console.log("nonNeuroGuardPositions", nonNeuroGuardPositions, basketPositions, neuroGuardIntents)
   console.timeEnd("nonNeuroGuardPositions");
 
 

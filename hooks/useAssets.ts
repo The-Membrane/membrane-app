@@ -24,8 +24,7 @@ export const useAssetBySymbol = (symbol: string, chainID: string = 'osmosis') =>
 
 
 
-export const useAssetByDenom = (denom: string, chainID: string = 'osmosis') => {
-  const assets = useAssets(chainID)
+export const useAssetByDenom = (denom: string, chainID: string = 'osmosis', assets: any[]) => {
 
   return useMemo(() => {
     if (!assets || !denom) return null

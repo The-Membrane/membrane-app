@@ -541,39 +541,23 @@ const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
 const NeuroGuardCard = () => {
   console.log("NG render")
   const [isExpanded, setIsExpanded] = useState(false)
-  console.time("useWallet");
   const { address } = useWallet()
-  console.timeEnd("useWallet");
-  console.time("useUserPositions");
   const { data: basketPositions } = useUserPositions()
   // console.log("basketPositions", basketPositions)
-  console.timeEnd("useUserPositions");
-  console.time("useBasket");
   const { data: basket } = useBasket()
   // console.log("basketPositions", basketPositions)
-  console.timeEnd("useBasket");
-  console.time("useBoundedTVL");
   const { data: TVL } = useBoundedTVL()
-  console.timeEnd("useBoundedTVL");
-  console.time("useUserBoundedIntents");
   const { data: userIntents } = useUserBoundedIntents()
-  console.timeEnd("useUserBoundedIntents");
   console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
   // useEstimatedAnnualInterest(false)
-  console.time("useBalance");
   const { data: walletBalances } = useBalance()
-  console.timeEnd("useBalance");
   console.time("useCollateralAssets");
   const assets = useCollateralAssets()
   console.timeEnd("useCollateralAssets");
-  console.time("useOraclePrice");
   const { data: prices } = useOraclePrice()
-  console.timeEnd("useOraclePrice");
   // const { data: clRewardList } = getBestCLRange()
-  console.time("useCollateralInterest");
   const { data: interest } = useCollateralInterest()
-  console.timeEnd("useCollateralInterest");
 
 
   const calculatedRBYield = useMemo(() => {

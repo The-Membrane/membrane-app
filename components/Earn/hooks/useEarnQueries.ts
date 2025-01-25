@@ -312,7 +312,7 @@ export const useBoundedCDTBalance = () => {
 
 export const simpleBoundedAPRCalc = (basket: any, interest: any, vaultTVL: any) => {
     if (!basket || !interest || !vaultTVL) {
-        return 0
+        return "0"
     }
 
     //Get the lowest rate
@@ -326,7 +326,7 @@ export const simpleBoundedAPRCalc = (basket: any, interest: any, vaultTVL: any) 
     const apr = num(estimatedRevenue)
         .times(0.80)
         .dividedBy(vaultTVL)
-        .toNumber()
+        .toString()
 
     return apr
 }

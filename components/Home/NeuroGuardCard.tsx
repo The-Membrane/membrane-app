@@ -562,7 +562,7 @@ const NeuroGuardCard = () => {
     if (!basket || interest || !TVL) return "0";
     return simpleBoundedAPRCalc(basket, interest, TVL)
   }, [basket, interest, TVL]);
-  console.log(calculatedRBYield)
+  console.log(calculatedRBYield, basket, interest, TVL)
 
   ////
   const boundCDTAsset = useAssetBySymbol('range-bound-CDT')

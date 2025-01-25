@@ -54,13 +54,13 @@ export const getBasketAssets = (
   collateralInterest: CollateralInterestResponse,
 ) => {
   console.log("above useAssets")
-  const chainAssets = useAssets("osmosis")
-  console.log("chainAssets", chainAssets)
+  const assets = useAssets("osmosis")
+  console.log("assets in basket assets", assets)
 
   return basket?.collateral_types.map((asset, index) => {
     //@ts-ignore
     const denom = asset.asset?.info.native_token?.denom
-    let assetInfo = chainAssets?.find((chainAsset) => chainAsset.base === denom)
+    let assetInfo = assets?.find((chainAsset) => chainAsset.base === denom)
 
     if (!assetInfo) {
       //@ts-ignore

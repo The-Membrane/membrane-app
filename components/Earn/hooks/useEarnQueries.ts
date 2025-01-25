@@ -310,6 +310,27 @@ export const useBoundedCDTBalance = () => {
     })
 }
 
+export const simpleBoundedAPRCalc = (basket: any, interest: any, vaultTVL: any) => {
+    if (!basket || !interest || !vaultTVL) {
+        return { apr: 0 }
+    }
+
+    //Get the lowest rate
+    const sortedRates = interest.rates
+        .filter(rate => !isNaN(Number(rate)))  // Ensure all elements are numbers
+        .sort((a, b) => Number(a) - Number(b));
+
+    const estimatedRate = sortedRates.length > 0 ? sortedRates[0] : null;
+    const estimatedRevenue = estimatedRate ? num(estimatedRate).times(basket.credit_asset.amount) : num(0);
+
+    const apr = num(estimatedRevenue)
+        .times(0.80)
+        .dividedBy(vaultTVL)
+        .toNumber()
+
+    return apr
+}
+
 export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
     const { data: prices } = useOraclePrice()
     const { data: allPositions } = useBasketPositions()

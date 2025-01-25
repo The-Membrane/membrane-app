@@ -6,7 +6,7 @@ import { colors, denoms } from "@/config/defaults"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
 import { useBasket, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
-import { useBoundedCDTVaultTokenUnderlying, useBoundedTVL, useEstimatedAnnualInterest, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
+import { simpleBoundedAPRCalc, useBoundedCDTVaultTokenUnderlying, useBoundedTVL, useEstimatedAnnualInterest, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useBidState from "../Bid/hooks/useBidState"
 import useCollateralAssets from "../Bid/hooks/useCollateralAssets"
@@ -24,6 +24,7 @@ import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
 import useAppState from "../../persisted-state/useAppState"
+import { QueryInterchainAccountRequest } from "osmojs/ibc/applications/interchain_accounts/controller/v1/query"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -549,13 +550,19 @@ const NeuroGuardCard = () => {
   const { data: userIntents } = useUserBoundedIntents()
   console.log("userIntents", userIntents)
   const { neuroState, setNeuroState } = useNeuroState()
-  useEstimatedAnnualInterest(false)
+  // useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()
   const { bidState } = useBidState()
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
+
+
+  const calculatedRBYield = useMemo(() => {
+    if (!basket || interest || !TVL) return "0";
+    return simpleBoundedAPRCalc(basket, interest, TVL)
+  }, [basket, interest, TVL]);
 
   ////
   const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
@@ -708,15 +715,6 @@ const NeuroGuardCard = () => {
   //     (neuroState.assets.length > 0 &&
   //       num(neuroState.assets[0].combinUsdValue).isGreaterThan(0.01));
   // }, [neuroState.assets]);
-
-  const calculatedRBYield = useMemo(() => {
-    if (!bidState.cdpExpectedAnnualRevenue || !TVL) return "0";
-    return num(bidState.cdpExpectedAnnualRevenue)
-      .times(0.80)
-      .dividedBy(TVL)
-      // .plus(rangeBoundAPR)
-      .toString();
-  }, [bidState.cdpExpectedAnnualRevenue, TVL]);
 
 
   //Iterate thru positions and find all positions that aren't for NeuroGuard (i.e. don't have a position ID)

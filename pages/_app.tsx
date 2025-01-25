@@ -18,7 +18,6 @@ import WalletModal from '@/components/WalletModal'
 import { aminoTypes, registry, rpcUrl } from '@/config/defaults'
 import { useEffect, useState } from 'react'
 import Layout from '@/components/Layout'
-import { GasPrice } from '@cosmjs/stargate'
 
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 //pnpm install @cosmos-kit/keplr-mobile@^2.4.3
@@ -30,16 +29,12 @@ const signerOptions: SignerOptions = {
     return {
       aminoTypes,
       registry,
-      gasPrice: GasPrice.fromString('0.0075uosmo'),
     }
   },
   signingCosmwasm: (chain: Chain) => {
     switch (chain.chain_name) {
       case 'osmosis':
       case 'osmosistestnet5':
-        return {
-          gasPrice: GasPrice.fromString('0.0075uosmo'),
-        }
     }
   },
 }

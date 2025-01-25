@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscount } from '@/services/cdp'
+import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscount, getBasketAssets } from '@/services/cdp'
 import useWallet from './useWallet'
 import { useCallback } from 'react'
 import useBasketState from '@/persisted-state/useBasketState'
@@ -36,6 +36,19 @@ export const useBasket = () => {
   // console.log("basket hook result", result, shouldFetchBasket(), basketState)
 
   return result
+}
+
+export const useBasketAssets = () => {
+  const { data: basket } = useBasket()
+  const { data: interest } = useCollateralInterest()
+
+  return useQuery({
+    queryKey: ['get_basket_assets', basket, interest],
+    queryFn: async () => {
+      if (!basket || !interest) return []
+      return getBasketAssets(basket, interest)
+    },
+  })
 }
 
 export const useCollateralInterest = () => {

@@ -5,7 +5,7 @@ import { shiftDigits } from "@/helpers/math"
 import { colors, denoms } from "@/config/defaults"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
-import { useBasket, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
+import { useBasket, useBasketAssets, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
 import { simpleBoundedAPRCalc, useBoundedCDTVaultTokenUnderlying, useBoundedTVL, useEstimatedAnnualInterest, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useBidState from "../Bid/hooks/useBidState"
@@ -556,6 +556,10 @@ const NeuroGuardCard = () => {
   const { data: prices } = useOraclePrice()
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
+  console.time("basketAssets");
+  const { data: basketAssets } = useBasketAssets()
+  console.timeEnd("basketAssets");
+
 
 
   console.time("APR calc");
@@ -579,13 +583,6 @@ const NeuroGuardCard = () => {
 
 
   const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price.price || "1"
-
-  console.time("basketAssets");
-  const basketAssets = useMemo(() => {
-    if (!basket || !interest) return []
-    return getBasketAssets(basket, interest) ?? []
-  }, [basket, interest])
-  console.timeEnd("basketAssets");
 
   // Define priority order for specific symbols
   const prioritySymbols = ['WBTC.ETH.AXL', 'stATOM', 'stOSMO', 'stTIA']

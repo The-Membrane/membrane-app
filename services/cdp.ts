@@ -15,6 +15,7 @@ import { stableSymbols } from '@/config/defaults'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { useUserDiscount } from '@/hooks/useCDP'
 import { useQueries } from '@tanstack/react-query'
+import useAssets from '@/hooks/useAssets'
 
 export const cdpClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -26,7 +27,7 @@ export const getBasket = async () => {
   return client.getBasket()
 }
 
-const getAsseInterestRate = (
+const getAssetInterestRate = (
   denom: string | undefined,
   collateralInterest: CollateralInterestResponse,
   basket: Basket,
@@ -52,7 +53,7 @@ export const getBasketAssets = (
   basket: Basket,
   collateralInterest: CollateralInterestResponse,
 ) => {
-  const chainAssets = getChainAssets()
+  const chainAssets = useAssets("osmosis")
 
   return basket?.collateral_types.map((asset, index) => {
     //@ts-ignore
@@ -66,7 +67,7 @@ export const getBasketAssets = (
       }
     }
 
-    const interestRate = getAsseInterestRate(assetInfo?.base, collateralInterest, basket)
+    const interestRate = getAssetInterestRate(assetInfo?.base, collateralInterest, basket)
     const rateIndex = Number(asset.rate_index)
     const maxLTV = Number(asset.max_LTV)
     const maxBorrowLTV = Number(asset.max_borrow_LTV)

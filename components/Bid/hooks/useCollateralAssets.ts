@@ -7,7 +7,7 @@ const useCollateralAssets = () => {
   const { data: basket } = useBasket()
 
   const assets = useAssets("osmosis")
-  console.logf("assets in collateral assets", assets)
+  console.log("assets in collateral assets", assets)
 
   return useMemo(() => {
 

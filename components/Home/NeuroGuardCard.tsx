@@ -558,6 +558,7 @@ const NeuroGuardCard = () => {
   const { data: interest } = useCollateralInterest()
   console.time("basketAssets");
   const { data: basketAssets } = useBasketAssets()
+  console.log("basketAssets", basketAssets)
   console.timeEnd("basketAssets");
 
 
@@ -742,7 +743,7 @@ const NeuroGuardCard = () => {
       }
     ]
   }, [basketPositions, neuroGuardIntents])
-  console.log("nonNeuroGuardPositions", nonNeuroGuardPositions, basketPositions, neuroGuardIntents)
+  // console.log("nonNeuroGuardPositions", nonNeuroGuardPositions, basketPositions, neuroGuardIntents)
   console.timeEnd("nonNeuroGuardPositions");
 
 

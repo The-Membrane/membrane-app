@@ -17,9 +17,20 @@ export const useAssetBySymbol = (symbol: string, chainID: string = 'osmosis') =>
   const assets = useAssets(chainID)
 
   return useMemo(() => {
-    if (!assets || !symbol || (assets && assets.length == 0)) { console.log("ffff", assets, symbol); return null }
-    return assets!.find((asset) => asset.symbol === symbol) as Asset
+    if (!assets || !symbol) return null
+    return assets.find((asset) => asset.symbol === symbol) as Asset
   }, [assets, symbol])
+}
+
+
+
+export const useAssetByDenom = (denom: string, chainID: string = 'osmosis') => {
+  const assets = useAssets(chainID)
+
+  return useMemo(() => {
+    if (!assets || !denom) return null
+    return assets.find((asset) => asset.base === denom)
+  }, [assets, denom])
 }
 
 export default useAssets

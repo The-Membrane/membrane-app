@@ -18,6 +18,8 @@ import WalletModal from '@/components/WalletModal'
 import { aminoTypes, registry, rpcUrl } from '@/config/defaults'
 import { useEffect, useState } from 'react'
 import Layout from '@/components/Layout'
+import { GasPrice } from '@cosmjs/stargate'
+
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 //pnpm install @cosmos-kit/keplr-mobile@^2.4.3
 // import '@interchain-ui/react/styles'
@@ -56,7 +58,6 @@ export const queryClient = new QueryClient({
 })
 
 import '../styles/global.css';
-import { GasPrice } from '@cosmjs/stargate'
 const App = ({ Component, pageProps }: AppProps) => {
   const [isLoaded, setIsLoaded] = useState(false)
 

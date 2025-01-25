@@ -1,19 +1,8 @@
-import { Button, Grid, GridItem, Text, Stack, useBreakpointValue, Checkbox } from '@chakra-ui/react'
-import SPCard from './QASPCard'
-import EarnCard from './QAEarnCard'
+import { Stack, Checkbox } from '@chakra-ui/react'
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
-import RangeBoundLPCard from './RangeBoundLPCard'
-import RangeBoundVisual from './RangeBoundVisual'
-import useVaultSummary from '../Mint/hooks/useVaultSummary'
-import { colors, MAX_CDP_POSITIONS } from '@/config/defaults'
-import { useUserPositions } from '@/hooks/useCDP'
 import useToaster from '@/hooks/useToaster'
-import { num } from '@/helpers/num'
-import useMintState from '../Mint/hooks/useMintState'
 import NeuroGuardCard from './NeuroGuardCard'
-import { useUserBoundedIntents } from '../Earn/hooks/useEarnQueries'
-import useNeuroState from './hooks/useNeuroState'
 import useAppState from '../../persisted-state/useAppState'
 import { HomeTitle } from './HomeTitle'
 

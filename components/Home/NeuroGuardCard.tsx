@@ -743,26 +743,6 @@ const NeuroGuardCard = () => {
     setIsExpanded(prev => !prev)
   }, [])
 
-  // console.log("existingGuard", existingGuards)
-  ///Toaster will dismiss once the user has set the cookie due to Home's useEffect
-  // const toaster = useToaster()
-  // if (existingGuards && existingGuards.length > 0 && existingGuards[0] && !appState.setCookie) {
-  //   //Check if the guarded positions have cookies set, if yes, dismiss the toaster
-  //   existingGuards.map((guard) => {
-  //     const cookieKey = "neuroGuard " + guard?.position.position_id;
-  //     let cookie = getCookie(cookieKey);
-  //     if (cookie != null && !appState.setCookie) {
-  //       setAppState({ setCookie: true })
-  //     }
-  //   })
-  // }
-  // if (getCookie("rblp " + address) != null && !appState.setCookie) {
-  //   setAppState({ setCookie: true })
-  // }
-  ////
-
-
-
   // Separate complex sections into components
   const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number }) => {
     return (

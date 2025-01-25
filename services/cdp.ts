@@ -52,10 +52,8 @@ export type BasketAsset = {
 export const getBasketAssets = (
   basket: Basket,
   collateralInterest: CollateralInterestResponse,
+  assets: Asset[],
 ) => {
-  console.log("above useAssets")
-  const assets = useAssets("osmosis")
-  console.log("assets in basket assets", assets)
 
   return basket?.collateral_types.map((asset, index) => {
     //@ts-ignore

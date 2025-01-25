@@ -12,7 +12,7 @@ const useAssets = (chainID: string = 'osmosis') => {
     },
   })
 
-  return assets
+  return assets as Asset[]
 }
 
 export const useAssetBySymbol = (symbol: string, chainID: string = 'osmosis') => {

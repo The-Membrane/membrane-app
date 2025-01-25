@@ -4,6 +4,7 @@ import useWallet from './useWallet'
 import { useCallback } from 'react'
 import useBasketState from '@/persisted-state/useBasketState'
 import useUserPositionState from '@/persisted-state/useUserPositionState'
+import useAssets from './useAssets'
 
 
 export const useBasket = () => {
@@ -41,14 +42,16 @@ export const useBasket = () => {
 export const useBasketAssets = () => {
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
+  const assets = useAssets("osmosis")
+
 
   return useQuery({
-    queryKey: ['get_basket_assets', basket, interest],
+    queryKey: ['get_basket_assets', basket, interest, assets],
     queryFn: async () => {
-      if (!basket || !interest) return []
+      if (!basket || !interest || !assets) return []
 
       console.log("is this running at all?")
-      return getBasketAssets(basket, interest)
+      return getBasketAssets(basket, interest, assets)
     },
   })
 }

@@ -373,7 +373,7 @@ export const calculateVaultSummary = ({
 }: VaultSummary) => {
   if (!basket || !collateralInterest || (!basketPositions && summary.length === 0) || !prices) {
     {
-      console.log("returning 0 debt")
+      // console.log("returning 0 debt")
       return {
         debtAmount,
         cost: 0,
@@ -392,7 +392,7 @@ export const calculateVaultSummary = ({
 
   const positions = updatedSummary(summary, basketPositions, prices, positionIndex)
   if (!positions) {
-    console.log("returning 0 debt 2")
+    // console.log("returning 0 debt 2")
     return {
       debtAmount,
       cost: 0,
@@ -407,7 +407,7 @@ export const calculateVaultSummary = ({
       positionId: "0",
     }
   }
-  console.log("running summ")
+  // console.log("running summ")
   const tvl = initialTVL + newDeposit
   const { cost, ratios, costRatios } = getRateCost(positions, tvl, basketAssets)
   const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).multipliedBy(basket.credit_price.price).toNumber())

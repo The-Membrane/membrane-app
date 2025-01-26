@@ -50,7 +50,7 @@ export const useBasketAssets = () => {
     queryFn: async () => {
       if (!basket || !interest || !assets) return []
 
-      console.log("is this running at all?")
+      // console.log("is this running at all?")
       return getBasketAssets(basket, interest, assets)
     },
   })

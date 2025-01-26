@@ -22,6 +22,7 @@ export const useBoundedConfig = () => {
         queryFn: async () => {
             return getBoundedConfig()
         },
+        staleTime: 1000 * 60 * 5,
     })
 }
 
@@ -77,6 +78,7 @@ export const useBoundedIntents = () => {
         queryFn: async () => {
             return getBoundedIntents()
         },
+        staleTime: 1000 * 60 * 5,
     })
 }
 
@@ -86,6 +88,7 @@ export const useBoundedTVL = () => {
         queryFn: async () => {
             return getBoundedTVL()
         },
+        staleTime: 1000 * 60 * 5,
     })
 }
 
@@ -270,7 +273,8 @@ export const useRBLPCDTBalance = () => {
                 })
             //Find the amount of the buffer
             return rbLPBalances?.find((balance) => balance.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.amount ?? "0"
-        }
+        },
+        staleTime: 1000 * 60 * 5,
     })
 }
 
@@ -298,6 +302,7 @@ export const getBoundedCDTBalance = () => {
             console.log("underlyiG", underlyingData, totalVTs, shiftDigits(underlyingData ?? "1000000", -6).toString() ?? "0")
             return shiftDigits(underlyingData ?? "1000000", -6).toString()
         },
+        staleTime: 1000 * 60 * 5,
     })
     ////////////////////////////////////
 }
@@ -308,6 +313,7 @@ export const useBoundedCDTBalance = () => {
         queryFn: async () => {
             return getBoundedCDTBalance()
         },
+        staleTime: 1000 * 60 * 5,
     })
 }
 

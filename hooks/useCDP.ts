@@ -29,7 +29,7 @@ export const useBasket = () => {
     },
     // enabled: true,
     // You might want to add staleTime to prevent unnecessary refetches
-    // staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
   })
   // if (shouldFetchBasket() && result.data) {
   //   setBasketState(result.data)
@@ -53,6 +53,7 @@ export const useBasketAssets = () => {
       // console.log("is this running at all?")
       return getBasketAssets(basket, interest, assets)
     },
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -62,6 +63,7 @@ export const useCollateralInterest = () => {
     queryFn: async () => {
       return getCollateralInterest()
     },
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -71,6 +73,7 @@ export const useCreditRate = () => {
     queryFn: async () => {
       return getCreditRate()
     },
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -118,6 +121,7 @@ export const useUserDiscount = (address: string | undefined) => {
       if (!address) return { user: "", discount: "0" }
       return getUserDiscount(address)
     },
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -131,6 +135,7 @@ export const useBasketPositions = () => {
       return getBasketPositions()
     },
     enabled: !!address,
+    staleTime: 1000 * 60 * 5,
   })
 }
 

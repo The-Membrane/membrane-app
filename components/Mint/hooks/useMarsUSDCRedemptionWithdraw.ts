@@ -12,6 +12,8 @@ import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.me
 
 import contracts from '@/config/contracts.json'
 import { shiftDigits } from '@/helpers/math'
+import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import { toUtf8 } from 'cosmwasm'
 //Run down
 //This component will be a card that accepts Mars USDC into redemptions. Following the Modal flow.
 //FAQ
@@ -21,7 +23,7 @@ import { shiftDigits } from '@/helpers/math'
 // They can only choose one premium though so we can actually display that within the card.
 // ___ USDC earning __% in wait for a 2% arbitrage opportunity.
 
-const useMarsUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
+const useMarsUSDCRedemptionWithdraw = ({ onSuccess, run, max }: { onSuccess: () => void, max: number, run: boolean }) => {
     const { redemptionState, setRedemptionState } = useRedemptionState()
     const { mintState } = useMintState()
     const { reset } = useUserPositionState()
@@ -38,45 +40,64 @@ const useMarsUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run
     }
     const { data: queryData } = useQuery<QueryData>({
         queryKey: [
-            'productized_redemptions',
+            'productized_redemption_withdraw',
             address,
             positionId,
-            redemptionState.deposit,
+            redemptionState.withdraw,
+            max,
             run
         ],
         queryFn: async () => {
-            if (!address || positionId == 0 || redemptionState.deposit == 0 || !run) return { msgs: [] }
+            if (!address || positionId == 0 || redemptionState.withdraw == 0 || !run) return { msgs: [] }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
             //Get the position we're working with
             const position = basketPositions?.[0]?.positions?.find((pos) => pos.position_id === positionId)
-            //Set restricted collateral assets to any asset that isn't the mars USDC asset
-            const restrictedCollateralAssets = position?.collateral_assets?.filter((asset) => asset.asset.info.native_token.denom !== "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized").map((asset) => asset.asset.info.native_token.denom as string) || [] as string[]
+            //
+            var withdraw_amount = shiftDigits(redemptionState.withdraw, 12).toString()
+            //Get the withdraw amount
+            if (redemptionState.withdraw === max && position) {
+                //Find asset in basketPositions
+                const assetFound = position?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized")
+                const amount = assetFound?.asset.amount
+
+                console.log("full withdrawal amount for redemption", amount)
+                if (amount) withdraw_amount = amount
+            }
 
             const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
 
-            //Create redemption msg
-            const set_redemption_msg =
-                messageComposer.editRedeemability({
-                    positionIds: [positionId],
-                    maxLoanRepayment: "1",
-                    redeemable: true,
-                    premium: redemptionState?.premium,
-                    restrictedCollateralAssets
-                })
-            msgs.push(set_redemption_msg)
-            //Create deposit msg
-            const deposit_msg = messageComposer.deposit({
-                positionId
-            },
-                [
+            //Create withdraw msg
+            const withdraw_msg = messageComposer.withdraw({
+                positionId,
+                assets: [
                     {
-                        denom: "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized",
-                        amount: shiftDigits(redemptionState?.deposit, 12).toString()
+                        info: {
+                            native_token: {
+                                denom: "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized",
+                            },
+                        },
+                        amount: withdraw_amount,
                     }
                 ]
-            )
-            msgs.push(deposit_msg)
+            })
+            msgs.push(withdraw_msg)
+
+
+            //VT Withdraw Msg
+            const fundsVT = [{ amount: withdraw_amount.toString(), denom: "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized" }]
+            let withdrawMsg = {
+                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+                value: MsgExecuteContract.fromPartial({
+                    sender: address,
+                    contract: contracts.marsUSDCvault,
+                    msg: toUtf8(JSON.stringify({
+                        exit_vault: {}
+                    })),
+                    funds: fundsVT
+                })
+            } as MsgExecuteContractEncodeObject
+            msgs.push(withdrawMsg)
 
             return { msgs }
         },
@@ -96,11 +117,11 @@ const useMarsUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run
     return {
         action: useSimulateAndBroadcast({
             msgs,
-            queryKey: ['marsUSDC_redemption_sim', (msgs?.toString() ?? "0")],
+            queryKey: ['marsUSDC_redemption_withdraw_sim', (msgs?.toString() ?? "0")],
             onSuccess: onFnSuccess,
             enabled: !!msgs,
         })
     }
 }
 
-export default useMarsUSDCRedemptions
+export default useMarsUSDCRedemptionWithdraw

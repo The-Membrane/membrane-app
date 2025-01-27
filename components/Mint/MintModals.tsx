@@ -6,17 +6,19 @@ import { parseError } from "@/helpers/parseError"
 import { colors } from "@/config/defaults"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import useRedemptionState from "./hooks/useRedemptionState"
+import useMarsUSDCRedemptions from "./hooks/useMarsUSDCRedemptions"
+import useMarsUSDCRedemptionWithdraw from "./hooks/useMarsUSDCRedemptionWithdraw"
 
-export const RBLPDepositModal = React.memo(({
+export const RedemptionDepositModal = React.memo(({
     isOpen, onClose, marsUSDCAsset, children
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void, marsUSDCAsset: AssetWithBalance }>) => {
 
 
     const { redemptionState, setRedemptionState } = useRedemptionState()
     //
-    const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
-    const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
-    const isDisabled = redemptionState?.deposit == 0 || rblp?.simulate.isError || !rblp?.simulate.data
+    const { action: setRedemptions } = useMarsUSDCRedemptions({ onSuccess: onClose, run: isOpen })
+    const isLoading = setRedemptions?.simulate.isLoading || setRedemptions?.tx.isPending
+    const isDisabled = redemptionState?.deposit == 0 || setRedemptions?.simulate.isError || !setRedemptions?.simulate.data
     //
 
     //@ts-ignore
@@ -94,7 +96,7 @@ export const RBLPDepositModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(redemptionState?.deposit).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                            {parseError(num(redemptionState?.deposit).isGreaterThan(0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
                         </Text>
 
 
@@ -102,11 +104,11 @@ export const RBLPDepositModal = React.memo(({
                             w="100%"
                             isLoading={isLoading}
                             isDisabled={isDisabled}
-                            onClick={() => rblp?.tx.mutate()}
+                            onClick={() => setRedemptions?.tx.mutate()}
                             toggleConnectLabel={false}
                             style={{ alignSelf: "center" }}
                         >
-                            Deposit into The Membrane
+                            Set Redemption Arb
                         </TxButton>
                     </ModalFooter>
                 )}
@@ -115,22 +117,23 @@ export const RBLPDepositModal = React.memo(({
     </>)
 })
 
-export const RBLPWithdrawModal = React.memo(({
-    isOpen, onClose, rblpDeposit, cdtMarketPrice, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, rblpDeposit: number, cdtMarketPrice: string }>) => {
+export const RedemptionWithdrawModal = React.memo(({
+    isOpen, onClose, marsUSDCDeposit, usdcMarketPrice, children
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, marsUSDCDeposit: number, usdcMarketPrice: string }>) => {
 
-
-    const { redemptionState, setQuickActionState } = useQuickActionState()
-    const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
-    const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
-    const isDisabled = redemptionState?.rangeBoundLPwithdrawal == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
     //@ts-ignore
-    const maxAmount = rblpDeposit
+    const maxAmount = marsUSDCDeposit
+
+    const { redemptionState, setRedemptionState } = useRedemptionState()
+    const { action: setRedemptions } = useMarsUSDCRedemptionWithdraw({ onSuccess: onClose, run: isOpen, max: maxAmount })
+    const isLoading = setRedemptions?.simulate.isLoading || setRedemptions?.tx.isPending
+    const isDisabled = redemptionState?.withdraw == 0 || setRedemptions?.simulate.isError || !setRedemptions?.simulate.data
+
 
     const onMaxClick = () => {
-        setQuickActionState({
-            rangeBoundLPwithdrawal: maxAmount
+        setRedemptionState({
+            withdraw: maxAmount
         })
     }
 
@@ -138,10 +141,10 @@ export const RBLPWithdrawModal = React.memo(({
         e.preventDefault()
         const value = Number(e.target.value)
 
-        setQuickActionState({
-            rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+        setRedemptionState({
+            withdraw: num(value).isGreaterThan(maxAmount) ? maxAmount : value
         })
-    }, [redemptionState?.rangeBoundLPwithdrawal, setQuickActionState])
+    }, [redemptionState?.withdraw, setRedemptionState])
 
 
 
@@ -163,11 +166,11 @@ export const RBLPWithdrawModal = React.memo(({
                             <HStack width="75%">
                                 <Image src={"/images/cdt.svg"} w="30px" h="30px" />
                                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    CDT
+                                    USDC
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(redemptionState?.rangeBoundLPwithdrawal).times(cdtMarketPrice).toFixed(2)}
+                                ~${num(redemptionState?.withdraw).times(usdcMarketPrice).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -176,7 +179,7 @@ export const RBLPWithdrawModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={redemptionState?.rangeBoundLPwithdrawal.toFixed(2)}
+                            value={redemptionState?.withdraw.toFixed(2)}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
@@ -200,7 +203,7 @@ export const RBLPWithdrawModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(redemptionState?.rangeBoundLPwithdrawal).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                            {parseError(num(redemptionState?.withdraw).isGreaterThan(0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
                         </Text>
 
 
@@ -208,11 +211,11 @@ export const RBLPWithdrawModal = React.memo(({
                             w="100%"
                             isLoading={isLoading}
                             isDisabled={isDisabled}
-                            onClick={() => rblp?.tx.mutate()}
+                            onClick={() => setRedemptions?.tx.mutate()}
                             toggleConnectLabel={false}
                             style={{ alignSelf: "center" }}
                         >
-                            Withdraw from The Membrane
+                            Withdraw Redeemable USDC
                         </TxButton>
                     </ModalFooter>
                 )}

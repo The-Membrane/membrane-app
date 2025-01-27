@@ -197,7 +197,7 @@ const NeuroGuardOpenEntry = React.memo(({
   // console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
   const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toFixed(1)
 
-  console.log("INFiNITY LOGS", (minAmount - asset?.balance).toFixed(2).toString() === "Infinity", (minAmount - asset?.balance) === Infinity)
+  // console.log("INFiNITY LOGS", (minAmount - asset?.balance).toFixed(2).toString() === "Infinity", (minAmount - asset?.balance) === Infinity)
 
   return (
     <Card width="100%" borderWidth={3} padding={4}>

@@ -39,7 +39,7 @@ const StatsTitle = React.memo(({ basket }: { basket: any }) => {
     }, [basket])
 
     return (
-        <HStack gap={16} >
+        <HStack gap={16} justifyContent={"center"}>
             <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
             <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
         </HStack>
@@ -60,7 +60,7 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const isFulfillDisabled = useMemo(() => { return fulfill?.simulate.isError || !fulfill?.simulate.data }, [fulfill?.simulate.isError, fulfill?.simulate.data])
     if (isFulfillDisabled) console.log("isFulfillDisabled", fulfill?.simulate, fulfill?.simulate.isError, !fulfill?.simulate)
     return (
-        <Card gap={16} >
+        <Card gap={16} width={"33%"}>
             <TxButton
                 maxW="100%"
                 isLoading={fulfill?.simulate.isLoading || fulfill?.tx.isPending}

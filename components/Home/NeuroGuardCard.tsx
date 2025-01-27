@@ -225,7 +225,7 @@ const NeuroGuardOpenEntry = React.memo(({
           isDisabled={isDisabled}
         >
           {/* @ts-ignore */}
-          {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2)} more to Enlist` : "Enlist"}
+          {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2) === Infinity ? "___" : (minAmount - asset?.balance).toFixed(2)} more to Enlist` : "Enlist"}
         </Button>
       </HStack>
     </Card >

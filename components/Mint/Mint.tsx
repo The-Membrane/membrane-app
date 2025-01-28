@@ -190,7 +190,7 @@ const Mint = React.memo(() => {
       <HStack alignItems="flex-start">
         <MintTabsCard />
         <CurrentPositions />
-        <RedemptionCard />
+        {/* <RedemptionCard /> */}
       </HStack>
     </Stack>
   )

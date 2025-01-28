@@ -93,7 +93,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             isLazy: true,
             endpoints: {
               osmosis: {
-                rpc: ['https://osmosis-rpc.polkachu.com/'],
+                rpc: [rpcUrl],
               },
             },
           }}

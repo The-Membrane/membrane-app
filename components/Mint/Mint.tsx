@@ -27,6 +27,7 @@ import { useUserPositions } from '@/hooks/useCDP'
 import { colors, MAX_CDP_POSITIONS } from '@/config/defaults'
 import useVaultSummary from './hooks/useVaultSummary'
 import { num } from '@/helpers/num'
+import RedemptionCard from './marsUSDCRedemptionCard'
 
 type TabProps = {
   onClick: any
@@ -189,6 +190,7 @@ const Mint = React.memo(() => {
       <HStack alignItems="flex-start">
         <MintTabsCard />
         <CurrentPositions />
+        <RedemptionCard />
       </HStack>
     </Stack>
   )

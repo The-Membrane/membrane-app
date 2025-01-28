@@ -73,6 +73,7 @@ const useMarsUSDCRedemptionWithdraw = ({ onSuccess, run, max }: { onSuccess: () 
                 assets: [
                     {
                         info: {
+                            //@ts-ignore
                             native_token: {
                                 denom: "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized",
                             },

@@ -12,6 +12,9 @@ import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.me
 
 import contracts from '@/config/contracts.json'
 import { shiftDigits } from '@/helpers/math'
+import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import { toUtf8 } from 'cosmwasm'
+import { useDepositTokenConversionforMarsUSDC } from '@/components/Earn/hooks/useEarnQueries'
 //Run down
 //This component will be a card that accepts Mars USDC into redemptions. Following the Modal flow.
 //FAQ
@@ -28,6 +31,8 @@ const useMarsUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run
     const { address } = useWallet()
     const { data: basketPositions } = useUserPositions()
 
+    const { data: expectedVaultTokens } = useDepositTokenConversionforMarsUSDC(shiftDigits(redemptionState?.deposit, 6).toString())
+
     //Use the current position id or use the basket's next position ID (for new positions)
     const positionId = useMemo(() => {
         return basketPositions?.[0]?.positions?.[mintState.positionNumber - 1]?.position_id || 0
@@ -42,18 +47,48 @@ const useMarsUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run
             address,
             positionId,
             redemptionState.deposit,
+            expectedVaultTokens,
             run
         ],
         queryFn: async () => {
             if (!address || positionId == 0 || redemptionState.deposit == 0 || !run) return { msgs: [] }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
+            //Create deposit into marsUSDC vault msg
+            const funds = [{ amount: shiftDigits(redemptionState?.deposit, 6).toString(), denom: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4" }]
+            let withdrawMsg = {
+                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+                value: MsgExecuteContract.fromPartial({
+                    sender: address,
+                    contract: contracts.marsUSDCvault,
+                    msg: toUtf8(JSON.stringify({
+                        enter_vault: {}
+                    })),
+                    funds: funds
+                })
+            } as MsgExecuteContractEncodeObject
+            msgs.push(withdrawMsg)
+
+            const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
+            //Create deposit msg
+            const deposit_msg = messageComposer.deposit({
+                positionId
+            },
+                [
+                    {
+                        denom: "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized",
+                        amount: (Number(expectedVaultTokens) - 1).toString() //Subtract 1 to account for rounding errors
+                    }
+                ]
+            )
+            msgs.push(deposit_msg)
+
+
             //Get the position we're working with
             const position = basketPositions?.[0]?.positions?.find((pos) => pos.position_id === positionId)
             //Set restricted collateral assets to any asset that isn't the mars USDC asset
+            //@ts-ignore
             const restrictedCollateralAssets = position?.collateral_assets?.filter((asset) => asset.asset.info.native_token.denom !== "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized").map((asset) => asset.asset.info.native_token.denom as string) || [] as string[]
-
-            const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
 
             //Create redemption msg
             const set_redemption_msg =
@@ -65,18 +100,6 @@ const useMarsUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run
                     restrictedCollateralAssets
                 })
             msgs.push(set_redemption_msg)
-            //Create deposit msg
-            const deposit_msg = messageComposer.deposit({
-                positionId
-            },
-                [
-                    {
-                        denom: "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized",
-                        amount: shiftDigits(redemptionState?.deposit, 12).toString()
-                    }
-                ]
-            )
-            msgs.push(deposit_msg)
 
             return { msgs }
         },

@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
 import { cdpClient, getUserDiscount } from "@/services/cdp"
-import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig, getBoundedIntents } from "@/services/earn"
+import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig, getBoundedIntents, getDepositTokenConversionforMarsUSDC } from "@/services/earn"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketAssets, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
@@ -107,6 +107,15 @@ export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
         queryKey: ['useCDTVaultTokenUnderlying', vtAmount],
         queryFn: async () => {
             return getUnderlyingCDT(vtAmount)
+        },
+    })
+}
+
+export const useDepositTokenConversionforMarsUSDC = (depositAmount: string) => {
+    return useQuery({
+        queryKey: ['useDepositTokenConversionforMarsUSDC', depositAmount],
+        queryFn: async () => {
+            return getDepositTokenConversionforMarsUSDC(depositAmount)
         },
     })
 }

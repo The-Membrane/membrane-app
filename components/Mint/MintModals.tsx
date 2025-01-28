@@ -1,4 +1,4 @@
-import React, { ChangeEvent, PropsWithChildren, useCallback } from "react"
+import React, { ChangeEvent, PropsWithChildren, useCallback, useMemo } from "react"
 import { num } from "@/helpers/num"
 import { TxButton } from "../TxButton"
 import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, Checkbox } from "@chakra-ui/react"
@@ -8,10 +8,17 @@ import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import useRedemptionState from "./hooks/useRedemptionState"
 import useMarsUSDCRedemptions from "./hooks/useMarsUSDCRedemptions"
 import useMarsUSDCRedemptionWithdraw from "./hooks/useMarsUSDCRedemptionWithdraw"
+import { todo } from "node:test"
+import { useOraclePrice } from "@/hooks/useOracle"
+import { useBalanceByAsset } from "@/hooks/useBalance"
+import { useAssetBySymbol } from "@/hooks/useAssets"
+import { useUserPositions } from "@/hooks/useCDP"
+import { shiftDigits } from "@/helpers/math"
+import useMintState from "./hooks/useMintState"
 
 export const RedemptionDepositModal = React.memo(({
-    isOpen, onClose, marsUSDCAsset, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, marsUSDCAsset: AssetWithBalance }>) => {
+    isOpen, onClose, children, usdcAsset
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcAsset: any }>) => {
 
 
     const { redemptionState, setRedemptionState } = useRedemptionState()
@@ -22,7 +29,7 @@ export const RedemptionDepositModal = React.memo(({
     //
 
     //@ts-ignore
-    const maxAmount = num(marsUSDCAsset.balance).toNumber()
+    const maxAmount = num(usdcAsset.balance).toNumber()
 
     const onMaxClick = () => {
         setRedemptionState({
@@ -57,13 +64,13 @@ export const RedemptionDepositModal = React.memo(({
                     <Stack>
                         <HStack width="100%" justifyContent="left">
                             <HStack width="75%">
-                                {marsUSDCAsset.logo ? <Image src={marsUSDCAsset.logo} w="30px" h="30px" /> : null}
+                                {usdcAsset.logo ? <Image src={usdcAsset.logo} w="30px" h="30px" /> : null}
                                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {marsUSDCAsset.symbol}
+                                    {usdcAsset.symbol}
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(redemptionState?.deposit).times(marsUSDCAsset.price ?? 0).toFixed(2)}
+                                ~${num(redemptionState?.deposit).times(usdcAsset.price ?? 0).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -118,12 +125,19 @@ export const RedemptionDepositModal = React.memo(({
 })
 
 export const RedemptionWithdrawModal = React.memo(({
-    isOpen, onClose, marsUSDCDeposit, usdcMarketPrice, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, marsUSDCDeposit: number, usdcMarketPrice: string }>) => {
+    isOpen, onClose, children, marsUSDCDeposit
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, marsUSDCDeposit: number }>) => {
 
+
+    const { mintState } = useMintState()
+
+    const { data: prices } = useOraclePrice()
+    const marsUSDCMarketPrice = useMemo(() =>
+        parseFloat(prices?.find((price) => price.denom === "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized")?.price ?? "0"),
+        [prices])
 
     //@ts-ignore
-    const maxAmount = marsUSDCDeposit
+    const maxAmount = shiftDigits(marsUSDCDeposit, -12).toNumber()
 
     const { redemptionState, setRedemptionState } = useRedemptionState()
     const { action: setRedemptions } = useMarsUSDCRedemptionWithdraw({ onSuccess: onClose, run: isOpen, max: maxAmount })
@@ -170,7 +184,7 @@ export const RedemptionWithdrawModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(redemptionState?.withdraw).times(usdcMarketPrice).toFixed(2)}
+                                ~${num(redemptionState?.withdraw).times(marsUSDCMarketPrice).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input

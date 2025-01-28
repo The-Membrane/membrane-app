@@ -52,7 +52,6 @@ export const getBoundedTVL = async () => {
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     total_t_v_l: {}
   }) as Promise<Uint128>
-
 }
 
 export const getBoundedIntents = async () => {
@@ -62,6 +61,15 @@ export const getBoundedIntents = async () => {
       users: []
     }
   }) as Promise<IntentResponse[]>
+}
+
+export const getDepositTokenConversionforMarsUSDC = async (depositAmount: string) => {
+  const cosmWasmClient = await getCosmWasmClient()
+  return cosmWasmClient.queryContractSmart(contracts.marsUSDCvault, {
+    deposit_token_conversion: {
+      deposit_token_amount: depositAmount
+    }
+  }) as Promise<Uint128>
 }
 
 export const getUnderlyingUSDC = async (vtAmount: string) => {

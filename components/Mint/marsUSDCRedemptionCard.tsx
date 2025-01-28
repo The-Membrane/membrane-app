@@ -18,8 +18,7 @@ const RedemptionCard = () => {
 
     const usdcAssetInfo = useAssetBySymbol('USDC')
     const usdcBalance = useBalanceByAsset(usdcAssetInfo) ?? "1"
-    //@ts-ignore
-    const usdcAsset = { ...usdcAsset, balance: usdcBalance, price: usdcPrice }
+    const usdcAsset = { ...usdcAssetInfo, balance: usdcBalance, price: usdcPrice }
     const isDepositDisabled = usdcBalance === "0"
 
     /////WITHDRAWL STATE STUFF///
@@ -57,7 +56,7 @@ const RedemptionCard = () => {
                         onClick={() => { toggleDepositOpen() }}
                         isDisabled={isDepositDisabled}
                     >
-                        Setup Arb
+                        Setup
                     </Button>
                     {isDepositOpen && <RedemptionDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} usdcAsset={usdcAsset} />}
 

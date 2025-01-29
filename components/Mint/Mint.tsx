@@ -186,7 +186,7 @@ const Mint = React.memo(() => {
   return (
     <Stack gap="2rem" paddingTop="4%">
       <HealthSlider summary={summary} />
-      <HStack alignItems="flex-start">
+      <HStack alignItems="flex-start" justifyContent={"center"}>
         <MintTabsCard />
         <CurrentPositions />
         {/* <RedemptionCard /> */}

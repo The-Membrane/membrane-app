@@ -189,7 +189,7 @@ const useNeuroClose = ({ position, onSuccess, run }: { position: PositionRespons
       //4) Update intents
       // We only Update if there was more than 1 intent && the percentToClose is 100%
       // , otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
-      if (userIntents && userIntents[0] && percentToClose === "1") {
+      if (userIntents && userIntents[0] && percentToClose === "1" && false) {
 
         const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
         // console.log("updatedIntent data", updatedIntents)

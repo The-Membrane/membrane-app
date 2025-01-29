@@ -495,9 +495,12 @@ export const NeuroWithdrawModal = React.memo(({
     prices: any
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
-    const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, run: isOpen })
+    const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: false, run: isOpen })
+    const { action: ledgerSheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: true, run: isOpen })
     const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
     const isLoading = sheathe?.simulate.isLoading || sheathe?.tx.isPending
+    const isLedgerDisabled = ledgerSheathe?.simulate.isError || !ledgerSheathe?.simulate.data
+    const isLedgerLoading = ledgerSheathe?.simulate.isLoading || ledgerSheathe?.tx.isPending
 
     //Get asset by symbol
     const assetInfo = getAssetBySymbol(guardedPosition.symbol)
@@ -592,17 +595,28 @@ export const NeuroWithdrawModal = React.memo(({
                             {parseError(num(neuroState?.withdrawSelectedAsset?.sliderValue).isGreaterThan(0) && sheathe.simulate.isError ? sheathe.simulate.error?.message ?? "" : "")}
                         </Text>
 
-
-                        <TxButton
-                            w="100%"
-                            isLoading={isLoading}
-                            isDisabled={isDisabled}
-                            onClick={() => sheathe?.tx.mutate()}
-                            toggleConnectLabel={false}
-                            style={{ alignSelf: "center" }}
-                        >
-                            Withdraw from Guardian
-                        </TxButton>
+                        <Stack>
+                            <TxButton
+                                w="100%"
+                                isLoading={isLoading}
+                                isDisabled={isDisabled}
+                                onClick={() => sheathe?.tx.mutate()}
+                                toggleConnectLabel={false}
+                                style={{ alignSelf: "center" }}
+                            >
+                                Withdraw from Guardian
+                            </TxButton>
+                            <TxButton
+                                w="100%"
+                                isLoading={isLedgerLoading}
+                                isDisabled={isLedgerDisabled}
+                                onClick={() => ledgerSheathe?.tx.mutate()}
+                                toggleConnectLabel={false}
+                                style={{ alignSelf: "center" }}
+                            >
+                                Withdraw with Ledger
+                            </TxButton>
+                        </Stack>
                     </ModalFooter>
                 )}
             </ModalContent>

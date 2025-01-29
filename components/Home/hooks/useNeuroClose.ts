@@ -88,7 +88,7 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
   return newData;
 }
 
-const useNeuroClose = ({ position, onSuccess, run }: { position: PositionResponse, onSuccess: () => void, run: boolean }) => {
+const useNeuroClose = ({ position, onSuccess, ledger, run }: { position: PositionResponse, onSuccess: () => void, ledger: boolean, run: boolean }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const assets = useCollateralAssets()
@@ -189,7 +189,7 @@ const useNeuroClose = ({ position, onSuccess, run }: { position: PositionRespons
       //4) Update intents
       // We only Update if there was more than 1 intent && the percentToClose is 100%
       // , otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
-      if (userIntents && userIntents[0] && percentToClose === "1" && false) {
+      if (userIntents && userIntents[0] && percentToClose === "1") {
 
         const updatedIntents = redistributeYield(userIntents[0].intent, Number(position.position_id))
         // console.log("updatedIntent data", updatedIntents)
@@ -246,6 +246,19 @@ const useNeuroClose = ({ position, onSuccess, run }: { position: PositionRespons
 
   console.log("neuroClose msgs:", msgs)
 
+  //Pop the last msg
+  const lastMsg = (ledger && msgs.length > 2) ? msgs.pop() : undefined
+  //Sim ledger msgs separately
+  const lastMsgSim = (lastMsg) ? {
+    action: useSimulateAndBroadcast({
+      msgs: [lastMsg],
+      queryKey: ['ledger_3rdmsg_for_neuroClose', ([lastMsg]?.toString() ?? "0")],
+      onSuccess: () => { },
+      enabled: true,
+    })
+  } : undefined
+
+
   const onInitialSuccess = () => {
     newCookieAmount && newCookieAmount > 0 ? setCookie("neuroGuard " + position.position_id, newCookieAmount.toString(), 3650) : deleteCookie("neuroGuard " + position.position_id)
     onSuccess()
@@ -254,7 +267,12 @@ const useNeuroClose = ({ position, onSuccess, run }: { position: PositionRespons
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     resetIntents()
     queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
+    if (lastMsgSim) lastMsgSim.action.tx.mutate()
   }
+
+
+
+
 
   return {
     action: useSimulateAndBroadcast({

@@ -69,6 +69,12 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
       <ListItem fontFamily="Inter" fontSize="md">
         You can see your Guardian's CDP on the Mint page to edit it intricately. It's not on the Home page to reduce confusion with duplicates.
       </ListItem>
+      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+        Are there close fees?
+      </Text>
+      <ListItem fontFamily="Inter" fontSize="md">
+        No, the closure pulls funds from The Membrane vault to repay the debt. The only close fee you'll see is slippage from a swap to repay 1 CDT, a buffer left for ease of closure.
+      </ListItem>
     </List>
   )
 })

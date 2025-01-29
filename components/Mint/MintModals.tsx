@@ -6,8 +6,8 @@ import { parseError } from "@/helpers/parseError"
 import { colors } from "@/config/defaults"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import useRedemptionState from "./hooks/useRedemptionState"
-import useMarsUSDCRedemptions from "./hooks/useMarsUSDCRedemptions"
-import useMarsUSDCRedemptionWithdraw from "./hooks/useMarsUSDCRedemptionWithdraw"
+import useUSDCRedemptions from "./hooks/useUSDCRedemptions"
+import useUSDCRedemptionWithdraw from "./hooks/useUSDCRedemptionWithdraw"
 import { todo } from "node:test"
 import { useOraclePrice } from "@/hooks/useOracle"
 import { useBalanceByAsset } from "@/hooks/useBalance"
@@ -23,7 +23,7 @@ export const RedemptionDepositModal = React.memo(({
 
     const { redemptionState, setRedemptionState } = useRedemptionState()
     //
-    const { action: setRedemptions } = useMarsUSDCRedemptions({ onSuccess: onClose, run: isOpen })
+    const { action: setRedemptions } = useUSDCRedemptions({ onSuccess: onClose, run: isOpen })
     const isLoading = setRedemptions?.simulate.isLoading || setRedemptions?.tx.isPending
     const isDisabled = redemptionState?.deposit == 0 || setRedemptions?.simulate.isError || !setRedemptions?.simulate.data
     //
@@ -125,22 +125,22 @@ export const RedemptionDepositModal = React.memo(({
 })
 
 export const RedemptionWithdrawModal = React.memo(({
-    isOpen, onClose, children, marsUSDCDeposit
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, marsUSDCDeposit: number }>) => {
+    isOpen, onClose, children, usdcDeposit
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcDeposit: number }>) => {
 
 
     const { mintState } = useMintState()
 
     const { data: prices } = useOraclePrice()
-    const marsUSDCMarketPrice = useMemo(() =>
-        parseFloat(prices?.find((price) => price.denom === "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized")?.price ?? "0"),
+    const usdcMarketPrice = useMemo(() =>
+        parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0"),
         [prices])
 
     //@ts-ignore
-    const maxAmount = shiftDigits(marsUSDCDeposit, -12).toNumber()
+    const maxAmount = shiftDigits(usdcDeposit, -6).toNumber()
 
     const { redemptionState, setRedemptionState } = useRedemptionState()
-    const { action: setRedemptions } = useMarsUSDCRedemptionWithdraw({ onSuccess: onClose, run: isOpen, max: maxAmount })
+    const { action: setRedemptions } = useUSDCRedemptionWithdraw({ onSuccess: onClose, run: isOpen, max: maxAmount })
     const isLoading = setRedemptions?.simulate.isLoading || setRedemptions?.tx.isPending
     const isDisabled = redemptionState?.withdraw == 0 || setRedemptions?.simulate.isError || !setRedemptions?.simulate.data
 
@@ -184,7 +184,7 @@ export const RedemptionWithdrawModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(redemptionState?.withdraw).times(marsUSDCMarketPrice).toFixed(2)}
+                                ~${num(redemptionState?.withdraw).times(usdcMarketPrice).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscount, getBasketAssets } from '@/services/cdp'
+import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscount, getBasketAssets, getUserRedemptionInfo } from '@/services/cdp'
 import useWallet from './useWallet'
 import { useCallback } from 'react'
 import useBasketState from '@/persisted-state/useBasketState'
@@ -72,6 +72,16 @@ export const useCreditRate = () => {
     queryKey: ['credit rate'],
     queryFn: async () => {
       return getCreditRate()
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export const useUserRemptionInfo = () => {
+  return useQuery({
+    queryKey: ['user_redemption_info'],
+    queryFn: async () => {
+      return getUserRedemptionInfo()
     },
     staleTime: 1000 * 60 * 5,
   })

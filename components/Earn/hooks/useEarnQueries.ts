@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
 import { cdpClient, getUserDiscount } from "@/services/cdp"
-import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig, getBoundedIntents, getDepositTokenConversionforMarsUSDC } from "@/services/earn"
+import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig, getBoundedIntents, getDepositTokenConversionforMarsUSDC, getMarsUSDCSupplyAPR } from "@/services/earn"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketAssets, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
@@ -134,6 +134,15 @@ export const useEarnUSDCEstimatedAPR = () => {
         queryKey: ['useEarnUSDCEstimatedAPR'],
         queryFn: async () => {
             return getVaultAPRResponse()
+        },
+    })
+}
+
+export const useMarsUSDCSupplyAPR = () => {
+    return useQuery({
+        queryKey: ['useMarsUSDCSupplyAPR'],
+        queryFn: async () => {
+            return (await getMarsUSDCSupplyAPR())?.liquidity_rate ?? 0
         },
     })
 }

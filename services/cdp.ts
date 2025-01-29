@@ -16,6 +16,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { useUserDiscount } from '@/hooks/useCDP'
 import { useQueries } from '@tanstack/react-query'
 import useAssets from '@/hooks/useAssets'
+import useWallet from '@/hooks/useWallet'
 
 export const cdpClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()
@@ -25,6 +26,14 @@ export const cdpClient = async () => {
 export const getBasket = async () => {
   const client = await cdpClient()
   return client.getBasket()
+}
+
+export const getUserRedemptionInfo = async () => {
+  const { address } = useWallet()
+  const client = await cdpClient()
+  return client.getBasketRedeemability({
+    positionOwner: address
+  })
 }
 
 const getAssetInterestRate = (

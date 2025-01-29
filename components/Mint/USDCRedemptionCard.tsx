@@ -1,13 +1,19 @@
-import { HStack, Stack, Button, Card } from '@chakra-ui/react'
+import { HStack, Stack, Button, Card, Text } from '@chakra-ui/react'
 import React, { useCallback, useMemo, useState } from 'react'
 import { RedemptionDepositModal, RedemptionWithdrawModal } from './MintModals'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useOraclePrice } from '@/hooks/useOracle'
-import { useUserPositions } from '@/hooks/useCDP'
+import { useUserPositions, useUserRemptionInfo } from '@/hooks/useCDP'
 import useMintState from './hooks/useMintState'
+import { useDepositTokenConversionforMarsUSDC, useMarsUSDCSupplyAPR } from '../Earn/hooks/useEarnQueries'
+import { num } from '@/helpers/num'
+import { shiftDigits } from '@/helpers/math'
 
 const RedemptionCard = () => {
+
+    const { data: userRedemptionInfo } = useUserRemptionInfo()
+    const userPremium = userRedemptionInfo?.premium_infos[0].premium ?? 0
 
 
     //////DEPOSIT STATE STUFF/////
@@ -30,8 +36,10 @@ const RedemptionCard = () => {
     }, [basketPositions, mintState.positionNumber])
     //Get the position we're working with
     const position = basketPositions?.[0]?.positions?.find((pos) => pos.position_id === positionId)
-    const marsUSDCDeposit = position?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized")?.asset.amount
-    const isWithdrawDisabled = marsUSDCDeposit === "0"
+    const usdcDeposit = position?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.asset.amount ?? "0"
+    // const { data: underlyingUSDC } = useDepositTokenConversionforMarsUSDC(marsUSDCDeposit) ?? "0"
+    // const { data: marsUSDCyield } = useMarsUSDCSupplyAPR() ?? "0"
+    const isWithdrawDisabled = usdcDeposit === "0"
 
     const [isDepositOpen, setIsDepositOpen] = useState(false)
     const toggleDepositOpen = useCallback(() => {
@@ -46,7 +54,10 @@ const RedemptionCard = () => {
     return (
         <Card minW="363px" gap="12" h="max-content" px="2">
             <Stack gap="5" padding="3%">
-                <HStack width={"36%"}>
+                <Text variant="title" fontSize="24px">
+                    {num(usdcDeposit).toFixed(2)} USDC in wait for a {userPremium}% arbitrage opportunity.
+                </Text>
+                <HStack width={"66%"} alignSelf={"right"}>
                     <Button
                         width="50%"
                         display="flex"
@@ -61,7 +72,7 @@ const RedemptionCard = () => {
                     {isDepositOpen && <RedemptionDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} usdcAsset={usdcAsset} />}
 
 
-                    {isWithdrawOpen && <RedemptionWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} marsUSDCDeposit={Number(marsUSDCDeposit)} />}
+                    {isWithdrawOpen && <RedemptionWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} usdcDeposit={Number(usdcDeposit)} />}
 
                     <Button
                         width="50%"

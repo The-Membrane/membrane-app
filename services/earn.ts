@@ -122,6 +122,26 @@ export const getBoundedCDTRealizedAPR = async () => {
   }) as Promise<ClaimTracker>
 }
 
+export const getMarsUSDCSupplyAPR = async () => {
+  const cosmWasmClient = await getCosmWasmClient()
+  return cosmWasmClient.queryContractSmart(contracts.marsRedBank, {
+    market: {
+      denom: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4"
+    }
+  }) as Promise<{
+    denom: string,
+    reserve_factor: string,
+    interest_rate_model: any,
+    borrow_index: string,
+    liquidity_index: string,
+    borrow_rate: string,
+    liquidity_rate: string,
+    indexes_last_updated: number,
+    collateral_total_scaled: string,
+    debt_total_scaled: string
+  }>
+}
+
 export const getEstimatedAnnualInterest = (basketPositions: BasketPositionsResponse[], prices: Price[], userDiscountQueries: any[], basketAssets: BasketAsset[]) => {
   var totalExpectedRevenue = 0
   var undiscountedTER = 0

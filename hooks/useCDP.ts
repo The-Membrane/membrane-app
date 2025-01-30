@@ -89,24 +89,24 @@ export const useUserRemptionInfo = () => {
 
 export const useUserPositions = () => {
   const { address } = useWallet()
-  const { userPositionState, setUserPositionState } = useUserPositionState()
+  // const { userPositionState, setUserPositionState } = useUserPositionState()
 
   // console.log((userPositionState && userPositionState[0].positions.length > 0 && userPositionState.length > 0 && userPositionState[0].user !== address), userPositionState[0].positions.length > 0, userPositionState, userPositionState.length > 0, userPositionState[0].user, address)
 
   // Function to determine if we need to fetch from API
-  const shouldFetchUserPositions = useCallback(() => {
-    // Add any conditions here that would require a fresh fetch
-    // For example, if certain required data is missing from userPositionState
-    return !userPositionState || Object.keys(userPositionState).length === 0 || (userPositionState && userPositionState[0].positions.length > 0 && userPositionState[0].user !== address)
-  }, [userPositionState])
+  // const shouldFetchUserPositions = useCallback(() => {
+  //   // Add any conditions here that would require a fresh fetch
+  //   // For example, if certain required data is missing from userPositionState
+  //   return !userPositionState || Object.keys(userPositionState).length === 0 || (userPositionState && userPositionState[0].positions.length > 0 && userPositionState[0].user !== address)
+  // }, [userPositionState])
 
   const result = useQuery({
     queryKey: ['positions', address],
     queryFn: async () => {
       // First check if we can use userPositionState
-      if (!shouldFetchUserPositions()) {
-        return userPositionState
-      }
+      // if (!shouldFetchUserPositions()) {
+      //   return userPositionState
+      // }
 
       if (!address) return
       console.log("requerying basket positions")
@@ -117,9 +117,9 @@ export const useUserPositions = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
-  if (shouldFetchUserPositions() && result.data) {
-    setUserPositionState(result.data)
-  }
+  // if (shouldFetchUserPositions() && result.data) {
+  //   setUserPositionState(result.data)
+  // }
 
   return result
 }

@@ -63,7 +63,7 @@ const ToastContent = ({ message, txHash, explorer }: ToastProps) => {
   const txLink = eval('`' + explorer?.tx_page + '`')
 
   return (
-    <VStack alignItems="flex-start" gap={0}>
+    <VStack alignItems="flex-start" gap={0} paddingTop={"3%"}>
       {message}
       {!!txHash && (
         <Link isExternal href={txLink} style={{ margin: 'unset' }}>

@@ -548,6 +548,16 @@ const MemoizedVaultEntry = memo(VaultEntry);
 const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
 // const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
 
+
+
+function ToastButton({ isLoading, isDisabled, onClick }) {
+  return (
+    <Button isDisabled={isDisabled} isLoading={isLoading} onClick={onClick}>
+      Polish
+    </Button>
+  );
+}
+
 const NeuroGuardCard = () => {
   console.log("NG render")
   const [isExpanded, setIsExpanded] = useState(false)
@@ -580,23 +590,20 @@ const NeuroGuardCard = () => {
     polishIntents?.tx.mutate()
   }, [polishIntents?.tx]);
 
-  const toastContent = useMemo(() =>
-  (
-    {
-      title: 'Execute to Claim Guardian Dust & Redistribute Intents',
-      message: (
-        <Button
-          isDisabled={isDisabled}
-          isLoading={isLoading}
-          paddingTop={"3%"}
-          onClick={onClick}
-        >
-          Polish
-        </Button>
-      ),
-      duration: null
-    }
-  ), [polishIntents, isDisabled, isLoading, onClick]);
+  // const toastContent = useMemo(() =>
+  // (
+  //   {
+  //     title: 'Execute to Claim Guardian Dust & Redistribute Intents',
+  //     message: (
+  //       <ToastButton
+  //         isDisabled={isDisabled}
+  //         isLoading={isLoading}
+  //         onClick={onClick}
+  //       />
+  //     ),
+  //     duration: null
+  //   }
+  // ), [polishIntents, isDisabled, isLoading, onClick]);
 
   //Toast if a msg is ever ready to rock
   useEffect(() => {
@@ -604,10 +611,20 @@ const NeuroGuardCard = () => {
     console.log("isDisabled polish", isDisabled, isLoading)
 
     if (!hasShownToast && !isDisabled && !isLoading) {
-      toaster.message(toastContent);
+      toaster.message({
+        title: 'Execute to Claim Guardian Dust & Redistribute Intents',
+        message: (
+          <ToastButton
+            isDisabled={isDisabled}
+            isLoading={isLoading}
+            onClick={onClick}
+          />
+        ),
+        duration: null
+      });
       setHasShownToast(true);
     }
-  }, [toastContent, isDisabled, isLoading]);
+  }, [isDisabled, isLoading]);
 
 
   const calculatedRBYield = useMemo(() => {

@@ -1,21 +1,11 @@
 import { num } from '@/helpers/num'
 import useWallet from '@/hooks/useWallet'
-import useStakeState from '@/persisted-state/useUserStakeState'
 import { getRewards, getStaked } from '@/services/staking'
 import { useQuery } from '@tanstack/react-query'
-import { useCallback } from 'react'
 
 
 const useStaked = () => {
   const { address } = useWallet()
-  const { stakeState, setStakeState } = useStakeState()
-
-  // Function to determine if we need to fetch from API
-  const shouldFetchStake = useCallback(() => {
-    // Add any conditions here that would require a fresh fetch
-    // For example, if certain required data is missing from stakeState
-    return !stakeState || Object.keys(stakeState).length === 0 || (stakeState && stakeState.staker !== address)
-  }, [stakeState])
 
   return useQuery({
     queryKey: ['staked', address],
@@ -23,11 +13,7 @@ const useStaked = () => {
       if (!address) return null
 
       // Check if we use stakeState or requery
-      const data = !shouldFetchStake() ? stakeState : await getStaked(address)
-
-      if (shouldFetchStake() && data) {
-        setStakeState(data)
-      }
+      const data = await getStaked(address)
 
       const { deposit_list } = data
 

@@ -20,16 +20,12 @@ import { useBasket } from "@/hooks/useCDP"
 
 import EventEmitter from 'events';
 import { getCookie, setCookie } from '@/helpers/cookies'
-import useUserPositionState from '@/persisted-state/useUserPositionState'
 import useAppState from '@/persisted-state/useAppState'
-import useUserIntentState from '@/persisted-state/useUserIntentState'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
-  const { reset } = useUserPositionState()
-  const { reset: resetIntents } = useUserIntentState()
   const { appState } = useAppState()
   const { neuroState } = useNeuroState()
 
@@ -137,9 +133,7 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
     if (cookie == null && appState.setCookie) setCookie("neuroGuard " + basket?.current_position_id, (neuroState?.openSelectedAsset?.sliderValue ?? 0).toString(), 3650)
     onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    reset()
     queryClient.invalidateQueries({ queryKey: ['positions'] })
-    resetIntents()
     queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
   }
 

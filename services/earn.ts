@@ -7,7 +7,26 @@ import { BasketPositionsResponse, Uint128 } from '@/contracts/codegen/positions/
 import { BasketAsset, getAssetRatio, getDebt, getPositions, getRateCost, getTVL } from './cdp'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
-import { IntentResponse } from '@/persisted-state/useUserIntentState'
+
+export type IntentResponse = {
+  user: string,
+  intent: {
+    vault_tokens: string,
+    intents: {
+      user: string,
+      last_conversion_rate: string,
+      purchase_intents: {
+        desired_asset: string,
+        route: any | undefined,
+        yield_percent: string,
+        position_id: number | undefined,
+        slippage: string | undefined
+      }[]
+    },
+    unstake_time: number,
+    fee_to_caller: string
+  }
+}
 
 export const EarnClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()

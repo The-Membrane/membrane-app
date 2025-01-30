@@ -7,13 +7,10 @@ import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketAssets, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
 import { useRpcClient } from "@/hooks/useRpcClient"
 import useBidState from "@/components/Bid/hooks/useBidState"
-import { getCLPositionsForVault } from "@/services/osmosis"
 import { useBalanceByAsset } from "@/hooks/useBalance"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
-import { use, useCallback } from "react"
 import { mainnetAddrs } from "@/config/defaults"
-import useUserIntentState from "@/persisted-state/useUserIntentState"
 import { CollateralInterestResponse } from "@/contracts/codegen/positions/Positions.types"
 
 export const useBoundedConfig = () => {

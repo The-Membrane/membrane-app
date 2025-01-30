@@ -6,7 +6,6 @@ import { useQuery } from '@tanstack/react-query'
 import useMintState from './useMintState'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
-import useUserPositionState from '@/persisted-state/useUserPositionState'
 import useRedemptionState from './useRedemptionState'
 import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
 
@@ -27,7 +26,6 @@ import { shiftDigits } from '@/helpers/math'
 const useUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
     const { redemptionState, setRedemptionState } = useRedemptionState()
     const { mintState } = useMintState()
-    const { reset } = useUserPositionState()
     const { address } = useWallet()
     const { data: basketPositions } = useUserPositions()
 
@@ -105,7 +103,6 @@ const useUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: bo
     const onFnSuccess = () => {
         onSuccess()
         setRedemptionState({ deposit: 0, premium: 0 })
-        reset()
         queryClient.invalidateQueries({ queryKey: ['positions'] })
         queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     }

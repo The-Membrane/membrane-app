@@ -13,6 +13,14 @@ import { HomeTitle } from './HomeTitle'
 // const MemoizedNeuroGuardCard = React.memo(NeuroGuardCard)
 
 const Home = () => {
+  //Remove persisted state, we can get rid of this over time
+  localStorage.removeItem('basketState');
+  localStorage.removeItem('pointsState');
+  localStorage.removeItem('userIntentState');
+  localStorage.removeItem('userPositionState');
+  localStorage.removeItem('stakeState');
+
+
   console.log("Home")
   const { appState, setAppState } = useAppState();
   const [hasShownToast, setHasShownToast] = useState(false);

@@ -6,13 +6,9 @@ import { queryClient } from '@/pages/_app'
 import { useEffect, useMemo, useState } from 'react'
 
 import contracts from '@/config/contracts.json'
-import { useAssetBySymbol } from '@/hooks/useAssets'
 import { shiftDigits } from '@/helpers/math'
-import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
-import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 import useNeuroState from "./useNeuroState"
 import { useBasket } from "@/hooks/useCDP"
@@ -20,13 +16,11 @@ import { useBasket } from "@/hooks/useCDP"
 
 import EventEmitter from 'events';
 import { getCookie, setCookie } from '@/helpers/cookies'
-import useUserPositionState from '@/persisted-state/useUserPositionState'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: string, onSuccess: () => void, run: boolean }) => {
     const { address } = useWallet()
     const { data: basket } = useBasket()
-    const { reset } = useUserPositionState()
     const { neuroState } = useNeuroState()
 
     //Get cookie for the position_id. If cookie exists, we add the deposit to it.
@@ -110,7 +104,6 @@ const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: s
         if (cookiedDepositAmount > 0) setCookie("neuroGuard " + position_id, num(cookiedDepositAmount).plus(neuroState?.depositSelectedAsset?.sliderValue ?? 0).toString(), 3650)
         onSuccess()
         queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-        reset()
         queryClient.invalidateQueries({ queryKey: ['positions'] })
     }
 

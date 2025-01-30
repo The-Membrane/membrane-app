@@ -8,7 +8,6 @@ import contracts from '@/config/contracts.json'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
 import { useUserBoundedIntents } from '@/components/Earn/hooks/useEarnQueries'
-import useUserIntentState from '@/persisted-state/useUserIntentState'
 import { UserIntentData } from './useNeuroClose'
 import { useUserPositions } from '@/hooks/useCDP'
 import useToaster from '@/hooks/useToaster'
@@ -31,7 +30,6 @@ function redistributeYield(intent: UserIntentData, newPurchaseIntents: any[]) {
 const useNeuroIntentPolish = () => {
   const { address } = useWallet()
   const { data: userIntents } = useUserBoundedIntents()
-  const { reset: resetIntents } = useUserIntentState()
   const { data: userPositions } = useUserPositions()
   const toaster = useToaster();
 
@@ -50,10 +48,6 @@ const useNeuroIntentPolish = () => {
 
       if (!address || !userIntents || !userPositions) { console.log("neuro Polish early return", address, userIntents, userPositions); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
-
-      const totalPercent = userIntents[0].intent.intents.purchase_intents
-        .map(intent => intent.yield_percent)
-        .reduce((acc, curr) => acc + Number(curr), 0)
 
       //Filter out the purchase intents that don't existing positions.
       //This is to ensure that the intents are only for existing positions.
@@ -130,7 +124,6 @@ const useNeuroIntentPolish = () => {
 
 
   const onInitialSuccess = () => {
-    resetIntents()
     queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     toaster.dismiss();

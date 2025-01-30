@@ -6,14 +6,11 @@ import { useQuery } from '@tanstack/react-query'
 import useMintState from './useMintState'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
-import useUserPositionState from '@/persisted-state/useUserPositionState'
 import useRedemptionState from './useRedemptionState'
 import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
 
 import contracts from '@/config/contracts.json'
 import { shiftDigits } from '@/helpers/math'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
-import { toUtf8 } from 'cosmwasm'
 //Run down
 //This component will be a card that accepts Mars USDC into redemptions. Following the Modal flow.
 //FAQ
@@ -26,7 +23,6 @@ import { toUtf8 } from 'cosmwasm'
 const useUSDCRedemptionWithdraw = ({ onSuccess, run, max }: { onSuccess: () => void, max: number, run: boolean }) => {
     const { redemptionState, setRedemptionState } = useRedemptionState()
     const { mintState } = useMintState()
-    const { reset } = useUserPositionState()
     const { address } = useWallet()
     const { data: basketPositions } = useUserPositions()
 
@@ -123,7 +119,6 @@ const useUSDCRedemptionWithdraw = ({ onSuccess, run, max }: { onSuccess: () => v
     const onFnSuccess = () => {
         onSuccess()
         setRedemptionState({ deposit: 0, premium: 0 })
-        reset()
         queryClient.invalidateQueries({ queryKey: ['positions'] })
         queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     }

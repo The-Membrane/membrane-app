@@ -2,8 +2,6 @@ import { useQuery } from '@tanstack/react-query'
 import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscount, getBasketAssets, getUserRedemptionInfo } from '@/services/cdp'
 import useWallet from './useWallet'
 import { useCallback } from 'react'
-import useBasketState from '@/persisted-state/useBasketState'
-import useUserPositionState from '@/persisted-state/useUserPositionState'
 import useAssets from './useAssets'
 
 

@@ -1,8 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getAllUserPoints } from '@/services/points'
 import useWallet from './useWallet'
-import usePointsState from '@/persisted-state/usePointsState'
-import { useCallback } from 'react'
 
 export const useAllUserPoints = () => {
   // console.log("run pls")

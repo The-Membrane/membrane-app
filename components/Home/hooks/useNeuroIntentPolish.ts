@@ -32,6 +32,7 @@ const useNeuroIntentPolish = () => {
   const { data: userIntents } = useUserBoundedIntents()
   const { reset: resetIntents } = useUserIntentState()
   const { data: userPositions } = useUserPositions()
+
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
   }

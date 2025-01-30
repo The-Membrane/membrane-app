@@ -570,8 +570,28 @@ const NeuroGuardCard = () => {
   const toaster = useToaster();
 
 
+  const toastContent = useMemo(() =>
+  (
+    {
+      title: 'Execute to Claim Guardian Dust & Redistribute Intents',
+      message: (
+        <TxButton
+          w="100%"
+          isLoading={isLoading}
+          isDisabled={isDisabled}
+          onClick={() => polishIntents?.tx.mutate()}
+          toggleConnectLabel={false}
+          style={{ alignSelf: "center" }}
+        >
+          Sweep
+        </TxButton>
+      ),
+      duration: null
+    }
+  ), [polishIntents]);
+
   //Toast if a msg is ever ready to rock
-  useMemo(() => {
+  useEffect(() => {
 
     const isDisabled = polishIntents?.simulate.isError || !polishIntents?.simulate.data
     const isLoading = polishIntents?.simulate.isLoading || polishIntents?.tx.isPending
@@ -579,27 +599,9 @@ const NeuroGuardCard = () => {
     console.log("isDisabled polish", isDisabled, isLoading)
 
     if (!isDisabled && !isLoading) {
-
-      toaster.message(
-        {
-          title: 'Execute to Claim Guardian Dust & Redistribute Intents',
-          message: (
-            <TxButton
-              w="100%"
-              isLoading={isLoading}
-              isDisabled={isDisabled}
-              onClick={() => polishIntents?.tx.mutate()}
-              toggleConnectLabel={false}
-              style={{ alignSelf: "center" }}
-            >
-              Sweep
-            </TxButton>
-          ),
-          duration: null
-        }
-      );
+      toaster.message(toastContent);
     }
-  }, [polishIntents]);
+  }, [toastContent, polishIntents?.simulate.isError, polishIntents?.simulate.data, polishIntents?.simulate.isLoading, polishIntents?.tx.isPending]);
 
 
   const calculatedRBYield = useMemo(() => {

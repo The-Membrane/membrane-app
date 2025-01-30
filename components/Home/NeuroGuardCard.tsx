@@ -25,6 +25,9 @@ import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
 import useAppState from "../../persisted-state/useAppState"
 import { QueryInterchainAccountRequest } from "osmojs/ibc/applications/interchain_accounts/controller/v1/query"
+import useNeuroIntentPolish from "./hooks/useNeuroIntentPolish"
+import { TxButton } from "../TxButton"
+import useToaster from "@/hooks/useToaster"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -563,7 +566,38 @@ const NeuroGuardCard = () => {
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
   const { data: basketAssets } = useBasketAssets()
+  const { action: polishIntents } = useNeuroIntentPolish()
+  const toaster = useToaster();
 
+
+  //Toast if a msg is ever ready to rock
+  useMemo(() => {
+
+    const isDisabled = polishIntents?.simulate.isError || !polishIntents?.simulate.data
+    const isLoading = polishIntents?.simulate.isLoading || polishIntents?.tx.isPending
+
+    if (!isDisabled && !isLoading) {
+
+      toaster.message(
+        {
+          title: 'Execute to Claim Guardian Dust & Redistribute Intents',
+          message: (
+            <TxButton
+              w="100%"
+              isLoading={isLoading}
+              isDisabled={isDisabled}
+              onClick={() => polishIntents?.tx.mutate()}
+              toggleConnectLabel={false}
+              style={{ alignSelf: "center" }}
+            >
+              Sweep
+            </TxButton>
+          ),
+          duration: null
+        }
+      );
+    }
+  }, [polishIntents]);
 
 
   const calculatedRBYield = useMemo(() => {

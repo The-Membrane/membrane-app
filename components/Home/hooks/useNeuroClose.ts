@@ -51,21 +51,18 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
 
   const intents = newData.intents.purchase_intents;
 
-  console.log("here")
   const positionIndex = intents.findIndex(intent => intent.position_id !== undefined && intent.position_id === positionIdToRemove);
 
   // If position not found, return original data
   if (positionIndex === -1) {
     return data;
   }
-  console.log("here1")
 
   // Get the yield percentage that needs to be redistributed
   const yieldToRedistribute = parseFloat(intents[positionIndex].yield_percent);
 
   // Remove the position
   intents.splice(positionIndex, 1);
-  console.log("here2")
 
   // If there are no remaining intents, return the data
   if (intents.length === 0) {
@@ -75,7 +72,6 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
   // Calculate the additional yield each remaining intent will receive
   const additionalYieldPerIntent = yieldToRedistribute / intents.length;
 
-  console.log("here3")
   // Redistribute the yield
   intents.forEach(intent => {
     const currentYield = parseFloat(intent.yield_percent);
@@ -83,7 +79,6 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
   });
 
   newData.intents.purchase_intents = intents;
-  console.log("here4")
 
   return newData;
 }
@@ -246,17 +241,8 @@ const useNeuroClose = ({ position, onSuccess, ledger, run }: { position: Positio
 
   console.log("neuroClose msgs:", msgs)
 
-  //Pop the last msg
-  const lastMsg = (ledger && msgs.length > 2) ? msgs.pop() : undefined
-  //Sim ledger msgs separately
-  const lastMsgSim = (lastMsg) ? {
-    action: useSimulateAndBroadcast({
-      msgs: [lastMsg],
-      queryKey: ['ledger_3rdmsg_for_neuroClose', ([lastMsg]?.toString() ?? "0")],
-      onSuccess: () => { },
-      enabled: true,
-    })
-  } : undefined
+  //Pop the last msg if ledger
+  if (ledger && msgs.length > 2) msgs.pop()
 
 
   const onInitialSuccess = () => {
@@ -267,7 +253,6 @@ const useNeuroClose = ({ position, onSuccess, ledger, run }: { position: Positio
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     resetIntents()
     queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
-    if (lastMsgSim) lastMsgSim.action.tx.mutate()
   }
 
 

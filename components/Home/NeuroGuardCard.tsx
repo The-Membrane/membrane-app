@@ -577,8 +577,8 @@ const NeuroGuardCard = () => {
       message: (
         <TxButton
           w="100%"
-          isLoading={isLoading}
-          isDisabled={isDisabled}
+          isLoading={false}
+          isDisabled={false}
           onClick={() => polishIntents?.tx.mutate()}
           toggleConnectLabel={false}
           style={{ alignSelf: "center" }}

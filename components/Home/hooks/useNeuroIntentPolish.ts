@@ -11,6 +11,7 @@ import { useUserBoundedIntents } from '@/components/Earn/hooks/useEarnQueries'
 import useUserIntentState from '@/persisted-state/useUserIntentState'
 import { UserIntentData } from './useNeuroClose'
 import { useUserPositions } from '@/hooks/useCDP'
+import useToaster from '@/hooks/useToaster'
 
 function redistributeYield(intent: UserIntentData, newPurchaseIntents: any[]) {
   //Get the number of intents
@@ -32,6 +33,7 @@ const useNeuroIntentPolish = () => {
   const { data: userIntents } = useUserBoundedIntents()
   const { reset: resetIntents } = useUserIntentState()
   const { data: userPositions } = useUserPositions()
+  const toaster = useToaster();
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -131,6 +133,8 @@ const useNeuroIntentPolish = () => {
     resetIntents()
     queryClient.invalidateQueries({ queryKey: ['useUserBoundedIntents'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    toaster.dismiss();
+
   }
 
 

@@ -206,7 +206,7 @@ const NeuroGuardOpenEntry = React.memo(({
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
   // console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
   const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toFixed(1)
-
+  console.log(RBYield)
   // console.log("INFiNITY LOGS", (minAmount - asset?.balance).toFixed(2).toString() === "Infinity", (minAmount - asset?.balance) === Infinity)
 
   return (
@@ -223,7 +223,7 @@ const NeuroGuardOpenEntry = React.memo(({
           {num((asset?.balance ?? 0)).toFixed(2)}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {asset?.default == true ? RBYield : yieldValue}%
+          {asset?.default == true ? num(RBYield).times(100).toFixed(1) : yieldValue}%
         </Text>
         {isOpen && (<NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />)}
         <Button
@@ -931,8 +931,9 @@ const NeuroGuardCard = () => {
         </FAQModal>
       </Stack>
 
-      <RangeBoundVisual />
-
+      <Stack justifyContent={"center"} height={"30%"}>
+        < RangeBoundVisual />
+      </Stack>
 
       {neuroState.assets.length > 0 && neuroState.assets.some(asset =>
         asset && // check if defined

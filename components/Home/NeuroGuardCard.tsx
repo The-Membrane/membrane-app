@@ -623,6 +623,20 @@ const NeuroGuardCard = () => {
         duration: null
       });
       setHasShownToast(true);
+    } else if (hasShownToast && !isDisabled && isLoading) {
+      toaster.dismiss();
+      toaster.message({
+        title: 'Execute to Claim Guardian Dust & Redistribute Intents',
+        message: (
+          <ToastButton
+            isDisabled={isDisabled}
+            isLoading={isLoading}
+            onClick={onClick}
+          />
+        ),
+        duration: null
+      });
+
     }
   }, [isDisabled, isLoading]);
 

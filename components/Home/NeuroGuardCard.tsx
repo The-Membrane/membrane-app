@@ -28,6 +28,7 @@ import { QueryInterchainAccountRequest } from "osmojs/ibc/applications/interchai
 import useNeuroIntentPolish from "./hooks/useNeuroIntentPolish"
 import { TxButton } from "../TxButton"
 import useToaster from "@/hooks/useToaster"
+import RangeBoundVisual from "./RangeBoundVisual"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -222,7 +223,7 @@ const NeuroGuardOpenEntry = React.memo(({
           {num((asset?.balance ?? 0)).toFixed(2)}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {asset?.default == true ? 20.0 : yieldValue}%
+          {asset?.default == true ? RBYield : yieldValue}%
         </Text>
         {isOpen && (<NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />)}
         <Button
@@ -929,6 +930,9 @@ const NeuroGuardCard = () => {
           </Button>
         </FAQModal>
       </Stack>
+
+      <RangeBoundVisual />
+
 
       {neuroState.assets.length > 0 && neuroState.assets.some(asset =>
         asset && // check if defined

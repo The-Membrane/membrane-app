@@ -26,10 +26,10 @@ type Store = {
 }
 
 const initialState: NeuroState = {
-  assets: [{ symbol: "WBTC", label: "WBTC", display: "WBTC", value: "WBTC", default: true, combinUsdValue: 1, maxBorrowLTV: 0.5, balance: 0, logo: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/wbtc.axl.png" }],
+  assets: [{ symbol: "CDT", label: "CDT", display: "CDT", value: "CDT", default: true, combinUsdValue: 1, balance: 0, logo: "/images/cdt.svg" }],
   guardedPositions: [],
   closeInputValue: 0,
-  openSelectedAsset: { symbol: "WBTC", label: "WBTC", display: "WBTC", value: "WBTC", maxBorrowLTV: 0.5 },
+  openSelectedAsset: { symbol: "CDT", label: "CDT", display: "CDT", value: "CDT" },
 }
 
 // @ts-ignore

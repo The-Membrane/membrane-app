@@ -67,7 +67,6 @@ const Home = () => {
     <Stack>
       <HomeTitle />
       <Stack>
-        <RangeBoundVisual />
         <NeuroGuardCard />
       </Stack>
     </Stack>

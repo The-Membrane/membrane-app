@@ -10,14 +10,15 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { useUserBoundedIntents } from '@/components/Earn/hooks/useEarnQueries'
 import useUserIntentState from '@/persisted-state/useUserIntentState'
 import { UserIntentData } from './useNeuroClose'
+import { useUserPositions } from '@/hooks/useCDP'
 
-function redistributeYield(intent: UserIntentData, totalPercent: number) {
+function redistributeYield(intent: UserIntentData, newPurchaseIntents: any[]) {
   //Get the number of intents
-  const intentsNum = intent.intents.purchase_intents.length
+  const intentsNum = newPurchaseIntents.length
   //Get the percent to set per intent
-  const percentToSet = totalPercent / intentsNum
+  const percentToSet = 1 / intentsNum
   //Change the intents to the new percent
-  const updatedIntents = intent.intents.purchase_intents.map(intent => {
+  const updatedIntents = newPurchaseIntents.map(intent => {
     return { ...intent, yield_percent: percentToSet.toString() }
   })
 
@@ -30,6 +31,7 @@ const useNeuroIntentPolish = () => {
   const { address } = useWallet()
   const { data: userIntents } = useUserBoundedIntents()
   const { reset: resetIntents } = useUserIntentState()
+  const { data: userPositions } = useUserPositions()
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
   }
@@ -37,31 +39,37 @@ const useNeuroIntentPolish = () => {
     queryKey: [
       'neuro_intent_polish',
       address,
-      userIntents
+      userIntents,
+      userPositions
     ],
     queryFn: () => {
       //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
 
-      if (!address || !userIntents) { console.log("neuro Polish early return", address, userIntents); return { msgs: [] } }
+      if (!address || !userIntents || !userPositions) { console.log("neuro Polish early return", address, userIntents, userPositions); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       const totalPercent = userIntents[0].intent.intents.purchase_intents
         .map(intent => intent.yield_percent)
         .reduce((acc, curr) => acc + Number(curr), 0)
 
+      //Filter out the purchase intents that don't existing positions.
+      //This is to ensure that the intents are only for existing positions.
+      const newPurchaseIntents = userIntents[0].intent.intents.purchase_intents.filter(intent => {
+        return !intent.position_id || userPositions[0].positions.find(position => position.position_id === (intent.position_id ?? 0).toString())
+      })
 
-
+      console.log("newPurchaseIntents", newPurchaseIntents)
       //1a) Split the yield_percent split from this intent to the remaining intents
       // & set intents to the new split
       //1b) Update intents
       // We only Update if there was more than 1 intent && the percentToClose is 100%
       // , otherwise we let the remainder (1 CDT) compound into whatever the previous intent was
-      if (userIntents && userIntents[0] && totalPercent !== 1) {
+      if (userIntents[0]) {
 
         // console.log("updatedIntent data", updatedIntents)
-        if (userIntents[0].intent.intents.purchase_intents.length > 0) {
+        if (newPurchaseIntents.length > 0) {
           //Update intents
-          const updatedIntents = redistributeYield(userIntents[0].intent, totalPercent)
+          const updatedIntents = redistributeYield(userIntents[0].intent, newPurchaseIntents)
           //Create the msg to update the intents
           const updatedIntentsMsg = {
             typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -103,6 +111,8 @@ const useNeuroIntentPolish = () => {
 
         }
       }
+
+
 
       // console.log("in query guardian msgs:", msgs)
 

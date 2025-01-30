@@ -931,7 +931,7 @@ const NeuroGuardCard = () => {
         </FAQModal>
       </Stack>
 
-      <Stack justifyContent={"center"} height={"30%"}>
+      <Stack alignContent={"center"} flexWrap={"wrap"} height={"600px"}>
         < RangeBoundVisual />
       </Stack>
 

@@ -15,7 +15,7 @@ interface PriceBoxProps {
   range: string;
 }
 
-const PriceBox = React.memo(({
+const PriceBox = ({
   switch: switchState,
   setSwitch,
   isTop = false,
@@ -26,7 +26,7 @@ const PriceBox = React.memo(({
     display="grid"
     w="84%"
     h="22%"
-    marginTop={isTop ? "1%" : undefined}
+    marginTop={isTop ? "11%" : undefined}
     marginBottom={!isTop ? "12%" : undefined}
     bg={colors.rangeBoundBox}
     alignItems="center"
@@ -38,10 +38,10 @@ const PriceBox = React.memo(({
   >
     {switchState
       ? <Text justifySelf="center" width="100">Range: {range}</Text>
-      : <Text justifySelf="center" width="100">TVL: ${tvl}</Text>
+      : <Text justifySelf="center" width="100">{isTop ? "Upper Bound " : "Lower Bound "} TVL: ${tvl}</Text>
     }
   </Flex>
-))
+)
 
 const RangeBoundVisual = () => {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
@@ -59,10 +59,10 @@ const RangeBoundVisual = () => {
   }, [prices])
 
   return (
-    <Card gap={0} width={isMobile ? "100%" : "70%"} borderWidth={3} height={isMobile ? "45vh" : ""}>
+    <Card gap={0} width={isMobile ? "100%" : "70%"} borderWidth={3} height={isMobile ? "45vh" : "100%"}>
       <Stack height="100%">
         <HStack width="100%" height="100%" gap={0}>
-          <Box height="90%" width="90%" pos="absolute">
+          <Box height="100%" width="90%" pos="absolute">
             <Slider
               value={cdtPrice}
               isReadOnly

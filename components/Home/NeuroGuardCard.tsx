@@ -932,7 +932,7 @@ const NeuroGuardCard = () => {
         </FAQModal>
       </Stack>
 
-      <HStack alignContent={"center"} flexWrap={"wrap"} height={"600px"} marginBottom={"5%"}>
+      <HStack alignContent={"center"} flexWrap={"wrap"} height={"600px"} marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
         <RangeBoundInfoCard RBYield={calculatedRBYield} />
       </HStack>

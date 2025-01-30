@@ -73,7 +73,7 @@ const RangeBoundVisual = () => {
               paddingInlineStart="0"
               width="inherit"
               pos="relative"
-              height="90%"
+              height="100%"
             >
               <SliderTrack className="noLeftHand" height="100%" left="0%" h="1.5">
               </SliderTrack>

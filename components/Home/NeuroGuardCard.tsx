@@ -569,24 +569,21 @@ const NeuroGuardCard = () => {
   const { action: polishIntents } = useNeuroIntentPolish()
   const toaster = useToaster();
 
+  // Memoize the toggle handler to prevent recreating on each render
+  const onClick = useCallback(() => {
+    polishIntents?.tx.mutate()
+  }, [polishIntents]);
 
   const toastContent = useMemo(() =>
   (
     {
       title: 'Execute to Claim Guardian Dust & Redistribute Intents',
       message: (
-        <Stack>
-          <TxButton
-            w="100%"
-            isLoading={false}
-            isDisabled={false}
-            onClick={() => polishIntents?.tx.mutate()}
-            toggleConnectLabel={false}
-            style={{ alignSelf: "center" }}
-          >
-            Sweep
-          </TxButton>
-        </Stack>
+        <Button
+          onClick={onClick}
+        >
+          Polish
+        </Button>
       ),
       duration: null
     }

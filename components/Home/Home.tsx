@@ -5,6 +5,7 @@ import useToaster from '@/hooks/useToaster'
 import NeuroGuardCard from './NeuroGuardCard'
 import useAppState from '../../persisted-state/useAppState'
 import { HomeTitle } from './HomeTitle'
+import RangeBoundVisual from './RangeBoundVisual'
 
 
 // Memoize child components
@@ -66,6 +67,7 @@ const Home = () => {
     <Stack>
       <HomeTitle />
       <Stack>
+        <RangeBoundVisual />
         <NeuroGuardCard />
       </Stack>
     </Stack>

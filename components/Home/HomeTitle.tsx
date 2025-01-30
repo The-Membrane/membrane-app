@@ -19,7 +19,7 @@ export const HomeTitle = React.memo(() => {
           >
             A New Age of Empowerment
           </h1>
-          <Button alignSelf="center" width="31%" minWidth="180px"
+          <Button alignSelf="center" width="50%" minWidth="180px"
             onClick={() => setOpen(true)}>
             Add Funds to Osmosis
           </Button>

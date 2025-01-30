@@ -576,6 +576,8 @@ const NeuroGuardCard = () => {
     const isDisabled = polishIntents?.simulate.isError || !polishIntents?.simulate.data
     const isLoading = polishIntents?.simulate.isLoading || polishIntents?.tx.isPending
 
+    console.log("isDisabled polish", isDisabled, isLoading)
+
     if (!isDisabled && !isLoading) {
 
       toaster.message(

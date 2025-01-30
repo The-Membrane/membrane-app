@@ -1,0 +1,24 @@
+import { Text, Stack, Card, ListItem } from "@chakra-ui/react"
+import { colors } from "@/config/defaults"
+import React from "react"
+import { num } from "@/helpers/num"
+
+
+
+const RangeBoundInfoCard = ({ RBYield }: { RBYield: string }) => {
+
+    return (
+        <Card gap={0} width={"25%"} borderWidth={3} height={"45%"}>
+            <Stack height="100%">
+                <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} display="flex" textDecoration={"underline"} color={colors.earnText}>Info Card</Text>
+                <ListItem fontFamily="Inter" fontSize="md">This vault is 2 concentrated liquidity positions in a <a href="https://app.osmosis.zone/pool/1268"> CDT/USDC pool </a>.</ListItem>
+                <ListItem fontFamily="Inter" fontSize="md">The Upper Bound range is 99.3 - 99.</ListItem>
+                <ListItem fontFamily="Inter" fontSize="md">The Lower Bound range is 98.5 - 98.2.</ListItem>
+                <ListItem fontFamily="Inter" fontSize="md">The TVL in these positions gets 80% of protocol revenue.</ListItem>
+                <ListItem fontFamily="Inter" fontSize="md">Current APR: {num(RBYield).times(100).toFixed(1)}</ListItem>
+            </Stack>
+        </Card>
+    )
+}
+
+export default RangeBoundInfoCard

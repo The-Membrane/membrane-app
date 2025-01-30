@@ -29,6 +29,7 @@ import useNeuroIntentPolish from "./hooks/useNeuroIntentPolish"
 import { TxButton } from "../TxButton"
 import useToaster from "@/hooks/useToaster"
 import RangeBoundVisual from "./RangeBoundVisual"
+import RangeBoundInfoCard from "./RangeBoundInfoCard"
 
 // Extracted FAQ component to reduce main component complexity
 const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
@@ -931,9 +932,10 @@ const NeuroGuardCard = () => {
         </FAQModal>
       </Stack>
 
-      <Stack alignContent={"center"} flexWrap={"wrap"} height={"600px"}>
-        < RangeBoundVisual />
-      </Stack>
+      <HStack alignContent={"center"} flexWrap={"wrap"} height={"600px"} marginBottom={"5%"}>
+        <RangeBoundVisual />
+        <RangeBoundInfoCard RBYield={calculatedRBYield} />
+      </HStack>
 
       {neuroState.assets.length > 0 && neuroState.assets.some(asset =>
         asset && // check if defined

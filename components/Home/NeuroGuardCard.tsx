@@ -568,11 +568,17 @@ const NeuroGuardCard = () => {
   const { data: basketAssets } = useBasketAssets()
   const { action: polishIntents } = useNeuroIntentPolish()
   const toaster = useToaster();
+  const [hasShownToast, setHasShownToast] = useState(false);
+
+
+
+  const isDisabled = polishIntents?.simulate.isError || !polishIntents?.simulate.data
+  const isLoading = polishIntents?.simulate.isLoading || polishIntents?.tx.isPending
 
   // Memoize the toggle handler to prevent recreating on each render
   const onClick = useCallback(() => {
     polishIntents?.tx.mutate()
-  }, [polishIntents]);
+  }, [polishIntents?.tx]);
 
   const toastContent = useMemo(() =>
   (
@@ -580,6 +586,9 @@ const NeuroGuardCard = () => {
       title: 'Execute to Claim Guardian Dust & Redistribute Intents',
       message: (
         <Button
+          isDisabled={isDisabled}
+          isLoading={isLoading}
+          paddingTop={"3%"}
           onClick={onClick}
         >
           Polish
@@ -587,20 +596,18 @@ const NeuroGuardCard = () => {
       ),
       duration: null
     }
-  ), [polishIntents]);
+  ), [polishIntents, isDisabled, isLoading, onClick]);
 
   //Toast if a msg is ever ready to rock
   useEffect(() => {
 
-    const isDisabled = polishIntents?.simulate.isError || !polishIntents?.simulate.data
-    const isLoading = polishIntents?.simulate.isLoading || polishIntents?.tx.isPending
-
     console.log("isDisabled polish", isDisabled, isLoading)
 
-    if (!isDisabled && !isLoading) {
+    if (!hasShownToast && !isDisabled && !isLoading) {
       toaster.message(toastContent);
+      setHasShownToast(true);
     }
-  }, [toastContent, polishIntents?.simulate.isError, polishIntents?.simulate.data, polishIntents?.simulate.isLoading, polishIntents?.tx.isPending]);
+  }, [toastContent, isDisabled, isLoading]);
 
 
   const calculatedRBYield = useMemo(() => {

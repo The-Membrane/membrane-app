@@ -570,22 +570,23 @@ const NeuroGuardCard = () => {
   const toaster = useToaster();
 
 
-  // <TxButton
-  //   w="100%"
-  //   isLoading={false}
-  //   isDisabled={false}
-  //   onClick={() => polishIntents?.tx.mutate()}
-  //   toggleConnectLabel={false}
-  //   style={{ alignSelf: "center" }}
-  // >
-  //   Sweep
-  // </TxButton>
-
   const toastContent = useMemo(() =>
   (
     {
       title: 'Execute to Claim Guardian Dust & Redistribute Intents',
-      message: ("sweep"
+      message: (
+        <Stack>
+          <TxButton
+            w="100%"
+            isLoading={false}
+            isDisabled={false}
+            onClick={() => polishIntents?.tx.mutate()}
+            toggleConnectLabel={false}
+            style={{ alignSelf: "center" }}
+          >
+            Sweep
+          </TxButton>
+        </Stack>
       ),
       duration: null
     }

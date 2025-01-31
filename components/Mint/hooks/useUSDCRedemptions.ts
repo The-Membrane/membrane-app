@@ -45,35 +45,27 @@ const useUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: bo
             address,
             positionId,
             redemptionState.deposit,
+            redemptionState.premium,
             run
         ],
         queryFn: async () => {
-            if (!address || positionId == 0 || redemptionState.deposit == 0 || !run) return { msgs: [] }
+            if (!address || positionId == 0 || !run) return { msgs: [] }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
-            //Create deposit into marsUSDC vault msg
-            const funds = [{ amount: shiftDigits(redemptionState?.deposit, 6).toString(), denom: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4" }]
-            // let withdrawMsg = {
-            //     typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-            //     value: MsgExecuteContract.fromPartial({
-            //         sender: address,
-            //         contract: contracts.marsUSDCvault,
-            //         msg: toUtf8(JSON.stringify({
-            //             enter_vault: {}
-            //         })),
-            //         funds: funds
-            //     })
-            // } as MsgExecuteContractEncodeObject
-            // msgs.push(withdrawMsg)
-
             const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
-            //Create deposit msg
-            const deposit_msg = messageComposer.deposit({
-                positionId
-            },
-                funds
-            )
-            msgs.push(deposit_msg)
+
+            if (redemptionState.deposit > 0) {
+                //Set Funds
+                const funds = [{ amount: shiftDigits(redemptionState?.deposit, 6).toString(), denom: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4" }]
+
+                //Create deposit msg
+                const deposit_msg = messageComposer.deposit({
+                    positionId
+                },
+                    funds
+                )
+                msgs.push(deposit_msg)
+            }
 
 
             //Get the position we're working with

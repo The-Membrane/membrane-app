@@ -58,9 +58,9 @@ const RedemptionCard = () => {
                         : `${num(usdcDeposit).toFixed(2)} USDC in wait for a ${userPremium}% arbitrage opportunity.`
                     }
                 </Text>
-                <HStack width={"66%"} marginLeft={"33%"}>
+                <HStack width={"100%"} justifyContent={usdcDeposit === "0" ? "center" : "end"}>
                     <Button
-                        width={usdcDeposit === "0" ? "100%" : "50%"}
+                        width={usdcDeposit === "0" ? "50%" : "33%"}
                         display="flex"
                         padding="0"
                         alignSelf="center"
@@ -76,7 +76,7 @@ const RedemptionCard = () => {
                     {isWithdrawOpen && <RedemptionWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} usdcDeposit={Number(usdcDeposit)} />}
 
                     {usdcDeposit != "0" && <Button
-                        width="50%"
+                        width="33%"
                         display="flex"
                         padding="0"
                         alignSelf="center"

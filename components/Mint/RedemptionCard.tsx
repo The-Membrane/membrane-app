@@ -54,13 +54,13 @@ const RedemptionCard = () => {
             <Stack gap="5" padding="3%">
                 <Text fontSize="18px" fontWeight={"bold"}>
                     {usdcDeposit === "0"
-                        ? "Setup USDC to automatically buy & repay CDT under peg to profit from arbitrage."
-                        : `${num(usdcDeposit).toFixed(2)} USDC in wait for a ${userPremium}% arbitrage opportunity.}`
+                        ? "Setup USDC to auto-buy & repay CDT under peg to profit from arbitrage."
+                        : `${num(usdcDeposit).toFixed(2)} USDC in wait for a ${userPremium}% arbitrage opportunity.`
                     }
                 </Text>
-                <HStack width={"66%"} alignSelf={"right"}>
+                <HStack width={"66%"} marginLeft={"33%"}>
                     <Button
-                        width="50%"
+                        width={usdcDeposit === "0" ? "100%" : "50%"}
                         display="flex"
                         padding="0"
                         alignSelf="center"
@@ -75,7 +75,7 @@ const RedemptionCard = () => {
 
                     {isWithdrawOpen && <RedemptionWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} usdcDeposit={Number(usdcDeposit)} />}
 
-                    <Button
+                    {usdcDeposit != "0" && <Button
                         width="50%"
                         display="flex"
                         padding="0"
@@ -85,7 +85,7 @@ const RedemptionCard = () => {
                         isDisabled={isWithdrawDisabled}
                     >
                         Retreat
-                    </Button>
+                    </Button>}
                 </HStack>
             </Stack>
         </Card>

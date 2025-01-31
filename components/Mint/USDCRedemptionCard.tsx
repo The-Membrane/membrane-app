@@ -6,9 +6,7 @@ import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { useUserPositions, useUserRemptionInfo } from '@/hooks/useCDP'
 import useMintState from './hooks/useMintState'
-import { useDepositTokenConversionforMarsUSDC, useMarsUSDCSupplyAPR } from '../Earn/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
-import { shiftDigits } from '@/helpers/math'
 
 const RedemptionCard = () => {
 

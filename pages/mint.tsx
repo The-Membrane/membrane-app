@@ -7,12 +7,12 @@ import { HStack } from '@chakra-ui/react'
 const MintPage = () => {
   const { isWalletConnected } = useWallet()
 
-  if (!isWalletConnected) return (
-  <HStack alignItems="flex-start">
-    <LockedAccess />
-    {/* <Beaker /> */}
-    {/* <BeakerScale /> */}
-  </HStack>)
+  // if (!isWalletConnected) return (
+  // <HStack alignItems="flex-start">
+  //   <LockedAccess />
+  //   {/* <Beaker /> */}
+  //   {/* <BeakerScale /> */}
+  // </HStack>)
 
   return <Mint />
 }

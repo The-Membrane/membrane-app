@@ -97,7 +97,7 @@ const FAQModal = React.memo(({
       <ModalOverlay />
       <ModalContent maxW="800px">
         <ModalHeader>
-          <Text variant="title">Neuro-Guard FAQ</Text>
+          <Text variant="title">Range Bound Vault FAQ</Text>
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb="5">
@@ -913,9 +913,9 @@ const NeuroGuardCard = () => {
   return (
     <Stack gap={1} marginBottom="3%">
       <Stack alignItems={""}>
-        <Text width="100%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+        {/* <Text width="100%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           <a style={{ fontWeight: "bold", color: colors.rangeBoundBox }}>The Neuro-Guard: &nbsp;</a> Get Paid for Protecting the Peace
-        </Text>
+        </Text> */}
         <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
           <Button
             display="flex"

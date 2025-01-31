@@ -27,7 +27,7 @@ import { useUserPositions } from '@/hooks/useCDP'
 import { colors, MAX_CDP_POSITIONS } from '@/config/defaults'
 import useVaultSummary from './hooks/useVaultSummary'
 import { num } from '@/helpers/num'
-import RedemptionCard from './usdcRedemptionCard'
+import RedemptionCard from './RedemptionCard'
 
 type TabProps = {
   onClick: any

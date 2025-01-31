@@ -52,8 +52,11 @@ const RedemptionCard = () => {
     return (
         <Card minW="363px" gap="12" h="max-content" px="2">
             <Stack gap="5" padding="3%">
-                <Text variant="title" fontSize="24px">
-                    {num(usdcDeposit).toFixed(2)} USDC in wait for a {userPremium}% arbitrage opportunity.
+                <Text fontSize="18px" fontWeight={"bold"}>
+                    {usdcDeposit === "0"
+                        ? "Setup USDC to automatically buy & repay CDT under peg to profit from arbitrage."
+                        : `${num(usdcDeposit).toFixed(2)} USDC in wait for a ${userPremium}% arbitrage opportunity.}`
+                    }
                 </Text>
                 <HStack width={"66%"} alignSelf={"right"}>
                     <Button

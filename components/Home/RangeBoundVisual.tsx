@@ -59,7 +59,7 @@ const RangeBoundVisual = () => {
   }, [prices])
 
   return (
-    <Card gap={0} width={isMobile ? "100%" : "70%"} borderWidth={3} height={isMobile ? "45vh" : "100%"}>
+    <Card gap={0} width={isMobile ? "100%" : "66%"} borderWidth={3} height={isMobile ? "45vh" : "100%"}>
       <Stack height="100%">
         <HStack width="100%" height="100%" gap={0}>
           <Box height="100%" width="90%" pos="absolute">

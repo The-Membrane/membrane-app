@@ -14,8 +14,8 @@ const RangeBoundInfoCard = ({ RBYield }: { RBYield: string }) => {
                 <List spacing={3} styleType="disc" padding="6" paddingTop="0">
                     <ListItem fontFamily="Inter" fontSize="md">Current APR: {num(RBYield).times(100).toFixed(1)}%</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md">This vault is 2 concentrated liquidity positions in Osmosis' <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline" }}> CDT/USDC pool</a></ListItem>
-                    <ListItem fontFamily="Inter" fontSize="md">The Upper Bound range is 99.3 - 99</ListItem>
-                    <ListItem fontFamily="Inter" fontSize="md">The Lower Bound range is 98.5 - 98.2</ListItem>
+                    <ListItem fontFamily="Inter" fontSize="md">The Upper Bound range is $0.993 - $0.99</ListItem>
+                    <ListItem fontFamily="Inter" fontSize="md">The Lower Bound range is $0.985 - $0.982</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md">The TVL in these positions gets 80% of protocol revenue</ListItem>
                 </List>
             </Stack>

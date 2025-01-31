@@ -49,7 +49,7 @@ const useUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: bo
             run
         ],
         queryFn: async () => {
-            if (!address || positionId == 0 || !run) return { msgs: [] }
+            if (!address || positionId == 0 || (redemptionState.deposit == 0 && redemptionState.premium == 0) || !run) return { msgs: [] }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
             const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
@@ -68,22 +68,24 @@ const useUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: bo
             }
 
 
-            //Get the position we're working with
-            const position = basketPositions?.[0]?.positions?.find((pos) => pos.position_id === positionId)
-            //Set restricted collateral assets to any asset that isn't USDC
-            //@ts-ignore
-            const restrictedCollateralAssets = position?.collateral_assets?.filter((asset) => asset.asset.info.native_token.denom !== "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4").map((asset) => asset.asset.info.native_token.denom as string) || [] as string[]
+            if (redemptionState.premium > 0) {
+                //Get the position we're working with
+                const position = basketPositions?.[0]?.positions?.find((pos) => pos.position_id === positionId)
+                //Set restricted collateral assets to any asset that isn't USDC
+                //@ts-ignore
+                const restrictedCollateralAssets = position?.collateral_assets?.filter((asset) => asset.asset.info.native_token.denom !== "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4").map((asset) => asset.asset.info.native_token.denom as string) || [] as string[]
 
-            //Create redemption msg
-            const set_redemption_msg =
-                messageComposer.editRedeemability({
-                    positionIds: [positionId],
-                    maxLoanRepayment: "1",
-                    redeemable: true,
-                    premium: redemptionState?.premium,
-                    restrictedCollateralAssets
-                })
-            msgs.push(set_redemption_msg)
+                //Create redemption msg
+                const set_redemption_msg =
+                    messageComposer.editRedeemability({
+                        positionIds: [positionId],
+                        maxLoanRepayment: "1",
+                        redeemable: true,
+                        premium: redemptionState.premium,
+                        restrictedCollateralAssets
+                    })
+                msgs.push(set_redemption_msg)
+            }
 
             return { msgs }
         },

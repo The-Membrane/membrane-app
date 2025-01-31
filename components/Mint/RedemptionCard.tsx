@@ -73,7 +73,7 @@ const RedemptionCard = () => {
                     {isDepositOpen && <RedemptionDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} usdcAsset={usdcAsset} />}
 
 
-                    {isWithdrawOpen && <RedemptionWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} usdcDeposit={Number(usdcDeposit)} />}
+                    {isWithdrawOpen && <RedemptionWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} usdcDeposit={Number(usdcDeposit)} usdcImage={usdcAsset.logo} />}
 
                     {usdcDeposit != "0" && <Button
                         width="33%"

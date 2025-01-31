@@ -44,7 +44,17 @@ export const RedemptionDepositModal = React.memo(({
         setRedemptionState({
             deposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value
         })
-    }, [redemptionState?.deposit, setRedemptionState])
+    }, [redemptionState.deposit, setRedemptionState])
+
+
+    const onPremiumInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault()
+        const value = Number(e.target.value)
+
+        setRedemptionState({
+            premium: num(value).isGreaterThan(99) ? 99 : value
+        })
+    }, [redemptionState.premium, setRedemptionState])
 
 
 
@@ -62,33 +72,54 @@ export const RedemptionDepositModal = React.memo(({
                 <ModalCloseButton />
                 <ModalBody pb="5">
                     <Stack>
-                        <HStack width="100%" justifyContent="left">
-                            <HStack width="75%">
-                                {usdcAsset.logo ? <Image src={usdcAsset.logo} w="30px" h="30px" /> : null}
-                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {usdcAsset.symbol}
+                        <Stack>
+                            <HStack width="100%" justifyContent="left">
+                                <HStack width="75%">
+                                    {usdcAsset.logo ? <Image src={usdcAsset.logo} w="30px" h="30px" /> : null}
+                                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                        {usdcAsset.symbol}
+                                    </Text>
+                                </HStack>
+                                <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                                    ~${num(redemptionState?.deposit).times(usdcAsset.price ?? 0).toFixed(2)}
                                 </Text>
                             </HStack>
-                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(redemptionState?.deposit).times(usdcAsset.price ?? 0).toFixed(2)}
-                            </Text>
-                        </HStack>
-                        <Input
-                            width={"100%"}
-                            textAlign={"right"}
-                            placeholder="0"
-                            type="number"
-                            variant={"ghost"}
-                            value={redemptionState?.deposit.toFixed(2)}
-                            onChange={onInputChange}
-                        />
-                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                            <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
-                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    max
-                                </Text>
-                            </Button>
-                        </HStack>
+                            <Input
+                                width={"100%"}
+                                textAlign={"right"}
+                                placeholder="0"
+                                type="number"
+                                variant={"ghost"}
+                                value={redemptionState?.deposit.toFixed(2)}
+                                onChange={onInputChange}
+                            />
+                            <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                                <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                                    <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                        max
+                                    </Text>
+                                </Button>
+                            </HStack>
+                        </Stack>
+
+                        <Stack>
+                            <HStack width="100%" justifyContent="left">
+                                <HStack width="75%">
+                                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                        Choose Premium (ex: 1% = 1% profit)
+                                    </Text>
+                                </HStack>
+                            </HStack>
+                            <Input
+                                width={"100%"}
+                                textAlign={"right"}
+                                placeholder="0"
+                                type="number"
+                                variant={"ghost"}
+                                value={redemptionState.premium}
+                                onChange={onPremiumInputChange}
+                            />
+                        </Stack>
                     </Stack>
                 </ModalBody>
                 {(
@@ -103,7 +134,7 @@ export const RedemptionDepositModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(redemptionState?.deposit).isGreaterThan(0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
+                            {parseError((redemptionState.deposit > 0 || redemptionState.premium > 0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
                         </Text>
 
 
@@ -125,11 +156,8 @@ export const RedemptionDepositModal = React.memo(({
 })
 
 export const RedemptionWithdrawModal = React.memo(({
-    isOpen, onClose, children, usdcDeposit
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcDeposit: number }>) => {
-
-
-    const { mintState } = useMintState()
+    isOpen, onClose, children, usdcDeposit, usdcImage
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcDeposit: number, usdcImage: string | undefined }>) => {
 
     const { data: prices } = useOraclePrice()
     const usdcMarketPrice = useMemo(() =>
@@ -178,7 +206,7 @@ export const RedemptionWithdrawModal = React.memo(({
                     <Stack>
                         <HStack width="100%" justifyContent="left">
                             <HStack width="75%">
-                                <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+                                {usdcImage ? <Image src={usdcImage} w="30px" h="30px" /> : null}
                                 <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                     USDC
                                 </Text>

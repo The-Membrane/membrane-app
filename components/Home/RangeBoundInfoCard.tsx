@@ -12,7 +12,7 @@ const RangeBoundInfoCard = ({ RBYield, TVL }: { RBYield: string, TVL: string }) 
             <Stack height="100%">
                 <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Info</Text>
                 <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-                    <ListItem fontFamily="Inter" fontSize="md">TVL: {TVL.toFixed(2)}</ListItem>
+                    <ListItem fontFamily="Inter" fontSize="md">TVL: {num(TVL).toFixed(2)}</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>APR: {num(RBYield).times(100).toFixed(1)}%</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md">This vault is 2 concentrated liquidity positions in Osmosis' <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a></ListItem>
                 </List>

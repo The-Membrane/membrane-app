@@ -7,10 +7,12 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { useUserPositions, useUserRemptionInfo } from '@/hooks/useCDP'
 import useMintState from './hooks/useMintState'
 import { num } from '@/helpers/num'
+import { shiftDigits } from '@/helpers/math'
 
 const RedemptionCard = () => {
 
     const { data: userRedemptionInfo } = useUserRemptionInfo()
+    console.log("userRedemptionInfo", userRedemptionInfo)
     const userPremium = userRedemptionInfo?.premium_infos[0].premium ?? 0
 
 
@@ -55,7 +57,7 @@ const RedemptionCard = () => {
                 <Text fontSize="18px" fontWeight={"bold"}>
                     {usdcDeposit === "0"
                         ? "Setup USDC to auto-buy & repay CDT under peg to profit from arbitrage."
-                        : `${num(usdcDeposit).toFixed(2)} USDC in wait for a ${userPremium}% arbitrage opportunity.`
+                        : `${shiftDigits(usdcDeposit, -6).toFixed(2)} USDC in wait for a ${userPremium}% arbitrage opportunity.`
                     }
                 </Text>
                 <HStack width={"100%"} justifyContent={usdcDeposit === "0" ? "center" : "end"}>

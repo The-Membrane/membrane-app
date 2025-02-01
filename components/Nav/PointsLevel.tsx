@@ -44,6 +44,7 @@ function SoloLeveling() {
         </SliderMark>
       </Slider>
       <TxButton
+        style={{ fontSize: "12px" }}
         fontSize="12px"
         w="100%"
         height="20px"

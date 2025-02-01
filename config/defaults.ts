@@ -43,7 +43,7 @@ export const colors = {
   globalBG: "#091326", //"#212121",
   global: "rgb(229, 222, 223)",
   tabBG: "#4fcabb",
-  rangeBoundBox: "#091326", //"#7990fe",
+  rangeBoundBox: "#7990fe",
   summaryScheme: "rgb(156, 178, 145)",
   noState: "rgb(176, 176, 184)",
   link: "primary.200",

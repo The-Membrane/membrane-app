@@ -124,7 +124,7 @@ export const HomeTitle = React.memo(() => {
           <HStack w={"100%"} justifyContent={"center"}>
             <Text>
               Earn fees and rewards by providing liquidity to the CDT/USDC pool -
-              <a onClick={toggleExpanded} color={colors.rangeBoundBox}> FAQ</a>
+              <a onClick={toggleExpanded} style={{ color: colors.rangeBoundBox }}> FAQ</a>
             </Text>
 
             <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>

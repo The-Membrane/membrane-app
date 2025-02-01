@@ -408,7 +408,7 @@ export class PositionsMsgComposer implements PositionsMsg {
   }: {
     maxLoanRepayment?: Decimal;
     positionIds: Uint128[];
-    premium?: number;
+    premium?: string;
     redeemable?: boolean;
     restrictedCollateralAssets?: string[];
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {

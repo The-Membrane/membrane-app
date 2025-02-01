@@ -100,7 +100,7 @@ export const RedemptionDepositModal = React.memo(({
                             <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                 What price did you sell CDT? Set to 1.00 if you haven't sold any.
                             </Text>
-                            <a href="https://app.osmosis.zone/portfolio" style={{ textAlign: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
+                            <a href="https://app.osmosis.zone/portfolio" style={{ textAlign: "center", justifyContent: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
                                 Go to Osmosis to check swap history -&gt;
                             </a>
                             <Input
@@ -127,7 +127,7 @@ export const RedemptionDepositModal = React.memo(({
                     >
 
 
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        <Text variant="title" fontWeight="500" color={colors.alert} textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
                             {parseError((redemptionState.deposit > 0 || redemptionState.salePrice > 0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
                         </Text>
 

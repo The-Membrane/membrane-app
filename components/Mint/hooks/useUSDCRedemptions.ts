@@ -83,7 +83,7 @@ const useUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: bo
                         positionIds: [positionId],
                         maxLoanRepayment: "1",
                         redeemable: true,
-                        premium: premium,
+                        premium: premium.toString(),
                         restrictedCollateralAssets
                     })
                 msgs.push(set_redemption_msg)

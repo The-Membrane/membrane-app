@@ -486,7 +486,6 @@ const NeuroGuardCard = () => {
   const [hasShownToast, setHasShownToast] = useState(false);
 
 
-
   const isDisabled = polishIntents?.simulate.isError || !polishIntents?.simulate.data
   const isLoading = polishIntents?.simulate.isLoading || polishIntents?.tx.isPending
 
@@ -494,21 +493,6 @@ const NeuroGuardCard = () => {
   const onClick = useCallback(() => {
     polishIntents?.tx.mutate()
   }, [polishIntents?.tx]);
-
-  // const toastContent = useMemo(() =>
-  // (
-  //   {
-  //     title: 'Execute to Claim Guardian Dust & Redistribute Intents',
-  //     message: (
-  //       <ToastButton
-  //         isDisabled={isDisabled}
-  //         isLoading={isLoading}
-  //         onClick={onClick}
-  //       />
-  //     ),
-  //     duration: null
-  //   }
-  // ), [polishIntents, isDisabled, isLoading, onClick]);
 
   //Toast if a msg is ever ready to rock
   useEffect(() => {
@@ -813,7 +797,7 @@ const NeuroGuardCard = () => {
 
       <HStack alignContent={"center"} flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
-        <RangeBoundInfoCard RBYield={calculatedRBYield} />
+        <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={TVL ?? "0"} />
         {/* Add Button in the middle of the remaining space that allows users to swap any stables to CDT */}
       </HStack>
 

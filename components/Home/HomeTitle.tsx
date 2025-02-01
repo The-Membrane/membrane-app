@@ -63,9 +63,9 @@ const FAQModal = React.memo(({
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void }>) => {
 
   return (<>
-    <Button onClick={() => { }} variant="unstyled" fontWeight="normal" mb="3">
+    {/* <Button onClick={() => { }} variant="unstyled" fontWeight="normal" mb="3">
       {children}
-    </Button>
+    </Button> */}
 
     <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
       <ModalOverlay />
@@ -121,10 +121,10 @@ export const HomeTitle = React.memo(() => {
           >
             Provide Liquidity for CDT
           </h1>
-          <HStack w={"100%"}>
+          <HStack w={"100%"} justifyContent={"center"}>
             <Text>
-              Earn fees and rewards by providing liquidity to the CDT/USDC pool.
-              <a onClick={toggleExpanded} color={colors.textHighlight}> FAQ</a>
+              Earn fees and rewards by providing liquidity to the CDT/USDC pool -
+              <a onClick={toggleExpanded} color={colors.rangeBoundBox}> FAQ</a>
             </Text>
 
             <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>

@@ -30,8 +30,9 @@ const PriceBox = ({
     alignItems="center"
     justifyContent="center"
     borderRadius="md"
-    // border={"2px solid"}
-    // borderColor={colors.rangeBoundBorder}
+    borderWidth="2px"  // Set border width explicitly
+    borderStyle="solid"  // Set border style explicitly
+    borderColor={colors.rangeBoundBorder}
     bg={colors.rangeBoundBox}
     fontWeight="bold"
     onMouseEnter={() => setSwitch(true)}

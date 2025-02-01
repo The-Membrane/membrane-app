@@ -71,7 +71,7 @@ const FAQModal = React.memo(({
       <ModalOverlay />
       <ModalContent maxW="800px">
         <ModalHeader>
-          <Text variant="title">Range Bound Vault FAQ</Text>
+          <Text variant="title">NeuroGuard FAQ</Text>
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb="5">

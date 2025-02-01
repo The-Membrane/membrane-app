@@ -77,7 +77,7 @@ const RBLPDepositEntry = React.memo(({
           onClick={() => { toggleOpen() }}
           isDisabled={isDisabled}
         >
-          Enlist
+          Deposit
         </Button>
       </HStack>
     </Card >
@@ -141,7 +141,7 @@ const NeuroGuardOpenEntry = React.memo(({
           isDisabled={isDisabled}
         >
           {/* @ts-ignore */}
-          {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2).toString() === "Infinity" ? "___" : (minAmount - asset?.balance).toFixed(2)} more to Enlist` : "Enlist"}
+          {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2).toString() === "Infinity" ? "___" : (minAmount - asset?.balance).toFixed(2)} more to Deposit` : "Deposit"}
         </Button>
       </HStack>
     </Card >
@@ -238,7 +238,7 @@ const NeuroGuardExistingEntry = React.memo(({
             }}
             isDisabled={isDisabled}
           >
-            Enlist
+            Deposit
           </Button>
           {isDepositOpen && (
             <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
@@ -254,7 +254,7 @@ const NeuroGuardExistingEntry = React.memo(({
             onClick={() => { toggleWithdrawOpen(); setNeuroState({ withdrawSelectedAsset: asset }); }}
             isDisabled={guardedPosition.symbol == "N/A" ? true : false}
           >
-            Quit
+            Withdraw
           </Button>
         </HStack>
       </HStack>
@@ -346,7 +346,7 @@ const RBLPExistingEntry = React.memo(({
             onClick={() => { toggleDepositOpen(); setQuickActionState({ rangeBoundLPwithdrawal: 0 }) }}
             isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
           >
-            Enlist
+            Deposit
           </Button>
 
           {isWithdrawOpen && (<RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtMarketPrice={cdtMarketPrice} rblpDeposit={rblpDeposit} />)}
@@ -359,7 +359,7 @@ const RBLPExistingEntry = React.memo(({
             onClick={() => { toggleWithdrawOpen(); setQuickActionState({ rangeBoundLPdeposit: 0 }) }}
             isDisabled={isDisabled || rblpDeposit === 0}
           >
-            Quit
+            Withdraw
           </Button>
         </HStack>
       </HStack>

@@ -70,7 +70,7 @@ const RedemptionCard = () => {
                         onClick={() => { toggleDepositOpen() }}
                         isDisabled={isDepositDisabled}
                     >
-                        Setup
+                        Set
                     </Button>
                     {isDepositOpen && <RedemptionDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} usdcAsset={usdcAsset} />}
 
@@ -86,7 +86,7 @@ const RedemptionCard = () => {
                         onClick={() => { toggleWithdrawOpen() }}
                         isDisabled={isWithdrawDisabled}
                     >
-                        Retreat
+                        Exit
                     </Button>}
                 </HStack>
             </Stack>

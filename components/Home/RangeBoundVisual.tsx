@@ -32,6 +32,8 @@ const PriceBox = ({
     alignItems="center"
     justifyContent="center"
     borderRadius="md"
+    border={1}
+    borderColor={colors.rangeBoundBorder}
     fontWeight="bold"
     onMouseEnter={() => setSwitch(true)}
     onMouseLeave={() => setSwitch(false)}
@@ -81,7 +83,7 @@ const RangeBoundVisual = () => {
                 left="0"
                 top={`${(1 - (tick.value - 0.98) / (0.995 - 0.98)) * 100}%`}
                 transform="translateY(-50%)"
-                width="100%"
+                // width="100%"
                 display="flex"
                 alignItems="center"
                 gap={2}
@@ -90,16 +92,16 @@ const RangeBoundVisual = () => {
                   as="span"
                   color="white"
                   fontSize="sm"
-                  width="36px"
+                  width="49px"
                   textAlign="right"
                 >
-                  {tick.label}
+                  - {tick.label}
                 </Box>
-                <Box
+                {/* <Box
                   width="8px"
                   height="1px"
                   bg="gray.400"
-                />
+                /> */}
               </Box>
             ))}
           </Box>

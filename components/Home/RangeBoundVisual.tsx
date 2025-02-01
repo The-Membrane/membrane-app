@@ -34,6 +34,7 @@ const PriceBox = ({
     border={"2px solid"}
     borderColor={colors.rangeBoundBorder}
     bg={colors.rangeBoundBox}
+    sx={{ backgroundColor: `${colors.rangeBoundBox} !important` }}  // Force it with !important
     fontWeight="bold"
     onMouseEnter={() => setSwitch(true)}
     onMouseLeave={() => setSwitch(false)}

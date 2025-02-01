@@ -113,8 +113,8 @@ export const HomeTitle = React.memo(() => {
 
   return (
     <Stack gap={5}>
-      <HStack mt="3%" gap="24" justifyContent="center">
-        <Stack gap={0} width="100%">
+      <HStack mt="3%" mb="3%" gap="24" justifyContent="center">
+        <Stack gap={"0.5rem"} width="100%">
 
           <h1
             className={"home-title"}

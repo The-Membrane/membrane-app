@@ -59,7 +59,7 @@ export const colors = {
   walletIcon: "#7990fe",
   emptyLoader: "rgba(250, 129, 253, 0.57)",
   loader: "primary.500",
-  cardBG: "#120A22", //"#383838",
+  cardBG: "#383838",
   inputBorder: "rgb(127, 79, 128)",
   inputBG: "rgb(12, 5, 15)",
   modalBG: "rgb(22, 24, 39)",

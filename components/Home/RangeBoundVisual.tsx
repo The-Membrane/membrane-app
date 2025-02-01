@@ -28,7 +28,7 @@ const PriceBox = ({
     h="22%"
     marginTop={isTop ? "11%" : undefined}
     marginBottom={!isTop ? "12%" : undefined}
-    bg={colors.rangeBoundBox}
+    backgroundColor={colors.rangeBoundBox}
     alignItems="center"
     justifyContent="center"
     borderRadius="md"
@@ -63,8 +63,10 @@ const RangeBoundVisual = () => {
   // Generate tick marks and labels
   const ticks = [
     { value: 0.995, label: '0.995' },
+    { value: 0.993, label: '0.993' },
     { value: 0.990, label: '0.990' },
     { value: 0.985, label: '0.985' },
+    { value: 0.982, label: '0.982' },
     { value: 0.980, label: '0.980' }
   ];
 

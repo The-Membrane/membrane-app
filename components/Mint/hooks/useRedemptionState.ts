@@ -17,7 +17,7 @@ type Store = {
 const initialState: RedemptionState = {
     deposit: 0,
     withdraw: 0,
-    salePrice: 0,
+    salePrice: 1,
 }
 
 // @ts-ignore

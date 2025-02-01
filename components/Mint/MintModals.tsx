@@ -41,14 +41,14 @@ export const RedemptionDepositModal = React.memo(({
     }, [redemptionState.deposit, setRedemptionState])
 
 
-    const onPremiumInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const onSalePriceInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault()
         const value = Number(e.target.value)
 
         setRedemptionState({
-            premium: num(value).isGreaterThan(99) ? 99 : value
+            salePrice: num(value).isGreaterThan(99) ? 99 : value
         })
-    }, [redemptionState.premium, setRedemptionState])
+    }, [redemptionState.salePrice, setRedemptionState])
 
 
 
@@ -59,7 +59,7 @@ export const RedemptionDepositModal = React.memo(({
 
         <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
             <ModalOverlay />
-            <ModalContent maxW="400px">
+            <ModalContent maxW="500px">
                 <ModalHeader>
                     <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
                 </ModalHeader>
@@ -97,24 +97,21 @@ export const RedemptionDepositModal = React.memo(({
                         </Stack>
 
                         <Stack>
-                            <HStack width="100%" justifyContent="left">
-                                <HStack width="75%">
-                                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                        What price did you sell CDT? Set to 1.00 if you haven't sold any.
-                                    </Text>
-                                    <a href="https://app.osmosis.zone/portfolio" style={{ textAlign: "center", fontSize: "8px", letterSpacing: "1px", display: "flex" }}>
-                                        Go to Osmosis to check swap history -&gt;
-                                    </a>
-                                </HStack>
-                            </HStack>
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                What price did you sell CDT? Set to 1.00 if you haven't sold any.
+                            </Text>
+                            <a href="https://app.osmosis.zone/portfolio" style={{ textAlign: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
+                                Go to Osmosis to check swap history -&gt;
+                            </a>
                             <Input
                                 width={"100%"}
                                 textAlign={"right"}
-                                placeholder="0"
+                                placeholder="1.00"
                                 type="number"
                                 variant={"ghost"}
-                                value={redemptionState.premium}
-                                onChange={onPremiumInputChange}
+                                defaultValue={1.00}
+                                value={redemptionState.salePrice}
+                                onChange={onSalePriceInputChange}
                             />
                         </Stack>
                     </Stack>
@@ -131,7 +128,7 @@ export const RedemptionDepositModal = React.memo(({
 
 
                         <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError((redemptionState.deposit > 0 || redemptionState.premium > 0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
+                            {parseError((redemptionState.deposit > 0 || redemptionState.salePrice > 0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
                         </Text>
 
 

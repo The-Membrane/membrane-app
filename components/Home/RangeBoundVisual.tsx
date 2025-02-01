@@ -1,7 +1,6 @@
 import { useOraclePrice } from "@/hooks/useOracle"
-import { Slider, SliderFilledTrack, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card, HStack, useBreakpointValue } from "@chakra-ui/react"
+import { Slider, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card, HStack, useBreakpointValue } from "@chakra-ui/react"
 import { useMemo, useState } from "react"
-import { shiftDigits } from "@/helpers/math"
 import { getCLPositionsForVault } from "@/services/osmosis"
 import { colors } from "@/config/defaults"
 import React from "react"
@@ -32,9 +31,8 @@ const PriceBox = ({
     justifyContent="center"
     borderRadius="md"
     border={"2px solid"}
-    borderColor={colors.rangeBoundBorder}
+    // borderColor={colors.rangeBoundBorder}
     bg={colors.rangeBoundBox}
-    sx={{ backgroundColor: `${colors.rangeBoundBox} !important` }}  // Force it with !important
     fontWeight="bold"
     onMouseEnter={() => setSwitch(true)}
     onMouseLeave={() => setSwitch(false)}

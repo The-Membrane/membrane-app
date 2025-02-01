@@ -70,38 +70,39 @@ const RangeBoundVisual = () => {
   return (
     <Card gap={0} width={isMobile ? "100%" : "66%"} maxWidth="720px" borderWidth={3} height={isMobile ? "45vh" : "100%"}>
       <Stack height="100%">
-        {/* Tick marks container */}
-        <Box position="relative" height="100%" width="40px" mr={2}>
-          {ticks.map((tick) => (
-            <Box
-              key={tick.value}
-              position="absolute"
-              left="0"
-              top={`${(1 - (tick.value - 0.98) / (0.995 - 0.98)) * 100}%`}
-              transform="translateY(-50%)"
-              width="100%"
-              display="flex"
-              alignItems="center"
-              gap={2}
-            >
-              <Box
-                as="span"
-                color="white"
-                fontSize="sm"
-                width="36px"
-                textAlign="right"
-              >
-                {tick.label}
-              </Box>
-              <Box
-                width="8px"
-                height="1px"
-                bg="gray.400"
-              />
-            </Box>
-          ))}
-        </Box>
+
         <HStack width="100%" height="100%" gap={0}>
+          {/* Tick marks container */}
+          <Box position="relative" height="100%" width="40px" mr={2}>
+            {ticks.map((tick) => (
+              <Box
+                key={tick.value}
+                position="absolute"
+                left="0"
+                top={`${(1 - (tick.value - 0.98) / (0.995 - 0.98)) * 100}%`}
+                transform="translateY(-50%)"
+                width="100%"
+                display="flex"
+                alignItems="center"
+                gap={2}
+              >
+                <Box
+                  as="span"
+                  color="white"
+                  fontSize="sm"
+                  width="36px"
+                  textAlign="right"
+                >
+                  {tick.label}
+                </Box>
+                <Box
+                  width="8px"
+                  height="1px"
+                  bg="gray.400"
+                />
+              </Box>
+            ))}
+          </Box>
           <Box height="100%" width="90%" pos="absolute">
             <Slider
               value={cdtPrice}

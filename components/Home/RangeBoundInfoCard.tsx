@@ -8,7 +8,7 @@ import { num } from "@/helpers/num"
 const RangeBoundInfoCard = ({ RBYield }: { RBYield: string }) => {
 
     return (
-        <Card gap={0} width={"32%"} borderWidth={3} height={"69%"} alignSelf="start">
+        <Card gap={0} width={"32%"} borderWidth={3} maxWidth="352px" height={"69%"} alignSelf="start">
             <Stack height="100%">
                 <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Info</Text>
                 <List spacing={3} styleType="disc" padding="6" paddingTop="0">

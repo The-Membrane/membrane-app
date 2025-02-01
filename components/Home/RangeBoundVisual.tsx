@@ -28,12 +28,12 @@ const PriceBox = ({
     h="22%"
     marginTop={isTop ? "11%" : undefined}
     marginBottom={!isTop ? "12%" : undefined}
-    style={{ backgroundColor: colors.rangeBoundBox }}
     alignItems="center"
     justifyContent="center"
     borderRadius="md"
     border={"2px solid"}
     borderColor={colors.rangeBoundBorder}
+    bg={colors.rangeBoundBox}
     fontWeight="bold"
     onMouseEnter={() => setSwitch(true)}
     onMouseLeave={() => setSwitch(false)}

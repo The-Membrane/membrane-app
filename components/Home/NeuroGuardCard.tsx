@@ -813,7 +813,10 @@ const NeuroGuardCard = () => {
 
       <HStack alignContent={"center"} flexWrap={"wrap"} height={"600px"} marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
-        <RangeBoundInfoCard RBYield={calculatedRBYield} />
+        <Stack>
+          <RangeBoundInfoCard RBYield={calculatedRBYield} />
+          {/* Add Button in the middle of the remaining space that allows users to swap any stables to CDT */}
+        </Stack>
       </HStack>
 
       {neuroState.assets.length > 0 && neuroState.assets.some(asset =>

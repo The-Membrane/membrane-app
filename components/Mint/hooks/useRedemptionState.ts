@@ -5,7 +5,7 @@ import { devtools } from 'zustand/middleware'
 type RedemptionState = {
     deposit: number
     withdraw: number
-    premium: number
+    salePrice: number
 }
 
 type Store = {
@@ -17,7 +17,7 @@ type Store = {
 const initialState: RedemptionState = {
     deposit: 0,
     withdraw: 0,
-    premium: 1,
+    salePrice: 0,
 }
 
 // @ts-ignore

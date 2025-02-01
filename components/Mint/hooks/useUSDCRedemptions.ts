@@ -45,11 +45,11 @@ const useUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: bo
             address,
             positionId,
             redemptionState.deposit,
-            redemptionState.premium,
+            redemptionState.salePrice,
             run
         ],
         queryFn: async () => {
-            if (!address || positionId == 0 || (redemptionState.deposit == 0 && redemptionState.premium == 0) || !run) return { msgs: [] }
+            if (!address || positionId == 0 || (redemptionState.deposit == 0 && redemptionState.salePrice == 0) || !run) return { msgs: [] }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
             const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
@@ -68,7 +68,9 @@ const useUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: bo
             }
 
 
-            if (redemptionState.premium > 0) {
+            if (redemptionState.salePrice > 0) {
+                //Set premium, min premium is 1
+                const premium = Math.max(1 - redemptionState.salePrice, 1)
                 //Get the position we're working with
                 const position = basketPositions?.[0]?.positions?.find((pos) => pos.position_id === positionId)
                 //Set restricted collateral assets to any asset that isn't USDC
@@ -81,7 +83,7 @@ const useUSDCRedemptions = ({ onSuccess, run }: { onSuccess: () => void, run: bo
                         positionIds: [positionId],
                         maxLoanRepayment: "1",
                         redeemable: true,
-                        premium: redemptionState.premium,
+                        premium: premium,
                         restrictedCollateralAssets
                     })
                 msgs.push(set_redemption_msg)

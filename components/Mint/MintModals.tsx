@@ -4,17 +4,11 @@ import { TxButton } from "../TxButton"
 import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, Checkbox } from "@chakra-ui/react"
 import { parseError } from "@/helpers/parseError"
 import { colors } from "@/config/defaults"
-import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import useRedemptionState from "./hooks/useRedemptionState"
 import useUSDCRedemptions from "./hooks/useUSDCRedemptions"
 import useUSDCRedemptionWithdraw from "./hooks/useUSDCRedemptionWithdraw"
-import { todo } from "node:test"
 import { useOraclePrice } from "@/hooks/useOracle"
-import { useBalanceByAsset } from "@/hooks/useBalance"
-import { useAssetBySymbol } from "@/hooks/useAssets"
-import { useUserPositions } from "@/hooks/useCDP"
 import { shiftDigits } from "@/helpers/math"
-import useMintState from "./hooks/useMintState"
 
 export const RedemptionDepositModal = React.memo(({
     isOpen, onClose, children, usdcAsset
@@ -106,8 +100,11 @@ export const RedemptionDepositModal = React.memo(({
                             <HStack width="100%" justifyContent="left">
                                 <HStack width="75%">
                                     <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                        Choose Premium (ex: 1% = 1% profit)
+                                        What price did you sell CDT? Set to 1.00 if you haven't sold any.
                                     </Text>
+                                    <a href="https://app.osmosis.zone/portfolio" style={{ textAlign: "center", fontSize: "8px", letterSpacing: "1px", display: "flex" }}>
+                                        Go to Osmosis to check swap history -&gt;
+                                    </a>
                                 </HStack>
                             </HStack>
                             <Input

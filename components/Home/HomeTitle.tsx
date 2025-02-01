@@ -114,31 +114,20 @@ export const HomeTitle = React.memo(() => {
   return (
     <Stack gap={5}>
       <HStack mt="3%" gap="24" justifyContent="center">
-        <Stack gap={5}>
+        <Stack gap={0} width="100%">
 
           <h1
             className={"home-title"}
           >
             Provide Liquidity for CDT
           </h1>
-          <HStack>
+          <HStack w={"100%"}>
             <Text>
               Earn fees and rewards by providing liquidity to the CDT/USDC pool.
+              <a onClick={toggleExpanded} color={colors.textHighlight}> FAQ</a>
             </Text>
 
             <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
-              <Button
-                display="flex"
-                variant="ghost"
-                width="fit-content"
-                padding="0"
-                alignSelf="center"
-                margin="0"
-                onClick={toggleExpanded}
-                color={colors.noState}
-              >
-                Beta - FAQ
-              </Button>
             </FAQModal>
           </HStack>
           {/* <Button alignSelf="center" width="50%" minWidth="180px"

@@ -32,6 +32,7 @@ const PriceBox = ({
     borderRadius="md"
     borderWidth="2px"  // Set border width explicitly
     borderStyle="solid"  // Set border style explicitly
+    padding="5px"
     borderColor={colors.rangeBoundBorder}
     bg={colors.rangeBoundBox}
     fontWeight="bold"

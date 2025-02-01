@@ -40,7 +40,7 @@ export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
 export const USDC_CL_RATIO = 0.115; //11.5% CL
 
 export const colors = {
-  globalBG: "rgb(10, 50, 100)", //"#212121",
+  globalBG: "rgb(6, 30, 70)", //"#212121",
   global: "rgb(229, 222, 223)",
   tabBG: "#4fcabb",
   rangeBoundBox: "#7990fe",
@@ -59,7 +59,7 @@ export const colors = {
   walletIcon: "#7990fe",
   emptyLoader: "rgba(250, 129, 253, 0.57)",
   loader: "primary.500",
-  cardBG: "#675191", //"#383838",
+  cardBG: "rgb(75, 55, 110)", //"#383838",
   inputBorder: "rgb(127, 79, 128)",
   inputBG: "rgb(12, 5, 15)",
   modalBG: "rgb(22, 24, 39)",

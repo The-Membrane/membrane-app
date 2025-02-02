@@ -4,47 +4,13 @@ import React, { useMemo } from "react"
 import { useBasket } from '@/hooks/useCDP'
 import { num, shiftDigits } from '@/helpers/num'
 import { useRBLPCDTBalance } from '../Earn/hooks/useEarnQueries'
-import { useOraclePrice } from '@/hooks/useOracle'
-import { getProjectTVL } from '@/services/cdp'
 import Divider from '../Divider'
 import { Formatter } from '@/helpers/formatter'
 import { TxButton } from '../TxButton'
 import useBoundedManage from '../Home/hooks/useRangeBoundLPManage'
 import useFulfillIntents from '../Home/hooks/useFulfillIntents'
+import { StatsTitle } from '../StatsTitle'
 
-export const Stats = React.memo(({ label, value }) => (
-    <Stack gap="1">
-        <Text variant="title" letterSpacing="unset" textTransform="none"
-            textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize="4xl">
-            {label}
-        </Text>
-        <Text variant="title" letterSpacing="unset"
-            textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)" fontSize="4xl">
-            {value}
-        </Text>
-    </Stack>
-))
-
-// Memoize child components
-const StatsTitle = React.memo(({ basket }: { basket: any }) => {
-    const { data: prices } = useOraclePrice()
-
-    const tvl = useMemo(() =>
-        getProjectTVL({ basket, prices })
-        , [basket, prices])
-
-    const mintedAmount = useMemo(() => {
-        const cdtAmount = basket?.credit_asset?.amount || 0
-        return num(shiftDigits(cdtAmount, -6)).dp(0).toNumber()
-    }, [basket])
-
-    return (
-        <HStack gap={16} justifyContent={"center"}>
-            <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
-            <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
-        </HStack>
-    )
-})
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const { action: manage } = useBoundedManage()
     const { action: fulfill } = useFulfillIntents(true)
@@ -103,7 +69,7 @@ const Dashboard = () => {
     // Memoize the entire content to prevent unnecessary re-renders
     return (
         <Stack>
-            <StatsTitle basket={basket} />
+            <StatsTitle />
             <Divider mx="0" mb="5" />
             <ManagementCard basket={basket} />
         </Stack>

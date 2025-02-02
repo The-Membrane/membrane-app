@@ -3,13 +3,10 @@ import { colors } from "@/config/defaults"
 import React from "react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
-import { useCDTDailyVolume } from "@/hooks/useNumia"
 
 
 
 const RangeBoundInfoCard = ({ RBYield, TVL }: { RBYield: string, TVL: string }) => {
-    const { data: log } = useCDTDailyVolume()
-    console.log("numia info log", log)
 
     return (
         <Card gap={0} width={"32%"} borderWidth={3} maxWidth="352px" height={"40%"} alignSelf="start" paddingTop={"4"}>

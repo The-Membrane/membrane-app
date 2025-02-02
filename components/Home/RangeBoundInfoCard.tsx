@@ -3,10 +3,12 @@ import { colors } from "@/config/defaults"
 import React from "react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
+import { useCDTDailyVolume } from "@/hooks/useNumia"
 
 
 
 const RangeBoundInfoCard = ({ RBYield, TVL }: { RBYield: string, TVL: string }) => {
+    useCDTDailyVolume()
 
     return (
         <Card gap={0} width={"32%"} borderWidth={3} maxWidth="352px" height={"40%"} alignSelf="start" paddingTop={"4"}>
@@ -15,8 +17,9 @@ const RangeBoundInfoCard = ({ RBYield, TVL }: { RBYield: string, TVL: string }) 
                 <List spacing={3} styleType="disc" padding="6" paddingTop="0">
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>TVL: {shiftDigits(TVL, -6).toFixed(2)}</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>APR: {num(RBYield).times(100).toFixed(1)}%</ListItem>
-                    <ListItem fontFamily="Inter" fontSize="md">This vault is 2 concentrated liquidity positions in Osmosis' <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a></ListItem>
                 </List>
+                <Text fontFamily="Inter" fontSize="12px">see underlying Osmosis' <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a></Text>
+
             </Stack>
         </Card>
     )

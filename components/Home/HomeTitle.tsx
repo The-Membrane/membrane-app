@@ -2,6 +2,7 @@ import { Button, HStack, List, ListItem, Modal, ModalBody, ModalCloseButton, Mod
 import React, { PropsWithChildren, useCallback, useMemo, useState } from 'react'
 import Divider from '../Divider'
 import { colors } from '@/config/defaults'
+import { StatsTitle } from '../StatsTitle'
 // import OnboardModal from './LeapOnboarding'
 
 
@@ -115,7 +116,7 @@ export const HomeTitle = React.memo(() => {
     <Stack gap={5}>
       <HStack mt="3%" mb="3%" gap="24" justifyContent="center">
         <Stack gap={"0.5rem"} width="100%">
-
+          <StatsTitle />
           <h1
             className={"home-title"}
           >

@@ -76,10 +76,13 @@ export const useCreditRate = () => {
 }
 
 export const useUserRemptionInfo = () => {
+  const { address } = useWallet()
+
   return useQuery({
-    queryKey: ['user_redemption_info'],
+    queryKey: ['user_redemption_info', address],
     queryFn: async () => {
-      return getUserRedemptionInfo()
+      if (!address) return
+      return getUserRedemptionInfo(address)
     },
     staleTime: 1000 * 60 * 5,
   })

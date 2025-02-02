@@ -29,7 +29,8 @@ export const StatsTitle = React.memo(() => {
     const { data: data } = useCDTDailyVolume()
     // console.log("assetData", assetData, assetData?.volume_24h)
     const fixedArray = Array.isArray(data) ? data : Object.values(data ?? {});
-    console.log("fixedArray", fixedArray, fixedArray[0]?.volume_24h)
+    // console.log("fixedArray", fixedArray, fixedArray[0]?.volume_24h)
+    const volume = fixedArray[0]?.volume_24h ?? 0
 
 
     const { data: prices } = useOraclePrice()
@@ -47,7 +48,7 @@ export const StatsTitle = React.memo(() => {
         <HStack gap={16} justifyContent={"center"}>
             <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
             <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
-            <Stats label="24h Volume" value={Formatter.currency(0, 0)} />
+            <Stats label="24h Volume" value={Formatter.currency(volume, 0)} />
         </HStack>
     )
 })

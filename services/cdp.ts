@@ -33,9 +33,7 @@ export const getUserRedemptionInfo = async () => {
   const { address } = useWallet()
   const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.cdp, {
-    get_basket_redeemability: {
-      position_owner: address
-    }
+    get_basket_redeemability: {}
   }) as Promise<RedeemabilityResponse>
 }
 

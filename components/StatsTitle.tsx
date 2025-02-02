@@ -29,7 +29,7 @@ export const StatsTitle = React.memo(() => {
     const { data: data } = useCDTDailyVolume()
     // console.log("assetData", assetData, assetData?.volume_24h)
     const fixedArray = Array.isArray(data) ? data : Object.values(data ?? {});
-    console.log("fixedArray", fixedArray)
+    console.log("fixedArray", fixedArray, fixedArray[0]?.volume_24h)
 
 
     const { data: prices } = useOraclePrice()

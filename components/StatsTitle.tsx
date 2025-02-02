@@ -26,8 +26,12 @@ export const Stats = React.memo(({ label, value }) => (
 export const StatsTitle = React.memo(() => {
 
     const { data: basket } = useBasket()
-    const { data: assetData } = useCDTDailyVolume()
-    console.log("assetData", assetData, assetData?.volume_24h)
+    const { data: data } = useCDTDailyVolume()
+    // console.log("assetData", assetData, assetData?.volume_24h)
+    const fixedArray = Array.isArray(data) ? data : Object.values(data ?? {});
+    console.log("fixedArray", fixedArray)
+
+
     const { data: prices } = useOraclePrice()
 
     const tvl = useMemo(() =>

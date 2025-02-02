@@ -347,7 +347,7 @@ export const simpleBoundedAPRCalc = (basket: any, interest: CollateralInterestRe
 
     const apr = num(estimatedRevenue)
         .times(0.80)
-        .dividedBy(vaultTVL)
+        .dividedBy(shiftDigits(vaultTVL, 6))
         .toString()
 
     return apr

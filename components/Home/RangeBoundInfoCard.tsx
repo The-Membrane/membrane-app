@@ -16,7 +16,7 @@ const RangeBoundInfoCard = ({ RBYield, TVL }: { RBYield: string, TVL: string }) 
             <Stack height="100%">
                 <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Info</Text>
                 <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-                    <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>TVL: $ß{shiftDigits(TVL, -6).toFixed(2)}</ListItem>
+                    <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>TVL: ${num(TVL).toFixed(2)}</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>APR: {num(RBYield).times(100).toFixed(1)}%</ListItem>
                 </List>
                 <Text alignSelf={"center"} marginTop={"auto"} fontFamily="Inter" fontSize="12px">see underlying Osmosis' <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a></Text>

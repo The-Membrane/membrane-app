@@ -34,7 +34,7 @@ export const getUserRedemptionInfo = async () => {
   const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.cdp, {
     get_basket_redeemability: {}
-  }) as Promise<RedeemabilityResponse>
+  }) as Promise<any>
 }
 
 const getAssetInterestRate = (

@@ -7,7 +7,9 @@ export const useCDTDailyVolume = () => {
             const response = await fetch('/api/proxy'); // Calls your Next.js API route
             const data = await response.json();
             console.log("proxy log", data);
-            return data;
+            return data as {
+                volume_24h: number;
+            };
         },
         staleTime: 1000 * 60 * 5,
     })

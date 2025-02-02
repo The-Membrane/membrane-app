@@ -34,7 +34,7 @@ export const getUserRedemptionInfo = async (address: string) => {
   console.log("CosmWasm Client:", cosmWasmClient);
 
   const response =
-    cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
+    cosmWasmClient.queryContractSmart(contracts.cdp, {
       get_basket_redeemability: {
         position_owner: address
       }

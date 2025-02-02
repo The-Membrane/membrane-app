@@ -5,7 +5,9 @@ export const useCDTDailyVolume = () => {
     return useQuery({
         queryKey: ['cdt_daily_volume'],
         queryFn: async () => {
-            return getCDTDailyVolume()
+            const response = await fetch("/api/proxy");
+            const data = await response.json();
+            return data;
         },
         staleTime: 1000 * 60 * 5,
     })

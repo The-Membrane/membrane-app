@@ -26,6 +26,8 @@ const aminoConverters = {
   ...osmosisAminoConverters,
 }
 
+export const NUMIA_API_KEY = "sk_040b489c36a845d08de6536dcd81607a";
+
 export const registry = new Registry(protoRegistry)
 export const aminoTypes = new AminoTypes(aminoConverters)
 

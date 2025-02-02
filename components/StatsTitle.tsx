@@ -28,6 +28,7 @@ export const StatsTitle = React.memo(() => {
     const { data: basket } = useBasket()
     const { data: assetData } = useCDTDailyVolume()
     console.log("assetData", assetData)
+    const volume = assetData?.volume_24h || 0
     const { data: prices } = useOraclePrice()
 
     const tvl = useMemo(() =>
@@ -43,7 +44,7 @@ export const StatsTitle = React.memo(() => {
         <HStack gap={16} justifyContent={"center"}>
             <Stats label="TVL" value={Formatter.currency(tvl, 0)} />
             <Stats label="Total Minted" value={`${Formatter.tvl(mintedAmount)} CDT`} />
-            <Stats label="24h Volume" value={Formatter.currency(assetData.volume_24h || 0, 0)} />
+            <Stats label="24h Volume" value={Formatter.currency(volume, 0)} />
         </HStack>
     )
 })

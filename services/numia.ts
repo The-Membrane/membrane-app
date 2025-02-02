@@ -1,8 +1,7 @@
-import { NUMIA_API_KEY } from "@/config/defaults";
 
 const myHeaders = new Headers();
 myHeaders.append("Accept", "application/json");
-myHeaders.append("Authorization", NUMIA_API_KEY);
+myHeaders.append("Authorization", "NUMIA_API_KEY");
 
 
 const requestOptions: RequestInit = {

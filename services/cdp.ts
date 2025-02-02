@@ -5,6 +5,7 @@ import {
   Basket,
   BasketPositionsResponse,
   CollateralInterestResponse,
+  RedeemabilityResponse,
 } from '@/contracts/codegen/positions/Positions.types'
 import { Asset, getAssetByDenom, getChainAssets } from '@/helpers/chain'
 import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
@@ -30,10 +31,12 @@ export const getBasket = async () => {
 
 export const getUserRedemptionInfo = async () => {
   const { address } = useWallet()
-  const client = await cdpClient()
-  return client.getBasketRedeemability({
-    positionOwner: address
-  })
+  const cosmWasmClient = await getCosmWasmClient()
+  return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
+    get_basket_redeemability: {
+      position_owner: address
+    }
+  }) as Promise<RedeemabilityResponse>
 }
 
 const getAssetInterestRate = (

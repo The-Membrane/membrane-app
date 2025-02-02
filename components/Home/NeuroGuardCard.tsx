@@ -30,7 +30,6 @@ import { TxButton } from "../TxButton"
 import useToaster from "@/hooks/useToaster"
 import RangeBoundVisual from "./RangeBoundVisual"
 import RangeBoundInfoCard from "./RangeBoundInfoCard"
-import { getCLPositionsForVault } from "@/services/osmosis"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -472,8 +471,7 @@ const NeuroGuardCard = () => {
   // console.log("basketPositions", basketPositions)
   const { data: basket } = useBasket()
   // console.log("basketPositions", basketPositions)
-  const { data: positions } = getCLPositionsForVault()
-  const TVL = positions?.positionsTVL.ceilingTVL.plus(positions?.positionsTVL.floorTVL).toNumber() ?? 0
+  const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()
   const { neuroState, setNeuroState } = useNeuroState()
   // useEstimatedAnnualInterest(false)

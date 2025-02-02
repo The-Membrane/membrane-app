@@ -29,12 +29,13 @@ export const getBasket = async () => {
   return client.getBasket()
 }
 
-export const getUserRedemptionInfo = async () => {
-  const { address } = useWallet()
+export const getUserRedemptionInfo = async (address: string) => {
   const cosmWasmClient = await getCosmWasmClient()
-  return cosmWasmClient.queryContractSmart(contracts.cdp, {
-    get_basket_redeemability: {}
-  }) as Promise<any>
+  return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
+    get_basket_redeemability: {
+      position_owner: address
+    }
+  }) as Promise<RedeemabilityResponse>
 }
 
 const getAssetInterestRate = (

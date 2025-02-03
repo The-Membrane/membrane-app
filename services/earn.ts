@@ -8,6 +8,14 @@ import { BasketAsset, getAssetRatio, getDebt, getPositions, getRateCost, getTVL 
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 
+export type PurchaseIntent = {
+  desired_asset: string,
+  route: any | undefined,
+  yield_percent: string,
+  position_id: number | undefined,
+  slippage: string | undefined
+}
+
 export type IntentResponse = {
   user: string,
   intent: {
@@ -15,13 +23,7 @@ export type IntentResponse = {
     intents: {
       user: string,
       last_conversion_rate: string,
-      purchase_intents: {
-        desired_asset: string,
-        route: any | undefined,
-        yield_percent: string,
-        position_id: number | undefined,
-        slippage: string | undefined
-      }[]
+      purchase_intents: PurchaseIntent[]
     },
     unstake_time: number,
     fee_to_caller: string

@@ -12,9 +12,10 @@ import { num } from '@/helpers/num'
 
 
 import EventEmitter from 'events';
+import { PurchaseIntent } from '@/services/earn'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
-const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: string[] }) => {
+const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }) => {
     const { address } = useWallet()
     //Get users' intents
     const { data: intents } = useBoundedIntents()
@@ -38,7 +39,7 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: string[] }
                 //we cap msg length in order to allow ledgers to sign the transaction.
                 //We skipIDs that would cause errors
                 if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate)
-                    && !intent.intent.intents.purchase_intents.some((intent: any) => skipIDs.includes(intent.id))
+                    && !intent.intent.intents.purchase_intents.some((intent: PurchaseIntent) => skipIDs.includes(intent.position_id ?? 0))
                     && intent.intent.intents.purchase_intents.length > 0 && msgs.length < 2) {
                     msgs.push({
                         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",

@@ -12,7 +12,7 @@ import useFulfillIntents from '../Home/hooks/useFulfillIntents'
 import { StatsTitle } from '../StatsTitle'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
-    const [idSkips, setSkips] = useState([] as string[])
+    const [idSkips, setSkips] = useState([] as number[])
 
     const { action: manage } = useBoundedManage()
     const { action: fulfill } = useFulfillIntents({ run: true, skipIDs: idSkips })
@@ -29,9 +29,9 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
         if (fulfill?.simulate.isError) {
             //Find the position ID string in the error, it'll look like Position doesn't exist: 1
             const positionID = fulfill?.simulate.error?.message?.match(/Position doesn't exist: (\d+)/)?.[1];
-            if (positionID && !idSkips.includes(positionID)) {
+            if (positionID && !idSkips.includes(Number(positionID))) {
                 // idSkips.push(positionID)
-                setSkips([...idSkips, positionID])
+                setSkips([...idSkips, Number(positionID)])
             }
         }
         return fulfill?.simulate.isError || !fulfill?.simulate.data

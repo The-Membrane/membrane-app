@@ -11,7 +11,7 @@ import { useBasket } from '@/hooks/useCDP'
 
 export const Stats = React.memo(({ label, value }) => (
     <Stack gap="1">
-        <Text variant="title" letterSpacing="unset" textTransform="none"
+        <Text variant="title" fontSize="15px" letterSpacing="unset" textTransform="none"
         >
             {label}
         </Text>

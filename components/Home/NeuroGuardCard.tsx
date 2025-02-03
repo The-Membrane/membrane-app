@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent, memo } from "react"
+import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent, memo, useRef } from "react"
 import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input } from "@chakra-ui/react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
@@ -30,6 +30,7 @@ import { TxButton } from "../TxButton"
 import useToaster from "@/hooks/useToaster"
 import RangeBoundVisual from "./RangeBoundVisual"
 import RangeBoundInfoCard from "./RangeBoundInfoCard"
+import { FaArrowDown } from "react-icons/fa6"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -708,7 +709,7 @@ const NeuroGuardCard = () => {
   // Separate complex sections into components
   const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[] }) => {
     return (
-      <Stack>
+      <Stack ref={sectionRef}>
         <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           Your Wallet
         </Text>
@@ -792,12 +793,23 @@ const NeuroGuardCard = () => {
   });
 
 
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  const scrollToSection = () => {
+    sectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <Stack gap={1} marginBottom="3%">
 
       <HStack alignContent={"center"} flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
-        <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={TVL ?? "0"} />
+        <Stack>
+          <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={TVL ?? "0"} />
+          <Button onClick={scrollToSection} className="flex items-center gap-2">
+            Go to Yield <FaArrowDown />
+          </Button>
+        </Stack>
         {/* Add Button in the middle of the remaining space that allows users to swap any stables to CDT */}
       </HStack>
 

@@ -804,12 +804,7 @@ const NeuroGuardCard = () => {
 
       <HStack alignContent={"center"} flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
-        <Stack>
-          <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={TVL ?? "0"} />
-          <Button onClick={scrollToSection} className="flex items-center gap-2">
-            Go to Yield <FaArrowDown />
-          </Button>
-        </Stack>
+        <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={TVL ?? "0"} scrollFn={scrollToSection} />
         {/* Add Button in the middle of the remaining space that allows users to swap any stables to CDT */}
       </HStack>
 

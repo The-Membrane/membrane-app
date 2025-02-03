@@ -1,13 +1,14 @@
-import { Text, Stack, Card, ListItem, List } from "@chakra-ui/react"
+import { Text, Stack, Card, ListItem, List, Button } from "@chakra-ui/react"
 import { colors } from "@/config/defaults"
 import React from "react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
 import { useCDTDailyVolume } from "@/hooks/useNumia"
+import { FaArrowDown } from "react-icons/fa6"
 
 
 
-const RangeBoundInfoCard = ({ RBYield, TVL }: { RBYield: string, TVL: string }) => {
+const RangeBoundInfoCard = ({ RBYield, TVL, scrollFn }: { RBYield: string, TVL: string, scrollFn: () => void }) => {
 
     const { data: data } = useCDTDailyVolume()
     // console.log("assetData", assetData, assetData?.volume_24h)
@@ -24,6 +25,10 @@ const RangeBoundInfoCard = ({ RBYield, TVL }: { RBYield: string, TVL: string }) 
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>APR: {num(RBYield).times(100).toFixed(1)}%</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>7d Peg Change: {num(priceDelta).toFixed(3)}%</ListItem>
                 </List>
+
+                <Button onClick={scrollFn} className="flex items-center gap-2" mt={"3%"}>
+                    Go to Yield <FaArrowDown />
+                </Button>
                 <Text alignSelf={"center"} marginTop={"auto"} fontFamily="Inter" fontSize="12px">see underlying Osmosis <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a></Text>
             </Stack>
         </Card>

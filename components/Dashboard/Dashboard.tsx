@@ -29,7 +29,7 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
         if (fulfill?.simulate.isError) {
             //Find the position ID string in the error, it'll look like Position doesn't exist: 1
             const positionID = fulfill?.simulate.error?.message?.match(/Position doesn't exist: (\d+)/)?.[1];
-            if (positionID) {
+            if (positionID && !idSkips.includes(positionID)) {
                 // idSkips.push(positionID)
                 setSkips([...idSkips, positionID])
             }

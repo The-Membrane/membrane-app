@@ -71,6 +71,7 @@ const RBLPDepositEntry = React.memo(({
         {isOpen && (<RBLPDepositModal isOpen={isOpen} onClose={toggleOpen} cdtAsset={asset} />)}
         <Button
           width="25%"
+          minWidth={"262px"}
           display="flex"
           padding="0"
           alignSelf="center"
@@ -134,6 +135,7 @@ const NeuroGuardOpenEntry = React.memo(({
         {isOpen && (<NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />)}
         <Button
           width="25%"
+          minWidth={"262px"}
           display="flex"
           padding="0"
           alignSelf="center"

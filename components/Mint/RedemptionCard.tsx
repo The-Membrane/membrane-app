@@ -13,7 +13,7 @@ const RedemptionCard = () => {
 
     const { data: userRedemptionInfo } = useUserRemptionInfo()
     console.log("userRedemptionInfo", userRedemptionInfo)
-    const userPremium = userRedemptionInfo?.premium_infos[0].premium ?? 0
+    const userPremium = userRedemptionInfo?.premium_infos[0]?.premium ?? 0
 
 
     //////DEPOSIT STATE STUFF/////

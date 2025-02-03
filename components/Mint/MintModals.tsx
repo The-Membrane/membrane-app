@@ -100,7 +100,7 @@ export const RedemptionDepositModal = React.memo(({
                             <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                 What price did you sell CDT? Set to 1.00 if you haven't sold any.
                             </Text>
-                            <a href="https://app.osmosis.zone/portfolio" style={{ textAlign: "center", justifyContent: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
+                            <a href="https://app.osmosis.zone/transactions" style={{ textAlign: "center", justifyContent: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
                                 Go to Osmosis to check swap history -&gt;
                             </a>
                             <Input

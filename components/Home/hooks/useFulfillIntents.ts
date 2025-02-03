@@ -34,6 +34,7 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: string[] }
             //Parse user intents, if any last_conversion_rates are above the current rate, add a fill_intent msg
             intents.forEach((intent: any) => {
                 console.log("intent logs", intent, intent.intent.intents.last_conversion_rate, currentConversionRate)
+                console.log("skipIDs", skipIDs)
                 //we cap msg length in order to allow ledgers to sign the transaction.
                 //We skipIDs that would cause errors
                 if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate)

@@ -18,7 +18,7 @@ const RangeBoundInfoCard = ({ RBYield, TVL, scrollFn }: { RBYield: string, TVL: 
 
     return (
         <Card gap={0} width={"32%"} borderWidth={3} maxWidth="352px" height={"40%"} alignSelf="start" paddingTop={"4"}>
-            <Stack height="100%">
+            <Stack height="100%" gap={0}>
                 <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Info</Text>
                 <List spacing={3} styleType="disc" padding="6" paddingTop="0">
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>TVL: ${shiftDigits(TVL, -6).toFixed(2)}</ListItem>
@@ -26,7 +26,7 @@ const RangeBoundInfoCard = ({ RBYield, TVL, scrollFn }: { RBYield: string, TVL: 
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>7d Peg Change: {num(priceDelta).toFixed(3)}%</ListItem>
                 </List>
 
-                <Button onClick={scrollFn} className="flex items-center gap-2" mt={"3%"}>
+                <Button onClick={scrollFn} className="flex items-center gap-2" mb={"2%"}>
                     Go to Yield <FaArrowDown />
                 </Button>
                 <Text alignSelf={"center"} marginTop={"auto"} fontFamily="Inter" fontSize="12px">see underlying Osmosis <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a></Text>

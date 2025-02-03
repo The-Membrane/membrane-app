@@ -4,7 +4,6 @@ import React from "react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
 import { useCDTDailyVolume } from "@/hooks/useNumia"
-import { FaArrowDown } from "react-icons/fa6"
 
 
 
@@ -23,11 +22,11 @@ const RangeBoundInfoCard = ({ RBYield, TVL, scrollFn }: { RBYield: string, TVL: 
                 <List spacing={3} styleType="disc" padding="6" paddingTop="0">
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>TVL: ${shiftDigits(TVL, -6).toFixed(2)}</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>APR: {num(RBYield).times(100).toFixed(1)}%</ListItem>
-                    <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>7d Peg Change: {num(priceDelta).toFixed(3)}%</ListItem>
+                    <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>7d Peg Change: {num(priceDelta).absoluteValue().toFixed(3)}%</ListItem>
                 </List>
 
                 <Button onClick={scrollFn} className="flex items-center gap-2" mb={"2%"}>
-                    Go to Yield <FaArrowDown />
+                    Go to Yield
                 </Button>
                 <Text alignSelf={"center"} marginTop={"auto"} fontFamily="Inter" fontSize="12px">see underlying Osmosis <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a></Text>
             </Stack>

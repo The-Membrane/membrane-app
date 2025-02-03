@@ -14,7 +14,7 @@ import { num } from '@/helpers/num'
 import EventEmitter from 'events';
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
-const useFulfillIntents = (run: boolean) => {
+const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: string[] }) => {
     const { address } = useWallet()
     //Get users' intents
     const { data: intents } = useBoundedIntents()
@@ -25,7 +25,7 @@ const useFulfillIntents = (run: boolean) => {
         msgs: MsgExecuteContractEncodeObject[] | undefined
     }
     const { data: queryData } = useQuery<QueryData>({
-        queryKey: ['fillIntents_msg_creator', intents, currentConversionRate, run],
+        queryKey: ['fillIntents_msg_creator', intents, currentConversionRate, run, skipIDs],
         queryFn: async () => {
             if (!intents || !currentConversionRate || !run) { console.log("fulfill intents early return", address, intents, currentConversionRate, run); return { msgs: [] } }
 
@@ -34,8 +34,11 @@ const useFulfillIntents = (run: boolean) => {
             //Parse user intents, if any last_conversion_rates are above the current rate, add a fill_intent msg
             intents.forEach((intent: any) => {
                 console.log("intent logs", intent, intent.intent.intents.last_conversion_rate, currentConversionRate)
-                //we cap msg length in order to allow ledgers to sign the transaction
-                if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate) && intent.intent.intents.purchase_intents.length > 0 && msgs.length < 2) {
+                //we cap msg length in order to allow ledgers to sign the transaction.
+                //We skipIDs that would cause errors
+                if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate)
+                    && !intent.intent.intents.purchase_intents.some((intent: any) => skipIDs.includes(intent.id))
+                    && intent.intent.intents.purchase_intents.length > 0 && msgs.length < 2) {
                     msgs.push({
                         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
                         value: MsgExecuteContract.fromPartial({

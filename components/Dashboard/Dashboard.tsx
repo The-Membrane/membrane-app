@@ -1,6 +1,6 @@
 import { Text, Stack, HStack, Slider, Card, SliderFilledTrack, SliderTrack } from '@chakra-ui/react'
 
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import { useBasket } from '@/hooks/useCDP'
 import { num, shiftDigits } from '@/helpers/num'
 import { useRBLPCDTBalance } from '../Earn/hooks/useEarnQueries'
@@ -12,8 +12,10 @@ import useFulfillIntents from '../Home/hooks/useFulfillIntents'
 import { StatsTitle } from '../StatsTitle'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
+    const [idSkips, setSkips] = useState([] as string[])
+
     const { action: manage } = useBoundedManage()
-    const { action: fulfill } = useFulfillIntents(true)
+    const { action: fulfill } = useFulfillIntents({ run: true, skipIDs: idSkips })
     const { data: amountToManage } = useRBLPCDTBalance()
 
     const revenueDistributionThreshold = 50000000
@@ -23,7 +25,17 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
 
     }, [basket])
     const isManageDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero() }, [manage?.simulate.isError, manage?.simulate.data])
-    const isFulfillDisabled = useMemo(() => { return fulfill?.simulate.isError || !fulfill?.simulate.data }, [fulfill?.simulate.isError, fulfill?.simulate.data])
+    const isFulfillDisabled = useMemo(() => {
+        if (fulfill?.simulate.isError) {
+            //Find the position ID string in the error, it'll look like Position doesn't exist: 1
+            const positionID = fulfill?.simulate.error?.message?.match(/Position doesn't exist: (\d+)/)?.[1];
+            if (positionID) {
+                // idSkips.push(positionID)
+                setSkips([...idSkips, positionID])
+            }
+        }
+        return fulfill?.simulate.isError || !fulfill?.simulate.data
+    }, [fulfill?.simulate.isError, fulfill?.simulate.data])
     if (isFulfillDisabled) console.log("isFulfillDisabled", fulfill?.simulate, fulfill?.simulate.isError, !fulfill?.simulate)
     return (
         <Card gap={16} width={"33%"}>

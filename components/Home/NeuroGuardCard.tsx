@@ -502,7 +502,7 @@ const NeuroGuardCard = () => {
 
     if (!hasShownToast && !isDisabled && !isLoading) {
       toaster.message({
-        title: 'Execute to Claim Guardian Dust & Redistribute Intents',
+        title: 'Execute to Claim Guardian Dust & Re-Activate Intents',
         message: (
           <ToastButton
             isDisabled={isDisabled}
@@ -516,7 +516,7 @@ const NeuroGuardCard = () => {
     } else if (hasShownToast && !isDisabled && isLoading) {
       toaster.dismiss();
       toaster.message({
-        title: 'Execute to Claim Guardian Dust & Redistribute Intents',
+        title: 'Execute to Claim Guardian Dust & Re-Activate Intents',
         message: (
           <ToastButton
             isDisabled={isDisabled}

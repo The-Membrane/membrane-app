@@ -18,12 +18,12 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { useBasket } from '@/hooks/useCDP'
 import { num } from '@/helpers/num'
 
-const useCDPRedeem = ( ) => {
+const useCDPRedeem = () => {
   const { address } = useWallet()
   const { earnState, setEarnState } = useEarnState()
   const { data: basket } = useBasket()
   const { data: prices } = useOraclePrice()
-  
+
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -45,10 +45,10 @@ const useCDPRedeem = ( ) => {
       const funds = [{ amount: redemptionAmount, denom: denoms.CDT[0].toString() }]
       let redeemMsg = messageComposer.redeemCollateral({ maxCollateralPremium: "1" }, funds)
       msgs.push(redeemMsg)
-      
+
       /////How many marsUSDC VT tokens will we redeem at a 1% discount using the CDT paid?///
       //CDT peg price * 99% * (cdtAmount - fee) = value redeemed
-      const cdtRedemptionPrice = num(basket?.credit_price.price??"0").multipliedBy(0.99)
+      const cdtRedemptionPrice = num(basket?.credit_price.price ?? "0").multipliedBy(0.99)
       const redemptionAmountMinusFee = num(redemptionAmount).multipliedBy(0.995)
       const valueRedeemed = cdtRedemptionPrice.multipliedBy(redemptionAmountMinusFee)
 
@@ -63,16 +63,16 @@ const useCDPRedeem = ( ) => {
       let withdrawMsg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
         value: MsgExecuteContract.fromPartial({
-        sender: address,
-        contract: contracts.marsUSDCvault,
-        msg: toUtf8(JSON.stringify({
+          sender: address,
+          contract: contracts.marsUSDCvault,
+          msg: toUtf8(JSON.stringify({
             exit_vault: {}
-        })),
-        funds: fundsVT
+          })),
+          funds: fundsVT
         })
       } as MsgExecuteContractEncodeObject
-      msgs.push(withdrawMsg)
-      
+      // msgs.push(withdrawMsg)
+
       return { msgs }
     },
     enabled: !!address,
@@ -93,11 +93,12 @@ const useCDPRedeem = ( ) => {
 
   return {
     action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['earn_page_management_redeem', (msgs?.toString()??"0")],
-    onSuccess: onInitialSuccess,
-    enabled: !!msgs,
-  })}
+      msgs,
+      queryKey: ['earn_page_management_redeem', (msgs?.toString() ?? "0")],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs,
+    })
+  }
 }
 
 export default useCDPRedeem

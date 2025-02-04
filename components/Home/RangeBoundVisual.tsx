@@ -1,10 +1,11 @@
 import { useOraclePrice } from "@/hooks/useOracle"
-import { Slider, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card, HStack, useBreakpointValue } from "@chakra-ui/react"
-import { useMemo, useState } from "react"
+import { Slider, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card, HStack, useBreakpointValue, Button } from "@chakra-ui/react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { getCLPositionsForVault } from "@/services/osmosis"
 import { colors } from "@/config/defaults"
 import React from "react"
 import useToaster from "@/hooks/useToaster"
+import useSetUserRBClaims from "./hooks/useSetUserRBClaims"
 
 
 interface PriceBoxProps {
@@ -45,45 +46,59 @@ const PriceBox = ({
   </Flex>
 )
 
+//@ts-ignore
+function ToastButton({ isLoading, isDisabled, onClick }) {
+  return (
+    <Button isDisabled={isDisabled} isLoading={isLoading} onClick={onClick}>
+      Set
+    </Button>
+  );
+}
+
 const RangeBoundVisual = () => {
   const toaster = useToaster();
   const [hasShownToast, setHasShownToast] = useState(false);
+  const { action: set } = useSetUserRBClaims()
 
+  const isDisabled = set?.simulate.isError || !set?.simulate.data
+  const isLoading = set?.simulate.isLoading || set?.tx.isPending
 
-  // //Toast if a msg is ever ready to rock
-  // useEffect(() => {
+  // Memoize the toggle handler to prevent recreating on each render
+  const onClick = useCallback(() => {
+    set?.tx.mutate()
+  }, [set?.tx]);
 
-  //   console.log("isDisabled polish", isDisabled, isLoading)
+  useEffect(() => {
 
-  //   if (!hasShownToast && !isDisabled && !isLoading) {
-  //     toaster.message({
-  //       title: 'Execute to Claim Guardian Dust & Re-Activate Intents',
-  //       message: (
-  //         <ToastButton
-  //           isDisabled={isDisabled}
-  //           isLoading={isLoading}
-  //           onClick={onClick}
-  //         />
-  //       ),
-  //       duration: null
-  //     });
-  //     setHasShownToast(true);
-  //   } else if (hasShownToast && !isDisabled && isLoading) {
-  //     toaster.dismiss();
-  //     toaster.message({
-  //       title: 'Execute to Claim Guardian Dust & Re-Activate Intents',
-  //       message: (
-  //         <ToastButton
-  //           isDisabled={isDisabled}
-  //           isLoading={isLoading}
-  //           onClick={onClick}
-  //         />
-  //       ),
-  //       duration: null
-  //     });
+    if (!hasShownToast && isDisabled && isLoading) {
+      toaster.message({
+        title: 'Execute to Set Points Tracker for Range Bound LP',
+        message: (
+          <ToastButton
+            isDisabled={isDisabled}
+            isLoading={isLoading}
+            onClick={onClick}
+          />
+        ),
+        duration: null
+      });
+      setHasShownToast(true);
+    } else if (hasShownToast && !isDisabled && isLoading) {
+      toaster.dismiss();
+      toaster.message({
+        title: 'Execute to Set Points Tracker for Range Bound LP',
+        message: (
+          <ToastButton
+            isDisabled={isDisabled}
+            isLoading={isLoading}
+            onClick={onClick}
+          />
+        ),
+        duration: null
+      });
 
-  //   }
-  // }, [isDisabled, isLoading]);
+    }
+  }, [isDisabled, isLoading]);
 
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   const [cSwitch, setCSwitch] = useState(false)

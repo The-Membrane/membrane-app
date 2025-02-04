@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { getCLPositionsForVault } from "@/services/osmosis"
 import { colors } from "@/config/defaults"
 import React from "react"
+import useToaster from "@/hooks/useToaster"
 
 
 interface PriceBoxProps {
@@ -45,6 +46,45 @@ const PriceBox = ({
 )
 
 const RangeBoundVisual = () => {
+  const toaster = useToaster();
+  const [hasShownToast, setHasShownToast] = useState(false);
+
+
+  // //Toast if a msg is ever ready to rock
+  // useEffect(() => {
+
+  //   console.log("isDisabled polish", isDisabled, isLoading)
+
+  //   if (!hasShownToast && !isDisabled && !isLoading) {
+  //     toaster.message({
+  //       title: 'Execute to Claim Guardian Dust & Re-Activate Intents',
+  //       message: (
+  //         <ToastButton
+  //           isDisabled={isDisabled}
+  //           isLoading={isLoading}
+  //           onClick={onClick}
+  //         />
+  //       ),
+  //       duration: null
+  //     });
+  //     setHasShownToast(true);
+  //   } else if (hasShownToast && !isDisabled && isLoading) {
+  //     toaster.dismiss();
+  //     toaster.message({
+  //       title: 'Execute to Claim Guardian Dust & Re-Activate Intents',
+  //       message: (
+  //         <ToastButton
+  //           isDisabled={isDisabled}
+  //           isLoading={isLoading}
+  //           onClick={onClick}
+  //         />
+  //       ),
+  //       duration: null
+  //     });
+
+  //   }
+  // }, [isDisabled, isLoading]);
+
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
   const [cSwitch, setCSwitch] = useState(false)
   const [fSwitch, setFSwitch] = useState(false)

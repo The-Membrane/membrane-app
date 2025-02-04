@@ -498,9 +498,9 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
   // if (!basketPositions || !prices || !basket || !interest) return { liquidatibleCDPs: [], totalExpectedRevenue: 0, undiscountedTER: 0 }
 
 
-  // const bundles: string[][] = []
-  // const tally: number[] = []
-  // const totalValue: number[] = []
+  const bundles: string[][] = []
+  const tally: number[] = []
+  const totalValue: number[] = []
 
   // console.log("user discount", getUserDiscountValue("osmo1fd8z9npe5gd6afm0wj60tryzx04gn5jl84hcm2"))
 
@@ -511,45 +511,45 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
   {
-    basketPositions?.map((basketPosition, index) => {
+    basketPositions?.map((basketPosition, _) => {
       //check every position index
       if (basketPosition && basketPosition.positions.length > 0) {
 
-        basketPosition.positions.forEach((position, index) => {
+        basketPosition.positions.forEach((_, index) => {
 
           const positions = getPositions([basketPosition], prices, index)
 
 
           // Create a list of the position's assets and sort alphabetically
-          // const assetList = positions.map((position) => position.symbol).sort()
+          const assetList = positions.map((position) => position.symbol).sort()
           // // If the asset list is already in the bundles, increment the tally array of the same index & add the total value of the position to the totalValue array
           // // Otherwise, add the asset list to the bundles, add 1 to the tally & add the total value of the position to the totalValue array
-          // const index = bundles.findIndex((bundle) => bundle.join('') === assetList.join(''))
-          // if (index !== -1) {
-          //   tally[index] += 1
-          //   totalValue[index] += positions.reduce((acc, position) => { 
-          //     if (!position) return acc
-          //     return acc + position.usdValue
-          //   }, 0)
-          // } else {
-          //   bundles.push(assetList)
-          //   tally.push(1)
-          //   totalValue.push(positions.reduce((acc, position) => { 
-          //     if (!position) return acc
-          //     return acc + position.usdValue
-          //   }, 0))
-          // }
+          const tallyIndex = bundles.findIndex((bundle) => bundle.join('') === assetList.join(''))
+          if (tallyIndex !== -1) {
+            tally[tallyIndex] += 1
+            totalValue[tallyIndex] += positions.reduce((acc, position) => {
+              if (!position) return acc
+              return acc + position.usdValue
+            }, 0)
+          } else {
+            bundles.push(assetList)
+            tally.push(1)
+            totalValue.push(positions.reduce((acc, position) => {
+              if (!position) return acc
+              return acc + position.usdValue
+            }, 0))
+          }
 
           // //Log the top 5 most common asset bundles
-          // const topBundles = tally.map((count, i) => {
-          //   return { bundle: bundles[i], count }
-          // }).sort((a, b) => b.count - a.count)//.slice(0, 5)
-          // console.log(topBundles)
+          const topBundles = tally.map((count, i) => {
+            return { bundle: bundles[i], count }
+          }).sort((a, b) => b.count - a.count)//.slice(0, 5)
+          console.log(topBundles)
           // //Log the highest value bundles
-          // const topValue = totalValue.map((value, i) => {
-          //   return { bundle: bundles[i], value }
-          // }).sort((a, b) => b.value - a.value)//.slice(0, 5)
-          // console.log(topValue)
+          const topValue = totalValue.map((value, i) => {
+            return { bundle: bundles[i], value }
+          }).sort((a, b) => b.value - a.value)//.slice(0, 5)
+          console.log(topValue)
 
           const tvl = getTVL(positions)
           const debt = getDebt([basketPosition], index)

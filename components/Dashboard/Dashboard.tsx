@@ -2,7 +2,7 @@ import { Text, Stack, HStack, Slider, Card, SliderFilledTrack, SliderTrack } fro
 
 import React, { useMemo, useState } from "react"
 import { useBasket } from '@/hooks/useCDP'
-import { num, shiftDigits } from '@/helpers/num'
+import { shiftDigits } from '@/helpers/math'
 import { useRBLPCDTBalance } from '../Earn/hooks/useEarnQueries'
 import Divider from '../Divider'
 import { Formatter } from '@/helpers/formatter'
@@ -10,6 +10,12 @@ import { TxButton } from '../TxButton'
 import useBoundedManage from '../Home/hooks/useRangeBoundLPManage'
 import useFulfillIntents from '../Home/hooks/useFulfillIntents'
 import { StatsTitle } from '../StatsTitle'
+import { getAssetByDenom } from '@/helpers/chain'
+import { Basket } from '@/contracts/codegen/positions/Positions.types'
+import { Price } from '@/services/oracle'
+import { num } from '@/helpers/num'
+import { useOraclePrice } from '@/hooks/useOracle'
+import AssetPieChart from './PieChart'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const [idSkips, setSkips] = useState([] as number[])
@@ -75,8 +81,41 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     )
 })
 
+const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }) => {
+    if (!basket || !prices) return { TVL: 0, positions: [] }
+    const positions = basket?.collateral_types.map((asset) => {
+        //@ts-ignore
+        const denom = asset.asset?.info.native_token?.denom
+        const assetInfo = getAssetByDenom(denom)
+        // console.log(assetInfo, denom, asset.asset)
+        const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal ?? 6)).toNumber()
+        const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
+
+        const usdValue = num(amount).times(assetPrice).toNumber()
+        // console.log(assetInfo?.symbol, usdValue, amount, assetPrice)
+        return { name: assetInfo?.symbol, value: usdValue, totalValue: 0 }
+    })
+
+    return {
+        TVL: positions.reduce((acc, position) => {
+            if (!position) return acc
+            return acc + position.value
+        }, 0), positions
+    }
+}
+
 const Dashboard = () => {
     const { data: basket } = useBasket()
+    const { data: prices } = useOraclePrice()
+    const assetData = useMemo(() => {
+        const { TVL, positions } = getProjectTVL({ basket, prices })
+        //Set TVL in each position object to the outputted TVL
+        positions.forEach((position) => {
+            position.totalValue = TVL
+        })
+        return positions
+
+    }, [basket, prices])
 
     // Memoize the entire content to prevent unnecessary re-renders
     return (
@@ -84,6 +123,7 @@ const Dashboard = () => {
             <StatsTitle />
             <Divider mx="0" mb="5" />
             <ManagementCard basket={basket} />
+            <AssetPieChart data={assetData} />
         </Stack>
     );
 

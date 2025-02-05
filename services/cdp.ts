@@ -7,17 +7,12 @@ import {
   CollateralInterestResponse,
   RedeemabilityResponse,
 } from '@/contracts/codegen/positions/Positions.types'
-import { Asset, getAssetByDenom, getChainAssets } from '@/helpers/chain'
+import { Asset, getAssetByDenom } from '@/helpers/chain'
 import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
 import { stableSymbols } from '@/config/defaults'
-import { useOraclePrice } from '@/hooks/useOracle'
-import { useUserDiscount } from '@/hooks/useCDP'
-import { useQueries } from '@tanstack/react-query'
-import useAssets from '@/hooks/useAssets'
-import useWallet from '@/hooks/useWallet'
 
 export const cdpClient = async () => {
   const cosmWasmClient = await getCosmWasmClient()

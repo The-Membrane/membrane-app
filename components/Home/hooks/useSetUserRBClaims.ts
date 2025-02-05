@@ -47,6 +47,8 @@ const useSetUserRBClaims = () => {
                     contract: contracts.points,
                     msg: toUtf8(JSON.stringify({
                         check_claims: {
+                            sp_claims: false,
+                            lq_claims: false,
                             rangebound_user: address
                         }
                     })),

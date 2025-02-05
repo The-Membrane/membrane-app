@@ -55,13 +55,14 @@ const useSetUserRBClaims = () => {
             } as MsgExecuteContractEncodeObject
             )
 
-
             return { msgs }
         },
         enabled: !!address,
     })
 
     const msgs = queryData?.msgs ?? []
+
+    console.log("set RB point claim msgs", msgs)
 
     return {
         action: useSimulateAndBroadcast({

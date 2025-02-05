@@ -70,7 +70,9 @@ const RangeBoundVisual = () => {
 
   useEffect(() => {
 
-    if (!hasShownToast && isDisabled && isLoading) {
+    console.log("isDisabled points track", isDisabled, isLoading)
+
+    if (!hasShownToast && !isDisabled && !isLoading) {
       toaster.message({
         title: 'Execute to Set Points Tracker for Range Bound LP',
         message: (

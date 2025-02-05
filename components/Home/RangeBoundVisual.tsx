@@ -71,7 +71,7 @@ const RangeBoundVisual = () => {
   useEffect(() => {
 
     console.log("isDisabled points track", isDisabled, isLoading)
-    console.log("error", set?.simulate.isError, set?.simulate.errorMessage, set?.simulate.data)
+    console.log("error", set?.simulate.isError, set?.simulate.errorMessage, set?.simulate.data, set?.simulate.error)
 
     if (!hasShownToast && !isDisabled && !isLoading) {
       toaster.message({

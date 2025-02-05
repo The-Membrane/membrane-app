@@ -842,7 +842,7 @@ const NeuroGuardCard = () => {
           </HStack>
           {Number(boundCDTBalance) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
           {existingGuards.map((guard) =>
-            <>{guard && guard.symbol != "CDT" && (guard.symbol != "N/A" && Number(boundCDTBalance) > 0) ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} /> : null}</>
+            <>{guard && guard.symbol != "CDT" && (guard.symbol != "N/A" && Number(boundCDTBalance) === 0) ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} /> : null}</>
           )}
         </Stack>
         : null}

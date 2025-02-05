@@ -5,8 +5,8 @@ const getColorFromName = (name) => {
     for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const color = `hsl(${hash % 360}, 70%, 50%)`;
-    return color;
+    const colors = ["#4fcabb", "#3d414b", "#6a737d", "#8a939f", "#b0b8c4"];
+    return colors[Math.abs(hash) % colors.length];
 };
 
 const AssetPieChart = ({ data }) => {

@@ -753,7 +753,6 @@ const NeuroGuardCard = () => {
                   maxBorrowLTV: basketAsset.maxBorrowLTV,
                   balance: 0,
                   combinUsdValue: num(basketAsset.interestRate).toNumber(),
-                  default: true
                 }}
                 RBYield={RBYield}
                 basketAssets={basketAssets}

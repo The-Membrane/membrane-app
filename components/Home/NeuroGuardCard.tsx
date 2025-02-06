@@ -717,14 +717,14 @@ const NeuroGuardCard = () => {
 
 
   // Separate complex sections into components
-  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[] }) => {
+  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets, allYield }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[], allYield: boolean }) => {
     return (
       <Stack ref={sectionRef}>
         <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           Your Wallet
         </Text>
         <Checkbox
-          checked={showAllYields}
+          checked={allYield}
           onChange={() => { setShowAllYields(!showAllYields) }}
           fontFamily="Inter"
           fontSize={"9px"}
@@ -745,7 +745,7 @@ const NeuroGuardCard = () => {
             Actions
           </Text>
         </HStack>
-        <Stack gap={"1rem"}>{true ?
+        <Stack gap={"1rem"}>{allYield ?
 
           basketAssets.map((basketAsset) => {
             if (!basketAsset || basketAsset.asset?.symbol === "marsUSDC" || basketAsset.asset?.symbol === "OSMO/USDC.axl LP" || basketAsset.asset?.symbol === "ATOM/OSMO LP") {

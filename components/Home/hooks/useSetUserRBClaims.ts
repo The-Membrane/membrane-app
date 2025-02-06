@@ -13,9 +13,11 @@ import { useMemo } from 'react'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { num } from '@/helpers/num'
+import useToaster from '@/hooks/useToaster'
 
-const useSetUserRBClaims = (onSuccess: () => void) => {
+const useSetUserRBClaims = () => {
     const { address } = useWallet()
+    const toaster = useToaster()
     const { data: userRates } = useUserConversionRates()
     const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
     const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "0"
@@ -66,11 +68,16 @@ const useSetUserRBClaims = (onSuccess: () => void) => {
 
     console.log("set RB point claim msgs", msgs)
 
+
+    const onInitialSuccess = () => {
+        toaster.dismiss();
+    }
+
     return {
         action: useSimulateAndBroadcast({
             msgs,
             queryKey: ['toaster_set_RB_claim_sim', (msgs?.toString() ?? "0")],
-            onSuccess,
+            onSuccess: onInitialSuccess,
             enabled: !!msgs,
         })
     }

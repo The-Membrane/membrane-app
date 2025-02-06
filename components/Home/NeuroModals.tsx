@@ -139,6 +139,7 @@ export const RBLPWithdrawModal = React.memo(({
     const maxAmount = rblpDeposit
 
     const onMaxClick = () => {
+        setInputValue(maxAmount)
         setQuickActionState({
             rangeBoundLPwithdrawal: maxAmount
         })
@@ -150,7 +151,7 @@ export const RBLPWithdrawModal = React.memo(({
         e.preventDefault();
         const value = Number(e.target.value);
 
-        setInputValue(value); // Updates the input value immediately
+        setInputValue(num(value).isGreaterThan(maxAmount) ? maxAmount : value); // Updates the input value immediately
 
         if (updateTimeout.current) {
             clearTimeout(updateTimeout.current); // Clears previous timeout
@@ -187,7 +188,7 @@ export const RBLPWithdrawModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(quickActionState?.rangeBoundLPwithdrawal).times(cdtMarketPrice).toFixed(2)}
+                                ~${num(inputValue).times(cdtMarketPrice).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input

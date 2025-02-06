@@ -729,33 +729,57 @@ const NeuroGuardCard = () => {
             Actions
           </Text>
         </HStack>
-        <Stack gap={"1rem"}>{assets.map((asset) => {
-          if (!asset || !num(asset.combinUsdValue).isGreaterThan(0.01) ||
-            existingGuards?.find((guard) => guard?.symbol === asset.symbol)) {
-            return null;
-          }
+        <Stack gap={"1rem"}>{true ?
 
-          // console.log(!(boundCDTBalance > 0), boundCDTBalance)
+          basketAssets.map((basketAsset) => {
+            if (!basketAsset) {
+              return null;
+            }
 
-          if (asset.base === denoms.CDT[0] && !(boundCDTBalance > 0)) {
-            return (
-              <MemoizedRBLPDepositEntry
-                key={asset.symbol}
-                asset={asset}
-                RBYield={RBYield}
-              />
-            );
-          } else if (asset.base != denoms.CDT[0]) {
             return (
               <MemoizedNeuroGuardOpenEntry
-                key={asset.symbol}
-                asset={asset}
-                basketAssets={basketAssets}
+                key={basketAsset.asset?.symbol ?? basketAsset.asset?.base}
+                asset={{
+                  base: basketAsset.asset?.base,
+                  symbol: basketAsset.asset?.symbol ?? "",
+                  logo: basketAsset.asset?.logo ?? "",
+                  balance: 0,
+                  combinUsdValue: num(basketAsset.interestRate).toNumber(),
+                  default: true
+                }}
                 RBYield={RBYield}
+                basketAssets={basketAssets}
               />
-            )
-          } else { return null }
-        })}</Stack>
+            );
+          })
+
+          : assets.map((asset) => {
+            if (!asset || !num(asset.combinUsdValue).isGreaterThan(0.01) ||
+              existingGuards?.find((guard) => guard?.symbol === asset.symbol)) {
+              return null;
+            }
+
+            // console.log(!(boundCDTBalance > 0), boundCDTBalance)
+
+            if (asset.base === denoms.CDT[0] && !(boundCDTBalance > 0)) {
+              return (
+                <MemoizedRBLPDepositEntry
+                  key={asset.symbol}
+                  asset={asset}
+                  RBYield={RBYield}
+                />
+              );
+            } else if (asset.base != denoms.CDT[0]) {
+              return (
+                <MemoizedNeuroGuardOpenEntry
+                  key={asset.symbol}
+                  asset={asset}
+                  basketAssets={basketAssets}
+                  RBYield={RBYield}
+                />
+              )
+            } else { return null }
+          })}</Stack>
       </Stack>
     );
   });

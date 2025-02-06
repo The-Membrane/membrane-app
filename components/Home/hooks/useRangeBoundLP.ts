@@ -148,6 +148,23 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
           })
         } as MsgExecuteContractEncodeObject
         msgs.push(enterMsg)
+
+        //Points claim state save
+        msgs.push({
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: MsgExecuteContract.fromPartial({
+            sender: address,
+            contract: contracts.points,
+            msg: toUtf8(JSON.stringify({
+              check_claims: {
+                sp_claims: false,
+                lq_claims: false,
+                rangebound_user: address
+              }
+            })),
+            funds: []
+          })
+        } as MsgExecuteContractEncodeObject)
       }
 
       console.log("in query bounded LP msgs:", msgs)

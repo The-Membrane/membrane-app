@@ -56,8 +56,7 @@ const useSetUserRBClaims = () => {
                     })),
                     funds: []
                 })
-            } as MsgExecuteContractEncodeObject
-            )
+            } as MsgExecuteContractEncodeObject)
 
             return { msgs }
         },

@@ -1,3 +1,5 @@
+import { colors } from "@/config/defaults";
+import { Stack, Text } from "@chakra-ui/react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 
 const getColorFromName = (name) => {
@@ -11,24 +13,28 @@ const getColorFromName = (name) => {
 
 const AssetPieChart = ({ data }) => {
     return (
-        <PieChart width={400} height={400}>
-            <Pie
-                data={data}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={150}
-                label={({ name, percent }) =>
-                    percent > 0.1 ? `${name}: ${(percent * 100).toFixed(1)}%` : ""
-                }
-            >
-                {data.map((entry) => (
-                    <Cell key={entry.name} fill={getColorFromName(entry.name)} />
-                ))}
-            </Pie>
-            <Tooltip formatter={(value, name) => [`Total: ${value}`, `Asset: ${name}`]} />
-        </PieChart>
+        <Stack justifyContent={"center"}>
+            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Collateral Composition</Text>
+            <PieChart width={650} height={500}>
+                <Pie
+                    data={data}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={150}
+                    label={({ name, percent }) =>
+                        percent > 0.1 ? `${name}: ${(percent * 100).toFixed(1)}%` : ""
+                    }
+                >
+                    {data.map((entry) => (
+                        <Cell key={entry.name} fill={getColorFromName(entry.name)} />
+                    ))}
+                </Pie>
+                <Tooltip formatter={(value, name) => [`Total: $${value}`, `Asset: ${name}`]} />
+            </PieChart>
+        </Stack>
+
     );
 };
 

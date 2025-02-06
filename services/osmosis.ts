@@ -114,7 +114,7 @@ export const getCLPositionsForVault = () => {
             const ceilingPosition = await getCLPosition(positions.ceiling.toString())
             const floorPosition = await getCLPosition(positions.floor.toString())
 
-            console.log("ceiling", ceilingPosition, "floor", floorPosition, "prices", cdtPrice, usdcPrice)
+            // console.log("ceiling", ceilingPosition, "floor", floorPosition, "prices", cdtPrice, usdcPrice)
 
             //Find ceiling amounts
             const ceilingAmounts = ceilingPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt"

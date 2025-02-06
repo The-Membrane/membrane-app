@@ -33,11 +33,14 @@ const useTransaction = ({ msgs, onSuccess, fee, chain_id }: Transaction) => {
       const txRaw = await sign(msgs, fee)
       setIsApproved(true)
       const result = await broadcast(txRaw)
+      console.log("broadcast result", result)
+
 
       return result as DeliverTxResponse
       // return mock
     },
     onSuccess: (res: DeliverTxResponse) => {
+      console.log("tx success", res)
       const { transactionHash } = res
       toaster.success({
         message: 'Transaction Successful',
@@ -49,6 +52,7 @@ const useTransaction = ({ msgs, onSuccess, fee, chain_id }: Transaction) => {
       onSuccess?.()
     },
     onError: (error) => {
+      console.log("tx error", error)
       const parsedError = parseError(error?.message ?? "")
       toaster.error({
         message: parsedError || 'Transaction Failed',

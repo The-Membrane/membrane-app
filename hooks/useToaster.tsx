@@ -105,6 +105,7 @@ const useToaster = (): IToaster => {
     })
   }
   const success = ({ message, txHash, explorer }: ToastProps) => {
+    console.log("success", message, txHash, explorer)
     toast({
       ...defaultSettings,
       title: 'Success',

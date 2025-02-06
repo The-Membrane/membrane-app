@@ -1,6 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import { shiftDigits } from '@/helpers/num';
+import { num, shiftDigits } from '@/helpers/num';
+import { getBasket } from '@/services/cdp';
 import { getBoundedTVL } from '@/services/earn';
+import { getOraclePrices } from '@/services/oracle';
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 type Data = {
@@ -17,15 +19,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         }
 
 
-        const [vaultTVL] = await Promise.all([
-            getBoundedTVL()
+        const [vaultCDT, basket] = await Promise.all([
+            getBoundedTVL(),
+            getBasket()
         ]);
 
-        if (!vaultTVL) {
+        if (!vaultCDT || !basket) {
             return res.status(500).json({ error: 'Failed to fetch required data.' });
         }
 
-        const tvl = shiftDigits(vaultTVL, -6)
+        const prices = await getOraclePrices(basket)
+
+        if (!prices) {
+            return res.status(500).json({ error: 'Failed to fetch oracle prices.' });
+        }
+
+        const shiftedCDT = shiftDigits(vaultCDT, -6)
+        const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
+        const tvl = num(shiftedCDT).times(cdtPrice).toFixed(2)
 
         return res.status(200).json({
             tvlUsd: tvl,

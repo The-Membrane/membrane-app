@@ -14,7 +14,7 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { num } from '@/helpers/num'
 
-const useSetUserRBClaims = () => {
+const useSetUserRBClaims = (onSuccess: () => void) => {
     const { address } = useWallet()
     const { data: userRates } = useUserConversionRates()
     const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
@@ -70,6 +70,7 @@ const useSetUserRBClaims = () => {
         action: useSimulateAndBroadcast({
             msgs,
             queryKey: ['toaster_set_RB_claim_sim', (msgs?.toString() ?? "0")],
+            onSuccess,
             enabled: !!msgs,
         })
     }

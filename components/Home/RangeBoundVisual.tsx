@@ -58,7 +58,11 @@ function ToastButton({ isLoading, isDisabled, onClick }) {
 const RangeBoundVisual = () => {
   const toaster = useToaster();
   const [hasShownToast, setHasShownToast] = useState(false);
-  const { action: set } = useSetUserRBClaims()
+
+  const onSuccess = useCallback(() => {
+    toaster.dismiss();
+  }, [toaster]);
+  const { action: set } = useSetUserRBClaims(onSuccess)
 
   const isDisabled = set?.simulate.isError || !set?.simulate.data
   const isLoading = set?.simulate.isLoading || set?.tx.isPending
@@ -67,6 +71,7 @@ const RangeBoundVisual = () => {
   const onClick = useCallback(() => {
     set?.tx.mutate()
   }, [set?.tx]);
+
 
   useEffect(() => {
 

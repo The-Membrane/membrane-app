@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Slider, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card, HStack, useBreakpointValue, Button } from "@chakra-ui/react"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { getCLPositionsForVault } from "@/services/osmosis"
+import { getCLPositionsForVault, getCLRewards, useRBLPRewards } from "@/services/osmosis"
 import { colors } from "@/config/defaults"
 import React from "react"
 import useToaster from "@/hooks/useToaster"
@@ -58,11 +58,10 @@ function ToastButton({ isLoading, isDisabled, onClick }) {
 const RangeBoundVisual = () => {
   const toaster = useToaster();
   const [hasShownToast, setHasShownToast] = useState(false);
+  const { action: set } = useSetUserRBClaims()
 
-  const onSuccess = useCallback(() => {
-    toaster.dismiss();
-  }, [toaster]);
-  const { action: set } = useSetUserRBClaims(onSuccess)
+  const { data: rewards } = useRBLPRewards()
+  console.log("RBLP rewards", rewards)
 
   const isDisabled = set?.simulate.isError || !set?.simulate.data
   const isLoading = set?.simulate.isLoading || set?.tx.isPending

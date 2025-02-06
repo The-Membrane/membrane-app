@@ -16,6 +16,7 @@ import { Price } from '@/services/oracle'
 import { num } from '@/helpers/num'
 import { useOraclePrice } from '@/hooks/useOracle'
 import AssetPieChart from './PieChart'
+import { colors } from '@/config/defaults'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const [idSkips, setSkips] = useState([] as number[])
@@ -44,40 +45,43 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     }, [fulfill?.simulate.isError, fulfill?.simulate.data])
     if (isFulfillDisabled) console.log("isFulfillDisabled", fulfill?.simulate, fulfill?.simulate.isError, !fulfill?.simulate)
     return (
-        <Card gap={16} width={"33%"}>
-            <TxButton
-                maxW="100%"
-                isLoading={fulfill?.simulate.isLoading || fulfill?.tx.isPending}
-                isDisabled={isFulfillDisabled}
-                onClick={() => fulfill?.tx.mutate()}
-                toggleConnectLabel={false}
-                style={{ alignSelf: "center" }}
-            >
-                Fulfill Intents
-            </TxButton>
-            <Slider
-                defaultValue={percentToDistribution}
-                isReadOnly
-                cursor="default"
-                min={0}
-                max={1}
-                value={percentToDistribution}
-            >
-                <SliderTrack h="1.5">
-                    <SliderFilledTrack bg={'#20d6ff'} />
-                </SliderTrack>
-            </Slider>
-            <TxButton
-                maxW="100%"
-                isLoading={manage?.simulate.isLoading || manage?.tx.isPending}
-                isDisabled={isManageDisabled}
-                onClick={() => manage?.tx.mutate()}
-                toggleConnectLabel={false}
-                style={{ alignSelf: "center" }}
-            >
-                {isManageDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to LPs" : "Manage Vault"}
-            </TxButton>
-        </Card>
+        <Stack>
+            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Product Management</Text>
+            <Card gap={16} width={"33%"}>
+                <TxButton
+                    maxW="100%"
+                    isLoading={fulfill?.simulate.isLoading || fulfill?.tx.isPending}
+                    isDisabled={isFulfillDisabled}
+                    onClick={() => fulfill?.tx.mutate()}
+                    toggleConnectLabel={false}
+                    style={{ alignSelf: "center" }}
+                >
+                    Fulfill Intents
+                </TxButton>
+                <Slider
+                    defaultValue={percentToDistribution}
+                    isReadOnly
+                    cursor="default"
+                    min={0}
+                    max={1}
+                    value={percentToDistribution}
+                >
+                    <SliderTrack h="1.5">
+                        <SliderFilledTrack bg={'#20d6ff'} />
+                    </SliderTrack>
+                </Slider>
+                <TxButton
+                    maxW="100%"
+                    isLoading={manage?.simulate.isLoading || manage?.tx.isPending}
+                    isDisabled={isManageDisabled}
+                    onClick={() => manage?.tx.mutate()}
+                    toggleConnectLabel={false}
+                    style={{ alignSelf: "center" }}
+                >
+                    {isManageDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to LPs" : "Manage Vault"}
+                </TxButton>
+            </Card>
+        </Stack>
     )
 })
 

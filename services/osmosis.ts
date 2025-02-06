@@ -86,7 +86,7 @@ export const getCLRewards = async (positionId: string) => {
     const osmosisClient = await OsmosisClient()
     const rewards = await osmosisClient.osmosis.concentratedliquidity.v1beta1.claimableSpreadRewards({
         positionId: BigInt(positionId),
-    })  
+    })
     return rewards
 }
 
@@ -95,7 +95,7 @@ export const getCLPosition = async (positionId: string) => {
     const osmosisClient = await OsmosisClient()
     const position = await osmosisClient.osmosis.concentratedliquidity.v1beta1.positionById({
         positionId: BigInt(positionId),
-    })  
+    })
     return position.position
 }
 
@@ -105,28 +105,28 @@ export const getCLPositionsForVault = () => {
     const { data: prices } = useOraclePrice()
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
     const usdcPrice = parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0")
-    
+
     return useQuery({
         queryKey: ['getCLPositionsForVault', config, prices, cdtPrice],
-        queryFn: async () => {            
+        queryFn: async () => {
             if (!config) return;
-            const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor}
+            const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor }
             const ceilingPosition = await getCLPosition(positions.ceiling.toString())
             const floorPosition = await getCLPosition(positions.floor.toString())
 
             //Find ceiling amounts
-            const ceilingAmounts = ceilingPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
-            ? {cdt: ceilingPosition.asset0.amount, usdc: ceilingPosition.asset1.amount} : {cdt: ceilingPosition.asset1.amount, usdc: ceilingPosition.asset0.amount}
+            const ceilingAmounts = ceilingPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt"
+                ? { cdt: ceilingPosition.asset0.amount, usdc: ceilingPosition.asset1.amount } : { cdt: ceilingPosition.asset1.amount, usdc: ceilingPosition.asset0.amount }
             //Find floor amounts
-            const floorAmounts = floorPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt" 
-            ? {cdt: floorPosition.asset0.amount, usdc: floorPosition.asset1.amount} : {cdt: floorPosition.asset1.amount, usdc: floorPosition.asset0.amount}
-    
+            const floorAmounts = floorPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt"
+                ? { cdt: floorPosition.asset0.amount, usdc: floorPosition.asset1.amount } : { cdt: floorPosition.asset1.amount, usdc: floorPosition.asset0.amount }
+
             //Calc Ceiling TVL
             const ceilingTVL = shiftDigits(ceilingAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(ceilingAmounts.usdc, -6).times(usdcPrice))
             //Calc Floor TVL
             const floorTVL = shiftDigits(floorAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(floorAmounts.usdc, -6).times(usdcPrice))
-    
-            const positionsTVL = {ceilingTVL, floorTVL}
+
+            const positionsTVL = { ceilingTVL, floorTVL }
             //Calc CDT TVL
             const cdtTVL = shiftDigits(ceilingAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(floorAmounts.cdt, -6).times(cdtPrice))
             //Calc USDC TVL
@@ -144,10 +144,22 @@ export const getCLPositionsForVault = () => {
 
 }
 
+export const useRBLPRewards = () => {
+    return useQuery({
+        queryKey: ['RBLPRewards'],
+        queryFn: async () => {
+
+            const ceiling = getCLRewards("11541781")
+            const floor = getCLRewards("11541780")
+            return { ceiling, floor }
+        },
+    })
+}
+
 
 export const getLPRewards = () => {
     return useQueries({
-        queries: clPositions.map((position) =>  ({
+        queries: clPositions.map((position) => ({
             queryKey: ['cl_position_rewards', position.id],
             queryFn: async () => {
                 return getCLRewards(position.id)
@@ -165,7 +177,7 @@ export const getBestCLRange = () => {
         queryFn: async () => {
             //Set rewards            
             const clRewards = clRewardsData.map((reward, index) => {
-                return {reward: reward.data, position: clPositions[index]}
+                return { reward: reward.data, position: clPositions[index] }
             })
             //Initialize Rewards list
             var rewardList = [];
@@ -180,7 +192,7 @@ export const getBestCLRange = () => {
 
             //Sort rewards from highest to lowest
             // rewardList.sort((a, b) => b.reward - a.reward);
-            
+
             //Return
             return rewardList;
         },
@@ -310,7 +322,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
         repay_msg.value.funds = [coin(tokenOutMin.toString(), denoms.CDT[0] as string)];
 
         // console.log("repay value:", repay_msg.value.funds)
-        
+
         //Save non-slippage withdraw value
         withdrawPreSwapValue = withdrawValue;
 
@@ -433,7 +445,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         });
         //If there are no swaps, don't add mint or deposit msgs
         if (swap_msgs.length !== 0) {
-        
+
             //Create deposit msgs for newly swapped assets
             var deposit_msg: MsgExecuteContractEncodeObject = cdp_composer.deposit({
                 positionId,
@@ -673,7 +685,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
     var iterations = 0;
 
     while (route != undefined && route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] && iterations < 5) {
-        console.log("route denoms", route[route.length - 1].tokenOutDenom === denoms[tokenOut??"CDT"][0] as string)
+        console.log("route denoms", route[route.length - 1].tokenOutDenom === denoms[tokenOut ?? "CDT"][0] as string)
         if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
 
         //Find the key from this denom
@@ -692,7 +704,7 @@ const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof e
 }
 //This is getting Swaps To CDT w/ optional different tokenOut
 export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice: number, tokenIn: keyof exported_supportedAssets, tokenInAmount: number, tokenOut?: keyof exported_supportedAssets, slippage?: number) => {
-    
+
     //Get tokenOutAmount
     // console.log("boom1")
     const decimalDiff = denoms[tokenIn][1] as number - 6;
@@ -702,7 +714,7 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
     const { route: routes, foundToken } = getCDTRoute(tokenIn, tokenOut);
 
     // console.log("boom3", tokenOutAmount )
-    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), slippage??SWAP_SLIPPAGE)).toString();
+    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), slippage ?? SWAP_SLIPPAGE)).toString();
 
     // console.log("boom4", address, denoms[tokenIn][0] as string)
     const msg = swapExactAmountIn({
@@ -713,7 +725,7 @@ export const handleCDTswaps = (address: string, cdtPrice: number, swapFromPrice:
     });
     // console.log("boom5", msg)
 
-    return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount), foundToken };
+    return { msg, tokenOutMinAmount: parseInt(tokenOutMinAmount), foundToken };
 };
 
 //Parse through saved Routes until we reach CDT
@@ -727,11 +739,11 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
     const { route: temp_routes, foundToken, } = getCDTRoute(tokenOut);
     console.log("cdt routes", temp_routes, foundToken)
     //Reverse the route
-        console.log("pre")
+    console.log("pre")
     temp_routes.reverse();
     //This route key logic is breaking the fn
     console.log("before routeKey", cdtRoutes["CDT"][0].tokenOutDenom)
-        console.log("post", temp_routes)
+    console.log("post", temp_routes)
     var routes = temp_routes;
     //Swap tokenOutdenom of the route to the key of the route
     routes = routes.map((route) => {
@@ -757,7 +769,7 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 }
 
 //Swapping CDT to collateral
-export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number, slippage?: number): {msg: any, tokenOutMinAmount: number} => {
+export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number, slippage?: number): { msg: any, tokenOutMinAmount: number } => {
     console.log("herein 1")
     //Get tokenOutAmount
     const decimalDiff = denoms[tokenOut][1] as number - 6;
@@ -769,7 +781,7 @@ export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOu
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
     console.log("herein 3")
 
-    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), slippage??SWAP_SLIPPAGE)).toString();
+    const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), slippage ?? SWAP_SLIPPAGE)).toString();
     console.log("herein 4")
 
 
@@ -782,5 +794,5 @@ export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOu
     console.log("herein 5")
 
     // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {// console.log(res)});
-    return {msg, tokenOutMinAmount: parseInt(tokenOutMinAmount)};
+    return { msg, tokenOutMinAmount: parseInt(tokenOutMinAmount) };
 };

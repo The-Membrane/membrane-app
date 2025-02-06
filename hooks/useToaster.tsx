@@ -62,6 +62,8 @@ const ToastContent = ({ message, txHash, explorer }: ToastProps) => {
   const last4 = txHash?.slice(-4)
   const txLink = eval('`' + explorer?.tx_page + '`')
 
+  console.log("tx ready to toast", txLink)
+
   return (
     <VStack alignItems="flex-start" gap={0} paddingTop={"3%"}>
       {typeof message === "string" ? <span>{message}</span> : message}

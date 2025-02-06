@@ -13,9 +13,9 @@ const getColorFromName = (name) => {
 
 const AssetPieChart = ({ data }) => {
     return (
-        <Stack justifyContent={"center"}>
+        <Stack >
             <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Collateral Composition</Text>
-            <PieChart width={650} height={500}>
+            <PieChart width={650} height={500} style={{ alignSelf: "center" }}>
                 <Pie
                     data={data}
                     dataKey="value"

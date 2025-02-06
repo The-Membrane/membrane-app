@@ -130,6 +130,7 @@ const NeuroGuardOpenEntry = React.memo(({
           {num((asset?.balance ?? 0)).toFixed(2)}
         </Text>
         <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+          {/* @ts-ignore */}
           {asset?.default == true ? num(RBYield).times(100).toFixed(1) : yieldValue}%
         </Text>
         {isOpen && (<NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />)}
@@ -339,6 +340,7 @@ const RBLPExistingEntry = React.memo(({
           {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
         </Text>
         <HStack width={"36%"}>
+          {/* @ts-ignore */}
           {isDepositOpen && (<RBLPDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} cdtAsset={asset} />)}
           <Button
             width="50%"
@@ -347,6 +349,7 @@ const RBLPExistingEntry = React.memo(({
             alignSelf="center"
             margin="0"
             onClick={() => { toggleDepositOpen(); setQuickActionState({ rangeBoundLPwithdrawal: 0 }) }}
+            //@ts-ignore
             isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
           >
             Deposit
@@ -459,6 +462,7 @@ const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
 
 
 
+//@ts-ignore
 function ToastButton({ isLoading, isDisabled, onClick }) {
   return (
     <Button isDisabled={isDisabled} isLoading={isLoading} onClick={onClick}>
@@ -560,7 +564,9 @@ const NeuroGuardCard = () => {
   //List of all denoms in the wallet
   const walletDenoms = useMemo(() => {
     return (walletBalances ?? [])
+      //@ts-ignore
       .filter(coin => num(coin.amount).isGreaterThan(0))
+      //@ts-ignore
       .map(coin => coin.denom);
   }, [walletBalances]);
 
@@ -614,6 +620,7 @@ const NeuroGuardCard = () => {
   useEffect(() => {
     if (sortedAssets && sortedAssets.length > 0) {
       setNeuroState({
+        //@ts-ignore
         assets: sortedAssets ?? [],
         selectedAsset: sortedAssets[0] ?? {}
       });
@@ -732,7 +739,7 @@ const NeuroGuardCard = () => {
         <Stack gap={"1rem"}>{true ?
 
           basketAssets.map((basketAsset) => {
-            if (!basketAsset) {
+            if (!basketAsset || basketAsset.asset?.symbol === "marsUSDC" || basketAsset.asset?.symbol === "OSMO/USDC.axl LP" || basketAsset.asset?.symbol === "ATOM/OSMO LP") {
               return null;
             }
 
@@ -743,6 +750,7 @@ const NeuroGuardCard = () => {
                   base: basketAsset.asset?.base,
                   symbol: basketAsset.asset?.symbol ?? "",
                   logo: basketAsset.asset?.logo ?? "",
+                  maxBorrowLTV: basketAsset.maxBorrowLTV,
                   balance: 0,
                   combinUsdValue: num(basketAsset.interestRate).toNumber(),
                   default: true
@@ -866,6 +874,7 @@ const NeuroGuardCard = () => {
           </HStack>
           {Number(boundCDTBalance) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
           {existingGuards.map((guard) =>
+            //@ts-ignore
             <>{guard && guard.symbol != "CDT" && (guard.symbol == "N/A" ? Number(boundCDTBalance) === 0 : true) ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} /> : null}</>
           )}
         </Stack>

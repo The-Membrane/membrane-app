@@ -1,4 +1,4 @@
-import React, { ChangeEvent, PropsWithChildren, useCallback, useRef } from "react"
+import React, { ChangeEvent, PropsWithChildren, useCallback } from "react"
 import useNeuroState from "./hooks/useNeuroState"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import { num } from "@/helpers/num"
@@ -16,8 +16,6 @@ import useQuickActionState from "./hooks/useQuickActionState"
 import useBoundedLP from "./hooks/useRangeBoundLP"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import BigNumber from "bignumber.js"
-
-const INPUT_DELAY = 300;
 
 export const RBLPDepositModal = React.memo(({
     isOpen, onClose, cdtAsset, children
@@ -38,22 +36,14 @@ export const RBLPDepositModal = React.memo(({
         })
     }
 
-    const inputChangeTimeout = useRef<NodeJS.Timeout | null>(null);
-
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        const value = Number(e.target.value);
+        e.preventDefault()
+        const value = Number(e.target.value)
 
-        if (inputChangeTimeout.current) {
-            clearTimeout(inputChangeTimeout.current);
-        }
-
-        inputChangeTimeout.current = setTimeout(() => {
-            setQuickActionState({
-                rangeBoundLPdeposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-            });
-        }, INPUT_DELAY); // Adjust delay as needed
-    }, [quickActionState?.rangeBoundLPdeposit, setQuickActionState]);
+        setQuickActionState({
+            rangeBoundLPdeposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+        })
+    }, [quickActionState?.rangeBoundLPdeposit, setQuickActionState])
 
 
 
@@ -151,22 +141,15 @@ export const RBLPWithdrawModal = React.memo(({
             rangeBoundLPwithdrawal: maxAmount
         })
     }
-    const inputChangeTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        const value = Number(e.target.value);
+        e.preventDefault()
+        const value = Number(e.target.value)
 
-        if (inputChangeTimeout.current) {
-            clearTimeout(inputChangeTimeout.current);
-        }
-
-        inputChangeTimeout.current = setTimeout(() => {
-            setQuickActionState({
-                rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-            });
-        }, INPUT_DELAY); // Adjust delay as needed
-    }, [quickActionState?.rangeBoundLPwithdrawal, setQuickActionState]);
+        setQuickActionState({
+            rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+        })
+    }, [quickActionState?.rangeBoundLPwithdrawal, setQuickActionState])
 
 
 
@@ -281,28 +264,19 @@ export const NeuroOpenModal = React.memo(({
         })
     }
 
-    const inputChangeTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        const value = Number(e.target.value);
+        e.preventDefault()
+        const value = Number(e.target.value)
 
-        if (inputChangeTimeout.current) {
-            clearTimeout(inputChangeTimeout.current);
-        }
-
-        inputChangeTimeout.current = setTimeout(() => {
-            setNeuroState({
-                //@ts-ignore
-                openSelectedAsset: {
-                    ...neuroState?.openSelectedAsset,
-                    sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-                }
-            })
-        }, INPUT_DELAY); // Adjust delay as needed
+        setNeuroState({
+            //@ts-ignore
+            openSelectedAsset: {
+                ...neuroState?.openSelectedAsset,
+                sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+            }
+        })
     }, [neuroState?.openSelectedAsset, setNeuroState])
-
-
 
     return (<>
         {/* <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
@@ -414,26 +388,20 @@ export const NeuroDepositModal = React.memo(({
         })
     }
 
-    const inputChangeTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        const value = Number(e.target.value);
+        e.preventDefault()
+        const value = Number(e.target.value)
 
-        if (inputChangeTimeout.current) {
-            clearTimeout(inputChangeTimeout.current);
-        }
-
-        inputChangeTimeout.current = setTimeout(() => {
-            setNeuroState({
-                //@ts-ignore
-                depositSelectedAsset: {
-                    ...neuroState?.depositSelectedAsset,
-                    sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-                }
-            })
-        }, INPUT_DELAY); // Adjust delay as needed
+        setNeuroState({
+            //@ts-ignore
+            depositSelectedAsset: {
+                ...neuroState?.depositSelectedAsset,
+                sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+            }
+        })
     }, [neuroState?.depositSelectedAsset, setNeuroState])
+
 
 
     return (<>
@@ -554,26 +522,19 @@ export const NeuroWithdrawModal = React.memo(({
     console.log("neuroState?.withdrawSelectedAsset", neuroState?.withdrawSelectedAsset)
 
 
-    const inputChangeTimeout = useRef<NodeJS.Timeout | null>(null);
-
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        const value = Number(e.target.value);
+        e.preventDefault()
+        const value = Number(e.target.value)
 
-        if (inputChangeTimeout.current) {
-            clearTimeout(inputChangeTimeout.current);
-        }
-
-        inputChangeTimeout.current = setTimeout(() => {
-            setNeuroState({
-                //@ts-ignore
-                withdrawSelectedAsset: {
-                    ...neuroState?.withdrawSelectedAsset,
-                    sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-                }
-            })
-        }, INPUT_DELAY); // Adjust delay as needed
+        setNeuroState({
+            //@ts-ignore
+            withdrawSelectedAsset: {
+                ...neuroState?.withdrawSelectedAsset,
+                sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+            }
+        })
     }, [neuroState?.withdrawSelectedAsset, setNeuroState])
+
 
 
     return (<>
@@ -679,22 +640,15 @@ export const NeuroCloseModal = React.memo(({
 
     const maxAmount = debtAmount
 
-    const inputChangeTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        const value = Number(e.target.value);
+        e.preventDefault()
+        const value = Number(e.target.value)
 
-        if (inputChangeTimeout.current) {
-            clearTimeout(inputChangeTimeout.current);
-        }
-
-        inputChangeTimeout.current = setTimeout(() => {
-            setNeuroState({
-                //@ts-ignore
-                closeInputValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-            })
-        }, INPUT_DELAY); // Adjust delay as needed
+        setNeuroState({
+            //@ts-ignore
+            closeInputValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+        })
     }, [neuroState?.closeInputValue, setNeuroState])
 
     const onMaxClick = () => {

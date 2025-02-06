@@ -176,10 +176,10 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
 
   const msgs = queryData?.msgs ?? []
 
-  console.log("bounded msgs:", msgs)
+  // console.log("bounded msgs:", msgs)
 
   const cookie = getCookie("rblp " + address)
-  console.log("cookie RBLP", cookie)
+  // console.log("cookie RBLP", cookie)
 
   const onInitialSuccess = () => {
     if (cookie == null && appState.setCookie && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, quickActionState.rangeBoundLPdeposit.toString(), 3650)

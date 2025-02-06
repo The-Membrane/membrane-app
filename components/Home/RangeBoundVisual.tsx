@@ -60,9 +60,6 @@ const RangeBoundVisual = () => {
   const [hasShownToast, setHasShownToast] = useState(false);
   const { action: set } = useSetUserRBClaims()
 
-  const { data: rewards } = useRBLPRewards()
-  console.log("RBLP rewards", rewards)
-
   const isDisabled = set?.simulate.isError || !set?.simulate.data
   const isLoading = set?.simulate.isLoading || set?.tx.isPending
 

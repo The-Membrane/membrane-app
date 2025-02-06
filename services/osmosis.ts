@@ -107,12 +107,14 @@ export const getCLPositionsForVault = () => {
     const usdcPrice = parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0")
 
     return useQuery({
-        queryKey: ['getCLPositionsForVault', config, prices, cdtPrice],
+        queryKey: ['getCLPositionsForVault', config, prices, cdtPrice, usdcPrice],
         queryFn: async () => {
             if (!config) return;
             const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor }
             const ceilingPosition = await getCLPosition(positions.ceiling.toString())
             const floorPosition = await getCLPosition(positions.floor.toString())
+
+            console.log("ceiling", ceilingPosition, "floor", floorPosition, "prices", cdtPrice, usdcPrice)
 
             //Find ceiling amounts
             const ceilingAmounts = ceilingPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt"

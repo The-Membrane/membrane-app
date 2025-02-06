@@ -15,13 +15,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       res.setHeader('Allow', ['GET']);
       return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
-    const [basket, interest, vaultTVL] = await Promise.all([
+    const [basket, interest, vaultCDT] = await Promise.all([
       getBasket(),
       getCollateralInterest(),
       getBoundedTVL()
     ]);
 
-    if (!basket || !interest || !vaultTVL) {
+    if (!basket || !interest || !vaultCDT) {
       return res.status(500).json({ error: 'Failed to fetch required data.' });
     }
 
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     const apr = num(estimatedRevenue)
       .times(0.80)
-      .dividedBy(vaultTVL)
+      .dividedBy(vaultCDT)
       .toNumber()
 
     return res.status(200).json({

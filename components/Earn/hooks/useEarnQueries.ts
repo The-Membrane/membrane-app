@@ -332,8 +332,8 @@ export const useBoundedCDTBalance = () => {
     })
 }
 
-export const simpleBoundedAPRCalc = (basket: any, interest: CollateralInterestResponse, vaultTVL: any) => {
-    if (!basket || !interest || !vaultTVL) {
+export const simpleBoundedAPRCalc = (basket: any, interest: CollateralInterestResponse, vaultCDT: any) => {
+    if (!basket || !interest || !vaultCDT) {
         return "0"
     }
 
@@ -347,7 +347,7 @@ export const simpleBoundedAPRCalc = (basket: any, interest: CollateralInterestRe
 
     const apr = num(estimatedRevenue)
         .times(0.80)
-        .dividedBy(vaultTVL)
+        .dividedBy(vaultCDT)
         .toString()
 
     return apr

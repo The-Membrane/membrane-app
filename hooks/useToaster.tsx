@@ -28,7 +28,7 @@ export interface ToastPayload {
 }
 
 type ToastProps = {
-  message: JSX.Element
+  message: JSX.Element | string
   title?: string
   chainName?: string
   txHash?: string
@@ -64,7 +64,7 @@ const ToastContent = ({ message, txHash, explorer }: ToastProps) => {
 
   return (
     <VStack alignItems="flex-start" gap={0} paddingTop={"3%"}>
-      {message}
+      {typeof message === "string" ? <span>{message}</span> : message}
       {!!txHash && (
         <Link isExternal href={txLink} style={{ margin: 'unset' }}>
           TxHash: {[first4, last4].join('...')}

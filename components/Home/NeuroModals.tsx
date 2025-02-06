@@ -31,8 +31,11 @@ export const RBLPDepositModal = React.memo(({
 
     //@ts-ignore
     const maxAmount = num(cdtAsset.balance).toNumber()
+    const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
+    const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const onMaxClick = () => {
+        setInputValue(maxAmount)
         setQuickActionState({
             rangeBoundLPdeposit: maxAmount
         })
@@ -42,10 +45,20 @@ export const RBLPDepositModal = React.memo(({
         e.preventDefault()
         const value = Number(e.target.value)
 
-        setQuickActionState({
-            rangeBoundLPdeposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-        })
-    }, [quickActionState?.rangeBoundLPdeposit, setQuickActionState])
+        setInputValue(num(value).isGreaterThan(maxAmount) ? maxAmount : value); // Updates the input value immediately
+
+
+        if (updateTimeout.current) {
+            clearTimeout(updateTimeout.current); // Clears previous timeout
+        }
+
+        updateTimeout.current = setTimeout(() => {
+            setQuickActionState({
+                rangeBoundLPdeposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+            });
+        }, INPUT_DELAY); // Delay before updating the state
+
+    }, [quickActionState?.rangeBoundLPdeposit, setQuickActionState, maxAmount])
 
 
 
@@ -71,7 +84,7 @@ export const RBLPDepositModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(quickActionState?.rangeBoundLPdeposit).times(cdtAsset.price ?? 0).toFixed(2)}
+                                ~${num(inputValue ?? 0).times(cdtAsset.price ?? 0).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -80,7 +93,7 @@ export const RBLPDepositModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={quickActionState?.rangeBoundLPdeposit.toFixed(2)}
+                            value={inputValue}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
@@ -144,7 +157,7 @@ export const RBLPWithdrawModal = React.memo(({
             rangeBoundLPwithdrawal: maxAmount
         })
     }
-    const [inputValue, setInputValue] = useState<number | "">(""); // Tracks user input
+    const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
     const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -162,7 +175,7 @@ export const RBLPWithdrawModal = React.memo(({
                 rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
             });
         }, INPUT_DELAY); // Delay before updating the state
-    }, [setQuickActionState, maxAmount]);
+    }, [quickActionState?.rangeBoundLPwithdrawal, setQuickActionState, maxAmount]);
 
 
 
@@ -257,8 +270,11 @@ export const NeuroOpenModal = React.memo(({
     const minAmount = num(minValue).dividedBy(neuroState?.openSelectedAsset?.price ?? 0).toNumber()
     //@ts-ignore
     const maxAmount = num(neuroState?.openSelectedAsset?.balance).toNumber()
+    const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
+    const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const onMaxClick = () => {
+        setInputValue(maxAmount)
         setNeuroState({
             //@ts-ignore
             openSelectedAsset: {
@@ -268,6 +284,7 @@ export const NeuroOpenModal = React.memo(({
         })
     }
     const onMinClick = () => {
+        setInputValue(minAmount)
         setNeuroState({
             //@ts-ignore
             openSelectedAsset: {
@@ -282,14 +299,24 @@ export const NeuroOpenModal = React.memo(({
         e.preventDefault()
         const value = Number(e.target.value)
 
-        setNeuroState({
-            //@ts-ignore
-            openSelectedAsset: {
-                ...neuroState?.openSelectedAsset,
-                sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-            }
-        })
-    }, [neuroState?.openSelectedAsset, setNeuroState])
+        setInputValue(num(value).isGreaterThan(maxAmount) ? maxAmount : value); // Updates the input value immediately
+
+        if (updateTimeout.current) {
+            clearTimeout(updateTimeout.current); // Clears previous timeout
+        }
+
+
+        updateTimeout.current = setTimeout(() => {
+            setNeuroState({
+                //@ts-ignore
+                openSelectedAsset: {
+                    ...neuroState?.openSelectedAsset,
+                    sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+                }
+            })
+        }, INPUT_DELAY); // Delay before updating the state
+
+    }, [neuroState?.openSelectedAsset, setNeuroState, maxAmount])
 
     return (<>
         {/* <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
@@ -313,7 +340,7 @@ export const NeuroOpenModal = React.memo(({
                                 </Text>
                             </HStack>
                             <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(neuroState?.openSelectedAsset?.sliderValue).times(neuroState?.openSelectedAsset?.price ?? 0).toFixed(2)}
+                                ~${num(inputValue ?? 0).times(neuroState?.openSelectedAsset?.price ?? 0).toFixed(2)}
                             </Text>
                         </HStack>
                         <Input
@@ -322,7 +349,7 @@ export const NeuroOpenModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={neuroState?.openSelectedAsset?.sliderValue?.toFixed(2)}
+                            value={inputValue}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>

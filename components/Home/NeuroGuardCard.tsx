@@ -491,7 +491,6 @@ const NeuroGuardCard = () => {
   const { action: polishIntents } = useNeuroIntentPolish()
   const toaster = useToaster();
   const [hasShownToast, setHasShownToast] = useState(false);
-  const [showAllYields, setShowAllYields] = useState(false);
 
 
   const isDisabled = polishIntents?.simulate.isError || !polishIntents?.simulate.data
@@ -717,14 +716,17 @@ const NeuroGuardCard = () => {
 
 
   // Separate complex sections into components
-  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets, allYield }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[], allYield: boolean }) => {
+  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[] }) => {
+
+    const [showAllYields, setShowAllYields] = useState(false);
+
     return (
       <Stack ref={sectionRef}>
         <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           Your Wallet
         </Text>
         <Checkbox
-          checked={allYield}
+          checked={showAllYields}
           onChange={() => { setShowAllYields(!showAllYields) }}
           fontFamily="Inter"
           fontSize={"9px"}
@@ -760,6 +762,7 @@ const NeuroGuardCard = () => {
                   symbol: basketAsset.asset?.symbol ?? "",
                   logo: basketAsset.asset?.logo ?? "",
                   maxBorrowLTV: basketAsset.maxBorrowLTV,
+                  // @ts-ignore
                   balance: 0,
                   combinUsdValue: num(basketAsset.interestRate).toNumber(),
                 }}
@@ -855,7 +858,7 @@ const NeuroGuardCard = () => {
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
       ) ?
-        <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} allYield={showAllYields} />
+        <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} />
         : null}
 
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) || Number(underlyingCDT) > 0 ?

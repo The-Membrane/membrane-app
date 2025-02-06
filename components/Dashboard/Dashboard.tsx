@@ -122,8 +122,8 @@ const Dashboard = () => {
         <Stack>
             <StatsTitle />
             <Divider mx="0" mb="5" />
-            <ManagementCard basket={basket} />
             <AssetPieChart data={assetData} />
+            <ManagementCard basket={basket} />
         </Stack>
     );
 

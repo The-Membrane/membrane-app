@@ -16,7 +16,7 @@ const RangeBoundInfoCard = ({ RBYield, TVL, scrollFn }: { RBYield: string, TVL: 
     const priceDelta = fixedArray[0]?.price_7d_change ?? 0
 
     return (
-        <Card gap={0} width={"32%"} borderWidth={3} maxWidth="352px" height={"44%"} alignSelf="start" paddingTop={"4"}>
+        <Card gap={0} width={"32%"} borderWidth={3} maxWidth="352px" height={"44%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
             <Stack height="100%" gap={0}>
                 <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Info</Text>
                 <List spacing={3} styleType="disc" padding="6" paddingTop="0">
@@ -28,7 +28,7 @@ const RangeBoundInfoCard = ({ RBYield, TVL, scrollFn }: { RBYield: string, TVL: 
                 <Button onClick={scrollFn} className="flex items-center gap-2" mb={"2%"}>
                     Go to Yield
                 </Button>
-                <Text alignSelf={"center"} marginTop={"auto"} fontFamily="Inter" fontSize="12px">see underlying Osmosis <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a></Text>
+                <Text alignSelf={"center"} marginTop={"auto"} mb={"2%"} fontFamily="Inter" fontSize="12px">see underlying Osmosis <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a></Text>
             </Stack>
         </Card>
     )

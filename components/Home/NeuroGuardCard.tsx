@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent, memo, useRef } from "react"
-import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, Checkbox } from "@chakra-ui/react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
 import { colors, denoms } from "@/config/defaults"
@@ -491,6 +491,7 @@ const NeuroGuardCard = () => {
   const { action: polishIntents } = useNeuroIntentPolish()
   const toaster = useToaster();
   const [hasShownToast, setHasShownToast] = useState(false);
+  const [showAllYields, setShowAllYields] = useState(false);
 
 
   const isDisabled = polishIntents?.simulate.isError || !polishIntents?.simulate.data
@@ -722,6 +723,14 @@ const NeuroGuardCard = () => {
         <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           Your Wallet
         </Text>
+        <Checkbox
+          checked={showAllYields}
+          onChange={() => { setShowAllYields(!showAllYields) }}
+          fontFamily="Inter"
+          fontSize={"9px"}
+        >
+          Show All Yields
+        </Checkbox>
         <HStack gap="9%" p={4}>
           <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             Asset

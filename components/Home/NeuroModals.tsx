@@ -1,4 +1,4 @@
-import React, { ChangeEvent, PropsWithChildren, useCallback } from "react"
+import React, { ChangeEvent, PropsWithChildren, useCallback, useRef, useState } from "react"
 import useNeuroState from "./hooks/useNeuroState"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import { num } from "@/helpers/num"
@@ -16,6 +16,8 @@ import useQuickActionState from "./hooks/useQuickActionState"
 import useBoundedLP from "./hooks/useRangeBoundLP"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import BigNumber from "bignumber.js"
+
+const INPUT_DELAY = 300;
 
 export const RBLPDepositModal = React.memo(({
     isOpen, onClose, cdtAsset, children
@@ -141,15 +143,25 @@ export const RBLPWithdrawModal = React.memo(({
             rangeBoundLPwithdrawal: maxAmount
         })
     }
+    const [inputValue, setInputValue] = useState<number | "">(""); // Tracks user input
+    const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault()
-        const value = Number(e.target.value)
+        e.preventDefault();
+        const value = Number(e.target.value);
 
-        setQuickActionState({
-            rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-        })
-    }, [quickActionState?.rangeBoundLPwithdrawal, setQuickActionState])
+        setInputValue(value); // Updates the input value immediately
+
+        if (updateTimeout.current) {
+            clearTimeout(updateTimeout.current); // Clears previous timeout
+        }
+
+        updateTimeout.current = setTimeout(() => {
+            setQuickActionState({
+                rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+            });
+        }, INPUT_DELAY); // Delay before updating the state
+    }, [setQuickActionState, maxAmount]);
 
 
 
@@ -184,7 +196,7 @@ export const RBLPWithdrawModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={quickActionState?.rangeBoundLPwithdrawal.toFixed(2)}
+                            value={inputValue}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>

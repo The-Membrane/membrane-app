@@ -747,7 +747,7 @@ const NeuroGuardCard = () => {
             Actions
           </Text>
         </HStack>
-        <Stack gap={"1rem"}>{allYield ?
+        <Stack gap={"1rem"}>{showAllYields ?
 
           basketAssets.map((basketAsset) => {
             if (!basketAsset || basketAsset.asset?.symbol === "marsUSDC" || basketAsset.asset?.symbol === "OSMO/USDC.axl LP" || basketAsset.asset?.symbol === "ATOM/OSMO LP") {

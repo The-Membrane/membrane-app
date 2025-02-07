@@ -53,36 +53,39 @@ const RBLPDepositEntry = React.memo(({
 
 
   return (
-    <Card width="100%" borderWidth={3} padding={4}>
-      <HStack gap="9%">
-        <HStack width="25%" justifyContent="left">
-          {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
-          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            {asset.symbol}
+    <>
+      <Card width="100%" borderWidth={3} padding={4}>
+        <HStack gap="9%">
+          <HStack width="25%" justifyContent="left">
+            {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
+            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+              {asset.symbol}
+            </Text>
+          </HStack>
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {/* @ts-ignore */}
+            {num((asset?.balance ?? 0)).toFixed(2)}
           </Text>
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+            {yieldValue}%
+          </Text>
+          <Button
+            width="25%"
+            minWidth={"262px"}
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={() => { toggleOpen() }}
+            isDisabled={isDisabled}
+          >
+            Deposit
+          </Button>
         </HStack>
-        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {/* @ts-ignore */}
-          {num((asset?.balance ?? 0)).toFixed(2)}
-        </Text>
-        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {yieldValue}%
-        </Text>
-        {isOpen && (<RBLPDepositModal isOpen={isOpen} onClose={toggleOpen} cdtAsset={asset} />)}
-        <Button
-          width="25%"
-          minWidth={"262px"}
-          display="flex"
-          padding="0"
-          alignSelf="center"
-          margin="0"
-          onClick={() => { toggleOpen() }}
-          isDisabled={isDisabled}
-        >
-          Deposit
-        </Button>
-      </HStack>
-    </Card >
+      </Card >
+      <RBLPDepositModal isOpen={isOpen} onClose={toggleOpen} cdtAsset={asset} />
+    </>
+
   )
 })
 
@@ -117,38 +120,40 @@ const NeuroGuardOpenEntry = React.memo(({
   // console.log("INFiNITY LOGS", (minAmount - asset?.balance).toFixed(2).toString() === "Infinity", (minAmount - asset?.balance) === Infinity)
 
   return (
-    <Card width="100%" borderWidth={3} padding={4}>
-      <HStack gap="9%">
-        <HStack width="25%" justifyContent="left">
-          {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
-          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            {asset.symbol}
+    <>
+      <Card width="100%" borderWidth={3} padding={4}>
+        <HStack gap="9%">
+          <HStack width="25%" justifyContent="left">
+            {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
+            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+              {asset.symbol}
+            </Text>
+          </HStack>
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {/* @ts-ignore */}
+            {num((asset?.balance ?? 0)).toFixed(2)}
           </Text>
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+            {/* @ts-ignore */}
+            {asset?.default == true ? num(RBYield).times(100).toFixed(1) : yieldValue}%
+          </Text>
+          <Button
+            width="25%"
+            minWidth={"262px"}
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={() => { setNeuroState({ openSelectedAsset: asset }); toggleOpen(); console.log("isOpen?", isOpen) }}
+            isDisabled={isDisabled}
+          >
+            {/* @ts-ignore */}
+            {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2).toString() === "Infinity" ? "___" : (minAmount - asset?.balance).toFixed(2)} more to Deposit` : "Deposit"}
+          </Button>
         </HStack>
-        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {/* @ts-ignore */}
-          {num((asset?.balance ?? 0)).toFixed(2)}
-        </Text>
-        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {/* @ts-ignore */}
-          {asset?.default == true ? num(RBYield).times(100).toFixed(1) : yieldValue}%
-        </Text>
-        {isOpen && (<NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />)}
-        <Button
-          width="25%"
-          minWidth={"262px"}
-          display="flex"
-          padding="0"
-          alignSelf="center"
-          margin="0"
-          onClick={() => { setNeuroState({ openSelectedAsset: asset }); toggleOpen(); console.log("isOpen?", isOpen) }}
-          isDisabled={isDisabled}
-        >
-          {/* @ts-ignore */}
-          {isDisabled ? `Need ${(minAmount - asset?.balance).toFixed(2).toString() === "Infinity" ? "___" : (minAmount - asset?.balance).toFixed(2)} more to Deposit` : "Deposit"}
-        </Button>
-      </HStack>
-    </Card >
+      </Card >
+      <NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />
+    </>
   )
 })
 
@@ -212,57 +217,58 @@ const NeuroGuardExistingEntry = React.memo(({
   const yieldValue = num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toFixed(1)
 
   return (
-    <Card width="100%" borderWidth={3} padding={4}>
-      <HStack gap="9%">
-        <HStack width="20%" justifyContent="left">
-          {guardedPosition.image ? <Image src={guardedPosition.image} w="30px" h="30px" /> : null}
-          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            {guardedPosition.symbol}
+    <>
+      <Card width="100%" borderWidth={3} padding={4}>
+        <HStack gap="9%">
+          <HStack width="20%" justifyContent="left">
+            {guardedPosition.image ? <Image src={guardedPosition.image} w="30px" h="30px" /> : null}
+            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+              {guardedPosition.symbol}
+            </Text>
+          </HStack>
+          <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {guardedPosition.amount.toFixed(2)}
           </Text>
+          <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+            {yieldValue}%
+          </Text>
+          <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(guardedPosition.amount).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
+          </Text>
+          <HStack width={"36%"}>
+            <Button
+              width="50%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={() => {
+                toggleDepositOpen();
+                setNeuroState({ depositSelectedAsset: asset });
+              }}
+              isDisabled={isDisabled}
+            >
+              Deposit
+            </Button>
+            <Button
+              width="50%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={() => { toggleWithdrawOpen(); setNeuroState({ withdrawSelectedAsset: asset }); }}
+              isDisabled={guardedPosition.symbol == "N/A" ? true : false}
+            >
+              Withdraw
+            </Button>
+          </HStack>
         </HStack>
-        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {guardedPosition.amount.toFixed(2)}
-        </Text>
-        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {yieldValue}%
-        </Text>
-        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(guardedPosition.amount).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
-        </Text>
-        <HStack width={"36%"}>
-          <Button
-            width="50%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={() => {
-              toggleDepositOpen();
-              setNeuroState({ depositSelectedAsset: asset });
-            }}
-            isDisabled={isDisabled}
-          >
-            Deposit
-          </Button>
-          {isDepositOpen && (
-            <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
-          )}
+      </Card>
 
-          {isWithdrawOpen && (<NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} prices={prices} />)}
-          <Button
-            width="50%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={() => { toggleWithdrawOpen(); setNeuroState({ withdrawSelectedAsset: asset }); }}
-            isDisabled={guardedPosition.symbol == "N/A" ? true : false}
-          >
-            Withdraw
-          </Button>
-        </HStack>
-      </HStack>
-    </Card>
+      <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
+      <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} prices={prices} />
+
+    </>
   )
 })
 
@@ -322,54 +328,58 @@ const RBLPExistingEntry = React.memo(({
   const yieldValue = num(RBYield).times(100).toFixed(1)
 
   return (
-    <Card width="100%" borderWidth={3} padding={4}>
-      <HStack gap="9%">
-        <HStack width="20%" justifyContent="left">
-          <Image src={"/images/cdt.svg"} w="30px" h="30px" />
-          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            CDT
+    <>
+      <Card width="100%" borderWidth={3} padding={4}>
+        <HStack gap="9%">
+          <HStack width="20%" justifyContent="left">
+            <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+              CDT
+            </Text>
+          </HStack>
+          <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {rblpDeposit.toFixed(2)}
           </Text>
-        </HStack>
-        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {rblpDeposit.toFixed(2)}
-        </Text>
-        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {yieldValue}%
-        </Text>
-        <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
-        </Text>
-        <HStack width={"36%"}>
-          {/* @ts-ignore */}
-          {isDepositOpen && (<RBLPDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} cdtAsset={asset} />)}
-          <Button
-            width="50%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={() => { toggleDepositOpen(); setQuickActionState({ rangeBoundLPwithdrawal: 0 }) }}
-            //@ts-ignore
-            isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
-          >
-            Deposit
-          </Button>
+          <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+            {yieldValue}%
+          </Text>
+          <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
+          </Text>
+          <HStack width={"36%"}>
+            {/* @ts-ignore */}
+            <Button
+              width="50%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={() => { toggleDepositOpen(); setQuickActionState({ rangeBoundLPwithdrawal: 0 }) }}
+              //@ts-ignore
+              isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
+            >
+              Deposit
+            </Button>
 
-          {isWithdrawOpen && (<RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtMarketPrice={cdtMarketPrice} rblpDeposit={rblpDeposit} />)}
-          <Button
-            width="50%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={() => { toggleWithdrawOpen(); setQuickActionState({ rangeBoundLPdeposit: 0 }) }}
-            isDisabled={isDisabled || rblpDeposit === 0}
-          >
-            Withdraw
-          </Button>
+            <Button
+              width="50%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={() => { toggleWithdrawOpen(); setQuickActionState({ rangeBoundLPdeposit: 0 }) }}
+              isDisabled={isDisabled || rblpDeposit === 0}
+            >
+              Withdraw
+            </Button>
+          </HStack>
         </HStack>
-      </HStack>
-    </Card>
+      </Card>
+      {/* @ts-ignore */}
+      <RBLPDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} cdtAsset={asset} />
+      <RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtMarketPrice={cdtMarketPrice} rblpDeposit={rblpDeposit} />
+
+    </>
   )
 })
 
@@ -410,46 +420,49 @@ const VaultEntry = React.memo(({
 
 
   return (
-    <Card width="100%" borderWidth={3} padding={4}>
-      <HStack gap="9%">
-        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {positionNumber == 0 ? "N/A" : `$${tvl.toFixed(2)}`}
-        </Text>
-        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-          {positionNumber == 0 ? "N/A" : `${debtAmount.toFixed(0)} CDT`}
-        </Text>
-        <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-          {Math.min(health, 100) == -Infinity ? "N/A" : `${Math.min(health, 100)}%`}
-        </Text>
-        <HStack width={"25%"}>
-          <Button
-            width={"50%"}
-            as={NextLink}
-            href={'/mint'}
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            isDisabled={false}
-            onClick={() => { setMintState({ positionNumber }) }}
-          >
-            {positionNumber == 0 ? "Create" : "Edit"}
-          </Button>
-          {isCloseOpen && (<NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />)}
-          <Button
-            width="50%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={toggleCloseOpen}
-            isDisabled={positionNumber == 0 ? true : false}
-          >
-            Close
-          </Button>
+    <>
+      <Card width="100%" borderWidth={3} padding={4}>
+        <HStack gap="9%">
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {positionNumber == 0 ? "N/A" : `$${tvl.toFixed(2)}`}
+          </Text>
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {positionNumber == 0 ? "N/A" : `${debtAmount.toFixed(0)} CDT`}
+          </Text>
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+            {Math.min(health, 100) == -Infinity ? "N/A" : `${Math.min(health, 100)}%`}
+          </Text>
+          <HStack width={"25%"}>
+            <Button
+              width={"50%"}
+              as={NextLink}
+              href={'/mint'}
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              isDisabled={false}
+              onClick={() => { setMintState({ positionNumber }) }}
+            >
+              {positionNumber == 0 ? "Create" : "Edit"}
+            </Button>
+            <Button
+              width="50%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={toggleCloseOpen}
+              isDisabled={positionNumber == 0 ? true : false}
+            >
+              Close
+            </Button>
+          </HStack>
         </HStack>
-      </HStack>
-    </Card>
+      </Card>
+      <NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
+
+    </>
   )
 })
 

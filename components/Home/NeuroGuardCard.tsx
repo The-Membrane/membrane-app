@@ -147,7 +147,7 @@ const NeuroGuardOpenEntry = React.memo(({
             padding="0"
             alignSelf="center"
             margin="0"
-            onClick={() => { setNeuroState({ openSelectedAsset: asset }); onOpen() }}
+            onClick={() => { onOpen(); setNeuroState({ openSelectedAsset: asset }); }}
             isDisabled={isDisabled}
           >
             {/* @ts-ignore */}

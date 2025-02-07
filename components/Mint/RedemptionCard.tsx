@@ -1,12 +1,11 @@
 import { HStack, Stack, Button, Card, Text, Modal, ModalOverlay, useDisclosure } from '@chakra-ui/react'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import { RedemptionDepositModal, RedemptionWithdrawModal } from './MintModals'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { useUserPositions, useUserRemptionInfo } from '@/hooks/useCDP'
 import useMintState from './hooks/useMintState'
-import { num } from '@/helpers/num'
 import { shiftDigits } from '@/helpers/math'
 
 const RedemptionCard = () => {

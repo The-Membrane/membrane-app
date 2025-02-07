@@ -1,7 +1,7 @@
 import React, { ChangeEvent, PropsWithChildren, useCallback, useMemo } from "react"
 import { num } from "@/helpers/num"
 import { TxButton } from "../TxButton"
-import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, Checkbox } from "@chakra-ui/react"
+import { Text, Stack, HStack, Button, Image, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input } from "@chakra-ui/react"
 import { parseError } from "@/helpers/parseError"
 import { colors } from "@/config/defaults"
 import useRedemptionState from "./hooks/useRedemptionState"

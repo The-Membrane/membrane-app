@@ -21,6 +21,7 @@ const collateralSupplyCapErrors = () => {
 
 export const parseError = (error: string) => {
   var customErrors = [
+    { regex: /Unexpected token '<'/i, message: 'RPC bug, please refresh.' },
     { regex: /insufficient funds/i, message: 'Insufficient funds' },
     { regex: /overflow: cannot sub with/i, message: 'Insufficient funds' },
     { regex: /max spread assertion/i, message: 'Try increasing slippage' },

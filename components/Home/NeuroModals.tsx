@@ -67,74 +67,71 @@ export const RBLPDepositModal = React.memo(({
             {children}
         </Button> */}
 
-        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
-            <ModalOverlay />
-            <ModalContent maxW="400px">
-                <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
-                </ModalHeader>
-                <ModalCloseButton />
-                <ModalBody pb="5">
-                    <Stack>
-                        <HStack width="100%" justifyContent="left">
-                            <HStack width="75%">
-                                {cdtAsset.logo ? <Image src={cdtAsset.logo} w="30px" h="30px" /> : null}
-                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {cdtAsset.symbol}
-                                </Text>
-                            </HStack>
-                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(inputValue ?? 0).times(cdtAsset.price ?? 0).toFixed(2)}
+        <ModalContent maxW="400px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            {cdtAsset.logo ? <Image src={cdtAsset.logo} w="30px" h="30px" /> : null}
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                {cdtAsset.symbol}
                             </Text>
                         </HStack>
-                        <Input
-                            width={"100%"}
-                            textAlign={"right"}
-                            placeholder="0"
-                            type="number"
-                            variant={"ghost"}
-                            value={inputValue}
-                            onChange={onInputChange}
-                        />
-                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                            <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
-                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    max
-                                </Text>
-                            </Button>
-                        </HStack>
-                    </Stack>
-                </ModalBody>
-                {(
-                    <ModalFooter
-                        as={Stack}
-                        justifyContent="end"
-                        borderTop="1px solid"
-                        borderColor="whiteAlpha.200"
-                        pt="5"
-                        gap="5"
-                    >
-
-
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(quickActionState?.rangeBoundLPdeposit).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                        <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                            ~${num(inputValue ?? 0).times(cdtAsset.price ?? 0).toFixed(2)}
                         </Text>
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={inputValue}
+                        onChange={onInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                        <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
 
 
-                        <TxButton
-                            w="100%"
-                            isLoading={isLoading}
-                            isDisabled={isDisabled}
-                            onClick={() => rblp?.tx.mutate()}
-                            toggleConnectLabel={false}
-                            style={{ alignSelf: "center" }}
-                        >
-                            Deposit into The Membrane
-                        </TxButton>
-                    </ModalFooter>
-                )}
-            </ModalContent>
-        </Modal>
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError(num(quickActionState?.rangeBoundLPdeposit).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+
+                    <TxButton
+                        w="100%"
+                        isLoading={isLoading}
+                        isDisabled={isDisabled}
+                        onClick={() => rblp?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Deposit into The Membrane
+                    </TxButton>
+                </ModalFooter>
+            )}
+        </ModalContent>
     </>)
 })
 
@@ -184,74 +181,71 @@ export const RBLPWithdrawModal = React.memo(({
             {children}
         </Button> */}
 
-        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
-            <ModalOverlay />
-            <ModalContent maxW="400px">
-                <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Withdraw</Text>
-                </ModalHeader>
-                <ModalCloseButton />
-                <ModalBody pb="5">
-                    <Stack>
-                        <HStack width="100%" justifyContent="left">
-                            <HStack width="75%">
-                                <Image src={"/images/cdt.svg"} w="30px" h="30px" />
-                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    CDT
-                                </Text>
-                            </HStack>
-                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(inputValue).times(cdtMarketPrice).toFixed(2)}
+        <ModalContent maxW="400px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Withdraw</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                CDT
                             </Text>
                         </HStack>
-                        <Input
-                            width={"100%"}
-                            textAlign={"right"}
-                            placeholder="0"
-                            type="number"
-                            variant={"ghost"}
-                            value={inputValue}
-                            onChange={onInputChange}
-                        />
-                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                            <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
-                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    max
-                                </Text>
-                            </Button>
-                        </HStack>
-                    </Stack>
-                </ModalBody>
-                {(
-                    <ModalFooter
-                        as={Stack}
-                        justifyContent="end"
-                        borderTop="1px solid"
-                        borderColor="whiteAlpha.200"
-                        pt="5"
-                        gap="5"
-                    >
-
-
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(quickActionState?.rangeBoundLPwithdrawal).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                        <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                            ~${num(inputValue).times(cdtMarketPrice).toFixed(2)}
                         </Text>
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={inputValue}
+                        onChange={onInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                        <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
 
 
-                        <TxButton
-                            w="100%"
-                            isLoading={isLoading}
-                            isDisabled={isDisabled}
-                            onClick={() => rblp?.tx.mutate()}
-                            toggleConnectLabel={false}
-                            style={{ alignSelf: "center" }}
-                        >
-                            Withdraw from The Membrane
-                        </TxButton>
-                    </ModalFooter>
-                )}
-            </ModalContent>
-        </Modal>
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError(num(quickActionState?.rangeBoundLPwithdrawal).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+
+                    <TxButton
+                        w="100%"
+                        isLoading={isLoading}
+                        isDisabled={isDisabled}
+                        onClick={() => rblp?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Withdraw from The Membrane
+                    </TxButton>
+                </ModalFooter>
+            )}
+        </ModalContent>
     </>)
 })
 
@@ -323,79 +317,76 @@ export const NeuroOpenModal = React.memo(({
             {children}
         </Button> */}
 
-        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
-            <ModalOverlay />
-            <ModalContent maxW="400px">
-                <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
-                </ModalHeader>
-                <ModalCloseButton />
-                <ModalBody pb="5">
-                    <Stack>
-                        <HStack width="100%" justifyContent="left">
-                            <HStack width="75%">
-                                {neuroState?.openSelectedAsset?.logo ? <Image src={neuroState?.openSelectedAsset?.logo} w="30px" h="30px" /> : null}
-                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {neuroState?.openSelectedAsset?.symbol}
-                                </Text>
-                            </HStack>
-                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(inputValue ?? 0).times(neuroState?.openSelectedAsset?.price ?? 0).toFixed(2)}
+        <ModalContent maxW="400px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            {neuroState?.openSelectedAsset?.logo ? <Image src={neuroState?.openSelectedAsset?.logo} w="30px" h="30px" /> : null}
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                {neuroState?.openSelectedAsset?.symbol}
                             </Text>
                         </HStack>
-                        <Input
-                            width={"100%"}
-                            textAlign={"right"}
-                            placeholder="0"
-                            type="number"
-                            variant={"ghost"}
-                            value={inputValue}
-                            onChange={onInputChange}
-                        />
-                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-
-                            <Button onClick={onMinClick} width="10%" variant="unstyled" fontWeight="normal">
-                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    min
-                                </Text>
-                            </Button>
-                            <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
-                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    max
-                                </Text>
-                            </Button>
-                        </HStack>
-                    </Stack>
-                </ModalBody>
-                {(
-                    <ModalFooter
-                        as={Stack}
-                        justifyContent="end"
-                        borderTop="1px solid"
-                        borderColor="whiteAlpha.200"
-                        pt="5"
-                        gap="5"
-                    >
-
-
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(neuroState?.openSelectedAsset?.sliderValue).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                        <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                            ~${num(inputValue ?? 0).times(neuroState?.openSelectedAsset?.price ?? 0).toFixed(2)}
                         </Text>
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={inputValue}
+                        onChange={onInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
 
-                        <TxButton
-                            w="100%"
-                            isLoading={isLoading}
-                            isDisabled={isDisabled}
-                            onClick={() => rblp?.tx.mutate()}
-                            toggleConnectLabel={false}
-                            style={{ alignSelf: "center" }}
-                        >
-                            Open Loan for Passive Yield
-                        </TxButton>
-                    </ModalFooter>
-                )}
-            </ModalContent>
-        </Modal>
+                        <Button onClick={onMinClick} width="10%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                min
+                            </Text>
+                        </Button>
+                        <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
+
+
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError(num(neuroState?.openSelectedAsset?.sliderValue).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+                    <TxButton
+                        w="100%"
+                        isLoading={isLoading}
+                        isDisabled={isDisabled}
+                        onClick={() => rblp?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Open Loan for Passive Yield
+                    </TxButton>
+                </ModalFooter>
+            )}
+        </ModalContent>
     </>)
 })
 
@@ -458,74 +449,71 @@ export const NeuroDepositModal = React.memo(({
             {children}
         </Button> */}
 
-        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
-            <ModalOverlay />
-            <ModalContent maxW="400px">
-                <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
-                </ModalHeader>
-                <ModalCloseButton />
-                <ModalBody pb="5">
-                    <Stack>
-                        <HStack width="100%" justifyContent="left">
-                            <HStack width="75%">
-                                {neuroState?.depositSelectedAsset?.logo ? <Image src={neuroState?.depositSelectedAsset?.logo} w="30px" h="30px" /> : null}
-                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {neuroState?.depositSelectedAsset?.symbol}
-                                </Text>
-                            </HStack>
-                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(inputValue).times(neuroState?.depositSelectedAsset?.price ?? 0).toFixed(2)}
+        <ModalContent maxW="400px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            {neuroState?.depositSelectedAsset?.logo ? <Image src={neuroState?.depositSelectedAsset?.logo} w="30px" h="30px" /> : null}
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                {neuroState?.depositSelectedAsset?.symbol}
                             </Text>
                         </HStack>
-                        <Input
-                            width={"100%"}
-                            textAlign={"right"}
-                            placeholder="0"
-                            type="number"
-                            variant={"ghost"}
-                            value={inputValue}
-                            onChange={onInputChange}
-                        />
-                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                            <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
-                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    max
-                                </Text>
-                            </Button>
-                        </HStack>
-                    </Stack>
-                </ModalBody>
-                {(
-                    <ModalFooter
-                        as={Stack}
-                        justifyContent="end"
-                        borderTop="1px solid"
-                        borderColor="whiteAlpha.200"
-                        pt="5"
-                        gap="5"
-                    >
-
-
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(neuroState?.depositSelectedAsset?.sliderValue).isGreaterThan(0) && existingNeuro.simulate.isError ? existingNeuro.simulate.error?.message ?? "" : "")}
+                        <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                            ~${num(inputValue).times(neuroState?.depositSelectedAsset?.price ?? 0).toFixed(2)}
                         </Text>
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={inputValue}
+                        onChange={onInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                        <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
 
 
-                        <TxButton
-                            w="100%"
-                            isLoading={isLoading}
-                            isDisabled={isDisabled}
-                            onClick={() => existingNeuro?.tx.mutate()}
-                            toggleConnectLabel={false}
-                            style={{ alignSelf: "center" }}
-                        >
-                            Add to Guardian
-                        </TxButton>
-                    </ModalFooter>
-                )}
-            </ModalContent>
-        </Modal>
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError(num(neuroState?.depositSelectedAsset?.sliderValue).isGreaterThan(0) && existingNeuro.simulate.isError ? existingNeuro.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+
+                    <TxButton
+                        w="100%"
+                        isLoading={isLoading}
+                        isDisabled={isDisabled}
+                        onClick={() => existingNeuro?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Add to Guardian
+                    </TxButton>
+                </ModalFooter>
+            )}
+        </ModalContent>
     </>)
 })
 
@@ -600,85 +588,82 @@ export const NeuroWithdrawModal = React.memo(({
             {children}
         </Button> */}
 
-        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
-            <ModalOverlay />
-            <ModalContent maxW="400px">
-                <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Withdraw</Text>
-                </ModalHeader>
-                <ModalCloseButton />
-                <ModalBody pb="5">
-                    <Stack>
-                        <HStack width="100%" justifyContent="left">
-                            <HStack width="75%">
-                                {guardedPosition?.image ? <Image src={guardedPosition.image} w="30px" h="30px" /> : null}
-                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    {guardedPosition.symbol}
-                                </Text>
-                            </HStack>
-                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(inputValue).times(assetPrice).toFixed(2)}
+        <ModalContent maxW="400px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Withdraw</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            {guardedPosition?.image ? <Image src={guardedPosition.image} w="30px" h="30px" /> : null}
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                {guardedPosition.symbol}
                             </Text>
                         </HStack>
-                        <Input
-                            width={"100%"}
-                            textAlign={"right"}
-                            placeholder="0"
-                            type="number"
-                            variant={"ghost"}
-                            value={inputValue}
-                            onChange={onInputChange}
-                        />
-                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                            <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
-                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    max
-                                </Text>
-                            </Button>
-                        </HStack>
-                    </Stack>
-                </ModalBody>
-                {(
-                    <ModalFooter
-                        as={Stack}
-                        justifyContent="end"
-                        borderTop="1px solid"
-                        borderColor="whiteAlpha.200"
-                        pt="5"
-                        gap="5"
-                    >
-
-
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(neuroState?.withdrawSelectedAsset?.sliderValue).isGreaterThan(0) && sheathe.simulate.isError ? sheathe.simulate.error?.message ?? "" : "")}
+                        <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                            ~${num(inputValue).times(assetPrice).toFixed(2)}
                         </Text>
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={inputValue}
+                        onChange={onInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                        <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
 
-                        <Stack>
-                            <TxButton
-                                w="100%"
-                                isLoading={isLoading}
-                                isDisabled={isDisabled}
-                                onClick={() => sheathe?.tx.mutate()}
-                                toggleConnectLabel={false}
-                                style={{ alignSelf: "center" }}
-                            >
-                                Withdraw from Guardian
-                            </TxButton>
-                            <TxButton
-                                w="100%"
-                                isLoading={isLedgerLoading}
-                                isDisabled={isLedgerDisabled}
-                                onClick={() => ledgerSheathe?.tx.mutate()}
-                                toggleConnectLabel={false}
-                                style={{ alignSelf: "center" }}
-                            >
-                                Withdraw with Ledger
-                            </TxButton>
-                        </Stack>
-                    </ModalFooter>
-                )}
-            </ModalContent>
-        </Modal>
+
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError(num(neuroState?.withdrawSelectedAsset?.sliderValue).isGreaterThan(0) && sheathe.simulate.isError ? sheathe.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+                    <Stack>
+                        <TxButton
+                            w="100%"
+                            isLoading={isLoading}
+                            isDisabled={isDisabled}
+                            onClick={() => sheathe?.tx.mutate()}
+                            toggleConnectLabel={false}
+                            style={{ alignSelf: "center" }}
+                        >
+                            Withdraw from Guardian
+                        </TxButton>
+                        <TxButton
+                            w="100%"
+                            isLoading={isLedgerLoading}
+                            isDisabled={isLedgerDisabled}
+                            onClick={() => ledgerSheathe?.tx.mutate()}
+                            toggleConnectLabel={false}
+                            style={{ alignSelf: "center" }}
+                        >
+                            Withdraw with Ledger
+                        </TxButton>
+                    </Stack>
+                </ModalFooter>
+            )}
+        </ModalContent>
     </>)
 })
 
@@ -734,72 +719,69 @@ export const NeuroCloseModal = React.memo(({
             {children}
         </Button> */}
 
-        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
-            <ModalOverlay />
-            <ModalContent maxW="400px">
-                <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Debt to Repay</Text>
-                </ModalHeader>
-                <ModalCloseButton />
-                <ModalBody pb="5">
-                    <Stack>
-                        <HStack width="100%" justifyContent="left">
-                            <HStack width="75%">
-                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    Position {positionNumber}
-                                </Text>
-                            </HStack>
-                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(inputValue).times(cdtMarketPrice).toFixed(2)}
+        <ModalContent maxW="400px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Debt to Repay</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                Position {positionNumber}
                             </Text>
                         </HStack>
-                        <Input
-                            width={"100%"}
-                            textAlign={"right"}
-                            placeholder="0"
-                            type="number"
-                            variant={"ghost"}
-                            value={inputValue}
-                            onChange={onInputChange}
-                        />
-                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                            <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
-                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    max
-                                </Text>
-                            </Button>
-                        </HStack>
-                    </Stack>
-                </ModalBody>
-                {(
-                    <ModalFooter
-                        as={Stack}
-                        justifyContent="end"
-                        borderTop="1px solid"
-                        borderColor="whiteAlpha.200"
-                        pt="5"
-                        gap="5"
-                    >
-
-
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError((num(neuroState?.closeInputValue).isGreaterThan(0) || debtAmount == 0) && close.simulate.isError ? close.simulate.error?.message ?? "" : "")}
+                        <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                            ~${num(inputValue).times(cdtMarketPrice).toFixed(2)}
                         </Text>
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={inputValue}
+                        onChange={onInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                        <Button onClick={onMaxClick} width="10%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
 
 
-                        <TxButton
-                            w="100%"
-                            isLoading={isLoading}
-                            isDisabled={isDisabled}
-                            onClick={() => close?.tx.mutate()}
-                            toggleConnectLabel={false}
-                            style={{ alignSelf: "center" }}
-                        >
-                            {debtAmount == 0 ? "Withdraw All Collateral" : "Sell Collateral to Repay Debt"}
-                        </TxButton>
-                    </ModalFooter>
-                )}
-            </ModalContent>
-        </Modal>
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError((num(neuroState?.closeInputValue).isGreaterThan(0) || debtAmount == 0) && close.simulate.isError ? close.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+
+                    <TxButton
+                        w="100%"
+                        isLoading={isLoading}
+                        isDisabled={isDisabled}
+                        onClick={() => close?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        {debtAmount == 0 ? "Withdraw All Collateral" : "Sell Collateral to Repay Debt"}
+                    </TxButton>
+                </ModalFooter>
+            )}
+        </ModalContent>
     </>)
 })

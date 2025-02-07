@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, PropsWithChildren, ChangeEvent, memo, useRef } from "react"
-import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, Checkbox } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Button, List, ListItem, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, Checkbox, useDisclosure } from "@chakra-ui/react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
 import { colors, denoms } from "@/config/defaults"
@@ -40,11 +40,8 @@ const RBLPDepositEntry = React.memo(({
   asset: AssetWithBalance
   RBYield: string
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
 
-  const toggleOpen = useCallback(() => {
-    setIsOpen(prev => !prev)
-  }, [])
+  const { isOpen, onOpen, onClose } = useDisclosure()
 
   {/* @ts-ignore */ }
   const isDisabled = false
@@ -76,14 +73,28 @@ const RBLPDepositEntry = React.memo(({
             padding="0"
             alignSelf="center"
             margin="0"
-            onClick={() => { toggleOpen() }}
+            onClick={onOpen}
             isDisabled={isDisabled}
           >
             Deposit
           </Button>
         </HStack>
       </Card >
-      <RBLPDepositModal isOpen={isOpen} onClose={toggleOpen} cdtAsset={asset} />
+
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        <RBLPDepositModal
+          isOpen={isOpen}
+          onClose={onClose}
+          cdtAsset={asset}
+        />
+      </Modal>
     </>
 
   )
@@ -101,11 +112,7 @@ const NeuroGuardOpenEntry = React.memo(({
   basketAssets: BasketAsset[]
 }) => {
   const { setNeuroState } = useNeuroState()
-  const [isOpen, setIsOpen] = useState(false)
-
-  const toggleOpen = useCallback(() => {
-    setIsOpen(prev => !prev)
-  }, [])
+  const { isOpen, onOpen, onClose } = useDisclosure()
 
   const minValue = ((21 / ((asset.maxBorrowLTV ?? 0) * 0.8)) + 1)
   const minAmount = num(minValue).dividedBy(asset.price ?? 0).toNumber()
@@ -144,7 +151,7 @@ const NeuroGuardOpenEntry = React.memo(({
             padding="0"
             alignSelf="center"
             margin="0"
-            onClick={() => { setNeuroState({ openSelectedAsset: asset }); toggleOpen(); console.log("isOpen?", isOpen) }}
+            onClick={() => { setNeuroState({ openSelectedAsset: asset }); onOpen() }}
             isDisabled={isDisabled}
           >
             {/* @ts-ignore */}
@@ -152,7 +159,21 @@ const NeuroGuardOpenEntry = React.memo(({
           </Button>
         </HStack>
       </Card >
-      <NeuroOpenModal isOpen={isOpen} onClose={toggleOpen} asset={asset?.base} />
+
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        <NeuroOpenModal
+          isOpen={isOpen}
+          onClose={onClose}
+          asset={asset?.base}
+        />
+      </Modal>
     </>
   )
 })
@@ -200,16 +221,9 @@ const NeuroGuardExistingEntry = React.memo(({
 
   // console.log("initialDepositAmount", initialDepositAmount)
 
-  const [isDepositOpen, setIsDepositOpen] = useState(false)
-  const toggleDepositOpen = useCallback(() => {
-    setIsDepositOpen(prev => !prev)
-  }, [])
 
-
-  const [isWithdrawOpen, setIsWithdrawOpenOpen] = useState(false)
-  const toggleWithdrawOpen = useCallback(() => {
-    setIsWithdrawOpenOpen(prev => !prev)
-  }, [])
+  const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure()
+  const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure()
 
   {/* @ts-ignore */ }
   const isDisabled = (asset?.balance ?? 0) === 0 || guardedPosition.symbol === "N/A"
@@ -243,7 +257,7 @@ const NeuroGuardExistingEntry = React.memo(({
               alignSelf="center"
               margin="0"
               onClick={() => {
-                toggleDepositOpen();
+                onDepositOpen();
                 setNeuroState({ depositSelectedAsset: asset });
               }}
               isDisabled={isDisabled}
@@ -256,7 +270,10 @@ const NeuroGuardExistingEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => { toggleWithdrawOpen(); setNeuroState({ withdrawSelectedAsset: asset }); }}
+              onClick={() => {
+                onWithdrawOpen();
+                setNeuroState({ withdrawSelectedAsset: asset });
+              }}
               isDisabled={guardedPosition.symbol == "N/A" ? true : false}
             >
               Withdraw
@@ -265,8 +282,28 @@ const NeuroGuardExistingEntry = React.memo(({
         </HStack>
       </Card>
 
-      <NeuroDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
-      <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} guardedPosition={guardedPosition} prices={prices} />
+      <Modal
+        isOpen={isDepositOpen}
+        onClose={onDepositClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        <NeuroDepositModal isOpen={isDepositOpen} onClose={onDepositClose} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
+
+      </Modal>
+      <Modal
+        isOpen={isWithdrawOpen}
+        onClose={onWithdrawClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={onWithdrawClose} guardedPosition={guardedPosition} prices={prices} />
+
+      </Modal>
 
     </>
   )
@@ -311,16 +348,10 @@ const RBLPExistingEntry = React.memo(({
 
   // console.log("initialDepositAmount", initialDepositAmount)
 
-  const [isDepositOpen, setIsDepositOpen] = useState(false)
-  const toggleDepositOpen = useCallback(() => {
-    setIsDepositOpen(prev => !prev)
-  }, [])
 
+  const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure()
+  const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure()
 
-  const [isWithdrawOpen, setIsWithdrawOpenOpen] = useState(false)
-  const toggleWithdrawOpen = useCallback(() => {
-    setIsWithdrawOpenOpen(prev => !prev)
-  }, [])
 
   {/* @ts-ignore */ }
   const isDisabled = (asset?.symbol === "N/A") || false
@@ -354,7 +385,7 @@ const RBLPExistingEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => { toggleDepositOpen(); setQuickActionState({ rangeBoundLPwithdrawal: 0 }) }}
+              onClick={() => { onDepositOpen(); setQuickActionState({ rangeBoundLPwithdrawal: 0 }) }}
               //@ts-ignore
               isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
             >
@@ -367,7 +398,7 @@ const RBLPExistingEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => { toggleWithdrawOpen(); setQuickActionState({ rangeBoundLPdeposit: 0 }) }}
+              onClick={() => { onWithdrawOpen(); setQuickActionState({ rangeBoundLPdeposit: 0 }) }}
               isDisabled={isDisabled || rblpDeposit === 0}
             >
               Withdraw
@@ -375,9 +406,30 @@ const RBLPExistingEntry = React.memo(({
           </HStack>
         </HStack>
       </Card>
-      {/* @ts-ignore */}
-      <RBLPDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} cdtAsset={asset} />
-      <RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} cdtMarketPrice={cdtMarketPrice} rblpDeposit={rblpDeposit} />
+
+      <Modal
+        isOpen={isDepositOpen}
+        onClose={onDepositClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        {/* @ts-ignore */}
+        <RBLPDepositModal isOpen={isDepositOpen} onClose={onWithdrawOpen} cdtAsset={asset} />
+
+      </Modal>
+      <Modal
+        isOpen={isWithdrawOpen}
+        onClose={onWithdrawClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        <RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={onWithdrawClose} cdtMarketPrice={cdtMarketPrice} rblpDeposit={rblpDeposit} />
+
+      </Modal>
 
     </>
   )
@@ -413,10 +465,7 @@ const VaultEntry = React.memo(({
   }, [ltv, liqudationLTV])
 
 
-  const [isCloseOpen, setIsCloseOpen] = useState(false)
-  const toggleCloseOpen = useCallback(() => {
-    setIsCloseOpen(prev => !prev)
-  }, [])
+  const { isOpen, onOpen, onClose } = useDisclosure()
 
 
   return (
@@ -452,7 +501,7 @@ const VaultEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={toggleCloseOpen}
+              onClick={onOpen}
               isDisabled={positionNumber == 0 ? true : false}
             >
               Close
@@ -460,7 +509,17 @@ const VaultEntry = React.memo(({
           </HStack>
         </HStack>
       </Card>
-      <NeuroCloseModal isOpen={isCloseOpen} onClose={toggleCloseOpen} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        <NeuroCloseModal isOpen={isOpen} onClose={onClose} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
+
+      </Modal>
 
     </>
   )

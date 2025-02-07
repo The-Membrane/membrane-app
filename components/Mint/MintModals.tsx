@@ -57,95 +57,92 @@ export const RedemptionDepositModal = React.memo(({
             {children}
         </Button> */}
 
-        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
-            <ModalOverlay />
-            <ModalContent maxW="500px">
-                <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
-                </ModalHeader>
-                <ModalCloseButton />
-                <ModalBody pb="5">
+        <ModalContent maxW="500px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
                     <Stack>
-                        <Stack>
-                            <HStack width="100%" justifyContent="left">
-                                <HStack width="75%">
-                                    {usdcAsset.logo ? <Image src={usdcAsset.logo} w="30px" h="30px" /> : null}
-                                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                        {usdcAsset.symbol}
-                                    </Text>
-                                </HStack>
-                                <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                    ~${num(redemptionState?.deposit).times(usdcAsset.price ?? 0).toFixed(2)}
+                        <HStack width="100%" justifyContent="left">
+                            <HStack width="75%">
+                                {usdcAsset.logo ? <Image src={usdcAsset.logo} w="30px" h="30px" /> : null}
+                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                    {usdcAsset.symbol}
                                 </Text>
                             </HStack>
-                            <Input
-                                width={"100%"}
-                                textAlign={"right"}
-                                placeholder="0"
-                                type="number"
-                                variant={"ghost"}
-                                value={redemptionState?.deposit.toFixed(2)}
-                                onChange={onInputChange}
-                            />
-                            <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                                <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
-                                    <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                        max
-                                    </Text>
-                                </Button>
-                            </HStack>
-                        </Stack>
-
-                        <Stack>
-                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                What price did you sell CDT? Set to 1.00 if you haven't sold any.
+                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                                ~${num(redemptionState?.deposit).times(usdcAsset.price ?? 0).toFixed(2)}
                             </Text>
-                            <a href="https://app.osmosis.zone/transactions" style={{ textAlign: "center", justifyContent: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
-                                Go to Osmosis to check swap history -&gt;
-                            </a>
-                            <Input
-                                width={"100%"}
-                                textAlign={"right"}
-                                placeholder="1.00"
-                                type="number"
-                                variant={"ghost"}
-                                defaultValue={1.00}
-                                value={redemptionState.salePrice}
-                                onChange={onSalePriceInputChange}
-                            />
-                        </Stack>
+                        </HStack>
+                        <Input
+                            width={"100%"}
+                            textAlign={"right"}
+                            placeholder="0"
+                            type="number"
+                            variant={"ghost"}
+                            value={redemptionState?.deposit.toFixed(2)}
+                            onChange={onInputChange}
+                        />
+                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                            <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                    max
+                                </Text>
+                            </Button>
+                        </HStack>
                     </Stack>
-                </ModalBody>
-                {(
-                    <ModalFooter
-                        as={Stack}
-                        justifyContent="end"
-                        borderTop="1px solid"
-                        borderColor="whiteAlpha.200"
-                        pt="5"
-                        gap="5"
-                    >
 
-
-                        <Text variant="title" fontWeight="500" color={colors.alert} textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError((redemptionState.deposit > 0 || redemptionState.salePrice > 0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
+                    <Stack>
+                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                            What price did you sell CDT? Set to 1.00 if you haven't sold any.
                         </Text>
+                        <a href="https://app.osmosis.zone/transactions" style={{ textAlign: "center", justifyContent: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
+                            Go to Osmosis to check swap history -&gt;
+                        </a>
+                        <Input
+                            width={"100%"}
+                            textAlign={"right"}
+                            placeholder="1.00"
+                            type="number"
+                            variant={"ghost"}
+                            defaultValue={1.00}
+                            value={redemptionState.salePrice}
+                            onChange={onSalePriceInputChange}
+                        />
+                    </Stack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
 
 
-                        <TxButton
-                            w="100%"
-                            isLoading={isLoading}
-                            isDisabled={isDisabled}
-                            onClick={() => setRedemptions?.tx.mutate()}
-                            toggleConnectLabel={false}
-                            style={{ alignSelf: "center" }}
-                        >
-                            Set Redemption Arb
-                        </TxButton>
-                    </ModalFooter>
-                )}
-            </ModalContent>
-        </Modal>
+                    <Text variant="title" fontWeight="500" color={colors.alert} textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError((redemptionState.deposit > 0 || redemptionState.salePrice > 0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+
+                    <TxButton
+                        w="100%"
+                        isLoading={isLoading}
+                        isDisabled={isDisabled}
+                        onClick={() => setRedemptions?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Set Redemption Arb
+                    </TxButton>
+                </ModalFooter>
+            )}
+        </ModalContent>
     </>)
 })
 
@@ -189,73 +186,70 @@ export const RedemptionWithdrawModal = React.memo(({
             {children}
         </Button> */}
 
-        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={true}>
-            <ModalOverlay />
-            <ModalContent maxW="400px">
-                <ModalHeader>
-                    <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Withdraw</Text>
-                </ModalHeader>
-                <ModalCloseButton />
-                <ModalBody pb="5">
-                    <Stack>
-                        <HStack width="100%" justifyContent="left">
-                            <HStack width="75%">
-                                {usdcImage ? <Image src={usdcImage} w="30px" h="30px" /> : null}
-                                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    USDC
-                                </Text>
-                            </HStack>
-                            <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                                ~${num(redemptionState?.withdraw).times(usdcMarketPrice).toFixed(2)}
+        <ModalContent maxW="400px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Withdraw</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            {usdcImage ? <Image src={usdcImage} w="30px" h="30px" /> : null}
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                USDC
                             </Text>
                         </HStack>
-                        <Input
-                            width={"100%"}
-                            textAlign={"right"}
-                            placeholder="0"
-                            type="number"
-                            variant={"ghost"}
-                            value={redemptionState?.withdraw.toFixed(2)}
-                            onChange={onInputChange}
-                        />
-                        <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                            <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
-                                <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                                    max
-                                </Text>
-                            </Button>
-                        </HStack>
-                    </Stack>
-                </ModalBody>
-                {(
-                    <ModalFooter
-                        as={Stack}
-                        justifyContent="end"
-                        borderTop="1px solid"
-                        borderColor="whiteAlpha.200"
-                        pt="5"
-                        gap="5"
-                    >
-
-
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                            {parseError(num(redemptionState?.withdraw).isGreaterThan(0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
+                        <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                            ~${num(redemptionState?.withdraw).times(usdcMarketPrice).toFixed(2)}
                         </Text>
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={redemptionState?.withdraw.toFixed(2)}
+                        onChange={onInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                        <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
 
 
-                        <TxButton
-                            w="100%"
-                            isLoading={isLoading}
-                            isDisabled={isDisabled}
-                            onClick={() => setRedemptions?.tx.mutate()}
-                            toggleConnectLabel={false}
-                            style={{ alignSelf: "center" }}
-                        >
-                            Withdraw Redeemable USDC
-                        </TxButton>
-                    </ModalFooter>
-                )}
-            </ModalContent>
-        </Modal>
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError(num(redemptionState?.withdraw).isGreaterThan(0) && setRedemptions.simulate.isError ? setRedemptions.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+
+                    <TxButton
+                        w="100%"
+                        isLoading={isLoading}
+                        isDisabled={isDisabled}
+                        onClick={() => setRedemptions?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Withdraw Redeemable USDC
+                    </TxButton>
+                </ModalFooter>
+            )}
+        </ModalContent>
     </>)
 })

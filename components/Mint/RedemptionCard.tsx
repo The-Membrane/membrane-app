@@ -1,4 +1,4 @@
-import { HStack, Stack, Button, Card, Text } from '@chakra-ui/react'
+import { HStack, Stack, Button, Card, Text, Modal, ModalOverlay, useDisclosure } from '@chakra-ui/react'
 import React, { useCallback, useMemo, useState } from 'react'
 import { RedemptionDepositModal, RedemptionWithdrawModal } from './MintModals'
 import { useAssetBySymbol } from '@/hooks/useAssets'
@@ -41,17 +41,12 @@ const RedemptionCard = () => {
     // const { data: marsUSDCyield } = useMarsUSDCSupplyAPR() ?? "0"
     const isWithdrawDisabled = usdcDeposit === "0"
 
-    const [isDepositOpen, setIsDepositOpen] = useState(false)
-    const toggleDepositOpen = useCallback(() => {
-        setIsDepositOpen(prev => !prev)
-    }, [])
-    const [isWithdrawOpen, setIsWithdrawOpenOpen] = useState(false)
-    const toggleWithdrawOpen = useCallback(() => {
-        setIsWithdrawOpenOpen(prev => !prev)
-    }, [])
+
+    const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure()
+    const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure()
 
 
-    return (
+    return (<>
         <Card minW="363px" gap="12" h="max-content" px="2">
             <Stack gap="5" padding="3%">
                 <Text fontSize="18px" fontWeight={"bold"}>
@@ -67,23 +62,18 @@ const RedemptionCard = () => {
                         padding="0"
                         alignSelf="center"
                         margin="0"
-                        onClick={() => { toggleDepositOpen() }}
+                        onClick={onDepositOpen}
                         isDisabled={isDepositDisabled}
                     >
                         Set
                     </Button>
-                    {isDepositOpen && <RedemptionDepositModal isOpen={isDepositOpen} onClose={toggleDepositOpen} usdcAsset={usdcAsset} />}
-
-
-                    {isWithdrawOpen && <RedemptionWithdrawModal isOpen={isWithdrawOpen} onClose={toggleWithdrawOpen} usdcDeposit={Number(usdcDeposit)} usdcImage={usdcAsset.logo} />}
-
                     {usdcDeposit != "0" && <Button
                         width="33%"
                         display="flex"
                         padding="0"
                         alignSelf="center"
                         margin="0"
-                        onClick={() => { toggleWithdrawOpen() }}
+                        onClick={onWithdrawOpen}
                         isDisabled={isWithdrawDisabled}
                     >
                         Exit
@@ -91,6 +81,34 @@ const RedemptionCard = () => {
                 </HStack>
             </Stack>
         </Card>
+
+
+        <Modal
+            isOpen={isDepositOpen}
+            onClose={onDepositClose}
+            isCentered
+            size="xl"
+            closeOnOverlayClick={true}
+        >
+            <ModalOverlay />
+            <RedemptionDepositModal isOpen={isDepositOpen} onClose={onDepositClose} usdcAsset={usdcAsset} />
+
+
+        </Modal>
+        <Modal
+            isOpen={isWithdrawOpen}
+            onClose={onWithdrawClose}
+            isCentered
+            size="xl"
+            closeOnOverlayClick={true}
+        >
+            <ModalOverlay />
+            <RedemptionWithdrawModal isOpen={isWithdrawOpen} onClose={onWithdrawClose} usdcDeposit={Number(usdcDeposit)} usdcImage={usdcAsset.logo} />
+
+        </Modal>
+
+
+    </>
     )
 }
 

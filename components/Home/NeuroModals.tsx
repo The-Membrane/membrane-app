@@ -950,6 +950,13 @@ export const USDCMintModal = React.memo(({
                             </Text>
                         </Button>
                     </HStack>
+                    <Checkbox
+                        checked={quickActionState.enterVaultToggle}
+                        onChange={() => { setQuickActionState({ enterVaultToggle: !quickActionState.enterVaultToggle }) }}
+                        fontFamily="Inter"
+                    >
+                        Deposit to Range Bound LP Vault
+                    </Checkbox>
                 </Stack>
             </ModalBody>
             {(

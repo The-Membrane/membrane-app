@@ -836,7 +836,7 @@ export const USDCMintModal = React.memo(({
 
 
     //USDC to CDT amount conversion
-    const mintMaxAmount = num(shiftDigits(usdcBalance, -6)).times(usdcPrice).dividedBy(cdtPrice).times(0.89).toNumber()
+    const mintMaxAmount = num(depositMaxAmount).times(usdcPrice).dividedBy(cdtPrice).times(0.89).toNumber()
     const mintMinAmount = 21
     const [mintInputValue, setMintInputValue] = useState<number | undefined>(); // Tracks user input
     const mintUpdateTimeout = useRef<NodeJS.Timeout | null>(null);

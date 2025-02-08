@@ -559,7 +559,7 @@ const AcquireCDTEntry = React.memo(({
           <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
             {yieldValue}%
           </Text>
-          <HStack width={"25%"}>
+          <HStack width={"36%"}>
             {/* @ts-ignore */}
             <Button
               width="50%"
@@ -901,7 +901,7 @@ const NeuroGuardCard = () => {
         >
           Show All Yields
         </Checkbox>
-        <HStack gap="9%" p={4}>
+        <HStack gap="1%" p={4}>
           <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
             Asset
           </Text>

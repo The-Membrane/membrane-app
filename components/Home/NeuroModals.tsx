@@ -996,7 +996,7 @@ export const USDCSwapToCDTModal = React.memo(({
     const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
 
     //@ts-ignore
-    const maxAmount = shiftDigits(usdcBalance, -6).toNumber()
+    const maxAmount = usdcBalance
     const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
     const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 

@@ -64,6 +64,8 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
 
   const msgs = queryData?.msgs ?? []
 
+  console.log("swap to cdt msgs", msgs)
+
   const onInitialSuccess = () => {
     onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })

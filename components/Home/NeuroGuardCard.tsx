@@ -63,7 +63,7 @@ const RBLPDepositEntry = React.memo(({
             {yieldValue}%
           </Text>
           <Button
-            width="25%"
+            width="36%"
             minWidth={"262px"}
             display="flex"
             padding="0"
@@ -141,7 +141,7 @@ const NeuroGuardOpenEntry = React.memo(({
             {asset?.default == true ? num(RBYield).times(100).toFixed(1) : yieldValue}%
           </Text>
           <Button
-            width="25%"
+            width="36%"
             minWidth={"262px"}
             display="flex"
             padding="0"

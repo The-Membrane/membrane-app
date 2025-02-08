@@ -71,7 +71,7 @@ const useCDPRedeem = () => {
           funds: fundsVT
         })
       } as MsgExecuteContractEncodeObject
-      // msgs.push(withdrawMsg)
+      msgs.push(withdrawMsg)
 
       return { msgs }
     },

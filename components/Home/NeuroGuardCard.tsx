@@ -13,7 +13,7 @@ import useNeuroState from "./hooks/useNeuroState"
 import useBalance, { useBalanceByAsset } from "@/hooks/useBalance"
 import { BasketAsset } from "@/services/cdp"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
-import { NeuroCloseModal, NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal, RBLPDepositModal, RBLPWithdrawModal } from "./NeuroModals"
+import { NeuroCloseModal, NeuroDepositModal, NeuroOpenModal, NeuroWithdrawModal, RBLPDepositModal, RBLPWithdrawModal, USDCMintModal, USDCSwapToCDTModal } from "./NeuroModals"
 import useVaultSummary from "../Mint/hooks/useVaultSummary"
 import NextLink from 'next/link'
 import useMintState from "../Mint/hooks/useMintState"
@@ -521,11 +521,106 @@ const VaultEntry = React.memo(({
   )
 })
 
+
+// Extracted RBLPExistingEntry component
+const AcquireCDTEntry = React.memo(({
+  usdcBalance,
+  RBYield,
+  usdcPrice,
+  cdtMarketPrice
+}: {
+  usdcBalance: number
+  RBYield: string
+  usdcPrice: string
+  cdtMarketPrice: string
+}) => {
+
+  const { isOpen: isSwapOpen, onOpen: onSwapOpen, onClose: onSwapClose } = useDisclosure()
+  const { isOpen: isMintOpen, onOpen: onMintOpen, onClose: onMintClose } = useDisclosure()
+
+
+  {/* @ts-ignore */ }
+  const yieldValue = num(RBYield).times(100).toFixed(1)
+  const isMintDisabled = shiftDigits(usdcBalance, -6).toNumber() < 24
+
+  return (
+    <>
+      <Card width="100%" borderWidth={3} padding={4}>
+        <HStack gap="9%">
+          <HStack width="25%" justifyContent="left">
+            <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+              CDT
+            </Text>
+          </HStack>
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            0
+          </Text>
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+            {yieldValue}%
+          </Text>
+          <HStack width={"25%"}>
+            {/* @ts-ignore */}
+            <Button
+              width="50%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={onSwapOpen}
+              isDisabled={false}
+            >
+              Swap To
+            </Button>
+
+            <Button
+              width="50%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={onMintOpen}
+              isDisabled={isMintDisabled}
+            >
+              Mint
+            </Button>
+          </HStack>
+        </HStack>
+      </Card>
+
+      <Modal
+        isOpen={isSwapOpen}
+        onClose={onSwapClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        <USDCSwapToCDTModal isOpen={isSwapOpen} onClose={onSwapClose} usdcBalance={usdcBalance} />
+
+      </Modal>
+      <Modal
+        isOpen={isMintOpen}
+        onClose={onMintClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        <USDCMintModal isOpen={isMintOpen} onClose={onMintClose} usdcBalance={usdcBalance} usdcPrice={Number(usdcPrice)} cdtPrice={Number(cdtMarketPrice)} />
+
+      </Modal>
+
+    </>
+  )
+})
+
 // Memoize child components
 const MemoizedNeuroGuardOpenEntry = memo(NeuroGuardOpenEntry);
 // const MemoizedNeuroGuardExistingEntry = memo(NeuroGuardExistingEntry);
 const MemoizedVaultEntry = memo(VaultEntry);
 const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
+const MemoizedAcquireCDTEntry = memo(AcquireCDTEntry);
 // const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
 
 
@@ -557,6 +652,10 @@ const NeuroGuardCard = () => {
   const { data: interest } = useCollateralInterest()
   const { data: basketAssets } = useBasketAssets()
   const { action: polishIntents } = useNeuroIntentPolish()
+  const cdtAsset = useAssetBySymbol('CDT')
+  const cdtBalance = useBalanceByAsset(cdtAsset) ?? "0"
+  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
   const toaster = useToaster();
   const [hasShownToast, setHasShownToast] = useState(false);
 
@@ -624,6 +723,7 @@ const NeuroGuardCard = () => {
 
 
   const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price.price || "1"
+  const usdcPrice = prices?.find((price) => price.denom === denoms.USDC[0])?.price ?? "1"
 
   // Define priority order for specific symbols
   const prioritySymbols = ['WBTC.ETH.AXL', 'stATOM', 'stOSMO', 'stTIA']
@@ -784,7 +884,7 @@ const NeuroGuardCard = () => {
 
 
   // Separate complex sections into components
-  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[] }) => {
+  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets, CDTBalance, USDCBalance, cdtMarketPrice, usdcPrice }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[], CDTBalance: number, USDCBalance: number, cdtMarketPrice: string, usdcPrice: string }) => {
 
     const [showAllYields, setShowAllYields] = useState(false);
 
@@ -840,33 +940,40 @@ const NeuroGuardCard = () => {
             );
           })
 
-          : assets.map((asset) => {
-            if (!asset || !num(asset.combinUsdValue).isGreaterThan(0.01) ||
-              existingGuards?.find((guard) => guard?.symbol === asset.symbol)) {
-              return null;
-            }
+          : <Stack>
+            {/* Default "if no CDT in wallet" entry (CDTBalance === 0 && boundCDTBalance === 0)*/}
+            {true && <MemoizedAcquireCDTEntry usdcBalance={USDCBalance} RBYield={RBYield} usdcPrice={usdcPrice} cdtMarketPrice={cdtMarketPrice} />}
+            {/* Wallet Assets */}
+            {assets.map((asset) => {
+              if (!asset || !num(asset.combinUsdValue).isGreaterThan(0.01) ||
+                existingGuards?.find((guard) => guard?.symbol === asset.symbol)) {
+                return null;
+              }
 
-            // console.log(!(boundCDTBalance > 0), boundCDTBalance)
+              // console.log(!(boundCDTBalance > 0), boundCDTBalance)
 
-            if (asset.base === denoms.CDT[0] && !(boundCDTBalance > 0)) {
-              return (
-                <MemoizedRBLPDepositEntry
-                  key={asset.symbol}
-                  asset={asset}
-                  RBYield={RBYield}
-                />
-              );
-            } else if (asset.base != denoms.CDT[0]) {
-              return (
-                <MemoizedNeuroGuardOpenEntry
-                  key={asset.symbol}
-                  asset={asset}
-                  basketAssets={basketAssets}
-                  RBYield={RBYield}
-                />
-              )
-            } else { return null }
-          })}</Stack>
+              if (asset.base === denoms.CDT[0] && !(boundCDTBalance > 0)) {
+                return (
+                  <MemoizedRBLPDepositEntry
+                    key={asset.symbol}
+                    asset={asset}
+                    RBYield={RBYield}
+                  />
+                );
+              } else if (asset.base != denoms.CDT[0]) {
+                return (
+                  <MemoizedNeuroGuardOpenEntry
+                    key={asset.symbol}
+                    asset={asset}
+                    basketAssets={basketAssets}
+                    RBYield={RBYield}
+                  />
+                )
+              } else { return null }
+            })}
+          </Stack>
+
+        }</Stack>
       </Stack>
     );
   });
@@ -921,13 +1028,14 @@ const NeuroGuardCard = () => {
         {/* Add Button in the middle of the remaining space that allows users to swap any stables to CDT */}
       </HStack>
 
-      {neuroState.assets.length > 0 && neuroState.assets.some(asset =>
+      {/* If there are wallet assets & at least one of the assets has a balance that isn't also in an existing Guardian */}
+      {/* {neuroState.assets.length > 0 && neuroState.assets.some(asset =>
         asset && // check if defined
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
-      ) ?
-        <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} />
-        : null}
+      ) ? */}
+      <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} CDTBalance={Number(cdtBalance)} USDCBalance={Number(usdcBalance)} cdtMarketPrice={cdtMarketPrice} usdcPrice={usdcPrice} />
+      {/* : null} */}
 
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) || Number(underlyingCDT) > 0 ?
         <Stack>

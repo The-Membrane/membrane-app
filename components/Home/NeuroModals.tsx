@@ -16,6 +16,8 @@ import useQuickActionState from "./hooks/useQuickActionState"
 import useBoundedLP from "./hooks/useRangeBoundLP"
 import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import BigNumber from "bignumber.js"
+import useSwapToCDT from "./hooks/useUSDCSwapToCDT"
+import useUSDCToMint from "./hooks/useUSDCToMint"
 
 const INPUT_DELAY = 300;
 
@@ -779,6 +781,317 @@ export const NeuroCloseModal = React.memo(({
                         style={{ alignSelf: "center" }}
                     >
                         {debtAmount == 0 ? "Withdraw All Collateral" : "Sell Collateral to Repay Debt"}
+                    </TxButton>
+                </ModalFooter>
+            )}
+        </ModalContent>
+    </>)
+})
+
+export const USDCMintModal = React.memo(({
+    isOpen, onClose, usdcBalance, usdcPrice, cdtPrice, children
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number, usdcPrice: number, cdtPrice: number }>) => {
+
+
+    const { quickActionState, setQuickActionState } = useQuickActionState()
+    const { action: mint } = useUSDCToMint({ onSuccess: onClose, run: isOpen })
+    const isLoading = mint?.simulate.isLoading || mint?.tx.isPending
+    const isDisabled = usdcBalance === 0 || mint?.simulate.isError || !mint?.simulate.data
+
+    //@ts-ignore
+    const depositMaxAmount = shiftDigits(usdcBalance, -6).toNumber()
+    const [depositInputValue, setDepositInputValue] = useState<number | undefined>(); // Tracks user input
+    const depositUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
+
+    const onDepositMaxClick = () => {
+        setDepositInputValue(depositMaxAmount)
+        setQuickActionState({
+            usdcMint: {
+                deposit: depositMaxAmount,
+                mint: quickActionState?.usdcMint?.mint
+            }
+        })
+    }
+
+    const onDepositInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault()
+        const value = Number(e.target.value)
+
+        setDepositInputValue(num(value).isGreaterThan(depositMaxAmount) ? depositMaxAmount : value); // Updates the input value immediately
+
+        if (depositUpdateTimeout.current) {
+            clearTimeout(depositUpdateTimeout.current); // Clears previous timeout
+        }
+
+        depositUpdateTimeout.current = setTimeout(() => {
+            setQuickActionState({
+                usdcMint: {
+                    deposit: num(value).isGreaterThan(depositMaxAmount) ? depositMaxAmount : value,
+                    mint: quickActionState?.usdcMint?.mint
+                }
+            });
+        }, INPUT_DELAY); // Delay before updating the state
+
+    }, [quickActionState?.usdcMint.deposit, setQuickActionState, depositMaxAmount])
+
+
+    //USDC to CDT amount conversion
+    const mintMaxAmount = num(shiftDigits(usdcBalance, -6)).times(usdcPrice).dividedBy(cdtPrice).times(0.89).toNumber()
+    const mintMinAmount = 21
+    const [mintInputValue, setMintInputValue] = useState<number | undefined>(); // Tracks user input
+    const mintUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
+
+    const onMintMaxClick = () => {
+        setMintInputValue(mintMaxAmount)
+        setQuickActionState({
+            usdcMint: {
+                mint: mintMaxAmount,
+                deposit: quickActionState?.usdcMint?.deposit
+            }
+        })
+    }
+    const onMintMinClick = () => {
+        setMintInputValue(mintMinAmount)
+        setQuickActionState({
+            usdcMint: {
+                mint: mintMinAmount,
+                deposit: quickActionState?.usdcMint?.deposit
+            }
+        })
+    }
+
+    const onMintInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault()
+        const value = Number(e.target.value)
+
+        setMintInputValue(num(value).isGreaterThan(mintMaxAmount) ? mintMaxAmount : value < 20 ? mintMinAmount : value); // Updates the input value immediately
+
+        if (mintUpdateTimeout.current) {
+            clearTimeout(mintUpdateTimeout.current); // Clears previous timeout
+        }
+
+        mintUpdateTimeout.current = setTimeout(() => {
+            setQuickActionState({
+                usdcMint: {
+                    mint: num(value).isGreaterThan(mintMaxAmount) ? mintMaxAmount : value,
+                    deposit: quickActionState?.usdcMint?.deposit
+                }
+            });
+        }, INPUT_DELAY); // Delay before updating the state
+
+    }, [quickActionState?.usdcMint.mint, setQuickActionState, mintMaxAmount])
+
+
+
+    return (<>
+
+        <ModalContent maxW="400px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            <Image src={"https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.svg"} w="30px" h="30px" />
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                Deposit USDC
+                            </Text>
+                        </HStack>
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={depositInputValue}
+                        max={depositMaxAmount}
+                        onChange={onDepositInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                        <Button onClick={onDepositMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                Mint CDT
+                            </Text>
+                        </HStack>
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={mintInputValue}
+                        max={mintMaxAmount}
+                        onChange={onMintInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                        <Button onClick={onMintMinClick} width="20%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                min
+                            </Text>
+                        </Button>
+                        <Button onClick={onMintMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
+
+
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError(quickActionState?.usdcMint.deposit > 0 && quickActionState?.usdcMint.mint > 20 && mint.simulate.isError ? mint.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+
+                    <TxButton
+                        w="100%"
+                        isLoading={isLoading}
+                        isDisabled={isDisabled}
+                        onClick={() => mint?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Deposit & Mint
+                    </TxButton>
+                </ModalFooter>
+            )}
+        </ModalContent>
+    </>)
+})
+
+
+export const USDCSwapToCDTModal = React.memo(({
+    isOpen, onClose, usdcBalance, children
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number }>) => {
+
+
+    const { quickActionState, setQuickActionState } = useQuickActionState()
+    const { action: swap } = useSwapToCDT({ onSuccess: onClose, run: isOpen })
+    const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
+    const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
+
+    //@ts-ignore
+    const maxAmount = shiftDigits(usdcBalance, -6).toNumber()
+    const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
+    const updateTimeout = useRef<NodeJS.Timeout | null>(null);
+
+    const onMaxClick = () => {
+        setInputValue(maxAmount)
+        setQuickActionState({
+            usdcSwapToCDT: maxAmount
+        })
+    }
+
+    const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault()
+        const value = Number(e.target.value)
+
+        setInputValue(num(value).isGreaterThan(maxAmount) ? maxAmount : value); // Updates the input value immediately
+
+
+        if (updateTimeout.current) {
+            clearTimeout(updateTimeout.current); // Clears previous timeout
+        }
+
+        updateTimeout.current = setTimeout(() => {
+            setQuickActionState({
+                usdcSwapToCDT: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+            });
+        }, INPUT_DELAY); // Delay before updating the state
+
+    }, [quickActionState?.usdcSwapToCDT, setQuickActionState, maxAmount])
+
+
+
+    return (<>
+
+        <ModalContent maxW="400px">
+            <ModalHeader>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb="5">
+                <Stack>
+                    <HStack width="100%" justifyContent="left">
+                        <HStack width="75%">
+                            <Image src={"https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.svg"} w="30px" h="30px" />
+                            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                USDC
+                            </Text>
+                        </HStack>
+                        {/* <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
+                            ~${num(inputValue ?? 0).times(cdtAsset.price ?? 0).toFixed(2)}
+                        </Text> */}
+                    </HStack>
+                    <Input
+                        width={"100%"}
+                        textAlign={"right"}
+                        placeholder="0"
+                        type="number"
+                        variant={"ghost"}
+                        value={inputValue}
+                        max={maxAmount}
+                        onChange={onInputChange}
+                    />
+                    <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                        <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                                max
+                            </Text>
+                        </Button>
+                    </HStack>
+                </Stack>
+            </ModalBody>
+            {(
+                <ModalFooter
+                    as={Stack}
+                    justifyContent="end"
+                    borderTop="1px solid"
+                    borderColor="whiteAlpha.200"
+                    pt="5"
+                    gap="5"
+                >
+
+
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                        {parseError(num(quickActionState?.usdcSwapToCDT).isGreaterThan(0) && swap.simulate.isError ? swap.simulate.error?.message ?? "" : "")}
+                    </Text>
+
+
+                    <TxButton
+                        w="100%"
+                        isLoading={isLoading}
+                        isDisabled={isDisabled}
+                        onClick={() => swap?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Swap to CDT
                     </TxButton>
                 </ModalFooter>
             )}

@@ -10,7 +10,6 @@ import { PositionsMsgComposer } from "@/contracts/codegen/positions/Positions.me
 
 import { asset_list, assets } from '@chain-registry/osmosis';
 import BigNumber from "bignumber.js";
-import { MsgSwapExactAmountIn } from "osmojs/dist/codegen/osmosis/gamm/v1beta1/tx";
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { Basket, BasketPositionsResponse, Asset as CDPAsset } from "@/contracts/codegen/positions/Positions.types";

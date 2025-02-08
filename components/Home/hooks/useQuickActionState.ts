@@ -9,6 +9,11 @@ export type QuickActionState = {
   autoSPwithdrawal: number
   rangeBoundLPdeposit: number
   rangeBoundLPwithdrawal: number
+  usdcSwapToCDT: number
+  usdcMint: {
+    deposit: number,
+    mint: number
+  }
 }
 
 type Store = {
@@ -16,11 +21,16 @@ type Store = {
   setQuickActionState: (partialState: Partial<QuickActionState>) => void
 }
 
-const initialState: QuickActionState = {  
+const initialState: QuickActionState = {
   autoSPdeposit: 0,
   autoSPwithdrawal: 0,
   rangeBoundLPdeposit: 0,
   rangeBoundLPwithdrawal: 0,
+  usdcSwapToCDT: 0,
+  usdcMint: {
+    deposit: 0,
+    mint: 0
+  },
 }
 
 // @ts-ignore

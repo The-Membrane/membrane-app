@@ -541,8 +541,8 @@ const AcquireCDTEntry = React.memo(({
 
   {/* @ts-ignore */ }
   const yieldValue = num(RBYield).times(100).toFixed(1)
-  const isMintDisabled = shiftDigits(usdcBalance, -6).toNumber() < 24
-  console.log("log usdc balance", shiftDigits(usdcBalance, -6).toNumber())
+  const isMintDisabled = usdcBalance < 24
+  // console.log("log usdc balance", shiftDigits(usdcBalance, -6).toNumber())
 
   return (
     <>

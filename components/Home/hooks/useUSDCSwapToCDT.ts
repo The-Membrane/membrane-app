@@ -55,7 +55,7 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
 
       //2) Enter Vault (?)
       if (quickActionState?.enterVaultToggle) {
-        const funds = [{ amount: tokenOutMinAmount.toString(), denom: usdcAsset.base }]
+        const funds = [{ amount: tokenOutMinAmount.toString(), denom: denoms.CDT[0] as string }]
         let enterMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({

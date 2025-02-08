@@ -994,7 +994,7 @@ export const USDCSwapToCDTModal = React.memo(({
     const { action: swap } = useSwapToCDT({ onSuccess: onClose, run: isOpen })
     const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
     const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
-    console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
+    // console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
 
 
     //@ts-ignore
@@ -1067,6 +1067,13 @@ export const USDCSwapToCDTModal = React.memo(({
                             </Text>
                         </Button>
                     </HStack>
+                    <Checkbox
+                        checked={quickActionState.enterVaultToggle}
+                        onChange={() => { setQuickActionState({ enterVaultToggle: !quickActionState.enterVaultToggle }) }}
+                        fontFamily="Inter"
+                    >
+                        Deposit to Rangebound LP Vault
+                    </Checkbox>
                 </Stack>
             </ModalBody>
             {(

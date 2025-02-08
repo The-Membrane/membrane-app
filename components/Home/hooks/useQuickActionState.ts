@@ -14,6 +14,7 @@ export type QuickActionState = {
     deposit: number,
     mint: number
   }
+  enterVaultToggle: boolean
 }
 
 type Store = {
@@ -31,6 +32,7 @@ const initialState: QuickActionState = {
     deposit: 0,
     mint: 0
   },
+  enterVaultToggle: false,
 }
 
 // @ts-ignore

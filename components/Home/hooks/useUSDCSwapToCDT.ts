@@ -1,22 +1,18 @@
-import { getDepostAndWithdrawMsgs } from '@/helpers/mint'
-import { useBasket, useUserPositions } from '@/hooks/useCDP'
+import { useBasket } from '@/hooks/useCDP'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useQuickActionState from './useQuickActionState'
 import { queryClient } from '@/pages/_app'
-import { useMemo } from 'react'
-import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
+import { swapToCDTMsg } from '@/helpers/osmosis'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useOraclePrice } from '@/hooks/useOracle'
-import { loopPosition } from '@/services/osmosis'
-import { num } from '@/helpers/num'
-import { updatedSummary } from '@/services/cdp'
-import { denoms, loopMax } from '@/config/defaults'
-import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
-import { setCookie } from '@/helpers/cookies'
-import { shiftDigits } from '@/helpers/math'
+import { denoms } from '@/config/defaults'
+import contracts from '@/config/contracts.json'
+
+import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import { toUtf8 } from '@cosmjs/encoding'
 
 const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
   const { quickActionState } = useQuickActionState()
@@ -36,6 +32,7 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
       'home_page_swap',
       address,
       quickActionState?.usdcSwapToCDT,
+      quickActionState?.enterVaultToggle,
       prices,
       usdcAsset,
       run
@@ -55,6 +52,24 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
         tokenOut: 'CDT'
       })
       msgs.push(swap as MsgExecuteContractEncodeObject)
+
+      //2) Enter Vault (?)
+      if (quickActionState?.enterVaultToggle) {
+        const funds = [{ amount: tokenOutMinAmount.toString(), denom: usdcAsset.base }]
+        let enterMsg = {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: MsgExecuteContract.fromPartial({
+            sender: address,
+            contract: contracts.rangeboundLP,
+            msg: toUtf8(JSON.stringify({
+              enter_vault: {}
+            })),
+            funds: funds
+          })
+        } as MsgExecuteContractEncodeObject
+        //Add msg
+        msgs.push(enterMsg)
+      }
 
       return { msgs }
 

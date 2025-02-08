@@ -13,6 +13,8 @@ import { denoms } from '@/config/defaults'
 import contracts from '@/config/contracts.json'
 import { shiftDigits } from '@/helpers/math'
 import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
+import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import { toUtf8 } from '@cosmjs/encoding'
 
 const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
     const { quickActionState } = useQuickActionState()
@@ -36,6 +38,7 @@ const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
             address,
             positionID,
             quickActionState?.usdcMint,
+            quickActionState?.enterVaultToggle,
             run
         ],
         queryFn: () => {
@@ -54,6 +57,24 @@ const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
                 amount: shiftDigits(quickActionState?.usdcMint.mint, 6).dp(0).toString(),
             })
             msgs.push(mintMsg)
+
+            //3) Enter Vault (?)
+            if (quickActionState?.enterVaultToggle) {
+                const funds = [{ amount: shiftDigits(quickActionState?.usdcMint.mint, 6).dp(0).toString(), denom: denoms.CDT[0] as string }]
+                let enterMsg = {
+                    typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+                    value: MsgExecuteContract.fromPartial({
+                        sender: address,
+                        contract: contracts.rangeboundLP,
+                        msg: toUtf8(JSON.stringify({
+                            enter_vault: {}
+                        })),
+                        funds: funds
+                    })
+                } as MsgExecuteContractEncodeObject
+                //Add msg
+                msgs.push(enterMsg)
+            }
 
             return { msgs }
 

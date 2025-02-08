@@ -1072,7 +1072,7 @@ export const USDCSwapToCDTModal = React.memo(({
                         onChange={() => { setQuickActionState({ enterVaultToggle: !quickActionState.enterVaultToggle }) }}
                         fontFamily="Inter"
                     >
-                        Deposit to Rangebound LP Vault
+                        Deposit to Range Bound LP Vault
                     </Checkbox>
                 </Stack>
             </ModalBody>

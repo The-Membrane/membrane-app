@@ -799,7 +799,7 @@ export const USDCMintModal = React.memo(({
     const isDisabled = usdcBalance === 0 || mint?.simulate.isError || !mint?.simulate.data
 
     //@ts-ignore
-    const depositMaxAmount = shiftDigits(usdcBalance, -6).toNumber()
+    const depositMaxAmount = usdcBalance
     const [depositInputValue, setDepositInputValue] = useState<number | undefined>(); // Tracks user input
     const depositUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
 

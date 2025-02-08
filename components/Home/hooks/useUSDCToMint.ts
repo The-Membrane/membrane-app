@@ -51,6 +51,7 @@ const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
             const depositMsg = messageComposer.deposit({ positionOwner: address }, depositFunds)
             msgs.push(depositMsg)
 
+            console.log("quickActionState?.usdcMint.mint", quickActionState?.usdcMint.mint)
             //2) Mint CDT
             const mintMsg = messageComposer.increaseDebt({
                 positionId: positionID,

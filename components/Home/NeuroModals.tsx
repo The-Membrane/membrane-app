@@ -994,6 +994,8 @@ export const USDCSwapToCDTModal = React.memo(({
     const { action: swap } = useSwapToCDT({ onSuccess: onClose, run: isOpen })
     const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
     const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
+    // console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
+
 
     //@ts-ignore
     const maxAmount = usdcBalance

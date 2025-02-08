@@ -74,6 +74,7 @@ const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
             msgs,
             queryKey: ['home_page_mint_sim', (msgs?.toString() ?? "0")],
             onSuccess: onInitialSuccess,
+            enabled: !!msgs,
         })
     }
 }

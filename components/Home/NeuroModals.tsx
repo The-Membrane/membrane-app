@@ -887,7 +887,7 @@ export const USDCMintModal = React.memo(({
 
         <ModalContent maxW="400px">
             <ModalHeader>
-                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Mint</Text>
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb="5">
@@ -994,7 +994,7 @@ export const USDCSwapToCDTModal = React.memo(({
     const { action: swap } = useSwapToCDT({ onSuccess: onClose, run: isOpen })
     const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
     const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
-    // console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
+    console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
 
 
     //@ts-ignore
@@ -1034,7 +1034,7 @@ export const USDCSwapToCDTModal = React.memo(({
 
         <ModalContent maxW="400px">
             <ModalHeader>
-                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Deposit</Text>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Swap</Text>
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb="5">

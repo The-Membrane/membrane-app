@@ -48,7 +48,7 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
       //1) Swap USDC to CDT
       const { msg: swap, tokenOutMinAmount, foundToken } = swapToCDTMsg({
         address,
-        swapFromAmount: shiftDigits(quickActionState?.usdcSwapToCDT, 6).toFixed(0),
+        swapFromAmount: quickActionState?.usdcSwapToCDT,
         swapFromAsset: usdcAsset,
         prices,
         cdtPrice,

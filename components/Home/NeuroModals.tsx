@@ -836,7 +836,7 @@ export const USDCMintModal = React.memo(({
 
 
     //USDC to CDT amount conversion
-    const mintMaxAmount = num(depositMaxAmount).times(usdcPrice).dividedBy(cdtPrice).times(0.89).toNumber()
+    const mintMaxAmount = num(depositMaxAmount).times(usdcPrice).times(0.89).toNumber()
     const mintMinAmount = 21
     const [mintInputValue, setMintInputValue] = useState<number | undefined>(); // Tracks user input
     const mintUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -906,7 +906,7 @@ export const USDCMintModal = React.memo(({
                         placeholder="0"
                         type="number"
                         variant={"ghost"}
-                        value={depositInputValue}
+                        value={depositInputValue?.toFixed(2)}
                         max={depositMaxAmount}
                         onChange={onDepositInputChange}
                     />
@@ -934,7 +934,7 @@ export const USDCMintModal = React.memo(({
                         placeholder="0"
                         type="number"
                         variant={"ghost"}
-                        value={mintInputValue}
+                        value={mintInputValue?.toFixed(2)}
                         max={mintMaxAmount}
                         onChange={onMintInputChange}
                     />
@@ -1063,7 +1063,7 @@ export const USDCSwapToCDTModal = React.memo(({
                         placeholder="0"
                         type="number"
                         variant={"ghost"}
-                        value={inputValue}
+                        value={inputValue?.toFixed(2)}
                         max={maxAmount}
                         onChange={onInputChange}
                     />

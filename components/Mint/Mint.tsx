@@ -206,14 +206,14 @@ const Mint = React.memo(() => {
           </>
       }
 
-      <Button
+      {basketPositions === undefined && <Button
         alignSelf="center"
         // checked={useAdvanced}
         onChange={() => { setAdvanced(!useAdvanced) }}
         fontFamily="Inter"
       >
         {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
-      </Button>
+      </Button>}
     </Stack>
   )
 })

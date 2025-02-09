@@ -190,7 +190,7 @@ const Mint = React.memo(() => {
   }, [data]); // Runs when `data` changes
 
   return (
-    <Stack gap="2rem" paddingTop="4%">
+    <Stack gap="1rem" paddingTop="4%">
       {
         basketPositions === undefined && !useAdvanced
           ?

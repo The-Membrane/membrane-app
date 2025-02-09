@@ -8,6 +8,7 @@ import { useBalanceByAsset } from "@/hooks/useBalance"
 import { ChangeEvent, useCallback, useRef, useState } from "react"
 import { num } from "@/helpers/num"
 import { TxButton } from "../TxButton"
+import { parseError } from "@/helpers/parseError"
 
 export const USDCMintCard = () => {
 
@@ -167,6 +168,13 @@ export const USDCMintCard = () => {
                     </Button>
                 </HStack>
 
+                <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                    {parseError(quickActionState?.usdcMint.deposit > 0 && quickActionState?.usdcMint.mint > 20 && mint.simulate.isError ? mint.simulate.error?.message ?? "" : "")}
+                </Text>
+
+                <Text variant="title" marginTop="auto" textAlign="center" fontSize="sm" letterSpacing="1px" width="100%">
+                    Minimum 21 CDT to Mint
+                </Text>
                 <TxButton
                     w="100%"
                     mt="auto"

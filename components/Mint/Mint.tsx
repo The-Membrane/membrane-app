@@ -13,6 +13,7 @@ import {
   Tabs,
   Text,
   VStack,
+  Checkbox,
 } from '@chakra-ui/react'
 import Beaker from './Beaker'
 import CurrentPositions from './CurrentPositions'
@@ -168,6 +169,7 @@ const MintTabsCard = React.memo(() => {
 const Mint = React.memo(() => {
   const { data } = useVaultSummary()
   const { data: basketPositions } = useUserPositions()
+  const [useAdvanced, setAdvanced] = useState(false)
   const [summary, setSummary] = useState({
     newDebtAmount: 0,
     debtAmount: 0,
@@ -190,9 +192,8 @@ const Mint = React.memo(() => {
     <Stack gap="2rem" paddingTop="4%">
       {
         // basketPositions === undefined 
-        true
+        true && !useAdvanced
           ?
-
           <USDCMintCard />
           :
           <>
@@ -204,6 +205,14 @@ const Mint = React.memo(() => {
             </HStack>
           </>
       }
+
+      <Checkbox
+        checked={useAdvanced}
+        onChange={() => { setAdvanced(!useAdvanced) }}
+        fontFamily="Inter"
+      >
+        Use Advanced Mode
+      </Checkbox>
     </Stack>
   )
 })

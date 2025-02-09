@@ -3,7 +3,7 @@ import { ConnectButton } from './WallectConnect'
 
 const LockedAccess = () => {
   return (
-    <Stack w="420px" h="full">
+    <Stack w="420px" h="full" alignSelf={"center"}>
       <Card>
         <CardHeader>
           <Text variant="title" fontSize="24px">

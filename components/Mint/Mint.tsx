@@ -14,6 +14,7 @@ import {
   Text,
   VStack,
   Checkbox,
+  Button,
 } from '@chakra-ui/react'
 import Beaker from './Beaker'
 import CurrentPositions from './CurrentPositions'
@@ -205,14 +206,14 @@ const Mint = React.memo(() => {
           </>
       }
 
-      <Checkbox
+      <Button
         alignSelf="center"
-        checked={useAdvanced}
+        // checked={useAdvanced}
         onChange={() => { setAdvanced(!useAdvanced) }}
         fontFamily="Inter"
       >
         {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
-      </Checkbox>
+      </Button>
     </Stack>
   )
 })

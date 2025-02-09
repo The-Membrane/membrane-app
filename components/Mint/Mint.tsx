@@ -213,6 +213,7 @@ const Mint = React.memo(() => {
         width={"20%"}
         backgroundColor={"transparent"}
         fontFamily="Inter"
+        fontWeight={"500"}
       >
         {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
       </Button>}

@@ -191,8 +191,7 @@ const Mint = React.memo(() => {
   return (
     <Stack gap="2rem" paddingTop="4%">
       {
-        // basketPositions === undefined 
-        true && !useAdvanced
+        basketPositions === undefined && !useAdvanced
           ?
           <USDCMintCard />
           :

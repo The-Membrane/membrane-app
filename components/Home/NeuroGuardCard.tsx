@@ -942,8 +942,8 @@ const NeuroGuardCard = () => {
           })
 
           : <Stack>
-            {/* Default "if no CDT in wallet" entry (CDTBalance === 0 && boundCDTBalance === 0)*/}
-            {true && <MemoizedAcquireCDTEntry usdcBalance={USDCBalance} RBYield={RBYield} usdcPrice={usdcPrice} cdtMarketPrice={cdtMarketPrice} />}
+            {/* Default "if no CDT in wallet" entry */}
+            {(CDTBalance === 0 && boundCDTBalance === 0) && <MemoizedAcquireCDTEntry usdcBalance={USDCBalance} RBYield={RBYield} usdcPrice={usdcPrice} cdtMarketPrice={cdtMarketPrice} />}
             {/* Wallet Assets */}
             {assets.map((asset) => {
               if (!asset || !num(asset.combinUsdValue).isGreaterThan(0.01) ||

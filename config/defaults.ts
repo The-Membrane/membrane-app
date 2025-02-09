@@ -26,6 +26,7 @@ const aminoConverters = {
   ...osmosisAminoConverters,
 }
 
+export const NUMIA_API_KEY = "";
 
 export const registry = new Registry(protoRegistry)
 export const aminoTypes = new AminoTypes(aminoConverters)
@@ -35,6 +36,8 @@ export const rpcUrl = 'https://g.w.lavanet.xyz:443/gateway/osmosis/rpc-http/c666
 
 export const delayTime = 1200; // State update Delay time in millisecond
 export const loopMax = 5;
+
+export const INPUT_DELAY = 300;
 
 ////Specifics for Osmosis services//////
 export const SWAP_SLIPPAGE = 1.5; //1.5% slippage

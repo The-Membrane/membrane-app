@@ -5,7 +5,7 @@ import { num } from "@/helpers/num"
 import { TxButton } from "../TxButton"
 import { Text, Stack, HStack, Button, Image, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input, Checkbox } from "@chakra-ui/react"
 import { parseError } from "@/helpers/parseError"
-import { colors } from "@/config/defaults"
+import { colors, INPUT_DELAY } from "@/config/defaults"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import { getAssetBySymbol } from "@/helpers/chain"
 import { shiftDigits } from "@/helpers/math"
@@ -19,7 +19,6 @@ import BigNumber from "bignumber.js"
 import useSwapToCDT from "./hooks/useUSDCSwapToCDT"
 import useUSDCToMint from "./hooks/useUSDCToMint"
 
-const INPUT_DELAY = 300;
 
 export const RBLPDepositModal = React.memo(({
     isOpen, onClose, cdtAsset, children
@@ -789,8 +788,8 @@ export const NeuroCloseModal = React.memo(({
 })
 
 export const USDCMintModal = React.memo(({
-    isOpen, onClose, usdcBalance, usdcPrice, cdtPrice, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number, usdcPrice: number, cdtPrice: number }>) => {
+    isOpen, onClose, usdcBalance, usdcPrice, children
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number, usdcPrice: number }>) => {
 
 
     const { quickActionState, setQuickActionState } = useQuickActionState()

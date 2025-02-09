@@ -28,6 +28,7 @@ import { colors, MAX_CDP_POSITIONS } from '@/config/defaults'
 import useVaultSummary from './hooks/useVaultSummary'
 import { num } from '@/helpers/num'
 import RedemptionCard from './RedemptionCard'
+import { USDCMintCard } from './USDCMintCard'
 
 type TabProps = {
   onClick: any
@@ -166,6 +167,7 @@ const MintTabsCard = React.memo(() => {
 
 const Mint = React.memo(() => {
   const { data } = useVaultSummary()
+  const { data: basketPositions } = useUserPositions()
   const [summary, setSummary] = useState({
     newDebtAmount: 0,
     debtAmount: 0,
@@ -186,12 +188,22 @@ const Mint = React.memo(() => {
 
   return (
     <Stack gap="2rem" paddingTop="4%">
-      <HealthSlider summary={summary} />
-      <HStack alignItems="flex-start" justifyContent={"center"}>
-        <MintTabsCard />
-        <CurrentPositions />
-        <RedemptionCard />
-      </HStack>
+      {
+        // basketPositions === undefined 
+        true
+          ?
+
+          <USDCMintCard />
+          :
+          <>
+            <HealthSlider summary={summary} />
+            <HStack alignItems="flex-start" justifyContent={"center"}>
+              <MintTabsCard />
+              <CurrentPositions />
+              <RedemptionCard />
+            </HStack>
+          </>
+      }
     </Stack>
   )
 })

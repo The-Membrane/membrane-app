@@ -37,7 +37,7 @@ const useMint = () => {
     ],
     queryFn: () => {
       if (!address) return
-      console.log("MINT LOGS", basketPositions !== undefined, mintState.positionNumber <= (basketPositions?.[0].positions.length ?? 0), mintState.positionNumber, basketPositions?.[0].positions.length, positionId)
+      // console.log("MINT LOGS", basketPositions !== undefined, mintState.positionNumber <= (basketPositions?.[0].positions.length ?? 0), mintState.positionNumber, basketPositions?.[0].positions.length, positionId)
       const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, basketPositions, positionId, hasPosition: basketPositions !== undefined && mintState.positionNumber <= basketPositions[0].positions.length })
       const mintAndRepay = getMintAndRepayMsgs({
         address,

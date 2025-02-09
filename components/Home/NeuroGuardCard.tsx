@@ -608,7 +608,7 @@ const AcquireCDTEntry = React.memo(({
         closeOnOverlayClick={true}
       >
         <ModalOverlay />
-        <USDCMintModal isOpen={isMintOpen} onClose={onMintClose} usdcBalance={usdcBalance} usdcPrice={Number(usdcPrice)} cdtPrice={Number(cdtMarketPrice)} />
+        <USDCMintModal isOpen={isMintOpen} onClose={onMintClose} usdcBalance={usdcBalance} usdcPrice={Number(usdcPrice)} />
 
       </Modal>
 

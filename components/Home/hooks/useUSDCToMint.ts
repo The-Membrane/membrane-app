@@ -42,7 +42,7 @@ const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
             run
         ],
         queryFn: () => {
-            if (!address || !basket || !positionID || quickActionState?.usdcMint.mint === 0 || quickActionState?.usdcMint.deposit === 0 || !run) return { msgs: [] }
+            if (!address || !basket || !positionID || quickActionState?.usdcMint.mint < 21 || quickActionState?.usdcMint.deposit === 0 || !run) return { msgs: [] }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
             const messageComposer = new PositionsMsgComposer(address, contracts.cdp)

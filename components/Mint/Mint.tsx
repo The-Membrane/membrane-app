@@ -199,8 +199,8 @@ const Mint = React.memo(() => {
           <>
             <HealthSlider summary={summary} />
             <HStack alignItems="flex-start" justifyContent={"center"}>
-              <MintTabsCard />
               <CurrentPositions />
+              <MintTabsCard />
               <RedemptionCard />
             </HStack>
           </>
@@ -212,7 +212,7 @@ const Mint = React.memo(() => {
         onChange={() => { setAdvanced(!useAdvanced) }}
         fontFamily="Inter"
       >
-        Use Advanced Mode
+        {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
       </Checkbox>
     </Stack>
   )

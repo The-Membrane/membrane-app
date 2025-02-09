@@ -173,7 +173,7 @@ export const USDCMintCard = () => {
                 </Text>
 
                 <Text variant="title" marginTop="auto" textAlign="center" fontSize="sm" letterSpacing="1px" width="100%">
-                    Minimum 21 CDT to Mint
+                    Minimum 25 USDC to Mint
                 </Text>
                 <TxButton
                     w="100%"

@@ -207,6 +207,7 @@ const Mint = React.memo(() => {
       }
 
       <Checkbox
+        alignSelf="center"
         checked={useAdvanced}
         onChange={() => { setAdvanced(!useAdvanced) }}
         fontFamily="Inter"

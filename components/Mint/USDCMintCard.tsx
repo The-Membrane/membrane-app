@@ -112,7 +112,7 @@ export const USDCMintCard = () => {
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
                         <Image src={"https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.svg"} w="30px" h="30px" />
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                        <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                             Deposit USDC
                         </Text>
                     </HStack>
@@ -140,7 +140,7 @@ export const USDCMintCard = () => {
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
                         <Image src={"/images/cdt.svg"} w="30px" h="30px" />
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                        <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                             Mint CDT
                         </Text>
                     </HStack>

@@ -1,15 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const API_KEY = process.env.EXTERNAL_API_KEY; // Store your API key in an environment variable
+    const API_KEY = process.env.EXTERNAL_API_KEY;
     const API_URL = "https://osmosis-rpc.numia.xyz/status";
 
+    console.log('Starting request with API_KEY:', API_KEY ? 'Present' : 'Missing');
+    console.log('API URL:', API_URL);
+
     try {
+        console.log('Making fetch request...');
         const response = await fetch(API_URL, {
             method: "GET",
             headers: {
@@ -19,15 +22,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             redirect: "follow"
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers));
+
         if (!response.ok) {
-            throw new Error(`RPC error: ${response.statusText}`);
+            throw new Error(`RPC error: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
+        // Log raw response first
+        const rawResponse = await response.text();
+        console.log('Raw response:', rawResponse);
 
-        res.status(200).json(data);
+        // Then parse as JSON
+        const data = JSON.parse(rawResponse);
+        console.log('Parsed data:', data);
+
+        return res.status(200).json(data);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('Detailed error:', error);
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            message: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
 }

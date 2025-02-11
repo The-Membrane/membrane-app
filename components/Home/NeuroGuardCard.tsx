@@ -526,13 +526,11 @@ const VaultEntry = React.memo(({
 const AcquireCDTEntry = React.memo(({
   usdcBalance,
   RBYield,
-  usdcPrice,
-  cdtMarketPrice
+  usdcPrice
 }: {
   usdcBalance: number
   RBYield: string
   usdcPrice: string
-  cdtMarketPrice: string
 }) => {
 
   const { isOpen: isSwapOpen, onOpen: onSwapOpen, onClose: onSwapClose } = useDisclosure()

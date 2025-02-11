@@ -8,11 +8,19 @@ const useRpcStatus = () => {
     queryKey: ['rpc status'],
     queryFn: async () => {
       const url = rpcUrl + '/status'
-      const res = await fetch(url).then((res) => res.json())
-      if ('error' in res) throw new Error('rpc error')
-      return res
+      console.log('Requesting URL:', url)
+      try {
+        const response = await fetch(url)
+        console.log('Response status:', response.status)
+        const res = await response.json()
+        if ('error' in res) throw new Error('rpc error')
+        return res
+      } catch (error) {
+        console.error('Failed to fetch RPC status:', error)
+        throw error
+      }
     },
-    refetchInterval: 60000, // every minute
+    refetchInterval: 60000,
   })
 }
 

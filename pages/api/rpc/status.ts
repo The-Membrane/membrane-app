@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const API_KEY = process.env.EXTERNAL_API_KEY; // Store your API key in an environment variable
-    const API_URL = "https://osmosis-rpc.numia.xyz";
+    const API_URL = "https://osmosis-rpc.numia.xyz/status";
 
     try {
         const response = await fetch(API_URL, {

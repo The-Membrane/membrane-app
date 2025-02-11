@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const API_KEY = process.env.EXTERNAL_API_KEY;
-    const API_URL = "https://osmosis-lcd.numia.xyz";
+    const API_URL = "https://osmosis-rpc.numia.xyz/status";
 
     console.log('Starting request with API_KEY:', API_KEY ? 'Present' : 'Missing');
     console.log('API URL:', API_URL);

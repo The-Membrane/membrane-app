@@ -35,12 +35,12 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }
             //Parse user intents, if any last_conversion_rates are above the current rate, add a fill_intent msg
             intents.forEach((intent: any) => {
                 console.log("intent logs", intent, intent.intent.intents.last_conversion_rate, currentConversionRate)
-                console.log("skipIDs", skipIDs)
                 //we cap msg length in order to allow ledgers to sign the transaction.
                 //We skipIDs that would cause errors
                 if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate)
                     && !intent.intent.intents.purchase_intents.some((intent: PurchaseIntent) => skipIDs.includes(intent.position_id ?? 0))
                     && intent.intent.intents.purchase_intents.length > 0 && msgs.length < 2) {
+                    console.log("intent for msg", intent)
                     msgs.push({
                         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
                         value: MsgExecuteContract.fromPartial({
@@ -57,6 +57,7 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }
                     )
                 }
             })
+            console.log("skipIDs", skipIDs)
 
 
             return { msgs }
@@ -65,6 +66,8 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }
     })
 
     const msgs = queryData?.msgs ?? []
+
+    console.log("msgs", msgs)
 
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })

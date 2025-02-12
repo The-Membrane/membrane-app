@@ -1027,9 +1027,10 @@ const NeuroGuardCard = () => {
         <Stack width={"32%"}>
           <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
           <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"44%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
+            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Redeem</Text>
             <RedeemButton basket={basket} />
 
-            <a href="https://app.osmosis.zone/transactions" style={{ textAlign: "center", justifyContent: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
+            <a href="https://app.osmosis.zone/transactions" style={{ marginTop: "auto", marginBottom: "2%", textAlign: "center", justifyContent: "center", fontSize: "12px", display: "flex" }}>
               Go to Osmosis to check swap history -&gt;
             </a>
           </Card>

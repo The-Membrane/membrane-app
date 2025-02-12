@@ -1022,11 +1022,11 @@ const NeuroGuardCard = () => {
   return (
     <Stack gap={1} marginBottom="3%">
 
-      <HStack alignContent={"center"} flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
+      <HStack alignItems="none" flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
-        <Stack>
+        <Stack width={"32%"}>
           <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
-          <Card>
+          <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"44%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
             <RedeemButton basket={basket} />
           </Card>
         </Stack>

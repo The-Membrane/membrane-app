@@ -16,7 +16,7 @@ const RangeBoundInfoCard = ({ RBYield, TVL, scrollFn }: { RBYield: string, TVL: 
     const priceDelta = fixedArray[0]?.price_7d_change ?? 0
 
     return (
-        <Card gap={0} width={"32%"} borderWidth={3} maxWidth="352px" height={"44%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
+        <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"44%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
             <Stack height="100%" gap={0}>
                 <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Range Bound Info</Text>
                 <List mt="2%" spacing={3} styleType="disc" padding="6" paddingTop="0">

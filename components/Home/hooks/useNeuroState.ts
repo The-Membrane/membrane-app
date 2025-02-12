@@ -26,10 +26,9 @@ type Store = {
 }
 
 const initialState: NeuroState = {
-  assets: [{ symbol: "CDT", label: "CDT", display: "CDT", value: "CDT", default: true, combinUsdValue: 1, balance: 0, logo: "/images/cdt.svg" }],
+  assets: [],
   guardedPositions: [],
   closeInputValue: 0,
-  openSelectedAsset: { symbol: "CDT", label: "CDT", display: "CDT", value: "CDT" },
 }
 
 // @ts-ignore

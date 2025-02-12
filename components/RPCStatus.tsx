@@ -20,7 +20,7 @@ const useRpcStatus = () => {
         throw error
       }
     },
-    refetchInterval: 60000,
+    // refetchInterval: 60000,
   })
 }
 

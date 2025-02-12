@@ -25,87 +25,88 @@ import { GrPowerReset } from 'react-icons/gr'
 import ConfirmModal from '../ConfirmModal'
 import { QASummary } from '../Home/QASummary'
 import { colors } from '@/config/defaults'
+import { RedeemButton } from './RedeemButton'
 
 // const ENTRY_FEE = 0.005
 
-const DepositButton = () => {
-  const { earnState, setEarnState } = useEarnState()
-  const usdcAsset = useAssetBySymbol('USDC')
-  const usdcBalance = useBalanceByAsset(usdcAsset)
+// const DepositButton = () => {
+//   const { earnState, setEarnState } = useEarnState()
+//   const usdcAsset = useAssetBySymbol('USDC')
+//   const usdcBalance = useBalanceByAsset(usdcAsset)
 
-  const { action: earn } = useEarn();
+//   const { action: earn } = useEarn();
 
-  const onSliderChange = (value: number) => {
-    setEarnState({ deposit: value, withdraw: 0 })
-  }
+//   const onSliderChange = (value: number) => {
+//     setEarnState({ deposit: value, withdraw: 0 })
+//   }
 
-  return (
-    <ActModal
-      // px="5"
-      // w="fit-content"
-      // fontSize="sm"
-      label="Deposit"
-      isDisabled={!isGreaterThanZero(usdcBalance)}
-      action={earn}
-    >
+//   return (
+//     <ActModal
+//       // px="5"
+//       // w="fit-content"
+//       // fontSize="sm"
+//       label="Deposit"
+//       isDisabled={!isGreaterThanZero(usdcBalance)}
+//       action={earn}
+//     >
 
-      <Stack gap="0">
-        <HStack justifyContent="space-between">
-          <Text variant="lable" textTransform="unset">
-            USDC
-          </Text>
-          <HStack>
-            <Text variant="value">${earnState.deposit}</Text>
-          </HStack>
-        </HStack>
-        <SliderWithState value={earnState.deposit} onChange={onSliderChange} min={0} max={parseFloat(usdcBalance)} walletCDT={1} summary={["empty"]} />
-      </Stack>
-    </ActModal>
-  )
-}
+//       <Stack gap="0">
+//         <HStack justifyContent="space-between">
+//           <Text variant="lable" textTransform="unset">
+//             USDC
+//           </Text>
+//           <HStack>
+//             <Text variant="value">${earnState.deposit}</Text>
+//           </HStack>
+//         </HStack>
+//         <SliderWithState value={earnState.deposit} onChange={onSliderChange} min={0} max={parseFloat(usdcBalance)} walletCDT={1} summary={["empty"]} />
+//       </Stack>
+//     </ActModal>
+//   )
+// }
 
-const WithdrawButton = () => {
-  const { earnState, setEarnState } = useEarnState()
-  const earnUSDCAsset = useAssetBySymbol('earnUSDC')
-  const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
+// const WithdrawButton = () => {
+//   const { earnState, setEarnState } = useEarnState()
+//   const earnUSDCAsset = useAssetBySymbol('earnUSDC')
+//   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
 
-  const { action: earn } = useEarn();
+//   const { action: earn } = useEarn();
 
-  //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
-  const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
-  const underlyingUSDC = data ?? "1"
-  // const underlyingUSDC = "2000000"
+//   //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
+//   const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
+//   const underlyingUSDC = data ?? "1"
+//   // const underlyingUSDC = "2000000"
 
-  ////////////////////////////////////
+//   ////////////////////////////////////
 
-  const onSliderChange = (value: number) => {
-    console.log("withdraw", value)
-    setEarnState({ withdraw: value, deposit: 0 })
-  }
+//   const onSliderChange = (value: number) => {
+//     console.log("withdraw", value)
+//     setEarnState({ withdraw: value, deposit: 0 })
+//   }
 
-  return (
-    <ActModal
-      // px="5"
-      // w="fit-content"
-      // fontSize="sm"
-      label="Withdraw"
-      isDisabled={!isGreaterThanZero(underlyingUSDC)}
-      action={earn}
-    >
-      <Stack gap="0">
-        <HStack justifyContent="space-between">
-          <Text variant="lable" textTransform="unset">
-            USDC
-          </Text>
-          <HStack>
-            <Text variant="value">${earnState.withdraw}</Text>
-          </HStack>
-        </HStack>
-        <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC ?? 1, -6).toNumber()} walletCDT={1} summary={["empty"]} />
-      </Stack>
-    </ActModal>
-  )
-}
+//   return (
+//     <ActModal
+//       // px="5"
+//       // w="fit-content"
+//       // fontSize="sm"
+//       label="Withdraw"
+//       isDisabled={!isGreaterThanZero(underlyingUSDC)}
+//       action={earn}
+//     >
+//       <Stack gap="0">
+//         <HStack justifyContent="space-between">
+//           <Text variant="lable" textTransform="unset">
+//             USDC
+//           </Text>
+//           <HStack>
+//             <Text variant="value">${earnState.withdraw}</Text>
+//           </HStack>
+//         </HStack>
+//         <SliderWithState value={earnState.withdraw} onChange={onSliderChange} min={0} max={shiftDigits(underlyingUSDC ?? 1, -6).toNumber()} walletCDT={1} summary={["empty"]} />
+//       </Stack>
+//     </ActModal>
+//   )
+// }
 
 
 const ActSlider = React.memo(() => {
@@ -207,11 +208,7 @@ const Deposit = () => {
   const { data: prices } = useOraclePrice()
   const { data: basket } = useBasket()
   const { action: loop } = useEarnLoop()
-  const { action: redeem } = useCDPRedeem()
-  console.log("redeem", redeem.simulate.data, redeem.simulate.isError, redeem.simulate.error)
   const { action: crankAPR } = useUSDCVaultCrankAPR()
-  const cdtAsset = useAssetBySymbol('CDT')
-  const CDTBalance = useBalanceByAsset(cdtAsset)
   const usdcAsset = useAssetBySymbol('USDC')
   const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
 
@@ -263,10 +260,6 @@ const Deposit = () => {
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault()
     setEarnState({ loopMax: parseInt(e.target.value) })
-  }
-  const handleRedeemInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    setEarnState({ redeemAmount: parseInt(e.target.value) })
   }
 
   console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.error)
@@ -374,31 +367,7 @@ const Deposit = () => {
                 {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}
                 {/* Redeen CDT input */}
                 {/* Redeem Button */}
-                <Stack py="5" w="full" gap="3" mb={"0"} >
-                  <Text variant="body"> Did you buy CDT {`<= $`}{num(basket?.credit_price.price ?? "0").multipliedBy(0.985).toFixed(3)}?</Text>
-                  <HStack>
-                    <Input
-                      width={"40%"}
-                      textAlign={"center"}
-                      placeholder="0"
-                      type="number"
-                      value={earnState.redeemAmount ?? 0}
-                      max={CDTBalance}
-                      onChange={handleRedeemInputChange}
-                    />
-                    {/* Redeem Button */}
-                    <TxButton
-                      maxW="75px"
-                      isLoading={redeem?.simulate.isLoading || redeem?.tx.isPending}
-                      isDisabled={redeem?.simulate.isError || !redeem?.simulate.data}
-                      onClick={() => redeem?.tx.mutate()}
-                      toggleConnectLabel={false}
-                      style={{ alignSelf: "end" }}
-                    >
-                      Redeem
-                    </TxButton>
-                  </HStack>
-                </Stack>
+                <RedeemButton basket={basket} />
               </HStack>
               {/* Crank APR Button */}
               <TxButton

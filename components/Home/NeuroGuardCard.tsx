@@ -1024,10 +1024,12 @@ const NeuroGuardCard = () => {
 
       <HStack alignContent={"center"} flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
-        <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
-        <Card>
-          <RedeemButton basket={basket} />
-        </Card>
+        <Stack>
+          <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
+          <Card>
+            <RedeemButton basket={basket} />
+          </Card>
+        </Stack>
         {/* Add Button in the middle of the remaining space that allows users to swap any stables to CDT */}
       </HStack>
 

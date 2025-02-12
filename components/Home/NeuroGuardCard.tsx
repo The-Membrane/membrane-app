@@ -1028,6 +1028,10 @@ const NeuroGuardCard = () => {
           <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
           <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"44%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
             <RedeemButton basket={basket} />
+
+            <a href="https://app.osmosis.zone/transactions" style={{ textAlign: "center", justifyContent: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
+              Go to Osmosis to check swap history -&gt;
+            </a>
           </Card>
         </Stack>
         {/* Add Button in the middle of the remaining space that allows users to swap any stables to CDT */}

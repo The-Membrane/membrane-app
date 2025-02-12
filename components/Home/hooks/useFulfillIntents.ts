@@ -11,9 +11,8 @@ import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents } from '@/componen
 import { num } from '@/helpers/num'
 
 
-import EventEmitter from 'events';
 import { PurchaseIntent } from '@/services/earn'
-EventEmitter.defaultMaxListeners = 25; // Increase the limit
+const MINIMUM_YIELD = 10000;
 
 const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }) => {
     const { address } = useWallet()
@@ -37,7 +36,7 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }
                 console.log("intent logs", intent, intent.intent.intents.last_conversion_rate, currentConversionRate)
                 //we cap msg length in order to allow ledgers to sign the transaction.
                 //We skipIDs that would cause errors
-                if (num(currentConversionRate).isGreaterThan(intent.intent.intents.last_conversion_rate)
+                if (num(currentConversionRate).isGreaterThan(Number(intent.intent.intents.last_conversion_rate) + MINIMUM_YIELD)
                     && !intent.intent.intents.purchase_intents.some((intent: PurchaseIntent) => skipIDs.includes(intent.position_id ?? 0))
                     && intent.intent.intents.purchase_intents.length > 0 && msgs.length < 2) {
                     console.log("intent for msg", intent)

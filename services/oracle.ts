@@ -53,6 +53,12 @@ const getAssetsInfo = (basket: Basket) => {
   return [mbrnAssetInfo, ...collateralAssets] as AssetInfo[]
 }
 
+export const getOracleConfig = async () => {
+
+  const client = await oracleClient()
+  return client.config()
+}
+
 export const getOracleAssetInfos = async (asset_infos: AssetInfo[]) => {
 
   const client = await oracleClient()

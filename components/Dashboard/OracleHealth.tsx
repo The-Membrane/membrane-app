@@ -1,7 +1,7 @@
 import { useBasket } from '@/hooks/useCDP';
 import React, { useMemo, useState } from 'react';
 import { AssetInfo, AssetResponse } from '@/contracts/codegen/oracle/Oracle.types'
-import { useOracleAssetInfos, useOraclePrice } from '@/hooks/useOracle';
+import { useOracleAssetInfos, useOracleConfig, useOraclePrice } from '@/hooks/useOracle';
 import { PoolLiquidityData, usePoolLiquidity } from '@/hooks/useOsmosis';
 import { Price } from '@/services/oracle';
 
@@ -47,13 +47,22 @@ const HealthStatus = ({ health = 100, label = "N/A" }) => {
 };
 
 function transformAssets(assets: AssetResponse[]): { asset_info: AssetInfo; pool_IDs: number[] }[] {
-    return assets.map(({ asset_info, oracle_info }) => ({
-        asset_info,
-        pool_IDs: oracle_info.flatMap(({ lp_pool_info, pools_for_osmo_twap }) => [
+    return assets.map(({ asset_info, oracle_info }) => {
+        // Create pool_IDs from the oracle_info
+        const pool_IDs = oracle_info.flatMap(({ lp_pool_info, pools_for_osmo_twap }) => [
             ...(lp_pool_info ? [lp_pool_info.pool_id] : []),
             ...pools_for_osmo_twap.map(pool => pool.pool_id),
-        ]),
-    }));
+        ]);
+
+        // Check if asset_info is of type native_token with denom 'usomo'
+        if ('native_token' in asset_info && asset_info.native_token.denom === 'usomo') {
+            // Manually add pool IDs for 'usomo'
+            pool_IDs.push(678);  // Example: Add specific pool ID for usomo, replace with actual logic
+        }
+
+        // Return transformed object
+        return { asset_info, pool_IDs };
+    });
 }
 
 
@@ -80,25 +89,28 @@ function calculateTotalPoolValues(
 }
 
 export const OracleHealth = () => {
+    //We'll forego using the config to get the OSMO pool ID for now, and just hardcode it
+    // const { data: config } = useOracleConfig()
     const { data: prices } = useOraclePrice()
     const { data: basket } = useBasket()
     const usedAssets = useMemo(() => {
         if (!basket) return []
         return basket.collateral_supply_caps
             .filter((cap) => Number(cap.supply_cap_ratio) > 0)
-            .map((cap) => (cap.asset_info as AssetInfo,  // Directly assign if you're sure it's always a native_token
-        ) as AssetInfo);
+            //@ts-ignore
+            .map((cap) => (cap.asset_info as AssetInfo),  // Directly assign if you're sure it's always a native_token
+            );
     }, [basket])
-    console.log("usedAssets", usedAssets)
+    // console.log("usedAssets", usedAssets)
     const { data: assetInfos } = useOracleAssetInfos(usedAssets)
-    console.log("assetInfos", assetInfos)
+    // console.log("assetInfos", assetInfos)
     //Get pool IDS for each asset
     const poolIDsPerAsset = useMemo(() => {
         if (!assetInfos) return []
         return transformAssets(assetInfos)
     }, [assetInfos])
     const poolIDs = poolIDsPerAsset.flatMap(({ pool_IDs }) => pool_IDs.toString())
-    console.log("poolIDsPerAsset", poolIDsPerAsset)
+    // console.log("poolIDsPerAsset", poolIDsPerAsset)
 
     //Query pool liquidity for each pool
     const poolData = usePoolLiquidity(poolIDs)
@@ -107,7 +119,7 @@ export const OracleHealth = () => {
             .map(query => query.data) // Extract only the `data` property
             .filter((data): data is PoolLiquidityData => data !== undefined); // Remove undefined results
     }, [poolData]);
-    console.log("poolLiquidityData", poolLiquidityData)
+    // console.log("poolLiquidityData", poolLiquidityData)
 
 
     //Create a map of pool ID to liquidity value
@@ -115,7 +127,7 @@ export const OracleHealth = () => {
         if (!prices || !poolLiquidityData) return {}
         return calculateTotalPoolValues(poolLiquidityData, prices)
     }, [prices, poolLiquidityData])
-    console.log("totalPoolValues", totalPoolValues)
+    // console.log("totalPoolValues", totalPoolValues)
 
     //Calculate the value of usedAssets in USD using basket.collateral_supply_caps.current_supply * price
     const assetValues = useMemo(() => {
@@ -126,7 +138,7 @@ export const OracleHealth = () => {
             return { name: cap.asset_info.native_token.denom, value }
         })
     }, [basket, prices])
-    console.log("assetValues", assetValues)
+    // console.log("assetValues", assetValues)
 
     //Group pool values by asset
     const poolValuesByAsset = useMemo(() => {
@@ -137,13 +149,13 @@ export const OracleHealth = () => {
         })
     }, [poolIDsPerAsset, totalPoolValues])
 
-    console.log("poolValuesByAsset", poolValuesByAsset)
+    // console.log("poolValuesByAsset", poolValuesByAsset)
 
     //Create health object for each asset using the formula: (assetValue / poolValuesByAsset) * 100
     const healthData = useMemo(() => {
         return assetValues.map(({ name, value }) => {
             const poolValue = poolValuesByAsset.find((asset) => asset.name === name)?.value
-            const health = (value / (poolValue ?? 1)) * 100
+            const health = (((value / (poolValue ?? 1)) * 100) - 1) * -1
             return { name, health }
         })
     }, [assetValues, poolValuesByAsset])

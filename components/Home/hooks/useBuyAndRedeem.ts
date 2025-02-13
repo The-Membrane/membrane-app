@@ -6,7 +6,6 @@ import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 
 import contracts from '@/config/contracts.json'
-import useEarnState from './useEarnState'
 import { shiftDigits } from '@/helpers/math'
 import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
 import { denoms } from '@/config/defaults'
@@ -49,7 +48,7 @@ const useBuyAndRedeem = () => {
 
 
             //Set max slippage to the difference between market prie & 0.985 
-            const maxSlippage = (0.985 - cdtPrice) * 100
+            const maxSlippage = num(0.985 - cdtPrice).times(100).dp(2).toNumber()
             //We don't render this if price is higher so this should be safe logic
 
             //1) Swap USDC to CDT

@@ -79,6 +79,7 @@ function calculateTotalPoolValues(
         let totalValue = 0;
 
         for (const asset of liquidity.liquidity) {
+            console.log("asset", poolId, asset)
             const assetPrice = priceMap.get(asset.denom) || 0;
             totalValue += Number(asset.amount) * assetPrice;
         }

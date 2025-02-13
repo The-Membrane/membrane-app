@@ -5,6 +5,7 @@ import { useVaultInfo } from '../Earn/hooks/useEarnQueries'
 import { RedeemButton } from '../Earn/RedeemButton'
 import { colors } from '@/config/defaults'
 import { HomeRedeemButton } from './HomeRedemptionButton'
+import { num } from '@/helpers/num'
 
 
 
@@ -16,7 +17,7 @@ export const ManicRedemptionCard = React.memo(({ basket, cdtMarketPrice }: { bas
     const maxSlippage = 0.985 - cdtMarketPrice
     //We don't render this if price is higher so this should be safe logic
 
-    const minimumSwapCapacity = (1 / cdtMarketPrice * (1 - maxSlippage)) * (vaultInfo?.debtAmount || 0)
+    const minimumSwapCapacity = num(cdtMarketPrice * (1 - maxSlippage)).times(vaultInfo?.debtAmount || 0).toFixed(0)
 
     return (
         <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"41%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>

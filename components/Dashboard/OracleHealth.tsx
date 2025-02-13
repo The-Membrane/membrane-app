@@ -155,7 +155,7 @@ export const OracleHealth = () => {
     const healthData = useMemo(() => {
         return assetValues.map(({ name, value }) => {
             const poolValue = poolValuesByAsset.find((asset) => asset.name === name)?.value
-            const health = (((value / (poolValue ?? 1)) * 100) - 1) * -1
+            const health = !poolValue ? 0 : value > poolValue ? 0 : ((poolValue - value) / poolValue) * 100;
             return { name, health }
         })
     }, [assetValues, poolValuesByAsset])

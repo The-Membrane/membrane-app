@@ -86,13 +86,16 @@ export const OracleHealth = () => {
         if (!basket) return []
         return basket.collateral_supply_caps.filter((cap) => Number(cap.supply_cap_ratio) > 0).map((cap) => ({ native_token: cap.asset_info } as AssetInfo))
     }, [basket])
+    console.log("usedAssets", usedAssets)
     const { data: assetInfos } = useOracleAssetInfos(usedAssets)
+    console.log("assetInfos", assetInfos)
     //Get pool IDS for each asset
     const poolIDsPerAsset = useMemo(() => {
         if (!assetInfos) return []
         return transformAssets(assetInfos)
     }, [assetInfos])
     const poolIDs = poolIDsPerAsset.flatMap(({ pool_IDs }) => pool_IDs.toString())
+    console.log("poolIDsPerAsset", poolIDsPerAsset)
 
     //Query pool liquidity for each pool
     const poolData = usePoolLiquidity(poolIDs)
@@ -101,12 +104,15 @@ export const OracleHealth = () => {
             .map(query => query.data) // Extract only the `data` property
             .filter((data): data is PoolLiquidityData => data !== undefined); // Remove undefined results
     }, [poolData]);
+    console.log("poolLiquidityData", poolLiquidityData)
+
 
     //Create a map of pool ID to liquidity value
     const totalPoolValues = useMemo(() => {
         if (!prices || !poolLiquidityData) return {}
         return calculateTotalPoolValues(poolLiquidityData, prices)
     }, [prices, poolLiquidityData])
+    console.log("totalPoolValues", totalPoolValues)
 
     //Calculate the value of usedAssets in USD using basket.collateral_supply_caps.current_supply * price
     const assetValues = useMemo(() => {
@@ -117,6 +123,7 @@ export const OracleHealth = () => {
             return { name: cap.asset_info.native_token.denom, value }
         })
     }, [basket, prices])
+    console.log("assetValues", assetValues)
 
     //Group pool values by asset
     const poolValuesByAsset = useMemo(() => {
@@ -127,6 +134,8 @@ export const OracleHealth = () => {
         })
     }, [poolIDsPerAsset, totalPoolValues])
 
+    console.log("poolValuesByAsset", poolValuesByAsset)
+
     //Create health object for each asset using the formula: (assetValue / poolValuesByAsset) * 100
     const healthData = useMemo(() => {
         return assetValues.map(({ name, value }) => {
@@ -136,7 +145,7 @@ export const OracleHealth = () => {
         })
     }, [assetValues, poolValuesByAsset])
 
-    console.log(healthData)
+    console.log("healthData", healthData)
 
     return (
         <div className="grid grid-cols-3 gap-4">

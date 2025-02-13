@@ -6,45 +6,33 @@ import { PoolLiquidityData, usePoolLiquidity } from '@/hooks/useOsmosis';
 import { Price } from '@/services/oracle';
 import { getAssetByDenom, getAssetsByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
+import { Box, Text, Circle, Tooltip } from "@chakra-ui/react";
 
 const HealthStatus = ({ health = 100, label = "N/A" }) => {
-    const [isHovered, setIsHovered] = useState(false);
-
     // Calculate color based on health value
     const getHealthColor = () => {
-        if (health >= 70) return 'bg-green-500';
-        if (health >= 30) return 'bg-yellow-500';
-        return 'bg-red-500';
+        if (health >= 70) return "green.500";
+        if (health >= 30) return "yellow.500";
+        return "red.500";
     };
 
     // Get status text based on health
     const getStatusText = () => {
-        if (health >= 70) return 'Healthy';
-        if (health >= 30) return 'Warning';
-        return 'Critical';
+        if (health >= 70) return "Healthy";
+        if (health >= 30) return "Warning";
+        return "Critical";
     };
 
     return (
-        <div className="flex items-center bg-gray-100 p-4 rounded-lg shadow-sm w-64">
-            <div className="relative">
-                <div
-                    className={`w-12 h-12 rounded-full ${getHealthColor()} transition-colors duration-300`}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                />
+        <Box display="flex" alignItems="center" bg="gray.100" p={4} borderRadius="lg" shadow="sm" w="64">
+            <Tooltip label={`Health: ${health}% - ${getStatusText()}`} hasArrow bg="gray.800" color="white">
+                <Circle size="48px" bg={getHealthColor()} border="1px solid" borderColor="gray.400" />
+            </Tooltip>
 
-                {/* Hover tooltip */}
-                {isHovered && (
-                    <div className="absolute -top-14 left-0 bg-gray-800 text-white p-2 rounded text-sm whitespace-nowrap">
-                        Health: {health}% - {getStatusText()}
-                    </div>
-                )}
-            </div>
-
-            <div className="ml-4 text-xl font-semibold text-gray-800">
+            <Text ml={4} fontSize="xl" fontWeight="semibold" color="gray.800">
                 {label}
-            </div>
-        </div>
+            </Text>
+        </Box>
     );
 };
 

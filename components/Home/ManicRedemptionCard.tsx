@@ -12,10 +12,16 @@ export const ManicRedemptionCard = React.memo(({ basket, cdtMarketPrice }: { bas
 
     const { data: vaultInfo } = useVaultInfo()
 
+    //Set max slippage to the difference between market prie & 0.985 
+    const maxSlippage = 0.985 - cdtMarketPrice
+    //We don't render this if price is higher so this should be safe logic
+
+    const minimumSwapCapacity = (1 / cdtMarketPrice * (1 - maxSlippage)) * (vaultInfo?.debtAmount || 0)
+
     return (
-        <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"44%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
-            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText} >Redeem</Text>
-            <Text mb="4%" fontFamily="Inter" fontSize="md" fontWeight={"bold"}>Redemption Capacity: {vaultInfo?.debtAmount ?? 0} CDT</Text>
+        <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"41%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
+            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText} >Earn More USDC</Text>
+            <Text mb="4%" fontFamily="Inter" fontSize="md" fontWeight={"bold"}>Remaining Capacity: {minimumSwapCapacity} USDC</Text>
 
             <HomeRedeemButton basket={basket} cdtMarketPrice={cdtMarketPrice} />
 

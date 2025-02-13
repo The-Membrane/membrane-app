@@ -28,7 +28,7 @@ export const HomeRedeemButton = React.memo(({ basket, cdtMarketPrice }: { basket
     return (
 
         <Stack py="5" w="full" gap="3" mb={"0"} >
-            <Text variant="body"> {num(0.985).minus(cdtMarketPrice).times(100).toString()}% instant arbitrage available, input to collect:</Text>
+            <Text variant="body"> {num(0.985).minus(cdtMarketPrice).times(100).toFixed(2)}% instant arbitrage available, input to collect:</Text>
             <HStack>
                 <Input
                     width={"40%"}

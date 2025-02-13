@@ -19,7 +19,7 @@ const RangeBoundInfoCard = ({ RBYield, TVL, scrollFn }: { RBYield: string, TVL: 
         <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"44%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
             <Stack height="100%" gap={0}>
                 <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Range Bound Info</Text>
-                <List mt="2%" spacing={3} styleType="disc" padding="6" paddingTop="0">
+                <List mt="4%" spacing={3} styleType="disc" padding="6" paddingTop="0">
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>TVL: ${shiftDigits(TVL, -6).toFixed(2)}</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>APR: {num(RBYield).times(100).toFixed(1)}%</ListItem>
                     <ListItem fontFamily="Inter" fontSize="md" fontWeight={"bold"}>7d Peg Change: {num(priceDelta).absoluteValue().toFixed(3)}%</ListItem>

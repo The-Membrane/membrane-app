@@ -27,8 +27,7 @@ import useNeuroIntentPolish from "./hooks/useNeuroIntentPolish"
 import useToaster from "@/hooks/useToaster"
 import RangeBoundVisual from "./RangeBoundVisual"
 import RangeBoundInfoCard from "./RangeBoundInfoCard"
-import { RedeemButton } from "../Earn/RedeemButton"
-import { ManicRedemptionCard } from "../Earn/ManicRedemptionCard"
+import { ManicRedemptionCard } from "./ManicRedemptionCard"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -1027,7 +1026,7 @@ const NeuroGuardCard = () => {
         <RangeBoundVisual />
         <Stack width={"32%"}>
           <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
-          <ManicRedemptionCard basket={basket} />
+          {Number(cdtMarketPrice) < 0.985 && <ManicRedemptionCard basket={basket} cdtMarketPrice={Number(cdtMarketPrice)} />}
         </Stack>
         {/* Add Button in the middle of the remaining space that allows users to swap any stables to CDT */}
       </HStack>

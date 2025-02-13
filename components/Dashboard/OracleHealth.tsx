@@ -127,7 +127,7 @@ export const OracleHealth = () => {
         if (!prices || !poolLiquidityData) return {}
         return calculateTotalPoolValues(poolLiquidityData, prices)
     }, [prices, poolLiquidityData])
-    // console.log("totalPoolValues", totalPoolValues)
+    console.log("totalPoolValues", totalPoolValues)
 
     //Calculate the value of usedAssets in USD using basket.collateral_supply_caps.current_supply * price
     const assetValues = useMemo(() => {

@@ -1024,7 +1024,7 @@ const NeuroGuardCard = () => {
 
       <HStack alignItems="none" flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
-        <Stack width={"32%"}>
+        <Stack width={"32%"} justifyContent="center" gap="1.5rem">
           <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
           {Number(cdtMarketPrice) < 0.985 && <ManicRedemptionCard basket={basket} cdtMarketPrice={Number(cdtMarketPrice)} />}
         </Stack>

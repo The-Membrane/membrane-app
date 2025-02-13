@@ -4,6 +4,8 @@ import { AssetInfo, AssetResponse } from '@/contracts/codegen/oracle/Oracle.type
 import { useOracleAssetInfos, useOracleConfig, useOraclePrice } from '@/hooks/useOracle';
 import { PoolLiquidityData, usePoolLiquidity } from '@/hooks/useOsmosis';
 import { Price } from '@/services/oracle';
+import { getAssetByDenom, getAssetsByDenom } from '@/helpers/chain';
+import { shiftDigits } from '@/helpers/math';
 
 const HealthStatus = ({ health = 100, label = "N/A" }) => {
     const [isHovered, setIsHovered] = useState(false);
@@ -70,7 +72,8 @@ export type PoolTotalValueMap = Record<string, number>; // { poolId: totalValue 
 
 function calculateTotalPoolValues(
     poolLiquidityData: PoolLiquidityData[],
-    prices: Price[]
+    prices: Price[],
+    assetDecimals: { decimal: number; denom: string }[]
 ): PoolTotalValueMap {
     // Convert prices array into a lookup map { denom: price }
     const priceMap = new Map(prices.map(({ denom, price }) => [denom, Number(price)]));
@@ -79,9 +82,11 @@ function calculateTotalPoolValues(
         let totalValue = 0;
 
         for (const asset of liquidity.liquidity) {
-            console.log("asset", poolId, asset)
+            // console.log("asset", poolId, asset)
             const assetPrice = priceMap.get(asset.denom) || 0;
-            totalValue += Number(asset.amount) * assetPrice;
+            const assetDecimal = assetDecimals.find(({ denom }) => denom === asset.denom)?.decimal || 6;
+            const assetAmount = shiftDigits(asset.amount, -assetDecimal);
+            totalValue += assetAmount.times(assetPrice).toNumber();
         }
 
         acc[poolId] = totalValue;
@@ -102,6 +107,9 @@ export const OracleHealth = () => {
             .map((cap) => (cap.asset_info as AssetInfo),  // Directly assign if you're sure it's always a native_token
             );
     }, [basket])
+    //@ts-ignore
+    const usedDenoms = usedAssets.map((asset) => asset.native_token.denom)
+    const assetDecimals = getAssetsByDenom(usedDenoms).map((asset) => ({ decimal: asset.decimal || 6, denom: asset.base }))
     // console.log("usedAssets", usedAssets)
     const { data: assetInfos } = useOracleAssetInfos(usedAssets)
     // console.log("assetInfos", assetInfos)
@@ -126,17 +134,18 @@ export const OracleHealth = () => {
     //Create a map of pool ID to liquidity value
     const totalPoolValues = useMemo(() => {
         if (!prices || !poolLiquidityData) return {}
-        return calculateTotalPoolValues(poolLiquidityData, prices)
-    }, [prices, poolLiquidityData])
+        return calculateTotalPoolValues(poolLiquidityData, prices, assetDecimals)
+    }, [prices, poolLiquidityData, assetDecimals])
     console.log("totalPoolValues", totalPoolValues)
 
     //Calculate the value of usedAssets in USD using basket.collateral_supply_caps.current_supply * price
     const assetValues = useMemo(() => {
         if (!basket || !prices) return []
         return basket.collateral_supply_caps.map((cap) => {
-            const assetPrice = prices.find((price) => price.denom === cap.asset_info.native_token.denom)?.price
-            const value = Number(cap.current_supply) * Number(assetPrice)
-            return { name: cap.asset_info.native_token.denom, value }
+            const assetPrice = prices.find((price) => price.denom === cap.asset_info.native_token.denom)?.price || 0
+            const assetDecimal = assetDecimals.find(({ denom }) => denom === cap.asset_info.native_token.denom)?.decimal || 6;
+            const assetAmount = shiftDigits(cap.current_supply, -assetDecimal);
+            return { name: cap.asset_info.native_token.denom, value: assetAmount.times(assetPrice).toNumber() }
         })
     }, [basket, prices])
     console.log("assetValues", assetValues)

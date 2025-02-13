@@ -95,3 +95,8 @@ export const getAssetByDenom = (denom: string, chainID: string = 'osmosis') => {
   const assets = getAssets(chainID)
   return assets?.find((asset) => asset.base === denom)
 }
+
+export const getAssetsByDenom = (denoms: string[], chainID: string = 'osmosis') => {
+  const assets = getAssets(chainID)
+  return assets?.filter((asset) => denoms.includes(asset.base))
+}

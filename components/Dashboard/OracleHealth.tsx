@@ -42,7 +42,7 @@ const HealthStatus = ({ health = 100, label = "N/A" }) => {
             </div>
 
             <div className="ml-4 text-xl font-semibold text-gray-800">
-                label
+                {label}
             </div>
         </div>
     );
@@ -165,7 +165,8 @@ export const OracleHealth = () => {
     const healthData = useMemo(() => {
         return assetValues.map(({ name, value }) => {
             const poolValue = poolValuesByAsset.find((asset) => asset.name === name)?.value
-            const health = !poolValue ? 0 : value > poolValue ? 0 : ((poolValue - value) / poolValue) * 100;
+            if (!poolValue) return
+            const health = value > poolValue ? 0 : ((poolValue - value) / poolValue) * 100;
             return { name, health }
         })
     }, [assetValues, poolValuesByAsset])
@@ -174,9 +175,11 @@ export const OracleHealth = () => {
 
     return (
         <div className="grid grid-cols-3 gap-4">
-            {healthData.map(({ name, health }) => (
-                <HealthStatus key={name} health={health} label={name} />
-            ))}
+            {healthData.filter((entry): entry is { name: any; health: number } => entry !== undefined)
+                .map(({ name, health }) => (
+                    <HealthStatus key={name} health={health} label={name} />
+                ))}
+
         </div>
     )
 

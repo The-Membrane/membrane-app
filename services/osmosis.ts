@@ -80,6 +80,15 @@ export const OsmosisClient = async () => {
     return osmosisClient
 }
 
+//Pool Liquidity
+export const getPoolLiquidity = async (poolId: string) => {
+    const osmosisClient = await OsmosisClient()
+    const liquidity = await osmosisClient.osmosis.poolmanager.v1beta1.totalPoolLiquidity({
+        poolId: BigInt(poolId),
+    })
+    return liquidity
+}
+
 //Spread Rewards, not incentives
 export const getCLRewards = async (positionId: string) => {
     const osmosisClient = await OsmosisClient()

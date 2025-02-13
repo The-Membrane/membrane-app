@@ -17,6 +17,7 @@ import { num } from '@/helpers/num'
 import { useOraclePrice } from '@/hooks/useOracle'
 import AssetPieChart from './PieChart'
 import { colors } from '@/config/defaults'
+import { OracleHealth } from './OracleHealth'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const [idSkips, setSkips] = useState([] as number[])
@@ -126,10 +127,10 @@ const Dashboard = () => {
         <Stack>
             <StatsTitle />
             <Divider mx="0" mb="5" />
-            {/* <HStack> */}
-            <AssetPieChart data={assetData} />
-
-            {/* </HStack> */}
+            <HStack>
+                <AssetPieChart data={assetData} />
+                <OracleHealth />
+            </HStack>
             <ManagementCard basket={basket} />
         </Stack>
     );

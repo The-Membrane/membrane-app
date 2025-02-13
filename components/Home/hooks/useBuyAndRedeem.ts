@@ -49,7 +49,7 @@ const useBuyAndRedeem = () => {
 
 
             //Set max slippage to the difference between market prie & 0.985 
-            const maxSlippage = 0.985 - cdtPrice
+            const maxSlippage = (0.985 - cdtPrice) * 100
             //We don't render this if price is higher so this should be safe logic
 
             //1) Swap USDC to CDT

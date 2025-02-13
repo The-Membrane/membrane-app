@@ -138,7 +138,7 @@ export const OracleHealth = () => {
             return { name: cap.asset_info.native_token.denom, value }
         })
     }, [basket, prices])
-    // console.log("assetValues", assetValues)
+    console.log("assetValues", assetValues)
 
     //Group pool values by asset
     const poolValuesByAsset = useMemo(() => {
@@ -149,7 +149,7 @@ export const OracleHealth = () => {
         })
     }, [poolIDsPerAsset, totalPoolValues])
 
-    // console.log("poolValuesByAsset", poolValuesByAsset)
+    console.log("poolValuesByAsset", poolValuesByAsset)
 
     //Create health object for each asset using the formula: (assetValue / poolValuesByAsset) * 100
     const healthData = useMemo(() => {

@@ -97,7 +97,8 @@ export const OracleHealth = () => {
     }, [basket])
     //@ts-ignore
     const usedDenoms = usedAssets.map((asset) => asset.native_token.denom)
-    const assetDecimals = getAssetsByDenom(usedDenoms).map((asset) => ({ decimal: asset.decimal || 6, denom: asset.base }))
+    const assetObjects = getAssetsByDenom(usedDenoms)
+    const assetDecimals = assetObjects.map((asset) => ({ decimal: asset.decimal || 6, denom: asset.base }))
     // console.log("usedAssets", usedAssets)
     const { data: assetInfos } = useOracleAssetInfos(usedAssets)
     // console.log("assetInfos", assetInfos)
@@ -155,7 +156,9 @@ export const OracleHealth = () => {
             const poolValue = poolValuesByAsset.find((asset) => asset.name === name)?.value
             if (!poolValue) return
             const health = value > poolValue ? 0 : ((poolValue - value) / poolValue) * 100;
-            return { name, health }
+            //Cahnge name to symbol
+            const symbolName = assetObjects.find((asset) => asset.base === name)?.symbol || name
+            return { name: symbolName, health }
         })
     }, [assetValues, poolValuesByAsset])
 

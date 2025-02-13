@@ -86,9 +86,8 @@ export const OracleHealth = () => {
         if (!basket) return []
         return basket.collateral_supply_caps
             .filter((cap) => Number(cap.supply_cap_ratio) > 0)
-            .map((cap) => ({
-                native_token: cap.asset_info,  // Directly assign if you're sure it's always a native_token
-            }) as AssetInfo);
+            .map((cap) => (cap.asset_info as AssetInfo,  // Directly assign if you're sure it's always a native_token
+        ) as AssetInfo);
     }, [basket])
     console.log("usedAssets", usedAssets)
     const { data: assetInfos } = useOracleAssetInfos(usedAssets)

@@ -137,7 +137,7 @@ const NeuroGuardOpenEntry = React.memo(({
             {/* @ts-ignore */}
             {num((asset?.balance ?? 0)).toFixed(2)}
           </Text>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" opacity={Number(yieldValue) < 0 ? "44%" : "100%"}>
             {/* @ts-ignore */}
             {asset?.default == true ? num(RBYield).times(100).toFixed(1) : yieldValue}%
           </Text>
@@ -1024,7 +1024,7 @@ const NeuroGuardCard = () => {
 
       <HStack alignItems="none" flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
-        <Stack width={"32%"} justifyContent="center" gap="1.5rem">
+        <Stack width={"32%"} justifyContent={Number(cdtMarketPrice) < 0.985 ? "center" : "none"} gap="1.5rem">
           <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
           {Number(cdtMarketPrice) < 0.985 && <ManicRedemptionCard basket={basket} cdtMarketPrice={Number(cdtMarketPrice)} />}
         </Stack>

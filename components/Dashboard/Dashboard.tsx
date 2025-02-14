@@ -95,6 +95,7 @@ const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }
         // console.log(assetInfo, denom, asset.asset)
         const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal ?? 6)).toNumber()
         const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
+        console.log(assetInfo?.symbol, amount, assetPrice)
 
         const usdValue = Number(num(amount).times(assetPrice).toFixed(1))
         // console.log(assetInfo?.symbol, usdValue, amount, assetPrice)

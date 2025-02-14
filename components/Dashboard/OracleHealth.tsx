@@ -6,7 +6,8 @@ import { PoolLiquidityData, usePoolLiquidity } from '@/hooks/useOsmosis';
 import { Price } from '@/services/oracle';
 import { getAssetByDenom, getAssetsByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
-import { Box, Text, Circle, Tooltip } from "@chakra-ui/react";
+import { Box, Text, Circle, Tooltip, Stack } from "@chakra-ui/react";
+import { colors } from '@/config/defaults';
 
 const HealthStatus = ({ health = 100, label = "N/A" }) => {
     // Calculate color based on health value
@@ -24,12 +25,12 @@ const HealthStatus = ({ health = 100, label = "N/A" }) => {
     };
 
     return (
-        <Box display="flex" alignItems="center" bg="gray.100" p={4} borderRadius="lg" shadow="sm" w="64">
-            <Tooltip label={`Health: ${health}% - ${getStatusText()}`} hasArrow bg="gray.800" color="white">
-                <Circle size="48px" bg={getHealthColor()} border="1px solid" borderColor="gray.400" />
+        <Box display="flex" alignItems="center" bg="gray.100" p={4} borderRadius="lg" shadow="sm" w="150px" h="52px">
+            <Tooltip label={`Health: ${health.toFixed(2)}% - ${getStatusText()}`} hasArrow bg="gray.800" color="white">
+                <Circle size="30px" bg={getHealthColor()} border="1px solid" borderColor="gray.400" />
             </Tooltip>
 
-            <Text ml={4} fontSize="xl" fontWeight="semibold" color="gray.800">
+            <Text ml={1} fontSize="12px" fontWeight="semibold" color="gray.800">
                 {label}
             </Text>
         </Box>
@@ -46,8 +47,8 @@ function transformAssets(assets: AssetResponse[]): { asset_info: AssetInfo; pool
 
         // Check if asset_info is of type native_token with denom 'usomo'
         if ('native_token' in asset_info && asset_info.native_token.denom === 'usomo') {
-            // Manually add pool IDs for 'usomo'
-            pool_IDs.push(678);  // Example: Add specific pool ID for usomo, replace with actual logic
+            // Manually add pool ID for 'usomo'
+            pool_IDs.push(678);
         }
 
         // Return transformed object
@@ -125,7 +126,7 @@ export const OracleHealth = () => {
         if (!prices || !poolLiquidityData) return {}
         return calculateTotalPoolValues(poolLiquidityData, prices, assetDecimals)
     }, [prices, poolLiquidityData, assetDecimals])
-    console.log("totalPoolValues", totalPoolValues)
+    // console.log("totalPoolValues", totalPoolValues)
 
     //Calculate the value of usedAssets in USD using basket.collateral_supply_caps.current_supply * price
     const assetValues = useMemo(() => {
@@ -137,7 +138,7 @@ export const OracleHealth = () => {
             return { name: cap.asset_info.native_token.denom, value: assetAmount.times(assetPrice).toNumber() }
         })
     }, [basket, prices])
-    console.log("assetValues", assetValues)
+    // console.log("assetValues", assetValues)
 
     //Group pool values by asset
     const poolValuesByAsset = useMemo(() => {
@@ -148,7 +149,7 @@ export const OracleHealth = () => {
         })
     }, [poolIDsPerAsset, totalPoolValues])
 
-    console.log("poolValuesByAsset", poolValuesByAsset)
+    // console.log("poolValuesByAsset", poolValuesByAsset)
 
     //Create health object for each asset using the formula: (assetValue / poolValuesByAsset) * 100
     const healthData = useMemo(() => {
@@ -162,16 +163,24 @@ export const OracleHealth = () => {
         })
     }, [assetValues, poolValuesByAsset])
 
-    console.log("healthData", healthData)
+    // console.log("healthData", healthData)
 
     return (
-        <div className="grid grid-cols-3 gap-4">
-            {healthData.filter((entry): entry is { name: any; health: number } => entry !== undefined)
-                .map(({ name, health }) => (
-                    <HealthStatus key={name} health={health} label={name} />
-                ))}
+        <Stack>
+            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Oracle Pool Health</Text>
+            <div style={{
+                display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem",
+                backgroundColor: colors.p200, // Color the gaps
+                padding: "10px", // Ensures outer gaps are also colored
+                border: "2px solid black",
+            }}>
+                {healthData.filter((entry): entry is { name: any; health: number } => entry !== undefined)
+                    .map(({ name, health }) => (
+                        <HealthStatus key={name} health={health} label={name} />
+                    ))}
 
-        </div>
+            </div>
+        </Stack>
     )
 
 }

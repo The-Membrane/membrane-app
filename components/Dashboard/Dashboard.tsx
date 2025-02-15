@@ -52,26 +52,28 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
         <Stack>
             <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Product Management</Text>
             <Card gap={16} width={"33%"}>
-                <TxButton
-                    maxW="100%"
-                    isLoading={fulfill?.simulate.isLoading || fulfill?.tx.isPending}
-                    isDisabled={isFulfillDisabled}
-                    onClick={() => fulfill?.tx.mutate()}
-                    toggleConnectLabel={false}
-                    style={{ alignSelf: "center" }}
-                >
-                    Fulfill Intents
-                </TxButton>
-                <TxButton
-                    maxW="100%"
-                    isLoading={givePoints?.simulate.isLoading || givePoints?.tx.isPending}
-                    isDisabled={isGivePointsDisabled}
-                    onClick={() => givePoints?.tx.mutate()}
-                    toggleConnectLabel={false}
-                    style={{ alignSelf: "center" }}
-                >
-                    Give Range Bound Points
-                </TxButton>
+                <Stack>
+                    <TxButton
+                        maxW="100%"
+                        isLoading={fulfill?.simulate.isLoading || fulfill?.tx.isPending}
+                        isDisabled={isFulfillDisabled}
+                        onClick={() => fulfill?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Fulfill Intents
+                    </TxButton>
+                    <TxButton
+                        maxW="100%"
+                        isLoading={givePoints?.simulate.isLoading || givePoints?.tx.isPending}
+                        isDisabled={isGivePointsDisabled}
+                        onClick={() => givePoints?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        Give Range Bound Points
+                    </TxButton>
+                </Stack>
                 <Slider
                     defaultValue={percentToDistribution}
                     isReadOnly

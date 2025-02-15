@@ -37,7 +37,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
   const { data: prices } = useOraclePrice()
 
   const { data } = useBoundedCDTVaultTokenUnderlying(shiftDigits(boundedCDTBalance, 6).toFixed(0))
-  const underlyingCDT = data ?? "1"
+  const underlyingCDT = data
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -75,7 +75,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
 
         const cdtWithdrawAmount = shiftDigits(quickActionState.rangeBoundLPwithdrawal, 6).toNumber()
         // find percent of underlying usdc to withdraw
-        const percentToWithdraw = num(cdtWithdrawAmount).div(underlyingCDT).toNumber()
+        const percentToWithdraw = num(cdtWithdrawAmount).div(underlyingCDT ?? 1).toNumber()
 
         // Calc VT to withdraw using the percent
         const withdrawAmount = num(shiftDigits(boundedCDTBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
@@ -182,7 +182,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
   // console.log("cookie RBLP", cookie)
 
   const onInitialSuccess = () => {
-    if (cookie == null && appState.setCookie && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, quickActionState.rangeBoundLPdeposit.toString(), 3650)
+    if (cookie == null && appState.setCookie && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, num(quickActionState.rangeBoundLPdeposit).plus(underlyingCDT ?? 0).toString(), 3650)
     if (cookie != null && quickActionState.rangeBoundLPdeposit != 0) setCookie("rblp " + address, num(cookie).plus(quickActionState.rangeBoundLPdeposit).toString(), 3650)
     if (cookie != null && quickActionState.rangeBoundLPwithdrawal != 0 && num(cookie).minus(quickActionState.rangeBoundLPwithdrawal).isGreaterThan(0.01)) setCookie("rblp " + address, Math.max(0, num(cookie).minus(quickActionState.rangeBoundLPwithdrawal).toNumber()).toString(), 3650)
     else if (cookie != null && quickActionState.rangeBoundLPwithdrawal != 0 && num(cookie).minus(quickActionState.rangeBoundLPwithdrawal).isLessThanOrEqualTo(0.01)) deleteCookie("rblp " + address)

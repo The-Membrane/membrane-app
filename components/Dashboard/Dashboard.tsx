@@ -128,7 +128,7 @@ const Dashboard = () => {
         <Stack>
             <StatsTitle />
             <Divider mx="0" mb="5" />
-            <HStack>
+            <HStack alignItems={"none"}>
                 <AssetPieChart data={assetData} />
                 <OracleHealth />
             </HStack>

@@ -172,7 +172,7 @@ export const OracleHealth = () => {
                 display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem",
                 backgroundColor: colors.p200, // Color the gaps
                 padding: "10px", // Ensures outer gaps are also colored
-                border: "2px solid black",
+                border: "2px solid white",
             }}>
                 {healthData.filter((entry): entry is { name: any; health: number } => entry !== undefined)
                     .map(({ name, health }) => (

@@ -788,8 +788,8 @@ export const NeuroCloseModal = React.memo(({
 })
 
 export const USDCMintModal = React.memo(({
-    isOpen, onClose, usdcBalance, usdcPrice, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number, usdcPrice: number }>) => {
+    isOpen, onClose, usdcBalance, usdcPrice, expectedAPR, children
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number, usdcPrice: number, expectedAPR: number }>) => {
 
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -984,6 +984,9 @@ export const USDCMintModal = React.memo(({
                     >
                         Deposit & Mint
                     </TxButton>
+                    <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                        {expectedAPR ? `APR: ${expectedAPR}` : ""}
+                    </Text>
                 </ModalFooter>
             )}
         </ModalContent>
@@ -997,7 +1000,7 @@ export const USDCSwapToCDTModal = React.memo(({
 
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
-    const { action: swap } = useSwapToCDT({ onSuccess: onClose, run: isOpen })
+    const { action: swap, tokenOutMinAmount } = useSwapToCDT({ onSuccess: onClose, run: isOpen })
     const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
     const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
     // console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
@@ -1108,6 +1111,9 @@ export const USDCSwapToCDTModal = React.memo(({
                     >
                         Swap to CDT
                     </TxButton>
+                    <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                        {tokenOutMinAmount ? `Minimum CDT: ${tokenOutMinAmount}` : ""}
+                    </Text>
                 </ModalFooter>
             )}
         </ModalContent>

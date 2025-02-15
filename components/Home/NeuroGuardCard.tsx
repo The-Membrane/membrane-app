@@ -527,11 +527,13 @@ const VaultEntry = React.memo(({
 const AcquireCDTEntry = React.memo(({
   usdcBalance,
   RBYield,
-  usdcPrice
+  usdcPrice,
+  usdcCost
 }: {
   usdcBalance: number
   RBYield: string
-  usdcPrice: string
+  usdcPrice: string,
+  usdcCost: number
 }) => {
 
   const { isOpen: isSwapOpen, onOpen: onSwapOpen, onClose: onSwapClose } = useDisclosure()
@@ -540,6 +542,7 @@ const AcquireCDTEntry = React.memo(({
 
   {/* @ts-ignore */ }
   const yieldValue = num(RBYield).times(100).toFixed(1)
+  const usdcMintAPR = num(RBYield).minus(usdcCost).times(0.80).times(100).toFixed(1)
   const isMintDisabled = usdcBalance < 24
   // console.log("log usdc balance", shiftDigits(usdcBalance, -6).toNumber())
 
@@ -607,7 +610,7 @@ const AcquireCDTEntry = React.memo(({
         closeOnOverlayClick={true}
       >
         <ModalOverlay />
-        <USDCMintModal isOpen={isMintOpen} onClose={onMintClose} usdcBalance={usdcBalance} usdcPrice={Number(usdcPrice)} />
+        <USDCMintModal isOpen={isMintOpen} onClose={onMintClose} usdcBalance={usdcBalance} usdcPrice={Number(usdcPrice)} expectedAPR={Number(usdcMintAPR)} />
 
       </Modal>
 
@@ -884,7 +887,7 @@ const NeuroGuardCard = () => {
 
 
   // Separate complex sections into components
-  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets, CDTBalance, USDCBalance, cdtMarketPrice, usdcPrice }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[], CDTBalance: number, USDCBalance: number, cdtMarketPrice: string, usdcPrice: string }) => {
+  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets, CDTBalance, USDCBalance, usdcPrice }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[], CDTBalance: number, USDCBalance: number, usdcPrice: string }) => {
 
     const [showAllYields, setShowAllYields] = useState(false);
 
@@ -942,7 +945,7 @@ const NeuroGuardCard = () => {
 
           : <Stack>
             {/* Default "if no CDT in wallet" entry */}
-            {(CDTBalance === 0 && boundCDTBalance === 0) && <MemoizedAcquireCDTEntry usdcBalance={USDCBalance} RBYield={RBYield} usdcPrice={usdcPrice} />}
+            {(CDTBalance === 0 && boundCDTBalance === 0) || true && <MemoizedAcquireCDTEntry usdcBalance={USDCBalance} RBYield={RBYield} usdcPrice={usdcPrice} usdcCost={basketAssets.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />}
             {/* Wallet Assets */}
             {assets.map((asset) => {
               if (!asset || !num(asset.combinUsdValue).isGreaterThan(0.01) ||
@@ -1037,7 +1040,7 @@ const NeuroGuardCard = () => {
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
       ) ? */}
-      <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} CDTBalance={Number(cdtBalance)} USDCBalance={Number(usdcBalance)} cdtMarketPrice={cdtMarketPrice} usdcPrice={usdcPrice} />
+      <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} CDTBalance={Number(cdtBalance)} USDCBalance={Number(usdcBalance)} usdcPrice={usdcPrice} />
       {/* : null} */}
 
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) || Number(underlyingCDT) > 0 ?

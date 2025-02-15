@@ -26,6 +26,7 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
+    tokenOutMinAmount: number
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
@@ -38,7 +39,7 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
       run
     ],
     queryFn: () => {
-      if (!address || !basket || !prices || !usdcAsset || quickActionState?.usdcSwapToCDT === 0 || !run) return { msgs: [] }
+      if (!address || !basket || !prices || !usdcAsset || quickActionState?.usdcSwapToCDT === 0 || !run) return { msgs: [], tokenOutMinAmount: 0 }
       var msgs = [] as MsgExecuteContractEncodeObject[]
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === denoms.CDT[0])?.price ?? "0")
 
@@ -71,13 +72,14 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
         msgs.push(enterMsg)
       }
 
-      return { msgs }
+      return { msgs, tokenOutMinAmount }
 
     },
     enabled: !!address,
   })
 
   const msgs = queryData?.msgs ?? []
+  const tokenOutMinAmount = queryData?.tokenOutMinAmount ?? 0
 
   console.log("swap to cdt msgs", msgs)
 
@@ -92,7 +94,7 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
       queryKey: ['home_page_swap_sim', (msgs?.toString() ?? "0")],
       onSuccess: onInitialSuccess,
       enabled: !!msgs,
-    })
+    }), tokenOutMinAmount
   }
 }
 

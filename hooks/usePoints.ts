@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getAllUserPoints, getUserConversionRates } from '@/services/points'
+import { getAllConversionRates, getAllUserPoints, getUserConversionRates } from '@/services/points'
 import useWallet from './useWallet'
 
 export const useAllUserPoints = () => {
@@ -23,6 +23,16 @@ export const useUserConversionRates = () => {
     queryFn: async () => {
       if (!address) return
       return getUserConversionRates(address)
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
+export const useAllConversionRates = () => {
+  return useQuery({
+    queryKey: ['all_conversion_rates'],
+    queryFn: async () => {
+      return getAllConversionRates()
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   })

@@ -18,12 +18,14 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import AssetPieChart from './PieChart'
 import { colors } from '@/config/defaults'
 import { OracleHealth } from './OracleHealth'
+import useGiveRBLPPoints from './hooks/useGiveRBLPPoints'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const [idSkips, setSkips] = useState([] as number[])
 
     const { action: manage } = useBoundedManage()
     const { action: fulfill } = useFulfillIntents({ run: true, skipIDs: idSkips })
+    const { action: givePoints } = useGiveRBLPPoints()
     const { data: amountToManage } = useRBLPCDTBalance()
 
     const revenueDistributionThreshold = 50000000
@@ -32,7 +34,8 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
         return num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()
 
     }, [basket])
-    const isManageDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero() }, [manage?.simulate.isError, manage?.simulate.data])
+    const isGivePointsDisabled = givePoints?.simulate.isError || !givePoints?.simulate.data
+    const isManageDisabled = manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero()
     const isFulfillDisabled = useMemo(() => {
         if (fulfill?.simulate.isError) {
             //Find the position ID string in the error, it'll look like Position doesn't exist: 1
@@ -58,6 +61,16 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
                     style={{ alignSelf: "center" }}
                 >
                     Fulfill Intents
+                </TxButton>
+                <TxButton
+                    maxW="100%"
+                    isLoading={givePoints?.simulate.isLoading || givePoints?.tx.isPending}
+                    isDisabled={isGivePointsDisabled}
+                    onClick={() => givePoints?.tx.mutate()}
+                    toggleConnectLabel={false}
+                    style={{ alignSelf: "center" }}
+                >
+                    Give Range Bound Points
                 </TxButton>
                 <Slider
                     defaultValue={percentToDistribution}

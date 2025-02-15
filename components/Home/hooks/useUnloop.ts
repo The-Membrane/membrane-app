@@ -3,7 +3,6 @@ import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
-import useQuickActionState from './useQuickActionState'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 import { useOraclePrice } from '@/hooks/useOracle'
@@ -12,17 +11,14 @@ import { loopPosition, unloopPosition } from '@/services/osmosis'
 import { num, shiftDigits } from '@/helpers/num'
 import { updatedSummary } from '@/services/cdp'
 import { loopMax } from '@/config/defaults'
-import { setCookie } from '@/helpers/cookies'
 import useMintState from '@/components/Mint/hooks/useMintState'
 import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSummary'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import useUserPositionState from '@/persisted-state/useUserPositionState'
 
 const useUnLoop = (positionIndex: number, desiredWithdrawal?: number) => {
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
-  const { reset } = useUserPositionState()
   const { data: basket } = useBasket()
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
@@ -100,7 +96,6 @@ const useUnLoop = (positionIndex: number, desiredWithdrawal?: number) => {
 
 
   const onSuccess = () => {
-    reset()
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }

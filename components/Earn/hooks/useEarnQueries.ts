@@ -332,7 +332,7 @@ export const useBoundedCDTBalance = () => {
     })
 }
 
-export const simpleBoundedAPRCalc = (basket: any, interest: CollateralInterestResponse, vaultCDT: any) => {
+export const simpleBoundedAPRCalc = (basket: any, interest: CollateralInterestResponse, vaultCDT: any, manicDebt: number) => {
     if (!basket || !interest || !vaultCDT) {
         return "0"
     }
@@ -342,8 +342,9 @@ export const simpleBoundedAPRCalc = (basket: any, interest: CollateralInterestRe
         .filter(rate => !isNaN(Number(rate)))  // Ensure all elements are numbers
         .sort((a, b) => Number(a) - Number(b));
 
+    const totalDebt = basket.credit_asset.amount - manicDebt
     const estimatedRate = sortedRates.length > 0 ? sortedRates[0] : null;
-    const estimatedRevenue = estimatedRate ? num(estimatedRate).times(basket.credit_asset.amount) : num(0);
+    const estimatedRevenue = estimatedRate ? num(estimatedRate).times(totalDebt) : num(0);
 
     const apr = num(estimatedRevenue)
         .times(0.80)

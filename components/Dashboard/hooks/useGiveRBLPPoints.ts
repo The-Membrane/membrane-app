@@ -1,0 +1,93 @@
+import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
+import useWallet from '@/hooks/useWallet'
+import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import { useQuery } from '@tanstack/react-query'
+import { queryClient } from '@/pages/_app'
+
+import contracts from '@/config/contracts.json'
+import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import { toUtf8 } from "@cosmjs/encoding";
+import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents } from '@/components/Earn/hooks/useEarnQueries'
+import { num } from '@/helpers/num'
+import { useAllConversionRates } from '@/hooks/usePoints'
+import { UserConversionRateState } from '@/services/points'
+
+const MSG_CAP = 9
+
+const useGiveRBLPPoints = () => {
+    const { address } = useWallet()
+    //Get users' intents
+    const { data: conversionRates } = useAllConversionRates()
+    //Get current conversion rate
+    const { data: currentConversionRate } = useBoundedCDTVaultTokenUnderlying("1000000000000")
+
+    type QueryData = {
+        msgs: MsgExecuteContractEncodeObject[] | undefined
+    }
+    const { data: queryData } = useQuery<QueryData>({
+        queryKey: ['rblp_points_allocation_msg_creator', conversionRates, currentConversionRate],
+        queryFn: async () => {
+            if (!conversionRates || !currentConversionRate) { console.log("fulfill intents early return", address, conversionRates, currentConversionRate); return { msgs: [] } }
+
+            var msgs = [] as MsgExecuteContractEncodeObject[]
+
+            //Parse user conversion rates, if any rblp conversion_rates are above the current rate, add a give_points msg
+            conversionRates.forEach((userRates: UserConversionRateState) => {
+                //we aren't going to cap msg length for ledgers (which is 3) but we'll cap it for gas at 9
+                //Find rangebound contract in user rates
+                const rblpRate = userRates.conversion_rates.find((rate) => rate.vault_address === contracts.rangeboundLP)
+
+                //If rate is below current rate, add a give_points msg
+                if (num(currentConversionRate).isGreaterThan(Number(rblpRate?.last_conversion_rate ?? currentConversionRate))
+                    && msgs.length < MSG_CAP) {
+
+                    console.log("userRateState for msg", userRates)
+
+                    msgs.push({
+                        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+                        value: MsgExecuteContract.fromPartial({
+                            sender: address,
+                            contract: contracts.points,
+                            msg: toUtf8(JSON.stringify({
+                                give_points: {
+                                    cdp_repayment: false,
+                                    lq_claims: false,
+                                    sp_claims: false,
+                                    rangebound_user: userRates.user,
+                                }
+                            })),
+                            funds: []
+                        })
+                    } as MsgExecuteContractEncodeObject
+                    )
+                }
+            })
+
+
+            return { msgs }
+        },
+        enabled: !!address,
+    })
+
+    const msgs = queryData?.msgs ?? []
+
+    console.log("rblp give points msgs", msgs)
+
+    const onInitialSuccess = () => {
+        // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+        // queryClient.invalidateQueries({ queryKey: ['positions'] })
+        // queryClient.invalidateQueries({ queryKey: ['fillIntents_msg_creator'] })
+        // queryClient.invalidateQueries({ queryKey: ['useBoundedIntents'] })
+    }
+
+    return {
+        action: useSimulateAndBroadcast({
+            msgs,
+            queryKey: ['dashboard_rblp_give_points', (msgs?.toString() ?? "0")],
+            onSuccess: onInitialSuccess,
+            enabled: !!msgs,
+        })
+    }
+}
+
+export default useGiveRBLPPoints

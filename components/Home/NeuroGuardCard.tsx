@@ -6,7 +6,7 @@ import { colors, denoms } from "@/config/defaults"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
 import { useBasket, useBasketAssets, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
-import { simpleBoundedAPRCalc, useBoundedCDTVaultTokenUnderlying, useBoundedTVL, useUserBoundedIntents } from "../Earn/hooks/useEarnQueries"
+import { simpleBoundedAPRCalc, useBoundedCDTVaultTokenUnderlying, useBoundedTVL, useUserBoundedIntents, useVaultInfo } from "../Earn/hooks/useEarnQueries"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useCollateralAssets from "../Bid/hooks/useCollateralAssets"
 import useNeuroState from "./hooks/useNeuroState"
@@ -707,11 +707,12 @@ const NeuroGuardCard = () => {
     }
   }, [isDisabled, isLoading]);
 
+  const { data: vaultInfo } = useVaultInfo()
 
   const calculatedRBYield = useMemo(() => {
     if (!basket || !interest || !TVL) return "0";
-    return simpleBoundedAPRCalc(basket, interest, TVL)
-  }, [basket, interest, TVL]);
+    return simpleBoundedAPRCalc(basket, interest, TVL, shiftDigits(vaultInfo?.debtAmount, 6).toNumber() ?? 0);
+  }, [basket, interest, TVL, vaultInfo?.debtAmount]);
   // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////

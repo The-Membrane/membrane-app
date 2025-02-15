@@ -22,6 +22,11 @@ interface UserConversionRates {
   last_vt_balance: string;
 }
 
+export interface UserConversionRateState {
+  user: string;
+  conversion_rates: UserConversionRates[];
+}
+
 export const getUserConversionRates = async (address: string) => {
   const cosmWasmClient = await getCosmWasmClient()
   return cosmWasmClient.queryContractSmart(contracts.points, {
@@ -34,3 +39,11 @@ export const getUserConversionRates = async (address: string) => {
   }[]>;
 }
 
+export const getAllConversionRates = async () => {
+  const cosmWasmClient = await getCosmWasmClient()
+  return cosmWasmClient.queryContractSmart(contracts.points, {
+    user_conversion_rates: {
+      limit: 1024
+    }
+  }) as Promise<UserConversionRateState[]>;
+}

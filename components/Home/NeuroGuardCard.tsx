@@ -119,7 +119,8 @@ const NeuroGuardOpenEntry = React.memo(({
 
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
   // console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
-  const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(0.8).minus(cost).times(100).toFixed(1)
+  const ltv = asset.symbol === "USDC" ? 0.89 : 0.8
+  const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(ltv).minus(cost).times(100).toFixed(1)
   console.log(RBYield)
   // console.log("INFiNITY LOGS", (minAmount - asset?.balance).toFixed(2).toString() === "Infinity", (minAmount - asset?.balance) === Infinity)
 
@@ -542,7 +543,7 @@ const AcquireCDTEntry = React.memo(({
 
   {/* @ts-ignore */ }
   const yieldValue = num(RBYield).times(100).toFixed(1)
-  const usdcMintAPR = num(RBYield).minus(usdcCost).times(0.80).times(100).toFixed(1)
+  const usdcMintAPR = num(RBYield).times(0.89).minus(usdcCost).times(100).toFixed(1)
   const isMintDisabled = usdcBalance < 24
   // console.log("log usdc balance", shiftDigits(usdcBalance, -6).toNumber())
 
@@ -945,7 +946,7 @@ const NeuroGuardCard = () => {
 
           : <Stack>
             {/* Default "if no CDT in wallet" entry */}
-            {(CDTBalance === 0 && boundCDTBalance === 0) || true && <MemoizedAcquireCDTEntry usdcBalance={USDCBalance} RBYield={RBYield} usdcPrice={usdcPrice} usdcCost={basketAssets.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />}
+            {(CDTBalance === 0 && boundCDTBalance === 0) && <MemoizedAcquireCDTEntry usdcBalance={USDCBalance} RBYield={RBYield} usdcPrice={usdcPrice} usdcCost={basketAssets.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />}
             {/* Wallet Assets */}
             {assets.map((asset) => {
               if (!asset || !num(asset.combinUsdValue).isGreaterThan(0.01) ||

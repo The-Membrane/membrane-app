@@ -21,6 +21,7 @@ import { useBasket } from "@/hooks/useCDP"
 import EventEmitter from 'events';
 import { getCookie, setCookie } from '@/helpers/cookies'
 import useAppState from '@/persisted-state/useAppState'
+import { denoms } from '@/config/defaults'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
@@ -71,6 +72,7 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
       msgs.push(depositMsg)
 
       //Mint msg 
+      const ltv = neuroState.openSelectedAsset.symbol === "USDC" ? 0.89 : 0.8
       //Add vault intent
       let mintMsg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -82,7 +84,7 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
               mint_intent: {
                 user: address,
                 position_id: basket.current_position_id,
-                mint_to_ltv: num(neuroState.openSelectedAsset?.maxBorrowLTV).times(0.8).toString()
+                mint_to_ltv: num(neuroState.openSelectedAsset?.maxBorrowLTV).times(ltv).toString()
               }
             }
           })),

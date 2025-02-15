@@ -1112,7 +1112,7 @@ export const USDCSwapToCDTModal = React.memo(({
                         Swap to CDT
                     </TxButton>
                     <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                        {tokenOutMinAmount ? `Minimum CDT: ${tokenOutMinAmount}` : ""}
+                        {tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : ""}
                     </Text>
                 </ModalFooter>
             )}

@@ -170,7 +170,7 @@ export const OracleHealth = () => {
             <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Oracle Pool Health</Text>
             <div style={{
                 display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem",
-                backgroundColor: colors.p200, // Color the gaps
+                backgroundColor: colors.globalBG, // Color the gaps
                 padding: "10px", // Ensures outer gaps are also colored
                 border: "2px solid white",
             }}>

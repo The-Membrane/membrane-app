@@ -66,6 +66,7 @@ const TakeAction = React.memo(() => {
         w="calc(100% - 16px)"
         h="1px"
         my="5"
+        mt="22%"
         mx="3"
       />
 

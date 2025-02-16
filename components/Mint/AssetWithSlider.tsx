@@ -1,9 +1,9 @@
-import { HStack, Stack, Text, Button, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Input } from '@chakra-ui/react';
-import { useState } from 'react';
-import { AssetWithBalance } from './hooks/useCombinBalance';
-import useMintState from './hooks/useMintState';
-import { getSummary } from '@/helpers/mint';
-import { num } from '@/helpers/num';
+import { HStack, useDisclosure, Text, Stack, Button, ModalOverlay, Modal, ModalContent, ModalFooter, ModalHeader, ModalCloseButton, ModalBody, Input } from "@chakra-ui/react";
+import { AssetWithBalance } from "./hooks/useCombinBalance";
+import useMintState from "./hooks/useMintState";
+import { useState } from "react";
+import { num } from "@/helpers/num";
+
 
 export type AssetWithInputProps = {
   label: string;
@@ -15,7 +15,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure();
   const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure();
   const [transactionValue, setTransactionValue] = useState('');
-  const [transactionType, setTransactionType] = useState<'deposit' | 'withdraw' | null>(null);
+  const [transactionType, setTransactionType] = useState<string | null>(null);
 
   const handleTransaction = () => {
     if (!transactionType || parseFloat(transactionValue) <= 0) return;
@@ -68,7 +68,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
               min={0}
               step="0.01"
               value={transactionValue}
-              onChange={(e) => setTransactionValue(e.target.value)}
+              onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
             />
           </ModalBody>
           <ModalFooter>

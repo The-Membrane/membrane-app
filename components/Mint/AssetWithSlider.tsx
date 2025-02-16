@@ -46,7 +46,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     <Stack gap="0">
       <HStack justifyContent="space-between">
         <Text variant="label" textTransform="unset">{label}</Text>
-        <Text variant="value">${asset?.amountValue?.toFixed(2)}</Text>
+        <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
         <Button size="sm" colorScheme="green" onClick={() => { setTransactionType('deposit'); onDepositOpen(); }}>
           Deposit
         </Button>

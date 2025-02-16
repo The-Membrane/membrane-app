@@ -128,7 +128,7 @@ const MintTabsCard = React.memo(() => {
   };
 
   return (
-    <Card minW="363px" gap="12" h="max-content" px="2">
+    <Card minW="363px" gap="12" h="max-content" px="2" width="70%">
       <VStack w="full" gap="5">
         <Text variant="title" fontSize="24px">
           Mint
@@ -199,9 +199,11 @@ const Mint = React.memo(() => {
           <>
             <HealthSlider summary={summary} />
             <HStack alignItems="flex-start" justifyContent={"center"}>
-              <CurrentPositions />
               <MintTabsCard />
-              <RedemptionCard />
+              <Stack>
+                <CurrentPositions />
+                <RedemptionCard />
+              </Stack>
             </HStack>
           </>
       }

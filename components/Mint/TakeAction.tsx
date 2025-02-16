@@ -60,19 +60,20 @@ const TakeAction = React.memo(() => {
     <Stack width="100%">
       <CollateralAssets />
 
-      <Divider
-        bg="rgba(226, 216, 218, 0.24)"
-        boxShadow="0px 0px 8px 0px rgba(226, 216, 218, 0.64)"
-        w="calc(100% - 16px)"
-        h="1px"
-        my="5"
-        mt="22%"
-        mx="3"
-      />
+      <Stack>
+        <Divider
+          bg="rgba(226, 216, 218, 0.24)"
+          boxShadow="0px 0px 8px 0px rgba(226, 216, 218, 0.64)"
+          w="calc(100% - 16px)"
+          h="1px"
+          my="5"
+          mx="3"
+        />
 
-      <LTVWithSlider label="Your Debt" />
-      <ActionButtons onRest={onRest} />
-      <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
+        <LTVWithSlider label="Your Debt" />
+        <ActionButtons onRest={onRest} />
+        <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
+      </Stack>
     </Stack>
   )
 })

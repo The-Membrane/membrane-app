@@ -107,7 +107,7 @@ const MintTabsCard = React.memo(() => {
   }, [basketPositions])
 
   return (
-    <Card minW="363px" gap="12" h="max-content" px="2" width="70%">
+    <Card minW="363px" gap="12" h="100%" px="2" width="70%">
       <VStack w="full" gap="5">
         <Text variant="title" fontSize="24px">
           Manage Vault

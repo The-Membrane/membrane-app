@@ -1,6 +1,6 @@
 import { setInitialMintState } from '@/helpers/mint'
 import { num } from '@/helpers/num'
-import { Divider, TabPanel, Text } from '@chakra-ui/react'
+import { Divider, Stack, TabPanel, Text } from '@chakra-ui/react'
 import { useEffect } from 'react'
 import ActionButtons from './ActionButtons'
 import CollateralAssets from './CollateralAssets'
@@ -57,7 +57,7 @@ const TakeAction = React.memo(() => {
   }
 
   return (
-    <TabPanel>
+    <Stack>
       <CollateralAssets />
 
       <Divider
@@ -72,7 +72,7 @@ const TakeAction = React.memo(() => {
       <LTVWithSlider label="Your Debt" />
       <ActionButtons onRest={onRest} />
       <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
-    </TabPanel>
+    </Stack>
   )
 })
 

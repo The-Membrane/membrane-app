@@ -20,7 +20,6 @@ import Beaker from './Beaker'
 import CurrentPositions from './CurrentPositions'
 import TakeAction from './TakeAction'
 import useMintState from './hooks/useMintState'
-import LPTab from './LPTab'
 import { use, useEffect, useMemo, useState } from 'react'
 import React from "react"
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
@@ -31,17 +30,6 @@ import useVaultSummary from './hooks/useVaultSummary'
 import { num } from '@/helpers/num'
 import RedemptionCard from './RedemptionCard'
 import { USDCMintCard } from './USDCMintCard'
-
-type TabProps = {
-  onClick: any
-  label: string
-}
-
-const CustomTab = ({ onClick, label }: TabProps) => (
-  <Tab zIndex={1} onClick={onClick} _selected={{ color: 'white' }}>
-    {label}
-  </Tab>
-)
 
 type PaginationProps = {
   pagination: {
@@ -118,15 +106,6 @@ const MintTabsCard = React.memo(() => {
     return Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS)
   }, [basketPositions])
 
-  // const onTabChange = (index: number) => {
-  //   setMintState({ isTakeAction: index === 1 })
-  // }
-  // const [activeTabIndex, setActiveTabIndex] = useState(0);
-
-  // const handleTabClick = (index: number) => {
-  //   setActiveTabIndex(index);
-  // };
-
   return (
     <Card minW="363px" gap="12" h="max-content" px="2" width="70%">
       <VStack w="full" gap="5">
@@ -134,24 +113,7 @@ const MintTabsCard = React.memo(() => {
           Manage Vault
         </Text>
 
-        {/* <Tabs position="relative" variant="unstyled" align="center" w="full" onChange={onTabChange} index={activeTabIndex}>
-          <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
-            <CustomTab onClick={() => handleTabClick(0)} label="Manage Vault" />
-            <CustomTab onClick={() => handleTabClick(1)} label="LP" />
-          </TabList>
-
-          <TabIndicator
-            top="0"
-            position="absolute"
-            height="40px"
-            bg={colors.walletIcon}
-            borderRadius="28px"
-          />
-          <TabPanels paddingBottom={activeTabIndex === 1 ? 0 : 4}> */}
         <TakeAction />
-        {/* <LPTab /> */}
-        {/* </TabPanels>
-        </Tabs> */}
         {/* For position pagination */}
         <PaginationBar pagination={{
           totalPages: totalPages,

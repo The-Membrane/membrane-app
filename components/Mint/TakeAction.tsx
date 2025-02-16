@@ -57,10 +57,10 @@ const TakeAction = React.memo(() => {
   }
 
   return (
-    <Stack width="100%">
+    <Stack width="100%" flex="1" >
       <CollateralAssets />
 
-      <Stack>
+      <Stack marginTop={"auto"}>
         <Divider
           bg="rgba(226, 216, 218, 0.24)"
           boxShadow="0px 0px 8px 0px rgba(226, 216, 218, 0.64)"

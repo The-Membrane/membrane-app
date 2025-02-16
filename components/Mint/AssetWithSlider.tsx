@@ -3,6 +3,7 @@ import { AssetWithBalance } from "./hooks/useCombinBalance";
 import useMintState from "./hooks/useMintState";
 import { useState } from "react";
 import { num } from "@/helpers/num";
+import { getSummary } from "@/helpers/mint";
 
 
 export type AssetWithInputProps = {
@@ -45,14 +46,19 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   return (
     <Stack gap="0">
       <HStack justifyContent="space-between">
-        <Text >{label}</Text>
-        <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
-        <Button size="sm" onClick={() => { setTransactionType('deposit'); onDepositOpen(); }}>
-          Deposit
-        </Button>
-        <Button size="sm" onClick={() => { setTransactionType('withdraw'); onWithdrawOpen(); }}>
-          Withdraw
-        </Button>
+        <HStack>
+          <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
+          <Text >{label}</Text>
+        </HStack>
+        <HStack width={"33%"}>
+          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('deposit'); onDepositOpen(); }}>
+            Deposit
+          </Button>
+          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('withdraw'); onWithdrawOpen(); }}>
+            Withdraw
+          </Button>
+        </HStack>
+
       </HStack>
 
       {/* Modal */}

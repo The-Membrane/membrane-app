@@ -45,12 +45,12 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   return (
     <Stack gap="0">
       <HStack justifyContent="space-between">
-        <Text variant="label" textTransform="unset">{label}</Text>
+        <Text >{label}</Text>
         <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
-        <Button size="sm" colorScheme="green" onClick={() => { setTransactionType('deposit'); onDepositOpen(); }}>
+        <Button size="sm" onClick={() => { setTransactionType('deposit'); onDepositOpen(); }}>
           Deposit
         </Button>
-        <Button size="sm" colorScheme="red" onClick={() => { setTransactionType('withdraw'); onWithdrawOpen(); }}>
+        <Button size="sm" onClick={() => { setTransactionType('withdraw'); onWithdrawOpen(); }}>
           Withdraw
         </Button>
       </HStack>

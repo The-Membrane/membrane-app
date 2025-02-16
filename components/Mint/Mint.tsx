@@ -118,23 +118,23 @@ const MintTabsCard = React.memo(() => {
     return Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS)
   }, [basketPositions])
 
-  const onTabChange = (index: number) => {
-    setMintState({ isTakeAction: index === 1 })
-  }
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  // const onTabChange = (index: number) => {
+  //   setMintState({ isTakeAction: index === 1 })
+  // }
+  // const [activeTabIndex, setActiveTabIndex] = useState(0);
 
-  const handleTabClick = (index: number) => {
-    setActiveTabIndex(index);
-  };
+  // const handleTabClick = (index: number) => {
+  //   setActiveTabIndex(index);
+  // };
 
   return (
     <Card minW="363px" gap="12" h="max-content" px="2" width="70%">
       <VStack w="full" gap="5">
         <Text variant="title" fontSize="24px">
-          Mint
+          Manage Vault
         </Text>
 
-        <Tabs position="relative" variant="unstyled" align="center" w="full" onChange={onTabChange} index={activeTabIndex}>
+        {/* <Tabs position="relative" variant="unstyled" align="center" w="full" onChange={onTabChange} index={activeTabIndex}>
           <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
             <CustomTab onClick={() => handleTabClick(0)} label="Manage Vault" />
             <CustomTab onClick={() => handleTabClick(1)} label="LP" />
@@ -147,11 +147,11 @@ const MintTabsCard = React.memo(() => {
             bg={colors.walletIcon}
             borderRadius="28px"
           />
-          <TabPanels paddingBottom={activeTabIndex === 1 ? 0 : 4}>
-            <TakeAction />
-            <LPTab />
-          </TabPanels>
-        </Tabs>
+          <TabPanels paddingBottom={activeTabIndex === 1 ? 0 : 4}> */}
+        <TakeAction />
+        {/* <LPTab /> */}
+        {/* </TabPanels>
+        </Tabs> */}
         {/* For position pagination */}
         <PaginationBar pagination={{
           totalPages: totalPages,
@@ -190,7 +190,7 @@ const Mint = React.memo(() => {
   }, [data]); // Runs when `data` changes
 
   return (
-    <Stack gap="1rem" paddingTop="4%">
+    <Stack gap="1rem" paddingTop="4%" height={"100%"}>
       {
         basketPositions === undefined && !useAdvanced
           ?

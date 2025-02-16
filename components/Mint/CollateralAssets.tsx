@@ -53,7 +53,7 @@ const CollateralAssets = () => {
       </Checkbox>
       <Stack
         gap="5"
-        maxH="75vh"
+        maxH="53vh"
         overflowY="auto"
         w="full"
         px="4"

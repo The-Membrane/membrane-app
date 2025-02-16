@@ -47,32 +47,35 @@ const CollateralAssets = () => {
   }, [toggle])
 
   return (
-    <Stack
-      gap="5"
-      maxH="75vh"
-      overflowY="auto"
-      w="full"
-      px="4"
-      py="2"
-      css={{
-        // Customize scrollbar appearance
-        '::-webkit-scrollbar': {
-          width: '6px', // Set width of the scrollbar
-          backgroundColor: 'transparent', // Set background color of the scrollbar to transparent
-        },
-        '::-webkit-scrollbar-thumb': {
-          backgroundColor: colors.collateralScrollBG, // Set color of the scrollbar thumb to blue
-          borderRadius: '6px', // Set border radius of the scrollbar thumb
-        },
-      }}
-    >
+    <Stack>
       <Checkbox onChange={() => setToggle(!toggle)}>
         Show All Assets
       </Checkbox>
-      {assets?.map((asset) => {
-        return <AssetWithInput key={asset?.base} asset={asset} label={asset?.symbol} />
-      })}
+      <Stack
+        gap="5"
+        maxH="75vh"
+        overflowY="auto"
+        w="full"
+        px="4"
+        py="2"
+        css={{
+          // Customize scrollbar appearance
+          '::-webkit-scrollbar': {
+            width: '6px', // Set width of the scrollbar
+            backgroundColor: 'transparent', // Set background color of the scrollbar to transparent
+          },
+          '::-webkit-scrollbar-thumb': {
+            backgroundColor: colors.collateralScrollBG, // Set color of the scrollbar thumb to blue
+            borderRadius: '6px', // Set border radius of the scrollbar thumb
+          },
+        }}
+      >
+        {assets?.map((asset) => {
+          return <AssetWithInput key={asset?.base} asset={asset} label={asset?.symbol} />
+        })}
+      </Stack>
     </Stack>
+
   )
 }
 

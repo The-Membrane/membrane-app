@@ -109,7 +109,7 @@ const MintTabsCard = React.memo(() => {
   return (
     <Card minW="363px" gap="12" h="100%" px="2" width="70%">
       <VStack w="full" gap="5" h="full" alignItems="stretch">
-        <Text variant="title" fontSize="24px">
+        <Text variant="title" fontSize="24px" alignSelf={"center"}>
           Manage Vault
         </Text>
 

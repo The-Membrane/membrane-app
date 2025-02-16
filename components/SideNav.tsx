@@ -38,7 +38,7 @@ const navItems: NavItems[] = [
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
   // { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
-  { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
+  // { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
 ]
 
 const mobileNavItems: NavItems[] = [

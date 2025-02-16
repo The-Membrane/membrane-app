@@ -57,7 +57,7 @@ const TakeAction = React.memo(() => {
   }
 
   return (
-    <Stack>
+    <>
       <CollateralAssets />
 
       <Divider
@@ -72,7 +72,7 @@ const TakeAction = React.memo(() => {
       <LTVWithSlider label="Your Debt" />
       <ActionButtons onRest={onRest} />
       <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
-    </Stack>
+    </>
   )
 })
 

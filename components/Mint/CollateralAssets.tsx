@@ -1,6 +1,6 @@
 import { num } from '@/helpers/num'
 import { Stack, Checkbox } from '@chakra-ui/react'
-import { AssetWithSlider } from './AssetWithSlider'
+import { AssetWithInput } from './AssetWithSlider'
 import useMintState from './hooks/useMintState'
 import useCombinBalance, { AssetWithBalance } from './hooks/useCombinBalance'
 import { useEffect, useState } from 'react'
@@ -70,7 +70,7 @@ const CollateralAssets = () => {
         Show All Assets
       </Checkbox>
       {assets?.map((asset) => {
-        return <AssetWithSlider key={asset?.base} asset={asset} label={asset?.symbol} />
+        return <AssetWithInput key={asset?.base} asset={asset} label={asset?.symbol} />
       })}
     </Stack>
   )

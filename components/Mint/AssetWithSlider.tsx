@@ -42,31 +42,17 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         amountValue,
         sliderValue,
       }
-
-      // const amountValue = transactionType === 'deposit' ? parseFloat(transactionValue) : -parseFloat(transactionValue);
-      // setChangeValue(amountValue);
-      // const amount = num(amountValue).dividedBy(a.price).dp(a.decimal ?? 6).toNumber();
-      // const sliderValue = num(a.sliderValue || 0).plus(amountValue).toNumber();
-
-      console.log("values", amountValue, sliderValue);
-
-      // return {
-      //   ...a,
-      //   amount,
-      //   amountValue: sliderValue,
-      //   sliderValue,
-      // };
     });
 
     const { summary, totalUsdValue } = getSummary(updatedAssets);
     setMintState({ assets: updatedAssets, summary, totalUsdValue });
 
     setTransactionValue('');
-    // transactionType === 'deposit' ? onDepositClose() : onWithdrawClose();
   };
 
   useEffect(() => {
     if (transactionType && transactionValue != '') {
+      console.log("tx", transactionType, transactionValue);
       handleTransaction();
     }
   }, [transactionType]);

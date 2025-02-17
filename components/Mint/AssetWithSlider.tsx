@@ -13,8 +13,8 @@ export type AssetWithInputProps = {
 
 export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   const { mintState, setMintState } = useMintState();
-  const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure();
-  const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure();
+  // const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure();
+  // const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure();
   const [transactionValue, setTransactionValue] = useState('');
   const [transactionType, setTransactionType] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     setMintState({ assets: updatedAssets, summary, totalUsdValue });
 
     setTransactionValue('');
-    transactionType === 'deposit' ? onDepositClose() : onWithdrawClose();
+    // transactionType === 'deposit' ? onDepositClose() : onWithdrawClose();
   };
 
   return (
@@ -51,18 +51,26 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
           <Text >{label}</Text>
         </HStack>
         <HStack width={"33%"}>
-          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('deposit'); onDepositOpen(); }}>
-            Deposit
+          <Input
+            type="number"
+            placeholder="Enter amount"
+            min={0}
+            step="0.01"
+            value={transactionValue}
+            onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
+          />
+          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('deposit'); handleTransaction(); }}>
+            +
           </Button>
-          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('withdraw'); onWithdrawOpen(); }}>
-            Withdraw
+          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('withdraw'); handleTransaction(); }}>
+            -
           </Button>
         </HStack>
 
       </HStack>
 
       {/* Modal */}
-      <Modal isOpen={isDepositOpen || isWithdrawOpen} onClose={transactionType === 'deposit' ? onDepositClose : onWithdrawClose}>
+      {/* <Modal isOpen={isDepositOpen || isWithdrawOpen} onClose={transactionType === 'deposit' ? onDepositClose : onWithdrawClose}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>{transactionType === 'deposit' ? 'Deposit' : 'Withdraw'} {label}</ModalHeader>
@@ -82,7 +90,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
             <Button variant="ghost" onClick={transactionType === 'deposit' ? onDepositClose : onWithdrawClose}>Cancel</Button>
           </ModalFooter>
         </ModalContent>
-      </Modal>
+      </Modal> */}
     </Stack>
   );
 };

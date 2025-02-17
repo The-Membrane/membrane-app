@@ -86,7 +86,7 @@ export const RedemptionDepositModal = React.memo(({
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                            <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                            <Button onClick={onMaxClick} width="0%" variant="unstyled" fontWeight="normal">
                                 <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
                                     max
                                 </Text>
@@ -95,12 +95,9 @@ export const RedemptionDepositModal = React.memo(({
                     </Stack>
 
                     <Stack>
-                        <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                        <Text variant="title" paddingTop="3%" textTransform={undefined} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                             What price did you sell CDT? Set to 1.00 if you haven't sold any.
                         </Text>
-                        <a href="https://app.osmosis.zone/transactions" style={{ textAlign: "center", justifyContent: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
-                            Go to Osmosis to check swap history -&gt;
-                        </a>
                         <Input
                             width={"100%"}
                             textAlign={"right"}
@@ -111,6 +108,9 @@ export const RedemptionDepositModal = React.memo(({
                             value={redemptionState.salePrice}
                             onChange={onSalePriceInputChange}
                         />
+                        <a href="https://app.osmosis.zone/transactions" style={{ textAlign: "center", justifyContent: "center", fontSize: "12px", letterSpacing: "1px", display: "flex" }}>
+                            Go to Osmosis to check swap history -&gt;
+                        </a>
                     </Stack>
                 </Stack>
             </ModalBody>
@@ -214,7 +214,7 @@ export const RedemptionWithdrawModal = React.memo(({
                         onChange={onInputChange}
                     />
                     <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                        <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                        <Button onClick={onMaxClick} width="0%" variant="unstyled" fontWeight="normal">
                             <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
                                 max
                             </Text>

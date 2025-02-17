@@ -52,9 +52,9 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     setTransactionValue('');
   };
 
-  const isAdditionDisabled = asset.walletsdValue === 0
-  const isSubtractionDisabled = asset.depositUsdValue === 0
-  console.log("asset", asset);
+  const isAdditionDisabled = asset.walletsdValue === 0 || transactionValue === '';
+  const isSubtractionDisabled = asset.depositUsdValue === 0 || transactionValue === '';
+  // console.log("asset", asset);
 
   return (
     <Stack gap="0">
@@ -74,15 +74,18 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
             onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
           />
           <HStack width={"33%"}>
-            <Stack>
+            <Stack gap="0">
               <Button isDisabled={isAdditionDisabled} variant={isAdditionDisabled ? "ghost" : undefined} width={"50%"} size="sm" onClick={() => { handleTransaction('deposit'); }}>
                 +
               </Button>
-              <Text fontSize="8px">max</Text>
+              <Text alignSelf="center" fontSize="8px" cursor="pointer" onClick={() => setTransactionValue(asset.walletsdValue.toString())}>max</Text>
             </Stack>
-            <Button isDisabled={isSubtractionDisabled} variant={isSubtractionDisabled ? "ghost" : undefined} width={"50%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
-              -
-            </Button>
+            <Stack gap="0">
+              <Button isDisabled={isSubtractionDisabled} variant={isSubtractionDisabled ? "ghost" : undefined} width={"50%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
+                -
+              </Button>
+              <Text alignSelf="center" fontSize="8px">{ }</Text>
+            </Stack>
           </HStack>
         </HStack>
 

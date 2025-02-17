@@ -52,7 +52,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     setTransactionValue('');
   };
 
-  console.log("tx", transactionValue);
+  console.log("asset", asset);
 
   return (
     <Stack gap="0">

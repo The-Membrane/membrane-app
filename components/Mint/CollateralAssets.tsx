@@ -58,6 +58,7 @@ const CollateralAssets = () => {
         w="full"
         px="4"
         py="2"
+        paddingInlineEnd={0}
         css={{
           // Customize scrollbar appearance
           '::-webkit-scrollbar': {

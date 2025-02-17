@@ -27,19 +27,35 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     let updatedAssets = mintState.assets.map((a) => {
       if (a.symbol !== label) return a;
 
-      const amountValue = transactionType === 'deposit' ? parseFloat(transactionValue) : -parseFloat(transactionValue);
+      const sliderValue = asset.symbol === label ? Number(transactionValue) : asset.sliderValue || 0
+
+      const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
+      const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
+      const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
+        ? newDeposit
+        : -diffInUsd
       setChangeValue(amountValue);
-      const amount = num(amountValue).dividedBy(a.price).dp(a.decimal ?? 6).toNumber();
-      const sliderValue = num(a.sliderValue || 0).plus(amountValue).toNumber();
+      const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
+      return {
+        ...asset,
+        amount,
+        amountValue,
+        sliderValue,
+      }
+
+      // const amountValue = transactionType === 'deposit' ? parseFloat(transactionValue) : -parseFloat(transactionValue);
+      // setChangeValue(amountValue);
+      // const amount = num(amountValue).dividedBy(a.price).dp(a.decimal ?? 6).toNumber();
+      // const sliderValue = num(a.sliderValue || 0).plus(amountValue).toNumber();
 
       console.log("values", amountValue, sliderValue);
 
-      return {
-        ...a,
-        amount,
-        amountValue: sliderValue,
-        sliderValue,
-      };
+      // return {
+      //   ...a,
+      //   amount,
+      //   amountValue: sliderValue,
+      //   sliderValue,
+      // };
     });
 
     const { summary, totalUsdValue } = getSummary(updatedAssets);

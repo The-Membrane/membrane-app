@@ -60,7 +60,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         <HStack>
           <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text >{label}</Text>
-          <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : colors.alert}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue}` : `-$${Math.abs(changeValue)}` : ""}</Text>
+          <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue}` : `-$${Math.abs(changeValue)}` : ""}</Text>
         </HStack>
         <HStack width={"33%"}>
           <Input

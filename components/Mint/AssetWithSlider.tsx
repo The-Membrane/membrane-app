@@ -17,11 +17,11 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   // const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure();
   // const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure();
   const [transactionValue, setTransactionValue] = useState('');
-  const [transactionType, setTransactionType] = useState<string | null>(null);
+  // const [transactionType, setTransactionType] = useState<string | null>(null);
 
-  const [changeValue, setChangeValue] = useState(0);
+  // const [changeValue, setChangeValue] = useState(0);
 
-  const handleTransaction = () => {
+  const handleTransaction = (transactionType: string) => {
     if (!transactionType || parseFloat(transactionValue) <= 0) return;
 
     let updatedAssets = mintState.assets.map((a) => {
@@ -34,7 +34,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
       const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
         ? newDeposit
         : -diffInUsd
-      setChangeValue(amountValue);
+      // setChangeValue(amountValue);
       const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
       return {
         ...asset,
@@ -50,14 +50,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     setTransactionValue('');
   };
 
-  useEffect(() => {
-    if (transactionType && transactionValue != '') {
-      console.log("tx", transactionType, transactionValue);
-      handleTransaction();
-    }
-  }, [transactionType]);
-
-  console.log("tx", transactionType, transactionValue);
+  console.log("tx", transactionValue);
 
   return (
     <Stack gap="0">
@@ -65,7 +58,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         <HStack>
           <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text >{label}</Text>
-          <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : colors.alert}>{ }</Text>
+          {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : colors.alert}>{ }</Text> */}
         </HStack>
         <HStack width={"33%"}>
           <Input
@@ -76,10 +69,10 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
             value={transactionValue}
             onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
           />
-          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('deposit'); }}>
+          <Button width={"50%"} size="sm" onClick={() => { handleTransaction('deposit'); }}>
             +
           </Button>
-          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('withdraw'); }}>
+          <Button width={"50%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
             -
           </Button>
         </HStack>

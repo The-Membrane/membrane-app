@@ -32,6 +32,8 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
       const amount = num(amountValue).dividedBy(a.price).dp(a.decimal ?? 6).toNumber();
       const sliderValue = num(a.sliderValue || 0).plus(amountValue).toNumber();
 
+      console.log("values", amountValue, sliderValue);
+
       return {
         ...a,
         amount,

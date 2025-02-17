@@ -62,7 +62,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
           <Text >{label}</Text>
           <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue}` : `-$${Math.abs(changeValue)}` : ""}</Text>
         </HStack>
-        <HStack width={"33%"}>
+        <HStack width={"66%"}>
           <Input
             type="number"
             placeholder="Enter amount"
@@ -71,14 +71,14 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
             value={transactionValue}
             onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
           />
-        </HStack>
-        <HStack width={"33%"}>
-          <Button isDisabled={asset.walletsdValue === 0 ? true : false} variant="ghost" width={"25%"} size="sm" onClick={() => { handleTransaction('deposit'); }}>
-            +
-          </Button>
-          <Button isDisabled={asset.depositUsdValue === 0 ? true : false} variant="ghost" width={"25%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
-            -
-          </Button>
+          <HStack width={"33%"}>
+            <Button isDisabled={asset.walletsdValue === 0 ? true : false} variant="ghost" width={"50%"} size="sm" onClick={() => { handleTransaction('deposit'); }}>
+              +
+            </Button>
+            <Button isDisabled={asset.depositUsdValue === 0 ? true : false} variant="ghost" width={"50%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
+              -
+            </Button>
+          </HStack>
         </HStack>
 
       </HStack>

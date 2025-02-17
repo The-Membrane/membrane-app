@@ -48,7 +48,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   };
 
   useEffect(() => {
-    if (transactionType) {
+    if (transactionType && transactionValue != '') {
       handleTransaction();
     }
   }, [transactionType]);

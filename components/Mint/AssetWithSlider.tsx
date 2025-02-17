@@ -53,6 +53,8 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     }
   }, [transactionType]);
 
+  console.log("tx", transactionType, transactionValue);
+
   return (
     <Stack gap="0">
       <HStack justifyContent="space-between">

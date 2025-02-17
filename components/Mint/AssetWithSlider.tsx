@@ -4,6 +4,7 @@ import useMintState from "./hooks/useMintState";
 import { useState } from "react";
 import { num } from "@/helpers/num";
 import { getSummary } from "@/helpers/mint";
+import { colors } from "@/config/defaults";
 
 
 export type AssetWithInputProps = {
@@ -18,6 +19,8 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   const [transactionValue, setTransactionValue] = useState('');
   const [transactionType, setTransactionType] = useState<string | null>(null);
 
+  const [changeValue, setChangeValue] = useState(0);
+
   const handleTransaction = () => {
     if (!transactionType || parseFloat(transactionValue) <= 0) return;
 
@@ -25,6 +28,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
       if (a.symbol !== label) return a;
 
       const amountValue = transactionType === 'deposit' ? parseFloat(transactionValue) : -parseFloat(transactionValue);
+      setChangeValue(amountValue);
       const amount = num(amountValue).dividedBy(a.price).dp(a.decimal ?? 6).toNumber();
       const sliderValue = num(a.sliderValue || 0).plus(amountValue).toNumber();
 
@@ -49,6 +53,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         <HStack>
           <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text >{label}</Text>
+          <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : colors.alert}>{ }</Text>
         </HStack>
         <HStack width={"33%"}>
           <Input

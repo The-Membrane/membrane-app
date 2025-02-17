@@ -37,7 +37,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
       return {
         ...a,
         amount,
-        amountValue,
+        amountValue: sliderValue,
         sliderValue,
       };
     });

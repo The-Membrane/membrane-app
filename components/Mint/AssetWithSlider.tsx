@@ -1,7 +1,7 @@
 import { HStack, useDisclosure, Text, Stack, Button, ModalOverlay, Modal, ModalContent, ModalFooter, ModalHeader, ModalCloseButton, ModalBody, Input } from "@chakra-ui/react";
 import { AssetWithBalance } from "./hooks/useCombinBalance";
 import useMintState from "./hooks/useMintState";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { num } from "@/helpers/num";
 import { getSummary } from "@/helpers/mint";
 import { colors } from "@/config/defaults";
@@ -47,6 +47,12 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     // transactionType === 'deposit' ? onDepositClose() : onWithdrawClose();
   };
 
+  useEffect(() => {
+    if (transactionType) {
+      handleTransaction();
+    }
+  }, [transactionType]);
+
   return (
     <Stack gap="0">
       <HStack justifyContent="space-between">
@@ -64,10 +70,10 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
             value={transactionValue}
             onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
           />
-          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('deposit'); handleTransaction(); }}>
+          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('deposit'); }}>
             +
           </Button>
-          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('withdraw'); handleTransaction(); }}>
+          <Button width={"50%"} size="sm" onClick={() => { setTransactionType('withdraw'); }}>
             -
           </Button>
         </HStack>

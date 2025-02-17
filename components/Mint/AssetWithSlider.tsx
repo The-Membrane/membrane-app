@@ -19,7 +19,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   const [transactionValue, setTransactionValue] = useState('');
   // const [transactionType, setTransactionType] = useState<string | null>(null);
 
-  // const [changeValue, setChangeValue] = useState(0);
+  const [changeValue, setChangeValue] = useState(0);
 
   const handleTransaction = (transactionType: string) => {
     if (!transactionType || parseFloat(transactionValue) <= 0) return;
@@ -27,15 +27,17 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     let updatedAssets = mintState.assets.map((a) => {
       if (a.symbol !== label) return a;
 
-      const sliderValue = asset.symbol === label ? Number(transactionValue) : asset.sliderValue || 0
+      const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
 
       const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
       const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
       const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
         ? newDeposit
         : -diffInUsd
-      // setChangeValue(amountValue);
       const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
+      //
+      setChangeValue(amountValue);
+      //
       return {
         ...asset,
         amount,
@@ -58,7 +60,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         <HStack>
           <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text >{label}</Text>
-          {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : colors.alert}>{ }</Text> */}
+          <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : colors.alert}>{changeValue}</Text>
         </HStack>
         <HStack width={"33%"}>
           <Input

@@ -71,10 +71,12 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
             value={transactionValue}
             onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
           />
-          <Button isDisabled={asset.walletsdValue === 0 ? true : false} width={"50%"} size="sm" onClick={() => { handleTransaction('deposit'); }}>
+        </HStack>
+        <HStack width={"33%"}>
+          <Button isDisabled={asset.walletsdValue === 0 ? true : false} variant="ghost" width={"25%"} size="sm" onClick={() => { handleTransaction('deposit'); }}>
             +
           </Button>
-          <Button isDisabled={asset.depositUsdValue === 0 ? true : false} width={"50%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
+          <Button isDisabled={asset.depositUsdValue === 0 ? true : false} variant="ghost" width={"25%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
             -
           </Button>
         </HStack>

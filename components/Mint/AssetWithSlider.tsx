@@ -62,7 +62,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         <HStack>
           <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text >{label}</Text>
-          <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue}` : `-$${Math.abs(changeValue)}` : ""}</Text>
+          <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text>
         </HStack>
         <HStack width={"66%"}>
           <Input
@@ -84,7 +84,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
               <Button isDisabled={isSubtractionDisabled} variant={isSubtractionDisabled ? "ghost" : undefined} width={"50%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
                 -
               </Button>
-              <Text alignSelf="center" fontSize="8px">{ }</Text>
+              <Text alignSelf="center" fontSize="8px" height="2.5vh">{ }</Text>
             </Stack>
           </HStack>
         </HStack>

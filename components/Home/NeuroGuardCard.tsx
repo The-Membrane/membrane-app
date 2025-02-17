@@ -138,7 +138,7 @@ const NeuroGuardOpenEntry = React.memo(({
             {/* @ts-ignore */}
             {num((asset?.balance ?? 0)).toFixed(2)}
           </Text>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" opacity={Number(yieldValue) < 0 ? "44%" : "100%"}>
+          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" opacity={Number(yieldValue) < 0 ? "33%" : "100%"}>
             {/* @ts-ignore */}
             {asset?.default == true ? num(RBYield).times(100).toFixed(1) : yieldValue}%
           </Text>

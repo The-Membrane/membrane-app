@@ -74,7 +74,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
           <Button isDisabled={asset.walletsdValue === 0 ? true : false} width={"50%"} size="sm" onClick={() => { handleTransaction('deposit'); }}>
             +
           </Button>
-          <Button isDisabled={asset.depositUsdValue === 0 ? false : false} width={"50%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
+          <Button isDisabled={asset.depositUsdValue === 0 ? true : false} width={"50%"} size="sm" onClick={() => { handleTransaction('withdraw'); }}>
             -
           </Button>
         </HStack>

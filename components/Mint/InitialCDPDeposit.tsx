@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AssetWithBalance } from "./hooks/useCombinBalance";
 import { getSummary } from "@/helpers/mint";
 import { num } from "@/helpers/num";
+import { MintInput } from "./MintInput";
 
 export const InitialCDPDeposit = () => {
 
@@ -109,9 +110,6 @@ export const InitialCDPDeposit = () => {
             </Stack>
 
 
-            {/* <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                {parseError(quickActionState?.usdcMint.deposit > 0 && quickActionState?.usdcMint.mint > 20 && mint.simulate.isError ? mint.simulate.error?.message ?? "" : "")}
-            </Text> */}
 
         </Stack>
     )

@@ -10,6 +10,7 @@ import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import React from 'react'
 import { colors } from '@/config/defaults'
+import { MintInput } from './MintInput'
 // import { queryClient } from '@/pages/_app'
 // import useBasketState from '@/persisted-state/useBasketState'
 
@@ -71,7 +72,9 @@ const TakeAction = React.memo(() => {
           mx="3"
         />
 
-        <LTVWithSlider label="Your Debt" />
+
+        <MintInput label="Mint CDT" />
+        {/* <LTVWithSlider label="Your Debt" /> */}
         <ActionButtons onRest={onRest} />
         <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
       </Stack>

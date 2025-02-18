@@ -47,6 +47,7 @@ const chakraStyles: ChakraStylesConfig = {
     width: 'max-content',
     minWidth: '200px',
     ml: '-50px',
+    position: 'absolute',
   }),
 }
 

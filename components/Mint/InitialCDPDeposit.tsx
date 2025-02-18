@@ -76,7 +76,7 @@ export const InitialCDPDeposit = () => {
     return (
         <Stack>
             <Stack>
-                <div style={{ width: "20%", alignSelf: "center", position: "absolute" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
+                <div style={{ width: "20%", alignSelf: "center" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
                         {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}

@@ -25,7 +25,6 @@ export const InitialCDPDeposit = () => {
                 label: asset?.symbol,
             }))
     }, [mintState.assets]);
-    console.log("assetsWithOptions", assetsWithOptions)
 
     // const handleTransaction = (transactionType: string) => {
     //     if (!transactionType || parseFloat(transactionValue) <= 0) return;
@@ -58,11 +57,13 @@ export const InitialCDPDeposit = () => {
     const onChange = (value: AssetWithBalance) => {
         setSelectedAsset(value);
     }
+    console.log("selectedAsset", selectedAsset)
+
 
     return (
         <Stack>
             <Stack>
-                <Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} />
+                <Select width="20%" alignSelf="center" options={assetsWithOptions} onChange={onChange} value={selectedAsset} />
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
                         {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}

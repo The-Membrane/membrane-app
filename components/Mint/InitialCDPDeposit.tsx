@@ -69,8 +69,6 @@ export const InitialCDPDeposit = () => {
     }
 
     //TODO:
-    //- Make handleTransaction work
-    //- Make the error message work
     //- Have logic for show all assets
     //- Remove redemption card & swap it into a action queue list
     //- Place redemption card in a modal somewhere
@@ -78,7 +76,7 @@ export const InitialCDPDeposit = () => {
     return (
         <Stack>
             <Stack>
-                <div style={{ width: "20%", alignSelf: "center" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
+                <div style={{ width: "20%", alignSelf: "center", position: "absolute" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
                         {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}
@@ -100,9 +98,15 @@ export const InitialCDPDeposit = () => {
                 <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
                     <Button
                         onClick={() => { setTransactionValue(selectedAsset?.walletsdValue.toString() ?? "0"); handleTransaction("deposit", selectedAsset?.walletsdValue ?? 0) }}
-                        width="20%" variant="unstyled" fontWeight="normal"
+                        width="10%" variant="unstyled" fontWeight="normal"
                     >
-                        <Text variant="body" justifySelf="end" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                        <Text
+                            variant="body"
+                            justifySelf={"center"}
+                            textTransform="none"
+                            fontSize="sm"
+                            letterSpacing="1px"
+                            display="flex">
                             max
                         </Text>
                     </Button>

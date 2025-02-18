@@ -96,7 +96,7 @@ export const MintInput = ({ label = "Mint CDT" }: MintInputProps) => {
     }
 
     return (
-        <Stack>
+        <Stack paddingInlineStart={4}>
             <HStack width="100%" justifyContent="left">
                 <HStack width="75%">
                     <Image src={"/images/cdt.svg"} w="30px" h="30px" />

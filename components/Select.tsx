@@ -46,8 +46,12 @@ const chakraStyles: ChakraStylesConfig = {
     borderRadius: 16,
     width: 'max-content',
     minWidth: '200px',
-    ml: '-50px',
+    ml: '-50px'
+  }),
+  menu: (provided, state) => ({
+    ...provided,
     position: 'absolute',
+    zIndex: 10
   }),
 }
 

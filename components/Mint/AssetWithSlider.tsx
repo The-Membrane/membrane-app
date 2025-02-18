@@ -57,62 +57,65 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   // console.log("asset", asset);
 
   return (
-    <Stack gap="0"><HStack justifyContent="space-between">
-      <HStack>
-        <Text>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
-        <Text>{label}</Text>
-        <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>
-          {changeValue !== 0 ? (changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}`) : ""}
-        </Text>
-      </HStack>
+    <Stack gap="0">
+      <Flex justifyContent="space-between" alignItems="center">
+        <HStack>
+          <Text>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
+          <Text>{label}</Text>
+          <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>
+            {changeValue !== 0 ? (changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}`) : ""}
+          </Text>
+        </HStack>
 
-      {/* Ensure alignment */}
-      <Flex width={"66%"} alignItems="center">
-        <Input
-          type="number"
-          placeholder="Enter amount"
-          min={0}
-          step="0.01"
-          value={transactionValue}
-          onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value); }}
-        />
+        {/* This ensures perfect alignment */}
+        <Flex width="66%" alignItems="center" gap="8px">
+          <Input
+            type="number"
+            placeholder="Enter amount"
+            min={0}
+            step="0.01"
+            value={transactionValue}
+            onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value); }}
+            height="40px"
+            borderRadius="8px"
+            textAlign="center"
+          />
 
-        <HStack width={"33%"} alignItems="center">
-          <Stack gap="0" alignItems="center">
+          {/* Wraps + button & "max" text in a strict height container */}
+          <Flex flexDirection="column" alignItems="center" justifyContent="center" height="40px">
             <Button
               isDisabled={isAdditionDisabled}
-              variant={isAdditionDisabled ? "ghost" : undefined}
-              width={"50%"}
-              size="sm"
+              variant={isAdditionDisabled ? "ghost" : "solid"}
+              width="40px"
+              height="40px"
+              borderRadius="8px"
               onClick={() => { handleTransaction('deposit'); }}
             >
               +
             </Button>
             <Text
-              alignSelf="center"
-              fontSize="8px"
+              fontSize="10px"
               cursor="pointer"
+              mt="2px"
+              lineHeight="1"
               onClick={() => setTransactionValue(asset.walletsdValue.toString())}
             >
               max
             </Text>
-          </Stack>
+          </Flex>
 
-          <Stack gap="0" alignItems="center">
-            <Button
-              isDisabled={isSubtractionDisabled}
-              variant={isSubtractionDisabled ? "ghost" : undefined}
-              width={"50%"}
-              size="sm"
-              onClick={() => { handleTransaction('withdraw'); }}
-            >
-              -
-            </Button>
-            <Text alignSelf="center" fontSize="8px" height="1.5vh">{ }</Text>
-          </Stack>
-        </HStack>
-      </Flex>
-    </HStack>
+          <Button
+            isDisabled={isSubtractionDisabled}
+            variant={isSubtractionDisabled ? "ghost" : "solid"}
+            width="40px"
+            height="40px"
+            borderRadius="8px"
+            onClick={() => { handleTransaction('withdraw'); }}
+          >
+            -
+          </Button>
+        </Flex
+
 
     </Stack>
   );

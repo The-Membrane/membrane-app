@@ -17,6 +17,8 @@ const ActionButtons = ({ onRest }: Props) => {
   const { summary } = mintState
   const { data: basketPositions } = useUserPositions()
 
+  const isDisabled = mintState?.overdraft || mintState?.belowMinDebt || (!summary?.length && (!mintState?.mint && !mintState?.repay))
+
   return (
     <HStack mt="0" gap="0">
       <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onRest} />
@@ -25,7 +27,7 @@ const ActionButtons = ({ onRest }: Props) => {
           mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Mint' : basketPositions === undefined ? 'Deposit Assets' : 'Update Assets'
         }
         action={mint}
-        isDisabled={mintState?.overdraft || mintState?.belowMinDebt || (!summary?.length && (!mintState?.mint && !mintState?.repay))}
+        isDisabled={isDisabled}
       >
         <Summary />
       </ConfirmModal>

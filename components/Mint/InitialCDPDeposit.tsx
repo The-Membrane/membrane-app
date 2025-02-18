@@ -69,7 +69,9 @@ export const InitialCDPDeposit = () => {
     }
 
     //TODO:
-    //- Have logic for show all assets
+    //- Create Add Asset that converts the current action into a label with an Edit button above the new action
+
+
     //- Remove redemption card & swap it into a action queue list
     //- Place redemption card in a modal somewhere
 

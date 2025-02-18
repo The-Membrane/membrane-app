@@ -1,13 +1,10 @@
 import { HStack, Stack, Text } from '@chakra-ui/react'
 import React, { useMemo } from 'react'
 import Divider from './Divider'
-import { useBasket } from '@/hooks/useCDP'
-import { shiftDigits } from '@/helpers/math'
 import { Formatter } from '@/helpers/formatter'
-import { getProjectTVL } from '@/services/cdp'
-import { useOraclePrice } from '@/hooks/useOracle'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useAssetBySymbol } from '@/hooks/useAssets'
+import { colors } from '@/config/defaults'
 
 export const Stats = ({ label, value }) => (
   <Stack gap="1">
@@ -16,12 +13,12 @@ export const Stats = ({ label, value }) => (
       variant="title"
       letterSpacing="unset"
       textTransform="none"
-      textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)"
+      textShadow={`0px 0px 8px ${colors.tabBG}`}
       fontSize="lg"
     >
       {label}
     </Text> : null}
-    <Text variant="title" letterSpacing="unset" textShadow="0px 0px 8px rgba(223, 140, 252, 0.80)">
+    <Text variant="title" letterSpacing="unset" textShadow={`0px 0px 8px ${colors.tabBG}`}>
       {value}
     </Text>
   </Stack>

@@ -23,7 +23,7 @@ const chakraStyles: ChakraStylesConfig = {
     ...provided,
     padding: 1,
     borderRadius: 16,
-    bg: colors.walletIcon,
+    bg: colors.tabBG,
     color: '#fff',
   }),
   option: (provided) => ({
@@ -33,10 +33,10 @@ const chakraStyles: ChakraStylesConfig = {
     cursor: 'pointer',
     width: 'full',
     _selected: {
-      bg: colors.walletIcon,
+      bg: colors.tabBG,
     },
     _hover: {
-      bg: colors.walletIcon,
+      bg: colors.tabBG,
     },
   }),
   menuList: (provided, state) => ({

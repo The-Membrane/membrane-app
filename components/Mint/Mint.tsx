@@ -159,12 +159,12 @@ const Mint = React.memo(() => {
           <USDCMintCard />
           :
           <>
-            <HealthSlider summary={summary} />
+            {/* <HealthSlider summary={summary} /> */}
             <HStack alignItems="flex-start" justifyContent={"center"} maxWidth={"1200px"}>
               <MintTabsCard />
               <Stack>
                 <CurrentPositions />
-                <RedemptionCard />
+                {/* <RedemptionCard /> */}
               </Stack>
             </HStack>
           </>

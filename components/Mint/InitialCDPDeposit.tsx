@@ -23,7 +23,7 @@ export const InitialCDPDeposit = () => {
         }))
 
     useEffect(() => {
-        if (mintState.assets.length > 0 && assetsWithOptions?.[0]) {
+        if (mintState.assets.length > 0 && assetsWithOptions?.[0] && !selectedAsset) {
             setSelectedAsset(assetsWithOptions?.[0]);
         }
     }, [assetsWithOptions]);

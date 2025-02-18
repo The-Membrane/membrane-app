@@ -63,39 +63,39 @@ const PaginationBar = ({ pagination }: PaginationProps) => {
   )
 }
 
-const HealthSlider = ({ summary }: { summary: any }) => {
+// const HealthSlider = ({ summary }: { summary: any }) => {
 
-  const health = useMemo(() => {
-    if (summary.ltv === 0) return 100
-    return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
-  }, [summary.ltv, summary.liqudationLTV])
+//   const health = useMemo(() => {
+//     if (summary.ltv === 0) return 100
+//     return num(1).minus(num(summary.ltv).dividedBy(summary.liqudationLTV)).times(100).dp(0).toNumber()
+//   }, [summary.ltv, summary.liqudationLTV])
 
-  var color = 'blue.400'
-  if (health <= (1 - summary.borrowLTV / summary.liqudationLTV) * 100 && health > 10 && health < 100)
-    color = '#5e4220'
-  if (health <= 10) color = 'red.400'
-  return (
-    <Slider
-      defaultValue={health}
-      isReadOnly
-      cursor="default"
-      min={0}
-      max={100}
-      value={health}
-      width={"100%"}
-    >
-      <SliderTrack h="9" display={"flex"} borderRadius={"xl"}>
-        <SliderFilledTrack bg={color} />
-        <Box width={"100%"} justifyContent="center" display="flex" zIndex="999">
-          <Text fontSize="large" color={"white"} zIndex="999" fontWeight="bold" alignSelf="center">
-            Health: {health}%
-          </Text>
-        </Box>
-      </SliderTrack>
-    </Slider>
-  )
+//   var color = 'blue.400'
+//   if (health <= (1 - summary.borrowLTV / summary.liqudationLTV) * 100 && health > 10 && health < 100)
+//     color = '#5e4220'
+//   if (health <= 10) color = 'red.400'
+//   return (
+//     <Slider
+//       defaultValue={health}
+//       isReadOnly
+//       cursor="default"
+//       min={0}
+//       max={100}
+//       value={health}
+//       width={"100%"}
+//     >
+//       <SliderTrack h="9" display={"flex"} borderRadius={"xl"}>
+//         <SliderFilledTrack bg={color} />
+//         <Box width={"100%"} justifyContent="center" display="flex" zIndex="999">
+//           <Text fontSize="large" color={"white"} zIndex="999" fontWeight="bold" alignSelf="center">
+//             Health: {health}%
+//           </Text>
+//         </Box>
+//       </SliderTrack>
+//     </Slider>
+//   )
 
-}
+// }
 
 const MintTabsCard = React.memo(() => {
   const { mintState, setMintState } = useMintState()
@@ -107,7 +107,7 @@ const MintTabsCard = React.memo(() => {
   }, [basketPositions])
 
   return (
-    <Card minW="363px" gap="12" h="100%" width="80%" paddingBottom={0}>
+    <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="80%" paddingBottom={0}>
       <VStack w="full" gap="5" h="full" alignItems="stretch">
         <Text variant="title" fontSize="24px" alignSelf={"center"}>
           Manage Vault

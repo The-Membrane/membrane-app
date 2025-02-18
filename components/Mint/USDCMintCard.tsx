@@ -107,7 +107,7 @@ export const USDCMintCard = () => {
     }, [quickActionState?.usdcMint.mint, setQuickActionState, mintMaxAmount])
 
     return (
-        <Card alignSelf={"center"} mt="3%">
+        <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} alignSelf={"center"} mt="3%">
             <Stack>
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">

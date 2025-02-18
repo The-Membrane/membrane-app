@@ -125,7 +125,7 @@ export const MintInput = ({ label = "Mint CDT" }: MintInputProps) => {
             <HStack alignContent="right" width="100%" justifyContent="right">
                 <Button
                     onClick={onMintMinClick}
-                    width="20%"
+                    width="10%"
                     variant="unstyled"
                     fontWeight="normal"
                 >
@@ -135,13 +135,14 @@ export const MintInput = ({ label = "Mint CDT" }: MintInputProps) => {
                         fontSize="sm"
                         letterSpacing="1px"
                         display="flex"
+                        justifySelf={"center"}
                     >
                         min
                     </Text>
                 </Button>
                 <Button
                     onClick={onMintMaxClick}
-                    width="20%"
+                    width="10%"
                     variant="unstyled"
                     fontWeight="normal"
                 >
@@ -151,6 +152,7 @@ export const MintInput = ({ label = "Mint CDT" }: MintInputProps) => {
                         fontSize="sm"
                         letterSpacing="1px"
                         display="flex"
+                        justifySelf={"center"}
                     >
                         max
                     </Text>

@@ -1,5 +1,6 @@
 import { parseError } from "@/helpers/parseError"
-import { Stack, HStack, Input, Button, Text, Image, Select } from "@chakra-ui/react"
+import Select from '@/components/Select'
+import { Stack, HStack, Input, Button, Text, Image } from "@chakra-ui/react"
 import useMintState from "./hooks/useMintState";
 import { useMemo, useState } from "react";
 import { AssetWithBalance } from "./hooks/useCombinBalance";
@@ -61,7 +62,7 @@ export const InitialCDPDeposit = () => {
     return (
         <Stack>
             <Stack>
-                <Select options={assetsWithOptions} onChange={onChange} value={selectedAsset?.symbol} />
+                <Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} />
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
                         {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}

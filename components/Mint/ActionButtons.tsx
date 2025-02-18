@@ -18,8 +18,8 @@ const ActionButtons = ({ onRest }: Props) => {
   const { data: basketPositions } = useUserPositions()
 
   return (
-    <HStack mt="5" gap="0">
-      <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onRest}/>
+    <HStack mt="0" gap="0">
+      <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onRest} />
       <ConfirmModal
         label={
           mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Mint' : basketPositions === undefined ? 'Deposit Assets' : 'Update Assets'

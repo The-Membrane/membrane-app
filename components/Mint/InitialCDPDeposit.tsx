@@ -12,10 +12,17 @@ export const InitialCDPDeposit = () => {
     const { mintState, setMintState } = useMintState();
 
     const [selectedAsset, setSelectedAsset] = useState<AssetWithBalance | undefined>(undefined);
-    useMemo(() => {
+    const assetsWithOptions = useMemo(() => {
         if (mintState.assets.length > 0 && !selectedAsset) {
             setSelectedAsset(mintState.assets[0]);
         }
+
+        return mintState.assets
+            ?.map((asset) => ({
+                ...asset,
+                value: asset?.symbol,
+                label: asset?.symbol,
+            }))
     }, [mintState.assets]);
 
     // const handleTransaction = (transactionType: string) => {
@@ -53,7 +60,7 @@ export const InitialCDPDeposit = () => {
     return (
         <Stack>
             <Stack>
-                <Select options={mintState.assets} onChange={onChange} value={selectedAsset} />
+                <Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} />
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
                         {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}
@@ -77,7 +84,7 @@ export const InitialCDPDeposit = () => {
                         onClick={() => setTransactionValue(selectedAsset?.walletsdValue.toString() ?? "0")}
                         width="20%" variant="unstyled" fontWeight="normal"
                     >
-                        <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                        <Text variant="body" justifySelf="end" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
                             max
                         </Text>
                     </Button>

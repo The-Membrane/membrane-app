@@ -1,4 +1,4 @@
-import { HStack, useDisclosure, Text, Stack, Button, ModalOverlay, Modal, ModalContent, ModalFooter, ModalHeader, ModalCloseButton, ModalBody, Input } from "@chakra-ui/react";
+import { HStack, useDisclosure, Text, Stack, Button, ModalOverlay, Modal, ModalContent, ModalFooter, ModalHeader, ModalCloseButton, ModalBody, Input, Flex } from "@chakra-ui/react";
 import { AssetWithBalance } from "./hooks/useCombinBalance";
 import useMintState from "./hooks/useMintState";
 import { useEffect, useState } from "react";

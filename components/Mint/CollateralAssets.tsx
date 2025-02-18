@@ -49,7 +49,7 @@ const CollateralAssets = () => {
 
   return (
     <Stack>
-      <Checkbox onChange={() => setToggle(!toggle)}>
+      <Checkbox alignSelf="center" onChange={() => setToggle(!toggle)}>
         Show All Assets
       </Checkbox>
       <Stack

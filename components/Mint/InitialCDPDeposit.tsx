@@ -5,6 +5,7 @@ import useMintState from "./hooks/useMintState";
 import { useEffect, useMemo, useState } from "react";
 import { AssetWithBalance } from "./hooks/useCombinBalance";
 import { getSummary } from "@/helpers/mint";
+import { num } from "@/helpers/num";
 
 export const InitialCDPDeposit = () => {
 
@@ -29,39 +30,45 @@ export const InitialCDPDeposit = () => {
     }, [assetsWithOptions]);
 
 
-    // const handleTransaction = (transactionType: string) => {
-    //     if (!transactionType || parseFloat(transactionValue) <= 0) return;
+    const handleTransaction = (transactionType: string, transactionValue: number) => {
+        if (!transactionType || transactionValue <= 0) return;
 
-    //     let updatedAssets = mintState.assets.map((a) => {
-    //         if (a.symbol !== label) return a;
+        let updatedAssets = mintState.assets.map((a) => {
+            if (a.symbol !== selectedAsset?.symbol) return a;
 
-    //         const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
+            const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
 
-    //         const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
-    //         const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
-    //         const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
-    //             ? newDeposit
-    //             : -diffInUsd
-    //         const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
-    //         //
-    //         //
-    //         return {
-    //             ...asset,
-    //             amount,
-    //             amountValue,
-    //             sliderValue,
-    //         }
-    //     });
+            const diffInUsd = num(selectedAsset.depositUsdValue).minus(sliderValue).toNumber()
+            const newDeposit = num(selectedAsset.depositUsdValue).minus(diffInUsd).toNumber()
+            const amountValue = num(diffInUsd).isGreaterThan(selectedAsset.depositUsdValue)
+                ? newDeposit
+                : -diffInUsd
+            const amount = num(amountValue).dividedBy(selectedAsset.price).dp(selectedAsset.decimal ?? 6).toNumber()
+            //
+            //
+            return {
+                ...selectedAsset,
+                amount,
+                amountValue,
+                sliderValue,
+            }
+        });
 
-    //     const { summary, totalUsdValue } = getSummary(updatedAssets);
-    //     setMintState({ assets: updatedAssets, summary, totalUsdValue });
-    // };
+        const { summary, totalUsdValue } = getSummary(updatedAssets);
+        setMintState({ assets: updatedAssets, summary, totalUsdValue });
+    };
 
     const onChange = (value: AssetWithBalance) => {
         setSelectedAsset(value);
+        setTransactionValue("");
     }
-    console.log("selectedAsset", selectedAsset)
 
+    //TODO:
+    //- Make handleTransaction work
+    //- Make the error message work
+    //- Have logic for show all assets
+    //- Remove redemption card & swap it into a action queue list
+    //- Place redemption card in a modal somewhere
 
     return (
         <Stack>
@@ -81,13 +88,13 @@ export const InitialCDPDeposit = () => {
                     placeholder="Enter Amount"
                     type="number"
                     variant={"ghost"}
-                    value={transactionValue}
+                    value={Number(transactionValue).toFixed(2)}
                     max={selectedAsset?.walletsdValue}
-                    onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
+                    onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value); handleTransaction("deposit", Number(e.target.value)) }}
                 />
                 <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
                     <Button
-                        onClick={() => setTransactionValue(selectedAsset?.walletsdValue.toString() ?? "0")}
+                        onClick={() => { setTransactionValue(selectedAsset?.walletsdValue.toString() ?? "0"); handleTransaction("deposit", selectedAsset?.walletsdValue ?? 0) }}
                         width="20%" variant="unstyled" fontWeight="normal"
                     >
                         <Text variant="body" justifySelf="end" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">

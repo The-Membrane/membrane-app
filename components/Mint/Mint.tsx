@@ -160,7 +160,7 @@ const Mint = React.memo(() => {
           :
           <>
             <HealthSlider summary={summary} />
-            <HStack alignItems="flex-start" justifyContent={"center"}>
+            <HStack alignItems="flex-start" justifyContent={"center"} maxWidth={"1200px"}>
               <MintTabsCard />
               <Stack>
                 <CurrentPositions />

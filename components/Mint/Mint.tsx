@@ -161,7 +161,21 @@ const Mint = React.memo(() => {
           <>
             {/* <HealthSlider summary={summary} /> */}
             <HStack alignItems="flex-start" justifyContent={"center"} maxWidth={"1200px"}>
-              <MintTabsCard />
+              <Stack>
+                <MintTabsCard />
+
+                {basketPositions === undefined && <Button
+                  alignSelf="center"
+                  // checked={useAdvanced}
+                  onClick={() => { setAdvanced(!useAdvanced) }}
+                  width={"20%"}
+                  backgroundColor={"transparent"}
+                  fontFamily="Inter"
+                  fontWeight={"500"}
+                >
+                  {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
+                </Button>}
+              </Stack>
               <Stack>
                 <CurrentPositions />
                 {/* <RedemptionCard /> */}
@@ -170,17 +184,6 @@ const Mint = React.memo(() => {
           </>
       }
 
-      {basketPositions === undefined && <Button
-        alignSelf="center"
-        // checked={useAdvanced}
-        onClick={() => { setAdvanced(!useAdvanced) }}
-        width={"20%"}
-        backgroundColor={"transparent"}
-        fontFamily="Inter"
-        fontWeight={"500"}
-      >
-        {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
-      </Button>}
     </Stack>
   )
 })

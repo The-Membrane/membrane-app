@@ -5,6 +5,7 @@ import useMintState from './hooks/useMintState'
 import useCombinBalance, { AssetWithBalance } from './hooks/useCombinBalance'
 import { useEffect, useState } from 'react'
 import { colors } from '@/config/defaults'
+import { InitialCDPDeposit } from './InitialCDPDeposit'
 
 export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
   return combinBalance
@@ -71,9 +72,10 @@ const CollateralAssets = () => {
           },
         }}
       >
-        {assets?.map((asset) => {
+        <InitialCDPDeposit />
+        {/* {assets?.map((asset) => {
           return <AssetWithInput key={asset?.base} asset={asset} label={asset?.symbol} />
-        })}
+        })} */}
       </Stack>
     </Stack>
 

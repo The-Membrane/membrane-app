@@ -39,7 +39,6 @@ const ConfirmModal = ({
         isLoading={isLoading && (action?.simulate.isLoading || action?.tx.isPending)}
         // isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
         isDisabled={isDisabled}
-        variant={isDisabled ? 'ghost' : undefined}
         onClick={() => {
           //Invalidate Basket query to get the latest positionID for new deposits...
           // in preparation for a deposit mint combo piece

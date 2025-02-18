@@ -2,6 +2,7 @@ import { num } from '@/helpers/num'
 import useMintState from './useMintState'
 import useVaultSummary from './useVaultSummary'
 import { useEffect, useMemo, useState } from 'react'
+import { colors } from '@/config/defaults'
 
 //@ts-ignore
 const getDebtAmount = (summary) => {
@@ -44,9 +45,9 @@ export const useCurrentPosition = () => {
   return {
     health, stats: [
       {
-        label: 'YOUR COLLATERAL VALUE',
+        label: 'COLLATERAL VALUE',
         value: `$${summary?.tvl?.toFixed(2)}`,
-        textColor: isValueChanged ? 'primary.200' : 'white',
+        textColor: isValueChanged ? colors.tabBG : 'white',
       },
       {
         label: 'LIQUIDATION VALUE',
@@ -55,27 +56,27 @@ export const useCurrentPosition = () => {
       {
         label: 'DEBT',
         value: `${getDebtAmount(summary)} CDT`,
-        textColor: isValueChanged ? 'primary.200' : 'white',
+        textColor: isValueChanged ? colors.tabBG : 'white',
       },
       {
         label: 'DYNAMIC COST',
         value: `${num(summary?.discountedCost).multipliedBy(100).toFixed(2)}% / year`,
-        textColor: summary?.cost != summary?.discountedCost ? 'primary.200' : 'white'
+        textColor: summary?.cost != summary?.discountedCost ? colors.tabBG : 'white'
       },
       {
         label: 'BORROWABLE LTV',
         value: `${summary?.borrowLTV.toFixed(0)}%`,
-        textColor: summary?.newDebtAmount ? 'primary.200' : 'white',
+        textColor: summary?.newDebtAmount ? colors.tabBG : 'white',
       },
       {
         label: 'LTV',
         value: `${summary?.ltv.toFixed(0)}%`,
-        textColor: isValueChanged ? 'primary.200' : 'white',
+        textColor: isValueChanged ? colors.tabBG : 'white',
       },
       {
         label: 'LIQUIDATION LTV',
         value: `${summary?.liqudationLTV?.toFixed(0)}%`,
-        textColor: isValueChanged ? 'primary.200' : 'white',
+        textColor: isValueChanged ? colors.tabBG : 'white',
       },
     ]
   }

@@ -8,6 +8,7 @@ const chakraStyles: ChakraStylesConfig = {
     fontSize: '16px',
     px: 2,
     cursor: 'pointer',
+    justifySelf: 'center',
   }),
   control: (provided, state) => ({
     ...provided,

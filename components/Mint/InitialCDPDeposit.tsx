@@ -29,6 +29,10 @@ export const InitialCDPDeposit = () => {
         }
     }, [assetsWithOptions]);
 
+    useEffect(() => {
+        setTransactionValue("");
+    }, [mintState.reset]);
+
 
     const handleTransaction = (transactionType: string, transactionValue: number) => {
         if (!transactionType || transactionValue <= 0) return;

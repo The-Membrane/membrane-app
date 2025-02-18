@@ -22,6 +22,7 @@ type MintState = {
   overdraft?: boolean
   belowMinDebt?: boolean
   positionNumber: number
+  reset: boolean
 }
 
 type Store = {
@@ -36,7 +37,8 @@ const initialState: MintState = {
   assets: [],
   ltvSlider: 0,
   positionNumber: 1,
-  isTakeAction: true
+  isTakeAction: true,
+  reset: false
 }
 
 // @ts-ignore

@@ -70,11 +70,13 @@ export const setInitialMintState = ({
   ltv,
   borrowLTV,
   setMintState,
+  reset = false,
 }: {
   combinBalance: any
   ltv: any
   borrowLTV: any
   setMintState: any
+  reset?: boolean
 }) => {
   // const assets = combinBalance
   //   ?.filter((balance) => num(balance.combinUsdValue || 0).isGreaterThan(0))
@@ -120,6 +122,7 @@ export const setInitialMintState = ({
     totalUsdValue: 0,
     overdraft: false,
     newDebtAmount: 0,
+    reset: !reset
   })
 }
 

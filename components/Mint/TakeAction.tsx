@@ -48,6 +48,7 @@ const TakeAction = React.memo(() => {
       ltv: initialLTV,
       borrowLTV: initialBorrowLTV,
       setMintState,
+      reset: mintState.reset
       //newDebtAmount: 0,
     });
     //Requery basket to get updated current_position_id

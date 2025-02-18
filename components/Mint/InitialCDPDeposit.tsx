@@ -2,7 +2,7 @@ import { parseError } from "@/helpers/parseError"
 import Select from '@/components/Select'
 import { Stack, HStack, Input, Button, Text, Image } from "@chakra-ui/react"
 import useMintState from "./hooks/useMintState";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AssetWithBalance } from "./hooks/useCombinBalance";
 import { getSummary } from "@/helpers/mint";
 
@@ -13,18 +13,21 @@ export const InitialCDPDeposit = () => {
     const { mintState, setMintState } = useMintState();
 
     const [selectedAsset, setSelectedAsset] = useState<AssetWithBalance | undefined>(undefined);
-    const assetsWithOptions = useMemo(() => {
-        if (mintState.assets.length > 0 && !selectedAsset) {
-            setSelectedAsset(mintState.assets[0]);
-        }
 
-        return mintState.assets
-            ?.map((asset) => ({
-                ...asset,
-                value: asset?.symbol,
-                label: asset?.symbol,
-            }))
-    }, [mintState.assets]);
+
+    const assetsWithOptions = mintState.assets
+        ?.map((asset) => ({
+            ...asset,
+            value: asset?.symbol,
+            label: asset?.symbol,
+        }))
+
+    useEffect(() => {
+        if (mintState.assets.length > 0 && assetsWithOptions?.[0]) {
+            setSelectedAsset(assetsWithOptions?.[0]);
+        }
+    }, [assetsWithOptions]);
+
 
     // const handleTransaction = (transactionType: string) => {
     //     if (!transactionType || parseFloat(transactionValue) <= 0) return;
@@ -63,7 +66,7 @@ export const InitialCDPDeposit = () => {
     return (
         <Stack>
             <Stack>
-                <Select width="20%" alignSelf="center" options={assetsWithOptions} onChange={onChange} value={selectedAsset} />
+                <div style={{ width: "20%" alignSelf: "center" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
                         {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}

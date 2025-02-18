@@ -114,7 +114,8 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
           >
             -
           </Button>
-        </Flex
+        </Flex>
+      </Flex>
 
 
     </Stack>

@@ -84,11 +84,12 @@ export const InitialCDPDeposit = () => {
         <Stack>
             <Stack>
                 {ossifiedDeposits.map((asset) => {
+                    if (!asset || asset.sliderValue === 0) return null;
                     return (
                         <Card width="80%" boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} >
                             <HStack>
                                 <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    Depositing {asset.depositUsdValue} {asset?.symbol}
+                                    Depositing {asset.sliderValue} {asset?.symbol}
                                 </Text>
                             </HStack>
                             {/* <MintInput
@@ -100,7 +101,7 @@ export const InitialCDPDeposit = () => {
                         </Card>
                     )
                 })}
-                <div style={{ width: "20%", alignSelf: "center", position: "absolute" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
+                <div style={{ width: "20%", alignSelf: "center" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
                 <HStack mt="5%" width="100%" justifyContent="left">
                     <HStack width="75%">
                         {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}

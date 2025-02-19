@@ -60,17 +60,17 @@ const CollateralAssets = () => {
         px="4"
         py="2"
         paddingInlineEnd={0}
-        css={{
-          // Customize scrollbar appearance
-          '::-webkit-scrollbar': {
-            width: '6px', // Set width of the scrollbar
-            backgroundColor: 'transparent', // Set background color of the scrollbar to transparent
-          },
-          '::-webkit-scrollbar-thumb': {
-            backgroundColor: colors.collateralScrollBG, // Set color of the scrollbar thumb to blue
-            borderRadius: '6px', // Set border radius of the scrollbar thumb
-          },
-        }}
+      // css={{
+      //   // Customize scrollbar appearance
+      //   '::-webkit-scrollbar': {
+      //     width: '6px', // Set width of the scrollbar
+      //     backgroundColor: 'transparent', // Set background color of the scrollbar to transparent
+      //   },
+      //   '::-webkit-scrollbar-thumb': {
+      //     backgroundColor: colors.collateralScrollBG, // Set color of the scrollbar thumb to blue
+      //     borderRadius: '6px', // Set border radius of the scrollbar thumb
+      //   },
+      // }}
       >
         <InitialCDPDeposit />
         {/* {assets?.map((asset) => {

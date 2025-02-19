@@ -1,4 +1,4 @@
-import LockedAccess from '@/components/LockedAccess'
+import LockedAccess from '@/components/Mint/LockedAccess'
 import Mint from '@/components/Mint'
 import useWallet from '@/hooks/useWallet'
 import Beaker from '@/components/Mint/Beaker'

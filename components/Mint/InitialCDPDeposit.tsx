@@ -20,7 +20,7 @@ export const InitialCDPDeposit = () => {
 
 
     const assetsWithOptions = useMemo(() => {
-        mintState.assets
+        return mintState.assets
             ?.filter((asset) => !ossifiedDeposits.some(a => a.symbol === asset?.symbol))
             .map((asset) => ({
                 ...asset,

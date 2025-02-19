@@ -139,7 +139,7 @@ export const InitialCDPDeposit = () => {
                     </Button>
                 </HStack>
                 {/* On click, ossify the current deposit asset & open a new deposit section */}
-                {selectedAsset && assetsWithOptions.length != 0 && <Button
+                {selectedAsset && assetsWithOptions && assetsWithOptions.length != 0 && <Button
                     alignSelf="center"
                     onClick={() => { setOssifiedDeposits([...ossifiedDeposits, selectedAsset]); setSelectedAsset(undefined) }}
                     width={"30%"}

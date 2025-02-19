@@ -16,13 +16,18 @@ export const InitialCDPDeposit = () => {
 
     const [selectedAsset, setSelectedAsset] = useState<AssetWithBalance | undefined>(undefined);
 
+    const [ossifiedDeposits, setOssifiedDeposits] = useState<AssetWithBalance[]>([]);
 
-    const assetsWithOptions = mintState.assets
-        ?.map((asset) => ({
-            ...asset,
-            value: asset?.symbol,
-            label: asset?.symbol,
-        }))
+
+    const assetsWithOptions = useMemo(() => {
+        mintState.assets
+            ?.filter((asset) => !ossifiedDeposits.some(a => a.symbol === asset?.symbol))
+            .map((asset) => ({
+                ...asset,
+                value: asset?.symbol,
+                label: asset?.symbol,
+            }))
+    }, [mintState.assets, ossifiedDeposits]);
 
     useEffect(() => {
         if (mintState.assets.length > 0 && assetsWithOptions?.[0] && !selectedAsset) {
@@ -78,6 +83,7 @@ export const InitialCDPDeposit = () => {
     return (
         <Stack>
             <Stack>
+                { }
                 <div style={{ width: "20%", alignSelf: "center", position: "absolute" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
                 <HStack mt="5%" width="100%" justifyContent="left">
                     <HStack width="75%">
@@ -113,9 +119,17 @@ export const InitialCDPDeposit = () => {
                         </Text>
                     </Button>
                 </HStack>
+                {/* On click, ossify the current deposit asset & open a new deposit section */}
+                {selectedAsset && <Button
+                    alignSelf="center"
+                    onClick={() => { setOssifiedDeposits([...ossifiedDeposits, selectedAsset]); setSelectedAsset(undefined) }}
+                    width={"20%"}
+                    fontFamily="Inter"
+                    fontWeight={"500"}
+                >
+                    Add Another Asset
+                </Button>}
             </Stack>
-
-
 
         </Stack>
     )

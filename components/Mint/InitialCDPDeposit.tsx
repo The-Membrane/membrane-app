@@ -53,6 +53,7 @@ export const InitialCDPDeposit = () => {
             const amountValue = num(diffInUsd).isGreaterThan(selectedAsset.depositUsdValue)
                 ? newDeposit
                 : -diffInUsd
+            console.log("asset stats", selectedAsset.depositUsdValue, sliderValue, diffInUsd, newDeposit, amountValue)
             const amount = num(amountValue).dividedBy(selectedAsset.price).dp(selectedAsset.decimal ?? 6).toNumber()
             //
             //
@@ -86,12 +87,12 @@ export const InitialCDPDeposit = () => {
         <Stack>
             <Stack>
                 {ossifiedDeposits.map((asset) => {
-                    if (!asset || asset.amount === 0) return null;
+                    if (!asset || asset.amountValue === 0) return null;
                     return (
                         <Card width="80%" boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} paddingY={0}>
                             <HStack>
                                 <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                    Depositing {asset.amount} {asset?.symbol}
+                                    Depositing {asset.amountValue} {asset?.symbol}
                                 </Text>
                             </HStack>
                             {/* <MintInput
@@ -141,7 +142,7 @@ export const InitialCDPDeposit = () => {
                 {/* On click, ossify the current deposit asset & open a new deposit section */}
                 {selectedAsset && assetsWithOptions && assetsWithOptions.length != 0 && <Button
                     alignSelf="center"
-                    onClick={() => { setOssifiedDeposits([...ossifiedDeposits, selectedAsset]); setSelectedAsset(undefined) }}
+                    onClick={() => { setOssifiedDeposits([...ossifiedDeposits, { ...selectedAsset, amountValue: transactionValue }]); setSelectedAsset(undefined) }}
                     width={"30%"}
                     isDisabled={Number(transactionValue) === 0}
                     fontFamily="Inter"

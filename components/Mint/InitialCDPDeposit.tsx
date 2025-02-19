@@ -41,10 +41,12 @@ export const InitialCDPDeposit = () => {
 
 
     const handleTransaction = (transactionType: string, transactionValue: number) => {
+        console.log("transactionType", transactionType, transactionValue)
         if (!transactionType || transactionValue <= 0) return;
 
         let updatedAssets = mintState.assets.map((a) => {
             if (a.symbol !== selectedAsset?.symbol) return a;
+            console.log("asset made it thru", a)
 
             const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
 

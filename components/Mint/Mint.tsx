@@ -156,25 +156,8 @@ const Mint = React.memo(() => {
       {
         basketPositions === undefined && !useAdvanced
           ?
-          <USDCMintCard />
-          {basketPositions === undefined && <Button
-        alignSelf="center"
-        // checked={useAdvanced}
-        onClick={() => { setAdvanced(!useAdvanced) }}
-        width={"20%"}
-        backgroundColor={"transparent"}
-        fontFamily="Inter"
-        fontWeight={"500"}
-      >
-        {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
-      </Button>}
-      :
-      <>
-        {/* <HealthSlider summary={summary} /> */}
-        <HStack alignItems="flex-start" justifyContent={"center"} maxWidth={"1200px"}>
-          <Stack>
-            <MintTabsCard />
-
+          <>
+            <USDCMintCard />
             {basketPositions === undefined && <Button
               alignSelf="center"
               // checked={useAdvanced}
@@ -186,13 +169,32 @@ const Mint = React.memo(() => {
             >
               {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
             </Button>}
-          </Stack>
-          <Stack>
-            <CurrentPositions />
-            {/* <RedemptionCard /> */}
-          </Stack>
-        </HStack>
-      </>
+          </>
+          :
+          <>
+            {/* <HealthSlider summary={summary} /> */}
+            <HStack alignItems="flex-start" justifyContent={"center"} maxWidth={"1200px"}>
+              <Stack>
+                <MintTabsCard />
+
+                {basketPositions === undefined && <Button
+                  alignSelf="center"
+                  // checked={useAdvanced}
+                  onClick={() => { setAdvanced(!useAdvanced) }}
+                  width={"20%"}
+                  backgroundColor={"transparent"}
+                  fontFamily="Inter"
+                  fontWeight={"500"}
+                >
+                  {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
+                </Button>}
+              </Stack>
+              <Stack>
+                <CurrentPositions />
+                {/* <RedemptionCard /> */}
+              </Stack>
+            </HStack>
+          </>
       }
 
     </Stack>

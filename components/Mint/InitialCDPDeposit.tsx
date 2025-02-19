@@ -86,7 +86,7 @@ export const InitialCDPDeposit = () => {
                 {ossifiedDeposits.map((asset) => {
                     if (!asset || asset.sliderValue === 0) return null;
                     return (
-                        <Card width="80%" boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} >
+                        <Card width="80%" boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} paddingY={0}>
                             <HStack>
                                 <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                     Depositing {asset.sliderValue} {asset?.symbol}

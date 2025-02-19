@@ -73,6 +73,8 @@ export const InitialCDPDeposit = () => {
         setTransactionValue("");
     }
 
+    console.log("selectedAsset", selectedAsset);
+
     //TODO:
     //- Create Add Asset that converts the current action into a label with an Edit button above the new action
 

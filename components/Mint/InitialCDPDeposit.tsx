@@ -1,6 +1,6 @@
 import { parseError } from "@/helpers/parseError"
 import Select from '@/components/Select'
-import { Stack, HStack, Input, Button, Text, Image } from "@chakra-ui/react"
+import { Stack, HStack, Input, Button, Text, Image, Card } from "@chakra-ui/react"
 import useMintState from "./hooks/useMintState";
 import { useEffect, useMemo, useState } from "react";
 import { AssetWithBalance } from "./hooks/useCombinBalance";
@@ -83,7 +83,23 @@ export const InitialCDPDeposit = () => {
     return (
         <Stack>
             <Stack>
-                { }
+                {ossifiedDeposits.map((asset) => {
+                    return (
+                        <Card width="80%" boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} >
+                            <HStack>
+                                <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                    Depositing {asset.depositUsdValue} {asset?.symbol}
+                                </Text>
+                            </HStack>
+                            {/* <MintInput
+                                asset={asset}
+                                handleTransaction={handleTransaction}
+                                transactionValue={transactionValue}
+                                setTransactionValue={setTransactionValue}
+                            /> */}
+                        </Card>
+                    )
+                })}
                 <div style={{ width: "20%", alignSelf: "center", position: "absolute" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
                 <HStack mt="5%" width="100%" justifyContent="left">
                     <HStack width="75%">
@@ -120,10 +136,11 @@ export const InitialCDPDeposit = () => {
                     </Button>
                 </HStack>
                 {/* On click, ossify the current deposit asset & open a new deposit section */}
-                {selectedAsset && <Button
+                {selectedAsset && assetsWithOptions.length != 0 && <Button
                     alignSelf="center"
                     onClick={() => { setOssifiedDeposits([...ossifiedDeposits, selectedAsset]); setSelectedAsset(undefined) }}
-                    width={"20%"}
+                    width={"30%"}
+                    isDisabled={Number(transactionValue) === 0}
                     fontFamily="Inter"
                     fontWeight={"500"}
                 >

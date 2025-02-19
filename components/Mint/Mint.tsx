@@ -107,7 +107,7 @@ const MintTabsCard = React.memo(() => {
   }, [basketPositions])
 
   return (
-    <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="80%" paddingBottom={0}>
+    <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="100%" paddingBottom={0}>
       <VStack w="full" gap="5" h="full" alignItems="stretch">
         <Text variant="title" fontSize="24px" alignSelf={"center"}>
           Manage Vault
@@ -174,7 +174,7 @@ const Mint = React.memo(() => {
           <>
             {/* <HealthSlider summary={summary} /> */}
             <HStack alignItems="flex-start" justifyContent={"center"} maxWidth={"1200px"}>
-              <Stack>
+              <Stack width="100%">
                 <MintTabsCard />
 
                 {basketPositions === undefined && <Button

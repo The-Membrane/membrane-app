@@ -84,6 +84,8 @@ export const InitialCDPDeposit = () => {
     //- Make asset button correctly dynamic for deposits/withdraws & mint/repay combos
     //- Click to edit the ossified labeled assets
 
+    //- Change all Mint lingo to Borrow (Tweet this)
+
     //- Place redemption card in a modal somewhere
 
     return (

@@ -24,7 +24,7 @@ const ActionButtons = ({ onRest }: Props) => {
       <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onRest} />
       <ConfirmModal
         label={
-          mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Mint' : basketPositions === undefined ? 'Deposit Assets' : 'Update Assets'
+          mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Borrow' : basketPositions === undefined ? 'Deposit Collateral' : 'Update Collateral'
         }
         action={mint}
         isDisabled={isDisabled}

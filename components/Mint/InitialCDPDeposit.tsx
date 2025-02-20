@@ -96,7 +96,7 @@ export const InitialCDPDeposit = () => {
         <Stack>
             <Stack>
                 {(selectedAsset || (ossifiedDeposits && ossifiedDeposits.length > 0) || (mintState.newDebtAmount && mintState.newDebtAmount != 0)) && (
-                    <Stack>
+                    <Stack pt="4">
                         {((selectedAsset && Number(transactionValue) > 0) || (ossifiedDeposits && ossifiedDeposits.length > 0)) && (
                             <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                 Depositing: &nbsp;
@@ -126,7 +126,7 @@ export const InitialCDPDeposit = () => {
                 )}
 
                 {assetsWithOptions && assetsWithOptions.length != 0 && <><div style={{ width: "20%", alignSelf: "center" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
-                    <HStack mt="5%" width="100%" justifyContent="left">
+                    <HStack mt="2%" width="100%" justifyContent="left">
                         <HStack width="75%">
                             {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}
                             <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">

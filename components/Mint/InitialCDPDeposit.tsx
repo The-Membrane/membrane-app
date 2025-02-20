@@ -37,6 +37,8 @@ export const InitialCDPDeposit = () => {
 
     useEffect(() => {
         setTransactionValue("");
+        setOssifiedDeposits([]);
+
     }, [mintState.reset]);
 
 
@@ -66,7 +68,7 @@ export const InitialCDPDeposit = () => {
                 sliderValue,
             }
         });
-        console.log("updatedAssets", updatedAssets)
+        // console.log("updatedAssets", updatedAssets)
 
         const { summary, totalUsdValue } = getSummary(updatedAssets);
         setMintState({ assets: updatedAssets, summary, totalUsdValue });
@@ -93,14 +95,14 @@ export const InitialCDPDeposit = () => {
         <Stack>
             <Stack>
                 {ossifiedDeposits && ossifiedDeposits.length > 0 && (
-                    <HStack>
+                    <Stack>
                         <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                             Depositing {ossifiedDeposits
                                 .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit")
                                 .map(asset => `${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`)
                                 .join(", ")}
                         </Text>
-                    </HStack>
+                    </Stack>
                 )}
 
                 {assetsWithOptions && assetsWithOptions.length != 0 && <><div style={{ width: "20%", alignSelf: "center" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
@@ -141,7 +143,7 @@ export const InitialCDPDeposit = () => {
                 {/* On click, ossify the current deposit asset & open a new deposit section */}
                 {selectedAsset && assetsWithOptions && assetsWithOptions.length != 0 && <Button
                     alignSelf="center"
-                    onClick={() => { setOssifiedDeposits([...ossifiedDeposits, { ...selectedAsset, amountValue: transactionValue, txType: "deposit" }]); setSelectedAsset(undefined) }}
+                    onClick={() => { setOssifiedDeposits([...ossifiedDeposits, { ...selectedAsset, amountValue: transactionValue, txType: "deposit" }]); setSelectedAsset(undefined); setTransactionValue(""); }}
                     width={"30%"}
                     isDisabled={Number(transactionValue) === 0}
                     fontFamily="Inter"

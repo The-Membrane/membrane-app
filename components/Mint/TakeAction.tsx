@@ -16,7 +16,7 @@ import { MintInput } from './MintInput'
 
 const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean }) => {
   return (
-    <Text fontSize="sm" color={colors.alert} my="2" minH="21px" alignSelf="center">
+    <Text fontSize="sm" color={colors.alert} mt="2" mb={"4"} minH="21px" alignSelf="center">
       {(overdraft && ltvChange) ? 'Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? 'Withdrawal amount exceeds the maximum LTV.' : minDebt ? 'Minimum debt is 20 CDT unless fully repaying' : ' '}
     </Text>
   )

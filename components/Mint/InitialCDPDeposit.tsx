@@ -97,7 +97,7 @@ export const InitialCDPDeposit = () => {
             <Stack>
                 {(selectedAsset || (ossifiedDeposits && ossifiedDeposits.length > 0) || (mintState.newDebtAmount && mintState.newDebtAmount != 0)) && (
                     <Stack>
-                        {(selectedAsset || (ossifiedDeposits && ossifiedDeposits.length > 0)) && (
+                        {((selectedAsset && (selectedAsset.amountValue ?? 0) > 0) || (ossifiedDeposits && ossifiedDeposits.length > 0)) && (
                             <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                 Depositing {selectedAsset ? ossifiedDeposits.concat([{ ...selectedAsset, amountValue: transactionValue, txType: "deposit" }])
                                     .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit")

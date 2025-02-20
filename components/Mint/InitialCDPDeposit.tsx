@@ -99,7 +99,7 @@ export const InitialCDPDeposit = () => {
                     <Stack>
                         {ossifiedDeposits && ossifiedDeposits.length > 0 && (
                             <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                Depositing {selectedAsset ? ossifiedDeposits.concat([selectedAsset])
+                                Depositing {selectedAsset ? ossifiedDeposits.concat([{ ...selectedAsset, amountValue: transactionValue, txType: "deposit" }])
                                     .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit")
                                     .map(asset => `${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`)
                                     .join(", ")

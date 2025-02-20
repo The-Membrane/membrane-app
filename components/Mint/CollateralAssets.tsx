@@ -55,7 +55,7 @@ const CollateralAssets = () => {
       <Stack
         gap="5"
         maxH="53vh"
-        overflowY="auto"
+        // overflowY="auto"
         w="full"
         px="4"
         py="2"

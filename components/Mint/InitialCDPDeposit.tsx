@@ -99,7 +99,7 @@ export const InitialCDPDeposit = () => {
                     <Stack>
                         {((selectedAsset && Number(transactionValue) > 0) || (ossifiedDeposits && ossifiedDeposits.length > 0)) && (
                             <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                Depositing:
+                                Depositing: &nbsp;
                                 <Text as="span" color="white" fontWeight="400">
                                     {selectedAsset
                                         ? ossifiedDeposits
@@ -118,7 +118,7 @@ export const InitialCDPDeposit = () => {
 
                         {mintState.newDebtAmount && mintState.newDebtAmount !== 0 && (
                             <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                Borrowing: <Text as="span" color="white" fontWeight="400">{mintState.newDebtAmount} CDT</Text>
+                                Borrowing: &nbsp;<Text as="span" color="white" fontWeight="400">{mintState.newDebtAmount} CDT</Text>
                             </Text>
                         )}
 

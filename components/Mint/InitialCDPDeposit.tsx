@@ -95,17 +95,18 @@ export const InitialCDPDeposit = () => {
     return (
         <Stack>
             <Stack>
-                {ossifiedDeposits && ossifiedDeposits.length > 0 && (
+                {((ossifiedDeposits && ossifiedDeposits.length > 0) || (mintState.newDebtAmount && mintState.newDebtAmount != 0)) && (
                     <Stack>
-                        <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                            Depositing {ossifiedDeposits
-                                .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit")
-                                .map(asset => `${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`)
-                                .join(", ")}
-                        </Text>
-                        <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                            Borrowing {mintState?.newDebtAmount ?? 0} CDT
-                        </Text>
+                        {ossifiedDeposits && ossifiedDeposits.length > 0 && (
+                            <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                                Depositing {ossifiedDeposits
+                                    .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit")
+                                    .map(asset => `${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`)
+                                    .join(", ")}
+                            </Text>)}
+                        {mintState.newDebtAmount && mintState.newDebtAmount != 0 && <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                            Borrowing {mintState.newDebtAmount} CDT
+                        </Text>}
                     </Stack>
                 )}
 

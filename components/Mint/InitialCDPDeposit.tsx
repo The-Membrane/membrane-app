@@ -124,7 +124,7 @@ export const InitialCDPDeposit = () => {
                     </Stack>
                 )}
 
-                {assetsWithOptions && assetsWithOptions.length != 0 && <><div style={{ width: "20%", alignSelf: "center" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
+                {assetsWithOptions && assetsWithOptions.length != 0 && <><div style={{ width: "20%", alignSelf: "center", marginTop: "3%" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
                     <HStack mt="2%" width="100%" justifyContent="left">
                         <HStack width="75%">
                             {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}

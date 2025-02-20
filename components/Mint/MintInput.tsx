@@ -31,6 +31,11 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
         maxMint: 0,
     }
 
+    //Reset InputValue on reset
+    useEffect(() => {
+        setMintInputValue(0)
+    }, [mintState.reset])
+
     const CDT = useAssetBySymbol('CDT')
     const walletCDT = useBalanceByAsset(CDT)
 

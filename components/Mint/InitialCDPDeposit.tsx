@@ -30,7 +30,7 @@ export const InitialCDPDeposit = () => {
     }, [mintState.assets, ossifiedDeposits]);
 
     useEffect(() => {
-        if (mintState.assets.length > 0 && assetsWithOptions?.[0] && !selectedAsset) {
+        if (mintState.assets.length > 0 && assetsWithOptions?.[0] && (!selectedAsset || selectedAsset?.walletsdValue === 0)) {
             setSelectedAsset(assetsWithOptions?.[0]);
         }
     }, [assetsWithOptions]);
@@ -83,7 +83,6 @@ export const InitialCDPDeposit = () => {
     console.log("selectedAsset", selectedAsset);
 
     //TODO:
-    //- Add per asset Max limiter to input
     //- Make reset button work for ossified labels
     //- Make asset button correctly dynamic for deposits/withdraws & mint/repay combos
     //- Click to edit the ossified labeled assets
@@ -142,7 +141,11 @@ export const InitialCDPDeposit = () => {
                         variant={"ghost"}
                         value={Number(transactionValue)}
                         max={selectedAsset?.walletsdValue}
-                        onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value); handleTransaction("deposit", Number(e.target.value)) }}
+                        onChange={(e) => {
+                            e.preventDefault();
+                            setTransactionValue(Math.min(Number(e.target.value), (selectedAsset?.walletsdValue ?? 0)).toString());
+                            handleTransaction("deposit", Number(e.target.value))
+                        }}
                     />
                     <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
                         <Button

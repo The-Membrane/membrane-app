@@ -35,6 +35,7 @@ export const InitialCDPDeposit = () => {
         }
     }, [assetsWithOptions]);
 
+    //Handle Reset Button
     useEffect(() => {
         setTransactionValue("");
         setOssifiedDeposits([]);
@@ -101,6 +102,9 @@ export const InitialCDPDeposit = () => {
                                 .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit")
                                 .map(asset => `${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`)
                                 .join(", ")}
+                        </Text>
+                        <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                            Borrowing {mintState?.newDebtAmount ?? 0} CDT
                         </Text>
                     </Stack>
                 )}

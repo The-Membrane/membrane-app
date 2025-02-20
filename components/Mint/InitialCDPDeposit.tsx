@@ -144,7 +144,7 @@ export const InitialCDPDeposit = () => {
                         onChange={(e) => {
                             e.preventDefault();
                             setTransactionValue(Math.min(Number(e.target.value), (selectedAsset?.walletsdValue ?? 0)).toString());
-                            handleTransaction("deposit", Number(e.target.value))
+                            handleTransaction("deposit", Math.min(Number(e.target.value), (selectedAsset?.walletsdValue ?? 0)))
                         }}
                     />
                     <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>

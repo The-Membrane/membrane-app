@@ -41,7 +41,7 @@ export const InitialCDPDeposit = () => {
 
 
     const handleTransaction = (transactionType: string, transactionValue: number) => {
-        // console.log("transactionType", transactionType, transactionValue)
+        console.log("transactionType", transactionType, transactionValue)
         if (!transactionType || transactionValue <= 0) return;
 
         let updatedAssets = mintState.assets.map((a) => {
@@ -66,6 +66,7 @@ export const InitialCDPDeposit = () => {
                 sliderValue,
             }
         });
+        console.log("updatedAssets", updatedAssets)
 
         const { summary, totalUsdValue } = getSummary(updatedAssets);
         setMintState({ assets: updatedAssets, summary, totalUsdValue });

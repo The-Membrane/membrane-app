@@ -141,7 +141,7 @@ export const USDCMintCard = () => {
                     <HStack width="75%">
                         <Image src={"/images/cdt.svg"} w="30px" h="30px" />
                         <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                            Mint CDT
+                            Borrow CDT
                         </Text>
                     </HStack>
                 </HStack>
@@ -173,7 +173,7 @@ export const USDCMintCard = () => {
                 </Text>
 
                 <Text variant="title" marginTop="auto" textAlign="center" fontSize="sm" letterSpacing="1px" width="100%">
-                    Minimum 25 USDC to Mint
+                    Minimum 25 USDC to Borrow
                 </Text>
                 <TxButton
                     w="100%"
@@ -184,7 +184,7 @@ export const USDCMintCard = () => {
                     toggleConnectLabel={false}
                     style={{ alignSelf: "center" }}
                 >
-                    Deposit & Mint
+                    Deposit & Borrow
                 </TxButton>
             </Stack>
         </Card>

@@ -10,7 +10,7 @@ export type MintInputProps = {
     label?: string
 }
 
-export const MintInput = ({ label = "Mint CDT" }: MintInputProps) => {
+export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
     const { setMintState, mintState } = useMintState()
     const { data } = useVaultSummary()
     const [sumData, setSumData] = useState(data)

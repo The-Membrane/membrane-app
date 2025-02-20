@@ -95,7 +95,7 @@ export const InitialCDPDeposit = () => {
     return (
         <Stack>
             <Stack>
-                {((ossifiedDeposits && ossifiedDeposits.length > 0) || (mintState.newDebtAmount && mintState.newDebtAmount != 0)) && (
+                {(selectedAsset || (ossifiedDeposits && ossifiedDeposits.length > 0) || (mintState.newDebtAmount && mintState.newDebtAmount != 0)) && (
                     <Stack>
                         {ossifiedDeposits && ossifiedDeposits.length > 0 && (
                             <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
@@ -130,7 +130,7 @@ export const InitialCDPDeposit = () => {
                         placeholder="Enter Amount"
                         type="number"
                         variant={"ghost"}
-                        value={Number(transactionValue).toFixed(2)}
+                        value={Number(transactionValue)}
                         max={selectedAsset?.walletsdValue}
                         onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value); handleTransaction("deposit", Number(e.target.value)) }}
                     />

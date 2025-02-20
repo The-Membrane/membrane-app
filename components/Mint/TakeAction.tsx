@@ -73,7 +73,7 @@ const TakeAction = React.memo(() => {
         />
 
 
-        <MintInput label="Mint CDT" />
+        <MintInput label="Borrow CDT" />
         {/* <LTVWithSlider label="Your Debt" /> */}
         <ActionButtons onRest={onRest} />
         <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />

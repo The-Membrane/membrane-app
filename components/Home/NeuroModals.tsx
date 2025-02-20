@@ -905,7 +905,7 @@ export const USDCMintModal = React.memo(({
                         placeholder="0"
                         type="number"
                         variant={"ghost"}
-                        value={depositInputValue?.toFixed(2)}
+                        value={depositInputValue}
                         max={depositMaxAmount}
                         onChange={onDepositInputChange}
                     />
@@ -933,7 +933,7 @@ export const USDCMintModal = React.memo(({
                         placeholder="0"
                         type="number"
                         variant={"ghost"}
-                        value={mintInputValue?.toFixed(2)}
+                        value={mintInputValue}
                         max={mintMaxAmount}
                         onChange={onMintInputChange}
                     />
@@ -1065,7 +1065,7 @@ export const USDCSwapToCDTModal = React.memo(({
                         placeholder="0"
                         type="number"
                         variant={"ghost"}
-                        value={inputValue?.toFixed(2)}
+                        value={inputValue}
                         max={maxAmount}
                         onChange={onInputChange}
                     />

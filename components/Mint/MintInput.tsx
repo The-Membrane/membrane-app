@@ -118,7 +118,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
                 placeholder="0"
                 type="number"
                 variant="ghost"
-                value={mintInputValue?.toFixed(2)}
+                value={mintInputValue}
                 max={mintMaxAmount}
                 onChange={onMintInputChange}
             />

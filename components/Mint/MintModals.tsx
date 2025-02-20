@@ -82,7 +82,7 @@ export const RedemptionDepositModal = React.memo(({
                             placeholder="0"
                             type="number"
                             variant={"ghost"}
-                            value={redemptionState?.deposit.toFixed(2)}
+                            value={redemptionState?.deposit}
                             onChange={onInputChange}
                         />
                         <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
@@ -210,7 +210,7 @@ export const RedemptionWithdrawModal = React.memo(({
                         placeholder="0"
                         type="number"
                         variant={"ghost"}
-                        value={redemptionState?.withdraw.toFixed(2)}
+                        value={redemptionState?.withdraw}
                         onChange={onInputChange}
                     />
                     <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>

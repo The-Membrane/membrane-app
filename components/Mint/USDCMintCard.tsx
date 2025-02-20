@@ -123,7 +123,7 @@ export const USDCMintCard = () => {
                     placeholder="0"
                     type="number"
                     variant={"ghost"}
-                    value={depositInputValue?.toFixed(2)}
+                    value={depositInputValue}
                     max={depositMaxAmount}
                     onChange={onDepositInputChange}
                 />
@@ -151,7 +151,7 @@ export const USDCMintCard = () => {
                     placeholder="0"
                     type="number"
                     variant={"ghost"}
-                    value={mintInputValue?.toFixed(2)}
+                    value={mintInputValue}
                     max={mintMaxAmount}
                     onChange={onMintInputChange}
                 />

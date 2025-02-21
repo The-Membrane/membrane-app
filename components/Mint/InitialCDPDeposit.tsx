@@ -142,6 +142,8 @@ export const InitialCDPDeposit = () => {
         console.log("updatedAssets", updatedAssets)
 
         const { summary, totalUsdValue } = getSummary(updatedAssets);
+        console.log("summary", summary)
+
         setMintState({ assets: updatedAssets, summary, totalUsdValue });
     };
 

@@ -18,10 +18,10 @@ import { GrPowerReset } from 'react-icons/gr'
 const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false, onRest }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean, onRest: () => void }) => {
   return (
     <HStack>
-      <Text fontSize="sm" color={"white"} mt="2" mb={"4"} minH="21px" alignSelf="center">
+      <Text fontSize="sm" color={"white"} mt="2" mb={"4"} minH="21px" alignSelf="center" w="100%" textAlign="center">
         {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying' : ' '}
       </Text>
-      <div style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset />} marginLeft={"auto"} onClick={onRest} /></div>
+      <div style={{ width: "6%", display: "flex", justifyContent: "flex-end" }}><Button variant="ghost" mb="1%" width={"5%"} padding={0} leftIcon={<GrPowerReset />} marginLeft={"auto"} onClick={onRest} /></div>
     </HStack>
 
   )
@@ -67,23 +67,22 @@ const TakeAction = React.memo(() => {
     <Stack width="100%" flex="1" >
       <CollateralAssets />
 
-      <Stack marginTop={"auto"}>
-        <Divider
-          bg="rgba(226, 216, 218, 0.24)"
-          boxShadow="0px 0px 8px 0px rgba(226, 216, 218, 0.64)"
-          w="calc(100% - 16px)"
-          h="1px"
-          my="5"
-          mx="3"
-        />
+      {/* <Stack marginTop={"auto"}> */}
+      <Divider
+        bg="rgba(226, 216, 218, 0.24)"
+        boxShadow="0px 0px 8px 0px rgba(226, 216, 218, 0.64)"
+        w="calc(100% - 16px)"
+        h="1px"
+        my="5"
+        mx="3"
+      />
 
 
-        <MintInput label="Borrow CDT" />
-        {/* <LTVWithSlider label="Your Debt" /> */}
-        <ActionButtons />
-        <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} onRest={onRest} />
-
-      </Stack>
+      <MintInput label="Borrow CDT" />
+      {/* <LTVWithSlider label="Your Debt" /> */}
+      <ActionButtons />
+      <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} onRest={onRest} />
+      {/* </Stack> */}
     </Stack>
   )
 })

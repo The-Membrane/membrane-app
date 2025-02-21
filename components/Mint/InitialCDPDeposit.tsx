@@ -24,7 +24,7 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
             .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit");
     };
 
-    const assets = getAssetsList();
+    const assets = getAssetsList() ?? [];
 
 
 

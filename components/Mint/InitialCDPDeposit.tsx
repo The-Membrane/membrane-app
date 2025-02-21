@@ -115,21 +115,21 @@ export const InitialCDPDeposit = () => {
             if (asset) {
                 return {
                     ...a,
-                    sliderValue: a.depositUsdValue || 0,
                     amount: 0,
                     amountValue: 0,
+                    sliderValue: a.depositUsdValue || 0,
                 }
             }
 
             const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
 
-            const diffInUsd = num(selectedAsset.depositUsdValue).minus(sliderValue).toNumber()
-            const newDeposit = num(selectedAsset.depositUsdValue).minus(diffInUsd).toNumber()
-            const amountValue = num(diffInUsd).isGreaterThan(selectedAsset.depositUsdValue)
+            const diffInUsd = num(selectedAsset?.depositUsdValue).minus(sliderValue).toNumber()
+            const newDeposit = num(selectedAsset?.depositUsdValue).minus(diffInUsd).toNumber()
+            const amountValue = num(diffInUsd).isGreaterThan(selectedAsset?.depositUsdValue ?? 0)
                 ? newDeposit
                 : -diffInUsd
             // console.log("asset stats", selectedAsset.depositUsdValue, sliderValue, diffInUsd, newDeposit, amountValue)
-            const amount = num(amountValue).dividedBy(selectedAsset.price).dp(selectedAsset.decimal ?? 6).toNumber()
+            const amount = num(amountValue).dividedBy(selectedAsset?.price ?? 1).dp(selectedAsset?.decimal ?? 6).toNumber()
             //
             //
             return {
@@ -139,7 +139,7 @@ export const InitialCDPDeposit = () => {
                 sliderValue,
             }
         });
-        // console.log("updatedAssets", updatedAssets)
+        console.log("updatedAssets", updatedAssets)
 
         const { summary, totalUsdValue } = getSummary(updatedAssets);
         setMintState({ assets: updatedAssets, summary, totalUsdValue });

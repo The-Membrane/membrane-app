@@ -39,7 +39,7 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
                         onClick={() => onAssetClick(asset.symbol)}
                         _hover={selectedAsset && asset && selectedAsset.symbol === asset.symbol ? undefined : { opacity: 0.8 }}
                     >
-                        {`${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`}
+                        ${`${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`}
                     </Text>
                     {index < assets.length - 1 && (
                         <Text as="span" color="white" fontWeight="400">

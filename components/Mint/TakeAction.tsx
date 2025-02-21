@@ -79,7 +79,7 @@ const TakeAction = React.memo(() => {
         <ActionButtons />
         <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
 
-        <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} position="absolute" marginLeft={"auto"} onClick={onRest} />
+        <div style={{ width: "100%" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset />} position="absolute" marginLeft={"auto"} onClick={onRest} /></div>
       </Stack>
     </Stack>
   )

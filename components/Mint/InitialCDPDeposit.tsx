@@ -96,7 +96,7 @@ export const InitialCDPDeposit = () => {
             setOssifiedDeposits([...filteredOssifications, { ...selectedAsset, amountValue: transactionValue, txType: "deposit" }]);
         }
         //Remove it from deposit summary by handling a 0 deposit
-        cinsile.log("asset symbol in fn", symbol)
+        console.log("asset symbol in fn", symbol)
         handleTransaction("deposit", 0, symbol);
 
         setSelectedAsset(asset);

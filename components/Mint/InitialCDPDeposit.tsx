@@ -112,6 +112,15 @@ export const InitialCDPDeposit = () => {
             if (a.symbol !== (asset ?? selectedAsset?.symbol)) return a;
             // console.log("asset made it thru", a)
 
+            if (asset) {
+                return {
+                    ...a,
+                    sliderValue: a.depositUsdValue || 0,
+                    amount: 0,
+                    amountValue: 0,
+                }
+            }
+
             const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
 
             const diffInUsd = num(selectedAsset.depositUsdValue).minus(sliderValue).toNumber()

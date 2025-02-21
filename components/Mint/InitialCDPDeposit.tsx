@@ -36,7 +36,7 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
                         as="span"
                         color="white"
                         fontWeight="400"
-                        textDecoration="underline"
+                        textDecoration={selectedAsset.symbol === asset.symbol ? undefined : "underline"}
                         cursor="pointer"
                         onClick={() => onAssetClick(asset.symbol)}
                         _hover={{ opacity: 0.8 }}
@@ -45,7 +45,7 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
                     </Text>
                     {index < assets.length - 1 && (
                         <Text as="span" color="white" fontWeight="400">
-                            {", "}
+                            {", "} &nbsp;
                         </Text>
                     )}
                 </React.Fragment>

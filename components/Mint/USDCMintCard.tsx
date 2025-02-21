@@ -128,7 +128,7 @@ export const USDCMintCard = () => {
                     onChange={onDepositInputChange}
                 />
                 <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                    <Button onClick={onDepositMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                    <Button onClick={onDepositMaxClick} width="0%" variant="unstyled" fontWeight="normal">
                         <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
                             max
                         </Text>
@@ -156,12 +156,12 @@ export const USDCMintCard = () => {
                     onChange={onMintInputChange}
                 />
                 <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
-                    <Button onClick={onMintMinClick} width="20%" variant="unstyled" fontWeight="normal">
+                    <Button onClick={onMintMinClick} width="0%" variant="unstyled" fontWeight="normal">
                         <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
                             min
                         </Text>
                     </Button>
-                    <Button onClick={onMintMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                    <Button onClick={onMintMaxClick} width="0%" variant="unstyled" fontWeight="normal">
                         <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
                             max
                         </Text>

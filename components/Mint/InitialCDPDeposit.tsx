@@ -97,7 +97,7 @@ export const InitialCDPDeposit = () => {
         }
         //Remove it from deposit summary by handling a 0 deposit
         console.log("asset symbol in fn", symbol)
-        handleTransaction("deposit", 0, symbol);
+        handleTransaction("deposit", 1, symbol);
 
         setSelectedAsset(asset);
         setTransactionValue("")

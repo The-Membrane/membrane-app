@@ -15,7 +15,7 @@ import React from "react";
 const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onAssetClick }) => {
     // Helper function to get the list of assets to display
     const getAssetsList = () => {
-        if (selectedAsset) {
+        if (selectedAsset && Number(transactionValue) > 0) {
             return ossifiedDeposits
                 .concat([{ ...selectedAsset, amountValue: transactionValue, txType: "deposit" }])
                 .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit");
@@ -26,8 +26,6 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
 
     const assets = getAssetsList() ?? [];
 
-    console.log("deposit assets", assets)
-
     return (
         <>
             {assets.map((asset, index) => (
@@ -37,9 +35,9 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
                         color="white"
                         fontWeight="400"
                         textDecoration={selectedAsset && asset && selectedAsset.symbol === asset.symbol ? undefined : "underline"}
-                        cursor="pointer"
+                        cursor={selectedAsset && asset && selectedAsset.symbol === asset.symbol ? undefined : "pointer"}
                         onClick={() => onAssetClick(asset.symbol)}
-                        _hover={{ opacity: 0.8 }}
+                        _hover={selectedAsset && asset && selectedAsset.symbol === asset.symbol ? undefined : { opacity: 0.8 }}
                     >
                         {`${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`}
                     </Text>
@@ -93,6 +91,7 @@ export const InitialCDPDeposit = () => {
 
         setOssifiedDeposits(ossifiedDeposits.filter((a) => a.symbol !== symbol));
         setSelectedAsset(asset);
+        setTransactionValue("")
     };
 
 

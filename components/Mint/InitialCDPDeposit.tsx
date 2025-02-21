@@ -95,18 +95,21 @@ export const InitialCDPDeposit = () => {
             handleTransaction("deposit", selectedAsset?.walletsdValue ?? 0);
             setOssifiedDeposits([...filteredOssifications, { ...selectedAsset, amountValue: transactionValue, txType: "deposit" }]);
         }
+        //Remove it from deposit summary by handling a 0 deposit
+
+        handleTransaction("deposit", 0, symbol);
 
         setSelectedAsset(asset);
         setTransactionValue("")
     };
 
 
-    const handleTransaction = (transactionType: string, transactionValue: number) => {
+    const handleTransaction = (transactionType: string, transactionValue: number, asset?: string) => {
         console.log("transactionType", transactionType, transactionValue)
         if (!transactionType || transactionValue <= 0) return;
 
         let updatedAssets = mintState.assets.map((a) => {
-            if (a.symbol !== selectedAsset?.symbol) return a;
+            if (a.symbol !== (asset ?? selectedAsset?.symbol)) return a;
             // console.log("asset made it thru", a)
 
             const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);

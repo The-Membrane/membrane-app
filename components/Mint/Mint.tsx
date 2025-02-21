@@ -162,7 +162,7 @@ const Mint = React.memo(() => {
               alignSelf="center"
               // checked={useAdvanced}
               onClick={() => { setAdvanced(!useAdvanced) }}
-              width={"20%"}
+              width={"15%"}
               backgroundColor={"transparent"}
               fontFamily="Inter"
               fontWeight={"500"}
@@ -181,7 +181,7 @@ const Mint = React.memo(() => {
                   alignSelf="center"
                   // checked={useAdvanced}
                   onClick={() => { setAdvanced(!useAdvanced) }}
-                  width={"20%"}
+                  width={"30%"}
                   backgroundColor={"transparent"}
                   fontFamily="Inter"
                   fontWeight={"500"}

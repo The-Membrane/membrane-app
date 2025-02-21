@@ -90,6 +90,9 @@ export const InitialCDPDeposit = () => {
         if (!asset) return;
 
         setOssifiedDeposits(ossifiedDeposits.filter((a) => a.symbol !== symbol));
+        handleTransaction("deposit", selectedAsset?.walletsdValue ?? 0);
+        setOssifiedDeposits([...ossifiedDeposits, { ...selectedAsset, amountValue: transactionValue, txType: "deposit" }]);
+
         setSelectedAsset(asset);
         setTransactionValue("")
     };

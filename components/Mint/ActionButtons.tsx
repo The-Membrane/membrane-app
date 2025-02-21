@@ -11,7 +11,7 @@ type Props = {
   onRest: () => void
 }
 
-const ActionButtons = ({ onRest }: Props) => {
+const ActionButtons = () => {
   const mint = useMint()
   const { mintState } = useMintState()
   const { summary } = mintState
@@ -21,7 +21,6 @@ const ActionButtons = ({ onRest }: Props) => {
 
   return (
     <HStack mt="0" gap="0">
-      <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} onClick={onRest} />
       <ConfirmModal
         label={
           mintState.repay ?? 0 > 0.1 ? 'Repay' : mintState.mint ?? 0 > 0.1 ? 'Borrow' : basketPositions === undefined ? 'Deposit Collateral' : 'Update Collateral'

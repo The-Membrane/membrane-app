@@ -1,6 +1,6 @@
 import { setInitialMintState } from '@/helpers/mint'
 import { num } from '@/helpers/num'
-import { Divider, Stack, TabPanel, Text } from '@chakra-ui/react'
+import { Button, Divider, Stack, TabPanel, Text } from '@chakra-ui/react'
 import { useEffect } from 'react'
 import ActionButtons from './ActionButtons'
 import CollateralAssets from './CollateralAssets'
@@ -11,6 +11,7 @@ import useVaultSummary from './hooks/useVaultSummary'
 import React from 'react'
 import { colors } from '@/config/defaults'
 import { MintInput } from './MintInput'
+import { GrPowerReset } from 'react-icons/gr'
 // import { queryClient } from '@/pages/_app'
 // import useBasketState from '@/persisted-state/useBasketState'
 
@@ -75,8 +76,10 @@ const TakeAction = React.memo(() => {
 
         <MintInput label="Borrow CDT" />
         {/* <LTVWithSlider label="Your Debt" /> */}
-        <ActionButtons onRest={onRest} />
+        <ActionButtons />
         <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
+
+        <Button variant="ghost" width={"10"} padding={0} leftIcon={<GrPowerReset />} position="absolute" marginLeft={"auto"} onClick={onRest} />
       </Stack>
     </Stack>
   )

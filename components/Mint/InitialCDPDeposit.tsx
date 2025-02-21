@@ -89,9 +89,12 @@ export const InitialCDPDeposit = () => {
         const asset = ossifiedDeposits.find((a) => a.symbol === symbol);
         if (!asset) return;
 
-        setOssifiedDeposits(ossifiedDeposits.filter((a) => a.symbol !== symbol));
-        handleTransaction("deposit", selectedAsset?.walletsdValue ?? 0);
-        setOssifiedDeposits([...ossifiedDeposits, { ...selectedAsset, amountValue: transactionValue, txType: "deposit" }]);
+        const filteredOssifications = ossifiedDeposits.filter((a) => a.symbol !== symbol);
+        setOssifiedDeposits(filteredOssifications);
+        if (selectedAsset) {
+            handleTransaction("deposit", selectedAsset?.walletsdValue ?? 0);
+            setOssifiedDeposits([...filteredOssifications, { ...selectedAsset, amountValue: transactionValue, txType: "deposit" }]);
+        }
 
         setSelectedAsset(asset);
         setTransactionValue("")

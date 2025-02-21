@@ -61,7 +61,7 @@ const TakeAction = React.memo(() => {
 
   return (
     <Stack width="100%" flex="1" >
-      <CollateralAssets />
+      <CollateralAssets onRest={onRest} />
 
       <Stack marginTop={"auto"}>
         <Divider
@@ -79,7 +79,6 @@ const TakeAction = React.memo(() => {
         <ActionButtons />
         <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
 
-        <div style={{ width: "100%" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset />} position="absolute" marginLeft={"auto"} onClick={onRest} /></div>
       </Stack>
     </Stack>
   )

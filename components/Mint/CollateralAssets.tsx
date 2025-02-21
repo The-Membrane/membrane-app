@@ -1,11 +1,12 @@
 import { num } from '@/helpers/num'
-import { Stack, Checkbox } from '@chakra-ui/react'
+import { Stack, Checkbox, Button } from '@chakra-ui/react'
 import { AssetWithInput } from './AssetWithSlider'
 import useMintState from './hooks/useMintState'
 import useCombinBalance, { AssetWithBalance } from './hooks/useCombinBalance'
 import { useEffect, useState } from 'react'
 import { colors } from '@/config/defaults'
 import { InitialCDPDeposit } from './InitialCDPDeposit'
+import { GrPowerReset } from 'react-icons/gr'
 
 export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
   return combinBalance
@@ -21,7 +22,12 @@ export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => 
     }))
 }
 
-const CollateralAssets = () => {
+
+type Props = {
+  onRest: () => void
+}
+
+const CollateralAssets = ({ onRest }: Props) => {
   const [toggle, setToggle] = useState<boolean>(false)
   const { mintState, setMintState } = useMintState()
   const combinBalance = useCombinBalance(mintState.positionNumber - 1)
@@ -73,6 +79,7 @@ const CollateralAssets = () => {
       // }}
       >
         <InitialCDPDeposit />
+        <div style={{ width: "100%" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset />} position="absolute" marginLeft={"auto"} onClick={onRest} /></div>
         {/* {assets?.map((asset) => {
           return <AssetWithInput key={asset?.base} asset={asset} label={asset?.symbol} />
         })} */}

@@ -15,7 +15,7 @@ import { GrPowerReset } from 'react-icons/gr'
 // import { queryClient } from '@/pages/_app'
 // import useBasketState from '@/persisted-state/useBasketState'
 
-const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean }) => {
+const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean, onRest: () => void }) => {
   return (
     <HStack>
       <Text fontSize="sm" color={"white"} mt="2" mb={"4"} minH="21px" alignSelf="center">
@@ -81,7 +81,7 @@ const TakeAction = React.memo(() => {
         <MintInput label="Borrow CDT" />
         {/* <LTVWithSlider label="Your Debt" /> */}
         <ActionButtons />
-        <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
+        <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} onRest={onRest} />
 
       </Stack>
     </Stack>

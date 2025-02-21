@@ -113,6 +113,8 @@ export const InitialCDPDeposit = () => {
             // console.log("asset made it thru", a)
 
             if (asset) {
+                console.log("asset made it thru", a, asset)
+
                 return {
                     ...a,
                     amount: 0,

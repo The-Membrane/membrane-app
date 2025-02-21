@@ -26,7 +26,7 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
 
     const assets = getAssetsList() ?? [];
 
-
+    console.log("deposit assets", assets)
 
     return (
         <>
@@ -36,7 +36,7 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
                         as="span"
                         color="white"
                         fontWeight="400"
-                        textDecoration={selectedAsset.symbol === asset.symbol ? undefined : "underline"}
+                        textDecoration={selectedAsset && asset && selectedAsset.symbol === asset.symbol ? undefined : "underline"}
                         cursor="pointer"
                         onClick={() => onAssetClick(asset.symbol)}
                         _hover={{ opacity: 0.8 }}

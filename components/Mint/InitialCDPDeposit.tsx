@@ -72,7 +72,7 @@ export const InitialCDPDeposit = () => {
     }, [mintState.assets, ossifiedDeposits]);
 
     useEffect(() => {
-        if (mintState.assets.length > 0 && assetsWithOptions?.[0] && (!selectedAsset || selectedAsset?.walletsdValue === 0)) {
+        if (mintState.assets && mintState.assets.length > 0 && assetsWithOptions?.[0] && (!selectedAsset || selectedAsset?.walletsdValue === 0)) {
             setSelectedAsset(assetsWithOptions?.[0]);
         }
     }, [assetsWithOptions]);

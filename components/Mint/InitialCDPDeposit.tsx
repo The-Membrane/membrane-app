@@ -152,7 +152,7 @@ export const InitialCDPDeposit = () => {
                         {((selectedAsset && Number(transactionValue) > 0) || (ossifiedDeposits && ossifiedDeposits.length > 0)) && (
                             <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                 Depositing: &nbsp;
-                                <DepositingText selectedAsset={selectedAsset} ossifiedDeposits={ossifiedDeposits} transactionValue={transactionValue} />
+                                <DepositingText selectedAsset={selectedAsset} ossifiedDeposits={ossifiedDeposits} transactionValue={transactionValue} onAssetClick={onAssetClick} />
                             </Text>
                         )}
 

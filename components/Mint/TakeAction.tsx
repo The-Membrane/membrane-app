@@ -15,7 +15,7 @@ import { GrPowerReset } from 'react-icons/gr'
 // import { queryClient } from '@/pages/_app'
 // import useBasketState from '@/persisted-state/useBasketState'
 
-const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean, onRest: () => void }) => {
+const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false, onRest }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean, onRest: () => void }) => {
   return (
     <HStack>
       <Text fontSize="sm" color={"white"} mt="2" mb={"4"} minH="21px" alignSelf="center">

@@ -1,6 +1,6 @@
 import { setInitialMintState } from '@/helpers/mint'
 import { num } from '@/helpers/num'
-import { Button, Divider, Stack, TabPanel, Text } from '@chakra-ui/react'
+import { Button, Divider, HStack, Stack, TabPanel, Text } from '@chakra-ui/react'
 import { useEffect } from 'react'
 import ActionButtons from './ActionButtons'
 import CollateralAssets from './CollateralAssets'
@@ -17,9 +17,13 @@ import { GrPowerReset } from 'react-icons/gr'
 
 const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean }) => {
   return (
-    <Text fontSize="sm" color={"white"} mt="2" mb={"4"} minH="21px" alignSelf="center">
-      {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying' : ' '}
-    </Text>
+    <HStack>
+      <Text fontSize="sm" color={"white"} mt="2" mb={"4"} minH="21px" alignSelf="center">
+        {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying' : ' '}
+      </Text>
+      <div style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset />} marginLeft={"auto"} onClick={onRest} /></div>
+    </HStack>
+
   )
 }
 
@@ -79,7 +83,6 @@ const TakeAction = React.memo(() => {
         <ActionButtons />
         <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
 
-        <div style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset />} marginLeft={"auto"} onClick={onRest} /></div>
       </Stack>
     </Stack>
   )

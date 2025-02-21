@@ -7,10 +7,54 @@ import { AssetWithBalance } from "./hooks/useCombinBalance";
 import { getSummary } from "@/helpers/mint";
 import { num } from "@/helpers/num";
 import { MintInput } from "./MintInput";
+import React from "react";
+
+
+// Helper function to get the list of assets to display
+//@ts-ignore
+const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onAssetClick }) => {
+    // Helper function to get the list of assets to display
+    const getAssetsList = () => {
+        if (selectedAsset) {
+            return ossifiedDeposits
+                .concat([{ ...selectedAsset, amountValue: transactionValue, txType: "deposit" }])
+                .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit");
+        }
+        return ossifiedDeposits
+            .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit");
+    };
+
+    const assets = getAssetsList();
+
+
+
+    return (
+        <>
+            {assets.map((asset, index) => (
+                <React.Fragment key={`${asset.symbol}-${index}`}>
+                    <Text
+                        as="span"
+                        color="white"
+                        fontWeight="400"
+                        textDecoration="underline"
+                        cursor="pointer"
+                        onClick={() => onAssetClick(asset.symbol)}
+                        _hover={{ opacity: 0.8 }}
+                    >
+                        {`${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`}
+                    </Text>
+                    {index < assets.length - 1 && (
+                        <Text as="span" color="white" fontWeight="400">
+                            {", "}
+                        </Text>
+                    )}
+                </React.Fragment>
+            ))}
+        </>
+    );
+};
 
 export const InitialCDPDeposit = () => {
-
-
     const [transactionValue, setTransactionValue] = useState('');
     const { mintState, setMintState } = useMintState();
 
@@ -41,6 +85,15 @@ export const InitialCDPDeposit = () => {
         setOssifiedDeposits([]);
 
     }, [mintState.reset]);
+
+    //On deposit Asset click, remove the asset from the ossified deposits & set it as the selected asset
+    const onAssetClick = (symbol: string) => {
+        const asset = ossifiedDeposits.find((a) => a.symbol === symbol);
+        if (!asset) return;
+
+        setOssifiedDeposits(ossifiedDeposits.filter((a) => a.symbol !== symbol));
+        setSelectedAsset(asset);
+    };
 
 
     const handleTransaction = (transactionType: string, transactionValue: number) => {
@@ -99,19 +152,7 @@ export const InitialCDPDeposit = () => {
                         {((selectedAsset && Number(transactionValue) > 0) || (ossifiedDeposits && ossifiedDeposits.length > 0)) && (
                             <Text variant="title" textTransform="none" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                 Depositing: &nbsp;
-                                <Text as="span" color="white" fontWeight="400">
-                                    {selectedAsset
-                                        ? ossifiedDeposits
-                                            .concat([{ ...selectedAsset, amountValue: transactionValue, txType: "deposit" }])
-                                            .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit")
-                                            .map(asset => `${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`)
-                                            .join(", ")
-                                        : ossifiedDeposits
-                                            .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit")
-                                            .map(asset => `${Number(asset.amountValue).toFixed(2)} ${asset.symbol}`)
-                                            .join(", ")
-                                    }
-                                </Text>
+                                <DepositingText selectedAsset={selectedAsset} ossifiedDeposits={ossifiedDeposits} transactionValue={transactionValue} />
                             </Text>
                         )}
 

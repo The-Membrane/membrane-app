@@ -21,7 +21,7 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = fals
       <Text fontSize="sm" color={"white"} mt="2" mb={"4"} minH="21px" alignSelf="center" w="100%" textAlign="center">
         {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying' : ' '}
       </Text>
-      <div style={{ width: "6%", display: "flex", justifyContent: "flex-end" }}><Button variant="ghost" mb="1%" width={"5%"} padding={0} leftIcon={<GrPowerReset />} marginLeft={"auto"} onClick={onRest} /></div>
+      <div style={{ width: "6%", display: "flex", justifyContent: "flex-end", marginBottom="1%" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset />} marginLeft={"auto"} onClick={onRest} /></div>
     </HStack>
 
   )

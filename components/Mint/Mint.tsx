@@ -30,6 +30,9 @@ import useVaultSummary from './hooks/useVaultSummary'
 import { num } from '@/helpers/num'
 import RedemptionCard from './RedemptionCard'
 import { USDCMintCard } from './USDCMintCard'
+import useCombinBalance from './hooks/useCombinBalance'
+import { setInitialMintState } from '@/helpers/mint'
+import { GrPowerReset } from 'react-icons/gr'
 
 type PaginationProps = {
   pagination: {
@@ -106,12 +109,50 @@ const MintTabsCard = React.memo(() => {
     return Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS)
   }, [basketPositions])
 
+
+  const combinBalance = useCombinBalance(mintState.positionNumber - 1)
+  const { data } = useVaultSummary()
+  const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = data || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
+
+  useEffect(() => {
+    const overdraft = ltv > borrowLTV
+    setMintState({ overdraft })
+  }, [ltv, borrowLTV])
+
+  const onRest = () => {
+    // console.log("onRest LTVS:", initialBorrowLTV, initialLTV)
+    setInitialMintState({
+      combinBalance,
+      ltv: initialLTV,
+      borrowLTV: initialBorrowLTV,
+      setMintState,
+      reset: mintState.reset
+      //newDebtAmount: 0,
+    });
+    //Requery basket to get updated current_position_id
+    // reset();
+    // queryClient.invalidateQueries({ queryKey: ['basket'] });
+    //
+  }
+
   return (
     <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="100%" paddingBottom={0}>
       <VStack w="full" gap="5" h="full" alignItems="stretch">
-        <Text variant="title" fontSize="24px" alignSelf={"center"}>
-          Manage Vault
-        </Text>
+        <HStack>
+          <Text variant="title" fontSize="24px" alignSelf={"center"} textAlign="center">
+            Manage Vault
+          </Text>
+          <div style={{ width: "6%", display: "flex", justifyContent: "flex-end", marginBottom: "1%" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset />} marginLeft={"auto"} onClick={onRest} /></div>
+        </HStack>
+
 
         <TakeAction />
         {/* For position pagination */}

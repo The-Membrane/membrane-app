@@ -15,14 +15,11 @@ import { GrPowerReset } from 'react-icons/gr'
 // import { queryClient } from '@/pages/_app'
 // import useBasketState from '@/persisted-state/useBasketState'
 
-const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false, onRest }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean, onRest: () => void }) => {
+const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean }) => {
   return (
-    <HStack>
-      <Text fontSize="sm" color={"white"} mt="2" mb={"4"} minH="21px" alignSelf="center" w="100%" textAlign="center">
-        {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying' : ' '}
-      </Text>
-      <div style={{ width: "6%", display: "flex", justifyContent: "flex-end", marginBottom: "1%" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset />} marginLeft={"auto"} onClick={onRest} /></div>
-    </HStack>
+    <Text fontSize="sm" color={"white"} mt="2" mb={"4"} minH="21px" alignSelf="center" w="100%" textAlign="center">
+      {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying' : ' '}
+    </Text>
 
   )
 }
@@ -30,7 +27,7 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = fals
 const TakeAction = React.memo(() => {
   const { mintState, setMintState } = useMintState()
   // const { reset } = useBasketState()
-  const combinBalance = useCombinBalance(mintState.positionNumber - 1)
+
   const { data } = useVaultSummary()
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = data || {
     debtAmount: 0,
@@ -42,26 +39,6 @@ const TakeAction = React.memo(() => {
     liqudationLTV: 0,
   }
 
-  useEffect(() => {
-    const overdraft = ltv > borrowLTV
-    setMintState({ overdraft })
-  }, [ltv, borrowLTV])
-
-  const onRest = () => {
-    console.log("onRest LTVS:", initialBorrowLTV, initialLTV)
-    setInitialMintState({
-      combinBalance,
-      ltv: initialLTV,
-      borrowLTV: initialBorrowLTV,
-      setMintState,
-      reset: mintState.reset
-      //newDebtAmount: 0,
-    });
-    //Requery basket to get updated current_position_id
-    // reset();
-    // queryClient.invalidateQueries({ queryKey: ['basket'] });
-    //
-  }
 
   return (
     <Stack width="100%" flex="1" >
@@ -81,7 +58,7 @@ const TakeAction = React.memo(() => {
       <MintInput label="Borrow CDT" />
       {/* <LTVWithSlider label="Your Debt" /> */}
       <ActionButtons />
-      <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} onRest={onRest} />
+      <OverDraftMessage overdraft={mintState.overdraft} minDebt={mintState.belowMinDebt} ltvChange={initialBorrowLTV != borrowLTV && ltv === initialLTV} />
       {/* </Stack> */}
     </Stack>
   )

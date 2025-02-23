@@ -158,9 +158,7 @@ export const InitialCDPDeposit = () => {
     console.log("selectedAsset", selectedAsset);
 
     //TODO:
-    //- Make reset button work for ossified labels
     //- Make asset button correctly dynamic for deposits/withdraws & mint/repay combos
-    //- Click to edit the ossified labeled assets
 
     //- Change all Mint lingo to Borrow (Tweet this)
 

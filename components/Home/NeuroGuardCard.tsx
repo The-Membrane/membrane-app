@@ -149,7 +149,7 @@ const NeuroGuardOpenEntry = React.memo(({
             padding="0"
             alignSelf="center"
             margin="0"
-            onClick={() => { onOpen(); setNeuroState({ openSelectedAsset: asset }); }}
+            onClick={onOpen}
             isDisabled={isDisabled}
           >
             {/* @ts-ignore */}
@@ -169,7 +169,7 @@ const NeuroGuardOpenEntry = React.memo(({
         <NeuroOpenModal
           isOpen={isOpen}
           onClose={onClose}
-          asset={asset?.base}
+          asset={asset}
         />
       </Modal>
     </>
@@ -254,10 +254,7 @@ const NeuroGuardExistingEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => {
-                onDepositOpen();
-                setNeuroState({ depositSelectedAsset: asset });
-              }}
+              onClick={onDepositOpen}
               isDisabled={isDisabled}
             >
               Deposit
@@ -268,10 +265,7 @@ const NeuroGuardExistingEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => {
-                onWithdrawOpen();
-                setNeuroState({ withdrawSelectedAsset: asset });
-              }}
+              onClick={onWithdrawOpen}
               isDisabled={guardedPosition.symbol == "N/A" ? true : false}
             >
               Withdraw
@@ -288,7 +282,7 @@ const NeuroGuardExistingEntry = React.memo(({
         closeOnOverlayClick={true}
       >
         <ModalOverlay />
-        <NeuroDepositModal isOpen={isDepositOpen} onClose={onDepositClose} asset={asset?.base ?? ""} position_id={guardedPosition.position.position_id} />
+        <NeuroDepositModal isOpen={isDepositOpen} onClose={onDepositClose} asset={asset} position_id={guardedPosition.position.position_id} />
 
       </Modal>
       <Modal
@@ -299,7 +293,7 @@ const NeuroGuardExistingEntry = React.memo(({
         closeOnOverlayClick={true}
       >
         <ModalOverlay />
-        <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={onWithdrawClose} guardedPosition={guardedPosition} prices={prices} />
+        <NeuroWithdrawModal isOpen={isWithdrawOpen} onClose={onWithdrawClose} asset={asset} guardedPosition={guardedPosition} prices={prices} />
 
       </Modal>
 
@@ -383,7 +377,7 @@ const RBLPExistingEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => { onDepositOpen(); setQuickActionState({ rangeBoundLPwithdrawal: 0 }) }}
+              onClick={onDepositOpen}
               //@ts-ignore
               isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
             >
@@ -396,7 +390,7 @@ const RBLPExistingEntry = React.memo(({
               padding="0"
               alignSelf="center"
               margin="0"
-              onClick={() => { onWithdrawOpen(); setQuickActionState({ rangeBoundLPdeposit: 0 }) }}
+              onClick={onWithdrawOpen}
               isDisabled={isDisabled || rblpDeposit === 0}
             >
               Withdraw
@@ -414,7 +408,7 @@ const RBLPExistingEntry = React.memo(({
       >
         <ModalOverlay />
         {/* @ts-ignore */}
-        <RBLPDepositModal isOpen={isDepositOpen} onClose={onWithdrawOpen} cdtAsset={asset} />
+        <RBLPDepositModal isOpen={isDepositOpen} onClose={onDepositClose} cdtAsset={asset} />
 
       </Modal>
       <Modal

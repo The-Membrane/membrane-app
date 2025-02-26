@@ -27,6 +27,7 @@ export const RBLPDepositModal = React.memo(({
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
+    setQuickActionState({ rangeBoundLPwithdrawal: 0 }) //Set withdrawal state to 0
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = quickActionState?.rangeBoundLPdeposit == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
@@ -143,6 +144,7 @@ export const RBLPWithdrawModal = React.memo(({
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
+    setQuickActionState({ rangeBoundLPdeposit: 0 }) //Set deposit state to 0
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = quickActionState?.rangeBoundLPwithdrawal == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
@@ -252,13 +254,14 @@ export const RBLPWithdrawModal = React.memo(({
 
 export const NeuroOpenModal = React.memo(({
     isOpen, onClose, asset, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: string }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined }>) => {
 
 
     const { neuroState, setNeuroState } = useNeuroState()
+    setNeuroState({ openSelectedAsset: asset });
     const { action: rblp } = useNeuroGuard({ onSuccess: onClose, run: isOpen })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
-    const isDisabled = asset !== neuroState?.openSelectedAsset?.base || neuroState?.openSelectedAsset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
+    const isDisabled = neuroState?.openSelectedAsset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
 
     const minValue = ((21 / ((neuroState?.openSelectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
@@ -393,12 +396,13 @@ export const NeuroOpenModal = React.memo(({
 
 export const NeuroDepositModal = React.memo(({
     isOpen, onClose, asset, position_id, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: string, position_id: string }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined, position_id: string }>) => {
 
     const { neuroState, setNeuroState } = useNeuroState()
+    setNeuroState({ depositSelectedAsset: asset });
     const { action: existingNeuro } = useExistingNeuroGuard({ position_id, onSuccess: onClose, run: isOpen })
     const isLoading = existingNeuro?.simulate.isLoading || existingNeuro?.tx.isPending
-    const isDisabled = asset !== neuroState?.depositSelectedAsset?.base || existingNeuro?.simulate.isError || !existingNeuro?.simulate.data
+    const isDisabled = existingNeuro?.simulate.isError || !existingNeuro?.simulate.data
 
 
     // const minValue = ((21 / ((neuroState?.depositSelectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
@@ -519,9 +523,10 @@ export const NeuroDepositModal = React.memo(({
 })
 
 export const NeuroWithdrawModal = React.memo(({
-    isOpen, onClose, guardedPosition, prices, children
+    isOpen, onClose, asset, guardedPosition, prices, children
 }: PropsWithChildren<{
     isOpen: boolean, onClose: () => void,
+    asset: AssetWithBalance | undefined,
     guardedPosition: {
         position: PositionResponse;
         symbol: string;
@@ -533,6 +538,7 @@ export const NeuroWithdrawModal = React.memo(({
     prices: any
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
+    setNeuroState({ withdrawSelectedAsset: asset });
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: false, run: isOpen })
     const { action: ledgerSheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: true, run: isOpen })
     const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data

@@ -34,10 +34,10 @@ type NavItems = {
 const navItems: NavItems[] = [
   { label: 'Upper Management', href: '/management', ItemIcon: DashboardIcon },
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
-  { label: 'Manic', href: '/manic', ItemIcon: EarnIcon },
   { label: 'Borrow', href: '/borrow', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
+  { label: 'Manic', href: '/manic', ItemIcon: EarnIcon },
   // { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
   // { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
 ]
@@ -45,10 +45,10 @@ const navItems: NavItems[] = [
 const mobileNavItems: NavItems[] = [
   { label: 'Upper Management', href: '/management', ItemIcon: DashboardIcon },
   { label: 'Home', href: '/', ItemIcon: HomeIcon },
-  { label: 'Manic', href: '/manic', ItemIcon: EarnIcon },
   { label: 'Borrow', href: '/borrow', ItemIcon: MintIcon },
   { label: 'Bid', href: '/bid', ItemIcon: BidIcon },
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
+  { label: 'Manic', href: '/manic', ItemIcon: EarnIcon },
   // { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
 ]
 

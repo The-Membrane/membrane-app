@@ -27,7 +27,7 @@ export const RBLPDepositModal = React.memo(({
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
-    setQuickActionState({ rangeBoundLPwithdrawal: 0 }) //Set withdrawal state to 0
+    // setQuickActionState({ rangeBoundLPwithdrawal: 0 }) //Set withdrawal state to 0
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = quickActionState?.rangeBoundLPdeposit == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
@@ -144,7 +144,7 @@ export const RBLPWithdrawModal = React.memo(({
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
-    setQuickActionState({ rangeBoundLPdeposit: 0 }) //Set deposit state to 0
+    // setQuickActionState({ rangeBoundLPdeposit: 0 }) //Set deposit state to 0
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = quickActionState?.rangeBoundLPwithdrawal == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 

@@ -642,7 +642,7 @@ const NeuroGuardCard = () => {
   const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()
   const { neuroState, setNeuroState } = useNeuroState()
-  useEstimatedAnnualInterest(false)
+  // useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()

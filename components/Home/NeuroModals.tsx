@@ -27,7 +27,6 @@ export const RBLPDepositModal = React.memo(({
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const { action: rblp } = useBoundedLP({ onSuccess: onClose, run: isOpen })
-    // setQuickActionState({ rangeBoundLPwithdrawal: 0 }) //Set withdrawal state to 0
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = quickActionState?.rangeBoundLPdeposit == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
@@ -39,7 +38,8 @@ export const RBLPDepositModal = React.memo(({
     const onMaxClick = () => {
         setInputValue(maxAmount)
         setQuickActionState({
-            rangeBoundLPdeposit: maxAmount
+            rangeBoundLPdeposit: maxAmount,
+            rangeBoundLPwithdrawal: 0
         })
     }
 
@@ -56,7 +56,8 @@ export const RBLPDepositModal = React.memo(({
 
         updateTimeout.current = setTimeout(() => {
             setQuickActionState({
-                rangeBoundLPdeposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+                rangeBoundLPdeposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value,
+                rangeBoundLPwithdrawal: 0
             });
         }, INPUT_DELAY); // Delay before updating the state
 
@@ -154,7 +155,8 @@ export const RBLPWithdrawModal = React.memo(({
     const onMaxClick = () => {
         setInputValue(maxAmount)
         setQuickActionState({
-            rangeBoundLPwithdrawal: maxAmount
+            rangeBoundLPwithdrawal: maxAmount,
+            rangeBoundLPdeposit: 0
         })
     }
     const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
@@ -172,7 +174,8 @@ export const RBLPWithdrawModal = React.memo(({
 
         updateTimeout.current = setTimeout(() => {
             setQuickActionState({
-                rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+                rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value,
+                rangeBoundLPdeposit: 0
             });
         }, INPUT_DELAY); // Delay before updating the state
     }, [quickActionState?.rangeBoundLPwithdrawal, setQuickActionState, maxAmount]);

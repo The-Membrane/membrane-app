@@ -6,7 +6,7 @@ import { colors, denoms } from "@/config/defaults"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
 import { useBasket, useBasketAssets, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
-import { simpleBoundedAPRCalc, useBoundedCDTVaultTokenUnderlying, useBoundedTVL, useUserBoundedIntents, useVaultInfo } from "../Earn/hooks/useEarnQueries"
+import { simpleBoundedAPRCalc, useBoundedCDTVaultTokenUnderlying, useBoundedTVL, useEstimatedAnnualInterest, useUserBoundedIntents, useVaultInfo } from "../Earn/hooks/useEarnQueries"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useCollateralAssets from "../Bid/hooks/useCollateralAssets"
 import useNeuroState from "./hooks/useNeuroState"
@@ -642,7 +642,7 @@ const NeuroGuardCard = () => {
   const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()
   const { neuroState, setNeuroState } = useNeuroState()
-  // useEstimatedAnnualInterest(false)
+  useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
   const { data: prices } = useOraclePrice()

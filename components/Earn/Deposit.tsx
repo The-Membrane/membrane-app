@@ -26,6 +26,7 @@ import ConfirmModal from '../ConfirmModal'
 import { QASummary } from '../Home/QASummary'
 import { colors } from '@/config/defaults'
 import { RedeemButton } from './RedeemButton'
+import RangeBoundLPCard from '../Home/RangeBoundLPCard'
 
 // const ENTRY_FEE = 0.005
 
@@ -382,6 +383,7 @@ const Deposit = () => {
               </TxButton>
             </Stack>
           </Card>
+          <RangeBoundLPCard />
         </Stack>
       </HStack>
     </Stack>

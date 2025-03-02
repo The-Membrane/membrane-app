@@ -6,6 +6,7 @@ import useCombinBalance, { AssetWithBalance } from './hooks/useCombinBalance'
 import { useEffect, useState } from 'react'
 import { colors } from '@/config/defaults'
 import { InitialCDPDeposit } from './InitialCDPDeposit'
+import { useUserPositions } from '@/hooks/useCDP'
 
 export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
   return combinBalance
@@ -24,6 +25,7 @@ export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => 
 const CollateralAssets = () => {
   const [toggle, setToggle] = useState<boolean>(false)
   const { mintState, setMintState } = useMintState()
+  const { data: basketPositions } = useUserPositions()
   const combinBalance = useCombinBalance(mintState.positionNumber - 1)
   const { assets } = mintState
 
@@ -72,10 +74,16 @@ const CollateralAssets = () => {
       //   },
       // }}
       >
-        <InitialCDPDeposit />
-        {/* {assets?.map((asset) => {
-          return <AssetWithInput key={asset?.base} asset={asset} label={asset?.symbol} />
-        })} */}
+        {basketPositions !== undefined && mintState.positionNumber <= basketPositions[0].positions.length
+          ?
+          <>
+            {assets?.map((asset) => {
+              return <AssetWithInput key={asset?.base} asset={asset} label={asset?.symbol} />
+            })}
+          </>
+          :
+          <InitialCDPDeposit />
+        }
       </Stack>
     </Stack>
 

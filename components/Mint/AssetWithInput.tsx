@@ -17,7 +17,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   // const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure();
   // const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure();
   const [transactionValue, setTransactionValue] = useState('');
-  // const [transactionType, setTransactionType] = useState<string | null>(null);
+  const [transactionType, setTransactionType] = useState<string>("deposit");
 
   const [changeValue, setChangeValue] = useState(0);
 
@@ -54,7 +54,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
   const isAdditionDisabled = asset.walletsdValue === 0 || transactionValue === '';
   const isSubtractionDisabled = asset.depositUsdValue === 0 || transactionValue === '';
-  // console.log("asset", asset);
+  console.log("asset in withInput", asset);
 
   return (
 
@@ -66,26 +66,43 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
           <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text>
         </HStack>
         <HStack width={"66%"}>
-          <Input
-            type="number"
-            placeholder="Enter amount"
-            min={0}
-            step="0.01"
-            value={transactionValue}
-            onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
-          />
+          <Stack>
+            <Input
+              type="number"
+              placeholder="Enter amount"
+              min={0}
+              step="0.01"
+              value={transactionValue}
+              onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
+            />
+            <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+              <Button
+                onClick={() => { setTransactionValue(transactionType === "deposit" ? String(asset.walletsdValue) : String(asset.depositUsdValue)); handleTransaction(transactionType) }}
+                width="10%" variant="unstyled" fontWeight="normal"
+              >
+                <Text
+                  variant="body"
+                  justifySelf={"center"}
+                  textTransform="none"
+                  fontSize="sm"
+                  letterSpacing="1px"
+                  display="flex">
+                  max
+                </Text>
+              </Button>
+            </HStack>
+          </Stack>
           <HStack width={"33%"}>
             <Stack gap="0">
               <Button isDisabled={isAdditionDisabled} alignSelf={"center"} variant={"ghost"} width={"50%"} size="md" onClick={() => { handleTransaction('deposit'); }}>
-                +
+                Deposit
               </Button>
-              <Text alignSelf="center" fontSize="8px" cursor="pointer" onClick={() => setTransactionValue(asset.walletsdValue.toString())}>max</Text>
             </Stack>
+            <Text alignSelf="center" fontSize="8px">/</Text>
             <Stack gap="0">
               <Button isDisabled={isSubtractionDisabled} alignSelf={"center"} variant={"ghost"} width={"50%"} size="md" onClick={() => { handleTransaction('withdraw'); }}>
-                -
+                Withdraw
               </Button>
-              <Text alignSelf="center" fontSize="8px" height="1.5vh">{ }</Text>
             </Stack>
           </HStack>
         </HStack>

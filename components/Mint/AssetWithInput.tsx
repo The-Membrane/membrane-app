@@ -22,7 +22,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   const [changeValue, setChangeValue] = useState(0);
 
   const handleTransaction = (transactionType: string, transactionValue: number) => {
-    if (!transactionType || transactionValue <= 0) return;
+    if (!transactionType) return;
 
     let updatedAssets = mintState.assets.map((a) => {
       if (a.symbol !== label) return a;
@@ -48,8 +48,6 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
     const { summary, totalUsdValue } = getSummary(updatedAssets);
     setMintState({ assets: updatedAssets, summary, totalUsdValue });
-
-    setTransactionValue('');
   };
 
   // const isAdditionDisabled = asset.walletsdValue === 0 || transactionValue === '';
@@ -59,8 +57,8 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   return (
 
     <Stack gap="0">
-      <HStack justifyContent="space-between" alignItems={"baseline"}>
-        <HStack>
+      <HStack justifyContent="space-between">
+        <HStack alignItems={"baseline"}>
           <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text >{label}</Text>
           {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text> */}
@@ -79,7 +77,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
                 handleTransaction(transactionType, Math.min(Number(e.target.value), (asset?.walletsdValue ?? 0)));
               }}
             />
-            <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+            <HStack alignContent={"right"} width={"100%"} justifyContent={"right"} height={"3vh"}>
               <Button
                 onClick={() => { setTransactionValue(transactionType === "deposit" ? String(asset.walletsdValue) : String(asset.depositUsdValue)); handleTransaction(transactionType, transactionType === "deposit" ? (asset.walletsdValue) : (asset.depositUsdValue)) }}
                 width="10%" variant="unstyled" fontWeight="normal"
@@ -91,14 +89,13 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
                   fontSize="sm"
                   letterSpacing="1px"
                   display="flex"
-                  height={"3vh"}
                 >
                   max
                 </Text>
               </Button>
             </HStack>
           </Stack>
-          <HStack width={"33%"}>
+          <HStack width={"33%"} alignItems="undefined">
             <Stack gap="0">
               <Button
                 // isDisabled={isAdditionDisabled}

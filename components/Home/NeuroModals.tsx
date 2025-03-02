@@ -1,4 +1,4 @@
-import React, { ChangeEvent, PropsWithChildren, useCallback, useRef, useState } from "react"
+import React, { ChangeEvent, PropsWithChildren, useCallback, useMemo, useRef, useState } from "react"
 import useNeuroState from "./hooks/useNeuroState"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import { num } from "@/helpers/num"
@@ -261,7 +261,7 @@ export const NeuroOpenModal = React.memo(({
 
 
     const { neuroState, setNeuroState } = useNeuroState()
-    setNeuroState({ openSelectedAsset: asset });
+    useMemo(() => setNeuroState({ openSelectedAsset: asset }), [])
     const { action: rblp } = useNeuroGuard({ onSuccess: onClose, run: isOpen })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = neuroState?.openSelectedAsset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
@@ -402,7 +402,7 @@ export const NeuroDepositModal = React.memo(({
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined, position_id: string }>) => {
 
     const { neuroState, setNeuroState } = useNeuroState()
-    setNeuroState({ depositSelectedAsset: asset });
+    useMemo(() => setNeuroState({ depositSelectedAsset: asset }), [])
     const { action: existingNeuro } = useExistingNeuroGuard({ position_id, onSuccess: onClose, run: isOpen })
     const isLoading = existingNeuro?.simulate.isLoading || existingNeuro?.tx.isPending
     const isDisabled = existingNeuro?.simulate.isError || !existingNeuro?.simulate.data
@@ -541,7 +541,7 @@ export const NeuroWithdrawModal = React.memo(({
     prices: any
 }>) => {
     const { neuroState, setNeuroState } = useNeuroState()
-    setNeuroState({ withdrawSelectedAsset: asset });
+    useMemo(() => setNeuroState({ withdrawSelectedAsset: asset }), [])
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: false, run: isOpen })
     const { action: ledgerSheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: true, run: isOpen })
     const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data

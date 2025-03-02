@@ -36,13 +36,13 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         : -diffInUsd
       const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
       //
-      setChangeValue(amountValue);
+      // setChangeValue(amountValue);
       //
       return {
         ...asset,
         amount,
         amountValue,
-        sliderValue,
+        sliderValue: sliderValue + asset.depositUsdValue,
       }
     });
 
@@ -54,11 +54,17 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   // const isSubtractionDisabled = asset.depositUsdValue === 0 || transactionValue === '';
   console.log("asset in withInput", asset);
 
+
+  //Handle Reset Button
+  useEffect(() => {
+    setTransactionValue("");
+  }, [mintState.reset]);
+
   return (
 
     <Stack gap="0">
-      <HStack justifyContent="space-between">
-        <HStack alignItems={"baseline"}>
+      <HStack justifyContent="space-between" alignItems={"baseline"}>
+        <HStack>
           <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text >{label}</Text>
           {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text> */}

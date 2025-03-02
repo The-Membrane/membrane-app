@@ -21,8 +21,8 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
   const [changeValue, setChangeValue] = useState(0);
 
-  const handleTransaction = (transactionType: string) => {
-    if (!transactionType || parseFloat(transactionValue) <= 0) return;
+  const handleTransaction = (transactionType: string, transactionValue: number) => {
+    if (!transactionType || transactionValue <= 0) return;
 
     let updatedAssets = mintState.assets.map((a) => {
       if (a.symbol !== label) return a;
@@ -52,32 +52,36 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     setTransactionValue('');
   };
 
-  const isAdditionDisabled = asset.walletsdValue === 0 || transactionValue === '';
-  const isSubtractionDisabled = asset.depositUsdValue === 0 || transactionValue === '';
+  // const isAdditionDisabled = asset.walletsdValue === 0 || transactionValue === '';
+  // const isSubtractionDisabled = asset.depositUsdValue === 0 || transactionValue === '';
   console.log("asset in withInput", asset);
 
   return (
 
     <Stack gap="0">
-      <HStack justifyContent="space-between">
+      <HStack justifyContent="space-between" alignItems={"baseline"}>
         <HStack>
           <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text >{label}</Text>
-          <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text>
+          {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text> */}
         </HStack>
-        <HStack width={"66%"}>
-          <Stack>
+        <HStack width={"66%"} alignItems="undefined">
+          <Stack gap="0">
             <Input
               type="number"
               placeholder="Enter amount"
               min={0}
               step="0.01"
               value={transactionValue}
-              onChange={(e) => { e.preventDefault(); setTransactionValue(e.target.value) }}
+              onChange={(e) => {
+                e.preventDefault();
+                setTransactionValue(String(Math.min(Number(e.target.value), (asset?.walletsdValue ?? 0))));
+                handleTransaction(transactionType, Math.min(Number(e.target.value), (asset?.walletsdValue ?? 0)));
+              }}
             />
             <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
               <Button
-                onClick={() => { setTransactionValue(transactionType === "deposit" ? String(asset.walletsdValue) : String(asset.depositUsdValue)); handleTransaction(transactionType) }}
+                onClick={() => { setTransactionValue(transactionType === "deposit" ? String(asset.walletsdValue) : String(asset.depositUsdValue)); handleTransaction(transactionType, transactionType === "deposit" ? (asset.walletsdValue) : (asset.depositUsdValue)) }}
                 width="10%" variant="unstyled" fontWeight="normal"
               >
                 <Text
@@ -86,7 +90,9 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
                   textTransform="none"
                   fontSize="sm"
                   letterSpacing="1px"
-                  display="flex">
+                  display="flex"
+                  height={"3vh"}
+                >
                   max
                 </Text>
               </Button>
@@ -94,13 +100,29 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
           </Stack>
           <HStack width={"33%"}>
             <Stack gap="0">
-              <Button isDisabled={isAdditionDisabled} alignSelf={"center"} variant={"ghost"} width={"50%"} size="md" onClick={() => { handleTransaction('deposit'); }}>
+              <Button
+                isDisabled={isAdditionDisabled}
+                alignSelf={"center"}
+                variant={"ghost"}
+                width={"100%"}
+                size="md"
+                onClick={() => { setTransactionType('deposit'); }}
+                opacity={transactionType === "deposit" ? 1 : 0.33}
+              >
                 Deposit
               </Button>
             </Stack>
-            <Text alignSelf="center" fontSize="8px">/</Text>
+            <Text alignSelf="undefined" fontSize="3.7vh">/</Text>
             <Stack gap="0">
-              <Button isDisabled={isSubtractionDisabled} alignSelf={"center"} variant={"ghost"} width={"50%"} size="md" onClick={() => { handleTransaction('withdraw'); }}>
+              <Button
+                isDisabled={isSubtractionDisabled}
+                alignSelf={"center"}
+                variant={"ghost"}
+                width={"100"}
+                size="md"
+                onClick={() => { setTransactionType('withdraw'); }}
+                opacity={transactionType === "withdraw" ? 1 : 0.33}
+              >
                 Withdraw
               </Button>
             </Stack>

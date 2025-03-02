@@ -101,7 +101,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
           <HStack width={"33%"}>
             <Stack gap="0">
               <Button
-                isDisabled={isAdditionDisabled}
+                // isDisabled={isAdditionDisabled}
                 alignSelf={"center"}
                 variant={"ghost"}
                 width={"100%"}
@@ -115,7 +115,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
             <Text alignSelf="undefined" fontSize="3.7vh">/</Text>
             <Stack gap="0">
               <Button
-                isDisabled={isSubtractionDisabled}
+                // isDisabled={isSubtractionDisabled}
                 alignSelf={"center"}
                 variant={"ghost"}
                 width={"100"}

@@ -232,6 +232,7 @@ export const InitialCDPDeposit = () => {
                     isDisabled={Number(transactionValue) === 0}
                     fontFamily="Inter"
                     fontWeight={"500"}
+                    background={"transparent"}
                 >
                     Add Another Asset
                 </Button>}

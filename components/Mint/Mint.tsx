@@ -60,7 +60,7 @@ const previousPage = (setMintState: any, currentPage: number) => {
 const PaginationBar = ({ pagination }: PaginationProps) => {
   if (pagination.totalPages <= 1) return null
   return (
-    <HStack w="100%" justifyContent="flex-end">
+    <HStack w="100%" justifyContent="flex-end" mb="2%">
       <Pagination {...pagination} />
     </HStack>
   )

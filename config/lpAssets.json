@@ -48,5 +48,13 @@
     "symbol": "range-bound-CDT",
     "decimal": 6,
     "isLP": false
+  },
+  {
+    "description": "RWA-focused L1",
+    "base": "ibc/164807F6226F91990F358C6467EEE8B162E437BDCD3DADEC3F0CE20693720795",
+    "symbol": "OM",
+    "decimal": 6,
+    "isLP": false,
+    "logo": "/images/om.svg"
   }
 ]

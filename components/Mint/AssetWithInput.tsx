@@ -1,4 +1,4 @@
-import { HStack, useDisclosure, Text, Stack, Button, ModalOverlay, Modal, ModalContent, ModalFooter, ModalHeader, ModalCloseButton, ModalBody, Input } from "@chakra-ui/react";
+import { HStack, useDisclosure, Text, Stack, Button, ModalOverlay, Modal, ModalContent, ModalFooter, ModalHeader, ModalCloseButton, ModalBody, Input, Tabs, TabList, Tab, TabIndicator, TabPanels } from "@chakra-ui/react";
 import { AssetWithBalance } from "./hooks/useCombinBalance";
 import useMintState from "./hooks/useMintState";
 import { useEffect, useState } from "react";
@@ -11,6 +11,17 @@ export type AssetWithInputProps = {
   label: string;
   asset: AssetWithBalance;
 };
+
+type TabProps = {
+  onClick: any
+  label: string
+}
+
+const CustomTab = ({ onClick, label }: TabProps) => (
+  <Tab zIndex={1} onClick={onClick} _selected={{ color: 'white' }}>
+    {label}
+  </Tab>
+)
 
 export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   const { mintState, setMintState } = useMintState();
@@ -60,6 +71,15 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     setTransactionValue("");
   }, [mintState.reset]);
 
+  // const onTabChange = (index: number) => {
+  //   setMintState({ isTakeAction: index === 1 })
+  // }
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const handleTabClick = (index: string) => {
+    setActiveTabIndex(index === "deposit" ? 0 : 1);
+    setTransactionType(index);
+  };
+
   return (
 
     <Stack gap="0">
@@ -103,7 +123,25 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
           </Stack>
           <HStack width={"33%"} alignItems="undefined">
             <Stack gap="0">
-              <Button
+              <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
+                <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
+                  <CustomTab onClick={() => handleTabClick("deposit")} label="Deposit" />
+                  <CustomTab onClick={() => handleTabClick("withdraw")} label="Withdraw" />
+                </TabList>
+
+                <TabIndicator
+                  top="0"
+                  position="absolute"
+                  height="40px"
+                  bg={colors.walletIcon}
+                  borderRadius="28px"
+                />
+                {/* <TabPanels paddingBottom={activeTabIndex === 1 ? 0 : 4}>
+                <TakeAction />
+                <LPTab />
+              </TabPanels> */}
+              </Tabs>
+              {/* <Button
                 // isDisabled={isAdditionDisabled}
                 alignSelf={"center"}
                 variant={"ghost"}
@@ -127,7 +165,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
                 opacity={transactionType === "withdraw" ? 1 : 0.33}
               >
                 Withdraw
-              </Button>
+              </Button> */}
             </Stack>
           </HStack>
         </HStack>

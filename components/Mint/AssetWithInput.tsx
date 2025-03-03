@@ -85,8 +85,8 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     <Stack gap="0">
       <HStack justifyContent="space-between" alignItems={"baseline"}>
         <HStack>
-          <Text >${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
-          <Text >{label}</Text>
+          <Text fontSize={"lg"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
+          <Text fontSize={"lg"}>{label}</Text>
           {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text> */}
         </HStack>
         <HStack width={"66%"} alignItems="undefined">

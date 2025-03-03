@@ -42,7 +42,7 @@ const CollateralAssets = () => {
       const combinedAssets = combinBalance.map((asset) => {
         const assetWithValuesGreaterThanZero = assetsWithValuesGreaterThanZero.find((a) => a.base === asset.base)
         return assetWithValuesGreaterThanZero || asset
-      })
+      }).filter((asset) => { asset.symbol !== "OSMO/USDC.axl LP" && asset.symbol !== "ATOM/USDC LP" && asset.symbol !== "marsUSDC" })
       setMintState({ assets: combinedAssets })
     } else {
       setMintState({ assets: assetsWithValuesGreaterThanZero })

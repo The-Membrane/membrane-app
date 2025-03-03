@@ -30,7 +30,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   const [transactionValue, setTransactionValue] = useState('');
   const [transactionType, setTransactionType] = useState<string>("deposit");
 
-  const [changeValue, setChangeValue] = useState(0);
+  // const [changeValue, setChangeValue] = useState(0);
 
   const handleTransaction = (transactionType: string, transactionValue: number) => {
     if (!transactionType) return;
@@ -84,9 +84,9 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
     <Stack gap="0">
       <HStack justifyContent="start" alignItems={"baseline"} gap="3.5rem">
-        <HStack>
-          <Text fontSize={"24px"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
-          <Text fontSize={"24px"}>{label}</Text>
+        <HStack width="188px">
+          <Text fontSize={"22px"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
+          <Text fontSize={"22px"}>{label}</Text>
           {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text> */}
         </HStack>
         <HStack width={"66%"} alignItems="undefined" gap="2.5rem">
@@ -136,36 +136,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
                   bg={colors.walletIcon}
                   borderRadius="28px"
                 />
-                {/* <TabPanels paddingBottom={activeTabIndex === 1 ? 0 : 4}>
-                <TakeAction />
-                <LPTab />
-              </TabPanels> */}
               </Tabs>
-              {/* <Button
-                // isDisabled={isAdditionDisabled}
-                alignSelf={"center"}
-                variant={"ghost"}
-                width={"100%"}
-                size="md"
-                onClick={() => { setTransactionType('deposit'); }}
-                opacity={transactionType === "deposit" ? 1 : 0.33}
-              >
-                Deposit
-              </Button>
-            </Stack>
-            <Text alignSelf="undefined" fontSize="3.7vh">/</Text>
-            <Stack gap="0">
-              <Button
-                // isDisabled={isSubtractionDisabled}
-                alignSelf={"center"}
-                variant={"ghost"}
-                width={"100"}
-                size="md"
-                onClick={() => { setTransactionType('withdraw'); }}
-                opacity={transactionType === "withdraw" ? 1 : 0.33}
-              >
-                Withdraw
-              </Button> */}
             </Stack>
           </HStack>
         </HStack>

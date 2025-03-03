@@ -83,13 +83,13 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   return (
 
     <Stack gap="0">
-      <HStack justifyContent="space-between" alignItems={"baseline"}>
+      <HStack justifyContent="start" alignItems={"baseline"} gap="3.5rem">
         <HStack>
-          <Text fontSize={"lg"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
-          <Text fontSize={"lg"}>{label}</Text>
+          <Text fontSize={"24px"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
+          <Text fontSize={"24px"}>{label}</Text>
           {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text> */}
         </HStack>
-        <HStack width={"66%"} alignItems="undefined">
+        <HStack width={"66%"} alignItems="undefined" gap="2.5rem">
           <Stack gap="0">
             <Input
               type="number"

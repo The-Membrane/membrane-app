@@ -52,7 +52,7 @@ const CollateralAssets = () => {
   const showInitialCDPDeposit = basketPositions !== undefined && mintState.positionNumber <= basketPositions[0].positions.length
 
   return (
-    <Stack gap={!showInitialCDPDeposit ? "1.5rem" : "0.5rem"}>
+    <Stack gap={showInitialCDPDeposit ? "1.5rem" : "0.5rem"}>
       <Checkbox alignSelf="center" onChange={() => setToggle(!toggle)}>
         Browse All Assets
       </Checkbox>

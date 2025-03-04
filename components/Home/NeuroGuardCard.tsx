@@ -885,7 +885,7 @@ const NeuroGuardCard = () => {
 
   // Separate complex sections into components
   const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets, CDTBalance, USDCBalance, usdcPrice }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[], CDTBalance: number, USDCBalance: number, usdcPrice: string }) => {
-
+    console.log("full wallet rerender")
     const [showAllYields, setShowAllYields] = useState(false);
 
     return (

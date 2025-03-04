@@ -166,6 +166,7 @@ const NeuroGuardOpenEntry = React.memo(({
       >
         <ModalOverlay />
         <NeuroOpenModal
+          key={asset?.symbol}
           isOpen={isOpen}
           onClose={onClose}
           asset={asset}

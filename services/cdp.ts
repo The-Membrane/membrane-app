@@ -594,6 +594,6 @@ export const getRiskyPositions = (
   });
 
   console.log("totalDebt", totalDebt);
-
+  console.log("totalPositions", totalPositions);
   return { liquidatibleCDPs };
 };

@@ -261,13 +261,7 @@ export const NeuroOpenModal = React.memo(({
 
 
     const { setNeuroState } = useNeuroState()
-    const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
-    const { action: rblp } = useNeuroGuard({
-        onSuccess: onClose, run: isOpen, asset: {
-            ...asset,
-            sliderValue: inputValue
-        }
-    })
+    const { action: rblp } = useNeuroGuard({ onSuccess: onClose, run: isOpen })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = asset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
@@ -276,6 +270,7 @@ export const NeuroOpenModal = React.memo(({
     const minAmount = num(minValue).dividedBy(asset?.price ?? 0).toNumber()
     //@ts-ignore
     const maxAmount = num(asset?.balance).toNumber()
+    const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
     const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const onMaxClick = () => {

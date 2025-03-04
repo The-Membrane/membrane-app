@@ -707,6 +707,8 @@ const NeuroGuardCard = () => {
   const { globalState } = useGlobalState()
 
   const calculatedRBYield = useMemo(() => {
+
+    console.log(" calculatedRBYield")
     if (!globalState || !interest || !TVL) return "0";
     return simpleBoundedAPRCalc(globalState.totalDebt, interest, TVL, shiftDigits(vaultInfo?.debtAmount, 6).toNumber() ?? 0);
   }, [globalState, interest, TVL, vaultInfo?.debtAmount]);
@@ -725,7 +727,10 @@ const NeuroGuardCard = () => {
 
 
   const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price.price || "1"
-  const usdcPrice = prices?.find((price) => price.denom === denoms.USDC[0])?.price ?? "1"
+  const usdcPrice = useMemo(() => {
+    console.log(" usdcPrice")
+    return prices?.find((price) => price.denom === denoms.USDC[0])?.price ?? "1"
+  }, [prices])
 
   // Define priority order for specific symbols
   const prioritySymbols = ['WBTC.ETH.AXL', 'stATOM', 'stOSMO', 'stTIA']
@@ -788,10 +793,12 @@ const NeuroGuardCard = () => {
 
   // Update state in a separate effect
   useMemo(() => {
+
+    console.log(" sortedASsets")
     if (sortedAssets && sortedAssets.length > 0) {
       setNeuroState({
         //@ts-ignore
-        assets: sortedAssets ?? [],
+        assets: sortedAssets ?? []
         // openSelectedAsset: sortedAssets[0] ?? {}
       });
     }
@@ -806,7 +813,7 @@ const NeuroGuardCard = () => {
 
   // Memoize existing guards calculation
   const existingGuards = useMemo(() => {
-    // console.log(" top  guards")
+    console.log(" existingGuards")
     // console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
     if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents && basket && prices && basketPositions && assets && basketAssets) {
       // console.log(" in guards")

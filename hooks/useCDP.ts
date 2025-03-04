@@ -48,7 +48,7 @@ export const useBasketAssets = () => {
     queryFn: async () => {
       if (!basket || !interest || !assets) return []
 
-      // console.log("is this running at all?")
+      console.log(" basketAssets")
       return getBasketAssets(basket, interest, assets)
     },
     staleTime: 1000 * 60 * 5,

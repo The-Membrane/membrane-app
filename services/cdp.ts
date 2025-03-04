@@ -5,7 +5,6 @@ import {
   Basket,
   BasketPositionsResponse,
   CollateralInterestResponse,
-  PositionResponse,
   RedeemabilityResponse,
 } from '@/contracts/codegen/positions/Positions.types'
 import { Asset, getAssetByDenom } from '@/helpers/chain'
@@ -130,9 +129,9 @@ export const getBasketPositions = async () => {
   })
 }
 
-export const getDebt = (basketPositions: BasketPositionsResponse[] | undefined, positionIndex: number = 0, position?: PositionResponse) => {
-  if (!basketPositions && !position) return 0
-  const debt = basketPositions?.[0]?.positions?.[positionIndex]?.credit_amount ?? position?.credit_amount
+export const getDebt = (basketPositions: BasketPositionsResponse[] | undefined, positionIndex: number = 0) => {
+  if (!basketPositions) return 0
+  const debt = basketPositions?.[0]?.positions?.[positionIndex]?.credit_amount
   return shiftDigits(debt, -6).toNumber()
 }
 
@@ -154,11 +153,11 @@ export interface Prices {
   [key: string]: number
 }
 
-export const getPositions = (basketPositions?: BasketPositionsResponse[], position?: PositionResponse, prices?: Price[], positionIndex: number = 0) => {
+export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], positionIndex: number = 0) => {
   //This allows us to create a new position for users even if they have open positions
   if (basketPositions && positionIndex === basketPositions[0].positions.length) return []
-  if (!basketPositions && !position) return []
-  const positions = basketPositions?.[0]?.positions?.[positionIndex] ?? position
+  if (!basketPositions) return []
+  const positions = basketPositions?.[0]?.positions?.[positionIndex]
 
   return positions?.collateral_assets.map((asset) => {
     //@ts-ignore
@@ -506,99 +505,92 @@ export const getRiskyPositions = (
   let totalDebt = 0;
   let totalPositions = 0;
 
-  //Break the list of positions into individual positions
-  const individualPositions = basketPositions?.map((basketPosition) => {
-    return basketPosition.positions.map((position) => {
-      return { position, user: basketPosition.user }
-    })
-  })
-  const individualPositionsFlat = individualPositions.flat()
+  basketPositions?.forEach((basketPosition) => {
+    if (!basketPosition || basketPosition.positions.length === 0) return;
 
-  // individualPositionsFlat?.forEach((basketPosition) => {
-  //   if (!basketPosition || basketPosition.positions.length === 0) return;
-
-  individualPositionsFlat.forEach((position, posIndex) => {
-    totalPositions++;
-    console.log("position", position.position.position_id);
-    const positions = getPositions(undefined, position.position, prices);
+    basketPosition.positions.forEach((position, posIndex) => {
+      totalPositions++;
+      console.log("position", position.position_id);
+      const positions = getPositions([basketPosition], prices, posIndex);
 
 
-    // Create a list of the position's assets and sort alphabetically
-    // const assetList = positions.map((position) => position.symbol).sort()
-    // // If the asset list is already in the bundles, increment the tally array of the same index & add the total value of the position to the totalValue array
-    // // Otherwise, add the asset list to the bundles, add 1 to the tally & add the total value of the position to the totalValue array
-    // const index = bundles.findIndex((bundle) => bundle.join('') === assetList.join(''))
-    // if (index !== -1) {
-    //   tally[index] += 1
-    //   totalValue[index] += positions.reduce((acc, position) => { 
-    //     if (!position) return acc
-    //     return acc + position.usdValue
-    //   }, 0)
-    // } else {
-    //   bundles.push(assetList)
-    //   tally.push(1)
-    //   totalValue.push(positions.reduce((acc, position) => { 
-    //     if (!position) return acc
-    //     return acc + position.usdValue
-    //   }, 0))
-    // }
+      // Create a list of the position's assets and sort alphabetically
+      // const assetList = positions.map((position) => position.symbol).sort()
+      // // If the asset list is already in the bundles, increment the tally array of the same index & add the total value of the position to the totalValue array
+      // // Otherwise, add the asset list to the bundles, add 1 to the tally & add the total value of the position to the totalValue array
+      // const index = bundles.findIndex((bundle) => bundle.join('') === assetList.join(''))
+      // if (index !== -1) {
+      //   tally[index] += 1
+      //   totalValue[index] += positions.reduce((acc, position) => { 
+      //     if (!position) return acc
+      //     return acc + position.usdValue
+      //   }, 0)
+      // } else {
+      //   bundles.push(assetList)
+      //   tally.push(1)
+      //   totalValue.push(positions.reduce((acc, position) => { 
+      //     if (!position) return acc
+      //     return acc + position.usdValue
+      //   }, 0))
+      // }
 
-    // //Log the top 5 most common asset bundles
-    // const topBundles = tally.map((count, i) => {
-    //   return { bundle: bundles[i], count }
-    // }).sort((a, b) => b.count - a.count)//.slice(0, 5)
-    // console.log(topBundles)
-    // //Log the highest value bundles
-    // const topValue = totalValue.map((value, i) => {
-    //   return { bundle: bundles[i], value }
-    // }).sort((a, b) => b.value - a.value)//.slice(0, 5)
-    // console.log(topValue)
+      // //Log the top 5 most common asset bundles
+      // const topBundles = tally.map((count, i) => {
+      //   return { bundle: bundles[i], count }
+      // }).sort((a, b) => b.count - a.count)//.slice(0, 5)
+      // console.log(topBundles)
+      // //Log the highest value bundles
+      // const topValue = totalValue.map((value, i) => {
+      //   return { bundle: bundles[i], value }
+      // }).sort((a, b) => b.value - a.value)//.slice(0, 5)
+      // console.log(topValue)
 
-    const tvl = getTVL(positions);
-    const debt = getDebt(undefined, posIndex, position.position);
+      const tvl = getTVL(positions);
+      const debt = getDebt([basketPosition], posIndex);
 
-    if (debt === 0) {
-      console.log("no debt for position", posIndex);
-      return; // Prevent skipping other positions
-    }
+      if (debt === 0) {
+        console.log("no debt for position", posIndex);
+        return; // Prevent skipping other positions
+      }
 
-    const debtValue = num(debt).times(basket.credit_price.price).toNumber();
-    if (debtValue === 0) {
-      console.log("no debt value for position", posIndex);
-      return;
-    }
+      const debtValue = num(debt).times(basket.credit_price.price).toNumber();
+      if (debtValue === 0) {
+        console.log("no debt value for position", posIndex);
+        return;
+      }
 
-    totalDebt += debt;
+      totalDebt += debt;
 
-    const ltv = getLTV(tvl, debtValue);
-    const positionsWithRatio = getAssetRatio(false, tvl, positions);
-    const liquidationLTV = getLiqudationLTV(tvl, positions, basketAssets, positionsWithRatio);
+      const ltv = getLTV(tvl, debtValue);
+      const positionsWithRatio = getAssetRatio(false, tvl, positions);
+      const liquidationLTV = getLiqudationLTV(tvl, positions, basketAssets, positionsWithRatio);
 
 
-    // const discountRatio = userDiscountQueries[index].data ? userDiscountQueries[index].data.discount : "0"
-    // if (getRevenue){
-    //   console.log("discount", discountRatio)
-    //   const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
-    //   const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
-    //   const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
-    //   const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
-    //   console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
-    //   totalExpectedRevenue += discountedAnnualInterest
-    //   undiscountedTER += annualInterest
-    // }
+      // const discountRatio = userDiscountQueries[index].data ? userDiscountQueries[index].data.discount : "0"
+      // if (getRevenue){
+      //   console.log("discount", discountRatio)
+      //   const cost = getRateCost(positions, tvl, basketAssets, positionsWithRatio).cost
+      //   const discountedCost = cost * (num(1).minus(discountRatio)).toNumber()
+      //   const annualInterest = !Number.isNaN(cost) ? cost * shiftDigits(debt, 6).toNumber() : 0
+      //   const discountedAnnualInterest = !Number.isNaN(discountedCost) ? discountedCost * shiftDigits(debt, 6).toNumber() : 0
+      //   console.log("annualInterest", annualInterest, "discountedAnnualInterest", discountedAnnualInterest)
+      //   totalExpectedRevenue += discountedAnnualInterest
+      //   undiscountedTER += annualInterest
+      // }
 
-    console.log(ltv, "<", liquidationLTV);
-    if (ltv > liquidationLTV) {
-      console.log("liquidatible position assets", positions);
-      let ltv_diff = num(ltv).minus(liquidationLTV);
-      let liq_ratio = ltv_diff.div(ltv);
-      let liq_debt = liq_ratio.times(debtValue);
-      liquidatibleCDPs.push({
-        address: position.user,
-        id: position.position.position_id, // Use position instead of indexed lookup
-        fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
-      });
-    }
+      console.log(ltv, "<", liquidationLTV);
+      if (ltv > liquidationLTV) {
+        console.log("liquidatible position assets", positions);
+        let ltv_diff = num(ltv).minus(liquidationLTV);
+        let liq_ratio = ltv_diff.div(ltv);
+        let liq_debt = liq_ratio.times(debtValue);
+        liquidatibleCDPs.push({
+          address: basketPosition.user,
+          id: position.position_id, // Use position instead of indexed lookup
+          fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
+        });
+      }
+    });
   });
 
   console.log("totalDebt", totalDebt);

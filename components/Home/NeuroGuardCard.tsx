@@ -28,6 +28,7 @@ import useToaster from "@/hooks/useToaster"
 import RangeBoundVisual from "./RangeBoundVisual"
 import RangeBoundInfoCard from "./RangeBoundInfoCard"
 import { ManicRedemptionCard } from "./ManicRedemptionCard"
+import useGlobalState from "../Nav/hooks/useGlobalState"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -701,11 +702,12 @@ const NeuroGuardCard = () => {
   }, [isDisabled, isLoading]);
 
   const { data: vaultInfo } = useVaultInfo()
+  const { globalState } = useGlobalState()
 
   const calculatedRBYield = useMemo(() => {
-    if (!basket || !interest || !TVL) return "0";
-    return simpleBoundedAPRCalc(basket, interest, TVL, shiftDigits(vaultInfo?.debtAmount, 6).toNumber() ?? 0);
-  }, [basket, interest, TVL, vaultInfo?.debtAmount]);
+    if (!globalState || !interest || !TVL) return "0";
+    return simpleBoundedAPRCalc(globalState.totalDebt, interest, TVL, shiftDigits(vaultInfo?.debtAmount, 6).toNumber() ?? 0);
+  }, [globalState, interest, TVL, vaultInfo?.debtAmount]);
   // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////

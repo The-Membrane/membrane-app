@@ -1,13 +1,14 @@
 
 import { useOraclePrice } from '@/hooks/useOracle'
-import { getProjectTVL } from '@/services/cdp'
+import { getDebt, getProjectTVL } from '@/services/cdp'
 import React, { useMemo } from 'react'
 import { HStack, Stack, Text } from '@chakra-ui/react'
 import { useCDTDailyVolume } from '@/hooks/useNumia'
 import { Formatter } from '@/helpers/formatter'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
-import { useBasket } from '@/hooks/useCDP'
+import { useBasket, useBasketPositions } from '@/hooks/useCDP'
+import useGlobalState from './Nav/hooks/useGlobalState'
 
 export const Stats = React.memo(({ label, value }) => (
     <Stack gap="1">
@@ -24,6 +25,8 @@ export const Stats = React.memo(({ label, value }) => (
 // Memoize child components
 export const StatsTitle = React.memo(() => {
 
+    const { setGlobalState } = useGlobalState()
+    const { data: basketPositions } = useBasketPositions()
     const { data: basket } = useBasket()
     const { data: data } = useCDTDailyVolume()
     // console.log("assetData", assetData, assetData?.volume_24h)
@@ -37,6 +40,24 @@ export const StatsTitle = React.memo(() => {
     const tvl = useMemo(() =>
         getProjectTVL({ basket, prices })
         , [basket, prices])
+
+    const totalDebt = useMemo(() => {
+
+        let totalDebt = 0;
+
+        basketPositions?.forEach((basketPosition) => {
+            if (!basketPosition || basketPosition.positions.length === 0) return;
+
+            basketPosition.positions.forEach((position, posIndex) => {
+                const debt = getDebt([basketPosition], posIndex);
+                totalDebt += debt;
+
+            });
+        });
+
+        setGlobalState({ totalDebt: totalDebt });
+        return totalDebt;
+    }, [basketPositions])
 
     const mintedAmount = useMemo(() => {
         const cdtAmount = basket?.credit_asset?.amount || 0

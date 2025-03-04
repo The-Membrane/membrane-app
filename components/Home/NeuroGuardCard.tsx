@@ -785,7 +785,7 @@ const NeuroGuardCard = () => {
 
 
   // Update state in a separate effect
-  useEffect(() => {
+  useMemo(() => {
     if (sortedAssets && sortedAssets.length > 0 && neuroState.assets.length === 0) {
       setNeuroState({
         //@ts-ignore

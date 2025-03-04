@@ -792,7 +792,7 @@ const NeuroGuardCard = () => {
       setNeuroState({
         //@ts-ignore
         assets: sortedAssets ?? [],
-        openSelectedAsset: sortedAssets[0] ?? {}
+        // openSelectedAsset: sortedAssets[0] ?? {}
       });
     }
   }, [sortedAssets]);

@@ -24,13 +24,13 @@ import useAppState from '@/persisted-state/useAppState'
 import { denoms } from '@/config/defaults'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
-const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
+const useNeuroGuard = ({ onSuccess, run, asset }: { onSuccess: () => void, run: boolean, asset: any }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const { appState } = useAppState()
   const { neuroState } = useNeuroState()
 
-  // console.log('above neuro', neuroState.openSelectedAsset);
+  // console.log('above neuro', asset);
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -39,22 +39,22 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
     queryKey: [
       'neuroGuard_msg_creation',
       address,
-      neuroState.openSelectedAsset,
+      asset,
       basket,
       run
     ],
     queryFn: () => {
-      console.log("in query guardian", neuroState.openSelectedAsset)
+      console.log("in query guardian", asset)
 
 
-      if (!run || !address || !neuroState.openSelectedAsset || (neuroState.openSelectedAsset && neuroState.openSelectedAsset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
+      if (!run || !address || !asset || (asset && asset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      const newDeposit = num(neuroState.openSelectedAsset.sliderValue).toNumber()
-      // const amount = shiftDigits(num(newDeposit).dividedBy(neuroState.openSelectedAsset.price).toString(), neuroState.openSelectedAsset.decimal).toFixed(0)
-      const amount = shiftDigits(newDeposit, neuroState.openSelectedAsset.decimal).toFixed(0)
-      console.log("Neuro funds", newDeposit, amount, neuroState.openSelectedAsset)
-      const funds = [{ amount, denom: neuroState.openSelectedAsset.base }]
+      const newDeposit = num(asset.sliderValue).toNumber()
+      // const amount = shiftDigits(num(newDeposit).dividedBy(asset.price).toString(), asset.decimal).toFixed(0)
+      const amount = shiftDigits(newDeposit, asset.decimal).toFixed(0)
+      console.log("Neuro funds", newDeposit, amount, asset)
+      const funds = [{ amount, denom: asset.base }]
       console.log(funds)
 
       //Deposit msg
@@ -72,7 +72,7 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
       msgs.push(depositMsg)
 
       //Mint msg 
-      const ltv = neuroState.openSelectedAsset.symbol === "USDC" ? 0.89 : 0.8
+      const ltv = asset.symbol === "USDC" ? 0.89 : 0.8
       //Add vault intent
       let mintMsg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -84,7 +84,7 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
               mint_intent: {
                 user: address,
                 position_id: basket.current_position_id,
-                mint_to_ltv: num(neuroState.openSelectedAsset?.maxBorrowLTV).times(ltv).toString()
+                mint_to_ltv: num(asset?.maxBorrowLTV).times(ltv).toString()
               }
             }
           })),

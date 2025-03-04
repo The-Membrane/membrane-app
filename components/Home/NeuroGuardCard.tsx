@@ -194,12 +194,12 @@ const NeuroGuardExistingEntry = React.memo(({
   RBYield: string
   prices: any
 }) => {
-  const { neuroState } = useNeuroState()
+  const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
   const { appState } = useAppState();
 
   //find the asset in the assets array
   //@ts-ignore
-  const asset = guardedPosition.symbol === "N/A" ? undefined : neuroState.assets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
+  const asset = guardedPosition.symbol === "N/A" ? undefined : neuroStateAssets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
   // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
@@ -315,11 +315,11 @@ const RBLPExistingEntry = React.memo(({
   address: string
 }) => {
 
-  const { neuroState } = useNeuroState()
+  const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
   const { appState } = useAppState();
   //find the asset in the assets array
   //@ts-ignore
-  const asset = neuroState.assets.find((asset) => asset.base === denoms.CDT[0]) || { logo: "/images/cdt.svg", symbol: "CDT", balance: 0 }
+  const asset = neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) || { logo: "/images/cdt.svg", symbol: "CDT", balance: 0 }
   // console.log("cdtAsset", asset, neuroState.assets)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
@@ -641,7 +641,9 @@ const NeuroGuardCard = () => {
   // console.log("basketPositions", basketPositions)
   const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()
-  const { neuroState, setNeuroState } = useNeuroState()
+  const { setNeuroState } = useNeuroState()
+
+  const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
   // useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   const assets = useCollateralAssets()
@@ -786,7 +788,7 @@ const NeuroGuardCard = () => {
 
   // Update state in a separate effect
   useMemo(() => {
-    if (sortedAssets && sortedAssets.length > 0 && neuroState.assets.length === 0) {
+    if (sortedAssets && sortedAssets.length > 0 && neuroStateAssets.length === 0) {
       setNeuroState({
         //@ts-ignore
         assets: sortedAssets ?? []
@@ -1037,7 +1039,7 @@ const NeuroGuardCard = () => {
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
       ) ? */}
-      <WalletSection assets={neuroState.assets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} CDTBalance={Number(cdtBalance)} USDCBalance={Number(usdcBalance)} usdcPrice={usdcPrice} />
+      <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} CDTBalance={Number(cdtBalance)} USDCBalance={Number(usdcBalance)} usdcPrice={usdcPrice} />
       {/* : null} */}
 
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) || Number(underlyingCDT) > 0 ?

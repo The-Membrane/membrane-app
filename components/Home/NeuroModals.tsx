@@ -260,7 +260,7 @@ export const NeuroOpenModal = React.memo(({
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined }>) => {
 
 
-    const { setNeuroState } = useNeuroState()
+    const { neuroState, setNeuroState } = useNeuroState()
     const { action: rblp } = useNeuroGuard({ onSuccess: onClose, run: isOpen })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = asset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
@@ -275,23 +275,23 @@ export const NeuroOpenModal = React.memo(({
 
     const onMaxClick = () => {
         setInputValue(maxAmount)
-        // setNeuroState({
-        //     //@ts-ignore
-        //     openSelectedAsset: {
-        //         ...asset,
-        //         sliderValue: maxAmount
-        //     }
-        // })
+        setNeuroState({
+            //@ts-ignore
+            openSelectedAsset: {
+                ...neuroState.openSelectedAsset,
+                sliderValue: maxAmount
+            }
+        })
     }
     const onMinClick = () => {
         setInputValue(minAmount)
-        // setNeuroState({
-        //     //@ts-ignore
-        //     openSelectedAsset: {
-        //         ...asset,
-        //         sliderValue: minAmount
-        //     }
-        // })
+        setNeuroState({
+            //@ts-ignore
+            openSelectedAsset: {
+                ...neuroState.openSelectedAsset,
+                sliderValue: minAmount
+            }
+        })
     }
 
 
@@ -307,13 +307,13 @@ export const NeuroOpenModal = React.memo(({
 
 
         updateTimeout.current = setTimeout(() => {
-            // setNeuroState({
-            //     //@ts-ignore
-            //     openSelectedAsset: {
-            //         ...asset,
-            //         sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-            //     }
-            // })
+            setNeuroState({
+                //@ts-ignore
+                openSelectedAsset: {
+                    ...neuroState.openSelectedAsset,
+                    sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+                }
+            })
         }, INPUT_DELAY); // Delay before updating the state
 
     }, [asset, setNeuroState, maxAmount])

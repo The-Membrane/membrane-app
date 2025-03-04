@@ -503,6 +503,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
   // console.log("basketPositions", basketPositions)
 
   var liquidatibleCDPs: any[] = []
+  var totalDebt = 0
 
   //Get current LTV & liquidation LTV for all positions
   //Return positions that can be liquidated
@@ -554,6 +555,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
           ////////////////////////////////
           const debtValue = num(debt).times(basket.credit_price.price).toNumber()
           if (debtValue === 0) { console.log("no debt"); return undefined }
+          totalDebt += debt
           const ltv = getLTV(tvl, debtValue)
           const positionsWithRatio = getAssetRatio(false, tvl, positions)
           const liquidationLTV = getLiqudationLTV(
@@ -575,9 +577,9 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
           //   undiscountedTER += annualInterest
           // }
 
-          console.log(ltv, "<", liquidationLTV, tvl, debt, basketPosition.positions[index].position_id, basketPosition.user)
+          console.log(ltv, "<", liquidationLTV)
           if (ltv > liquidationLTV) {
-            console.log("liquidatible pos ass", positions,)
+            console.log("liquidatible pos ass", positions)
             let ltv_diff = num(ltv).minus(liquidationLTV)
             let liq_ratio = ltv_diff.div(ltv)
             let liq_debt = liq_ratio.times(debtValue)
@@ -592,6 +594,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
       }
     })
   }
+  console.log("totalDebt", totalDebt)
 
   return { liquidatibleCDPs }
 }

@@ -60,9 +60,8 @@ export const StatsTitle = React.memo(() => {
     }, [basketPositions])
 
     const mintedAmount = useMemo(() => {
-        const cdtAmount = basket?.credit_asset?.amount || 0
-        return num(shiftDigits(cdtAmount, -6)).dp(0).toNumber()
-    }, [basket])
+        return num(totalDebt).dp(0).toNumber()
+    }, [totalDebt])
 
     return (
         <HStack gap={36} justifyContent={"center"} mb={"3%"}>

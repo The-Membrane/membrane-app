@@ -270,6 +270,7 @@ export const NeuroOpenModal = React.memo(({
     })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = asset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
+    console.log("isDisabled", asset?.sliderValue == 0, rblp?.simulate.isError, rblp?.simulate.data, rblp?.simulate.errorMessage)
 
 
     const minValue = ((21 / ((asset?.maxBorrowLTV ?? 0) * 0.8)) + 1)

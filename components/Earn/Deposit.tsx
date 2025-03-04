@@ -383,7 +383,7 @@ const Deposit = () => {
               </TxButton>
             </Stack>
           </Card>
-          <RangeBoundLPCard />
+          {/* <RangeBoundLPCard /> */}
         </Stack>
       </HStack>
     </Stack>

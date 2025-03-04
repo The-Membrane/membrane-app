@@ -19,6 +19,8 @@ export const ManicRedemptionCard = React.memo(({ basket, cdtMarketPrice }: { bas
 
     const minimumSwapCapacity = num(cdtMarketPrice * (1 - maxSlippage)).times(vaultInfo?.debtAmount || 0).toFixed(0)
 
+    if (Number(minimumSwapCapacity) < 22) return null
+
     return (
         <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"41%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
             <Text fontWeight="500" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={"white"} >Earn USDC</Text>

@@ -192,7 +192,7 @@ const NeuroGuardExistingEntry = React.memo(({
   RBYield: string
   prices: any
 }) => {
-  const { neuroState, setNeuroState } = useNeuroState()
+  const { neuroState } = useNeuroState()
   const { appState } = useAppState();
 
   //find the asset in the assets array
@@ -315,7 +315,6 @@ const RBLPExistingEntry = React.memo(({
 
   const { neuroState } = useNeuroState()
   const { appState } = useAppState();
-  const { setQuickActionState } = useQuickActionState()
   //find the asset in the assets array
   //@ts-ignore
   const asset = neuroState.assets.find((asset) => asset.base === denoms.CDT[0]) || { logo: "/images/cdt.svg", symbol: "CDT", balance: 0 }
@@ -614,11 +613,11 @@ const AcquireCDTEntry = React.memo(({
 
 // Memoize child components
 const MemoizedNeuroGuardOpenEntry = memo(NeuroGuardOpenEntry);
-// const MemoizedNeuroGuardExistingEntry = memo(NeuroGuardExistingEntry);
+const MemoizedNeuroGuardExistingEntry = memo(NeuroGuardExistingEntry);
 const MemoizedVaultEntry = memo(VaultEntry);
 const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
 const MemoizedAcquireCDTEntry = memo(AcquireCDTEntry);
-// const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
+const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
 
 
 
@@ -1060,10 +1059,10 @@ const NeuroGuardCard = () => {
               Actions
             </Text>
           </HStack>
-          {Number(boundCDTBalance) > 0 ? < RBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
+          {Number(boundCDTBalance) > 0 ? < MemoizedRBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
           {existingGuards.map((guard) =>
             //@ts-ignore
-            <>{guard && guard.symbol != "CDT" && (guard.symbol == "N/A" ? Number(boundCDTBalance) === 0 : true) ? <NeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} /> : null}</>
+            <>{guard && guard.symbol != "CDT" && (guard.symbol == "N/A" ? Number(boundCDTBalance) === 0 : true) ? <MemoizedNeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} /> : null}</>
           )}
         </Stack>
         : null}

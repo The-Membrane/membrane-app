@@ -108,7 +108,6 @@ const NeuroGuardOpenEntry = React.memo(({
   RBYield: string
   basketAssets: BasketAsset[]
 }) => {
-  const { setNeuroState } = useNeuroState()
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   const minValue = ((21 / ((asset.maxBorrowLTV ?? 0) * 0.8)) + 1)

@@ -260,17 +260,16 @@ export const NeuroOpenModal = React.memo(({
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined }>) => {
 
 
-    const { neuroState, setNeuroState } = useNeuroState()
-    useMemo(() => setNeuroState({ openSelectedAsset: asset }), [])
+    const { setNeuroState } = useNeuroState()
     const { action: rblp } = useNeuroGuard({ onSuccess: onClose, run: isOpen })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
-    const isDisabled = neuroState?.openSelectedAsset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
+    const isDisabled = asset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
 
 
-    const minValue = ((21 / ((neuroState?.openSelectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
-    const minAmount = num(minValue).dividedBy(neuroState?.openSelectedAsset?.price ?? 0).toNumber()
+    const minValue = ((21 / ((asset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
+    const minAmount = num(minValue).dividedBy(asset?.price ?? 0).toNumber()
     //@ts-ignore
-    const maxAmount = num(neuroState?.openSelectedAsset?.balance).toNumber()
+    const maxAmount = num(asset?.balance).toNumber()
     const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
     const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -279,7 +278,7 @@ export const NeuroOpenModal = React.memo(({
         setNeuroState({
             //@ts-ignore
             openSelectedAsset: {
-                ...neuroState?.openSelectedAsset,
+                ...asset,
                 sliderValue: maxAmount
             }
         })
@@ -289,7 +288,7 @@ export const NeuroOpenModal = React.memo(({
         setNeuroState({
             //@ts-ignore
             openSelectedAsset: {
-                ...neuroState?.openSelectedAsset,
+                ...asset,
                 sliderValue: minAmount
             }
         })
@@ -311,13 +310,13 @@ export const NeuroOpenModal = React.memo(({
             setNeuroState({
                 //@ts-ignore
                 openSelectedAsset: {
-                    ...neuroState?.openSelectedAsset,
+                    ...asset,
                     sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
                 }
             })
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [neuroState?.openSelectedAsset, setNeuroState, maxAmount])
+    }, [asset, setNeuroState, maxAmount])
 
     return (<>
         {/* <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
@@ -333,13 +332,13 @@ export const NeuroOpenModal = React.memo(({
                 <Stack>
                     <HStack width="100%" justifyContent="left">
                         <HStack width="75%">
-                            {neuroState?.openSelectedAsset?.logo ? <Image src={neuroState?.openSelectedAsset?.logo} w="30px" h="30px" /> : null}
+                            {asset?.logo ? <Image src={asset?.logo} w="30px" h="30px" /> : null}
                             <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                {neuroState?.openSelectedAsset?.symbol}
+                                {asset?.symbol}
                             </Text>
                         </HStack>
                         <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                            ~${num(inputValue ?? 0).times(neuroState?.openSelectedAsset?.price ?? 0).toFixed(2)}
+                            ~${num(inputValue ?? 0).times(asset?.price ?? 0).toFixed(2)}
                         </Text>
                     </HStack>
                     <Input
@@ -378,7 +377,7 @@ export const NeuroOpenModal = React.memo(({
 
 
                     <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                        {parseError(num(neuroState?.openSelectedAsset?.sliderValue).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
+                        {parseError(num(asset?.sliderValue).isGreaterThan(0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
                     </Text>
 
                     <TxButton
@@ -401,24 +400,23 @@ export const NeuroDepositModal = React.memo(({
     isOpen, onClose, asset, position_id, children
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined, position_id: string }>) => {
 
-    const { neuroState, setNeuroState } = useNeuroState()
-    useMemo(() => setNeuroState({ depositSelectedAsset: asset }), [])
+    const { setNeuroState } = useNeuroState()
     const { action: existingNeuro } = useExistingNeuroGuard({ position_id, onSuccess: onClose, run: isOpen })
     const isLoading = existingNeuro?.simulate.isLoading || existingNeuro?.tx.isPending
     const isDisabled = existingNeuro?.simulate.isError || !existingNeuro?.simulate.data
 
 
-    // const minValue = ((21 / ((neuroState?.depositSelectedAsset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
-    // const minAmount = num(minValue).dividedBy(neuroState?.depositSelectedAsset?.price ?? 0).toNumber()
+    // const minValue = ((21 / ((asset?.maxBorrowLTV ?? 0) * 0.8)) + 1)
+    // const minAmount = num(minValue).dividedBy(asset?.price ?? 0).toNumber()
     //@ts-ignore
-    const maxAmount = num(neuroState?.depositSelectedAsset?.balance).toNumber()
+    const maxAmount = num(asset?.balance).toNumber()
 
     const onMaxClick = () => {
         setInputValue(maxAmount)
         setNeuroState({
             //@ts-ignore
             depositSelectedAsset: {
-                ...neuroState?.depositSelectedAsset,
+                ...asset,
                 sliderValue: maxAmount
             }
         })
@@ -442,13 +440,13 @@ export const NeuroDepositModal = React.memo(({
             setNeuroState({
                 //@ts-ignore
                 depositSelectedAsset: {
-                    ...neuroState?.depositSelectedAsset,
+                    ...asset,
                     sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
                 }
             })
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [neuroState?.depositSelectedAsset, setNeuroState, maxAmount])
+    }, [asset, setNeuroState, maxAmount])
 
 
 
@@ -466,13 +464,13 @@ export const NeuroDepositModal = React.memo(({
                 <Stack>
                     <HStack width="100%" justifyContent="left">
                         <HStack width="75%">
-                            {neuroState?.depositSelectedAsset?.logo ? <Image src={neuroState?.depositSelectedAsset?.logo} w="30px" h="30px" /> : null}
+                            {asset?.logo ? <Image src={asset?.logo} w="30px" h="30px" /> : null}
                             <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                                {neuroState?.depositSelectedAsset?.symbol}
+                                {asset?.symbol}
                             </Text>
                         </HStack>
                         <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                            ~${num(inputValue).times(neuroState?.depositSelectedAsset?.price ?? 0).toFixed(2)}
+                            ~${num(inputValue).times(asset?.price ?? 0).toFixed(2)}
                         </Text>
                     </HStack>
                     <Input
@@ -505,7 +503,7 @@ export const NeuroDepositModal = React.memo(({
 
 
                     <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                        {parseError(num(neuroState?.depositSelectedAsset?.sliderValue).isGreaterThan(0) && existingNeuro.simulate.isError ? existingNeuro.simulate.error?.message ?? "" : "")}
+                        {parseError(num(asset?.sliderValue).isGreaterThan(0) && existingNeuro.simulate.isError ? existingNeuro.simulate.error?.message ?? "" : "")}
                     </Text>
 
 
@@ -540,8 +538,7 @@ export const NeuroWithdrawModal = React.memo(({
     },
     prices: any
 }>) => {
-    const { neuroState, setNeuroState } = useNeuroState()
-    useMemo(() => setNeuroState({ withdrawSelectedAsset: asset }), [])
+    const { setNeuroState } = useNeuroState()
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: false, run: isOpen })
     const { action: ledgerSheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: true, run: isOpen })
     const isDisabled = sheathe?.simulate.isError || !sheathe?.simulate.data
@@ -561,7 +558,7 @@ export const NeuroWithdrawModal = React.memo(({
         setNeuroState({
             //@ts-ignore
             withdrawSelectedAsset: {
-                ...neuroState?.withdrawSelectedAsset,
+                ...asset,
                 sliderValue: maxAmount
             }
         })
@@ -584,12 +581,12 @@ export const NeuroWithdrawModal = React.memo(({
             setNeuroState({
                 //@ts-ignore
                 withdrawSelectedAsset: {
-                    ...neuroState?.withdrawSelectedAsset,
+                    ...asset,
                     sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
                 }
             })
         }, INPUT_DELAY); // Delay before updating the state
-    }, [neuroState?.withdrawSelectedAsset, setNeuroState, maxAmount])
+    }, [asset, setNeuroState, maxAmount])
 
 
 
@@ -646,7 +643,7 @@ export const NeuroWithdrawModal = React.memo(({
 
 
                     <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                        {parseError(num(neuroState?.withdrawSelectedAsset?.sliderValue).isGreaterThan(0) && sheathe.simulate.isError ? sheathe.simulate.error?.message ?? "" : "")}
+                        {parseError(num(asset?.sliderValue).isGreaterThan(0) && sheathe.simulate.isError ? sheathe.simulate.error?.message ?? "" : "")}
                     </Text>
 
                     <Stack>

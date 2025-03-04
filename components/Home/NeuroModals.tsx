@@ -260,7 +260,7 @@ export const NeuroOpenModal = React.memo(({
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined }>) => {
 
 
-    const { neuroState, setNeuroState } = useNeuroState()
+    const { setNeuroState } = useNeuroState()
     const { action: rblp } = useNeuroGuard({ onSuccess: onClose, run: isOpen })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
     const isDisabled = asset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
@@ -278,7 +278,7 @@ export const NeuroOpenModal = React.memo(({
         setNeuroState({
             //@ts-ignore
             openSelectedAsset: {
-                ...neuroState.openSelectedAsset,
+                ...asset,
                 sliderValue: maxAmount
             }
         })
@@ -288,7 +288,7 @@ export const NeuroOpenModal = React.memo(({
         setNeuroState({
             //@ts-ignore
             openSelectedAsset: {
-                ...neuroState.openSelectedAsset,
+                ...asset,
                 sliderValue: minAmount
             }
         })
@@ -310,7 +310,7 @@ export const NeuroOpenModal = React.memo(({
             setNeuroState({
                 //@ts-ignore
                 openSelectedAsset: {
-                    ...neuroState.openSelectedAsset,
+                    ...asset,
                     sliderValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
                 }
             })

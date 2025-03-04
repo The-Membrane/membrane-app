@@ -512,9 +512,9 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
       //check every position index
       if (basketPosition && basketPosition.positions.length > 0) {
 
-        basketPosition.positions.forEach((position, index) => {
+        basketPosition.positions.forEach((position, posIndex) => {
 
-          const positions = getPositions([basketPosition], prices, index)
+          const positions = getPositions([basketPosition], prices, posIndex)
 
 
           // Create a list of the position's assets and sort alphabetically
@@ -549,12 +549,12 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
           // console.log(topValue)
 
           const tvl = getTVL(positions)
-          const debt = getDebt([basketPosition], index)
+          const debt = getDebt([basketPosition], posIndex)
           //skip if no debt
-          if (debt === 0) { console.log("no debt"); return undefined }
+          // if (debt === 0) { console.log("no debt"); return undefined }
           ////////////////////////////////
           const debtValue = num(debt).times(basket.credit_price.price).toNumber()
-          if (debtValue === 0) { console.log("no debt"); return undefined }
+          // if (debtValue === 0) { console.log("no debt"); return undefined }
           totalDebt += debt
           const ltv = getLTV(tvl, debtValue)
           const positionsWithRatio = getAssetRatio(false, tvl, positions)
@@ -585,7 +585,7 @@ export const getRiskyPositions = (basketPositions: BasketPositionsResponse[], pr
             let liq_debt = liq_ratio.times(debtValue)
             liquidatibleCDPs.push({
               address: basketPosition.user,
-              id: basketPosition.positions[index].position_id,
+              id: basketPosition.positions[posIndex].position_id,
               fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
             })
           }

@@ -503,13 +503,15 @@ export const getRiskyPositions = (
 
   let liquidatibleCDPs: any[] = [];
   let totalDebt = 0;
+  let totalPositions = 0;
 
   basketPositions?.forEach((basketPosition) => {
     if (!basketPosition || basketPosition.positions.length === 0) return;
 
     basketPosition.positions.forEach((position, posIndex) => {
+      totalPositions++;
+      console.log("position", position.position_id);
       const positions = getPositions([basketPosition], prices, posIndex);
-
 
 
       // Create a list of the position's assets and sort alphabetically

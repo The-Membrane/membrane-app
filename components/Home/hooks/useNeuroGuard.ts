@@ -24,13 +24,13 @@ import useAppState from '@/persisted-state/useAppState'
 import { denoms } from '@/config/defaults'
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
-const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
+const useNeuroGuard = ({ onSuccess, run, asset }: { onSuccess: () => void, run: boolean, asset: any }) => {
   const { address } = useWallet()
   const { data: basket } = useBasket()
   const { appState } = useAppState()
-  const neuroStateAsset = useNeuroState(state => state.neuroState.openSelectedAsset);
+  const { neuroState } = useNeuroState()
 
-  // console.log('above neuro', neuroState.openSelectedAsset);
+  // console.log('above neuro', asset);
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -39,22 +39,22 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
     queryKey: [
       'neuroGuard_msg_creation',
       address,
-      neuroStateAsset,
+      asset,
       basket,
       run
     ],
     queryFn: () => {
-      console.log("in query guardian", neuroStateAsset)
+      console.log("in query guardian", asset)
 
 
-      if (!run || !address || !neuroStateAsset || (neuroStateAsset && neuroStateAsset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroStateAsset, basket); return { msgs: [] } }
+      if (!run || !address || !asset || (asset && asset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      const newDeposit = num(neuroStateAsset.sliderValue).toNumber()
-      // const amount = shiftDigits(num(newDeposit).dividedBy(neuroStateAsset.price).toString(), neuroStateAsset.decimal).toFixed(0)
-      const amount = shiftDigits(newDeposit, neuroStateAsset.decimal).toFixed(0)
-      console.log("Neuro funds", newDeposit, amount, neuroStateAsset)
-      const funds = [{ amount, denom: neuroStateAsset.base }]
+      const newDeposit = num(asset.sliderValue).toNumber()
+      // const amount = shiftDigits(num(newDeposit).dividedBy(asset.price).toString(), asset.decimal).toFixed(0)
+      const amount = shiftDigits(newDeposit, asset.decimal).toFixed(0)
+      console.log("Neuro funds", newDeposit, amount, asset)
+      const funds = [{ amount, denom: asset.base }]
       console.log(funds)
 
       //Deposit msg
@@ -72,7 +72,7 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
       msgs.push(depositMsg)
 
       //Mint msg 
-      const ltv = neuroStateAsset.symbol === "USDC" ? 0.89 : 0.8
+      const ltv = asset.symbol === "USDC" ? 0.89 : 0.8
       //Add vault intent
       let mintMsg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -84,7 +84,7 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
               mint_intent: {
                 user: address,
                 position_id: basket.current_position_id,
-                mint_to_ltv: num(neuroStateAsset?.maxBorrowLTV).times(ltv).toString()
+                mint_to_ltv: num(asset?.maxBorrowLTV).times(ltv).toString()
               }
             }
           })),
@@ -129,10 +129,10 @@ const useNeuroGuard = ({ onSuccess, run }: { onSuccess: () => void, run: boolean
 
   // console.log("neuroGuard msgs:", msgs)
 
+  const cookie = getCookie("neuroGuard " + basket?.current_position_id)
 
   const onInitialSuccess = () => {
-    const cookie = getCookie("neuroGuard " + basket?.current_position_id)
-    if (cookie == null && appState.setCookie) setCookie("neuroGuard " + basket?.current_position_id, (neuroStateAsset?.sliderValue ?? 0).toString(), 3650)
+    if (cookie == null && appState.setCookie) setCookie("neuroGuard " + basket?.current_position_id, (neuroState?.openSelectedAsset?.sliderValue ?? 0).toString(), 3650)
     onSuccess()
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['positions'] })

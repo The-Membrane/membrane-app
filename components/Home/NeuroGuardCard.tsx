@@ -120,7 +120,7 @@ const NeuroGuardOpenEntry = React.memo(({
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
   // console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
   const ltv = asset.symbol === "USDC" ? 0.89 : 0.8
-  const yieldValue = num(RBYield).times(asset?.maxBorrowLTV ?? 0).times(ltv).minus(cost).times(100).toFixed(1)
+  const yieldValue = num(RBYield).minus(cost).times(asset?.maxBorrowLTV ?? 0).times(ltv).times(100).toFixed(1)
   console.log(RBYield)
   // console.log("INFiNITY LOGS", (minAmount - asset?.balance).toFixed(2).toString() === "Infinity", (minAmount - asset?.balance) === Infinity)
 
@@ -227,7 +227,7 @@ const NeuroGuardExistingEntry = React.memo(({
   {/* @ts-ignore */ }
   const isDisabled = (asset?.balance ?? 0) === 0 || guardedPosition.symbol === "N/A"
   // console.log("isDisabled", isDisabled, asset?.balance, asset)
-  const yieldValue = num(RBYield).times(guardedPosition.LTV).minus(guardedPosition.cost).times(100).toFixed(1)
+  const yieldValue = num(RBYield).minus(guardedPosition.cost).times(guardedPosition.LTV).times(100).toFixed(1)
 
   return (
     <>
@@ -537,7 +537,7 @@ const AcquireCDTEntry = React.memo(({
 
   {/* @ts-ignore */ }
   const yieldValue = num(RBYield).times(100).toFixed(1)
-  const usdcMintAPR = num(RBYield).times(0.89).minus(usdcCost).times(100).toFixed(1)
+  const usdcMintAPR = num(RBYield).minus(usdcCost).times(0.89).times(100).toFixed(1)
   const isMintDisabled = usdcBalance < 24
   // console.log("log usdc balance", shiftDigits(usdcBalance, -6).toNumber())
 

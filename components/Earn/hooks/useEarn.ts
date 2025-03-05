@@ -12,11 +12,11 @@ import { EarnMsgComposer } from '@/contracts/codegen/earn/Earn.message-composer'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import useEarnState from './useEarnState'
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useUSDCVaultTokenUnderlying } from './useEarnQueries'
+import { useUSDCVaultTokenUnderlying } from '../../../hooks/useEarnQueries'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 
-const useEarn = ( ) => {
+const useEarn = () => {
   const { address } = useWallet()
   const { earnState, setEarnState } = useEarnState()
   const usdcAsset = useAssetBySymbol('USDC')
@@ -25,7 +25,7 @@ const useEarn = ( ) => {
 
   const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
   const underlyingUSDC = data ?? "1"
-  
+
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[]
   }
@@ -41,44 +41,44 @@ const useEarn = ( ) => {
       earnUSDCBalance
     ],
     queryFn: () => {
-        if (!address || !earnUSDCAsset || !usdcAsset) {console.log("earn exit early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance); return { msgs: [] }}
-        var msgs = [] as MsgExecuteContractEncodeObject[]
-        let messageComposer = new EarnMsgComposer(address, contracts.earn)
+      if (!address || !earnUSDCAsset || !usdcAsset) { console.log("earn exit early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance); return { msgs: [] } }
+      var msgs = [] as MsgExecuteContractEncodeObject[]
+      let messageComposer = new EarnMsgComposer(address, contracts.earn)
 
-        if (earnState.withdraw != 0){
+      if (earnState.withdraw != 0) {
 
-          const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
-          // find percent of underlying usdc to withdraw
-          const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
-  
-          // Calc VT to withdraw using the percent
-          const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
-          // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
-    
-          // console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
-    
-          const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
-          let exitMsg = messageComposer.exitVault(funds)
-          msgs.push(exitMsg)
+        const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
+        // find percent of underlying usdc to withdraw
+        const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
 
-        }
+        // Calc VT to withdraw using the percent
+        const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
+        // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
 
-        if (earnState.deposit != 0){
+        // console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
 
-          const funds = [{ amount: shiftDigits(earnState.deposit, usdcAsset.decimal).dp(0).toNumber().toString(), denom: usdcAsset.base }]
-          let enterMsg = messageComposer.enterVault(funds)
-          msgs.push(enterMsg)
+        const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
+        let exitMsg = messageComposer.exitVault(funds)
+        msgs.push(exitMsg)
 
-        }
+      }
+
+      if (earnState.deposit != 0) {
+
+        const funds = [{ amount: shiftDigits(earnState.deposit, usdcAsset.decimal).dp(0).toNumber().toString(), denom: usdcAsset.base }]
+        let enterMsg = messageComposer.enterVault(funds)
+        msgs.push(enterMsg)
+
+      }
 
       console.log("earn msgs:", msgs)
-      
+
       return { msgs }
     },
     enabled: !!address,
   })
 
-  const  msgs = queryData?.msgs ?? []
+  const msgs = queryData?.msgs ?? []
 
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
@@ -88,14 +88,15 @@ const useEarn = ( ) => {
   }
 
   console.log("here to return action ")
-  
-  return  {
+
+  return {
     action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['earn_page_mars_usdc_looped_vault', (msgs?.toString()??"0")],
-    onSuccess: onInitialSuccess,
-    enabled: !!msgs?.length,
-  })}
+      msgs,
+      queryKey: ['earn_page_mars_usdc_looped_vault', (msgs?.toString() ?? "0")],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs?.length,
+    })
+  }
 }
 
 export default useEarn

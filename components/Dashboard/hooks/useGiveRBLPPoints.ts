@@ -7,7 +7,7 @@ import { queryClient } from '@/pages/_app'
 import contracts from '@/config/contracts.json'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
-import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents } from '@/components/Earn/hooks/useEarnQueries'
+import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents } from '@/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 import { useAllConversionRates } from '@/hooks/usePoints'
 import { UserConversionRateState } from '@/services/points'

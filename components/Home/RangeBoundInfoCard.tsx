@@ -4,7 +4,7 @@ import React from "react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
 import { useCDTDailyVolume } from "@/hooks/useNumia"
-import { useBoundedCDTRealizedAPR } from "../Earn/hooks/useEarnQueries"
+import { useBoundedCDTRealizedAPR } from "../../hooks/useEarnQueries"
 
 
 

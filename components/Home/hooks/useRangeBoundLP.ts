@@ -12,7 +12,7 @@ import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useBoundedCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
+import { useBoundedCDTVaultTokenUnderlying } from '@/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useOraclePrice } from '@/hooks/useOracle'

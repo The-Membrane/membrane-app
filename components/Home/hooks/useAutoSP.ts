@@ -12,27 +12,27 @@ import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useCDTVaultTokenUnderlying } from '@/components/Earn/hooks/useEarnQueries'
+import { useCDTVaultTokenUnderlying } from '@/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 
 import EventEmitter from 'events';
 EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
-const useAutoSP = ( ) => { 
+const useAutoSP = () => {
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const cdtAsset = useAssetBySymbol('CDT')
   const earnCDTAsset = useAssetBySymbol('earnCDT')
-  const earnCDTBalance = useBalanceByAsset(earnCDTAsset)??"1"
+  const earnCDTBalance = useBalanceByAsset(earnCDTAsset) ?? "1"
 
   const { data } = useCDTVaultTokenUnderlying(shiftDigits(earnCDTBalance, 6).toFixed(0))
   const underlyingCDT = data ?? "1"
-  
+
   // Debounce the slider value to prevent too many queries
-  const [debouncedValue, setDebouncedValue] = useState<{withdraw: number, deposit: number}>(
-    {withdraw: 0, deposit: 0}
+  const [debouncedValue, setDebouncedValue] = useState<{ withdraw: number, deposit: number }>(
+    { withdraw: 0, deposit: 0 }
   );
-  
+
   useEffect(() => {
     console.log('Debounce effect triggered:', quickActionState);
     const timer = setTimeout(() => {
@@ -42,11 +42,11 @@ const useAutoSP = ( ) => {
         deposit: quickActionState.autoSPdeposit
       });
     }, 300);
-    
-    return () =>{
+
+    return () => {
       console.log('Cleaning up debounce effect');
-       clearTimeout(timer)
-      };
+      clearTimeout(timer)
+    };
   }, [quickActionState.autoSPwithdrawal, quickActionState.autoSPdeposit]);
 
   type QueryData = {
@@ -63,10 +63,10 @@ const useAutoSP = ( ) => {
       earnCDTBalance
     ],
     queryFn: () => {
-      if (!address || !cdtAsset || !earnCDTAsset) {console.log("autoSP early return", address, earnCDTAsset, quickActionState, underlyingCDT, earnCDTBalance); return { msgs: [] }}
+      if (!address || !cdtAsset || !earnCDTAsset) { console.log("autoSP early return", address, earnCDTAsset, quickActionState, underlyingCDT, earnCDTBalance); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
-      if (debouncedValue.withdraw != 0){
+      if (debouncedValue.withdraw != 0) {
 
         const cdtWithdrawAmount = shiftDigits(debouncedValue.withdraw, 6).toNumber()
         // find percent of underlying usdc to withdraw
@@ -76,40 +76,40 @@ const useAutoSP = ( ) => {
         const withdrawAmount = num(shiftDigits(earnCDTBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
         console.log("withdrawAmount", debouncedValue.withdraw, withdrawAmount, cdtWithdrawAmount, percentToWithdraw)
 
-        const funds = [{ amount: withdrawAmount.toString(), denom: earnCDTAsset.base }]      
-        let exitMsg  = {
+        const funds = [{ amount: withdrawAmount.toString(), denom: earnCDTAsset.base }]
+        let exitMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: contracts.autoStabilityPool,
-          msg: toUtf8(JSON.stringify({
+            sender: address,
+            contract: contracts.autoStabilityPool,
+            msg: toUtf8(JSON.stringify({
               exit_vault: {}
-          })),
-          funds: funds
+            })),
+            funds: funds
           })
         } as MsgExecuteContractEncodeObject
         msgs.push(exitMsg)
       }
 
-      if (debouncedValue.deposit != 0){
-        
-        const funds = [{ amount: shiftDigits(debouncedValue.deposit, cdtAsset.decimal).dp(0).toNumber().toString(), denom: cdtAsset.base }]      
-        let enterMsg  = {
+      if (debouncedValue.deposit != 0) {
+
+        const funds = [{ amount: shiftDigits(debouncedValue.deposit, cdtAsset.decimal).dp(0).toNumber().toString(), denom: cdtAsset.base }]
+        let enterMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: contracts.autoStabilityPool,
-          msg: toUtf8(JSON.stringify({
+            sender: address,
+            contract: contracts.autoStabilityPool,
+            msg: toUtf8(JSON.stringify({
               enter_vault: {}
-          })),
-          funds: funds
+            })),
+            funds: funds
           })
         } as MsgExecuteContractEncodeObject
         msgs.push(enterMsg)
       }
 
       console.log("in query sp msgs:", msgs)
-      
+
       return { msgs }
     },
     enabled: !!address && (debouncedValue.withdraw != 0 || debouncedValue.deposit != 0),
@@ -121,8 +121,8 @@ const useAutoSP = ( ) => {
     retry: false
     /////ERRORS ON THE 3RD OR 4TH MODAL OPEN, CHECKING TO SEE IF ITS THE INVALIDATED QUERY////
   })
-  
-  const  msgs = queryData?.msgs ?? []
+
+  const msgs = queryData?.msgs ?? []
 
   console.log("autoSP msgs:", msgs)
 
@@ -133,11 +133,12 @@ const useAutoSP = ( ) => {
 
   return {
     action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['home_page_autoSP', (msgs?.toString()??"0")],
-    onSuccess: onInitialSuccess,
-    enabled: !!msgs,
-  })}
+      msgs,
+      queryKey: ['home_page_autoSP', (msgs?.toString() ?? "0")],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs,
+    })
+  }
 }
 
 export default useAutoSP

@@ -3,7 +3,7 @@ import { Text, Stack, HStack, Slider, Card, SliderFilledTrack, SliderTrack } fro
 import React, { useMemo, useState } from "react"
 import { useBasket } from '@/hooks/useCDP'
 import { shiftDigits } from '@/helpers/math'
-import { useRBLPCDTBalance } from '../Earn/hooks/useEarnQueries'
+import { useRBLPCDTBalance } from '../../hooks/useEarnQueries'
 import Divider from '../Divider'
 import { Formatter } from '@/helpers/formatter'
 import { TxButton } from '../TxButton'

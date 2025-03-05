@@ -29,7 +29,7 @@ import { shiftDigits } from "@/helpers/math";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { position } from "@chakra-ui/react";
 import { getBoundedConfig } from "./earn";
-import { useBoundedConfig } from "@/components/Earn/hooks/useEarnQueries";
+import { useBoundedConfig } from "@/hooks/useEarnQueries";
 import useAppState from "@/persisted-state/useAppState";
 
 

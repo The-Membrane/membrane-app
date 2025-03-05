@@ -12,7 +12,7 @@ import useQuickActionState from './useQuickActionState'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from "@cosmjs/encoding";
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useBoundedIntents, useCDTVaultTokenUnderlying, useUserBoundedIntents } from '@/components/Earn/hooks/useEarnQueries'
+import { useBoundedIntents, useCDTVaultTokenUnderlying, useUserBoundedIntents } from '@/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 import useNeuroState from "./useNeuroState"
 import { useBasket } from "@/hooks/useCDP"

@@ -1,7 +1,7 @@
 import { Card, Text } from '@chakra-ui/react'
 import { Basket } from '@/contracts/codegen/positions/Positions.types'
 import React from 'react'
-import { useVaultInfo } from '../Earn/hooks/useEarnQueries'
+import { useVaultInfo } from '../../hooks/useEarnQueries'
 import { RedeemButton } from '../Earn/RedeemButton'
 import { colors } from '@/config/defaults'
 import { HomeRedeemButton } from './HomeRedemptionButton'

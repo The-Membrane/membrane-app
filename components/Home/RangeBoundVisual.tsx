@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Slider, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card, HStack, useBreakpointValue, Button } from "@chakra-ui/react"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { getCLPositionsForVault, getCLRewards, useRBLPRewards } from "@/services/osmosis"
+import { getCLPositionsForVault } from "@/services/osmosis"
 import { colors } from "@/config/defaults"
 import React from "react"
 import useToaster from "@/hooks/useToaster"

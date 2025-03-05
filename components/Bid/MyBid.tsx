@@ -15,8 +15,8 @@ import ConfirmModal from '../ConfirmModal'
 import UpdateBidSummary from './UpdateBidSummary'
 import useBidState from './hooks/useBidState'
 import useUpdateBid from './hooks/useUpdateBid'
-import useUserBids from './hooks/useUserBids'
 import { colors } from '@/config/defaults'
+import { useUserBids } from '@/hooks/useLiquidations'
 
 type MyBidItemProps = {
   bid: Bid

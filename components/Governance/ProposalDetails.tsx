@@ -34,9 +34,9 @@ import ExecuteButton from './ExecuteButton'
 import RemoveButton from './RemoveButton'
 import useWallet from '@/hooks/useWallet'
 import ActionButtons from './ActionButtons'
-import useProposalById from './hooks/useProposalById'
 import { num } from '@/helpers/num'
 import { colors } from '@/config/defaults'
+import { useProposalById } from '@/hooks/useGovernance'
 
 type Props = {
   proposal: ProposalResponse

@@ -19,9 +19,9 @@ import TxError from '../TxError'
 import { Summary } from './Summary'
 import Validator from './Validator'
 import useDelegateState from './hooks/useDelegateState'
-import useDelegations from './hooks/useDelegations'
 import useUpdateDelegation from './hooks/useUpdateDelegation'
 import UpdateCommision from './UpdateCommision'
+import { useDelegations } from '@/hooks/useGovernance'
 
 type DelegateProps = {
   validator: any

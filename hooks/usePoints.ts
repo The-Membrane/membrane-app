@@ -1,12 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { getAllConversionRates, getAllUserPoints, getUserConversionRates } from '@/services/points'
 import useWallet from './useWallet'
+import useAppState from '@/persisted-state/useAppState'
 
 export const useAllUserPoints = () => {
+  const { appState } = useAppState()
+
   const result = useQuery({
     queryKey: ['all users points'],
     queryFn: async () => {
-      return getAllUserPoints()
+      return getAllUserPoints(appState.rpcUrl)
     },
     enabled: true,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -16,23 +19,26 @@ export const useAllUserPoints = () => {
 }
 
 export const useUserConversionRates = () => {
+  const { appState } = useAppState()
   const { address } = useWallet()
 
   return useQuery({
     queryKey: ['use_user_conversion_rates', address],
     queryFn: async () => {
       if (!address) return
-      return getUserConversionRates(address)
+      return getUserConversionRates(address, appState.rpcUrl)
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 
 export const useAllConversionRates = () => {
+  const { appState } = useAppState()
+
   return useQuery({
     queryKey: ['all_conversion_rates'],
     queryFn: async () => {
-      return getAllConversionRates()
+      return getAllConversionRates(appState.rpcUrl)
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   })

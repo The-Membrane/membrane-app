@@ -11,8 +11,8 @@ import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
 
-export const stakingClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const stakingClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new StakingQueryClient(cosmWasmClient, contracts.staking)
 }
 
@@ -34,13 +34,13 @@ export const stake = async ({ signingClient, address, denom, amount }: StakingPa
   return client.stake({}, 'auto', undefined, funds)
 }
 
-export const getConfig = async () => {
-  const client = await stakingClient()
+export const getConfig = async (rpcUrl: string) => {
+  const client = await stakingClient(rpcUrl)
   return client.config()
 }
 
-export const getStaked = async (address: Addr) => {
-  const client = await stakingClient()
+export const getStaked = async (address: Addr, rpcUrl: string) => {
+  const client = await stakingClient(rpcUrl)
   return client.userStake({
     staker: address,
   })
@@ -56,8 +56,8 @@ const parseClaimable = (claimable: LiqAsset[]) => {
     }
   })
 }
-export const getRewards = async (address: Addr) => {
-  const client = await stakingClient()
+export const getRewards = async (address: Addr, rpcUrl: string) => {
+  const client = await stakingClient(rpcUrl)
   let rewards;
   try {
     rewards = await client.userRewards({
@@ -78,10 +78,10 @@ export const getRewards = async (address: Addr) => {
   ]
 }
 
-export const getUserDelegations = async (address: Addr) => {
+export const getUserDelegations = async (address: Addr, rpcUrl: string) => {
   // 'osmo1d9ryqp7yfmr92vkk2yal96824pewf2g5wx0h2r'
-  const client = await stakingClient()
-  const config = await getConfig()
+  const client = await stakingClient(rpcUrl)
+  const config = await getConfig(rpcUrl)
   try {
     const [userDelegation, ...other] = await client.delegations({
       user: address,
@@ -134,8 +134,8 @@ export const buildUpdateDelegationMsg = async (address: Addr, delegations: any[]
   return msgs
 }
 
-export const getDelegatorInfo = async (address: Addr) => {
-  const client = await stakingClient()
+export const getDelegatorInfo = async (address: Addr, rpcUrl: string) => {
+  const client = await stakingClient(rpcUrl)
   const [userDelegation] = await client.delegations({
     user: address,
   })

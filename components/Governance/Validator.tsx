@@ -18,9 +18,9 @@ import {
   useDisclosure,
 } from '@chakra-ui/react'
 import { FaXTwitter, FaDiscord } from 'react-icons/fa6'
-import useDelegator from './hooks/useDelegator'
 import { num } from '@/helpers/num'
 import { colors } from '@/config/defaults'
+import { useDelegator } from '@/hooks/useGovernance'
 
 type Delegator = {
   name: string

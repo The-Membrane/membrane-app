@@ -1,4 +1,4 @@
-import { useUserInfo } from '@/components/Lockdrop/hooks/useLockdrop'
+import { useUserInfo } from '@/hooks/useLockdrop'
 import { TxButton } from '@/components/TxButton'
 import {
   Card,

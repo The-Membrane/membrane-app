@@ -2,15 +2,17 @@ import { getOracleAssetInfos, getOracleConfig, getOraclePrices } from '@/service
 import { useQuery } from '@tanstack/react-query'
 import { useBasket } from './useCDP'
 import { AssetInfo } from '@/contracts/codegen/oracle/Oracle.types'
+import useAppState from '@/persisted-state/useAppState'
 
 export const useOraclePrice = () => {
   const { data: basket, dataUpdatedAt } = useBasket()
+  const { appState } = useAppState()
 
   return useQuery({
     queryKey: ['oraclePrice', dataUpdatedAt, basket],
     queryFn: async () => {
       if (!basket) return
-      return getOraclePrices(basket)
+      return getOraclePrices(basket, appState.rpcUrl)
     },
     refetchInterval: false,
     enabled: !!basket,
@@ -19,11 +21,12 @@ export const useOraclePrice = () => {
 }
 
 export const useOracleConfig = () => {
+  const { appState } = useAppState()
 
   return useQuery({
     queryKey: ['oracleConfig'],
     queryFn: async () => {
-      return getOracleConfig()
+      return getOracleConfig(appState.rpcUrl)
     },
     refetchInterval: false,
     enabled: true,
@@ -32,10 +35,12 @@ export const useOracleConfig = () => {
 }
 
 export const useOracleAssetInfos = (assetInfos: AssetInfo[]) => {
+  const { appState } = useAppState()
+
   return useQuery({
     queryKey: ['oracleAssetInfos', assetInfos],
     queryFn: async () => {
-      return getOracleAssetInfos(assetInfos)
+      return getOracleAssetInfos(assetInfos, appState.rpcUrl)
     },
     refetchInterval: false,
     enabled: !!assetInfos,

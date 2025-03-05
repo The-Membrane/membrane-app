@@ -14,18 +14,18 @@ import { Price } from './oracle'
 import { num } from '@/helpers/num'
 import { stableSymbols } from '@/config/defaults'
 
-export const cdpClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const cdpClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new PositionsQueryClient(cosmWasmClient, contracts.cdp)
 }
 
-export const getBasket = async () => {
-  const client = await cdpClient()
+export const getBasket = async (rpcUrl: string) => {
+  const client = await cdpClient(rpcUrl)
   return client.getBasket()
 }
 
-export const getUserRedemptionInfo = async (address: string) => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getUserRedemptionInfo = async (address: string, rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   console.log("CosmWasm Client:", cosmWasmClient);
 
   const response =
@@ -98,32 +98,32 @@ export const getBasketAssets = (
   }) as BasketAsset[]
 }
 
-export const getCollateralInterest = async () => {
-  const client = await cdpClient()
+export const getCollateralInterest = async (rpcUrl: string) => {
+  const client = await cdpClient(rpcUrl)
   return client.getCollateralInterest()
 }
 
-export const getCreditRate = async () => {
-  const client = await cdpClient()
+export const getCreditRate = async (rpcUrl: string) => {
+  const client = await cdpClient(rpcUrl)
   return client.getCreditRate()
 }
 
-export const getUserPositions = async (address: Addr) => {
-  const client = await cdpClient()
+export const getUserPositions = async (address: Addr, rpcUrl: string) => {
+  const client = await cdpClient(rpcUrl)
   return client.getBasketPositions({
     user: address,
   })
 }
 
-export const getUserDiscount = async (address: string) => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getUserDiscount = async (address: string, rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.system_discounts, {
     user_discount: { user: address }
   }) as Promise<{ user: string, discount: string }>
 }
 
-export const getBasketPositions = async () => {
-  const client = await cdpClient()
+export const getBasketPositions = async (rpcUrl: string) => {
+  const client = await cdpClient(rpcUrl)
   return client.getBasketPositions({
     limit: 1024,
   })

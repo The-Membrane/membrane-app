@@ -5,9 +5,8 @@ import useAppState from '@/persisted-state/useAppState';
 
 
 //Osmosis
-export const getCosmWasmClient = () => {
-  const { appState } = useAppState()
-  return CosmWasmClient.connect(appState.rpcURL ?? rpcUrl)
+export const getCosmWasmClient = (rpcUrl: string) => {
+  return CosmWasmClient.connect(rpcUrl)
 }
 
 //SG

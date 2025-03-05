@@ -5,10 +5,10 @@ import { Badge } from './Badge'
 import { FilterButtons } from './FilterButtons'
 import { Pagination } from './Pagination'
 import ProposalDetails from './ProposalDetails'
-import useProposals from './hooks/useProposals'
 import { Search } from './Search'
 import { ProposalResponse } from '@/services/governance'
 import { colors } from '@/config/defaults'
+import { useProposals } from '@/hooks/useGovernance'
 
 export type Filter = {
   status: string

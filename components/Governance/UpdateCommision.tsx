@@ -10,7 +10,7 @@ import {
   Text,
 } from '@chakra-ui/react'
 import useDelegateState from './hooks/useDelegateState'
-import useDelegations from './hooks/useDelegations'
+import { useDelegations } from '@/hooks/useGovernance'
 
 type Props = {}
 

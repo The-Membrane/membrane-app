@@ -4,8 +4,8 @@ import { Addr } from '@/contracts/generated/positions/Positions.types'
 import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
-export const vestingClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const vestingClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new VestingQueryClient(cosmWasmClient, contracts.vesting)
 }
 
@@ -13,15 +13,15 @@ export const getSigningVestingClient = (signingClient: SigningCosmWasmClient, ad
   return new VestingClient(signingClient, address, contracts.vesting)
 }
 
-export const getAllocation = async (address: Addr) => {
-  const client = await vestingClient()
+export const getAllocation = async (address: Addr, rpcUrl: string) => {
+  const client = await vestingClient(rpcUrl)
   return client.recipient({
     recipient: address,
   })
 }
 
-export const getUnlocked = async (address: Addr) => {
-  const client = await vestingClient()
+export const getUnlocked = async (address: Addr, rpcUrl: string) => {
+  const client = await vestingClient(rpcUrl)
   return client.unlockedTokens({
     recipient: address,
   })

@@ -6,13 +6,13 @@ import { queryClient } from '@/pages/_app'
 import { Basket } from '@/contracts/codegen/positions/Positions.types'
 import { useOraclePrice } from '@/hooks/useOracle'
 
-export const oracleClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const oracleClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new OracleQueryClient(cosmWasmClient, contracts.oracle)
 }
 
-export const cdtSpecificOracleClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const cdtSpecificOracleClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new OracleQueryClient(cosmWasmClient, contracts.cdtOracle) //The main oracle has the wrong CDT price rn
 }
 
@@ -25,6 +25,7 @@ export const parsePrice = (prices: PriceResponse[], assetInfos: AssetInfo[]): Pr
   return prices.flatMap((price, index) => {
     const asset = assetInfos[index]
     return {
+      //@ts-ignore
       denom: asset?.native_token?.denom,
       price: price.price,
     }
@@ -53,15 +54,15 @@ const getAssetsInfo = (basket: Basket) => {
   return [mbrnAssetInfo, ...collateralAssets] as AssetInfo[]
 }
 
-export const getOracleConfig = async () => {
+export const getOracleConfig = async (rpcUrl: string) => {
 
-  const client = await oracleClient()
+  const client = await oracleClient(rpcUrl)
   return client.config()
 }
 
-export const getOracleAssetInfos = async (asset_infos: AssetInfo[]) => {
+export const getOracleAssetInfos = async (asset_infos: AssetInfo[], rpcUrl: string) => {
 
-  const client = await oracleClient()
+  const client = await oracleClient(rpcUrl)
   const params = {
     assetInfos: asset_infos,
   }
@@ -69,12 +70,12 @@ export const getOracleAssetInfos = async (asset_infos: AssetInfo[]) => {
 }
 
 
-export const getOraclePrices = async (basket: Basket) => {
+export const getOraclePrices = async (basket: Basket, rpcUrl: string) => {
   const assetInfos = getAssetsInfo(basket)
   const oracleTimeLimit = 10
   const twapTimeframe = 0
 
-  const client = await oracleClient()
+  const client = await oracleClient(rpcUrl)
   const params = {
     assetInfos,
     oracleTimeLimit,
@@ -86,7 +87,7 @@ export const getOraclePrices = async (basket: Basket) => {
       denom: 'factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt',
     },
   }
-  const cdtClient = await cdtSpecificOracleClient()
+  const cdtClient = await cdtSpecificOracleClient(rpcUrl)
   const cdtParams = {
     assetInfos: [cdtAssetInfo],
     oracleTimeLimit,

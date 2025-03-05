@@ -5,7 +5,7 @@ import { devtools, persist } from 'zustand/middleware'
 
 export type AppState = {
     setCookie?: boolean
-    rpcURL: string
+    rpcUrl: string
 }
 
 type Store = {
@@ -15,7 +15,7 @@ type Store = {
 }
 
 const initialState: AppState = {
-    rpcURL: rpcUrl,
+    rpcUrl: rpcUrl,
 }
 
 // @ts-ignore

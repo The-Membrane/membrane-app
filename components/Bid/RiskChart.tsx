@@ -5,9 +5,7 @@ import { Box, HStack, Spinner, Stack, Text } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import { Bar, BarChart, Cell, Rectangle, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import useBidState from './hooks/useBidState'
-import useCapitalAheadOfDeposit from './hooks/useCapitalAheadOfDeposit'
-import useLiquidation from './hooks/useLiquidation'
-import useStabilityAssetPool from './hooks/useStabilityAssetPool'
+import { useCapitalAheadOfDeposit, useLiquidation, useStabilityAssetPool } from '@/hooks/useLiquidations'
 
 const CustomTooltip = ({ active, payload, label }) => {
   const { tvl, premium, capitalAheadAmount } = payload[0]?.payload || {}
@@ -62,7 +60,7 @@ const CustomTick = ({ x, y, payload, bidState, onClick }) => {
   return (
     <g transform={`translate(${x},${y})`}>
       {/* Restyle the tick based on the condition */}
-      <text x={0} y={0} dy={11} textAnchor="middle" fill={payload.value === bidState.placeBid.premium ? "#00A3F9" : isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} onClick={() => {onClick(payload.value)}} cursor={"pointer"}>
+      <text x={0} y={0} dy={11} textAnchor="middle" fill={payload.value === bidState.placeBid.premium ? "#00A3F9" : isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} onClick={() => { onClick(payload.value) }} cursor={"pointer"}>
         {payload.value}
       </text>
     </g>
@@ -76,8 +74,8 @@ const RiskChart = () => {
   const { data: stabilityPoolAssets } = useStabilityAssetPool()
   const { data: capitalAheadAmount = 0 } = useCapitalAheadOfDeposit()
 
-    
-  const onPremiumChange = (value: number) => {    
+
+  const onPremiumChange = (value: number) => {
     const existingBid = bidState?.placeBid || {}
     const placeBid = {
       ...existingBid,

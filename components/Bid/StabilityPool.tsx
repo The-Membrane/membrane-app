@@ -17,11 +17,11 @@ import { isGreaterThanZero, num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import useCountdown from '@/hooks/useCountdown'
 import { ChangeEvent, useState } from 'react'
-import useStabilityAssetPool from './hooks/useStabilityAssetPool'
 import useWithdrawStabilityPool from './hooks/useWithdrawStabilityPool'
 import useBidState from './hooks/useBidState'
 import dayjs from 'dayjs'
 import { colors } from '@/config/defaults'
+import { useStabilityAssetPool } from '@/hooks/useLiquidations'
 
 
 export const getSPTimeLeft = (unstakeStartDate: number) => {

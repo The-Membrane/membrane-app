@@ -2,9 +2,9 @@ import { Card, HStack, Spinner, Text } from '@chakra-ui/react'
 import DelegateList from './DelegateList'
 import BecomeDelegate from './BecomeDelegate'
 import useWallet from '@/hooks/useWallet'
-import useDelegations from './hooks/useDelegations'
-import useStaked from '../Stake/hooks/useStaked'
 import { num } from '@/helpers/num'
+import useStaked from '../Stake/hooks/useStaked'
+import { useDelegations } from '@/hooks/useGovernance'
 
 const Delegate = () => {
   const { isWalletConnected } = useWallet()

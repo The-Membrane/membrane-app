@@ -21,8 +21,8 @@ import { StabilityPoolMsgComposer } from '@/contracts/codegen/stability_pool/Sta
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { Coin } from '@cosmjs/stargate'
 
-export const stabiityPoolClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const stabiityPoolClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new StabilityPoolQueryClient(cosmWasmClient, contracts.stabilityPool)
 }
 
@@ -40,20 +40,20 @@ type BidMsg = {
 
 export const buildStabilityPooldepositMsg = ({ address, funds = [] }: BidMsg) => {
   const messageComposer = new StabilityPoolMsgComposer(address, contracts.stabilityPool)
-  return messageComposer.deposit({ }, funds)
+  return messageComposer.deposit({}, funds)
 }
 
-export const getUserClaims = async (address: Addr) => {
-  const stabilityPool = await stabiityPoolClient()
+export const getUserClaims = async (address: Addr, rpcUrl: string) => {
+  const stabilityPool = await stabiityPoolClient(rpcUrl)
   return stabilityPool.userClaims({ user: address })
 }
 
-export const getAssetPool = async (address: Addr) => {
-  const stabilityPool = await stabiityPoolClient()
+export const getAssetPool = async (address: Addr, rpcUrl: string) => {
+  const stabilityPool = await stabiityPoolClient(rpcUrl)
   return stabilityPool.assetPool({ user: address })
 }
-export const getCapitalAheadOfDeposit = async (address: Addr) => {
-  const stabilityPool = await stabiityPoolClient()
+export const getCapitalAheadOfDeposit = async (address: Addr, rpcUrl: string) => {
+  const stabilityPool = await stabiityPoolClient(rpcUrl)
   return stabilityPool
     .capitalAheadOfDeposit({ user: address })
     .then((res) => {

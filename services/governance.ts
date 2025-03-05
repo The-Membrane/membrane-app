@@ -16,8 +16,8 @@ import { num } from '@/helpers/num'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import dayjs from 'dayjs'
 
-export const getGovernanceClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getGovernanceClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new GovernanceQueryClient(cosmWasmClient, contracts.governance)
 }
 
@@ -60,11 +60,11 @@ export const calcuateRatio = (proposal: ProposalResponse, config: Config) => {
   const alignRatio = num(totalVotes).isZero()
     ? 0
     : num(aligned_power)
-        .minus(config.proposal_required_stake)
-        .plus(num(config.proposal_required_stake).sqrt())
-        .dividedBy(totalVotes)
-        .dp(2)
-        .toNumber()
+      .minus(config.proposal_required_stake)
+      .plus(num(config.proposal_required_stake).sqrt())
+      .dividedBy(totalVotes)
+      .dp(2)
+      .toNumber()
   return { forRatio, againstRatio, amendRatio, removeRatio, alignRatio }
 }
 
@@ -155,21 +155,21 @@ const parseProposal = (proposals: ProposalResponseType[]) => {
   return [...activeProposals, ...completedProposals, ...executedProposals, ...pendingProposals]
 }
 
-export const getConfig = async () => {
-  const client = await getGovernanceClient()
+export const getConfig = async (rpcUrl: string) => {
+  const client = await getGovernanceClient(rpcUrl)
   return client.config()
 }
 
-export const getProposals = async () => {
-  const client = await getGovernanceClient()
-  const config = await getConfig()
+export const getProposals = async (rpcUrl: string) => {
+  const client = await getGovernanceClient(rpcUrl)
+  const config = await getConfig(rpcUrl)
   // const requiredQuorum = parseFloat(config.proposal_required_quorum)
   const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
- const start = 129
+  const start = 129
   const limit = 30 //Contract's max limit is 30 so we'll need to move the start point every 30 proposals
 
-  var activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop)=> prop.proposal_id != "61")  
+  var activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop) => prop.proposal_id != "61")
   const secondProp = await client.proposal({ proposalId: 98 }).then((res) => res)
   activeProposals.push(secondProp)
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
@@ -199,12 +199,12 @@ export const getProposals = async () => {
 
 
   return allProposals.filter((prop) => prop.proposal_id != "61")
-  .map((proposal) => ({
-    ...proposal,
-    result: calculateProposalResult(proposal, config),
-    ratio: calcuateRatio(proposal, config),
-    requiredQuorum,
-  }))
+    .map((proposal) => ({
+      ...proposal,
+      result: calculateProposalResult(proposal, config),
+      ratio: calcuateRatio(proposal, config),
+      requiredQuorum,
+    }))
 }
 
 const checkIfVoted = (proposal: Proposal, address?: Addr) => {
@@ -236,25 +236,25 @@ const checkIfVoted = (proposal: Proposal, address?: Addr) => {
   }
 }
 
-const getTotalVotingPower = async (proposal: Proposal) => {
-  const client = await getGovernanceClient()
+const getTotalVotingPower = async (proposal: Proposal, rpcUrl: string) => {
+  const client = await getGovernanceClient(rpcUrl)
 
   return client.totalVotingPower({
     proposalId: Number(proposal.proposal_id),
   })
 }
 
-const getQuorum = async (proposal: Proposal) => {
-  const config = await getConfig()
+const getQuorum = async (proposal: Proposal, rpcUrl: string) => {
+  const config = await getConfig(rpcUrl)
   const { against_power, for_power, aligned_power, amendment_power, removal_power } = proposal
 
-  const totalVotingPower = await getTotalVotingPower(proposal)
+  const totalVotingPower = await getTotalVotingPower(proposal, rpcUrl)
 
-  var standardized_align_power =  num(aligned_power)
-        .minus(config.proposal_required_stake)
-        .plus(num(config.proposal_required_stake).sqrt())
-        
-  
+  var standardized_align_power = num(aligned_power)
+    .minus(config.proposal_required_stake)
+    .plus(num(config.proposal_required_stake).sqrt())
+
+
   const power = num(against_power)
     .plus(for_power)
     .plus(standardized_align_power)
@@ -267,10 +267,10 @@ const getQuorum = async (proposal: Proposal) => {
   return num(q).isLessThan(1) ? num(q).times(100).toNumber() : q
 }
 
-export const getProposal = async (proposalId: number, address?: Addr) => {
-  const client = await getGovernanceClient()
+export const getProposal = async (proposalId: number, rpcUrl: string, address?: Addr) => {
+  const client = await getGovernanceClient(rpcUrl)
   const proposal = await client.proposal({ proposalId })
-  const quorum = await getQuorum(proposal)
+  const quorum = await getQuorum(proposal, rpcUrl)
   const vote = checkIfVoted(proposal, address)
 
   return {
@@ -280,8 +280,8 @@ export const getProposal = async (proposalId: number, address?: Addr) => {
   }
 }
 
-export const getUserVotingPower = async (address: Addr, proposalId: number) => {
-  const client = await getGovernanceClient()
+export const getUserVotingPower = async (address: Addr, proposalId: number, rpcUrl: string) => {
+  const client = await getGovernanceClient(rpcUrl)
   return client.userVotingPower({
     user: address,
     proposalId,

@@ -61,7 +61,10 @@ import { GasPrice } from '@cosmjs/stargate'
 import useAppState from '@/persisted-state/useAppState'
 const App = ({ Component, pageProps }: AppProps) => {
 
-  // const { appState } = useAppState()
+  const { appState, setAppState } = useAppState()
+  if (appState?.rpcUrl === undefined) {
+    setAppState({ rpcUrl: rpcUrl });
+  }
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
@@ -96,7 +99,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             isLazy: true,
             endpoints: {
               osmosis: {
-                rpc: ['https://osmosis-rpc.polkachu.com/'],
+                rpc: [appState.rpcUrl],
               },
             },
           }}

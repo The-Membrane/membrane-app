@@ -6,10 +6,10 @@ import { SliderWithState } from '../Mint/SliderWithState'
 import Summary from './Summary'
 import useBid from './hooks/useBid'
 import useBidState from './hooks/useBidState'
-import useQueue from './hooks/useQueue'
 import { ChangeEvent, useMemo, useState } from 'react'
 import { num } from '@/helpers/num'
 import { delayTime } from '@/config/defaults'
+import { useQueue } from '@/hooks/useLiquidations'
 
 const PlaceBid = () => {
   const { bidState, setBidState } = useBidState()
@@ -22,36 +22,36 @@ const PlaceBid = () => {
   const { data: queue } = useQueue(bidState?.selectedAsset)
   const cdt = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdt)
-  const [ inputAmount, setInputAmount ] = useState(0);
-  const [ premiuminputAmount, setPremiumInputAmount ] = useState(0);
+  const [inputAmount, setInputAmount] = useState(0);
+  const [premiuminputAmount, setPremiumInputAmount] = useState(0);
 
   const maxPremium = queue?.max_premium
-  
+
   //CDT Input
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault()
     const newAmount = e.target.value
 
     if (num(newAmount).isGreaterThan(cdtBalance)) setInputAmount(parseInt(cdtBalance))
-      else setInputAmount(parseInt(e.target.value))
-    
+    else setInputAmount(parseInt(e.target.value))
+
     setTimeout(() => {
-      if (num(newAmount).isGreaterThan(cdtBalance)) setBidState({placeBid: {...bidState?.placeBid, cdt: parseInt(cdtBalance)}})
-        else setBidState({placeBid: {...bidState?.placeBid, cdt: parseInt(e.target.value)}})
-    }, delayTime);        
+      if (num(newAmount).isGreaterThan(cdtBalance)) setBidState({ placeBid: { ...bidState?.placeBid, cdt: parseInt(cdtBalance) } })
+      else setBidState({ placeBid: { ...bidState?.placeBid, cdt: parseInt(e.target.value) } })
+    }, delayTime);
   }
   //Premium Input
   const handlePremiumInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault()
     const newAmount = e.target.value
 
-    if (num(newAmount).isGreaterThan(maxPremium??10)) setPremiumInputAmount(parseInt(maxPremium??'10'))
-      else setPremiumInputAmount(parseInt(e.target.value))
-    
+    if (num(newAmount).isGreaterThan(maxPremium ?? 10)) setPremiumInputAmount(parseInt(maxPremium ?? '10'))
+    else setPremiumInputAmount(parseInt(e.target.value))
+
     setTimeout(() => {
-      if (num(newAmount).isGreaterThan(maxPremium??10)) setBidState({placeBid: {...bidState?.placeBid, premium: parseInt(maxPremium??'10')}})
-        else setBidState({placeBid: {...bidState?.placeBid, premium: parseInt(e.target.value)}})
-    }, delayTime);        
+      if (num(newAmount).isGreaterThan(maxPremium ?? 10)) setBidState({ placeBid: { ...bidState?.placeBid, premium: parseInt(maxPremium ?? '10') } })
+      else setBidState({ placeBid: { ...bidState?.placeBid, premium: parseInt(e.target.value) } })
+    }, delayTime);
   }
 
 
@@ -74,7 +74,7 @@ const PlaceBid = () => {
     setBidState({ ...bidState, placeBid })
   }
   //Instead of changing the premium input amount on the slider, we useMemo to account for premium x-axis clicks
-  useMemo(() => {setPremiumInputAmount(bidState?.placeBid.premium)}, [bidState?.placeBid.premium])
+  useMemo(() => { setPremiumInputAmount(bidState?.placeBid.premium) }, [bidState?.placeBid.premium])
 
 
   const isDisabled = (bidState?.placeBid?.cdt) === 0
@@ -87,15 +87,15 @@ const PlaceBid = () => {
 
       <HStack w="full" gap="10" mb="2">
         <Stack w="full" gap="1">
-          <HStack justifyContent="space-between">          
-            <Input 
-              width={"49%"} 
-              textAlign={"center"} 
-              placeholder="0" 
-              type="number" 
-              value={inputAmount} 
+          <HStack justifyContent="space-between">
+            <Input
+              width={"49%"}
+              textAlign={"center"}
+              placeholder="0"
+              type="number"
+              value={inputAmount}
               onChange={handleInputChange}
-             />
+            />
             <Text fontSize="16px" fontWeight="700">
               CDT with
             </Text>
@@ -110,14 +110,14 @@ const PlaceBid = () => {
 
         <Stack w="full" gap="1">
           <HStack justifyContent="space-between">
-            <Input 
-              width={"38%"} 
-              textAlign={"center"} 
-              placeholder="0" 
-              type="number" 
-              value={premiuminputAmount} 
+            <Input
+              width={"38%"}
+              textAlign={"center"}
+              placeholder="0"
+              type="number"
+              value={premiuminputAmount}
               onChange={handlePremiumInputChange}
-             />
+            />
             <Text fontSize="16px" fontWeight="700">
               % Premium
             </Text>

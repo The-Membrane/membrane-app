@@ -4,8 +4,8 @@ import React from 'react'
 import useCastVote from './hooks/useCastVote'
 import { ProposalVoteOption } from '@/contracts/codegen/governance/Governance.types'
 import { TxButton } from '@/components/TxButton'
-import useVotingPower from './hooks/useVotingPower'
 import { colors } from '@/config/defaults'
+import { useVotingPower } from '@/hooks/useGovernance'
 
 type Props = {
   show: boolean

@@ -7,8 +7,8 @@ import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
-export const lockdropClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const lockdropClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new LaunchQueryClient(cosmWasmClient, contracts.lockdrop)
 }
 
@@ -28,13 +28,13 @@ const incentivesResponse = (amount: string, hasParticipated: boolean) => {
   }
 }
 
-export const getLockdrop = async () => {
-  const client = await lockdropClient()
+export const getLockdrop = async (rpcUrl: string) => {
+  const client = await lockdropClient(rpcUrl)
   return client.lockdrop()
 }
 
-export const getIncentiveDistribution = async () => {
-  const client = await lockdropClient()
+export const getIncentiveDistribution = async (rpcUrl: string) => {
+  const client = await lockdropClient(rpcUrl)
   return client.incentiveDistribution()
 }
 
@@ -48,8 +48,8 @@ export const getRanking = async (distribution: UserRatio[], address?: Addr) => {
   }
 }
 
-export const getIncentives = async (user: Addr) => {
-  const client = await lockdropClient()
+export const getIncentives = async (user: Addr, rpcUrl: string) => {
+  const client = await lockdropClient(rpcUrl)
 
   return client
     .userIncentives({ user })
@@ -63,9 +63,9 @@ export const getIncentives = async (user: Addr) => {
     })
 }
 
-export const getUserInfo = async (address: Addr) => {
+export const getUserInfo = async (address: Addr, rpcUrl: string) => {
   const osmos = getAssetBySymbol('OSMO')
-  const client = await lockdropClient()
+  const client = await lockdropClient(rpcUrl)
   const userInfo = await client.userInfo({
     user: address,
   })

@@ -5,6 +5,7 @@ import { getBoundedTVL } from '@/services/earn';
 import type { NextApiRequest, NextApiResponse } from 'next'
 import contracts from '@/config/contracts.json'
 import { shiftDigits } from '@/helpers/math';
+import { rpcUrl } from '@/config/defaults';
 
 type Data = {
   apr?: number,
@@ -18,11 +19,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
     const [basket, interest, vaultCDT, basketPositions, client] = await Promise.all([
-      getBasket(),
-      getCollateralInterest(),
-      getBoundedTVL(),
-      getBasketPositions(),
-      cdpClient()
+      getBasket(rpcUrl),
+      getCollateralInterest(rpcUrl),
+      getBoundedTVL(rpcUrl),
+      getBasketPositions(rpcUrl),
+      cdpClient(rpcUrl),
     ]);
 
     if (!basket || !interest || !vaultCDT || !client || !basketPositions) {

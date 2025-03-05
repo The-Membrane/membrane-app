@@ -75,16 +75,15 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
     return debt_value / position_value;
 }
 
-export const OsmosisClient = async () => {
-    const { appState } = useAppState()
+const OsmosisClient = async (rpcUrl: string) => {
     const { createRPCQueryClient } = osmosis.ClientFactory;
-    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: appState.rpcURL ?? rpcUrl })
+    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: rpcUrl })
     return osmosisClient
 }
 
 //Pool Liquidity
-export const getPoolLiquidity = async (poolId: string) => {
-    const osmosisClient = await OsmosisClient()
+export const getPoolLiquidity = async (poolId: string, rpcUrl: string) => {
+    const osmosisClient = await OsmosisClient(rpcUrl)
     const liquidity = await osmosisClient.osmosis.poolmanager.v1beta1.totalPoolLiquidity({
         poolId: BigInt(poolId),
     })
@@ -92,8 +91,8 @@ export const getPoolLiquidity = async (poolId: string) => {
 }
 
 //Spread Rewards, not incentives
-export const getCLRewards = async (positionId: string) => {
-    const osmosisClient = await OsmosisClient()
+const getCLRewards = async (positionId: string, rpcUrl: string) => {
+    const osmosisClient = await OsmosisClient(rpcUrl)
     const rewards = await osmosisClient.osmosis.concentratedliquidity.v1beta1.claimableSpreadRewards({
         positionId: BigInt(positionId),
     })
@@ -101,8 +100,8 @@ export const getCLRewards = async (positionId: string) => {
 }
 
 //Position assets
-export const getCLPosition = async (positionId: string) => {
-    const osmosisClient = await OsmosisClient()
+const getCLPosition = async (positionId: string, rpcUrl: string) => {
+    const osmosisClient = await OsmosisClient(rpcUrl)
     const position = await osmosisClient.osmosis.concentratedliquidity.v1beta1.positionById({
         positionId: BigInt(positionId),
     })
@@ -111,6 +110,7 @@ export const getCLPosition = async (positionId: string) => {
 
 //Get the RangeBound positions
 export const getCLPositionsForVault = () => {
+    const { appState } = useAppState()
     const { data: config } = useBoundedConfig()
     const { data: prices } = useOraclePrice()
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
@@ -121,8 +121,8 @@ export const getCLPositionsForVault = () => {
         queryFn: async () => {
             if (!config) return;
             const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor }
-            const ceilingPosition = await getCLPosition(positions.ceiling.toString())
-            const floorPosition = await getCLPosition(positions.floor.toString())
+            const ceilingPosition = await getCLPosition(positions.ceiling.toString(), appState.rpcUrl)
+            const floorPosition = await getCLPosition(positions.floor.toString(), appState.rpcUrl)
 
             // console.log("ceiling", ceilingPosition, "floor", floorPosition, "prices", cdtPrice, usdcPrice)
 
@@ -157,12 +157,14 @@ export const getCLPositionsForVault = () => {
 }
 
 export const useRBLPRewards = () => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['RBLPRewards'],
         queryFn: async () => {
 
-            const ceiling = getCLRewards("11541781")
-            const floor = getCLRewards("11541780")
+            const ceiling = getCLRewards("11541781", appState.rpcUrl)
+            const floor = getCLRewards("11541780", appState.rpcUrl)
             return { ceiling, floor }
         },
     })
@@ -170,11 +172,14 @@ export const useRBLPRewards = () => {
 
 
 export const getLPRewards = () => {
+
+    const { appState } = useAppState()
+
     return useQueries({
         queries: clPositions.map((position) => ({
             queryKey: ['cl_position_rewards', position.id],
             queryFn: async () => {
-                return getCLRewards(position.id)
+                return getCLRewards(position.id, appState.rpcUrl)
             },
             staleTime: 60000, // 60 seconds (adjust based on your needs)
         })) || [],

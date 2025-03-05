@@ -13,8 +13,8 @@ import { shiftDigits } from '@/helpers/math'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { Coin } from '@cosmjs/stargate'
 
-export const liquidationClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const liquidationClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new LiquidationQueueQueryClient(cosmWasmClient, contracts.liquidation)
 }
 
@@ -25,8 +25,8 @@ export const getSigningLiquidationClient = (
   return new LiquidationQueueClient(signingClient, address, contracts.liquidation)
 }
 
-export const getLiquidationQueue = async (asset: Asset) => {
-  const client = await liquidationClient()
+export const getLiquidationQueue = async (asset: Asset, rpcUrl: string) => {
+  const client = await liquidationClient(rpcUrl)
   return client.premiumSlots({
     bidFor: {
       native_token: {
@@ -35,8 +35,8 @@ export const getLiquidationQueue = async (asset: Asset) => {
     },
   })
 }
-export const getQueue = async (asset: Asset) => {
-  const client = await liquidationClient()
+export const getQueue = async (asset: Asset, rpcUrl: string) => {
+  const client = await liquidationClient(rpcUrl)
   return client.queue({
     bidFor: {
       native_token: {
@@ -46,8 +46,8 @@ export const getQueue = async (asset: Asset) => {
   })
 }
 
-export const getAllQueues = async () => {
-  const client = await liquidationClient()
+export const getAllQueues = async (rpcUrl: string) => {
+  const client = await liquidationClient(rpcUrl)
   return client.queues({ limit: 256 })
 }
 
@@ -113,8 +113,8 @@ export const buildRetractBidMsg = ({ address, denom, bidId, amount }: RetractBid
   })
 }
 
-export const getUserBids = async (address: Addr, denom?: string) => {
-  const client = await liquidationClient()
+export const getUserBids = async (address: Addr, rpcUrl: string, denom?: string) => {
+  const client = await liquidationClient(rpcUrl)
 
   if (!denom) return
 
@@ -123,7 +123,7 @@ export const getUserBids = async (address: Addr, denom?: string) => {
       denom,
     },
   }
-  
+
   // let userBids = [];
   // //Query every premium slot
   // for (let i = 0; i <= 10; i++) {
@@ -146,8 +146,8 @@ export const getUserBids = async (address: Addr, denom?: string) => {
   })
 }
 
-export const getUserClaims = async (address: Addr) => {
-  const client = await liquidationClient()
+export const getUserClaims = async (address: Addr, rpcUrl: string) => {
+  const client = await liquidationClient(rpcUrl)
 
   return client.userClaims({
     user: address,

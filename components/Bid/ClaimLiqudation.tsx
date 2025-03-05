@@ -1,11 +1,10 @@
 import ConfirmModal from '@/components/ConfirmModal'
 import { num } from '@/helpers/num'
 import { ClaimSummary } from './ClaimSummary'
-import useCheckClaims from './hooks/useCheckClaims'
 import useClaimLiquidation from './hooks/useClaimLiquidation'
-import useCheckSPClaims from './hooks/useCheckSPClaims'
 import { claimstoCoins } from '@/services/liquidation'
 import { Coin } from '@cosmjs/stargate'
+import { useCheckClaims, useCheckSPClaims } from '@/hooks/useLiquidations'
 
 const ClaimLiqudation = () => {
   const { data: claims } = useCheckClaims()
@@ -19,7 +18,7 @@ const ClaimLiqudation = () => {
   }
 
   const isClaimDisabled = claim_coins?.filter((claim) => num(claim.amount).gt(0))
-  
+
   return (
     <ConfirmModal
       label="Claim"

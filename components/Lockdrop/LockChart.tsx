@@ -9,7 +9,7 @@ import {
   useLockdropClient,
   useRanking,
   useUserInfo,
-} from './hooks/useLockdrop'
+} from '../../hooks/useLockdrop'
 import { useMemo, useState } from 'react'
 
 const data = [{ name: 'Group A', value: 400 }]
@@ -21,7 +21,7 @@ const Chart = () => {
   const { data: lockdropClient } = useLockdropClient()
   const { data: userInfo } = useUserInfo()
 
-  const [ pieValue, setPieValue ] = useState(0)
+  const [pieValue, setPieValue] = useState(0)
   var endTime = lockdrop?.withdrawal_end
   var currentTime = 0
   var progress: number[] | undefined = []
@@ -45,8 +45,8 @@ const Chart = () => {
       }
     })
 
-    if (progress) setPieValue(progress.reduce((a, b) => a+b, 0)); else setPieValue(1)
-    
+    if (progress) setPieValue(progress.reduce((a, b) => a + b, 0)); else setPieValue(1)
+
   })
 
   return (
@@ -98,7 +98,7 @@ const LockChart = () => {
       <HStack w="full" alignSelf="center">
         <Stack w="full" gap="0">
           <Text variant="label" fontSize="xl">
-          {parseFloat(shiftDigits(((inCentivesAmount??0) as string), -6)).toFixed(2)} MBRN
+            {parseFloat(shiftDigits(((inCentivesAmount ?? 0) as string), -6)).toFixed(2)} MBRN
           </Text>
           <Text fontSize="xs" color="gray">
             Rank: {userRanking} / {totalRanking}

@@ -24,9 +24,6 @@ const Home = () => {
 
   console.log("Home")
   const { appState, setAppState } = useAppState();
-  if (appState?.rpcURL === undefined) {
-    setAppState({ rpcURL: rpcUrl });
-  }
   const [hasShownToast, setHasShownToast] = useState(false);
   const toaster = useToaster();
 

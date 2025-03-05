@@ -30,16 +30,16 @@ export type IntentResponse = {
   }
 }
 
-export const EarnClient = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const EarnClient = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new EarnQueryClient(cosmWasmClient, contracts.earn)
 }
 // export const usdcVaultClient = async () => {
 //   return new EarnQueryClient(cosmWasmClient, contracts.earn)
 // }
 
-export const getBoundedConfig = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getBoundedConfig = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     config: {}
   }) as Promise<{
@@ -68,15 +68,15 @@ export const getBoundedConfig = async () => {
   }>
 }
 
-export const getBoundedTVL = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getBoundedTVL = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     total_t_v_l: {}
   }) as Promise<Uint128>
 }
 
-export const getBoundedIntents = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getBoundedIntents = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     get_user_intent: {
       users: []
@@ -84,8 +84,8 @@ export const getBoundedIntents = async () => {
   }) as Promise<IntentResponse[]>
 }
 
-export const getDepositTokenConversionforMarsUSDC = async (depositAmount: string) => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getDepositTokenConversionforMarsUSDC = async (depositAmount: string, rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.marsUSDCvault, {
     deposit_token_conversion: {
       deposit_token_amount: depositAmount
@@ -93,13 +93,13 @@ export const getDepositTokenConversionforMarsUSDC = async (depositAmount: string
   }) as Promise<Uint128>
 }
 
-export const getUnderlyingUSDC = async (vtAmount: string) => {
-  const client = await EarnClient()
+export const getUnderlyingUSDC = async (vtAmount: string, rpcUrl: string) => {
+  const client = await EarnClient(rpcUrl)
   return client.vaultTokenUnderlying({ vaultTokenAmount: vtAmount }).then((res) => res) as Promise<Uint128>
 }
 
-export const getUnderlyingCDT = async (vtAmount: string) => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getUnderlyingCDT = async (vtAmount: string, rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.autoStabilityPool, {
     vault_token_underlying: {
       vault_token_amount: vtAmount
@@ -107,8 +107,8 @@ export const getUnderlyingCDT = async (vtAmount: string) => {
   }) as Promise<Uint128>
 }
 
-export const getBoundedUnderlyingCDT = async (vtAmount: string) => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getBoundedUnderlyingCDT = async (vtAmount: string, rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     vault_token_underlying: {
       vault_token_amount: vtAmount
@@ -117,34 +117,34 @@ export const getBoundedUnderlyingCDT = async (vtAmount: string) => {
 }
 
 
-export const getVaultAPRResponse = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getVaultAPRResponse = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.marsUSDCvault, {
     a_p_r: {}
   }) as Promise<APRResponse>
 }
 
-export const getEarnUSDCRealizedAPR = async () => {
-  const client = await EarnClient()
+export const getEarnUSDCRealizedAPR = async (rpcUrl: string) => {
+  const client = await EarnClient(rpcUrl)
   return client.aPR().then((res) => res) as Promise<ClaimTracker>
 }
 
-export const getEarnCDTRealizedAPR = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getEarnCDTRealizedAPR = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.autoStabilityPool, {
     claim_tracker: {}
   }) as Promise<ClaimTracker>
 }
 
-export const getBoundedCDTRealizedAPR = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getBoundedCDTRealizedAPR = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.rangeboundLP, {
     claim_tracker: {}
   }) as Promise<ClaimTracker>
 }
 
-export const getMarsUSDCSupplyAPR = async () => {
-  const cosmWasmClient = await getCosmWasmClient()
+export const getMarsUSDCSupplyAPR = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return cosmWasmClient.queryContractSmart(contracts.marsRedBank, {
     market: {
       denom: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4"

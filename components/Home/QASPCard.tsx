@@ -2,7 +2,6 @@ import { Card, Text, Stack, HStack, Input, Button, Slider, SliderTrack, SliderFi
 import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
 import { useEffect, useMemo, useState } from "react"
-import useStabilityAssetPool from "../Bid/hooks/useStabilityAssetPool"
 import { isGreaterThanZero, num } from "@/helpers/num"
 import { useCDTVaultTokenUnderlying, useEarnCDTRealizedAPR, useEstimatedAnnualInterest } from "../Earn/hooks/useEarnQueries"
 import useBidState from "../Bid/hooks/useBidState"

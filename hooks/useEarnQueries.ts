@@ -12,12 +12,15 @@ import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
 import { mainnetAddrs } from "@/config/defaults"
 import { CollateralInterestResponse } from "@/contracts/codegen/positions/Positions.types"
+import useAppState from "@/persisted-state/useAppState"
 
 export const useBoundedConfig = () => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['use_Bounded_Config_plz_run'],
         queryFn: async () => {
-            return getBoundedConfig()
+            return getBoundedConfig(appState.rpcUrl)
         },
         staleTime: 1000 * 60 * 5,
     })
@@ -34,123 +37,122 @@ export const useBoundedConfig = () => {
 
 export const useUserBoundedIntents = () => {
     const { address } = useWallet()
-    // const { userIntentState, setUserIntentState } = useUserIntentState()
-
-    // console.log((userIntentState && userIntentState[0] && userIntentState[0].user !== address), userIntentState, userIntentState[0], userIntentState[0].user !== address)
-    // // Function to determine if we need to fetch from API
-    // const shouldFetchIntent = useCallback(() => {
-    //     // Add any conditions here that would require a fresh fetch
-    //     // For example, if certain required data is missing from userIntentState
-    //     return !userIntentState || Object.keys(userIntentState).length === 0 || (userIntentState && userIntentState[0] && userIntentState[0].user !== address)
-    // }, [userIntentState])
+    const { appState } = useAppState()
 
     const result = useQuery({
         queryKey: ['useUserBoundedIntents', address],
         queryFn: async () => {
             if (!address) return
 
-            // First check if we can use userIntentState
-            // if (!shouldFetchIntent()) {
-            //     return userIntentState
-            // }
-
             // If we need fresh data, fetch from API
-            return getBoundedIntents().then((intents) => {
+            return getBoundedIntents(appState.rpcUrl).then((intents) => {
                 return intents.filter((intent) => intent.user === address)
             })
         },
     })
-
-    // if (shouldFetchIntent() && result.data) {
-    //     setUserIntentState(result.data)
-    // }
 
     return result
 
 }
 
 export const useBoundedIntents = () => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['useBoundedIntents'],
         queryFn: async () => {
-            return getBoundedIntents()
+            return getBoundedIntents(appState.rpcUrl)
         },
         staleTime: 1000 * 60 * 5,
     })
 }
 
 export const useBoundedTVL = () => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['useBoundedTVL'],
         queryFn: async () => {
-            return getBoundedTVL()
+            return getBoundedTVL(appState.rpcUrl)
         },
         staleTime: 1000 * 60 * 5,
     })
 }
 
 export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
+    const { appState } = useAppState()
 
     return useQuery({
         queryKey: ['useUSDCVaultTokenUnderlying', vtAmount],
         queryFn: async () => {
-            return getUnderlyingUSDC(vtAmount)
+            return getUnderlyingUSDC(vtAmount, appState.rpcUrl)
         },
     })
 }
 export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
+    const { appState } = useAppState()
 
     return useQuery({
         queryKey: ['useCDTVaultTokenUnderlying', vtAmount],
         queryFn: async () => {
-            return getUnderlyingCDT(vtAmount)
+            return getUnderlyingCDT(vtAmount, appState.rpcUrl)
         },
     })
 }
 
 export const useDepositTokenConversionforMarsUSDC = (depositAmount: string) => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['useDepositTokenConversionforMarsUSDC', depositAmount],
         queryFn: async () => {
-            return getDepositTokenConversionforMarsUSDC(depositAmount)
+            return getDepositTokenConversionforMarsUSDC(depositAmount, appState.rpcUrl)
         },
     })
 }
 
 export const useBoundedCDTVaultTokenUnderlying = (vtAmount: string) => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['useBoundedCDTVaultTokenUnderlying', vtAmount],
         queryFn: async () => {
-            return getBoundedUnderlyingCDT(vtAmount)
+            return getBoundedUnderlyingCDT(vtAmount, appState.rpcUrl)
         },
     })
 }
 
 export const useEarnUSDCEstimatedAPR = () => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['useEarnUSDCEstimatedAPR'],
         queryFn: async () => {
-            return getVaultAPRResponse()
+            return getVaultAPRResponse(appState.rpcUrl)
         },
     })
 }
 
 export const useMarsUSDCSupplyAPR = () => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['useMarsUSDCSupplyAPR'],
         queryFn: async () => {
-            return (await getMarsUSDCSupplyAPR())?.liquidity_rate ?? 0
+            return (await getMarsUSDCSupplyAPR(appState.rpcUrl))?.liquidity_rate ?? 0
         },
     })
 }
 
 export const useEarnUSDCRealizedAPR = () => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['useEarnUSDCRealizedAPR'],
         queryFn: async () => {
-            const claimTracker = await getEarnUSDCRealizedAPR()
-            const currentClaim = await getUnderlyingUSDC("1000000000000")
-            const blockTime = await cdpClient().then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
+            const claimTracker = await getEarnUSDCRealizedAPR(appState.rpcUrl)
+            const currentClaim = await getUnderlyingUSDC("1000000000000", appState.rpcUrl)
+            const blockTime = await cdpClient(appState.rpcUrl).then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).minus(40237).toString(), //subtracting gains from the exit bug
@@ -184,12 +186,14 @@ export const useEarnUSDCRealizedAPR = () => {
 }
 
 export const useEarnCDTRealizedAPR = () => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['useCDTUSDCRealizedAPR'],
         queryFn: async () => {
-            const claimTracker = await getEarnCDTRealizedAPR()
-            const currentClaim = await getUnderlyingCDT("1000000000000")
-            const blockTime = await cdpClient().then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
+            const claimTracker = await getEarnCDTRealizedAPR(appState.rpcUrl)
+            const currentClaim = await getUnderlyingCDT("1000000000000", appState.rpcUrl)
+            const blockTime = await cdpClient(appState.rpcUrl).then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(), //subtracting gains from the exit bug
@@ -225,12 +229,14 @@ export const useEarnCDTRealizedAPR = () => {
 
 
 export const useBoundedCDTRealizedAPR = () => {
+    const { appState } = useAppState()
+
     return useQuery({
         queryKey: ['useBoundedCDTRealizedAPR'],
         queryFn: async () => {
-            const claimTracker = await getBoundedCDTRealizedAPR()
-            const currentClaim = await getBoundedUnderlyingCDT("1000000000000")
-            const blockTime = await cdpClient().then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
+            const claimTracker = await getBoundedCDTRealizedAPR(appState.rpcUrl)
+            const currentClaim = await getBoundedUnderlyingCDT("1000000000000", appState.rpcUrl)
+            const blockTime = await cdpClient(appState.rpcUrl).then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(),
@@ -363,6 +369,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
     // console.log("AP in interstquery", allPositions) 
     const { data: basketAssets } = useBasketAssets()
     const { setBidState } = useBidState()
+    const { appState } = useAppState()
 
 
     const userDiscountQueries = useDiscounts ? useQueries({
@@ -371,7 +378,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
             queryFn: async () => {
                 // console.log(`Fetching discount for address: ${basketPosition.user}`);
                 if (basketPosition.positions.reduce((acc, position) => acc + parseInt(position.credit_amount), 0) <= 1000) return { discount: 0 }
-                return getUserDiscount(basketPosition.user)
+                return getUserDiscount(basketPosition.user, appState.rpcUrl)
             },
             staleTime: 60000, // 60 seconds (adjust based on your needs)
         })) || [],
@@ -407,13 +414,14 @@ export const useVaultInfo = () => {
     const { data: basket } = useBasket()
     const { data: apr } = useEarnUSDCEstimatedAPR()
     const { getRpcClient } = useRpcClient("osmosis")
+    const { appState } = useAppState()
 
     return useQuery({
         queryKey: ['useVaultInfo', apr, prices, basket],
         queryFn: async () => {
 
             //Query Vault's CDP 
-            const client = await cdpClient()
+            const client = await cdpClient(appState.rpcUrl)
             const vaultCDPs = await client.getBasketPositions({
                 user: contracts.earn,
             })

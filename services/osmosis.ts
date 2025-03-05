@@ -78,7 +78,7 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 export const OsmosisClient = async () => {
     const { appState } = useAppState()
     const { createRPCQueryClient } = osmosis.ClientFactory;
-    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: appState.rpcURL })
+    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: appState.rpcURL ?? rpcUrl })
     return osmosisClient
 }
 

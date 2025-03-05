@@ -5,6 +5,7 @@ import useToaster from '@/hooks/useToaster'
 import NeuroGuardCard from './NeuroGuardCard'
 import useAppState from '../../persisted-state/useAppState'
 import { HomeTitle } from './HomeTitle'
+import { rpcUrl } from '@/config/defaults'
 
 
 // Memoize child components
@@ -23,6 +24,9 @@ const Home = () => {
 
   console.log("Home")
   const { appState, setAppState } = useAppState();
+  if (appState?.rpcURL === undefined) {
+    setAppState({ rpcURL: rpcUrl });
+  }
   const [hasShownToast, setHasShownToast] = useState(false);
   const toaster = useToaster();
 

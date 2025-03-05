@@ -424,7 +424,7 @@ export const calculateVaultSummary = ({
   // console.log("running summ")
   const tvl = initialTVL + newDeposit
   var { cost, ratios, costRatios } = getRateCost(positions, tvl, basketAssets)
-  cost = debtAmount == 0 ? 0 : cost
+  cost = debtAmount == 0 && newDebtAmount == 0 ? 0 : cost
   const ltv = getLTV(tvl, num(debtAmount).plus(mint).minus(repay).multipliedBy(basket.credit_price.price).toNumber())
 
   const creditPrice = Number(basket?.credit_price.price) || 1

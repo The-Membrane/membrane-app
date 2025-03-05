@@ -3,8 +3,6 @@ import useWallet from '@/hooks/useWallet'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
-import useCheckSPClaims from '@/components/Bid/hooks/useCheckSPClaims'
-import useCheckClaims from '@/components/Bid/hooks/useCheckClaims'
 import useClaimLiquidation from '@/components/Bid/hooks/useClaimLiquidation'
 import { useStakingClaim } from '@/components/Stake/hooks/useStakingClaim'
 import useStaked from '@/components/Stake/hooks/useStaked'
@@ -14,13 +12,13 @@ import { useMemo } from 'react'
 import { isGreaterThanZero, num } from '@/helpers/num'
 import useClaimFees from '@/components/Lockdrop/hooks/useClaimFees'
 import useWithdrawStabilityPool from '@/components/Bid/hooks/useWithdrawStabilityPool'
-import useStabilityAssetPool from '@/components/Bid/hooks/useStabilityAssetPool'
 import { getSPTimeLeft } from '@/components/Bid/StabilityPool'
 import useClaimUnstake from '@/components/Stake/hooks/useClaimUnstake'
 import { Coin } from '@cosmjs/stargate'
 import { denoms } from '@/config/defaults'
 import { claimstoCoins } from '@/services/liquidation'
 import useAllocation from '@/components/Lockdrop/hooks/useAllocation'
+import { useCheckClaims, useCheckSPClaims, useStabilityAssetPool } from '@/hooks/useLiquidations'
 
 type ClaimsSummary = {
   liquidation: Coin[]
@@ -200,7 +198,7 @@ const useProtocolClaims = ({ run }: { run: boolean }) => {
             amount: unstake?.amount
           }
         }
-      }))
+      }).filter((coin) => coin !== undefined) as Coin[])
 
       return { msgs, claims: claims_summary }
     },

@@ -141,7 +141,7 @@ export const useBasketPositions = () => {
   const { address } = useWallet()
 
   return useQuery({
-    queryKey: [' all positions'],
+    queryKey: ['all positions'],
     queryFn: async () => {
       return getBasketPositions()
     },

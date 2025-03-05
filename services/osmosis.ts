@@ -30,6 +30,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { position } from "@chakra-ui/react";
 import { getBoundedConfig } from "./earn";
 import { useBoundedConfig } from "@/components/Earn/hooks/useEarnQueries";
+import useAppState from "@/persisted-state/useAppState";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -75,8 +76,9 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 }
 
 export const OsmosisClient = async () => {
+    const { appState } = useAppState()
     const { createRPCQueryClient } = osmosis.ClientFactory;
-    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: rpcUrl })
+    const osmosisClient = await createRPCQueryClient({ rpcEndpoint: appState.rpcURL })
     return osmosisClient
 }
 

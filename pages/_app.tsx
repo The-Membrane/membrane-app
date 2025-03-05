@@ -58,7 +58,10 @@ export const queryClient = new QueryClient({
 
 import '../styles/global.css';
 import { GasPrice } from '@cosmjs/stargate'
+import useAppState from '@/persisted-state/useAppState'
 const App = ({ Component, pageProps }: AppProps) => {
+
+  // const { appState } = useAppState()
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {

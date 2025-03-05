@@ -1,9 +1,11 @@
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
+import { rpcUrl } from '@/config/defaults'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 
 export type AppState = {
     setCookie?: boolean
+    rpcURL: string
 }
 
 type Store = {
@@ -12,7 +14,9 @@ type Store = {
     reset: () => void
 }
 
-const initialState: AppState = {}
+const initialState: AppState = {
+    rpcURL: rpcUrl,
+}
 
 // @ts-ignore
 const store = (set) => ({

@@ -1,13 +1,15 @@
 import { rpcUrl } from '@/config/defaults'
+import useAppState from '@/persisted-state/useAppState'
 import { Alert, AlertIcon } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import React from 'react'
 
 const useRpcStatus = () => {
+  const { appState } = useAppState()
   return useQuery({
-    queryKey: ['rpc status'],
+    queryKey: ['rpc status', appState.rpcURL],
     queryFn: async () => {
-      const url = rpcUrl + '/status'
+      const url = appState.rpcURL + '/status'
       console.log('Requesting URL:', url)
       try {
         const response = await fetch(url)

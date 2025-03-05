@@ -170,8 +170,8 @@ const RangeBoundVisual = () => {
               value={cdtPrice}
               isReadOnly
               cursor="default"
-              min={.98}
-              max={.995}
+              min={.979}
+              max={.996}
               orientation="vertical"
               paddingInlineStart="0"
               width="inherit"

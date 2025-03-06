@@ -530,7 +530,7 @@ const AcquireCDTEntry = React.memo(({
 
   return (
     <>
-      <Card width="100%" borderWidth={3} padding={4}>
+      <Card width="fit-content" alignSelf="center" mb="5%" borderWidth={3} padding={4}>
         <HStack>
           <Image src={"/images/cdt.svg"} w="45px" h="45px" />
           <Text width="fitcontent" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">

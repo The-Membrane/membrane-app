@@ -347,20 +347,20 @@ const RBLPExistingEntry = React.memo(({
 
   return (
     <>
-      <Card width="80%" borderWidth={3} padding={4}>
+      <Card width="fit-content" alignSelf="center" marginBottom="5%" borderWidth={3} padding={4}>
         <HStack>
           <Image src={"/images/cdt.svg"} w="30px" h="30px" />
-          <Text width="80%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            {rblpDeposit.toFixed(2)}
+          <Text width="fit-content" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            {rblpDeposit.toFixed(2)}&nbsp;
             CDT earning &nbsp;
             {yieldValue}% APR
             {/* {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%&nbsp; */}
             {/* historical profits */}
           </Text>
-          <HStack>
+          <HStack width="55%">
             {/* @ts-ignore */}
             <Button
-              width="20%"
+              width="100%"
               display="flex"
               padding="0"
               alignSelf="center"
@@ -373,7 +373,7 @@ const RBLPExistingEntry = React.memo(({
             </Button>
 
             <Button
-              width="20%"
+              width="100%"
               display="flex"
               padding="0"
               alignSelf="center"

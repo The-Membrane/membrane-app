@@ -351,7 +351,7 @@ const RBLPExistingEntry = React.memo(({
         <HStack>
           <Image src={"/images/cdt.svg"} w="45px" h="45px" />
           <Text width="fit-content" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            {rblpDeposit.toFixed(2)}CDT earning&nbsp;
+            {rblpDeposit.toFixed(2)}&nbsp;CDT earning&nbsp;
             {yieldValue}% APR
             {/* {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%&nbsp; */}
             {/* historical profits */}
@@ -1001,7 +1001,7 @@ const NeuroGuardCard = () => {
     <Stack gap={1} marginBottom="3%">
       <>
         {/* Default "if no CDT in wallet" entry */}
-        {(Number(cdtBalance) === 0 && Number(boundCDTBalance) === 0) || true ? <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} usdcPrice={usdcPrice} usdcCost={basketAssets?.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />
+        {(Number(cdtBalance) === 0 && Number(boundCDTBalance) === 0) ? <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} usdcPrice={usdcPrice} usdcCost={basketAssets?.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />
           : (Number(cdtBalance) !== 0 && Number(boundCDTBalance) === 0) ?
             <MemoizedRBLPDepositEntry
               key={"CDT"}

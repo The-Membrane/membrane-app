@@ -51,18 +51,13 @@ const RBLPDepositEntry = React.memo(({
     <>
       <Card width="100%" borderWidth={3} padding={4}>
         <HStack gap="9%">
-          <HStack width="25%" justifyContent="left">
-            {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
-            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-              {asset.symbol}
-            </Text>
-          </HStack>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
+          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            Your
             {/* @ts-ignore */}
             {num((asset?.balance ?? 0)).toFixed(2)}
-          </Text>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-            {yieldValue}%
+            CDT could be earning
+            {yieldValue}% APR
           </Text>
           <Button
             width="36%"
@@ -354,48 +349,39 @@ const RBLPExistingEntry = React.memo(({
     <>
       <Card width="100%" borderWidth={3} padding={4}>
         <HStack gap="9%">
-          <HStack width="20%" justifyContent="left">
-            <Image src={"/images/cdt.svg"} w="30px" h="30px" />
-            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-              CDT
-            </Text>
-          </HStack>
+          <Image src={"/images/cdt.svg"} w="30px" h="30px" />
           <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
             {rblpDeposit.toFixed(2)}
-          </Text>
-          <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
-            {yieldValue}%
-          </Text>
-          <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            CDT earning
+            {yieldValue}% APR with
             {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
+            historical profits
           </Text>
-          <HStack width={"36%"}>
-            {/* @ts-ignore */}
-            <Button
-              width="50%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={onDepositOpen}
-              //@ts-ignore
-              isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
-            >
-              Deposit
-            </Button>
+          {/* @ts-ignore */}
+          <Button
+            width="50%"
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={onDepositOpen}
+            //@ts-ignore
+            isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
+          >
+            Deposit
+          </Button>
 
-            <Button
-              width="50%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={onWithdrawOpen}
-              isDisabled={isDisabled || rblpDeposit === 0}
-            >
-              Withdraw
-            </Button>
-          </HStack>
+          <Button
+            width="50%"
+            display="flex"
+            padding="0"
+            alignSelf="center"
+            margin="0"
+            onClick={onWithdrawOpen}
+            isDisabled={isDisabled || rblpDeposit === 0}
+          >
+            Withdraw
+          </Button>
         </HStack>
       </Card>
 
@@ -893,7 +879,7 @@ const NeuroGuardCard = () => {
 
 
   // Separate complex sections into components
-  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[] }) => {
+  const WalletSection = memo(({ assets, existingGuards, RBYield, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, basketAssets: BasketAsset[] }) => {
     console.log("full wallet rerender")
     const [showAllYields, setShowAllYields] = useState(false);
 
@@ -1022,13 +1008,13 @@ const NeuroGuardCard = () => {
       <>
         {/* Default "if no CDT in wallet" entry */}
         {(Number(cdtBalance) === 0 && Number(boundCDTBalance) === 0) ? <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} usdcPrice={usdcPrice} usdcCost={basketAssets?.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />
-          :
-          <MemoizedRBLPDepositEntry
-            key={"CDT"}
-            //@ts-ignore
-            asset={neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) ?? cdtAsset}
-            RBYield={calculatedRBYield}
-          />
+          : (Number(cdtBalance) !== 0 && Number(boundCDTBalance) === 0) ?
+            <MemoizedRBLPDepositEntry
+              key={"CDT"}
+              //@ts-ignore
+              asset={neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) ?? cdtAsset}
+              RBYield={calculatedRBYield}
+            /> : null
         }
         {Number(boundCDTBalance) > 0 ? < MemoizedRBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
       </>
@@ -1047,10 +1033,10 @@ const NeuroGuardCard = () => {
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
       ) ? */}
-      <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} />
+      <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} basketAssets={basketAssets ?? []} />
       {/* : null} */}
 
-      {(existingGuards && existingGuards.length > 0 && existingGuards[0]) || Number(underlyingCDT) > 0 ?
+      {(existingGuards && existingGuards.length > 0 && existingGuards[0]) ?
         <Stack>
           <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
             Your Guardians

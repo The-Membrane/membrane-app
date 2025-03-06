@@ -347,41 +347,43 @@ const RBLPExistingEntry = React.memo(({
 
   return (
     <>
-      <Card width="100%" borderWidth={3} padding={4}>
-        <HStack gap="9%">
+      <Card width="80%" borderWidth={3} padding={4}>
+        <HStack>
           <Image src={"/images/cdt.svg"} w="30px" h="30px" />
-          <Text width="20%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+          <Text width="80%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
             {rblpDeposit.toFixed(2)}
-            CDT earning
-            {yieldValue}% APR with
-            {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%
-            historical profits
+            CDT earning &nbsp;
+            {yieldValue}% APR
+            {/* {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%&nbsp; */}
+            {/* historical profits */}
           </Text>
-          {/* @ts-ignore */}
-          <Button
-            width="50%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={onDepositOpen}
-            //@ts-ignore
-            isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
-          >
-            Deposit
-          </Button>
+          <HStack>
+            {/* @ts-ignore */}
+            <Button
+              width="50%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={onDepositOpen}
+              //@ts-ignore
+              isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
+            >
+              Deposit
+            </Button>
 
-          <Button
-            width="50%"
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={onWithdrawOpen}
-            isDisabled={isDisabled || rblpDeposit === 0}
-          >
-            Withdraw
-          </Button>
+            <Button
+              width="50%"
+              display="flex"
+              padding="0"
+              alignSelf="center"
+              margin="0"
+              onClick={onWithdrawOpen}
+              isDisabled={isDisabled || rblpDeposit === 0}
+            >
+              Withdraw
+            </Button>
+          </HStack>
         </HStack>
       </Card>
 

@@ -349,7 +349,7 @@ const RBLPExistingEntry = React.memo(({
     <>
       <Card width="fit-content" alignSelf="center" marginBottom="5%" borderWidth={3} padding={4}>
         <HStack>
-          <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+          <Image src={"/images/cdt.svg"} w="45px" h="45px" />
           <Text width="fit-content" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
             {rblpDeposit.toFixed(2)}&nbsp;
             CDT earning &nbsp;

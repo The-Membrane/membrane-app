@@ -360,7 +360,7 @@ const RBLPExistingEntry = React.memo(({
           <HStack>
             {/* @ts-ignore */}
             <Button
-              width="50%"
+              width="20%"
               display="flex"
               padding="0"
               alignSelf="center"
@@ -373,7 +373,7 @@ const RBLPExistingEntry = React.memo(({
             </Button>
 
             <Button
-              width="50%"
+              width="20%"
               display="flex"
               padding="0"
               alignSelf="center"

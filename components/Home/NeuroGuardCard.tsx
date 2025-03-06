@@ -531,23 +531,16 @@ const AcquireCDTEntry = React.memo(({
   return (
     <>
       <Card width="100%" borderWidth={3} padding={4}>
-        <HStack gap="9%">
-          <HStack width="25%" justifyContent="left">
-            <Image src={"/images/cdt.svg"} w="30px" h="30px" />
-            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-              CDT
-            </Text>
-          </HStack>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            0
-          </Text>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex" >
+        <HStack>
+          <Image src={"/images/cdt.svg"} w="45px" h="45px" />
+          <Text width="fitcontent" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+            CDT can earn&nbsp;
             {yieldValue}%
           </Text>
-          <HStack width={"36%"}>
+          <HStack width={"55%"}>
             {/* @ts-ignore */}
             <Button
-              width="50%"
+              width="100%"
               display="flex"
               padding="0"
               alignSelf="center"
@@ -559,7 +552,7 @@ const AcquireCDTEntry = React.memo(({
             </Button>
 
             <Button
-              width="50%"
+              width="100%"
               display="flex"
               padding="0"
               alignSelf="center"
@@ -1008,7 +1001,7 @@ const NeuroGuardCard = () => {
     <Stack gap={1} marginBottom="3%">
       <>
         {/* Default "if no CDT in wallet" entry */}
-        {(Number(cdtBalance) === 0 && Number(boundCDTBalance) === 0) ? <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} usdcPrice={usdcPrice} usdcCost={basketAssets?.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />
+        {(Number(cdtBalance) === 0 && Number(boundCDTBalance) === 0) || true ? <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} usdcPrice={usdcPrice} usdcCost={basketAssets?.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />
           : (Number(cdtBalance) !== 0 && Number(boundCDTBalance) === 0) ?
             <MemoizedRBLPDepositEntry
               key={"CDT"}

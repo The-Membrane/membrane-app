@@ -893,7 +893,7 @@ const NeuroGuardCard = () => {
 
 
   // Separate complex sections into components
-  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets, CDTBalance, USDCBalance, usdcPrice }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[], CDTBalance: number, USDCBalance: number, usdcPrice: string }) => {
+  const WalletSection = memo(({ assets, existingGuards, RBYield, boundCDTBalance, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, boundCDTBalance: number, basketAssets: BasketAsset[] }) => {
     console.log("full wallet rerender")
     const [showAllYields, setShowAllYields] = useState(false);
 
@@ -950,8 +950,6 @@ const NeuroGuardCard = () => {
           })
 
           : <Stack>
-            {/* Default "if no CDT in wallet" entry */}
-            {(CDTBalance === 0 && boundCDTBalance === 0) && <MemoizedAcquireCDTEntry usdcBalance={USDCBalance} RBYield={RBYield} usdcPrice={usdcPrice} usdcCost={basketAssets.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />}
             {/* Wallet Assets */}
             {assets.map((asset) => {
               if (!asset || !num(asset.combinUsdValue).isGreaterThan(0.01) ||
@@ -960,16 +958,7 @@ const NeuroGuardCard = () => {
               }
 
               // console.log(!(boundCDTBalance > 0), boundCDTBalance)
-
-              if (asset.base === denoms.CDT[0] && !(boundCDTBalance > 0)) {
-                return (
-                  <MemoizedRBLPDepositEntry
-                    key={asset.symbol}
-                    asset={asset}
-                    RBYield={RBYield}
-                  />
-                );
-              } else if (asset.base != denoms.CDT[0]) {
+              if (asset.base != denoms.CDT[0]) {
                 return (
                   <MemoizedNeuroGuardOpenEntry
                     key={asset.symbol}
@@ -1030,7 +1019,19 @@ const NeuroGuardCard = () => {
 
   return (
     <Stack gap={1} marginBottom="3%">
-
+      <>
+        {/* Default "if no CDT in wallet" entry */}
+        {(Number(cdtBalance) === 0 && Number(boundCDTBalance) === 0) ? <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} usdcPrice={usdcPrice} usdcCost={basketAssets?.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />
+          :
+          <MemoizedRBLPDepositEntry
+            key={"CDT"}
+            //@ts-ignore
+            asset={neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) ?? cdtAsset}
+            RBYield={calculatedRBYield}
+          />
+        }
+        {Number(boundCDTBalance) > 0 ? < MemoizedRBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
+      </>
       <HStack alignItems="none" flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
         <Stack width={"32%"} justifyContent={Number(cdtMarketPrice) < 0.985 ? "center" : "none"} gap="1.5rem">
@@ -1046,7 +1047,7 @@ const NeuroGuardCard = () => {
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
       ) ? */}
-      <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} CDTBalance={Number(cdtBalance)} USDCBalance={Number(usdcBalance)} usdcPrice={usdcPrice} />
+      <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} boundCDTBalance={Number(boundCDTBalance)} basketAssets={basketAssets ?? []} />
       {/* : null} */}
 
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) || Number(underlyingCDT) > 0 ?
@@ -1071,7 +1072,6 @@ const NeuroGuardCard = () => {
               Actions
             </Text>
           </HStack>
-          {Number(boundCDTBalance) > 0 ? < MemoizedRBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
           {existingGuards.map((guard) =>
             //@ts-ignore
             <>{guard && guard.symbol != "CDT" && (guard.symbol == "N/A" ? Number(boundCDTBalance) === 0 : true) ? <MemoizedNeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} /> : null}</>

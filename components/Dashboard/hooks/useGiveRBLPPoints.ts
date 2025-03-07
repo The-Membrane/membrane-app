@@ -36,13 +36,13 @@ const useGiveRBLPPoints = () => {
                 //we aren't going to cap msg length for ledgers (which is 3) but we'll cap it for gas at 9
                 //Find rangebound contract in user rates
                 const rblpRate = userRates.conversion_rates.find((rate) => rate.vault_address === contracts.rangeboundLP)
-                console.log("points booleans", currentConversionRate, rblpRate?.last_conversion_rate, Number(rblpRate?.last_conversion_rate ?? currentConversionRate), num(currentConversionRate).isGreaterThan(Number(rblpRate?.last_conversion_rate ?? currentConversionRate)), (MSG_CAP && msgs.length < MSG_CAP))
+                // console.log("points booleans", currentConversionRate, rblpRate?.last_conversion_rate, Number(rblpRate?.last_conversion_rate ?? currentConversionRate), num(currentConversionRate).isGreaterThan(Number(rblpRate?.last_conversion_rate ?? currentConversionRate)), (MSG_CAP && msgs.length < MSG_CAP))
 
                 //If rate is below current rate, add a give_points msg
                 if (num(currentConversionRate).isGreaterThan(Number(rblpRate?.last_conversion_rate ?? currentConversionRate))
                     && (!MSG_CAP || MSG_CAP && msgs.length < MSG_CAP)) {
 
-                    console.log("userRateState for msg", userRates)
+                    // console.log("userRateState for msg", userRates)
 
                     msgs.push({
                         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -75,10 +75,8 @@ const useGiveRBLPPoints = () => {
     console.log("rblp give points msgs", msgs)
 
     const onInitialSuccess = () => {
-        // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-        // queryClient.invalidateQueries({ queryKey: ['positions'] })
-        // queryClient.invalidateQueries({ queryKey: ['fillIntents_msg_creator'] })
-        // queryClient.invalidateQueries({ queryKey: ['useBoundedIntents'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard_rblp_give_points'] })
+        queryClient.invalidateQueries({ queryKey: ['rblp_points_allocation_msg_creator'] })
     }
 
     return {

@@ -841,6 +841,7 @@ const NeuroGuardCard = () => {
       LTV: "0"
     }]
   }, [basketPositions, userIntents, assets, prices, basket, underlyingCDT, basketAssets])
+  console.log("existingGuards", existingGuards)
 
 
 

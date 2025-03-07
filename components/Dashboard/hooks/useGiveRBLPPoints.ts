@@ -28,7 +28,7 @@ const useGiveRBLPPoints = () => {
         queryKey: ['rblp_points_allocation_msg_creator', conversionRates, currentConversionRate],
         queryFn: async () => {
             if (!conversionRates || !currentConversionRate) { console.log("give points early return", address, conversionRates, currentConversionRate); return { msgs: [] } }
-            console.log("conversionRates", conversionRates, currentConversionRate)
+            // console.log("conversionRates", conversionRates, currentConversionRate)
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
             //Parse user conversion rates, if any rblp conversion_rates are above the current rate, add a give_points msg
@@ -36,7 +36,7 @@ const useGiveRBLPPoints = () => {
                 //we aren't going to cap msg length for ledgers (which is 3) but we'll cap it for gas at 9
                 //Find rangebound contract in user rates
                 const rblpRate = userRates.conversion_rates.find((rate) => rate.vault_address === contracts.rangeboundLP)
-                console.log("user conversionRates", rblpRate, userRates.conversion_rates)
+                console.log("points booleans", currentConversionRate, rblpRate?.last_conversion_rate, Number(rblpRate?.last_conversion_rate ?? currentConversionRate), num(currentConversionRate).isGreaterThan(Number(rblpRate?.last_conversion_rate ?? currentConversionRate)), (MSG_CAP && msgs.length < MSG_CAP))
 
                 //If rate is below current rate, add a give_points msg
                 if (num(currentConversionRate).isGreaterThan(Number(rblpRate?.last_conversion_rate ?? currentConversionRate))

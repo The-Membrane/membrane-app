@@ -12,9 +12,11 @@ import { EarnMsgComposer } from '@/contracts/codegen/earn/Earn.message-composer'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import useEarnState from './useEarnState'
 import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useUSDCVaultTokenUnderlying } from '../../../hooks/useEarnQueries'
+import { useUSDCVaultTokenUnderlying, useVaultInfo } from '../../../hooks/useEarnQueries'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
+import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
+import { toUtf8 } from "@cosmjs/encoding";
 
 const useEarn = () => {
   const { address } = useWallet()
@@ -22,6 +24,7 @@ const useEarn = () => {
   const usdcAsset = useAssetBySymbol('USDC')
   const earnUSDCAsset = useAssetBySymbol('earnUSDC')
   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
+  const { data: vaultInfo } = useVaultInfo()
 
   const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
   const underlyingUSDC = data ?? "1"
@@ -38,10 +41,11 @@ const useEarn = () => {
       usdcAsset,
       earnUSDCAsset,
       underlyingUSDC,
-      earnUSDCBalance
+      earnUSDCBalance,
+      vaultInfo?.debtAmount
     ],
     queryFn: () => {
-      if (!address || !earnUSDCAsset || !usdcAsset) { console.log("earn exit early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance); return { msgs: [] } }
+      if (!address || !earnUSDCAsset || !usdcAsset) { console.log("earn exit early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance, vaultInfo?.debtAmount); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
       let messageComposer = new EarnMsgComposer(address, contracts.earn)
 
@@ -56,6 +60,22 @@ const useEarn = () => {
         // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
 
         // console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
+
+        //if the debt is less than or equal to 24, add a close_cdp msg
+        if (vaultInfo?.debtAmount && vaultInfo?.debtAmount <= 24 && vaultInfo?.debtAmount > 0) {
+          let closeCDPMsg = {
+            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+            value: MsgExecuteContract.fromPartial({
+              sender: address,
+              contract: contracts.earn,
+              msg: toUtf8(JSON.stringify({
+                close_c_d_p: {}
+              })),
+              funds: []
+            })
+          } as MsgExecuteContractEncodeObject
+          msgs.push(closeCDPMsg)
+        }
 
         const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
         let exitMsg = messageComposer.exitVault(funds)

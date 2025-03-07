@@ -40,7 +40,7 @@ const useGiveRBLPPoints = () => {
 
                 //If rate is below current rate, add a give_points msg
                 if (num(currentConversionRate).isGreaterThan(Number(rblpRate?.last_conversion_rate ?? currentConversionRate))
-                    && (MSG_CAP && msgs.length < MSG_CAP)) {
+                    && (!MSG_CAP || MSG_CAP && msgs.length < MSG_CAP)) {
 
                     console.log("userRateState for msg", userRates)
 

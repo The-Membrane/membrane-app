@@ -833,15 +833,7 @@ const NeuroGuardCard = () => {
         .filter(Boolean);
 
     }
-
-    // else return [{
-    //   position: { position_id: "0", collateral_assets: [{ asset: { info: { native_token: { denom: "N/A" } } }, amount: "0" }] },
-    //   amount: num("0"),
-    //   symbol: "N/A",
-    //   image: "",
-    //   cost: 0,
-    //   LTV: "0"
-    // }]
+    else return []
   }, [basketPositions, userIntents, assets, prices, basket, underlyingCDT, basketAssets])
   // console.log("existingGuards", existingGuards)
 

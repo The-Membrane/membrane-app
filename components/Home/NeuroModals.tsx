@@ -269,7 +269,7 @@ export const NeuroOpenModal = React.memo(({
         }
     })
     const isLoading = rblp?.simulate.isLoading || rblp?.tx.isPending
-    const isDisabled = asset?.sliderValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
+    const isDisabled = inputValue == 0 || rblp?.simulate.isError || !rblp?.simulate.data
     console.log("isDisabled", asset?.sliderValue == 0, rblp?.simulate.isError, rblp?.simulate.data, rblp?.simulate.errorMessage)
 
 

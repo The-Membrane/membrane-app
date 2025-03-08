@@ -148,30 +148,65 @@ const MintTabsCard = React.memo(() => {
     //
   }
 
+
+  const { data: prices } = useOraclePrice()
+  const positionNumber = mintState.positionNumber
+  const cdp = basketPositions?.[0].positions[positionNumber - 1] as PositionResponse
+  const cdtMarketPrice = useMemo(() => prices?.find((price) => price.denom === denoms.CDT[0])?.price || "1", [prices])
+
+
+  const { isOpen, onOpen, onClose } = useDisclosure()
+
   return (
-    <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="100%" paddingBottom={0}>
-      <VStack w="full" gap="5" h="full" alignItems="stretch">
-        <HStack>
-          <Text variant="title" fontSize="24px" alignSelf={"center"} textAlign="center" w="100%" marginLeft="7%">
-            Manage Vault
-          </Text>
-          <div style={{ width: "6%", display: "flex", justifyContent: "flex-end", marginBottom: "1%" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset size={32} />} marginLeft={"auto"} onClick={onRest} /></div>
-        </HStack>
+    <>
+      <Stack>
+        <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="100%" paddingBottom={0}>
+          <VStack w="full" gap="5" h="full" alignItems="stretch">
+            <HStack>
+              <Text variant="title" fontSize="24px" alignSelf={"center"} textAlign="center" w="100%" marginLeft="7%">
+                Manage Vault
+              </Text>
+              <div style={{ width: "6%", display: "flex", justifyContent: "flex-end", marginBottom: "1%" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset size={32} />} marginLeft={"auto"} onClick={onRest} /></div>
+            </HStack>
 
 
-        <TakeAction />
-        {/* For position pagination */}
-        <PaginationBar pagination={{
-          totalPages: totalPages,
-          currentPage: mintState.positionNumber,
-          nextPage: () => nextPage(setMintState, mintState.positionNumber, totalPages),
-          previousPage: () => previousPage(setMintState, mintState.positionNumber),
-          isFirst: mintState.positionNumber === 1,
-          isLast: mintState.positionNumber === totalPages,
-          setPage: undefined
-        }} />
-      </VStack>
-    </Card>
+            <TakeAction />
+            {/* For position pagination */}
+            <PaginationBar pagination={{
+              totalPages: totalPages,
+              currentPage: mintState.positionNumber,
+              nextPage: () => nextPage(setMintState, mintState.positionNumber, totalPages),
+              previousPage: () => previousPage(setMintState, mintState.positionNumber),
+              isFirst: mintState.positionNumber === 1,
+              isLast: mintState.positionNumber === totalPages,
+              setPage: undefined
+            }} />
+          </VStack>
+        </Card>
+        <Button
+          width="15%"
+          display="flex"
+          padding="0"
+          alignSelf="center"
+          margin="0"
+          onClick={onOpen}
+          isDisabled={positionNumber == 0 ? true : false}
+        >
+          Close
+        </Button>
+      </Stack>
+
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        isCentered
+        size="xl"
+        closeOnOverlayClick={true}
+      >
+        <ModalOverlay />
+        <NeuroCloseModal isOpen={isOpen} onClose={onClose} position={cdp} debtAmount={summary?.debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
+      </Modal>
+    </>
   )
 })
 
@@ -197,14 +232,6 @@ const Mint = React.memo(() => {
     }
   }, [data]); // Runs when `data` changes
 
-  const { mintState } = useMintState()
-  const { data: prices } = useOraclePrice()
-  const positionNumber = mintState.positionNumber
-  const cdp = basketPositions?.[0].positions[positionNumber - 1] as PositionResponse
-  const cdtMarketPrice = useMemo(() => prices?.find((price) => price.denom === denoms.CDT[0])?.price || "1", [prices])
-
-
-  const { isOpen, onOpen, onClose } = useDisclosure()
 
   return (
     <Stack gap="1rem" paddingTop="4%" height={"100%"} justifyContent={"center"}>
@@ -246,31 +273,9 @@ const Mint = React.memo(() => {
               </Stack>
               <Stack>
                 <CurrentPositions />
-                <Button
-                  width="50%"
-                  display="flex"
-                  padding="0"
-                  alignSelf="center"
-                  margin="0"
-                  onClick={onOpen}
-                  isDisabled={positionNumber == 0 ? true : false}
-                >
-                  Close
-                </Button>
                 {/* <RedemptionCard /> */}
               </Stack>
             </HStack>
-            <Modal
-              isOpen={isOpen}
-              onClose={onClose}
-              isCentered
-              size="xl"
-              closeOnOverlayClick={true}
-            >
-              <ModalOverlay />
-              <NeuroCloseModal isOpen={isOpen} onClose={onClose} position={cdp} debtAmount={summary?.debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
-
-            </Modal>
           </>
       }
 

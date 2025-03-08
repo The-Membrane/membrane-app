@@ -15,6 +15,9 @@ import {
   VStack,
   Checkbox,
   Button,
+  useDisclosure,
+  Modal,
+  ModalOverlay
 } from '@chakra-ui/react'
 import Beaker from './Beaker'
 import CurrentPositions from './CurrentPositions'
@@ -25,7 +28,7 @@ import React from "react"
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { Pagination } from '../Governance/Pagination'
 import { useUserPositions } from '@/hooks/useCDP'
-import { colors, MAX_CDP_POSITIONS } from '@/config/defaults'
+import { colors, denoms, MAX_CDP_POSITIONS } from '@/config/defaults'
 import useVaultSummary from './hooks/useVaultSummary'
 import { num } from '@/helpers/num'
 import RedemptionCard from './RedemptionCard'
@@ -33,6 +36,8 @@ import { USDCMintCard } from './USDCMintCard'
 import useCombinBalance from './hooks/useCombinBalance'
 import { setInitialMintState } from '@/helpers/mint'
 import { GrPowerReset } from 'react-icons/gr'
+import { NeuroCloseModal } from '../Home/NeuroModals'
+import { useOraclePrice } from '@/hooks/useOracle'
 
 type PaginationProps = {
   pagination: {
@@ -192,6 +197,15 @@ const Mint = React.memo(() => {
     }
   }, [data]); // Runs when `data` changes
 
+  const { mintState } = useMintState()
+  const { data: prices } = useOraclePrice()
+  const positionNumber = mintState.positionNumber
+  const cdp = basketPositions?.[0].positions[positionNumber - 1] as PositionResponse
+  const cdtMarketPrice = useMemo(() => prices?.find((price) => price.denom === denoms.CDT[0])?.price || "1", [prices])
+
+
+  const { isOpen, onOpen, onClose } = useDisclosure()
+
   return (
     <Stack gap="1rem" paddingTop="4%" height={"100%"} justifyContent={"center"}>
       {
@@ -232,9 +246,31 @@ const Mint = React.memo(() => {
               </Stack>
               <Stack>
                 <CurrentPositions />
+                <Button
+                  width="50%"
+                  display="flex"
+                  padding="0"
+                  alignSelf="center"
+                  margin="0"
+                  onClick={onOpen}
+                  isDisabled={positionNumber == 0 ? true : false}
+                >
+                  Close
+                </Button>
                 {/* <RedemptionCard /> */}
               </Stack>
             </HStack>
+            <Modal
+              isOpen={isOpen}
+              onClose={onClose}
+              isCentered
+              size="xl"
+              closeOnOverlayClick={true}
+            >
+              <ModalOverlay />
+              <NeuroCloseModal isOpen={isOpen} onClose={onClose} position={cdp} debtAmount={summary?.debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
+
+            </Modal>
           </>
       }
 

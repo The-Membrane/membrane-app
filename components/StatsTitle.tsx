@@ -8,7 +8,6 @@ import { Formatter } from '@/helpers/formatter'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { useBasket, useBasketPositions } from '@/hooks/useCDP'
-import useGlobalState from './Nav/hooks/useGlobalState'
 
 export const Stats = React.memo(({ label, value }) => (
     <Stack gap="1">

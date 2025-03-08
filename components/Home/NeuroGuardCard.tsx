@@ -28,7 +28,6 @@ import useToaster from "@/hooks/useToaster"
 import RangeBoundVisual from "./RangeBoundVisual"
 import RangeBoundInfoCard from "./RangeBoundInfoCard"
 import { ManicRedemptionCard } from "./ManicRedemptionCard"
-import useGlobalState from "../Nav/hooks/useGlobalState"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({

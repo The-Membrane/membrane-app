@@ -204,7 +204,7 @@ const MintTabsCard = React.memo(() => {
         closeOnOverlayClick={true}
       >
         <ModalOverlay />
-        <NeuroCloseModal isOpen={isOpen} onClose={onClose} position={cdp} debtAmount={summary?.debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
+        <NeuroCloseModal isOpen={isOpen} onClose={onClose} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
       </Modal>
     </>
   )

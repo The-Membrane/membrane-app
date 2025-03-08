@@ -189,6 +189,7 @@ const MintTabsCard = React.memo(() => {
           padding="0"
           alignSelf="center"
           margin="0"
+          marginTop="2%"
           onClick={onOpen}
           isDisabled={positionNumber == 0 ? true : false}
         >

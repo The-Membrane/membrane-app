@@ -25,8 +25,6 @@ export const Stats = React.memo(({ label, value }) => (
 // Memoize child components
 export const StatsTitle = React.memo(() => {
 
-    const { setGlobalState } = useGlobalState()
-    const { data: basketPositions } = useBasketPositions()
     const { data: basket } = useBasket()
     const { data: data } = useCDTDailyVolume()
     // console.log("assetData", assetData, assetData?.volume_24h)
@@ -41,27 +39,9 @@ export const StatsTitle = React.memo(() => {
         getProjectTVL({ basket, prices })
         , [basket, prices])
 
-    const totalDebt = useMemo(() => {
-
-        let totalDebt = 0;
-
-        basketPositions?.forEach((basketPosition) => {
-            if (!basketPosition || basketPosition.positions.length === 0) return;
-
-            basketPosition.positions.forEach((position, posIndex) => {
-                const debt = getDebt([basketPosition], posIndex);
-                totalDebt += debt;
-
-            });
-        });
-
-        setGlobalState({ totalDebt: totalDebt });
-        return totalDebt;
-    }, [basketPositions])
-
     const mintedAmount = useMemo(() => {
-        return num(totalDebt).dp(0).toNumber()
-    }, [totalDebt])
+        return shiftDigits(basket?.credit_asset.amount, -6).dp(0).toNumber()
+    }, [basket])
 
     return (
         <HStack gap={36} justifyContent={"center"} mb={"3%"}>

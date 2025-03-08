@@ -684,14 +684,13 @@ const NeuroGuardCard = () => {
   }, [isDisabled, isLoading]);
 
   const { data: vaultInfo } = useVaultInfo()
-  const { globalState } = useGlobalState()
 
   const calculatedRBYield = useMemo(() => {
 
     console.log(" calculatedRBYield")
-    if (!globalState || !interest || !TVL) return "0";
-    return simpleBoundedAPRCalc(globalState.totalDebt, interest, TVL, shiftDigits(vaultInfo?.debtAmount, 6).toNumber() ?? 0);
-  }, [globalState, interest, TVL, vaultInfo?.debtAmount]);
+    if (!basket || !interest || !TVL) return "0";
+    return simpleBoundedAPRCalc(shiftDigits(basket.credit_asset.amount, -6).toNumber(), interest, TVL, shiftDigits(vaultInfo?.debtAmount, 6).toNumber() ?? 0);
+  }, [basket, interest, TVL, vaultInfo?.debtAmount]);
   // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////

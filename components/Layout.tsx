@@ -6,6 +6,8 @@ import RPCStatus from './RPCStatus'
 import SideNav from './SideNav'
 import MembersRules from './MembersRules'
 import useMembersRulesState from './MembersRules/useRules'
+import Select from './Select'
+import useAppState from '@/persisted-state/useAppState'
 
 type Props = PropsWithChildren & {}
 
@@ -28,6 +30,15 @@ const Layout = ({ children }: Props) => {
   const { show } = useMembersRulesState()
 
   if (show) return <MembersRules />
+
+  //create a list of rpc options
+  const rpcs = ['https://osmosis-rpc.polkachu.com/', 'https://g.w.lavanet.xyz:443/gateway/osmosis/rpc-http/c6667993e9a0fac0a9c98d29502aa0a7', 'https://rpc.cosmos.directory/osmosis', 'https://rpc.osmosis.zone/'];
+
+  const { appState, setAppState } = useAppState()
+
+  const onChange = (value: string) => {
+    setAppState({ rpcUrl: value });
+  }
 
   return (
     //<Fragment>
@@ -57,7 +68,7 @@ const Layout = ({ children }: Props) => {
         top="16px"
         right="16px"
         zIndex="10">
-        <Text>YO YOY O</Text>
+        <Select options={rpcs} onChange={onChange} value={appState.rpcUrl} />
       </Stack>
     </Stack>
     //</Fragment>

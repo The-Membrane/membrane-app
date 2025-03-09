@@ -51,19 +51,78 @@ const chakraStyles: ChakraStylesConfig = {
   })
 }
 
+const transparentStyles: ChakraStylesConfig = {
+  singleValue: (provided, state) => ({
+    ...provided,
+    border: 'none',
+    fontSize: '16px',
+    px: 2,
+    cursor: 'pointer',
+    justifySelf: 'center',
+  }),
+  control: (provided, state) => ({
+    ...provided,
+    bg: 'transparent',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)',
+    borderRadius: 16,
+    _hover: {
+      borderColor: 'rgba(255, 255, 255, 0.25)',
+    },
+    _focus: {
+      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+  }),
+  container: (provided, state) => ({
+    ...provided,
+    padding: 1,
+    borderRadius: 16,
+    bg: 'transparent',
+    color: '#fff',
+  }),
+  option: (provided) => ({
+    ...provided,
+    bg: 'transparent',
+    color: '#fff',
+    cursor: 'pointer',
+    width: 'full',
+    _selected: {
+      bg: colors.tabBG,
+    },
+    _hover: {
+      bg: colors.tabBG,
+    },
+  }),
+  menuList: (provided, state) => ({
+    ...provided,
+    padding: 0,
+    minW: 'full',
+    borderRadius: 16,
+    width: 'max-content',
+    minWidth: '200px',
+    ml: '-50px',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
+    backdropFilter: 'blur(4px)',
+    bg: 'rgba(26, 32, 44, 0.9)',
+  })
+}
+
 type Props = {
   options: OptionProps<any>[]
   onChange?: (value: any) => void
-  value?: any
+  value?: any,
+  useTransparent?: boolean
 }
 
-const Select = ({ options, onChange, value }: Props) => {
+const Select = ({ options, onChange, value, useTransparent }: Props) => {
   if (!options) return null
   return (
     <ChakraSelect
       isSearchable={false}
       variant="unstyled"
-      chakraStyles={chakraStyles}
+      chakraStyles={useTransparent ? transparentStyles : chakraStyles}
       defaultValue={options?.[0]}
       value={value}
       options={options}

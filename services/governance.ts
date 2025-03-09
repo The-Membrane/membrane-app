@@ -172,6 +172,9 @@ export const getProposals = async (rpcUrl: string) => {
   var activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop) => prop.proposal_id != "61")
   const secondProp = await client.proposal({ proposalId: 98 }).then((res) => res)
   activeProposals.push(secondProp)
+  //filter out proposal 155
+  activeProposals = activeProposals.filter((prop) => prop.proposal_id != "155")
+
   const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
 
   const statusOrder: Record<string, number> = {

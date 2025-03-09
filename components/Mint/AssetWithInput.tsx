@@ -83,7 +83,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   return (
 
     <Stack gap="0">
-      <HStack justifyContent="start" alignItems={"baseline"} gap="3.5rem">
+      <HStack justifyContent="start" alignItems={"baseline"} gap="2.5rem">
         <HStack width="188px">
           <Text fontSize={"22px"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text fontSize={"22px"}>{label}</Text>

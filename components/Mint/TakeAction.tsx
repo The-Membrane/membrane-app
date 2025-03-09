@@ -18,7 +18,7 @@ import { GrPowerReset } from 'react-icons/gr'
 const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean }) => {
   return (
     <Text fontSize="sm" color={"white"} mt="2" mb={"0"} minH="21px" alignSelf="center" w="100%" textAlign="center">
-      {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying' : ' '}
+      {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying. If fully repaying add excess CDT to pay for interest, the surplus will be returned to you.' : ' '}
     </Text>
 
   )

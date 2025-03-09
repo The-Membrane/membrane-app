@@ -49,7 +49,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
     const handleInputChange = (value: number) => {
         const inputValue = transactionType === "borrow" ? value + debtAmount : debtAmount - value
         const newValue = num(inputValue).dp(2).toNumber()
-        setMintInputValue(newValue)
+        setMintInputValue(num(value).dp(2).toNumber())
 
         // Check for minimum debt
         if (newValue < 20 && newValue != 0 && !mintState?.belowMinDebt) {

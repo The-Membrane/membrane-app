@@ -31,7 +31,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess, run, debtCloseAmount }: 
         ],
         queryFn: () => {
 
-            if (!run || !address || !position || (debtCloseAmount && position.credit_amount != "0" && debtCloseAmount == 0)) { console.log("closeCDP early return", run, address, position, debtCloseAmount, position.credit_amount != "0", position.credit_amount, !run, !address, !position, !debtCloseAmount, (debtCloseAmount && position.credit_amount != "0" && debtCloseAmount == 0)); return { msgs: [] } }
+            if (!run || !address || !position || position.credit_amount == "0" || (debtCloseAmount && position.credit_amount != "0" && debtCloseAmount == 0)) { console.log("closeCDP early return", run, address, position, debtCloseAmount, position.credit_amount != "0", position.credit_amount, !run, !address, !position, !debtCloseAmount, (debtCloseAmount && position.credit_amount != "0" && debtCloseAmount == 0)); return { msgs: [] } }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
 

@@ -111,7 +111,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
     const handleTabClick = (index: string) => {
         setActiveTabIndex(index === "borrow" ? 0 : 1);
         setTransactionType(index);
-        handleInputChange(mintInputValue);
+        handleInputChange(0);
     };
 
     return (

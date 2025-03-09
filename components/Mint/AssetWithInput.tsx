@@ -12,12 +12,12 @@ export type AssetWithInputProps = {
   asset: AssetWithBalance;
 };
 
-type TabProps = {
+export type TabProps = {
   onClick: any
   label: string
 }
 
-const CustomTab = ({ onClick, label }: TabProps) => (
+export const CustomTab = ({ onClick, label }: TabProps) => (
   <Tab zIndex={1} onClick={onClick} _selected={{ color: 'white' }}>
     {label}
   </Tab>

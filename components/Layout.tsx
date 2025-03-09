@@ -68,7 +68,7 @@ const Layout = ({ children }: Props) => {
         top="16px"
         right="16px"
         zIndex="10">
-        <Select options={rpcs} onChange={onChange} value={appState.rpcUrl} />
+        {/* <Select options={rpcs} onChange={onChange} value={appState.rpcUrl} /> */}
       </Stack>
     </Stack>
     //</Fragment>

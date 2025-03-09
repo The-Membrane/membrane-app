@@ -1,10 +1,12 @@
 import { num } from '@/helpers/num'
-import { Stack, HStack, Text, Input, Button, Image } from '@chakra-ui/react'
+import { Stack, HStack, Text, Input, Button, Image, Tabs, TabList, Tab, TabIndicator } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useAssetBySymbol } from '@/hooks/useAssets'
+import { CustomTab } from './AssetWithInput'
+import { colors } from '@/config/defaults'
 
 export type MintInputProps = {
     label?: string
@@ -45,7 +47,8 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
     }, [maxMint, debtAmount])
 
     const handleInputChange = (value: number) => {
-        const newValue = num(value).dp(2).toNumber()
+        const inputValue = transactionType === "borrow" ? value + debtAmount : debtAmount - value
+        const newValue = num(inputValue).dp(2).toNumber()
         setMintInputValue(newValue)
 
         // Check for minimum debt
@@ -97,14 +100,39 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
     }
 
     const onMintMaxClick = () => {
-        handleInputChange(mintMaxAmount)
+        if (transactionType === "borrow") handleInputChange(mintMaxAmount)
+        else handleInputChange(debtAmount)
     }
+
+
+    const [transactionType, setTransactionType] = useState<string>("Borrow");
+
+    const [activeTabIndex, setActiveTabIndex] = useState(0);
+    const handleTabClick = (index: string) => {
+        setActiveTabIndex(index === "deposit" ? 0 : 1);
+        setTransactionType(index);
+    };
 
     return (
         <Stack paddingInlineStart={4}>
             <HStack width="100%" justifyContent="left">
                 <HStack width="75%">
                     <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+                    <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
+                        <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
+                            <CustomTab onClick={() => handleTabClick("borrow")} label="Borrow" />
+                            <CustomTab onClick={() => handleTabClick("repay")} label="Repay" />
+                        </TabList>
+
+                        <TabIndicator
+                            top="0"
+                            position="absolute"
+                            height="40px"
+                            bg={colors.walletIcon}
+                            borderRadius="28px"
+                        />
+                    </Tabs>
+
                     <Text
                         variant="title"
                         textTransform="none"
@@ -113,7 +141,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
                         letterSpacing="1px"
                         display="flex"
                     >
-                        {label}
+                        CDT
                     </Text>
                 </HStack>
             </HStack>
@@ -142,7 +170,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
                         display="flex"
                         justifySelf={"center"}
                     >
-                        min
+                        {transactionType === "borrow" ? "min" : ""}
                     </Text>
                 </Button>
                 <Button

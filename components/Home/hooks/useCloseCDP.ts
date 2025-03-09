@@ -13,9 +13,9 @@ import useNeuroState from "./useNeuroState"
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 
 
-const useCloseCDP = ({ position, debtAmount, onSuccess, run }: { position: PositionResponse, debtAmount: number, onSuccess: () => void, run: boolean }) => {
+const useCloseCDP = ({ position, debtAmount, onSuccess, run, debtCloseAmount }: { position: PositionResponse, debtAmount: number, onSuccess: () => void, run: boolean, debtCloseAmount: number }) => {
     const { address } = useWallet()
-    const { neuroState } = useNeuroState()
+    // const { neuroState } = useNeuroState()
 
     type QueryData = {
         msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -25,17 +25,17 @@ const useCloseCDP = ({ position, debtAmount, onSuccess, run }: { position: Posit
             'closeCDP_msg_creation',
             address,
             position.position_id,
-            neuroState.closeInputValue,
+            debtCloseAmount,
             run
         ],
         queryFn: () => {
 
-            if (!run || !address || !position || (neuroState.closeInputValue && position.credit_amount != "0" && neuroState.closeInputValue == 0)) { console.log("closeCDP early return", run, address, position, neuroState.closeInputValue, position.credit_amount != "0", position.credit_amount, !run, !address, !position, !neuroState.closeInputValue, (neuroState.closeInputValue && position.credit_amount != "0" && neuroState.closeInputValue == 0)); return { msgs: [] } }
+            if (!run || !address || !position || (debtCloseAmount && position.credit_amount != "0" && debtCloseAmount == 0)) { console.log("closeCDP early return", run, address, position, debtCloseAmount, position.credit_amount != "0", position.credit_amount, !run, !address, !position, !debtCloseAmount, (debtCloseAmount && position.credit_amount != "0" && debtCloseAmount == 0)); return { msgs: [] } }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
 
-            const percentToClose = num(neuroState.closeInputValue).dividedBy(debtAmount).toFixed(4)
-            console.log("percentToClose:", percentToClose, debtAmount, neuroState.closeInputValue)
+            const percentToClose = num(debtCloseAmount).dividedBy(debtAmount).toFixed(4)
+            console.log("percentToClose:", percentToClose, debtAmount, debtCloseAmount)
 
             //Close Position
             //This execution flow doesn't work for undebted positions

@@ -689,8 +689,8 @@ export const NeuroCloseModal = React.memo(({
     positionNumber: number
     cdtMarketPrice: string
 }>) => {
-    const { neuroState, setNeuroState } = useNeuroState()
-    const { action: close } = useCloseCDP({ position, debtAmount, onSuccess: onClose, run: isOpen })
+    // const { neuroState, setNeuroState } = useNeuroState()
+    const { action: close } = useCloseCDP({ position, debtAmount, onSuccess: onClose, run: isOpen, debtCloseAmount: inputValue })
     const isDisabled = close?.simulate.isError || !close?.simulate.data
     const isLoading = close?.simulate.isLoading || close?.tx.isPending
 
@@ -709,21 +709,21 @@ export const NeuroCloseModal = React.memo(({
             clearTimeout(updateTimeout.current); // Clears previous timeout
         }
 
-        updateTimeout.current = setTimeout(() => {
-            setNeuroState({
-                //@ts-ignore
-                closeInputValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-            })
-        }, INPUT_DELAY); // Delay before updating the state
-    }, [neuroState?.closeInputValue, setNeuroState, maxAmount])
+        // updateTimeout.current = setTimeout(() => {
+        //     setNeuroState({
+        //         //@ts-ignore
+        //         closeInputValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+        //     })
+        // }, INPUT_DELAY); // Delay before updating the state
+    }, [inputValue, maxAmount])
 
     const onMaxClick = () => {
         setInputValue(maxAmount)
-        setNeuroState({
-            //@ts-ignore
-            closeInputValue: maxAmount
+        // setNeuroState({
+        //     //@ts-ignore
+        //     closeInputValue: maxAmount
 
-        })
+        // })
     }
 
 
@@ -779,7 +779,7 @@ export const NeuroCloseModal = React.memo(({
 
 
                     <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                        {parseError((num(neuroState?.closeInputValue).isGreaterThan(0) || debtAmount == 0) && close.simulate.isError ? close.simulate.error?.message ?? "" : "")}
+                        {parseError((num(inputValue).isGreaterThan(0) || debtAmount == 0) && close.simulate.isError ? close.simulate.error?.message ?? "" : "")}
                     </Text>
 
 

@@ -25,6 +25,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess, run, debtCloseAmount }: 
             'closeCDP_msg_creation',
             address,
             position.position_id,
+            position.credit_amount,
             debtCloseAmount,
             run
         ],

@@ -689,13 +689,13 @@ export const NeuroCloseModal = React.memo(({
     positionNumber: number
     cdtMarketPrice: string
 }>) => {
+    const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
     // const { neuroState, setNeuroState } = useNeuroState()
-    const { action: close } = useCloseCDP({ position, debtAmount, onSuccess: onClose, run: isOpen, debtCloseAmount: inputValue })
+    const { action: close } = useCloseCDP({ position, debtAmount, onSuccess: onClose, run: isOpen, debtCloseAmount: inputValue ?? 0 })
     const isDisabled = close?.simulate.isError || !close?.simulate.data
     const isLoading = close?.simulate.isLoading || close?.tx.isPending
 
     const maxAmount = debtAmount
-    const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
     const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
 

@@ -105,11 +105,11 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
     }
 
 
-    const [transactionType, setTransactionType] = useState<string>("Borrow");
+    const [transactionType, setTransactionType] = useState<string>("borrow");
 
     const [activeTabIndex, setActiveTabIndex] = useState(0);
     const handleTabClick = (index: string) => {
-        setActiveTabIndex(index === "deposit" ? 0 : 1);
+        setActiveTabIndex(index === "borrow" ? 0 : 1);
         setTransactionType(index);
     };
 
@@ -118,20 +118,23 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
             <HStack width="100%" justifyContent="left">
                 <HStack width="75%">
                     <Image src={"/images/cdt.svg"} w="30px" h="30px" />
-                    <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
-                        <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
-                            <CustomTab onClick={() => handleTabClick("borrow")} label="Borrow" />
-                            <CustomTab onClick={() => handleTabClick("repay")} label="Repay" />
-                        </TabList>
 
-                        <TabIndicator
-                            top="0"
-                            position="absolute"
-                            height="40px"
-                            bg={colors.walletIcon}
-                            borderRadius="28px"
-                        />
-                    </Tabs>
+                    <HStack width="20%">
+                        <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
+                            <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
+                                <CustomTab onClick={() => handleTabClick("borrow")} label="Borrow" />
+                                <CustomTab onClick={() => handleTabClick("repay")} label="Repay" />
+                            </TabList>
+
+                            <TabIndicator
+                                top="0"
+                                position="absolute"
+                                height="40px"
+                                bg={colors.walletIcon}
+                                borderRadius="28px"
+                            />
+                        </Tabs>
+                    </HStack>
 
                     <Text
                         variant="title"

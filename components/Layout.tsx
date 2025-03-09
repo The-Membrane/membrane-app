@@ -18,11 +18,11 @@ type Props = PropsWithChildren & {}
 //   </Center>
 // )
 
-const HexagonBackground = () => (
-  <Box position="absolute" top="0" right="0" zIndex={0} display={['block']}>
-    <Image src="/images/backgrounds/right.svg" alt="Hexagon" />
-  </Box>
-)
+// const HexagonBackground = () => (
+//   <Box position="absolute" top="0" right="0" zIndex={0} display={['block']}>
+//     <Image src="/images/backgrounds/right.svg" alt="Hexagon" />
+//   </Box>
+// )
 
 const Layout = ({ children }: Props) => {
   const { show } = useMembersRulesState()
@@ -51,6 +51,13 @@ const Layout = ({ children }: Props) => {
           <RPCStatus />
           {children}
         </Stack>
+      </Stack>
+      <Stack
+        position="absolute"
+        top="16px"
+        right="16px"
+        zIndex="10">
+        <Text>YO YOY O</Text>
       </Stack>
     </Stack>
     //</Fragment>

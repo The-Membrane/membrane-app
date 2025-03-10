@@ -29,12 +29,14 @@ type Props = PropsWithChildren & {}
 const Layout = ({ children }: Props) => {
   const { show } = useMembersRulesState()
 
+  const { appState, setAppState } = useAppState()
+
   if (show) return <MembersRules />
+
 
   //create a list of rpc options
   const rpcs = ['https://osmosis-rpc.polkachu.com/', 'https://g.w.lavanet.xyz:443/gateway/osmosis/rpc-http/c6667993e9a0fac0a9c98d29502aa0a7', 'https://rpc.cosmos.directory/osmosis', 'https://rpc.osmosis.zone/'];
 
-  const { appState, setAppState } = useAppState()
 
   const onChange = (value: string) => {
     setAppState({ rpcUrl: value });

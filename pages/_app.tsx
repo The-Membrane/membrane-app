@@ -99,7 +99,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             isLazy: true,
             endpoints: {
               osmosis: {
-                rpc: [appState.rpcUrl ?? rpcUrl],
+                rpc: [rpcUrl],
               },
             },
           }}

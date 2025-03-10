@@ -34,7 +34,7 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
 
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg liquidations', run, address, allPositions, prices, basket],
+    queryKey: ['msg_liquidations', run, address, allPositions, prices, basket],
     queryFn: () => {
       if (!address || !allPositions || !prices || !basket || !basketAssets || !run) { console.log("liq attempt", !address, !allPositions, !prices, !basket, !basketAssets, !run); return { msgs: [], liquidating_positions: [] } }
 
@@ -44,7 +44,7 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
 
       const cdpCalcs = getRiskyPositions(allPositions, prices, basket, basketAssets)
       // console.log("liquidatible positions:", cdpCalcs.liquidatibleCDPs)
-      const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as { address: string, id: string, fee: string }[]
+      const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined && pos.id !== "183") as { address: string, id: string, fee: string }[]
       console.log("liquidatible positions:", liq)
 
 
@@ -73,7 +73,8 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    queryClient.invalidateQueries({ queryKey: ['msg liquidations'] })
+    queryClient.invalidateQueries({ queryKey: ['msg_liquidations'] })
+    queryClient.invalidateQueries({ queryKey: ['protocol_liquidation_sim'] })
     //Reset points queries
     queryClient.invalidateQueries({ queryKey: ['all users points'] })
     queryClient.invalidateQueries({ queryKey: ['one users points'] })
@@ -83,7 +84,7 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
   return {
     action: useSimulateAndBroadcast({
       msgs,
-      queryKey: ['protocol liquidation sim', (msgs?.toString() ?? '0')],
+      queryKey: ['protocol_liquidation_sim', (msgs?.toString() ?? '0')],
       onSuccess,
     }), liquidating_positions: liq_pos
   }

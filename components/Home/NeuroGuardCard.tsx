@@ -883,20 +883,21 @@ const NeuroGuardCard = () => {
         >
           Show All Yields
         </Checkbox>
-        <HStack gap="1%" p={4}>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Asset
-          </Text>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Balance
-          </Text>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Potential APR
-          </Text>
-          <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-            Actions
-          </Text>
-        </HStack>
+        {assets && assets.length != 0 &&
+          <HStack gap="1%" p={4}>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Asset
+            </Text>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Balance
+            </Text>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Potential APR
+            </Text>
+            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+              Actions
+            </Text>
+          </HStack>}
         <Stack gap={"1rem"}>{showAllYields ?
 
           basketAssets.map((basketAsset) => {

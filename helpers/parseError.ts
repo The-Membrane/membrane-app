@@ -42,6 +42,7 @@ export const parseError = (error: string) => {
     { regex: /invalid Uint128/i, message: "Max amount per deposit for this token is 999, if this error seems wrong, just jiggle the slider." },
     { regex: /rate assurance failed/i, message: "Depositor safety check failed, operational error. Refresh for the Manic vault or Manage The Membrane LP." },
     { regex: / Invalid target_LTV for debt increase/i, message: "Intent failed, are you above the minimum amount?" },
+    { regex: / Invalid limit, deposit length:/i, message: "Omni-Pool is empty, deposit the minimum to unblock liquidations." },
     {
       regex: /Invalid withdrawal, can't leave less than the minimum bid/i,
       message: 'Minimum bid amount is 5 CDT',

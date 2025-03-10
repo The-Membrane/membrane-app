@@ -97,7 +97,7 @@ const useProtocolClaims = ({ run }: { run: boolean }) => {
   const UnstakeMsgs = useMemo(() => { return unstakeClaim.msgs }, [unstakeClaim.msgs])
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg all protocol claims', run, address, ClaimMsgs, StakingMsgs, UnstakeMsgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
+    queryKey: ['msg_all_protocol_claims', run, address, ClaimMsgs, StakingMsgs, UnstakeMsgs, Claimables, Deposits, mbrnClaimable, cdtClaimable],
     queryFn: () => {
       console.log("claim attempt");
       if (!run) { console.log("claim early return", !run); return { msgs: [], claims: claims_summary } }
@@ -213,6 +213,9 @@ const useProtocolClaims = ({ run }: { run: boolean }) => {
   console.log("claims msgs:", msgs)
 
   const onSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['protocol_claim_sim'] })
+    queryClient.invalidateQueries({ queryKey: ['msg_all_protocol_claims'] })
+
     queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })
     queryClient.invalidateQueries({ queryKey: ['staked'] })
     queryClient.invalidateQueries({ queryKey: ['allocation claim fees'] })

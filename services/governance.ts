@@ -166,7 +166,7 @@ export const getProposals = async (rpcUrl: string) => {
   // const requiredQuorum = parseFloat(config.proposal_required_quorum)
   const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
-  const start = 129
+  const start = 150
   const limit = 30 //Contract's max limit is 30 so we'll need to move the start point every 30 proposals
 
   var activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop) => prop.proposal_id != "61")

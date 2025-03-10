@@ -867,8 +867,16 @@ const NeuroGuardCard = () => {
 
   // Separate complex sections into components
   const WalletSection = memo(({ assets, existingGuards, RBYield, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, basketAssets: BasketAsset[] }) => {
-    console.log("full wallet rerender")
+    console.log("full wallet rerender", assets)
     const [showAllYields, setShowAllYields] = useState(false);
+
+    const usableAssets = assets
+      .filter(asset =>
+        asset &&
+        num(asset.combinUsdValue).isGreaterThan(0.01) &&
+        !existingGuards?.some(guard => guard?.symbol === asset.symbol) &&
+        asset.base !== denoms.CDT[0] // Exclude assets with base equal to CDT
+      );
 
     return (
       <Stack ref={sectionRef}>
@@ -883,7 +891,7 @@ const NeuroGuardCard = () => {
         >
           Show All Yields
         </Checkbox>
-        {assets && assets.length != 0 &&
+        {usableAssets && usableAssets.length != 0 &&
           <HStack gap="1%" p={4}>
             <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
               Asset
@@ -925,23 +933,15 @@ const NeuroGuardCard = () => {
 
           : <Stack>
             {/* Wallet Assets */}
-            {assets.map((asset) => {
-              if (!asset || !num(asset.combinUsdValue).isGreaterThan(0.01) ||
-                existingGuards?.find((guard) => guard?.symbol === asset.symbol)) {
-                return null;
-              }
-
-              // console.log(!(boundCDTBalance > 0), boundCDTBalance)
-              if (asset.base != denoms.CDT[0]) {
-                return (
-                  <MemoizedNeuroGuardOpenEntry
-                    key={asset.symbol}
-                    asset={asset}
-                    basketAssets={basketAssets}
-                    RBYield={RBYield}
-                  />
-                )
-              } else { return null }
+            {usableAssets.map((asset) => {
+              return (
+                <MemoizedNeuroGuardOpenEntry
+                  key={asset.symbol}
+                  asset={asset}
+                  basketAssets={basketAssets}
+                  RBYield={RBYield}
+                />
+              )
             })}
           </Stack>
 

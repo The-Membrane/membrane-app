@@ -28,6 +28,7 @@ import useToaster from "@/hooks/useToaster"
 import RangeBoundVisual from "./RangeBoundVisual"
 import RangeBoundInfoCard from "./RangeBoundInfoCard"
 import { ManicRedemptionCard } from "./ManicRedemptionCard"
+import { getBestCLRange } from "@/services/osmosis"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -613,6 +614,8 @@ function ToastButton({ isLoading, isDisabled, onClick }) {
 
 const NeuroGuardCard = () => {
   console.log("NG render")
+
+  const { data: clRewardList } = getBestCLRange()
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
   // console.log("basketPositions", basketPositions)

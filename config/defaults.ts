@@ -43,6 +43,11 @@ export const INPUT_DELAY = 300;
 export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
 export const USDC_CL_RATIO = 0.115; //11.5% CL
 
+//Rangebound Converation Rate checkpoints
+const rb_conversion_rates = {
+  "119D": 2745965,
+}
+
 export const colors = {
   globalBG: "#091326", //"#212121",
   global: "rgb(229, 222, 223)",

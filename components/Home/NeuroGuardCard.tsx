@@ -615,7 +615,7 @@ function ToastButton({ isLoading, isDisabled, onClick }) {
 const NeuroGuardCard = () => {
   console.log("NG render")
 
-  const { data: clRewardList } = getBestCLRange()
+  // const { data: clRewardList } = getBestCLRange()
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
   // console.log("basketPositions", basketPositions)

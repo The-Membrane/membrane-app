@@ -168,7 +168,7 @@ function SideNav() {
           textAlign="center"
           whiteSpace={"prewrap"}
           fontSize="18px"
-          opacity={"50%"}
+          opacity={"100%"}
           backgroundColor={colors.cardBG}
           onClick={handleEnableMsgs}
           justifyContent={"center"}

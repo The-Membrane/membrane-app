@@ -2,7 +2,6 @@ import { Button, HStack, List, ListItem, Modal, ModalBody, ModalCloseButton, Mod
 import React, { PropsWithChildren, useCallback, useMemo, useState } from 'react'
 import Divider from '../Divider'
 import { colors } from '@/config/defaults'
-import { Stats, StatsTitle } from '../StatsTitle'
 import { useBasket } from '@/hooks/useCDP'
 import { shiftDigits } from '@/helpers/math'
 import { Formatter } from '@/helpers/formatter'

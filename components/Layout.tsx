@@ -28,12 +28,12 @@ type Props = PropsWithChildren & {}
 // )
 
 export const RulesModal = React.memo(({
-  isOpen, onClose, children
+  isOpen, children
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void }>) => {
 
   return (<>
 
-    <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
+    <Modal isOpen={isOpen} onClose={() => { }} closeOnOverlayClick={false}>
       <ModalOverlay />
       <ModalContent maxW="800px">
         <ModalHeader>
@@ -72,7 +72,7 @@ const Layout = ({ children }: Props) => {
 
   const { appState, setAppState } = useAppState()
 
-  if (show) return
+  // if (show) return
 
 
   //create a list of rpc options
@@ -113,6 +113,7 @@ const Layout = ({ children }: Props) => {
         zIndex="10">
         {/* <Select options={rpcs} onChange={onChange} value={appState.rpcUrl} /> */}
       </Stack>
+      <RulesModal isOpen={show} onClose={() => { }} />
     </Stack>
     //</Fragment>
   )

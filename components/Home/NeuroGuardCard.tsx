@@ -883,7 +883,7 @@ const NeuroGuardCard = () => {
       );
 
     return (
-      <Stack ref={sectionRef}>
+      <Stack>
         <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
           Your Wallet
         </Text>

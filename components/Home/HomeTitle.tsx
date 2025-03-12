@@ -143,7 +143,7 @@ export const HomeTitle = React.memo(() => {
           </h1>
           <HStack w={"100%"} justifyContent={"center"}>
             <Text>
-              Earn fees and rewards by providing liquidity to the CDT/USDC pool -&nbsp;
+              Earn fees and rewards by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a> -&nbsp;
               <a onClick={toggleExpanded} style={{ color: colors.tabBG, textDecoration: "underline", cursor: "pointer" }}>FAQ</a>
             </Text>
 

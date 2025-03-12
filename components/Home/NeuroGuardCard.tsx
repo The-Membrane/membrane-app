@@ -994,6 +994,13 @@ const NeuroGuardCard = () => {
     sectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+
+  //Set max slippage to the difference between market prie & 0.985 
+  const maxSlippage = 0.985 - Number(cdtMarketPrice)
+  //We don't render Redemptions if price is higher so this should be safe logic
+  var minimumSwapCapacity = num(Number(cdtMarketPrice) * (1 - maxSlippage)).times(vaultInfo?.debtAmount || 0).toFixed(0)
+
+
   return (
     <Stack gap={1} marginBottom="3%">
       <>
@@ -1013,7 +1020,7 @@ const NeuroGuardCard = () => {
         <RangeBoundVisual />
         <Stack width={"32%"} justifyContent={Number(cdtMarketPrice) < 0.985 ? "center" : "none"} gap="1.5rem">
           <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
-          {Number(cdtMarketPrice) < 0.985 && <ManicRedemptionCard basket={basket} cdtMarketPrice={Number(cdtMarketPrice)} />}
+          {Number(cdtMarketPrice) < 0.985 && Number(minimumSwapCapacity) > 22 && <ManicRedemptionCard basket={basket} cdtMarketPrice={Number(cdtMarketPrice)} />}
         </Stack>
         {/* Add Button in the middle of the remaining space that allows users to swap any stables to CDT */}
       </HStack>

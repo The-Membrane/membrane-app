@@ -21,7 +21,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { HamburgerIcon } from "@chakra-ui/icons";
 import UniversalButtons from './Nav/UniversalButtons'
 import SoloLeveling from './Nav/PointsLevel'
-import { colors, colors } from '@/config/defaults'
+import { colors } from '@/config/defaults'
 
 type NavItems = {
   label: string

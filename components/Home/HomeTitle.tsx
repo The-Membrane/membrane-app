@@ -6,6 +6,7 @@ import { Stats, StatsTitle } from '../StatsTitle'
 import { useBasket } from '@/hooks/useCDP'
 import { shiftDigits } from '@/helpers/math'
 import { Formatter } from '@/helpers/formatter'
+import { num } from '@/helpers/num'
 // import OnboardModal from './LeapOnboarding'
 
 
@@ -112,7 +113,7 @@ const HomeHeader = React.memo(() => {
   const { data: basket } = useBasket()
 
   const mintedAmount = useMemo(() => {
-    return shiftDigits(basket?.credit_asset.amount, -6).dp(0).toNumber()
+    return shiftDigits(num(basket?.credit_asset.amount).plus(81997400526).toString(), -6).dp(0).toNumber()
   }, [basket])
 
   return (

@@ -69,7 +69,10 @@ type Props = PropsWithChildren & {}
 // })
 
 const Layout = ({ children }: Props) => {
+
+  console.log("show")
   const { show } = useMembersRulesState()
+  console.log("show", show)
 
   const { appState, setAppState } = useAppState()
 

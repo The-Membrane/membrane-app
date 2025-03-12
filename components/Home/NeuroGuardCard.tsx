@@ -1017,6 +1017,11 @@ const NeuroGuardCard = () => {
         {Number(boundCDTBalance) > 0 ? < MemoizedRBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
       </>
 
+      <h1
+        className={"home-title"}
+      >
+        Provide Liquidity for CDT
+      </h1>
       <HStack w={"100%"} justifyContent={"center"}>
         <Text>
           Earn fees and rewards by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a> -&nbsp;

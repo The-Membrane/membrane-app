@@ -131,11 +131,6 @@ export const HomeTitle = React.memo(() => {
       <HStack mt="3%" mb="3%" gap="24" justifyContent="center">
         <Stack gap={"0.5rem"} width="100%">
           <HomeHeader />
-          <h1
-            className={"home-title"}
-          >
-            Provide Liquidity for CDT
-          </h1>
           {/* <Button alignSelf="center" width="50%" minWidth="180px"
             onClick={() => setOpen(true)}>
             Add Funds to Osmosis

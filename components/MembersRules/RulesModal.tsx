@@ -27,7 +27,7 @@ export const RulesModal = () => {
 
   return (
     <>
-      <IconButton
+      {/* <IconButton
         isRound={true}
         variant="solid"
         aria-label="Done"
@@ -48,7 +48,7 @@ export const RulesModal = () => {
           transform: 'scale(0.7)',
           transition: 'all 0.3s',
         }}
-      />
+      /> */}
 
       <Modal isOpen={isOpen || (isMobile ?? false)} onClose={onClose} size="xl" isCentered>
         <ModalContent
@@ -61,7 +61,8 @@ export const RulesModal = () => {
           w="534px"
           backdropFilter="none"
           style={isMobile ? { zoom: "69%" } : { zoom: "90%" }}
-        ><Box
+        >
+          {/* <Box
             position="absolute"
             top="0"
             left="0"
@@ -72,7 +73,7 @@ export const RulesModal = () => {
             bgPosition="center"
             bgSize="100% 100%"
             zIndex={0}
-          />
+          /> */}
           <ModalBody p="58px 23px" position="relative" zIndex={1}>
             <Stack h="full">
               <Text variant="title" fontSize={isMobile ? "20px" : "45px"} textAlign="center" py={4}>

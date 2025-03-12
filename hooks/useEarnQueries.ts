@@ -343,8 +343,13 @@ export const simpleBoundedAPRCalc = (cdpDebt: number, interest: CollateralIntere
         return "0"
     }
 
+    //   const { data: basket } = useBasket()
 
-    cdpDebt = Number(shiftDigits(cdpDebt, 6));
+    //   const mintedAmount = useMemo(() => {
+    //     return shiftDigits(num(basket?.credit_asset.amount).plus(81997400526).toString(), -6).dp(0).toNumber()
+    //   }, [basket])
+
+    cdpDebt = Number(shiftDigits(cdpDebt, 6)) + 81997400526;
 
     //Get the lowest rate
     const sortedRates = interest.rates

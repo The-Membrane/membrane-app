@@ -21,7 +21,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { HamburgerIcon } from "@chakra-ui/icons";
 import UniversalButtons from './Nav/UniversalButtons'
 import SoloLeveling from './Nav/PointsLevel'
-import { colors } from '@/config/defaults'
+import { colors, colors } from '@/config/defaults'
 
 type NavItems = {
   label: string
@@ -167,12 +167,14 @@ function SideNav() {
         <Button
           textAlign="center"
           whiteSpace={"prewrap"}
-          fontSize="14px"
+          fontSize="18px"
+          opacity={"50%"}
+          backgroundColor={colors.cardBG}
           onClick={handleEnableMsgs}
           justifyContent={"center"}
           display={enable_msgs ? "none" : "flex"}
         >
-          Check For Claims & Liquidations
+          Check Claims
         </Button>
 
         <div style={{ display: enable_msgs ? "block" : "none" }}>

@@ -63,7 +63,7 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
   )
 })
 
-const FAQModal = React.memo(({
+export const FAQModal = React.memo(({
   isOpen, onClose, children
 }: PropsWithChildren<{ isOpen: boolean, onClose: () => void }>) => {
 
@@ -127,12 +127,6 @@ const HomeHeader = React.memo(() => {
 
 export const HomeTitle = React.memo(() => {
 
-  const [isExpanded, setIsExpanded] = useState(false)
-  const toggleExpanded = useCallback(() => {
-    setIsExpanded(prev => !prev)
-  }, [])
-
-
   return (
     <Stack gap={5}>
       <HStack mt="3%" mb="3%" gap="24" justifyContent="center">
@@ -143,15 +137,6 @@ export const HomeTitle = React.memo(() => {
           >
             Provide Liquidity for CDT
           </h1>
-          <HStack w={"100%"} justifyContent={"center"}>
-            <Text>
-              Earn fees and rewards by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a> -&nbsp;
-              <a onClick={toggleExpanded} style={{ color: colors.tabBG, textDecoration: "underline", cursor: "pointer" }}>FAQ</a>
-            </Text>
-
-            <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
-            </FAQModal>
-          </HStack>
           {/* <Button alignSelf="center" width="50%" minWidth="180px"
             onClick={() => setOpen(true)}>
             Add Funds to Osmosis

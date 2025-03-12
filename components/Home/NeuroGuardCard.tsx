@@ -29,6 +29,7 @@ import RangeBoundVisual from "./RangeBoundVisual"
 import RangeBoundInfoCard from "./RangeBoundInfoCard"
 import { ManicRedemptionCard } from "./ManicRedemptionCard"
 import { getBestCLRange } from "@/services/osmosis"
+import { FAQModal } from "./HomeTitle"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -988,18 +989,17 @@ const NeuroGuardCard = () => {
   });
 
 
-  const sectionRef = useRef<HTMLDivElement>(null);
+  // const sectionRef = useRef<HTMLDivElement>(null);
 
-  const scrollToSection = () => {
-    sectionRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // const scrollToSection = () => {
+  //   sectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  // };
 
 
-  //Set max slippage to the difference between market prie & 0.985 
-  const maxSlippage = 0.985 - Number(cdtMarketPrice)
-  //We don't render Redemptions if price is higher so this should be safe logic
-  var minimumSwapCapacity = num(Number(cdtMarketPrice) * (1 - maxSlippage)).times(vaultInfo?.debtAmount || 0).toFixed(0)
-
+  const [isExpanded, setIsExpanded] = useState(false)
+  const toggleExpanded = useCallback(() => {
+    setIsExpanded(prev => !prev)
+  }, [])
 
   return (
     <Stack gap={1} marginBottom="3%">
@@ -1016,6 +1016,16 @@ const NeuroGuardCard = () => {
         }
         {Number(boundCDTBalance) > 0 ? < MemoizedRBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
       </>
+
+      <HStack w={"100%"} justifyContent={"center"}>
+        <Text>
+          Earn fees and rewards by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a> -&nbsp;
+          <a onClick={toggleExpanded} style={{ color: colors.tabBG, textDecoration: "underline", cursor: "pointer" }}>FAQ</a>
+        </Text>
+
+        <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
+        </FAQModal>
+      </HStack>
       <HStack alignItems="none" flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />
         {/* <Stack width={"32%"} justifyContent={(Number(cdtMarketPrice) < 0.985 && Number(minimumSwapCapacity) > 22) ? "center" : "none"} gap="1.5rem">

@@ -44,7 +44,7 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
 
       const cdpCalcs = getRiskyPositions(allPositions, prices, basket, basketAssets)
       // console.log("liquidatible positions:", cdpCalcs.liquidatibleCDPs)
-      const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined && pos.id !== "183") as { address: string, id: string, fee: string }[]
+      const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as { address: string, id: string, fee: string }[]
       console.log("liquidatible positions:", liq)
 
 

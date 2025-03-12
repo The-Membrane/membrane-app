@@ -118,8 +118,9 @@ const HomeHeader = React.memo(() => {
 
   return (
     <HStack gap={"2%"} justifyContent={"center"} mb={"3%"}>
-      <Stats label="" value={`${Formatter.tvl(mintedAmount)} CDT`} />
-      <Text>powering the revolution</Text>
+      <Text variant="title" letterSpacing="unset" fontSize="4xl">
+        {`${Formatter.tvl(mintedAmount)} CDT`} powering the revolution
+      </Text>
     </HStack>
   )
 })

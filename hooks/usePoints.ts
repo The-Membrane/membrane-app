@@ -47,7 +47,7 @@ export const useAllConversionRates = () => {
 export const useUserPoints = () => {
   const { address } = useWallet()
   const { data: points } = useAllUserPoints()
-  // console.log("all points", points)
+  console.log("all points", points)
 
   return useQuery({
     queryKey: ['one users points', address, points],

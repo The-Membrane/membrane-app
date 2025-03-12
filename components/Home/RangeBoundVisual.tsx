@@ -6,6 +6,8 @@ import { colors } from "@/config/defaults"
 import React from "react"
 import useToaster from "@/hooks/useToaster"
 import useSetUserRBClaims from "./hooks/useSetUserRBClaims"
+import { useBoundedCDTRealizedAPR } from "@/hooks/useEarnQueries"
+import { num } from "@/helpers/num"
 
 
 interface PriceBoxProps {
@@ -128,10 +130,15 @@ const RangeBoundVisual = () => {
     { value: 0.980, label: '0.980' }
   ];
 
+  const { data: realizedAPR } = useBoundedCDTRealizedAPR()
+
+
 
   return (
     <Card gap={0} width={isMobile ? "100%" : "66%"} maxWidth="720px" borderWidth={3} height={isMobile ? "45vh" : "100%"}>
       <Stack height="100%">
+        <Text fontFamily="Inter" fontSize="xl" fontWeight={"bold"}><a style={{ fontWeight: "bold", color: colors.earnText }}>{realizedAPR ? `Realized ${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
+
 
         <HStack width="100%" height="100%" gap={0}>
           {/* Tick marks container */}

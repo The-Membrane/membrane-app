@@ -13,7 +13,7 @@ const RangeBoundInfoCard = ({ RBYield, TVL, scrollFn }: { RBYield: string, TVL: 
     const { data: realizedAPR } = useBoundedCDTRealizedAPR()
 
     return (
-        <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"50%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
+        <Card gap={0} width={"100%"} borderWidth={3} maxWidth="352px" height={"36%"} alignSelf="start" paddingTop={"4"} paddingBottom={0}>
             <Stack height="100%" gap={0}>
                 <Text fontWeight="500" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={"white"}>Range Bound Info</Text>
                 <List mt="4%" spacing={3} styleType="disc" padding="6" paddingTop="0">

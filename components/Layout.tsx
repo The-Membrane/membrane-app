@@ -1,4 +1,4 @@
-import { Box, Center, HStack, Image, Stack, Text } from '@chakra-ui/react'
+import { Box, Center, HStack, Image, Stack, Text, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay } from '@chakra-ui/react'
 import { Fragment, PropsWithChildren } from 'react'
 import Header from './Header'
 import Logo from './Logo'
@@ -8,6 +8,7 @@ import MembersRules from './MembersRules'
 import useMembersRulesState from './MembersRules/useRules'
 import Select from './Select'
 import useAppState from '@/persisted-state/useAppState'
+import React from 'react'
 
 type Props = PropsWithChildren & {}
 
@@ -26,12 +27,52 @@ type Props = PropsWithChildren & {}
 //   </Box>
 // )
 
+export const RulesModal = React.memo(({
+  isOpen, onClose, children
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void }>) => {
+
+  return (<>
+
+    <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
+      <ModalOverlay />
+      <ModalContent maxW="800px">
+        <ModalHeader>
+          {/* <Text variant="title">NeuroGuard FAQ</Text> */}
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb="5">
+          <MembersRules />
+        </ModalBody>
+        {/* {(
+          <ModalFooter
+            as={HStack}
+            justifyContent="end"
+            borderTop="1px solid"
+            borderColor="whiteAlpha.200"
+            pt="5"
+            gap="5"
+          >
+            <ActionButtons
+              proposal={proposal}
+              isExecuteAllowed={isExecuteAllowed}
+              isRemoveAllowed={isRemoveAllowed}
+              isVoteAllowed={isVoteAllowed}
+              isPending={isPending}
+              vote={vote}
+            />
+          </ModalFooter>
+        )} */}
+      </ModalContent>
+    </Modal>
+  </>)
+})
+
 const Layout = ({ children }: Props) => {
   const { show } = useMembersRulesState()
 
   const { appState, setAppState } = useAppState()
 
-  if (show) return <MembersRules />
+  if (show) return
 
 
   //create a list of rpc options

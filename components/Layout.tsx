@@ -71,12 +71,12 @@ type Props = PropsWithChildren & {}
 const Layout = ({ children }: Props) => {
 
   console.log("show")
-  const { show } = useMembersRulesState()
-  console.log("show", show)
+  // const { show } = useMembersRulesState()
+  // console.log("show", show)
 
   const { appState, setAppState } = useAppState()
 
-  console.log("show", show)
+  // console.log("show", show)
 
   //create a list of rpc options
   const rpcs = ['https://osmosis-rpc.polkachu.com/', 'https://g.w.lavanet.xyz:443/gateway/osmosis/rpc-http/c6667993e9a0fac0a9c98d29502aa0a7', 'https://rpc.cosmos.directory/osmosis', 'https://rpc.osmosis.zone/'];

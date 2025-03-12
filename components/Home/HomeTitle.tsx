@@ -2,7 +2,10 @@ import { Button, HStack, List, ListItem, Modal, ModalBody, ModalCloseButton, Mod
 import React, { PropsWithChildren, useCallback, useMemo, useState } from 'react'
 import Divider from '../Divider'
 import { colors } from '@/config/defaults'
-import { StatsTitle } from '../StatsTitle'
+import { Stats, StatsTitle } from '../StatsTitle'
+import { useBasket } from '@/hooks/useCDP'
+import { shiftDigits } from '@/helpers/math'
+import { Formatter } from '@/helpers/formatter'
 // import OnboardModal from './LeapOnboarding'
 
 
@@ -103,6 +106,22 @@ const FAQModal = React.memo(({
 })
 
 
+// Memoize child components
+const HomeHeader = React.memo(() => {
+
+  const { data: basket } = useBasket()
+
+  const mintedAmount = useMemo(() => {
+    return shiftDigits(basket?.credit_asset.amount, -6).dp(0).toNumber()
+  }, [basket])
+
+  return (
+    <HStack gap={"2%"} justifyContent={"center"} mb={"3%"}>
+      <Stats label="" value={`${Formatter.tvl(mintedAmount)} CDT`} />
+      <Text>powering the revolution</Text>
+    </HStack>
+  )
+})
 
 export const HomeTitle = React.memo(() => {
 
@@ -116,7 +135,7 @@ export const HomeTitle = React.memo(() => {
     <Stack gap={5}>
       <HStack mt="3%" mb="3%" gap="24" justifyContent="center">
         <Stack gap={"0.5rem"} width="100%">
-          <StatsTitle />
+          <HomeHeader />
           <h1
             className={"home-title"}
           >

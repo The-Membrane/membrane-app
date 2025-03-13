@@ -1022,7 +1022,7 @@ const NeuroGuardCard = () => {
       >
         Provide Liquidity for CDT
       </h1>
-      <HStack w={"100%"} justifyContent={"center"}>
+      <HStack w={"100%"} justifyContent={"center"} marginBottom={"4%"}>
         <Text>
           Earn fees and rewards by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a> -&nbsp;
           <a onClick={toggleExpanded} style={{ color: colors.tabBG, textDecoration: "underline", cursor: "pointer" }}>FAQ</a>

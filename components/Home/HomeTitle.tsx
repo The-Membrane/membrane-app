@@ -117,8 +117,8 @@ const HomeHeader = React.memo(() => {
 
   return (
     <HStack gap={"2%"} justifyContent={"center"} mb={"3%"}>
-      <Text variant="title" letterSpacing="unset" fontSize="4xl">
-        {`${Formatter.tvl(mintedAmount)} CDT`} <a style={{ fontSize: "18px", textTransform: "lowercase" }}>powering the revolution</a>
+      <Text variant="title" letterSpacing="unset" fontSize="50px">
+        {`${Formatter.tvl(mintedAmount)} CDT`} <a style={{ fontSize: "24px", textTransform: "lowercase" }}>powering the revolution</a>
       </Text>
     </HStack>
   )
@@ -128,7 +128,7 @@ export const HomeTitle = React.memo(() => {
 
   return (
     <Stack gap={5}>
-      <HStack mt="3%" mb="3%" gap="24" justifyContent="center">
+      <HStack mt="3%" mb="2%" gap="24" justifyContent="center">
         <Stack gap={"0.5rem"} width="100%">
           <HomeHeader />
           {/* <Button alignSelf="center" width="50%" minWidth="180px"

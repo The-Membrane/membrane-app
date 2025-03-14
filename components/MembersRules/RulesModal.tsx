@@ -14,6 +14,7 @@ import {
 } from '@chakra-ui/react'
 import useMembersRulesState from './useRules'
 import { rules } from './MembersRules'
+import { useCallback } from 'react'
 
 export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const { setRulesState } = useMembersRulesState()

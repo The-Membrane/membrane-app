@@ -1,4 +1,4 @@
-import { Stack, Checkbox } from '@chakra-ui/react'
+import { Stack, Checkbox, useDisclosure } from '@chakra-ui/react'
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import useToaster from '@/hooks/useToaster'
@@ -6,6 +6,7 @@ import NeuroGuardCard from './NeuroGuardCard'
 import useAppState from '../../persisted-state/useAppState'
 import { HomeTitle } from './HomeTitle'
 import { RulesModal } from '../MembersRules/RulesModal'
+import useMembersRulesState from '../MembersRules/useRules'
 
 
 // Memoize child components
@@ -23,7 +24,11 @@ const Home = () => {
 
 
   console.log("Home")
+  const { isOpen, onClose } = useDisclosure()
+
   const { appState, setAppState } = useAppState();
+  const { rulesState, setRulesState } = useMembersRulesState()
+
   const [hasShownToast, setHasShownToast] = useState(false);
   const toaster = useToaster();
 
@@ -62,10 +67,17 @@ const Home = () => {
     }
   }, [appState?.setCookie, toaster]);
 
+
+  useMemo(() => {
+    if (!rulesState.show && rulesState.show !== undefined) {
+      onClose()
+    }
+  }, [rulesState.show])
+
   // Memoize the entire content to prevent unnecessary re-renders
   return (
     <Stack>
-      <RulesModal />
+      <RulesModal isOpen={isOpen} onClose={onClose} />
       <HomeTitle />
       <Stack>
         <NeuroGuardCard />

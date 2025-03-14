@@ -15,8 +15,7 @@ import {
 import useMembersRulesState from './useRules'
 import { rules } from './MembersRules'
 
-export const RulesModal = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure()
+export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const { setRulesState } = useMembersRulesState()
   const isMobile = useBreakpointValue({ base: true, md: false })
 
@@ -30,7 +29,7 @@ export const RulesModal = () => {
   return (
     <>
 
-      <Modal isOpen={isOpen || (isMobile ?? false)} onClose={() => { console.log("closing rules"); onClose; }} size="xl" isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
         <ModalContent
           p="0"
           border="none"

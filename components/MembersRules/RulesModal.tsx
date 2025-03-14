@@ -22,6 +22,7 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
   console.log("rules modal")
 
   const handleAgree = () => {
+    console.log("ran agree")
     setRulesState({ show: false })
     onClose()
   }
@@ -34,7 +35,6 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
           p="0"
           border="none"
           m="0"
-          bg="transparent"
           boxShadow="none"
           h={"493px"}
           w="534px"

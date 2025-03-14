@@ -67,6 +67,7 @@ const Home = () => {
     }
   }, [appState?.setCookie, toaster]);
 
+  console.log("rules modalbool in Home", isOpen)
 
   // useMemo(() => {
   //   if (!rulesState.show && rulesState.show !== undefined) {

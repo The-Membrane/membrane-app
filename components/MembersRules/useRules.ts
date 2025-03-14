@@ -1,20 +1,34 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-type Store = {
+export type RulesState = {
   show: boolean
-  setShow: (show: boolean) => void
 }
 
-const store = (set: any) => ({
+type Store = {
+  rulesState: RulesState
+  setRulesState: (partialState: Partial<RulesState>) => void
+  reset: () => void
+}
+
+const initialState: RulesState = {
   show: true,
-  setShow: (show: boolean) => set(() => ({ show })),
+}
+
+// @ts-ignore
+const store = (set) => ({
+  rulesState: initialState,
+  setRulesState: (partialState: Partial<RulesState>) =>
+    set(
+      (state: Store) => ({ rulesState: { ...state.rulesState, ...partialState } }),
+      false,
+      `@update/${Object.keys(partialState).join(',')}`,
+    ),
+  reset: () => set((state: Store) => ({ ...state, rulesState: initialState }), false, '@reset'),
 })
 
-const config = {
-  name: 'members-rules',
-}
 
-const useMembersRulesState = create<Store>(persist(store, config))
+
+const useMembersRulesState = create<Store>(persist(store, { name: 'members-rules' }))
 
 export default useMembersRulesState

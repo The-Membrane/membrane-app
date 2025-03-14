@@ -17,11 +17,11 @@ import { rules } from './MembersRules'
 
 export const RulesModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { setShow } = useMembersRulesState()
+  const { setRulesState } = useMembersRulesState()
   const isMobile = useBreakpointValue({ base: true, md: false })
 
   const handleAgree = () => {
-    setShow(false)
+    setRulesState({ show: false })
     onClose()
   }
 

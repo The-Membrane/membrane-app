@@ -77,7 +77,7 @@ const Home = () => {
   // Memoize the entire content to prevent unnecessary re-renders
   return (
     <Stack>
-      <RulesModal isOpen={true} onClose={onClose} />
+      <RulesModal isOpen={isOpen} onClose={onClose} />
       <HomeTitle />
       <Stack>
         <NeuroGuardCard />

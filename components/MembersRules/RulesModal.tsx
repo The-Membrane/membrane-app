@@ -33,13 +33,8 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
         <ModalContent
-          p="0"
-          m="0"
-          boxShadow="none"
           h={"493px"}
           w="534px"
-          backdropFilter="none"
-          style={isMobile ? { zoom: "69%" } : { zoom: "90%" }}
         >
           <ModalBody p="58px 23px" position="relative" zIndex={1}>
             <Stack h="full">

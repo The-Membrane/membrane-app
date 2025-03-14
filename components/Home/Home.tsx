@@ -5,6 +5,7 @@ import useToaster from '@/hooks/useToaster'
 import NeuroGuardCard from './NeuroGuardCard'
 import useAppState from '../../persisted-state/useAppState'
 import { HomeTitle } from './HomeTitle'
+import { RulesModal } from '../MembersRules/RulesModal'
 
 
 // Memoize child components
@@ -64,6 +65,7 @@ const Home = () => {
   // Memoize the entire content to prevent unnecessary re-renders
   return (
     <Stack>
+      <RulesModal />
       <HomeTitle />
       <Stack>
         <NeuroGuardCard />

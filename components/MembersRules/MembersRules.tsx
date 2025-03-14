@@ -11,8 +11,7 @@ export const rules = [
 
 const MembersRules = () => {
   const { rulesState } = useMembersRulesState()
-  console.log("bool", rulesState.show === false, rulesState.show != undefined)
-  if (false) return null
+  if (rulesState.show === false && rulesState.show != undefined) return null
   return (
     <Center
       style={{ zoom: "100%" }}

@@ -20,6 +20,8 @@ export const RulesModal = () => {
   const { setRulesState } = useMembersRulesState()
   const isMobile = useBreakpointValue({ base: true, md: false })
 
+  console.log("rules modal")
+
   const handleAgree = () => {
     setRulesState({ show: false })
     onClose()
@@ -28,7 +30,7 @@ export const RulesModal = () => {
   return (
     <>
 
-      <Modal isOpen={isOpen || (isMobile ?? false)} onClose={onClose} size="xl" isCentered>
+      <Modal isOpen={isOpen || (isMobile ?? false)} onClose={() => { console.log("closing rules"); onClose; }} size="xl" isCentered>
         <ModalContent
           p="0"
           border="none"

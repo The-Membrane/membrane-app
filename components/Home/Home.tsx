@@ -27,7 +27,7 @@ const Home = () => {
   const { isOpen, onClose } = useDisclosure()
 
   const { appState, setAppState } = useAppState();
-  const { rulesState, setRulesState } = useMembersRulesState()
+  const { rulesState } = useMembersRulesState()
 
   const [hasShownToast, setHasShownToast] = useState(false);
   const toaster = useToaster();
@@ -68,11 +68,11 @@ const Home = () => {
   }, [appState?.setCookie, toaster]);
 
 
-  useMemo(() => {
-    if (!rulesState.show && rulesState.show !== undefined) {
-      onClose()
-    }
-  }, [rulesState.show])
+  // useMemo(() => {
+  //   if (!rulesState.show && rulesState.show !== undefined) {
+  //     onClose()
+  //   }
+  // }, [rulesState.show])
 
   // Memoize the entire content to prevent unnecessary re-renders
   return (

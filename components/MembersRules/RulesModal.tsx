@@ -39,7 +39,7 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
   return (
     <>
 
-      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered >
+      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered closeOnOverlayClick={false}>
         <ModalOverlay />
 
         <ModalContent

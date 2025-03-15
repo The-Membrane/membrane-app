@@ -2,12 +2,6 @@ import { Center } from '@chakra-ui/react'
 import useMembersRulesState from './useRules'
 import { RulesModal } from './RulesModal'
 
-export const rules = [
-  'Sovereign individuals only',
-  "Your experience is your own responsibility/liability, not the website host's",
-  "If your jurisdiction is banned, don't enter",
-  "Once you're in, you're within",
-]
 
 const MembersRules = () => {
   const { rulesState } = useMembersRulesState()

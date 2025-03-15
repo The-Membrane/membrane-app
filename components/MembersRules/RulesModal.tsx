@@ -14,9 +14,15 @@ import {
   useDisclosure,
 } from '@chakra-ui/react'
 import useMembersRulesState from './useRules'
-import { rules } from './MembersRules'
 import { useCallback } from 'react'
 import { colors } from '@/config/defaults'
+
+export const rules = [
+  'Sovereign individuals only',
+  "Your experience is your own responsibility/liability",
+  "If your jurisdiction is banned, don't enter",
+  "Once you're in, you're within",
+]
 
 export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const { setRulesState } = useMembersRulesState()
@@ -55,6 +61,8 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                   </ListItem>
                 ))}
               </UnorderedList>
+              <Text>
+                The evolution of money is now.</Text>
               <Button onClick={handleAgree} w="fit-content" alignSelf="center" mt={4}>
                 Join the evolution
               </Button>

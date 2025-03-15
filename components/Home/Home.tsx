@@ -80,10 +80,10 @@ const Home = () => {
     }
   }, [rulesState.show])
 
-  if (rulesState.show !== false) {
-    console.log("rules not == false", rulesState.show)
-    onOpen()
-  }
+  // if (rulesState.show !== false) {
+  console.log("rules not == false", rulesState.show)
+  // on Open()
+  // }
 
   // Memoize the entire content to prevent unnecessary re-renders
   return (

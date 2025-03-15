@@ -6,6 +6,7 @@ import {
   Modal,
   ModalBody,
   ModalContent,
+  ModalOverlay,
   Stack,
   Text,
   UnorderedList,
@@ -15,6 +16,7 @@ import {
 import useMembersRulesState from './useRules'
 import { rules } from './MembersRules'
 import { useCallback } from 'react'
+import { colors } from '@/config/defaults'
 
 export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const { setRulesState } = useMembersRulesState()
@@ -31,10 +33,14 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
   return (
     <>
 
-      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered >
+        <ModalOverlay />
+
         <ModalContent
           h={"493px"}
           w="534px"
+          borderWidth={"2px"}
+          borderColor={colors.tabBG}
         >
           <ModalBody p="24x 23px" position="relative" zIndex={1}>
             <Stack h="full">

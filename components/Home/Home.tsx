@@ -24,7 +24,7 @@ const Home = () => {
 
 
   console.log("Home")
-  const { isOpen, onClose } = useDisclosure()
+  const { isOpen, onOpen, onClose } = useDisclosure()
 
   const { appState, setAppState } = useAppState();
   const { rulesState } = useMembersRulesState()
@@ -69,11 +69,15 @@ const Home = () => {
 
   console.log("rules modalbool in Home", isOpen)
 
-  // useMemo(() => {
-  //   if (!rulesState.show && rulesState.show !== undefined) {
-  //     onClose()
-  //   }
-  // }, [rulesState.show])
+  useMemo(() => {
+    if (!rulesState.show && rulesState.show !== undefined) {
+      onClose()
+    }
+    if (rulesState.show === undefined) {
+      onOpen()
+      console.log("rules modalbool in Home", isOpen)
+    }
+  }, [rulesState.show])
 
   // Memoize the entire content to prevent unnecessary re-renders
   return (

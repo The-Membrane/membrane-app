@@ -55,11 +55,11 @@ const Home = () => {
 
   // Show toast effect with proper dependencies
   useEffect(() => {
-    if (!hasShownToast && appState?.setCookie === undefined) {
+    if (!hasShownToast && appState?.setCookie === undefined && !rulesState.show) {
       toaster.message(toastContent);
       setHasShownToast(true);
     }
-  }, [hasShownToast, appState?.setCookie, toastContent, toaster]);
+  }, [hasShownToast, appState?.setCookie, toastContent, toaster, rulesState.show]);
 
   // Handle toaster dismissal with proper effect
   useEffect(() => {

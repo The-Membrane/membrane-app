@@ -7,6 +7,7 @@ import useAppState from '../../persisted-state/useAppState'
 import { HomeTitle } from './HomeTitle'
 import { RulesModal } from '../MembersRules/RulesModal'
 import useMembersRulesState from '../MembersRules/useRules'
+import { rules } from '../MembersRules/MembersRules'
 
 
 // Memoize child components
@@ -75,9 +76,14 @@ const Home = () => {
     }
     if (rulesState.show === undefined) {
       onOpen()
-      console.log("rules modalbool in Home", isOpen)
+      console.log("rules useEffect in Home", isOpen)
     }
   }, [rulesState.show])
+
+  if (rulesState.show !== false) {
+    console.log("rules not == false", rulesState.show)
+    onOpen()
+  }
 
   // Memoize the entire content to prevent unnecessary re-renders
   return (

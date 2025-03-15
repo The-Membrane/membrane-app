@@ -118,7 +118,7 @@ const HomeHeader = React.memo(() => {
   return (
     <HStack gap={"2%"} justifyContent={"center"} mb={"3%"}>
       <Text variant="title" letterSpacing="unset" fontSize="50px">
-        {`${Formatter.tvl(mintedAmount)} CDT`} <a style={{ fontSize: "24px", textTransform: "lowercase" }}>powering the revolution</a>
+        {`${Formatter.tvl(mintedAmount)} CDT`} <a style={{ fontSize: "24px", textTransform: "lowercase" }}>powering the evolution</a>
       </Text>
     </HStack>
   )

@@ -36,7 +36,7 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
           h={"493px"}
           w="534px"
         >
-          <ModalBody p="58px 23px" position="relative" zIndex={1}>
+          <ModalBody p="24x 23px" position="relative" zIndex={1}>
             <Stack h="full">
               <Text variant="title" fontSize={isMobile ? "20px" : "45px"} textAlign="center" py={4}>
                 MEMBRANE RULES
@@ -50,7 +50,7 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                 ))}
               </UnorderedList>
               <Button onClick={handleAgree} w="fit-content" alignSelf="center" mt={4}>
-                I agree
+                Join the evolution
               </Button>
             </Stack>
           </ModalBody>

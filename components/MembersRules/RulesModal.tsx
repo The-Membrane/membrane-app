@@ -61,7 +61,11 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                   </ListItem>
                 ))}
               </UnorderedList>
-              <Text>
+              <Text
+                fontStyle="italics"
+                alignSelf="center"
+                paddingTop="1rem"
+              >
                 The evolution of money is now.</Text>
               <Button onClick={handleAgree} w="fit-content" alignSelf="center" mt={4}>
                 Join the evolution

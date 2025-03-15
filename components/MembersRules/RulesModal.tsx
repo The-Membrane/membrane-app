@@ -62,7 +62,7 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                 ))}
               </UnorderedList>
               <Text
-                fontStyle="italics"
+                fontStyle="italic"
                 alignSelf="center"
                 paddingTop="1rem"
               >

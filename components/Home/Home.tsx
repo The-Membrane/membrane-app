@@ -74,14 +74,14 @@ const Home = () => {
     if (!rulesState.show && rulesState.show !== undefined) {
       onClose()
     }
-    if (rulesState.show === undefined) {
+    if (rulesState.show) {
       onOpen()
-      console.log("rules useEffect in Home", isOpen)
+      console.log("rules useEffect in Home", isOpen, rulesState.show)
     }
   }, [rulesState.show])
 
   // if (rulesState.show !== false) {
-  console.log("rules not == false", rulesState.show)
+  // console.log("rules not == false", rulesState.show)
   // on Open()
   // }
 

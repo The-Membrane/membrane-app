@@ -6,7 +6,7 @@ import { colors } from "@/config/defaults"
 import React from "react"
 import useToaster from "@/hooks/useToaster"
 import useSetUserRBClaims from "./hooks/useSetUserRBClaims"
-import { useBoundedCDTRealizedAPR } from "@/hooks/useEarnQueries"
+import { useBoundedCDTRealizedAPR, useRBLPCDTBalance } from "@/hooks/useEarnQueries"
 import { num } from "@/helpers/num"
 
 
@@ -61,6 +61,8 @@ const RangeBoundVisual = () => {
   const toaster = useToaster();
   const [hasShownToast, setHasShownToast] = useState(false);
   const { action: set } = useSetUserRBClaims()
+
+  const { data: existingBuffer } = useRBLPCDTBalance()
 
   const isDisabled = set?.simulate.isError || !set?.simulate.data
   const isLoading = set?.simulate.isLoading || set?.tx.isPending

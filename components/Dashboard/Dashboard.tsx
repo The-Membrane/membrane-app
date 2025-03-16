@@ -12,8 +12,8 @@ import { useRBLPCDTBalance } from '../../hooks/useEarnQueries'
 import Divider from '../Divider'
 import { Formatter } from '@/helpers/formatter'
 import { TxButton } from '../TxButton'
-import useBoundedManage from '../Home/hooks/useRangeBoundLPManage'
-import useFulfillIntents from '../Home/hooks/useFulfillIntents'
+import useBoundedManage from './hooks/useRangeBoundLPManage'
+import useFulfillIntents from './hooks/useFulfillIntents'
 import { StatsTitle } from '../StatsTitle'
 import { getAssetByDenom } from '@/helpers/chain'
 import { Basket } from '@/contracts/codegen/positions/Positions.types'
@@ -31,7 +31,6 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const { action: manage } = useBoundedManage()
     const { action: fulfill } = useFulfillIntents({ run: true, skipIDs: idSkips })
     const { action: givePoints } = useGiveRBLPPoints()
-    const { data: amountToManage } = useRBLPCDTBalance()
 
     const revenueDistributionThreshold = 50000000
     const percentToDistribution = useMemo(() => {
@@ -40,7 +39,7 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
 
     }, [basket])
     const isGivePointsDisabled = givePoints?.simulate.isError || !givePoints?.simulate.data
-    const isManageDisabled = manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero()
+    const isManageDisabled = manage?.simulate.isError || !manage?.simulate.data
     const isFulfillDisabled = useMemo(() => {
         if (fulfill?.simulate.isError) {
             //Find the position ID string in the error, it'll look like Position doesn't exist: 1

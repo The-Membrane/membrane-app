@@ -122,7 +122,7 @@ export const getCLPositionsForVault = () => {
             if (!config) return;
             const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor }
             const ceilingPosition = await getCLPosition(positions.ceiling.toString(), appState.rpcUrl)
-            const floorPosition = await getCLPosition(positions.floor.toString(), appState.rpcUrl)
+            const floorPosition = positions.floor === 0 ? undefined : await getCLPosition(positions.floor.toString(), appState.rpcUrl)
 
             // console.log("ceiling", ceilingPosition, "floor", floorPosition, "prices", cdtPrice, usdcPrice)
 
@@ -130,8 +130,10 @@ export const getCLPositionsForVault = () => {
             const ceilingAmounts = ceilingPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt"
                 ? { cdt: ceilingPosition.asset0.amount, usdc: ceilingPosition.asset1.amount } : { cdt: ceilingPosition.asset1.amount, usdc: ceilingPosition.asset0.amount }
             //Find floor amounts
-            const floorAmounts = floorPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt"
-                ? { cdt: floorPosition.asset0.amount, usdc: floorPosition.asset1.amount } : { cdt: floorPosition.asset1.amount, usdc: floorPosition.asset0.amount }
+            const floorAmounts = floorPosition ?
+                floorPosition.asset0.denom == "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt"
+                    ? { cdt: floorPosition.asset0.amount, usdc: floorPosition.asset1.amount } : { cdt: floorPosition.asset1.amount, usdc: floorPosition.asset0.amount }
+                : { cdt: 0, usdc: 0 }
 
             //Calc Ceiling TVL
             const ceilingTVL = shiftDigits(ceilingAmounts.cdt, -6).times(cdtPrice).plus(shiftDigits(ceilingAmounts.usdc, -6).times(usdcPrice))

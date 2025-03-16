@@ -17,7 +17,7 @@ import { num } from '@/helpers/num'
 import { swapToCDTMsg, swapToCollateralMsg } from '@/helpers/osmosis'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getCLPositionsForVault } from '@/services/osmosis'
-import useBoundedManage from "./useRangeBoundLPManage"
+import useBoundedManage from "../../Dashboard/hooks/useRangeBoundLPManage"
 import { deleteCookie, getCookie, setCookie } from '@/helpers/cookies'
 import useAppState from '@/persisted-state/useAppState'
 

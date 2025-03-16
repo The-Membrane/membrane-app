@@ -112,7 +112,7 @@ const HomeHeader = React.memo(() => {
   const { data: basket } = useBasket()
 
   const mintedAmount = useMemo(() => {
-    return shiftDigits(num(basket?.credit_asset.amount).plus(81997400526).toString(), -6).dp(0).toNumber()
+    return shiftDigits(num(basket?.credit_asset.amount).toString(), -6).dp(0).toNumber()
   }, [basket])
 
   return (

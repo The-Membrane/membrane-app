@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
       });
     });
-    cdpDebt = shiftDigits(cdpDebt, 6).toNumber() + 81997400526;
+    cdpDebt = shiftDigits(cdpDebt, 6).toNumber();
 
 
     //Get the lowest rate

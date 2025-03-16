@@ -171,15 +171,17 @@ const Dashboard = () => {
                 <ModalOverlay />
 
                 <ModalContent
-                    h={"10vh"}
-                    w="10vw"
+                    h={"fit-content"}
+                    w="fit-content"
                     borderWidth={"2px"}
                     borderColor={colors.tabBG}
+                    padding="0"
+                    textAlign="center"
                 >
                     <ModalBody p="1rem" position="relative" zIndex={1}>
                         <Stack h="full">
                             <Text
-                                // fontStyle="italic"
+                                fontSize="24px"
                                 alignSelf="center"
                                 paddingTop="1rem"
                             >

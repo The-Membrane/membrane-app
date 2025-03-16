@@ -1,4 +1,9 @@
-import { Text, Stack, HStack, Slider, Card, SliderFilledTrack, SliderTrack } from '@chakra-ui/react'
+import {
+    Text, Stack, HStack, Slider, Card, SliderFilledTrack, SliderTrack, Modal,
+    ModalBody, Button,
+    ModalContent,
+    ModalOverlay, useDisclosure
+} from '@chakra-ui/react'
 
 import React, { useMemo, useState } from "react"
 import { useBasket } from '@/hooks/useCDP'
@@ -138,17 +143,57 @@ const Dashboard = () => {
 
     }, [basket, prices])
 
+    const { isOpen, onOpen, onClose } = useDisclosure()
+    const [modalHasOpened, setModalHasOpened] = useState(false)
+
+    useMemo(() => {
+        if (!modalHasOpened) {
+            onOpen()
+            setModalHasOpened(true)
+        }
+    }, [modalHasOpened, onOpen])
+
     // Memoize the entire content to prevent unnecessary re-renders
     return (
-        <Stack>
-            <StatsTitle />
-            <Divider mx="0" mb="5" />
-            <HStack alignItems={"none"}>
-                <AssetPieChart data={assetData} />
-                <OracleHealth />
-            </HStack>
-            <ManagementCard basket={basket} />
-        </Stack>
+        <>
+            <Stack>
+                <StatsTitle />
+                <Divider mx="0" mb="5" />
+                <HStack alignItems={"none"}>
+                    <AssetPieChart data={assetData} />
+                    <OracleHealth />
+                </HStack>
+                <ManagementCard basket={basket} />
+            </Stack>
+
+            {/* Modal */}
+            <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered closeOnOverlayClick={false}>
+                <ModalOverlay />
+
+                <ModalContent
+                    h={"10vh"}
+                    w="10vw"
+                    borderWidth={"2px"}
+                    borderColor={colors.tabBG}
+                >
+                    <ModalBody p="1rem" position="relative" zIndex={1}>
+                        <Stack h="full">
+                            <Text
+                                // fontStyle="italic"
+                                alignSelf="center"
+                                paddingTop="1rem"
+                            >
+                                This is where the experiments are monitored, are you prepared to see behind the veil?
+                            </Text>
+                            <Button onClick={onClose} w="fit-content" alignSelf="center" mt={4}>
+                                Peek
+                            </Button>
+                        </Stack>
+                    </ModalBody>
+                </ModalContent>
+            </Modal>
+        </>
+
     );
 
 };

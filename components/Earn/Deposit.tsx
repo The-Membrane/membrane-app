@@ -354,7 +354,7 @@ const Deposit = () => {
                     <TxButton
                       maxW="75px"
                       isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
-                      isDisabled={loop?.simulate.isError || !loop?.simulate.data}
+                      isDisabled={true}
                       onClick={() => loop?.tx.mutate()}
                       toggleConnectLabel={false}
                       style={{ alignSelf: "end" }}

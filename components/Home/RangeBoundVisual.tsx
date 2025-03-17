@@ -140,12 +140,13 @@ const RangeBoundVisual = () => {
 
   return (
     <Card gap={0} width={isMobile ? "100%" : "66%"} maxWidth="720px" borderWidth={3} height={isMobile ? "45vh" : "100%"}>
+
+
+      <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}><a style={{ fontWeight: "bold", color: colors.earnText }}>Realized APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
+      <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> TVL: ${(num(shiftDigits(TVL ?? "0", -6)).times(cdtPrice).toFixed(2))}</Text>
+      <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> {shiftDigits(existingBuffer ?? "0", -6)} CDT Waiting to Sell High</Text>
+
       <Stack height="100%">
-
-        <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}><a style={{ fontWeight: "bold", color: colors.earnText }}>Realized APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-        {/* <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> TVL: {(num(TVL).times(cdtPrice).toFixed(2) ?? "0")}</Text>
-        <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> {shiftDigits(existingBuffer ?? "0", -6)} CDT Waiting to Sell High</Text> */}
-
 
 
         <HStack width="100%" height="100%" gap={0}>
@@ -185,10 +186,9 @@ const RangeBoundVisual = () => {
               value={cdtPrice}
               isReadOnly
               cursor="default"
-              min={.979}
-              max={.996}
+              min={0.9899}
+              max={1.001}
               orientation="vertical"
-              paddingInlineStart="0"
               width="inherit"
               pos="relative"
               height="100%"
@@ -217,13 +217,13 @@ const RangeBoundVisual = () => {
               setSwitch={setCSwitch}
               isTop={true}
               tvl={positions?.positionsTVL.ceilingTVL.toFixed(2)}
-              range="$0.993 - $0.99"
+              range="$1.00 - $0.9999"
             />
             <PriceBox
               switch={fSwitch}
               setSwitch={setFSwitch}
               tvl={positions?.positionsTVL.floorTVL.toFixed(2)}
-              range="$0.985 - $0.982"
+              range="$0.990 - $0.9899"
             />
           </Stack>
         </HStack>

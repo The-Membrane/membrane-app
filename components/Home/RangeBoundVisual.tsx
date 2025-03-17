@@ -123,11 +123,11 @@ const RangeBoundVisual = () => {
 
   // Generate tick marks and labels
   const ticks = [
-    { value: 1.001, label: '0.995' },
-    { value: 0.9999, label: '0.993' },
+    { value: 1.001, label: '1.001' },
+    { value: 0.9999, label: '0.9999' },
     { value: 0.990, label: '0.990' },
-    { value: 0.9899, label: '0.985' },
-    { value: 0.988, label: '0.982' },
+    { value: 0.9899, label: '0.9899' },
+    { value: 0.988, label: '0.988' },
   ];
 
   const { data: realizedAPR } = useBoundedCDTRealizedAPR()

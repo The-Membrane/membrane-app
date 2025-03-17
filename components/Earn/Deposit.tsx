@@ -1,5 +1,11 @@
-import React, { ChangeEvent, use, useEffect, useMemo, useState } from 'react'
-import { Button, Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
+import React, {
+  ChangeEvent, use, useEffect, useMemo, useState
+} from 'react'
+import {
+  Button, Card, HStack, Input, Stack, Text, useDisclosure, Modal, ModalBody,
+  ModalContent,
+  ModalOverlay
+} from '@chakra-ui/react'
 import { TxButton } from '@/components/TxButton'
 import { isGreaterThanZero, num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
@@ -263,130 +269,173 @@ const Deposit = () => {
     setEarnState({ loopMax: parseInt(e.target.value) })
   }
 
-  console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.error)
+
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const [modalHasOpened, setModalHasOpened] = useState(false)
+
+  useMemo(() => {
+    if (!modalHasOpened) {
+      onOpen()
+      setModalHasOpened(true)
+    }
+  }, [modalHasOpened, onOpen])
+
+  // console.log("loop", loop?.simulate.data, loop?.simulate.isError, loop?.simulate.error)
   return (
-    <Stack>
-      <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>
-        <Stack>
-          <Card>
-            <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
-            <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
-              {vaultInfo ?
-                <><HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >TVL: </Text><Text variant="body">${vaultInfo.totalTVL.toFixed(0)}</Text></HStack>
-                  <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Debt: </Text><Text variant="body">{vaultInfo.debtAmount} CDT</Text></HStack>
-                  <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Base TVL: </Text><Text variant="body">${vaultInfo.unleveragedValue.toFixed(0)}</Text></HStack>
-                  <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Leverage: </Text><Text variant="body">{vaultInfo.leverage.toFixed(2)}x</Text></HStack></>
-                :
-                <Text variant="body" width={"100%"} display="flex" justifyContent="center">loading...</Text>}
-            </HStack>
-          </Card>
-          <Card p="8" gap={5} width={"100%"} borderWidth={"7px"} borderColor={colors.sliderCardBorder} borderRadius={"2rem"}>
-            <ActSlider />
-          </Card>
-
-          {(vaultInfo?.debtAmount ?? 0) >= 200 ? <Text variant="title" justifyContent="center" display={"flex"} fontSize={"md"} letterSpacing={"1px"} mb={1} color={colors.alert} >Alert: Deposits DISABLED while above 200 debt</Text> : null}
-
-          <Card>
-
-            <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions, 0.5% entry fee but you pay unloop cost{'\n'}</Text>
-
-            <Divider />
-
-            <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>Who is the Yield?</Text>
-            <Text variant="body" mb={1}>
-              This vault <a style={{ fontWeight: "bold", color: colors.textHighlight }}>supplies USDC on Mars Protocol</a> and loops it by collateralizing the Mars position to mint CDT,
-              swap it for USDC & deposit it back to the Mars USDC market. The Mars USDC market only distributes yield as borrowers repay so even if the APR is 100%, this Manic vault earns nothing until Mars borrowers repay.
-              Due to this, we can't offer a recommended deposit time to recoup the entry fee.
-            </Text>
-            <Text variant="body" mb={1}> The vault's collateral position is open for <a style={{ fontWeight: "bold", color: colors.textHighlight }}>profitable debt redemptions</a> that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.</Text>
-            <Text variant="body" mb={1}>On top of that, there is a <a style={{ fontWeight: "bold", color: colors.textHighlight }}>0.5% entry fee</a> that is pure profit. The "catch" is that this is a yield cushion because depositors <a style={{ fontWeight: "bold", color: colors.textHighlight }}>are responsible for their unlooping costs</a>.
-              So if you decide to unloop at a bad conversion rate, above 99%, you will lose some capital on the trade out, on top of slippage (max: 0.5%).
-            </Text>
-            <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>{'\n'} Why does my TVL fluctuate?</Text>
-            <Text variant="body" mb={1}>Your TVL represents a portion of the vault's TVL. The vault's TVL may temporary decrease as <a style={{ fontWeight: "bold", color: colors.textHighlight }}>it takes $1 of CDT in protocol debt and sells it on the market</a>,
-              the lowest conversion rate being $0.99. This difference will be recouped as the vault's CDP position gets redeemed against & from the entry fee of any deposits.
-              Redemptions can be profitable if our loop conversion rate is above 99% & at least even at the 99% floor. This makes any TVL fluctuations temporary & part of the vault's normal functionality.
-            </Text>
-          </Card>
-        </Stack>
-        <Stack>
-          <Card p="7" gap={5} width={"100%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
-            <Stack>
-              <HStack spacing="5" alignItems="flex-start">
-                <Stack>
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "N/A"} </Text>
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">APR </Text>
-                  <Divider marginTop={1} marginBottom={1} />
-                  <Text variant="body" justifyContent={"center"} display="flex" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
-                </Stack>
-                <Stack>
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">Estimated</Text>
-                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">APR </Text>
-                  <Divider marginTop={1} marginBottom={1} />
-                  <Text variant="body" justifyContent={"center"} display="flex" fontWeight={"bold"} >{longestAPR}% </Text>
-                </Stack>
+    <>
+      <Stack>
+        <HStack spacing="5" alignItems="flex-start" paddingLeft={"2vw"} paddingRight={"2vw"}>
+          <Stack>
+            <Card>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"}>Global Vault Info</Text>
+              <HStack justifyContent="end" width={"100%"} gap={"1rem"}>
+                {vaultInfo ?
+                  <><HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >TVL: </Text><Text variant="body">${vaultInfo.totalTVL.toFixed(0)}</Text></HStack>
+                    <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Debt: </Text><Text variant="body">{vaultInfo.debtAmount} CDT</Text></HStack>
+                    <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Base TVL: </Text><Text variant="body">${vaultInfo.unleveragedValue.toFixed(0)}</Text></HStack>
+                    <HStack><Text variant="title" fontSize={"md"} letterSpacing={"1px"} >Leverage: </Text><Text variant="body">{vaultInfo.leverage.toFixed(2)}x</Text></HStack></>
+                  :
+                  <Text variant="body" width={"100%"} display="flex" justifyContent="center">loading...</Text>}
               </HStack>
+            </Card>
+            <Card p="8" gap={5} width={"100%"} borderWidth={"7px"} borderColor={colors.sliderCardBorder} borderRadius={"2rem"}>
+              <ActSlider />
+            </Card>
+
+            {(vaultInfo?.debtAmount ?? 0) >= 200 ? <Text variant="title" justifyContent="center" display={"flex"} fontSize={"md"} letterSpacing={"1px"} mb={1} color={colors.alert} >Alert: Deposits DISABLED while above 200 debt</Text> : null}
+
+            <Card>
+
+              <Text variant="body" fontWeight={"bold"} mb={1}> TLDR: Looped Mars USDC yield, CDT Redemptions, 0.5% entry fee but you pay unloop cost{'\n'}</Text>
 
               <Divider />
 
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>Who is the Yield?</Text>
+              <Text variant="body" mb={1}>
+                This vault <a style={{ fontWeight: "bold", color: colors.textHighlight }}>supplies USDC on Mars Protocol</a> and loops it by collateralizing the Mars position to mint CDT,
+                swap it for USDC & deposit it back to the Mars USDC market. The Mars USDC market only distributes yield as borrowers repay so even if the APR is 100%, this Manic vault earns nothing until Mars borrowers repay.
+                Due to this, we can't offer a recommended deposit time to recoup the entry fee.
+              </Text>
+              <Text variant="body" mb={1}> The vault's collateral position is open for <a style={{ fontWeight: "bold", color: colors.textHighlight }}>profitable debt redemptions</a> that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.</Text>
+              <Text variant="body" mb={1}>On top of that, there is a <a style={{ fontWeight: "bold", color: colors.textHighlight }}>0.5% entry fee</a> that is pure profit. The "catch" is that this is a yield cushion because depositors <a style={{ fontWeight: "bold", color: colors.textHighlight }}>are responsible for their unlooping costs</a>.
+                So if you decide to unloop at a bad conversion rate, above 99%, you will lose some capital on the trade out, on top of slippage (max: 0.5%).
+              </Text>
+              <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>{'\n'} Why does my TVL fluctuate?</Text>
+              <Text variant="body" mb={1}>Your TVL represents a portion of the vault's TVL. The vault's TVL may temporary decrease as <a style={{ fontWeight: "bold", color: colors.textHighlight }}>it takes $1 of CDT in protocol debt and sells it on the market</a>,
+                the lowest conversion rate being $0.99. This difference will be recouped as the vault's CDP position gets redeemed against & from the entry fee of any deposits.
+                Redemptions can be profitable if our loop conversion rate is above 99% & at least even at the 99% floor. This makes any TVL fluctuations temporary & part of the vault's normal functionality.
+              </Text>
+            </Card>
+          </Stack>
+          <Stack>
+            <Card p="7" gap={5} width={"100%"} height={"50%"} margin={"auto"} alignContent={"center"} flexWrap={"wrap"}>
               <Stack>
-                <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
-                <Text variant="body" fontWeight={"bold"}>{(num(longestAPR).dividedBy(100).multipliedBy(userTVL)).toFixed(2)} USD</Text>
-              </Stack>
-            </Stack>
-          </Card>
-          <Card>
-            <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Global Management</Text>
-            <Stack>
-              <HStack>
-                <Stack py="5" w="full" gap="3" mb={"0"} >
-                  <Text variant="body"> Max CDT to Loop </Text>
-                  <HStack>
-                    <Input
-                      width={"40%"}
-                      textAlign={"center"}
-                      placeholder="0"
-                      type="number"
-                      value={earnState.loopMax ?? 0}
-                      onChange={handleInputChange}
-                    />
-                    {/* Loop Button */}
-                    <TxButton
-                      maxW="75px"
-                      isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
-                      isDisabled={true}
-                      onClick={() => loop?.tx.mutate()}
-                      toggleConnectLabel={false}
-                      style={{ alignSelf: "end" }}
-                    >
-                      Loop
-                    </TxButton>
-                  </HStack>
+                <HStack spacing="5" alignItems="flex-start">
+                  <Stack>
+                    <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "N/A"} </Text>
+                    <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">APR </Text>
+                    <Divider marginTop={1} marginBottom={1} />
+                    <Text variant="body" justifyContent={"center"} display="flex" fontWeight={"bold"} letterSpacing={"1px"}>{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) : "N/A"}%</Text>
+                  </Stack>
+                  <Stack>
+                    <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">Estimated</Text>
+                    <Text variant="title" fontSize={"lg"} letterSpacing={"1px"} justifyContent={"center"} display="flex">APR </Text>
+                    <Divider marginTop={1} marginBottom={1} />
+                    <Text variant="body" justifyContent={"center"} display="flex" fontWeight={"bold"} >{longestAPR}% </Text>
+                  </Stack>
+                </HStack>
+
+                <Divider />
+
+                <Stack>
+                  <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Estimated Annual Interest</Text>
+                  <Text variant="body" fontWeight={"bold"}>{(num(longestAPR).dividedBy(100).multipliedBy(userTVL)).toFixed(2)} USD</Text>
                 </Stack>
-              </HStack>
-              <HStack>
-                {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}
-                {/* Redeen CDT input */}
-                {/* Redeem Button */}
-                <RedeemButton basket={basket} />
-              </HStack>
-              {/* Crank APR Button */}
-              <TxButton
-                maxW="100%"
-                isLoading={crankAPR?.simulate.isLoading || crankAPR?.tx.isPending}
-                isDisabled={crankAPR?.simulate.isError || !crankAPR?.simulate.data}
-                onClick={() => crankAPR?.tx.mutate()}
-                toggleConnectLabel={false}
-                style={{ alignSelf: "center" }}
+              </Stack>
+            </Card>
+            <Card>
+              <Text variant="title" fontSize={"lg"} letterSpacing={"1px"}>Global Management</Text>
+              <Stack>
+                <HStack>
+                  <Stack py="5" w="full" gap="3" mb={"0"} >
+                    <Text variant="body"> Max CDT to Loop </Text>
+                    <HStack>
+                      <Input
+                        width={"40%"}
+                        textAlign={"center"}
+                        placeholder="0"
+                        type="number"
+                        value={earnState.loopMax ?? 0}
+                        onChange={handleInputChange}
+                      />
+                      {/* Loop Button */}
+                      <TxButton
+                        maxW="75px"
+                        isLoading={loop?.simulate.isLoading || loop?.tx.isPending}
+                        isDisabled={true}
+                        onClick={() => loop?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "end" }}
+                      >
+                        Loop
+                      </TxButton>
+                    </HStack>
+                  </Stack>
+                </HStack>
+                <HStack>
+                  {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}
+                  {/* Redeen CDT input */}
+                  {/* Redeem Button */}
+                  <RedeemButton basket={basket} />
+                </HStack>
+                {/* Crank APR Button */}
+                <TxButton
+                  maxW="100%"
+                  isLoading={crankAPR?.simulate.isLoading || crankAPR?.tx.isPending}
+                  isDisabled={crankAPR?.simulate.isError || !crankAPR?.simulate.data}
+                  onClick={() => crankAPR?.tx.mutate()}
+                  toggleConnectLabel={false}
+                  style={{ alignSelf: "center" }}
+                >
+                  Crank APR
+                </TxButton>
+              </Stack>
+            </Card>
+            {/* <RangeBoundLPCard /> */}
+          </Stack>
+        </HStack>
+      </Stack>
+
+
+      {/* Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered closeOnOverlayClick={false}>
+        <ModalOverlay />
+
+        <ModalContent
+          h={"fit-content"}
+          w="fit-content"
+          borderWidth={"2px"}
+          borderColor={colors.tabBG}
+          padding="0"
+          textAlign="center"
+        >
+          <ModalBody p="1rem" position="relative" zIndex={1}>
+            <Stack h="full">
+              <Text
+                fontSize="24px"
+                alignSelf="center"
+                paddingTop="1rem"
               >
-                Crank APR
-              </TxButton>
+                This vault is powering down. If you stay deposited you're only earning Mars' supply yield, the vault will no longer take debt.
+              </Text>
+              <Button onClick={onClose} w="fit-content" alignSelf="center" mt={4}>
+                Understood
+              </Button>
             </Stack>
-          </Card>
-          {/* <RangeBoundLPCard /> */}
-        </Stack>
-      </HStack>
-    </Stack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
   )
 }
 

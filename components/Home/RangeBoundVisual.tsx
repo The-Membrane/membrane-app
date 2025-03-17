@@ -143,8 +143,8 @@ const RangeBoundVisual = () => {
       <Stack height="100%">
 
         <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}><a style={{ fontWeight: "bold", color: colors.earnText }}>Realized APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-        <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> TVL: {(num(TVL).times(cdtPrice).toFixed(2) ?? "0")}</Text>
-        <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> {shiftDigits(existingBuffer ?? "0", -6)} CDT Waiting to Sell High</Text>
+        {/* <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> TVL: {(num(TVL).times(cdtPrice).toFixed(2) ?? "0")}</Text>
+        <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> {shiftDigits(existingBuffer ?? "0", -6)} CDT Waiting to Sell High</Text> */}
 
 
 

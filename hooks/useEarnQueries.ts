@@ -361,7 +361,7 @@ export const simpleBoundedAPRCalc = (cdpDebt: number, interest: CollateralIntere
     const estimatedRevenue = estimatedRate ? num(estimatedRate).times(totalDebt) : num(0);
 
     const apr = num(estimatedRevenue)
-        .times(0.80)
+        .times(1)
         .dividedBy(vaultCDT)
         .toString()
 

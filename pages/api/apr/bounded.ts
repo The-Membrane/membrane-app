@@ -65,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const estimatedRevenue = estimatedRate ? num(estimatedRate).times(totalDebt) : num(0);
 
     const apr = num(estimatedRevenue)
-      .times(0.80)
+      .times(1)
       .dividedBy(vaultCDT)
       .toNumber()
 

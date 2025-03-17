@@ -142,12 +142,8 @@ const RangeBoundVisual = () => {
 
       <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}><a style={{ fontWeight: "bold", color: colors.earnText }}>Realized APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
 
-      <Flex flex="1" justifyContent="center" alignItems="center" flexDirection="column">
-        <Stack >
-          <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> <a style={{ fontWeight: "bold" }}>TVL: </a>${(num(shiftDigits(TVL ?? "0", -6)).times(cdtPrice).toFixed(2))}</Text>
-          <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> {Number(shiftDigits(existingBuffer ?? "0", -6)).toFixed(0)} CDT Waiting to Sell High</Text>
-        </Stack>
-      </Flex>
+      <Text alignSelf="center" fontFamily="Inter" fontSize="12px"> <a style={{ fontWeight: "bold" }}>TVL: </a>${(num(shiftDigits(TVL ?? "0", -6)).times(cdtPrice).toFixed(2))}</Text>
+      <Text alignSelf="center" fontFamily="Inter" fontSize="12px" fontWeight={"bold"}> {Number(shiftDigits(existingBuffer ?? "0", -6)).toFixed(0)} CDT Waiting to Sell High</Text>
 
 
       <HStack width="100%" height="100%" gap={0}>

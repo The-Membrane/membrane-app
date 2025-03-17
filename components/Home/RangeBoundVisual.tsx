@@ -123,12 +123,11 @@ const RangeBoundVisual = () => {
 
   // Generate tick marks and labels
   const ticks = [
-    { value: 0.995, label: '0.995' },
-    { value: 0.993, label: '0.993' },
+    { value: 1.001, label: '0.995' },
+    { value: 0.9999, label: '0.993' },
     { value: 0.990, label: '0.990' },
-    { value: 0.985, label: '0.985' },
-    { value: 0.982, label: '0.982' },
-    { value: 0.980, label: '0.980' }
+    { value: 0.9899, label: '0.985' },
+    { value: 0.988, label: '0.982' },
   ];
 
   const { data: realizedAPR } = useBoundedCDTRealizedAPR()
@@ -157,7 +156,7 @@ const RangeBoundVisual = () => {
                 key={tick.value}
                 position="absolute"
                 left="0"
-                top={`${(1 - (tick.value - 0.98) / (0.995 - 0.98)) * 100}%`}
+                top={`${(1 - (tick.value - 0.988) / (1.001 - 0.988)) * 100}%`}
                 transform="translateY(-50%)"
                 // width="100%"
                 display="flex"
@@ -186,7 +185,7 @@ const RangeBoundVisual = () => {
               value={cdtPrice}
               isReadOnly
               cursor="default"
-              min={0.9899}
+              min={0.988}
               max={1.001}
               orientation="vertical"
               width="inherit"

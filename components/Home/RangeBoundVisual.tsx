@@ -29,7 +29,7 @@ const PriceBox = ({
     display="grid"
     w="84%"
     h="8%"
-    marginTop={isTop ? "4%" : undefined}
+    marginTop={isTop ? "8%" : undefined}
     marginBottom={!isTop ? "11%" : undefined}
     alignItems="center"
     justifyContent="center"
@@ -127,7 +127,7 @@ const RangeBoundVisual = () => {
     { value: 0.9999, label: '0.999' },
     { value: 0.990, label: '0.990' },
     { value: 0.9889, label: '0.989' },
-    { value: 0.988, label: '0.988' },
+    // { value: 0.988, label: '0.988' },
   ];
 
   const { data: realizedAPR } = useBoundedCDTRealizedAPR()
@@ -141,10 +141,11 @@ const RangeBoundVisual = () => {
     <Card gap={0} width={isMobile ? "100%" : "66%"} maxWidth="720px" borderWidth={3} height={isMobile ? "45vh" : "100%"}>
 
 
-      <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}><a style={{ fontWeight: "bold", color: colors.earnText }}>Realized APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-      <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> TVL: ${(num(shiftDigits(TVL ?? "0", -6)).times(cdtPrice).toFixed(2))}</Text>
-      <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> {shiftDigits(existingBuffer ?? "0", -6)} CDT Waiting to Sell High</Text>
-
+      <Stack justifyContent={"center"}>
+        <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}><a style={{ fontWeight: "bold", color: colors.earnText }}>Realized APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
+        <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> TVL: ${(num(shiftDigits(TVL ?? "0", -6)).times(cdtPrice).toFixed(2))}</Text>
+        <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}> {shiftDigits(existingBuffer ?? "0", -6)} CDT Waiting to Sell High</Text>
+      </Stack>
 
 
       <HStack width="100%" height="100%" gap={0}>
@@ -209,7 +210,7 @@ const RangeBoundVisual = () => {
           </Slider>
         </Box>
 
-        <Stack justifyContent="center" gap="75%" width="100%" height="100%">
+        <Stack justifyContent="center" gap="79%" width="100%" height="100%">
           <PriceBox
             switch={cSwitch}
             setSwitch={setCSwitch}

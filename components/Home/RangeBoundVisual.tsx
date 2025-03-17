@@ -28,9 +28,9 @@ const PriceBox = ({
   <Flex
     display="grid"
     w="84%"
-    h="22%"
-    marginTop={isTop ? "11%" : undefined}
-    marginBottom={!isTop ? "12%" : undefined}
+    h="8%"
+    marginTop={isTop ? "4%" : undefined}
+    marginBottom={!isTop ? "11%" : undefined}
     alignItems="center"
     justifyContent="center"
     borderRadius="md"
@@ -126,7 +126,7 @@ const RangeBoundVisual = () => {
     { value: 1.001, label: '1.001' },
     { value: 0.9999, label: '0.999' },
     { value: 0.990, label: '0.990' },
-    { value: 0.9899, label: '0.989' },
+    { value: 0.9889, label: '0.989' },
     { value: 0.988, label: '0.988' },
   ];
 
@@ -179,7 +179,7 @@ const RangeBoundVisual = () => {
             </Box>
           ))}
         </Box>
-        <Box height="100%" width="90%" pos="absolute">
+        <Box height="80%" width="90%" pos="absolute">
           <Slider
             value={cdtPrice}
             isReadOnly
@@ -209,7 +209,7 @@ const RangeBoundVisual = () => {
           </Slider>
         </Box>
 
-        <Stack justifyContent="center" gap="33%" width="100%" height="100%">
+        <Stack justifyContent="center" gap="75%" width="100%" height="100%">
           <PriceBox
             switch={cSwitch}
             setSwitch={setCSwitch}

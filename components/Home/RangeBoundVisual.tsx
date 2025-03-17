@@ -124,9 +124,9 @@ const RangeBoundVisual = () => {
   // Generate tick marks and labels
   const ticks = [
     { value: 1.001, label: '1.001' },
-    { value: 0.9999, label: '0.9999' },
+    { value: 0.9999, label: '0.999' },
     { value: 0.990, label: '0.990' },
-    { value: 0.9899, label: '0.9899' },
+    { value: 0.9899, label: '0.989' },
     { value: 0.988, label: '0.988' },
   ];
 
@@ -156,7 +156,7 @@ const RangeBoundVisual = () => {
                 key={tick.value}
                 position="absolute"
                 left="0"
-                top={`${(1 - (tick.value - 0.988) / (1.001 - 0.988)) * 100}%`}
+                top={`${((tick.value - 0.988) / (1.001 - 0.988)) * 100}%`}
                 transform="translateY(-50%)"
                 // width="100%"
                 display="flex"

@@ -142,9 +142,9 @@ const RangeBoundVisual = () => {
 
       <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"}><a style={{ fontWeight: "bold", color: colors.earnText }}>Realized APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
 
-      <HStack >
+      <HStack justifyContent="center">
         <Text alignSelf="center" fontFamily="Inter" fontSize="16px" fontWeight={"bold"}> TVL: ${(num(shiftDigits(TVL ?? "0", -6)).times(cdtPrice).toFixed(2))}</Text>
-        <Text alignSelf="center" fontFamily="Inter" fontSize="16px"> - {Number(shiftDigits(existingBuffer ?? "0", -6)).toFixed(0)} CDT Waiting to Sell High</Text>
+        <Text alignSelf="center" fontFamily="Inter" fontSize="16px"> with {Number(shiftDigits(existingBuffer ?? "0", -6)).toFixed(0)} CDT Waiting to Sell High</Text>
       </HStack>
 
 

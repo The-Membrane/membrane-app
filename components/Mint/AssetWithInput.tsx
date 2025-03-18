@@ -78,46 +78,44 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   return (
 
     <Stack gap="0">
-      <HStack justifyContent="start" alignItems={"baseline"} gap="0">
+      <HStack justifyContent="start" alignItems={"flex-start"} gap="9rem">
         <HStack width={"50%"}>
           {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
           <Text fontSize={"22px"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text fontSize={"22px"}>{label}</Text>
           {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text> */}
         </HStack>
-        <HStack width={"50%"} alignItems="undefined" gap="2.5rem">
-          <Stack gap="0">
-            <Input
-              type="number"
-              placeholder="Enter amount"
-              min={0}
-              step="0.01"
-              value={transactionValue}
-              onChange={(e) => {
-                e.preventDefault();
-                setTransactionValue(String(Math.min(Number(e.target.value), (asset?.walletsdValue ?? 0))));
-                handleTransaction(transactionType, Math.min(Number(e.target.value), (asset?.walletsdValue ?? 0)));
-              }}
-            />
-            <HStack alignContent={"right"} width={"100%"} justifyContent={"right"} height={"3vh"}>
-              <Button
-                onClick={() => { setTransactionValue(transactionType === "deposit" ? String(asset.walletsdValue.toFixed(2)) : String(asset.depositUsdValue.toFixed(2))); handleTransaction(transactionType, transactionType === "deposit" ? (asset.walletsdValue) : (asset.depositUsdValue)) }}
-                width="10%" variant="unstyled" fontWeight="normal"
+        <Stack gap="0" width={"50%"} >
+          <Input
+            type="number"
+            placeholder="Enter amount"
+            min={0}
+            step="0.01"
+            value={transactionValue}
+            onChange={(e) => {
+              e.preventDefault();
+              setTransactionValue(String(Math.min(Number(e.target.value), (asset?.walletsdValue ?? 0))));
+              handleTransaction(transactionType, Math.min(Number(e.target.value), (asset?.walletsdValue ?? 0)));
+            }}
+          />
+          <HStack alignContent={"right"} width={"100%"} justifyContent={"right"} height={"3vh"}>
+            <Button
+              onClick={() => { setTransactionValue(transactionType === "deposit" ? String(asset.walletsdValue.toFixed(2)) : String(asset.depositUsdValue.toFixed(2))); handleTransaction(transactionType, transactionType === "deposit" ? (asset.walletsdValue) : (asset.depositUsdValue)) }}
+              width="10%" variant="unstyled" fontWeight="normal"
+            >
+              <Text
+                variant="body"
+                justifySelf={"center"}
+                textTransform="none"
+                fontSize="sm"
+                letterSpacing="1px"
+                display="flex"
               >
-                <Text
-                  variant="body"
-                  justifySelf={"center"}
-                  textTransform="none"
-                  fontSize="sm"
-                  letterSpacing="1px"
-                  display="flex"
-                >
-                  max
-                </Text>
-              </Button>
-            </HStack>
-          </Stack>
-        </HStack>
+                max
+              </Text>
+            </Button>
+          </HStack>
+        </Stack>
 
       </HStack>
     </Stack>

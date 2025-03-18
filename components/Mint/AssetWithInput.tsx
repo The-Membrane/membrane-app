@@ -78,7 +78,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   return (
 
     <Stack gap="0">
-      <HStack justifyContent="start" alignItems={"flex-start"} gap="9rem">
+      <HStack justifyContent="start" alignItems={"flex-start"} gap="3rem">
         <HStack width={"50%"}>
           {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
           <Text fontSize={"22px"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>

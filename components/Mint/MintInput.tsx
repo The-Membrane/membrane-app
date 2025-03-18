@@ -120,8 +120,8 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
                 <HStack width="75%">
                     <Image src={"/images/cdt.svg"} w="30px" h="30px" />
 
-                    <HStack width="37%">
-                        <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
+                    <HStack width="100%%">
+                        <Tabs position="relative" variant="unstyled" w="full" index={activeTabIndex}>
                             <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
                                 <CustomTab onClick={() => handleTabClick("borrow")} label={transactionType === "repay" ? "Borrow" : "Borrow CDT"} />
                                 <CustomTab onClick={() => handleTabClick("repay")} label={transactionType === "borrow" ? "Repay" : "Repay CDT"} />

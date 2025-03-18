@@ -56,7 +56,7 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     return (
         <Stack>
             <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Product Management</Text>
-            <Card gap={16} width={"33%"}>
+            <Card gap={16} width={"153%"}>
                 <Stack>
                     <TxButton
                         maxW="100%"
@@ -163,7 +163,7 @@ const Dashboard = () => {
                     <AssetPieChart data={assetData} />
                     <OracleHealth />
                 </HStack>
-                <HStack>
+                <HStack justifyContent={"space-between"}>
                     <ManagementCard basket={basket} />
                     <SupplyCaps />
                 </HStack>

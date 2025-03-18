@@ -66,6 +66,7 @@ export const colors = {
   sliderThumb: "#4fcabb",
   collateralScrollBG: "rgb(7, 9, 25)",
   sliderTrack: "rgb(229, 222, 223)",
+  sliderFilledTrack: "#20d6ff",
   walletIcon: "#7990fe",
   emptyLoader: "rgba(250, 129, 253, 0.57)",
   loader: "primary.500",

@@ -88,9 +88,9 @@ const DelegateSlider = ({ validator, isDisabled }: DelegateProps) => {
         isDisabled={isDisabled}
       >
         <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
-          <SliderFilledTrack bg={colors.sliderTrack} />
+          <SliderFilledTrack bg={colors.sliderFilledTrack} />
         </SliderTrack>
-        <SliderThumb boxSize={6} bg={colors.sliderTrack} cursor="grab" border="2px solid #E2D8DA" />
+        <SliderThumb boxSize={6} bg={colors.sliderFilledTrack} cursor="grab" border="2px solid #E2D8DA" />
       </Slider>
     </Stack>
   )

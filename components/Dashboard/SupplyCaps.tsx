@@ -15,7 +15,7 @@ const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
     // Calculate color based on health value
     const getBarColor = () => {
         if (ratio >= cap) return "red.400";
-        return colors.sliderTrack;
+        return colors.sliderFilledTrack;
     };
 
 
@@ -187,8 +187,8 @@ export const SupplyCaps = () => {
     console.log("capData", capData)
 
     return (
-        <Stack>
-            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Oracle Pool Health</Text>
+        <Stack width="59%">
+            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Supply Caps</Text>
             <div style={{
                 display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem",
                 backgroundColor: colors.globalBG, // Color the gaps

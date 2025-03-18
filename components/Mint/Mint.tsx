@@ -107,7 +107,7 @@ const HealthSlider = ({ summary }: { summary: any }) => {
 }
 
 const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
-  const isMobile = useBreakpointValue({ base: true, md: true, lg: false })
+  const isMobile = useBreakpointValue({ base: true, xxs: true, xs: true, sm: true, md: true, lg: false })
   const { mintState, setMintState } = useMintState()
   const { data: basketPositions } = useUserPositions()
 
@@ -218,7 +218,7 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
 })
 
 const Mint = React.memo(() => {
-  const isMobile = useBreakpointValue({ base: true, md: true, lg: false })
+  const isMobile = useBreakpointValue({ base: true, xxs: true, xs: true, sm: true, md: true, lg: false })
   const { data } = useVaultSummary()
   const { data: basketPositions } = useUserPositions()
   const [useAdvanced, setAdvanced] = useState(false)

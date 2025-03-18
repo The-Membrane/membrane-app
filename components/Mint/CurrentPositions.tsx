@@ -5,7 +5,7 @@ import { colors } from '@/config/defaults'
 
 const CurrentPositions = () => {
   const stats = useCurrentPosition()
-  const isMobile = useBreakpointValue({ base: true, md: true, lg: false })
+  const isMobile = useBreakpointValue({ base: true, xxs: true, xs: true, sm: true, md: true, lg: false })
 
   return (
     <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="max-content" px="2" alignSelf={isMobile ? "center" : "undefined"}>

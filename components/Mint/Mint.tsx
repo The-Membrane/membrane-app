@@ -241,7 +241,7 @@ const Mint = React.memo(() => {
   }, [data]); // Runs when `data` changes
 
 
-  const zoomLevel = useBreakpointValue({ xxs: "70%", xs: "80%", sm: "90%", base: "100%" })
+  const zoomLevel = useBreakpointValue({ xxs: "70%", xs: "80%", sm: "90%", base: "100%", md: "100%" })
   console.log("zoomLevel", zoomLevel)
 
   return (

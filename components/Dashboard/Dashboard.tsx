@@ -170,7 +170,7 @@ const Dashboard = () => {
             </Stack>
 
             {/* Modal */}
-            <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered closeOnOverlayClick={false}>
+            <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered closeOnOverlayClick={true}>
                 <ModalOverlay />
 
                 <ModalContent

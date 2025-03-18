@@ -5,14 +5,14 @@ import Beaker from '@/components/Mint/Beaker'
 import { HStack } from '@chakra-ui/react'
 
 const MintPage = () => {
-  const { isWalletConnected } = useWallet()
+  // const { isWalletConnected } = useWallet()
 
-  if (!isWalletConnected) return (
-    <HStack justifyContent={"center"} mt="10%">
-      <LockedAccess />
-      {/* <Beaker /> */}
-      {/* <BeakerScale /> */}
-    </HStack>)
+  // if (!isWalletConnected) return (
+  //   <HStack justifyContent={"center"} mt="10%">
+  //     <LockedAccess />
+  //     {/* <Beaker /> */}
+  //     {/* <BeakerScale /> */}
+  //   </HStack>)
 
   return <Mint />
 }

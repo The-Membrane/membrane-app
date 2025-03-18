@@ -776,7 +776,7 @@ const NeuroGuardCard = () => {
   // Update state in a separate effect
   useMemo(() => {
 
-    console.log(" sortedASsets")
+    console.log(" sortedAssets")
     if (sortedAssets && sortedAssets.length > 0) {
       setNeuroState({
         //@ts-ignore
@@ -913,7 +913,7 @@ const NeuroGuardCard = () => {
         <Stack gap={"1rem"}>{showAllYields ?
 
           basketAssets.map((basketAsset) => {
-            if (!basketAsset || basketAsset.asset?.symbol === "marsUSDC" || basketAsset.asset?.symbol === "OSMO/USDC.axl LP" || basketAsset.asset?.symbol === "ATOM/OSMO LP") {
+            if (!basketAsset || basketAsset.asset?.symbol === "marsUSDC" || basketAsset.asset?.symbol === "OSMO/USDC.axl LP" || basketAsset.asset?.symbol === "ATOM/OSMO LP" || basketAsset.asset?.symbol === "USDC") {
               return null;
             }
 
@@ -938,6 +938,9 @@ const NeuroGuardCard = () => {
           : <Stack>
             {/* Wallet Assets */}
             {usableAssets.map((asset) => {
+              if (!asset || asset.asset?.symbol === "marsUSDC" || asset.asset?.symbol === "OSMO/USDC.axl LP" || asset.asset?.symbol === "ATOM/OSMO LP" || asset.asset?.symbol === "USDC") {
+                return null;
+              }
               return (
                 <MemoizedNeuroGuardOpenEntry
                   key={asset.symbol}

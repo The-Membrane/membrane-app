@@ -25,7 +25,7 @@ const Health = (props: Props) => {
   return (
     <Box position="absolute" bottom="214px" left="110px">
       <Text fontSize="20px" fontWeight="bold" color="black">
-        Health : {Math.min(health, 100) == -Infinity ? "N/A" : `${Math.min(health, 100)}%`}
+        Health : {`${Math.min(Math.max(0, health), 100)}%`}
       </Text>
     </Box>
   )

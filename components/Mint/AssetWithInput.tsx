@@ -105,7 +105,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
             />
             <HStack alignContent={"right"} width={"100%"} justifyContent={"right"} height={"3vh"}>
               <Button
-                onClick={() => { setTransactionValue(transactionType === "deposit" ? String(asset.walletsdValue) : String(asset.depositUsdValue)); handleTransaction(transactionType, transactionType === "deposit" ? (asset.walletsdValue) : (asset.depositUsdValue)) }}
+                onClick={() => { setTransactionValue(transactionType === "deposit" ? String(asset.walletsdValue.toFixed(2)) : String(asset.depositUsdValue.toFixed(2))); handleTransaction(transactionType, transactionType === "deposit" ? (asset.walletsdValue) : (asset.depositUsdValue)) }}
                 width="10%" variant="unstyled" fontWeight="normal"
               >
                 <Text

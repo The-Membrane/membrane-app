@@ -22,6 +22,7 @@ import useDelegateState from './hooks/useDelegateState'
 import useUpdateDelegation from './hooks/useUpdateDelegation'
 import UpdateCommision from './UpdateCommision'
 import { useDelegations } from '@/hooks/useGovernance'
+import { colors } from '@/config/defaults'
 
 type DelegateProps = {
   validator: any
@@ -87,9 +88,9 @@ const DelegateSlider = ({ validator, isDisabled }: DelegateProps) => {
         isDisabled={isDisabled}
       >
         <SliderTrack bg="#E2D8DA" h="2" borderRadius="80px">
-          <SliderFilledTrack bg="#C445F0" />
+          <SliderFilledTrack bg={colors.sliderTrack} />
         </SliderTrack>
-        <SliderThumb boxSize={6} bg="#C445F0" cursor="grab" border="2px solid #E2D8DA" />
+        <SliderThumb boxSize={6} bg={colors.sliderTrack} cursor="grab" border="2px solid #E2D8DA" />
       </Slider>
     </Stack>
   )

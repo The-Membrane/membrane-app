@@ -106,7 +106,7 @@ const HealthSlider = ({ summary }: { summary: any }) => {
 
 }
 
-const MintTabsCard = React.memo(() => {
+const MintTabsCard = React.memo(({ summary: any }) => {
   const isMobile = useBreakpointValue({ base: true, md: true, lg: false })
   const { mintState, setMintState } = useMintState()
   const { data: basketPositions } = useUserPositions()
@@ -162,7 +162,7 @@ const MintTabsCard = React.memo(() => {
   return (
     <>
       <Stack width="500px">
-        {isMobile && <HealthSlider summary={data} />}
+        {isMobile && <HealthSlider summary={summary} />}
 
         <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="100%" paddingBottom={0}>
           <VStack w="full" gap="5" h="full" alignItems="stretch">
@@ -263,7 +263,7 @@ const Mint = React.memo(() => {
           <>
             <Stack flexDirection={isMobile ? "row" : "column"} alignItems="flex-start" justifyContent={"center"} maxWidth={"870px"}>
               <Stack width="100%">
-                <MintTabsCard />
+                <MintTabsCard summary={summary} />
 
                 {basketPositions === undefined && <Button
                   alignSelf="center"

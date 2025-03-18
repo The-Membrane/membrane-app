@@ -79,13 +79,13 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
     <Stack gap="0">
       <HStack justifyContent="start" alignItems={"baseline"} gap="0">
-        <HStack width="188px">
+        <HStack width={"50%"}>
           {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
           <Text fontSize={"22px"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text fontSize={"22px"}>{label}</Text>
           {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text> */}
         </HStack>
-        <HStack width={"66%"} alignItems="undefined" gap="2.5rem">
+        <HStack width={"50%"} alignItems="undefined" gap="2.5rem">
           <Stack gap="0">
             <Input
               type="number"
@@ -117,10 +117,6 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
               </Button>
             </HStack>
           </Stack>
-          <HStack width={"33%"} alignItems="undefined">
-            <Stack gap="0">
-            </Stack>
-          </HStack>
         </HStack>
 
       </HStack>

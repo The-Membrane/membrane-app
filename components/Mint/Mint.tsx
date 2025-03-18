@@ -261,7 +261,7 @@ const Mint = React.memo(() => {
           </>
           :
           <>
-            <Stack flexDirection={isMobile ? "row" : "column"} alignItems="flex-start" justifyContent={"center"} maxWidth={"870px"}>
+            <Stack flexDirection={isMobile ? "column" : "row"} alignItems="flex-start" justifyContent={"center"} maxWidth={"870px"}>
               <Stack width="100%">
                 <MintTabsCard summary={summary} />
 

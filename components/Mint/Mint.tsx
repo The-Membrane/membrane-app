@@ -159,9 +159,10 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
 
   const { isOpen, onOpen, onClose } = useDisclosure()
 
+
   return (
     <>
-      <Stack width="500px">
+      <Stack width="425px">
         {isMobile && <HealthSlider summary={summary} />}
 
         <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="100%" paddingBottom={0}>
@@ -240,8 +241,10 @@ const Mint = React.memo(() => {
   }, [data]); // Runs when `data` changes
 
 
+  const zoomLevel = useBreakpointValue({ xxs: "80%", xs: "90%", base: "100%" }) ?? "100%"
+
   return (
-    <Stack gap="1rem" paddingTop="4%" height={"100%"} alignSelf={"center"}>
+    <Stack gap="1rem" paddingTop="4%" height={"100%"} alignSelf={"center"} style={{ zoom: `${zoomLevel}` }} >
       {
         basketPositions === undefined && !useAdvanced
           ?
@@ -262,7 +265,7 @@ const Mint = React.memo(() => {
           :
           <>
             <Stack flexDirection={isMobile ? "column" : "row"} alignItems="flex-start" justifyContent={"center"} maxWidth={"870px"}>
-              <Stack width="100%">
+              <Stack width="100%" alignItems={"center"}>
                 <MintTabsCard summary={summary} />
 
                 {basketPositions === undefined && <Button

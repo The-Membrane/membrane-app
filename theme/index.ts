@@ -42,6 +42,16 @@ const theme = extendTheme(
     fontSizes,
     fontWeights,
     components,
+    breakpoints: {
+      xxs: "320px", // Custom extra small breakpoint
+      xs: "375px", // Custom extra small breakpoint
+      sm: "425px",
+      base: "480px",
+      md: "768px",
+      lg: "992px",
+      xl: "1280px",
+      "2xl": "1536px",
+    },
   },
   withDefaultColorScheme({ colorScheme: 'primary' }),
 )

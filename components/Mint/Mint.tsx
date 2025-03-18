@@ -255,7 +255,7 @@ const Mint = React.memo(() => {
               alignSelf="center"
               // checked={useAdvanced}
               onClick={() => { setAdvanced(!useAdvanced) }}
-              width={"15%"}
+              width={"fit-content"}
               backgroundColor={"transparent"}
               fontFamily="Inter"
               fontWeight={"500"}

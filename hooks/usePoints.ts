@@ -65,9 +65,25 @@ export const useUserPoints = () => {
   })
 }
 
+
+export const useUserRank = () => {
+  const { address } = useWallet()
+  const { data: points } = useAllUserPoints()
+  //sort points by total_points
+  points?.sort((a, b) => parseFloat(b.stats.total_points) - parseFloat(a.stats.total_points))
+
+  return useQuery({
+    queryKey: ['user_points_rank', address, points],
+    queryFn: async () => {
+      if (!points) return
+      return points.findIndex((point) => point.user === address) + 1
+    },
+  })
+}
+
 export const useSoloLevel = () => {
   const { data: points } = useUserPoints()
-  console.log("user points", points)
+  // console.log("user points", points)
 
   return useQuery({
     queryKey: ['one users level', points],

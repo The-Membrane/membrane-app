@@ -1,5 +1,5 @@
 import { colors } from '@/config/defaults'
-import { useUserPoints, useSoloLevel } from '@/hooks/usePoints'
+import { useUserPoints, useSoloLevel, useUserRank } from '@/hooks/usePoints'
 import { Stack, Text, Slider, SliderTrack, SliderFilledTrack, SliderMark, Box } from '@chakra-ui/react'
 import React, { useMemo } from 'react'
 import { TxButton } from '../TxButton'
@@ -23,10 +23,12 @@ function SoloLeveling() {
     }
   }, [data])
 
+  const { data: rank } = useUserRank()
+
   return (
     <Stack as="solo-leveling" style={{ marginTop: "6%" }}>
       <Text fontSize="sm" color="whiteAlpha.700">
-        <span style={{ fontWeight: "bold", color: "white" }}>Level {level}:</span> {parseFloat(points.stats.total_points).toFixed(1)} Joules
+        <span style={{ fontWeight: "bold", color: "white" }}>Rank {rank}:</span> {parseFloat(points.stats.total_points).toFixed(1)} Joules
       </Text>
       <Slider
         defaultValue={points_in_level}

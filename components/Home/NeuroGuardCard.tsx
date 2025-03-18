@@ -941,6 +941,7 @@ const NeuroGuardCard = () => {
               if (!asset || asset.asset?.symbol === "marsUSDC" || asset.asset?.symbol === "OSMO/USDC.axl LP" || asset.asset?.symbol === "ATOM/OSMO LP" || asset.asset?.symbol === "USDC") {
                 return null;
               }
+              console.log("wallet asset symbol", asset.symbol)
               return (
                 <MemoizedNeuroGuardOpenEntry
                   key={asset.symbol}

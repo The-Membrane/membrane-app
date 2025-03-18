@@ -1,5 +1,5 @@
-import { Box, Center, HStack, Image, Stack, Text, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay } from '@chakra-ui/react'
-import { Fragment, PropsWithChildren } from 'react'
+import { Box, Center, HStack, Image, Stack, Text, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, useDisclosure } from '@chakra-ui/react'
+import { Fragment, PropsWithChildren, useMemo } from 'react'
 import Header from './Header'
 import Logo from './Logo'
 import RPCStatus from './RPCStatus'
@@ -86,6 +86,20 @@ const Layout = ({ children }: Props) => {
     setAppState({ rpcUrl: value });
   }
 
+
+  const { rulesState } = useMembersRulesState()
+  const { isOpen, onOpen, onClose } = useDisclosure()
+
+
+  useMemo(() => {
+    if (!rulesState.show && rulesState.show !== undefined) {
+      onClose()
+    }
+    if (rulesState.show) {
+      onOpen()
+    }
+  }, [rulesState.show])
+
   return (
     //<Fragment>
     //<Mobile />
@@ -116,7 +130,7 @@ const Layout = ({ children }: Props) => {
         zIndex="10">
         {/* <Select options={rpcs} onChange={onChange} value={appState.rpcUrl} /> */}
       </Stack>
-      <RulesModal />
+      <RulesModal isOpen={isOpen} onClose={onClose} />
     </Stack>
     //</Fragment>
   )

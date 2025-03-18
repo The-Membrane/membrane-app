@@ -7,8 +7,6 @@ import useAppState from '../../persisted-state/useAppState'
 import { HomeTitle } from './HomeTitle'
 import { RulesModal } from '../MembersRules/RulesModal'
 import useMembersRulesState from '../MembersRules/useRules'
-import { rules } from '../MembersRules/MembersRules'
-
 
 // Memoize child components
 // const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
@@ -25,7 +23,6 @@ const Home = () => {
 
 
   console.log("Home")
-  const { isOpen, onOpen, onClose } = useDisclosure()
 
   const { appState, setAppState } = useAppState();
   const { rulesState } = useMembersRulesState()
@@ -69,19 +66,11 @@ const Home = () => {
   }, [appState?.setCookie, toaster]);
 
 
-  useMemo(() => {
-    if (!rulesState.show && rulesState.show !== undefined) {
-      onClose()
-    }
-    if (rulesState.show) {
-      onOpen()
-    }
-  }, [rulesState.show])
 
   // Memoize the entire content to prevent unnecessary re-renders
   return (
     <Stack>
-      <RulesModal isOpen={isOpen} onClose={onClose} />
+      {/* <RulesModal isOpen={isOpen} onClose={onClose} /> */}
       <HomeTitle />
       <Stack>
         <NeuroGuardCard />

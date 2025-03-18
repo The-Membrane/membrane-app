@@ -23,6 +23,7 @@ type MintState = {
   belowMinDebt?: boolean
   positionNumber: number
   reset: boolean
+  transactionType: string
 }
 
 type Store = {
@@ -38,7 +39,8 @@ const initialState: MintState = {
   ltvSlider: 0,
   positionNumber: 1,
   isTakeAction: true,
-  reset: false
+  reset: false,
+  transactionType: 'deposit',
 }
 
 // @ts-ignore

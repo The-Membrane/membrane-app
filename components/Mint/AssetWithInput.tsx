@@ -1,4 +1,4 @@
-import { HStack, useDisclosure, Text, Stack, Button, ModalOverlay, Modal, ModalContent, ModalFooter, ModalHeader, ModalCloseButton, ModalBody, Input, Tabs, TabList, Tab, TabIndicator, TabPanels } from "@chakra-ui/react";
+import { HStack, useDisclosure, Image, Text, Stack, Button, ModalOverlay, Modal, ModalContent, ModalFooter, ModalHeader, ModalCloseButton, ModalBody, Input, Tabs, TabList, Tab, TabIndicator, TabPanels } from "@chakra-ui/react";
 import { AssetWithBalance } from "./hooks/useCombinBalance";
 import useMintState from "./hooks/useMintState";
 import { useEffect, useState } from "react";
@@ -74,17 +74,13 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   // const onTabChange = (index: number) => {
   //   setMintState({ isTakeAction: index === 1 })
   // }
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
-  const handleTabClick = (index: string) => {
-    setActiveTabIndex(index === "deposit" ? 0 : 1);
-    setTransactionType(index);
-  };
 
   return (
 
     <Stack gap="0">
-      <HStack justifyContent="start" alignItems={"baseline"} gap="2.5rem">
+      <HStack justifyContent="start" alignItems={"baseline"} gap="0">
         <HStack width="188px">
+          {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
           <Text fontSize={"22px"}>${(asset?.sliderValue ?? 0).toFixed(2)}</Text>
           <Text fontSize={"22px"}>{label}</Text>
           {/* <Text paddingLeft="5%" color={num(changeValue).isGreaterThan(0) ? "green.200" : "red.200"}>{changeValue != 0 ? changeValue > 0 ? `+$${changeValue.toFixed(2)}` : `-$${Math.abs(changeValue).toFixed(2)}` : ""}</Text> */}
@@ -123,20 +119,6 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
           </Stack>
           <HStack width={"33%"} alignItems="undefined">
             <Stack gap="0">
-              <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
-                <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
-                  <CustomTab onClick={() => handleTabClick("deposit")} label="Deposit" />
-                  <CustomTab onClick={() => handleTabClick("withdraw")} label="Withdraw" />
-                </TabList>
-
-                <TabIndicator
-                  top="0"
-                  position="absolute"
-                  height="40px"
-                  bg={colors.walletIcon}
-                  borderRadius="28px"
-                />
-              </Tabs>
             </Stack>
           </HStack>
         </HStack>

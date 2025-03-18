@@ -159,7 +159,7 @@ const MintTabsCard = React.memo(() => {
 
   return (
     <>
-      <Stack>
+      <Stack width="500px">
         <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="100%" paddingBottom={0}>
           <VStack w="full" gap="5" h="full" alignItems="stretch">
             <HStack>
@@ -169,8 +169,9 @@ const MintTabsCard = React.memo(() => {
               <div style={{ width: "6%", display: "flex", justifyContent: "flex-end", marginBottom: "1%" }}><Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset size={32} />} marginLeft={"auto"} onClick={onRest} /></div>
             </HStack>
 
-
             <TakeAction />
+
+
             {/* For position pagination */}
             <PaginationBar pagination={{
               totalPages: totalPages,

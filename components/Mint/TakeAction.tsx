@@ -1,7 +1,7 @@
 import { setInitialMintState } from '@/helpers/mint'
 import { num } from '@/helpers/num'
-import { Button, Divider, HStack, Stack, TabPanel, Text } from '@chakra-ui/react'
-import { useEffect } from 'react'
+import { Button, Divider, HStack, Stack, TabIndicator, TabList, TabPanel, Tabs, Text } from '@chakra-ui/react'
+import { useEffect, useState } from 'react'
 import ActionButtons from './ActionButtons'
 import CollateralAssets from './CollateralAssets'
 import { LTVWithSlider } from './LTVWithSlider'
@@ -12,6 +12,7 @@ import React from 'react'
 import { colors } from '@/config/defaults'
 import { MintInput } from './MintInput'
 import { GrPowerReset } from 'react-icons/gr'
+import { CustomTab } from './AssetWithInput'
 // import { queryClient } from '@/pages/_app'
 // import useBasketState from '@/persisted-state/useBasketState'
 
@@ -40,8 +41,29 @@ const TakeAction = React.memo(() => {
   }
 
 
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const handleTabClick = (index: string) => {
+    setActiveTabIndex(index === "deposit" ? 0 : 1);
+    setMintState({ transactionType: index });
+  };
+
   return (
     <Stack width="100%" flex="1" >
+
+      <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
+        <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
+          <CustomTab onClick={() => handleTabClick("deposit")} label="Deposit" />
+          <CustomTab onClick={() => handleTabClick("withdraw")} label="Withdraw" />
+        </TabList>
+
+        <TabIndicator
+          top="0"
+          position="absolute"
+          height="40px"
+          bg={colors.walletIcon}
+          borderRadius="28px"
+        />
+      </Tabs>
       <CollateralAssets />
 
       {/* <Stack marginTop={"auto"}> */}

@@ -106,7 +106,7 @@ const HealthSlider = ({ summary }: { summary: any }) => {
 
 }
 
-const MintTabsCard = React.memo(({ summary: any }) => {
+const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
   const isMobile = useBreakpointValue({ base: true, md: true, lg: false })
   const { mintState, setMintState } = useMintState()
   const { data: basketPositions } = useUserPositions()

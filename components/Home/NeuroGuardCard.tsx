@@ -465,7 +465,7 @@ const VaultEntry = React.memo(({
             <Button
               width={"50%"}
               as={NextLink}
-              href={'/mint'}
+              href={'/borrow'}
               display="flex"
               padding="0"
               alignSelf="center"

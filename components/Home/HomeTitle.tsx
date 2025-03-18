@@ -1,4 +1,4 @@
-import { Button, HStack, List, ListItem, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack, Text } from '@chakra-ui/react'
+import { Button, HStack, List, ListItem, Modal, Image, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack, Text } from '@chakra-ui/react'
 import React, { PropsWithChildren, useCallback, useMemo, useState } from 'react'
 import Divider from '../Divider'
 import { colors } from '@/config/defaults'
@@ -118,8 +118,9 @@ const HomeHeader = React.memo(() => {
   return (
     <HStack gap={"2%"} justifyContent={"center"} mb={"3%"}>
       <Text variant="title" letterSpacing="unset" fontSize="50px">
-        {`${Formatter.tvl(mintedAmount)} CDT`} <a style={{ fontSize: "24px", textTransform: "lowercase" }}>powering the evolution</a>
+        {`${Formatter.tvl(mintedAmount)} CDT`} <a style={{ fontSize: "24px", textTransform: "none" }}>powering the evolution on Osmosis</a>
       </Text>
+      <Image src="/images/osmo.svg" w="30px" h="30px" />
     </HStack>
   )
 })

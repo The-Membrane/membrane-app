@@ -120,7 +120,7 @@ const HomeHeader = React.memo(() => {
       <Text variant="title" letterSpacing="unset" fontSize="50px">
         {`${Formatter.tvl(mintedAmount)} CDT`} <a style={{ fontSize: "24px", textTransform: "none" }}>powering the evolution on Osmosis</a>
       </Text>
-      <Image src="/images/osmo.svg" w="30px" h="30px" />
+      <Image src="/images/osmo.svg" w="37px" h="65px" alignSelf={"end"} />
     </HStack>
   )
 })

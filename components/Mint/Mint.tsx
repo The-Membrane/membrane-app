@@ -97,7 +97,7 @@ const HealthSlider = ({ summary }: { summary: any }) => {
         <SliderFilledTrack bg={color} />
         <Box width={"100%"} justifyContent="center" display="flex" zIndex="999">
           <Text fontSize="large" color={"white"} zIndex="999" fontWeight="bold" alignSelf="center">
-            Health: {health}%
+            Health: {Math.min(Math.max(0, health), 100)}%
           </Text>
         </Box>
       </SliderTrack>

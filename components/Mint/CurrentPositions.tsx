@@ -11,7 +11,7 @@ const CurrentPositions = () => {
     <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="max-content" px="2" alignSelf={isMobile ? "center" : "undefined"}>
       <Stack gap="5" padding="3%" paddingTop="0">
         <Text color={stats.health < 10 ? colors.alert : undefined} variant="title" textTransform={"none"} alignSelf="center" fontSize="xl" letterSpacing="1px" display="flex">
-          Health: {stats.health}%
+          Health: {Math.min(Math.max(0, stats.health), 100)}%
         </Text>
         {stats.stats.map(({ label, value, textColor = 'white' }) => (
           <HStack key={label + value} justifyContent="space-between">

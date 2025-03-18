@@ -24,6 +24,7 @@ import AssetPieChart from './PieChart'
 import { colors } from '@/config/defaults'
 import { OracleHealth } from './OracleHealth'
 import useGiveRBLPPoints from './hooks/useGiveRBLPPoints'
+import { SupplyCaps } from './SupplyCaps'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const [idSkips, setSkips] = useState([] as number[])
@@ -162,7 +163,10 @@ const Dashboard = () => {
                     <AssetPieChart data={assetData} />
                     <OracleHealth />
                 </HStack>
-                <ManagementCard basket={basket} />
+                <HStack>
+                    <ManagementCard basket={basket} />
+                    <SupplyCaps />
+                </HStack>
             </Stack>
 
             {/* Modal */}

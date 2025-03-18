@@ -183,7 +183,7 @@ const Quorum = ({ requiredQuorum = 0, quorum = 0, isRejected }) => {
         value={quorum}
       >
         <SliderTrack h="1.5">
-          <SliderFilledTrack bg={isRejected ? 'red.400' : 'blue.400'} />
+          <SliderFilledTrack bg={isRejected ? 'red.400' : colors.sliderTrack} />
         </SliderTrack>
         <SliderMark value={requiredQuorum}>
           <Box bg="white" w="0.5" h="4" mt="-2" />

@@ -25,6 +25,7 @@ export const USDCMintCard = () => {
 
     //@ts-ignore
     const depositMaxAmount = usdcBalance
+    const depositMinAmount = 25
     const [depositInputValue, setDepositInputValue] = useState<number | undefined>(); // Tracks user input
     const depositUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -71,7 +72,7 @@ export const USDCMintCard = () => {
         setQuickActionState({
             usdcMint: {
                 mint: mintMaxAmount,
-                deposit: quickActionState?.usdcMint?.deposit
+                deposit: depositMaxAmount
             }
         })
     }
@@ -80,7 +81,7 @@ export const USDCMintCard = () => {
         setQuickActionState({
             usdcMint: {
                 mint: mintMinAmount,
-                deposit: quickActionState?.usdcMint?.deposit
+                deposit: depositMinAmount
             }
         })
     }

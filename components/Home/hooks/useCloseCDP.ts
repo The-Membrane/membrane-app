@@ -50,7 +50,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess, run, debtCloseAmount }: 
                             close_position: {
                                 position_id: position.position_id,
                                 max_spread: "0.05",
-                                close_percentage: percentToClose,
+                                close_percentage: Number(percentToClose) <= 0 ? "1" : percentToClose,
                             }
                         })),
                         funds: []

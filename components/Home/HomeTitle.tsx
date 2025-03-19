@@ -116,7 +116,7 @@ const HomeHeader = React.memo(() => {
   }, [basket])
 
   return (
-    <HStack gap={"2%"} justifyContent={"center"} mb={"3%"}>
+    <HStack gap={"0.5rem"} justifyContent={"center"} mb={"3%"}>
       <Text variant="title" letterSpacing="unset" fontSize="50px">
         {`${Formatter.tvl(mintedAmount)} CDT`} <a style={{ fontSize: "24px", textTransform: "none" }}>powering the evolution on Osmosis</a>
       </Text>

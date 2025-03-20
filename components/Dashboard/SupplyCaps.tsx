@@ -18,6 +18,8 @@ const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
         return colors.sliderFilledTrack;
     };
 
+    // console.log(ratio)
+
 
     return (
         <HStack>
@@ -176,6 +178,7 @@ export const SupplyCaps = () => {
         }) as Positions[]
 
         const tvl = getTVL(basketPositions)
+
         const positionsWithRatio = getAssetRatio(false, tvl, basketPositions)
 
         return positionsWithRatio.map((position, index) => {

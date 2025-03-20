@@ -167,6 +167,8 @@ export const SupplyCaps = () => {
             const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal ?? 6)).toNumber()
             const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
+            console.log(assetInfo?.symbol, amount, assetPrice)
+
             const usdValue = num(amount).times(assetPrice).toNumber()
             return {
                 ...assetInfo,

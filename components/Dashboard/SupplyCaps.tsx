@@ -187,7 +187,7 @@ export const SupplyCaps = () => {
             return { name: position?.symbol ?? "N/A", ratio: position?.ratio ?? 0, cap: basket?.collateral_supply_caps[index].supply_cap_ratio ?? "0" }
         })
 
-    }, [basket?.collateral_supply_caps])
+    }, [basket?.collateral_supply_caps, prices])
 
     console.log("capData", capData)
 

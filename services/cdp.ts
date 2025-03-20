@@ -185,7 +185,7 @@ export const getAssetRatio = (skipStable: boolean, tvl: number, positions: Posit
       ...position,
       ratio: 1,
     }
-    console.log("position.usdValue", position.usdValue, "tvl", tvl)
+    // console.log("position.usdValue", position.usdValue, "tvl", tvl)
 
     return {
       ...position,

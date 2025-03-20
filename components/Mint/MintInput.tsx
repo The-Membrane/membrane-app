@@ -150,6 +150,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
                 </HStack>
             </HStack>
             <Input
+                mt={"0.5rem"}
                 width="100%"
                 textAlign="right"
                 placeholder="0"

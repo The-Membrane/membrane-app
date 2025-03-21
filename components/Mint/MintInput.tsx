@@ -52,9 +52,9 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
         setMintInputValue(num(value).dp(2).toNumber())
 
         // Check for minimum debt
-        if (newValue < 20 && newValue <= 0 && !mintState?.belowMinDebt) {
+        if (newValue < 20 && newValue > 0 && !mintState?.belowMinDebt) {
             setMintState({ belowMinDebt: true })
-        } else if ((newValue >= 20 || newValue === 0) && mintState?.belowMinDebt) {
+        } else if ((newValue >= 20 || newValue <= 0) && mintState?.belowMinDebt) {
             setMintState({ belowMinDebt: false })
         }
 
@@ -101,7 +101,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
 
     const onMintMaxClick = () => {
         if (transactionType === "borrow") handleInputChange(mintMaxAmount)
-        else handleInputChange(debtAmount)
+        else handleInputChange(debtAmount + 1)
     }
 
 

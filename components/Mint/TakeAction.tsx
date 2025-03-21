@@ -19,7 +19,7 @@ import { CustomTab } from './AssetWithInput'
 const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = false }: { overdraft?: boolean, minDebt?: boolean, ltvChange?: boolean }) => {
   return (
     <Text fontSize="sm" color={"white"} mt="2" mb={"0"} minH="21px" alignSelf="center" w="100%" textAlign="center">
-      {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying. If fully repaying use the Close button below, any surplus will be returned to you.' : ' '}
+      {(overdraft && ltvChange) ? '⚠️ Collateral update reduces the weighted LTV and causes the debt to exceed the max LTV.' : (overdraft && !ltvChange) ? '⚠️ Withdrawal amount exceeds the maximum LTV.' : minDebt ? '⚠️ Minimum debt is 20 CDT unless fully repaying.' : ' '}
     </Text>
 
   )

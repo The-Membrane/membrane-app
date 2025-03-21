@@ -4,7 +4,6 @@ import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import useWallet from './useWallet'
 import useToaster from './useToaster'
-import { queryClient } from '@/pages/_app'
 import { parseError } from '@/helpers/parseError'
 
 type Transaction = {

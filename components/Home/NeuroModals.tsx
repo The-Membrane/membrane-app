@@ -734,7 +734,7 @@ export const NeuroCloseModal = React.memo(({
 
         <ModalContent maxW="400px">
             <ModalHeader>
-                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Debt to Repay</Text>
+                <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Repay Debt with Collateral</Text>
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb="5">

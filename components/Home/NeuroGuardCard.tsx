@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, memo, useRef, ChangeEvent } from "react"
-import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem, Input, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem, Input, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, CardHeader, CardBody, CardFooter } from "@chakra-ui/react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
 import { colors, denoms, INPUT_DELAY } from "@/config/defaults"
@@ -591,13 +591,11 @@ const AcquireCDTEntry = React.memo(({
           </Stack>
 
 
-        </Card>
-        <ModalContent maxW="400px">
-          <ModalHeader>
-            <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Swap</Text>
-          </ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb="5">
+        </Card><Card maxW="400px" p={4} borderWidth="1px" borderColor="whiteAlpha.200">
+          <CardHeader>
+            <Text variant="title" textTransform="capitalize" letterSpacing="1px">Swap</Text>
+          </CardHeader>
+          <CardBody>
             <Stack>
               <HStack width="100%" justifyContent="left">
                 <HStack width="75%">
@@ -625,38 +623,26 @@ const AcquireCDTEntry = React.memo(({
                 </Button>
               </HStack>
             </Stack>
-          </ModalBody>
-          {(
-            <ModalFooter
-              as={Stack}
-              justifyContent="end"
-              borderTop="1px solid"
-              borderColor="whiteAlpha.200"
-              pt="5"
-              gap="5"
+          </CardBody>
+          <CardFooter as={Stack} justifyContent="end" borderTop="1px solid" borderColor="whiteAlpha.200" pt="5" gap="5">
+            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+              {parseError(num(quickActionState?.usdcSwapToCDT).isGreaterThan(0) && swap.simulate.isError ? swap.simulate.error?.message ?? "" : "")}
+            </Text>
+            <TxButton
+              w="100%"
+              isLoading={isLoading}
+              isDisabled={isDisabled}
+              onClick={() => swap?.tx.mutate()}
+              toggleConnectLabel={false}
+              style={{ alignSelf: "center" }}
             >
-
-              <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
-                {parseError(num(quickActionState?.usdcSwapToCDT).isGreaterThan(0) && swap.simulate.isError ? swap.simulate.error?.message ?? "" : "")}
-              </Text>
-
-
-              <TxButton
-                w="100%"
-                isLoading={isLoading}
-                isDisabled={isDisabled}
-                onClick={() => swap?.tx.mutate()}
-                toggleConnectLabel={false}
-                style={{ alignSelf: "center" }}
-              >
-                Buy & Deposit CDT
-              </TxButton>
-              <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-                {tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : ""}
-              </Text>
-            </ModalFooter>
-          )}
-        </ModalContent>
+              Buy & Deposit CDT
+            </TxButton>
+            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+              {tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : ""}
+            </Text>
+          </CardFooter>
+        </Card>
       </HStack >
 
       {/* <Modal

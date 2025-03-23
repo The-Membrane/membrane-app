@@ -575,7 +575,7 @@ const AcquireCDTEntry = React.memo(({
 
   return (
     <>
-      <HStack>
+      <HStack justifyContent={"center"} gap="1.5rem">
         <Card width="fit-content" alignSelf="center" mb="5%" borderWidth={3} padding={4}>
           <Stack gap="1.5rem">
             <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />
@@ -591,10 +591,11 @@ const AcquireCDTEntry = React.memo(({
           </Stack>
 
 
-        </Card><Card maxW="400px" p={4} borderWidth="1px" borderColor="whiteAlpha.200">
-          <CardHeader>
-            <Text variant="title" textTransform="capitalize" letterSpacing="1px">Swap</Text>
-          </CardHeader>
+        </Card>
+        <Card width="50%" maxW="400px" p={4} borderWidth="3px" borderColor="white">
+          {/* <CardHeader>
+            <Text variant="title" textTransform="capitalize" letterSpacing="1px">Buy</Text>
+          </CardHeader> */}
           <CardBody>
             <Stack>
               <HStack width="100%" justifyContent="left">
@@ -617,17 +618,35 @@ const AcquireCDTEntry = React.memo(({
               />
               <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
                 <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
-                  <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                  <Text justifySelf="end" variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
                     max
                   </Text>
                 </Button>
               </HStack>
+
+              <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                {tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : "Minimum CDT: N/A"}
+              </Text>
             </Stack>
           </CardBody>
           <CardFooter as={Stack} justifyContent="end" borderTop="1px solid" borderColor="whiteAlpha.200" pt="5" gap="5">
             <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
               {parseError(num(quickActionState?.usdcSwapToCDT).isGreaterThan(0) && swap.simulate.isError ? swap.simulate.error?.message ?? "" : "")}
             </Text>
+            <HStack justify="space-between" width="100%">
+              <Stack align="center">
+                <Text fontSize="xl" fontWeight="bold">{yieldValue}%</Text>
+                <Text fontSize="sm" color="gray.500">Estimated APY</Text>
+              </Stack>
+              <Stack align="center">
+                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(inputValue ?? 0).dividedBy(365).toNumber()}</Text>
+                <Text fontSize="sm" color="gray.500">Est. Per Day</Text>
+              </Stack>
+              <Stack align="center">
+                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(inputValue ?? 0).toNumber()}</Text>
+                <Text fontSize="sm" color="gray.500">Est. Per Year</Text>
+              </Stack>
+            </HStack>
             <TxButton
               w="100%"
               isLoading={isLoading}
@@ -636,11 +655,8 @@ const AcquireCDTEntry = React.memo(({
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}
             >
-              Buy & Deposit CDT
+              Buy & Deposit Now
             </TxButton>
-            <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
-              {tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : ""}
-            </Text>
           </CardFooter>
         </Card>
       </HStack >

@@ -518,11 +518,13 @@ const VaultEntry = React.memo(({
 const AcquireCDTEntry = React.memo(({
   usdcBalance,
   RBYield,
-  rblpDeposit
+  rblpDeposit,
+  address
 }: {
   usdcBalance: number
   RBYield: string
   rblpDeposit: number
+  address: string
 }) => {
 
   // const { isOpen: isSwapOpen, onOpen: onSwapOpen, onClose: onSwapClose } = useDisclosure()
@@ -546,7 +548,7 @@ const AcquireCDTEntry = React.memo(({
   const [txType, setTxType] = useState("deposit");
   useEffect(() => {
     setTxType("deposit")
-  }, [])
+  }, [address])
 
 
   //@ts-ignore
@@ -601,8 +603,8 @@ const AcquireCDTEntry = React.memo(({
     });
   };
 
-  const dailyYield = num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : rblpDeposit).dividedBy(365).toNumber()
-  const yearlyYield = num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : rblpDeposit).toNumber()
+  const dailyYield = num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : (rblpDeposit + (inputValue ?? 0))).dividedBy(365).toNumber()
+  const yearlyYield = num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : rblpDeposit + (inputValue ?? 0)).toNumber()
 
   return (
     <>
@@ -1162,7 +1164,7 @@ const NeuroGuardCard = () => {
   return (
     <Stack gap={1} marginBottom="3%">
       {/* This handles all deposits and withdrawals into the Rangebound LP */}
-      <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} rblpDeposit={Number(underlyingCDT)} />
+      <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} rblpDeposit={Number(underlyingCDT)} address={address ?? ""} />
 
       <Divider mt="5%" />
 

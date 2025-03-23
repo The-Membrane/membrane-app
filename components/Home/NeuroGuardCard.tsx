@@ -591,12 +591,15 @@ const AcquireCDTEntry = React.memo(({
   const handleTabClick = (index: string) => {
     setActiveTabIndex(index === "deposit" ? 0 : 1);
     setTxType(index);
-    setInputValue(undefined);
+    setInputValue(0);
     setQuickActionState({
       usdcSwapToCDT: 0,
       rangeBoundLPwithdrawal: 0
     });
   };
+
+  const dailyYield = num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : rblpDeposit).dividedBy(365).toNumber()
+  const yearlyYield = num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : rblpDeposit).toNumber()
 
   return (
     <>
@@ -688,11 +691,11 @@ const AcquireCDTEntry = React.memo(({
                 <Text fontSize="sm" color="white">Estimated APY</Text>
               </Stack>
               <Stack align="center">
-                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : rblpDeposit).dividedBy(365).toFixed(2)}</Text>
+                <Text fontSize="xl" fontWeight="bold">{dailyYield > 0 && dailyYield.toFixed(2) === "0.00" ? "< $0.01" : `$${dailyYield.toFixed(2)}`}</Text>
                 <Text fontSize="sm" color="white">Est. Per Day</Text>
               </Stack>
               <Stack align="center">
-                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : rblpDeposit).toFixed(2)}</Text>
+                <Text fontSize="xl" fontWeight="bold">{yearlyYield > 0 && yearlyYield.toFixed(2) === "0.00" ? "< $0.01" : `$${yearlyYield.toFixed(2)}`}</Text>
                 <Text fontSize="sm" color="white">Est. Per Year</Text>
               </Stack>
             </HStack>

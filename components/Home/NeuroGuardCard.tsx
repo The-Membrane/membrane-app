@@ -615,7 +615,7 @@ const AcquireCDTEntry = React.memo(({
           </CardHeader> */}
           <CardBody>
             <Stack>
-              <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
+              {rblpDeposit !== 0 && <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
                 <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
                   <CustomTab onClick={() => handleTabClick("deposit")} label="Deposit" />
                   <CustomTab onClick={() => handleTabClick("withdraw")} label="Withdraw" />
@@ -628,7 +628,7 @@ const AcquireCDTEntry = React.memo(({
                   bg={"rbg(121, 144, 254, 0.4)"}
                   borderRadius="28px"
                 />
-              </Tabs>
+              </Tabs>}
               <HStack width="100%" justifyContent="left">
                 <HStack width="75%">
                   {txType === "deposit" ? <>

@@ -636,15 +636,15 @@ const AcquireCDTEntry = React.memo(({
             <HStack justify="space-between" width="100%">
               <Stack align="center">
                 <Text fontSize="xl" fontWeight="bold">{yieldValue}%</Text>
-                <Text fontSize="sm" color="gray.500">Estimated APY</Text>
+                <Text fontSize="sm" color="white">Estimated APY</Text>
               </Stack>
               <Stack align="center">
                 <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(inputValue ?? 0).dividedBy(365).toNumber()}</Text>
-                <Text fontSize="sm" color="gray.500">Est. Per Day</Text>
+                <Text fontSize="sm" color="white">Est. Per Day</Text>
               </Stack>
               <Stack align="center">
                 <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(inputValue ?? 0).toNumber()}</Text>
-                <Text fontSize="sm" color="gray.500">Est. Per Year</Text>
+                <Text fontSize="sm" color="white">Est. Per Year</Text>
               </Stack>
             </HStack>
             <TxButton

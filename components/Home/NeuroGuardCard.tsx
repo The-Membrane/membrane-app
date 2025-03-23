@@ -1119,7 +1119,7 @@ const NeuroGuardCard = () => {
         {Number(boundCDTBalance) > 0 ? < MemoizedRBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
       </>
 
-      <Divider />
+      <Divider mt="5%" />
 
       <h1
         className={"home-title"}

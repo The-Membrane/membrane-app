@@ -533,10 +533,10 @@ const AcquireCDTEntry = React.memo(({
     <>
       <Card width="fit-content" alignSelf="center" mb="5%" borderWidth={3} padding={4}>
         <Stack>
-          <Image src={"/images/cdt.svg"} w="65px" h="65px" />
+          <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />
 
-          <Text width="fitcontent" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            Earn {yieldValue}% with CDT
+          <Text width="fitcontent" justifyContent="center" variant="title" textAlign="center" fontSize="1.7rem" letterSpacing="1px" display="flex">
+            Earn <a className="textShadow">{yieldValue}%</a> with CDT
           </Text>
           <List spacing={3} styleType="disc" padding="6" paddingTop="0">
             <ListItem fontFamily="Inter" fontSize="md">Sourced from protocol revenue in stablecoins.</ListItem>
@@ -544,7 +544,7 @@ const AcquireCDTEntry = React.memo(({
             <ListItem fontFamily="Inter" fontSize="md"> Earn MBRN for every $1 in yield you earn.</ListItem>
           </List>
 
-          <HStack width={"55%"}>
+          <HStack alignSelf="center" width={"55%"}>
             {/* @ts-ignore */}
             <Button
               width="100%"

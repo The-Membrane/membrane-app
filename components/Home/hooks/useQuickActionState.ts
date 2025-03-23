@@ -33,7 +33,7 @@ const initialState: QuickActionState = {
     deposit: 0,
     mint: 0
   },
-  enterVaultToggle: false,
+  enterVaultToggle: true,
   redeemSwapAmount: 0
 }
 

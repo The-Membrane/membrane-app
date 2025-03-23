@@ -1067,9 +1067,6 @@ export const USDCSwapToCDTModal = React.memo(({
                                 USDC
                             </Text>
                         </HStack>
-                        {/* <Text variant="title" textTransform="none" textAlign="right" fontSize="lg" letterSpacing="1px" width="40%" color={colors.noState}>
-                            ~${num(inputValue ?? 0).times(cdtAsset.price ?? 0).toFixed(2)}
-                        </Text> */}
                     </HStack>
                     <Input
                         width={"100%"}
@@ -1088,13 +1085,6 @@ export const USDCSwapToCDTModal = React.memo(({
                             </Text>
                         </Button>
                     </HStack>
-                    <Checkbox
-                        checked={quickActionState.enterVaultToggle}
-                        onChange={() => { setQuickActionState({ enterVaultToggle: !quickActionState.enterVaultToggle }) }}
-                        fontFamily="Inter"
-                    >
-                        Deposit to Range Bound LP Vault
-                    </Checkbox>
                 </Stack>
             </ModalBody>
             {(
@@ -1121,7 +1111,7 @@ export const USDCSwapToCDTModal = React.memo(({
                         toggleConnectLabel={false}
                         style={{ alignSelf: "center" }}
                     >
-                        Swap to CDT
+                        Buy & Deposit CDT
                     </TxButton>
                     <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
                         {tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : ""}

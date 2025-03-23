@@ -673,7 +673,8 @@ const AcquireCDTEntry = React.memo(({
               </HStack>
 
               <Text variant="body" textTransform="none" fontSize="md" letterSpacing="1px" display="flex">
-                {tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : "Minimum CDT: N/A"}
+                {txType === "deposit" ? tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : "Minimum CDT: N/A"
+                  : "Current Deposit: " + rblpDeposit.toFixed(2) + " CDT"}
               </Text>
             </Stack>
           </CardBody>
@@ -687,11 +688,11 @@ const AcquireCDTEntry = React.memo(({
                 <Text fontSize="sm" color="white">Estimated APY</Text>
               </Stack>
               <Stack align="center">
-                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).dividedBy(100).times(inputValue ?? 0).dividedBy(365).toFixed(2)}</Text>
+                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : rblpDeposit).dividedBy(365).toFixed(2)}</Text>
                 <Text fontSize="sm" color="white">Est. Per Day</Text>
               </Stack>
               <Stack align="center">
-                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).dividedBy(100).times(inputValue ?? 0).toFixed(2)}</Text>
+                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).dividedBy(100).times(txType === "deposit" ? (inputValue ?? 0) : rblpDeposit).toFixed(2)}</Text>
                 <Text fontSize="sm" color="white">Est. Per Year</Text>
               </Stack>
             </HStack>

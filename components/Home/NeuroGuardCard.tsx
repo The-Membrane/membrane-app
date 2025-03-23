@@ -938,10 +938,10 @@ const NeuroGuardCard = () => {
           : <Stack>
             {/* Wallet Assets */}
             {usableAssets.map((asset) => {
-              if (!asset || asset.asset?.symbol === "marsUSDC" || asset.asset?.symbol === "OSMO/USDC.axl LP" || asset.asset?.symbol === "ATOM/OSMO LP" || asset.asset?.symbol === "USDC") {
+              if (!asset || asset.symbol === "marsUSDC" || asset.symbol === "OSMO/USDC.axl LP" || asset.symbol === "ATOM/OSMO LP" || asset.symbol === "USDC") {
                 return null;
               }
-              console.log("wallet asset symbol", asset.symbol)
+              // console.log("wallet asset symbol", asset.symbol)
               return (
                 <MemoizedNeuroGuardOpenEntry
                   key={asset.symbol}

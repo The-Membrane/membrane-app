@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, memo, useRef, ChangeEvent } from "react"
-import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem, Input, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, CardHeader, CardBody, CardFooter } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem, Input, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, CardHeader, CardBody, CardFooter, TabIndicator, TabList, Tabs } from "@chakra-ui/react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
 import { colors, denoms, INPUT_DELAY } from "@/config/defaults"
@@ -33,6 +33,7 @@ import { FAQModal } from "./HomeTitle"
 import useSwapToCDT from "./hooks/useUSDCSwapToCDT"
 import { parseError } from "@/helpers/parseError"
 import { TxButton } from "../TxButton"
+import { CustomTab } from "../Mint/AssetWithInput"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -349,6 +350,8 @@ const RBLPExistingEntry = React.memo(({
   // console.log("isDisabled", isDisabled, asset?.balance, asset)
   const yieldValue = num(RBYield).times(100).toFixed(1)
 
+
+
   return (
     <>
       <Card width="fit-content" alignSelf="center" marginBottom="5%" borderWidth={3} padding={4}>
@@ -513,13 +516,11 @@ const VaultEntry = React.memo(({
 const AcquireCDTEntry = React.memo(({
   usdcBalance,
   RBYield,
-  usdcPrice,
-  usdcCost
+  rblpDeposit
 }: {
   usdcBalance: number
   RBYield: string
-  usdcPrice: string,
-  usdcCost: number
+  rblpDeposit: number
 }) => {
 
   // const { isOpen: isSwapOpen, onOpen: onSwapOpen, onClose: onSwapClose } = useDisclosure()
@@ -539,10 +540,13 @@ const AcquireCDTEntry = React.memo(({
   const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
   const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
   // console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
+  const [txType, setTxType] = useState("deposit");
 
 
   //@ts-ignore
-  const maxAmount = usdcBalance
+  const maxDepositAmount = usdcBalance
+  const maxWithdrawAmount = rblpDeposit
+  const maxAmount = txType === "deposit" ? maxDepositAmount : maxWithdrawAmount
   const [inputValue, setInputValue] = useState<number | undefined>(1000); // Tracks user input
   const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -565,13 +569,26 @@ const AcquireCDTEntry = React.memo(({
     }
 
     updateTimeout.current = setTimeout(() => {
-      setQuickActionState({
-        usdcSwapToCDT: num(value).isGreaterThan(maxAmount) ? maxAmount : value
-      });
+      if (txType === "deposit") {
+        setQuickActionState({
+          usdcSwapToCDT: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+        });
+      }
+      else {
+        setQuickActionState({
+          rangeBoundLPwithdrawal: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+        });
+      }
     }, INPUT_DELAY); // Delay before updating the state
 
   }, [quickActionState?.usdcSwapToCDT, setQuickActionState, maxAmount])
 
+
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const handleTabClick = (index: string) => {
+    setActiveTabIndex(index === "deposit" ? 0 : 1);
+    setTxType(index);
+  };
 
   return (
     <>
@@ -598,12 +615,35 @@ const AcquireCDTEntry = React.memo(({
           </CardHeader> */}
           <CardBody>
             <Stack>
+              <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
+                <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
+                  <CustomTab onClick={() => handleTabClick("deposit")} label="Deposit" />
+                  <CustomTab onClick={() => handleTabClick("withdraw")} label="Withdraw" />
+                </TabList>
+
+                <TabIndicator
+                  top="0"
+                  position="absolute"
+                  height="40px"
+                  bg={"rbg(121, 144, 254, 0.4)"}
+                  borderRadius="28px"
+                />
+              </Tabs>
               <HStack width="100%" justifyContent="left">
                 <HStack width="75%">
-                  <Image src={"https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.svg"} w="30px" h="30px" />
-                  <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                    USDC
-                  </Text>
+                  {txType === "deposit" ? <>
+                    <Image src={"https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.svg"} w="30px" h="30px" />
+                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                      USDC
+                    </Text>
+                  </>
+                    : <>
+                      <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+                      <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                        CDT
+                      </Text>
+                    </>
+                  }
                 </HStack>
               </HStack>
               <Input
@@ -1105,19 +1145,8 @@ const NeuroGuardCard = () => {
 
   return (
     <Stack gap={1} marginBottom="3%">
-      <>
-        {/* Default "if no CDT in wallet" entry */}
-        {(Number(cdtBalance) === 0 && Number(boundCDTBalance) === 0) ? <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} usdcPrice={usdcPrice} usdcCost={basketAssets?.find((basketAsset) => basketAsset?.asset?.base === denoms.USDC[0])?.interestRate || 0} />
-          : (Number(cdtBalance) !== 0 && Number(boundCDTBalance) === 0) ?
-            <MemoizedRBLPDepositEntry
-              key={"CDT"}
-              //@ts-ignore
-              asset={neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) ?? cdtAsset}
-              RBYield={calculatedRBYield}
-            /> : null
-        }
-        {Number(boundCDTBalance) > 0 ? < MemoizedRBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
-      </>
+      {/* This handles all deposits and withdrawals into the Rangebound LP */}
+      <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} rblpDeposit={Number(underlyingCDT)} />
 
       <Divider mt="5%" />
 

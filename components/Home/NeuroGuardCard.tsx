@@ -554,7 +554,7 @@ const AcquireCDTEntry = React.memo(({
   const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const onMaxClick = () => {
-    setInputValue(maxAmount)
+    setInputValue(Number(maxAmount.toFixed(2)))
     setQuickActionState({
       usdcSwapToCDT: maxAmount
     })
@@ -564,7 +564,7 @@ const AcquireCDTEntry = React.memo(({
     e.preventDefault()
     const value = Number(e.target.value)
 
-    setInputValue(num(value).isGreaterThan(maxAmount) ? maxAmount : value); // Updates the input value immediately
+    setInputValue(num(value).isGreaterThan(Number(maxAmount.toFixed(2))) ? Number(maxAmount.toFixed(2)) : value); // Updates the input value immediately
 
 
     if (updateTimeout.current) {

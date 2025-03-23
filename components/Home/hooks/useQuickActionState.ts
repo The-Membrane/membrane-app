@@ -28,7 +28,7 @@ const initialState: QuickActionState = {
   autoSPwithdrawal: 0,
   rangeBoundLPdeposit: 0,
   rangeBoundLPwithdrawal: 0,
-  usdcSwapToCDT: 1000,
+  usdcSwapToCDT: 0,
   usdcMint: {
     deposit: 0,
     mint: 0

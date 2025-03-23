@@ -543,7 +543,7 @@ const AcquireCDTEntry = React.memo(({
 
   //@ts-ignore
   const maxAmount = usdcBalance
-  const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
+  const [inputValue, setInputValue] = useState<number | undefined>(1000); // Tracks user input
   const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const onMaxClick = () => {
@@ -639,11 +639,11 @@ const AcquireCDTEntry = React.memo(({
                 <Text fontSize="sm" color="white">Estimated APY</Text>
               </Stack>
               <Stack align="center">
-                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(quickActionState.usdcSwapToCDT ?? 0).dividedBy(365).toNumber()}</Text>
+                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).dividedBy(100).times(inputValue ?? 0).dividedBy(365).toFixed(2)}</Text>
                 <Text fontSize="sm" color="white">Est. Per Day</Text>
               </Stack>
               <Stack align="center">
-                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(quickActionState.usdcSwapToCDT ?? 0).toNumber()}</Text>
+                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).dividedBy(100).times(inputValue ?? 0).toFixed(2)}</Text>
                 <Text fontSize="sm" color="white">Est. Per Year</Text>
               </Stack>
             </HStack>

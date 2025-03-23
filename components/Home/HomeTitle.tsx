@@ -109,11 +109,11 @@ export const FAQModal = React.memo(({
 // Memoize child components
 const HomeHeader = React.memo(() => {
 
-  const { data: basket } = useBasket()
+  // const { data: basket } = useBasket()
 
-  const mintedAmount = useMemo(() => {
-    return shiftDigits(num(basket?.credit_asset.amount).toString(), -6).dp(0).toNumber()
-  }, [basket])
+  // const mintedAmount = useMemo(() => {
+  //   return shiftDigits(num(basket?.credit_asset.amount).toString(), -6).dp(0).toNumber()
+  // }, [basket])
 
   return (
     <HStack gap={"0.5rem"} justifyContent={"center"} mb={"3%"}>

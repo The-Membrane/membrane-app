@@ -1050,7 +1050,6 @@ export const USDCSwapToCDTModal = React.memo(({
     }, [quickActionState?.usdcSwapToCDT, setQuickActionState, maxAmount])
 
 
-
     return (<>
 
         <ModalContent maxW="400px">
@@ -1096,7 +1095,6 @@ export const USDCSwapToCDTModal = React.memo(({
                     pt="5"
                     gap="5"
                 >
-
 
                     <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
                         {parseError(num(quickActionState?.usdcSwapToCDT).isGreaterThan(0) && swap.simulate.isError ? swap.simulate.error?.message ?? "" : "")}

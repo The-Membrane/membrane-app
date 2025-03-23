@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState, useCallback, memo, useRef } from "react"
-import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem } from "@chakra-ui/react"
+import React, { useEffect, useMemo, useState, useCallback, memo, useRef, ChangeEvent } from "react"
+import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem, Input, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from "@chakra-ui/react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
-import { colors, denoms } from "@/config/defaults"
+import { colors, denoms, INPUT_DELAY } from "@/config/defaults"
 import { PositionResponse } from "@/contracts/codegen/positions/Positions.types"
 import Divider from "../Divider"
 import { useBasket, useBasketAssets, useCollateralInterest, useUserPositions } from "@/hooks/useCDP"
@@ -30,6 +30,9 @@ import RangeBoundInfoCard from "./RangeBoundInfoCard"
 import { ManicRedemptionCard } from "./ManicRedemptionCard"
 import { getBestCLRange } from "@/services/osmosis"
 import { FAQModal } from "./HomeTitle"
+import useSwapToCDT from "./hooks/useUSDCSwapToCDT"
+import { parseError } from "@/helpers/parseError"
+import { TxButton } from "../TxButton"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -519,61 +522,144 @@ const AcquireCDTEntry = React.memo(({
   usdcCost: number
 }) => {
 
-  const { isOpen: isSwapOpen, onOpen: onSwapOpen, onClose: onSwapClose } = useDisclosure()
-  const { isOpen: isMintOpen, onOpen: onMintOpen, onClose: onMintClose } = useDisclosure()
+  // const { isOpen: isSwapOpen, onOpen: onSwapOpen, onClose: onSwapClose } = useDisclosure()
+  // const { isOpen: isMintOpen, onOpen: onMintOpen, onClose: onMintClose } = useDisclosure()
 
 
   {/* @ts-ignore */ }
   const yieldValue = num(RBYield).times(100).toFixed(1)
-  const usdcMintAPR = num(RBYield).minus(usdcCost).times(0.89).times(100).toFixed(1)
-  const isMintDisabled = usdcBalance < 24
+  // const usdcMintAPR = num(RBYield).minus(usdcCost).times(0.89).times(100).toFixed(1)
+  // const isMintDisabled = usdcBalance < 24
   // console.log("log usdc balance", shiftDigits(usdcBalance, -6).toNumber())
+
+
+
+  const { quickActionState, setQuickActionState } = useQuickActionState()
+  const { action: swap, tokenOutMinAmount } = useSwapToCDT({ onSuccess: () => { }, run: true })
+  const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
+  const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
+  // console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
+
+
+  //@ts-ignore
+  const maxAmount = usdcBalance
+  const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
+  const updateTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const onMaxClick = () => {
+    setInputValue(maxAmount)
+    setQuickActionState({
+      usdcSwapToCDT: maxAmount
+    })
+  }
+
+  const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const value = Number(e.target.value)
+
+    setInputValue(num(value).isGreaterThan(maxAmount) ? maxAmount : value); // Updates the input value immediately
+
+
+    if (updateTimeout.current) {
+      clearTimeout(updateTimeout.current); // Clears previous timeout
+    }
+
+    updateTimeout.current = setTimeout(() => {
+      setQuickActionState({
+        usdcSwapToCDT: num(value).isGreaterThan(maxAmount) ? maxAmount : value
+      });
+    }, INPUT_DELAY); // Delay before updating the state
+
+  }, [quickActionState?.usdcSwapToCDT, setQuickActionState, maxAmount])
+
 
   return (
     <>
-      <Card width="fit-content" alignSelf="center" mb="5%" borderWidth={3} padding={4}>
-        <Stack>
-          <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />
+      <HStack>
+        <Card width="fit-content" alignSelf="center" mb="5%" borderWidth={3} padding={4}>
+          <Stack>
+            <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />
 
-          <Text width="fitcontent" justifyContent="center" variant="title" textAlign="center" fontSize="1.7rem" letterSpacing="1px" display="flex">
-            Earn <a className="textShadow">{yieldValue}%</a> with CDT
-          </Text>
-          <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-            <ListItem fontFamily="Inter" fontSize="md">Sourced from protocol revenue in stablecoins.</ListItem>
-            <ListItem fontFamily="Inter" fontSize="md"> 100% liquid. No lock-in or withdrawal penalty.</ListItem>
-            <ListItem fontFamily="Inter" fontSize="md"> Earn MBRN for every $1 in yield you earn.</ListItem>
-          </List>
+            <Text width="fitcontent" justifyContent="center" variant="title" textAlign="center" fontSize="1.7rem" letterSpacing="1px" display="flex">
+              Earn <a className="textShadow">{yieldValue}%</a> with CDT
+            </Text>
+            <List spacing={3} styleType="disc" padding="6" paddingTop="0">
+              <ListItem fontFamily="Inter" fontSize="md">Sourced from protocol revenue in stablecoins.</ListItem>
+              <ListItem fontFamily="Inter" fontSize="md"> 100% liquid. No lock-in or withdrawal penalty.</ListItem>
+              <ListItem fontFamily="Inter" fontSize="md"> Earn MBRN for every $1 in yield you earn.</ListItem>
+            </List>
+          </Stack>
 
-          <HStack alignSelf="center" width={"55%"}>
-            {/* @ts-ignore */}
-            <Button
-              width="100%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={onSwapOpen}
-              isDisabled={false}
+
+        </Card>
+        <ModalContent maxW="400px">
+          <ModalHeader>
+            <Text variant="title" textTransform={"capitalize"} letterSpacing={"1px"}>Swap</Text>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb="5">
+            <Stack>
+              <HStack width="100%" justifyContent="left">
+                <HStack width="75%">
+                  <Image src={"https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.svg"} w="30px" h="30px" />
+                  <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                    USDC
+                  </Text>
+                </HStack>
+              </HStack>
+              <Input
+                width={"100%"}
+                textAlign={"right"}
+                placeholder="0"
+                type="number"
+                variant={"ghost"}
+                value={inputValue}
+                max={maxAmount}
+                onChange={onInputChange}
+              />
+              <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
+                <Button onClick={onMaxClick} width="20%" variant="unstyled" fontWeight="normal">
+                  <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                    max
+                  </Text>
+                </Button>
+              </HStack>
+            </Stack>
+          </ModalBody>
+          {(
+            <ModalFooter
+              as={Stack}
+              justifyContent="end"
+              borderTop="1px solid"
+              borderColor="whiteAlpha.200"
+              pt="5"
+              gap="5"
             >
-              Buy to Deposit
-            </Button>
 
-            {/* <Button
-              width="100%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={onMintOpen}
-              isDisabled={isMintDisabled}
-            >
-              Mint
-            </Button> */}
-          </HStack>
-        </Stack>
-      </Card>
+              <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+                {parseError(num(quickActionState?.usdcSwapToCDT).isGreaterThan(0) && swap.simulate.isError ? swap.simulate.error?.message ?? "" : "")}
+              </Text>
 
-      <Modal
+
+              <TxButton
+                w="100%"
+                isLoading={isLoading}
+                isDisabled={isDisabled}
+                onClick={() => swap?.tx.mutate()}
+                toggleConnectLabel={false}
+                style={{ alignSelf: "center" }}
+              >
+                Buy & Deposit CDT
+              </TxButton>
+              <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+                {tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : ""}
+              </Text>
+            </ModalFooter>
+          )}
+        </ModalContent>
+      </HStack >
+
+      {/* <Modal
         isOpen={isSwapOpen}
         onClose={onSwapClose}
         isCentered
@@ -583,8 +669,8 @@ const AcquireCDTEntry = React.memo(({
         <ModalOverlay />
         <USDCSwapToCDTModal isOpen={isSwapOpen} onClose={onSwapClose} usdcBalance={usdcBalance} />
 
-      </Modal>
-      <Modal
+      </Modal> */}
+      {/* <Modal
         isOpen={isMintOpen}
         onClose={onMintClose}
         isCentered
@@ -594,7 +680,7 @@ const AcquireCDTEntry = React.memo(({
         <ModalOverlay />
         <USDCMintModal isOpen={isMintOpen} onClose={onMintClose} usdcBalance={usdcBalance} usdcPrice={Number(usdcPrice)} expectedAPR={Number(usdcMintAPR)} />
 
-      </Modal>
+      </Modal> */}
 
     </>
   )
@@ -1034,11 +1120,11 @@ const NeuroGuardCard = () => {
       <h1
         className={"home-title"}
       >
-        Provide Liquidity for CDT
+        Earn by Passively Market Making CDT
       </h1>
       <HStack w={"100%"} justifyContent={"center"} marginBottom={"4%"}>
         <Text>
-          Earn fees and rewards by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a>
+          Earn fees and revenue by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a>
         </Text>
 
       </HStack>

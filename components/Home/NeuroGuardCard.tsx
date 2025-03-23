@@ -576,7 +576,7 @@ const AcquireCDTEntry = React.memo(({
   return (
     <>
       <HStack justifyContent={"center"} gap="1.5rem">
-        <Card width="fit-content" alignSelf="center" mb="5%" borderWidth={3} padding={4}>
+        <Card width="fit-content" alignSelf="center" borderWidth={3} padding={4} bg="rgb(90, 90, 90, 0.4)" borderColor="rgba(255, 255, 255, 0.16)">
           <Stack gap="1.5rem">
             <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />
 
@@ -630,7 +630,7 @@ const AcquireCDTEntry = React.memo(({
             </Stack>
           </CardBody>
           <CardFooter as={Stack} justifyContent="end" borderTop="1px solid" borderColor="whiteAlpha.200" pt="5" gap="5">
-            <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" width="100%">
+            <Text variant="title" textAlign="center" fontSize="sm" letterSpacing="1px" width="100%">
               {parseError(num(quickActionState?.usdcSwapToCDT).isGreaterThan(0) && swap.simulate.isError ? swap.simulate.error?.message ?? "" : "")}
             </Text>
             <HStack justify="space-between" width="100%">
@@ -639,11 +639,11 @@ const AcquireCDTEntry = React.memo(({
                 <Text fontSize="sm" color="white">Estimated APY</Text>
               </Stack>
               <Stack align="center">
-                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(inputValue ?? 0).dividedBy(365).toNumber()}</Text>
+                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(quickActionState.usdcSwapToCDT ?? 0).dividedBy(365).toNumber()}</Text>
                 <Text fontSize="sm" color="white">Est. Per Day</Text>
               </Stack>
               <Stack align="center">
-                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(inputValue ?? 0).toNumber()}</Text>
+                <Text fontSize="xl" fontWeight="bold">${num(yieldValue).times(quickActionState.usdcSwapToCDT ?? 0).toNumber()}</Text>
                 <Text fontSize="sm" color="white">Est. Per Year</Text>
               </Stack>
             </HStack>
@@ -1121,6 +1121,7 @@ const NeuroGuardCard = () => {
 
       <h1
         className={"home-title"}
+        style={{ marginTop: "2%%" }}
       >
         Earn by Passively Market Making CDT
       </h1>

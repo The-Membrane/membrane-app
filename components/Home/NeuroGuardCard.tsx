@@ -1123,11 +1123,11 @@ const NeuroGuardCard = () => {
         className={"home-title"}
         style={{ marginTop: "2%%" }}
       >
-        Earn by Passively Market Making CDT
+        Market Making Dashboard
       </h1>
       <HStack w={"100%"} justifyContent={"center"} marginBottom={"4%"}>
         <Text>
-          Earn fees and revenue by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a>
+          Earning fees and revenue by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a>
         </Text>
 
       </HStack>

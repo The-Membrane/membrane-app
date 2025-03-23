@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, memo, useRef, ChangeEvent } from "react"
+import React, { useEffect, useMemo, useState, useCallback, memo, useRef, ChangeEvent, use } from "react"
 import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem, Input, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, CardHeader, CardBody, CardFooter, TabIndicator, TabList, Tabs } from "@chakra-ui/react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
@@ -544,6 +544,9 @@ const AcquireCDTEntry = React.memo(({
   const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
   // console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
   const [txType, setTxType] = useState("deposit");
+  useEffect(() => {
+    setTxType("deposit")
+  }, [])
 
 
   //@ts-ignore

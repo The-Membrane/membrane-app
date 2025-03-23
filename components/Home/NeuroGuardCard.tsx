@@ -1119,9 +1119,11 @@ const NeuroGuardCard = () => {
         {Number(boundCDTBalance) > 0 ? < MemoizedRBLPExistingEntry address={address ?? ""} rblpDeposit={Number(underlyingCDT)} cdtMarketPrice={cdtMarketPrice} RBYield={calculatedRBYield} /> : null}
       </>
 
+      <Divider />
+
       <h1
         className={"home-title"}
-        style={{ marginTop: "2%%" }}
+        style={{ marginTop: "2%" }}
       >
         Market Making Dashboard
       </h1>

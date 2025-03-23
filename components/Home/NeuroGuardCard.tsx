@@ -34,6 +34,8 @@ import useSwapToCDT from "./hooks/useUSDCSwapToCDT"
 import { parseError } from "@/helpers/parseError"
 import { TxButton } from "../TxButton"
 import { CustomTab } from "../Mint/AssetWithInput"
+import { set } from "react-hook-form"
+import useBoundedLP from "./hooks/useRangeBoundLP"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -537,6 +539,7 @@ const AcquireCDTEntry = React.memo(({
 
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const { action: swap, tokenOutMinAmount } = useSwapToCDT({ onSuccess: () => { }, run: true })
+  const { action: rblp } = useBoundedLP({ onSuccess: () => { }, run: true })
   const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
   const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
   // console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
@@ -588,6 +591,11 @@ const AcquireCDTEntry = React.memo(({
   const handleTabClick = (index: string) => {
     setActiveTabIndex(index === "deposit" ? 0 : 1);
     setTxType(index);
+    setInputValue(undefined);
+    setQuickActionState({
+      usdcSwapToCDT: 0,
+      rangeBoundLPwithdrawal: 0
+    });
   };
 
   return (
@@ -625,7 +633,7 @@ const AcquireCDTEntry = React.memo(({
                   top="0"
                   position="absolute"
                   height="40px"
-                  bg={"rbg(121, 144, 254, 0.4)"}
+                  bg={"rgb(121, 144, 254, 0.4)"}
                   borderRadius="28px"
                 />
               </Tabs>}
@@ -691,11 +699,11 @@ const AcquireCDTEntry = React.memo(({
               w="100%"
               isLoading={isLoading}
               isDisabled={isDisabled}
-              onClick={() => swap?.tx.mutate()}
+              onClick={() => { txType === "deposit" ? swap?.tx.mutate() : rblp?.tx.mutate() }}
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}
             >
-              Buy & Deposit Now
+              {txType === "deposit" ? "Buy & Deposit Now" : "Withdraw & Lose Yield"}
             </TxButton>
           </CardFooter>
         </Card>

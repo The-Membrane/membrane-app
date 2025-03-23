@@ -1026,6 +1026,7 @@ const NeuroGuardCard = () => {
         num(asset.combinUsdValue).isGreaterThan(0.01) &&
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) &&
         asset.base !== denoms.CDT[0] // Exclude assets with base equal to CDT
+        && asset.symbol != "marsUSDC" || asset.symbol != "OSMO/USDC.axl LP" || asset.symbol != "ATOM/OSMO LP" || asset.symbol != "USDC"
       );
 
     return (
@@ -1088,7 +1089,7 @@ const NeuroGuardCard = () => {
           : <Stack>
             {/* Wallet Assets */}
             {usableAssets.map((asset) => {
-              if (!asset || asset.symbol === "marsUSDC" || asset.symbol === "OSMO/USDC.axl LP" || asset.symbol === "ATOM/OSMO LP" || asset.symbol === "USDC") {
+              if (!asset) {
                 return null;
               }
               // console.log("wallet asset symbol", asset.symbol)

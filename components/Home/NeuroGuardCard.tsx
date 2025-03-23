@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, memo, useRef } from "react"
-import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem } from "@chakra-ui/react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
 import { colors, denoms } from "@/config/defaults"
@@ -532,12 +532,18 @@ const AcquireCDTEntry = React.memo(({
   return (
     <>
       <Card width="fit-content" alignSelf="center" mb="5%" borderWidth={3} padding={4}>
-        <HStack>
-          <Image src={"/images/cdt.svg"} w="45px" h="45px" />
+        <Stack>
+          <Image src={"/images/cdt.svg"} w="65px" h="65px" />
+
           <Text width="fitcontent" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            CDT can earn&nbsp;
-            {yieldValue}%
+            Earn {yieldValue}% with CDT
           </Text>
+          <List spacing={3} styleType="disc" padding="6" paddingTop="0">
+            <ListItem fontFamily="Inter" fontSize="md">Sourced from protocol revenue in stablecoins.</ListItem>
+            <ListItem fontFamily="Inter" fontSize="md"> 100% liquid. No lock-in or withdrawal penalty.</ListItem>
+            <ListItem fontFamily="Inter" fontSize="md"> Earn MBRN for every $1 in yield you earn.</ListItem>
+          </List>
+
           <HStack width={"55%"}>
             {/* @ts-ignore */}
             <Button
@@ -549,10 +555,10 @@ const AcquireCDTEntry = React.memo(({
               onClick={onSwapOpen}
               isDisabled={false}
             >
-              Swap To
+              Buy to Deposit
             </Button>
 
-            <Button
+            {/* <Button
               width="100%"
               display="flex"
               padding="0"
@@ -562,9 +568,9 @@ const AcquireCDTEntry = React.memo(({
               isDisabled={isMintDisabled}
             >
               Mint
-            </Button>
+            </Button> */}
           </HStack>
-        </HStack>
+        </Stack>
       </Card>
 
       <Modal

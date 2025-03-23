@@ -16,43 +16,43 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
   return (
     <List spacing={3} styleType="disc" padding="3%" paddingTop="0" paddingBottom="0">
       <Divider mt={2} />
-      <Text variant="title" mb={1} letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+      <Text variant="title" mb={1} letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Can I get liquidated?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
         Only if the smart contract malfunctions. Otherwise, once the position's health hits 0%, your loan will be withdrawn from The Membrane LP and used to repay the debt.
       </ListItem>
-      <Text variant="title" mb={1} letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+      <Text variant="title" mb={1} letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Where does the yield come from?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
         The Membrane LP vault in the graphic below. It's a range bound concentrated liquidity position that is distributed protocol revenue.
       </ListItem>
-      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Why is the yield negative?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
         The APR is derived using the cost of the position. If the cost is higher than the yield, the yield will be negative. Because yield comes directly from revenue, negative yields are more common for high risk assets with low caps. Otherwise, costs will transfer to the yield and balance out. In other words, the collateral's cost must be way over the average cost for the yield to be negative.
       </ListItem>
-      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Who automates this? Is it centralized?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
         Compounds can be initiated by anyone in the Upper Management tab.
       </ListItem>
-      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Is the CDT Guardian different?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
         The CDT Guardian deposits CDT directly into The Membrane. Sometimes this requires a swap into USDC (max slippage: 0.5%).
       </ListItem>
-      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Why can't I see my Guardian in the "Your CDPs" section?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
         You can see your Guardian's CDP on the Mint page to edit it precisely. It's not on the Home page to reduce confusion.
       </ListItem>
-      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.rangeBoundBox}>
+      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Are there close fees?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">

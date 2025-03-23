@@ -891,8 +891,12 @@ const NeuroGuardCard = () => {
     return (
       <Stack>
         <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-          Your Wallet
+          Your Wallet -&nbsp;
+          <a onClick={toggleExpanded} style={{ color: colors.tabBG, textDecoration: "underline", cursor: "pointer" }}>FAQ</a>
         </Text>
+
+        <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
+        </FAQModal>
         <Checkbox
           checked={showAllYields}
           onChange={() => { setShowAllYields(!showAllYields) }}
@@ -1034,12 +1038,9 @@ const NeuroGuardCard = () => {
       </h1>
       <HStack w={"100%"} justifyContent={"center"} marginBottom={"4%"}>
         <Text>
-          Earn fees and rewards by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a> -&nbsp;
-          <a onClick={toggleExpanded} style={{ color: colors.tabBG, textDecoration: "underline", cursor: "pointer" }}>FAQ</a>
+          Earn fees and rewards by providing liquidity to the <a href="https://app.osmosis.zone/pool/1268" style={{ textDecoration: "underline", fontWeight: "bold" }}> CDT/USDC LP</a>
         </Text>
 
-        <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
-        </FAQModal>
       </HStack>
       <HStack alignItems="none" flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
         <RangeBoundVisual />

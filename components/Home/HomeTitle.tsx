@@ -120,7 +120,7 @@ const HomeHeader = React.memo(() => {
       <Text variant="title" letterSpacing="unset" fontSize="50px" textTransform="none">
         Passively power the evolution on Osmosis
       </Text>
-      <Image src="/images/osmo.svg" w="37px" h="65px" alignSelf={"end"} />
+      <Image src="/images/osmo.svg" w="65px" h="90px" alignSelf={"end"} />
     </HStack>
   )
 })

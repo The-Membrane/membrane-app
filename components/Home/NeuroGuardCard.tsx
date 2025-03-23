@@ -633,21 +633,21 @@ const AcquireCDTEntry = React.memo(({
                   top="0"
                   position="absolute"
                   height="40px"
-                  bg={"rgb(121, 144, 254, 0.4)"}
+                  bg={"rgb(121, 144, 254, 0.7)"}
                   borderRadius="28px"
                 />
               </Tabs>}
               <HStack width="100%" justifyContent="left">
                 <HStack width="75%">
                   {txType === "deposit" ? <>
-                    <Image src={"https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.svg"} w="30px" h="30px" />
-                    <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                    <Image src={"https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.svg"} w="50px" h="50px" />
+                    <Text variant="title" textAlign="center" fontSize="2.3rem" letterSpacing="1px" display="flex">
                       USDC
                     </Text>
                   </>
                     : <>
-                      <Image src={"/images/cdt.svg"} w="30px" h="30px" />
-                      <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+                      <Image src={"/images/cdt.svg"} w="50px" h="50px" />
+                      <Text variant="title" textAlign="center" fontSize="2.3rem" letterSpacing="1px" display="flex">
                         CDT
                       </Text>
                     </>

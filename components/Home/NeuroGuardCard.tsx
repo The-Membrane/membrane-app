@@ -592,7 +592,7 @@ const AcquireCDTEntry = React.memo(({
 
 
         </Card>
-        <Card width="50%" maxW="400px" p={4} borderWidth="3px" borderColor="white">
+        <Card width="50%" maxW="640px" p={4} borderWidth="3px" borderColor="white">
           {/* <CardHeader>
             <Text variant="title" textTransform="capitalize" letterSpacing="1px">Buy</Text>
           </CardHeader> */}
@@ -624,7 +624,7 @@ const AcquireCDTEntry = React.memo(({
                 </Button>
               </HStack>
 
-              <Text variant="body" textTransform="none" fontSize="sm" letterSpacing="1px" display="flex">
+              <Text variant="body" textTransform="none" fontSize="md" letterSpacing="1px" display="flex">
                 {tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : "Minimum CDT: N/A"}
               </Text>
             </Stack>

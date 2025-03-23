@@ -612,7 +612,7 @@ const AcquireCDTEntry = React.memo(({
               Earn &nbsp;<a className="textShadow">{yieldValue}%</a>&nbsp; with CDT
             </Text>
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-              <ListItem fontFamily="Inter" fontSize="md">Sourced from protocol revenue in stablecoins.</ListItem>
+              <ListItem fontFamily="Inter" fontSize="md">Sourced from revenue & LP profits. All in stablecoins.</ListItem>
               <ListItem fontFamily="Inter" fontSize="md"> 100% liquid. No lock-in or withdrawal penalty.</ListItem>
               <ListItem fontFamily="Inter" fontSize="md"> Earn MBRN for every $1 in yield you earn.</ListItem>
             </List>

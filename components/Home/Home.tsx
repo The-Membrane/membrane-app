@@ -7,6 +7,7 @@ import useAppState from '../../persisted-state/useAppState'
 import { HomeTitle } from './HomeTitle'
 import { RulesModal } from '../MembersRules/RulesModal'
 import useMembersRulesState from '../MembersRules/useRules'
+import { set } from 'react-hook-form'
 
 // Memoize child components
 // const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
@@ -25,6 +26,7 @@ const Home = () => {
   console.log("Home")
 
   const { appState, setAppState } = useAppState();
+  setAppState({ rpcUrl: 'https://g.w.lavanet.xyz:443/gateway/osmosis/rpc-http/c6667993e9a0fac0a9c98d29502aa0a7' });
   const { rulesState } = useMembersRulesState()
 
   const [hasShownToast, setHasShownToast] = useState(false);

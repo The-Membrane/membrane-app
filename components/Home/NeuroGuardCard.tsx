@@ -543,8 +543,9 @@ const AcquireCDTEntry = React.memo(({
   const { action: swap, tokenOutMinAmount } = useSwapToCDT({ onSuccess: () => { }, run: true })
   const { action: rblp } = useBoundedLP({ onSuccess: () => { }, run: true })
   const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
-  const isDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
-  // console.log("isDisabled", usdcBalance === 0, swap?.simulate.isError, !swap?.simulate.data)
+  const isSwapDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
+  const isRBLPDisabled = rblp?.simulate.isError || !rblp?.simulate.data
+  console.log("isDisabled", usdcBalance === 0, swap?.simulate.errorMessage, !swap?.simulate.data, rblp?.simulate.errorMessage, !rblp?.simulate.data)
   const [txType, setTxType] = useState("deposit");
   useEffect(() => {
     setTxType("deposit")
@@ -707,7 +708,7 @@ const AcquireCDTEntry = React.memo(({
             <TxButton
               w="100%"
               isLoading={isLoading}
-              isDisabled={isDisabled}
+              isDisabled={txType === "deposit" ? isSwapDisabled : isRBLPDisabled}
               onClick={() => { txType === "deposit" ? swap?.tx.mutate() : rblp?.tx.mutate() }}
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}

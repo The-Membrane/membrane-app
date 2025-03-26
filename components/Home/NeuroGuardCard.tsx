@@ -532,6 +532,7 @@ const AcquireCDTEntry = React.memo(({
 
 
   {/* @ts-ignore */ }
+  const [inputValue, setInputValue] = useState<number | undefined>(1000); // Tracks user input
   const yieldValue = num(RBYield).times(100).toFixed(1)
   // const usdcMintAPR = num(RBYield).minus(usdcCost).times(0.89).times(100).toFixed(1)
   // const isMintDisabled = usdcBalance < 24
@@ -542,9 +543,9 @@ const AcquireCDTEntry = React.memo(({
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const { action: swap, tokenOutMinAmount } = useSwapToCDT({ onSuccess: () => { }, run: true })
   const { action: rblp } = useBoundedLP({ onSuccess: () => { }, run: true })
-  const isLoading = swap?.simulate.isLoading || swap?.tx.isPending
+  const isLoading = swap?.simulate.isLoading || swap?.tx.isPending || rblp?.simulate.isLoading || rblp?.tx.isPending
   const isSwapDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
-  const isRBLPDisabled = rblp?.simulate.isError || !rblp?.simulate.data
+  const isRBLPDisabled = rblp?.simulate.isError || !rblp?.simulate.data || inputValue === 0
   console.log("isDisabled", usdcBalance === 0, swap?.simulate.errorMessage, !swap?.simulate.data, rblp?.simulate.errorMessage, !rblp?.simulate.data)
   const [txType, setTxType] = useState("deposit");
   useEffect(() => {
@@ -556,9 +557,10 @@ const AcquireCDTEntry = React.memo(({
   const maxDepositAmount = usdcBalance
   const maxWithdrawAmount = rblpDeposit
   const maxAmount = txType === "deposit" ? maxDepositAmount : maxWithdrawAmount
-  const [inputValue, setInputValue] = useState<number | undefined>(1000); // Tracks user input
   const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
+
+  console.log("maxDepositAmount", maxDepositAmount, "maxWithdrawAmount", maxWithdrawAmount)
   const onMaxClick = () => {
     setInputValue(Number(maxAmount.toFixed(2)))
     setQuickActionState({

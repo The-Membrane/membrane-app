@@ -692,6 +692,7 @@ const AcquireCDTEntry = React.memo(({
           <CardFooter as={Stack} justifyContent="end" borderTop="1px solid" borderColor="whiteAlpha.200" pt="5" gap="5">
             <Text variant="title" textAlign="center" fontSize="sm" letterSpacing="1px" width="100%">
               {parseError(num(quickActionState?.usdcSwapToCDT).isGreaterThan(0) && swap.simulate.isError ? swap.simulate.error?.message ?? "" : "")}
+              {parseError((quickActionState?.rangeBoundLPwithdrawal > 0 || quickActionState?.rangeBoundLPdeposit > 0) && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
             </Text>
             <HStack justify="space-between" width="100%">
               <Stack align="center">

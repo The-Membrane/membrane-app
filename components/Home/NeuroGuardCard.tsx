@@ -546,7 +546,7 @@ const AcquireCDTEntry = React.memo(({
   const isLoading = swap?.simulate.isLoading || swap?.tx.isPending || rblp?.simulate.isLoading || rblp?.tx.isPending
   const isSwapDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
   const isRBLPDisabled = rblp?.simulate.isError || !rblp?.simulate.data || inputValue === 0
-  console.log("isDisabled", usdcBalance === 0, swap?.simulate.errorMessage, !swap?.simulate.data, rblp?.simulate.errorMessage, !rblp?.simulate.data)
+  console.log("isDisabled", usdcBalance === 0, swap?.simulate.error?.message, !swap?.simulate.data, rblp?.simulate.error?.message, !rblp?.simulate.data)
   const [txType, setTxType] = useState("deposit");
   useEffect(() => {
     setTxType("deposit")

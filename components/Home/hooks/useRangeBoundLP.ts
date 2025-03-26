@@ -88,7 +88,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
             sender: address,
             contract: contracts.rangeboundLP,
             msg: toUtf8(JSON.stringify({
-              exit_vault: { swap_to_cdt: false }
+              exit_vault: { swap_to_cdt: true }
             })),
             funds: funds
           })
@@ -96,26 +96,26 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
         msgs.push(exitMsg)
 
         //Calc swapFromAmount 
-        const swapFromAmount =
-          shiftDigits(num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toNumber(), -6)
-            .times(cdtPrice)
-            .times(.995) //maxSlippage
-            .toNumber()
+        // const swapFromAmount =
+        //   shiftDigits(num(cdtWithdrawAmount).times(positionInfo.assetRatios.usdc).toNumber(), -6)
+        //     .times(cdtPrice)
+        //     .times(.995) //maxSlippage
+        //     .toNumber()
         //Don't know why this works logically yet but it'll leave a few cents left over in USDC depending actual slippage
 
-        console.log("exit RBLP amounts", cdtWithdrawAmount, swapFromAmount)
-        if (swapFromAmount > 0) {
-          //Post exit, swap USDC to CDT
-          const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
-            address,
-            swapFromAmount: swapFromAmount,
-            swapFromAsset: usdcAsset,
-            prices,
-            cdtPrice,
-            slippage: 0.5
-          })
-          msgs.push(swap as MsgExecuteContractEncodeObject)
-        }
+        // console.log("exit RBLP amounts", cdtWithdrawAmount, swapFromAmount)
+        // if (swapFromAmount > 0) {
+        //   //Post exit, swap USDC to CDT
+        //   const { msg: swap, tokenOutMinAmount } = swapToCDTMsg({
+        //     address,
+        //     swapFromAmount: swapFromAmount,
+        //     swapFromAsset: usdcAsset,
+        //     prices,
+        //     cdtPrice,
+        //     slippage: 0.5
+        //   })
+        //   msgs.push(swap as MsgExecuteContractEncodeObject)
+        // }
       }
 
       if (quickActionState.rangeBoundLPdeposit != 0) {

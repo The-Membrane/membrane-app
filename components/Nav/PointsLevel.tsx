@@ -6,21 +6,24 @@ import { TxButton } from '../TxButton'
 import useClaimPoints from './hooks/usePointsClaim'
 import useToaster from '@/hooks/useToaster'
 import useAppState from '@/persisted-state/useAppState'
+import useWallet from '@/hooks/useWallet'
 
 function SoloLeveling() {
   const { action: claimPoints } = useClaimPoints()
   const toaster = useToaster();
   const { appState, setAppState } = useAppState()
   const { data: pointsData } = useUserPoints()
+  const { address } = useWallet()
+
   const points = useMemo(() => {
-    if (!appState.totalPoints) {
-      setAppState({ totalPoints: pointsData?.stats?.total_points })
-    } else if (appState.totalPoints != pointsData?.stats?.total_points) {
+    if (!appState.totalPoints && pointsData?.stats?.total_points && address) {
+      setAppState({ totalPoints: { points: pointsData?.stats?.total_points, user: address } })
+    } else if (appState.totalPoints != pointsData?.stats?.total_points && address === appState.totalPoints?.user) {
       //Calc points earned
-      let pointsEarned = parseFloat(pointsData?.stats?.total_points ?? "0") - parseFloat(appState.totalPoints)
+      let pointsEarned = parseFloat(pointsData?.stats?.total_points ?? "0") - parseFloat(appState.totalPoints?.points ?? "0")
       //Toast to tell users they have earned points
       toaster.message({
-        title: 'You Earned Points!',
+        title: 'You Earned Joules!',
         message: (
           <>
             You've earned <strong>{pointsEarned.toFixed(1)} Joules</strong> from your recent actions.
@@ -28,7 +31,7 @@ function SoloLeveling() {
         )
       });
       //Update total points
-      setAppState({ totalPoints: pointsData?.stats?.total_points })
+      setAppState({ totalPoints: { points: pointsData?.stats?.total_points ?? "0", user: address ?? "" } })
 
     }
 

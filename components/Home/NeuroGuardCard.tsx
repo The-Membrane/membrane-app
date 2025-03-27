@@ -540,14 +540,14 @@ const AcquireCDTEntry = React.memo(({
 
 
 
+  const [txType, setTxType] = useState("deposit");
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  const { action: swap, tokenOutMinAmount } = useSwapToCDT({ onSuccess: () => { }, run: true })
-  const { action: rblp } = useBoundedLP({ onSuccess: () => { }, run: true })
+  const { action: swap, tokenOutMinAmount } = useSwapToCDT({ onSuccess: () => { }, run: txType === "deposit" })
+  const { action: rblp } = useBoundedLP({ onSuccess: () => { }, run: txType != "deposit" })
   const isLoading = swap?.simulate.isLoading || swap?.tx.isPending || rblp?.simulate.isLoading || rblp?.tx.isPending
   const isSwapDisabled = usdcBalance === 0 || swap?.simulate.isError || !swap?.simulate.data
   const isRBLPDisabled = rblp?.simulate.isError || !rblp?.simulate.data || inputValue === 0
   console.log("isDisabled", usdcBalance === 0, swap?.simulate.error?.message, !swap?.simulate.data, rblp?.simulate.error?.message, !rblp?.simulate.data)
-  const [txType, setTxType] = useState("deposit");
   useEffect(() => {
     setTxType("deposit")
   }, [address])
@@ -560,7 +560,7 @@ const AcquireCDTEntry = React.memo(({
   const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
 
-  console.log("maxDepositAmount", maxDepositAmount, "maxWithdrawAmount", maxWithdrawAmount)
+  console.log("maxDepositAmount", maxDepositAmount, "rb WithdrawAmount", quickActionState.rangeBoundLPwithdrawal, "maxAmount", maxAmount)
   const onMaxClick = () => {
     setInputValue(Number(maxAmount.toFixed(2)))
     setQuickActionState({

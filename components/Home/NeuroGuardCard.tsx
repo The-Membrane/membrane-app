@@ -820,7 +820,7 @@ const NeuroGuardCard = () => {
 
     if (!hasShownToast && !isDisabled && !isLoading) {
       toaster.message({
-        title: 'Execute to Claim Guardian Dust & Re-Activate Intents',
+        title: 'Execute to Claim Yield Dust & Re-Activate Intents',
         message: (
           <ToastButton
             isDisabled={isDisabled}
@@ -834,7 +834,7 @@ const NeuroGuardCard = () => {
     } else if (hasShownToast && !isDisabled && isLoading) {
       toaster.dismiss();
       toaster.message({
-        title: 'Execute to Claim Guardian Dust & Re-Activate Intents',
+        title: 'Execute to Claim Yield Dust & Re-Activate Intents',
         message: (
           <ToastButton
             isDisabled={isDisabled}
@@ -1214,7 +1214,7 @@ const NeuroGuardCard = () => {
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) ?
         <Stack>
           <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-            Your Guardians
+            Your Yielding Positions
           </Text>
           <HStack gap="0%" p={4}>
             <Text width="20%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">

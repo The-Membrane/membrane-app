@@ -17,16 +17,16 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
     <List spacing={3} styleType="disc" padding="3%" paddingTop="0" paddingBottom="0">
       <Divider mt={2} />
       <Text variant="title" mb={1} letterSpacing={0} fontSize="md" color={colors.walletIcon}>
+        Where does the yield come from?
+      </Text>
+      <ListItem fontFamily="Inter" fontSize="md">
+        It'll automatically open a loan and deposit the CDT into the Market Making vault which earns from distributed protocol revenue & price arbitrage.
+      </ListItem>
+      <Text variant="title" mb={1} letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Can I get liquidated?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
         Only if the smart contract malfunctions. Otherwise once the position's health hits 0%, your loan will be withdrawn from The Membrane LP and used to repay the debt.
-      </ListItem>
-      <Text variant="title" mb={1} letterSpacing={0} fontSize="md" color={colors.walletIcon}>
-        Where does the yield come from?
-      </Text>
-      <ListItem fontFamily="Inter" fontSize="md">
-        It'll automatically mint CDT and deposit it into the Market Making vault in the graphic above which is also distributed protocol revenue.
       </ListItem>
       <Text variant="title" letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Why is the yield negative?
@@ -69,7 +69,7 @@ export const FAQModal = React.memo(({
       <ModalOverlay />
       <ModalContent maxW="800px">
         <ModalHeader>
-          <Text variant="title">NeuroGuard FAQ</Text>
+          <Text variant="title">Yield FAQ</Text>
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb="5">

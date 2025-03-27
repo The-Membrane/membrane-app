@@ -563,9 +563,16 @@ const AcquireCDTEntry = React.memo(({
   console.log("maxDepositAmount", maxDepositAmount, "rb WithdrawAmount", quickActionState.rangeBoundLPwithdrawal, "maxAmount", maxAmount)
   const onMaxClick = () => {
     setInputValue(Number(maxAmount.toFixed(2)))
-    setQuickActionState({
-      usdcSwapToCDT: maxAmount
-    })
+    if (txType === "deposit") {
+      setQuickActionState({
+        usdcSwapToCDT: maxAmount
+      })
+    }
+    else {
+      setQuickActionState({
+        rangeBoundLPwithdrawal: maxAmount
+      })
+    }
   }
 
   const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {

@@ -6,10 +6,10 @@ import { devtools, persist } from 'zustand/middleware'
 export type AppState = {
     setCookie?: boolean
     rpcUrl: string
-    totalPoints?: {
+    totalPoints: {
         user: string
         points: string
-    }
+    }[]
 }
 
 type Store = {
@@ -19,6 +19,7 @@ type Store = {
 }
 
 const initialState: AppState = {
+    totalPoints: [],
     rpcUrl: rpcUrl,
 }
 

@@ -16,11 +16,12 @@ function SoloLeveling() {
   const { address } = useWallet()
 
   const points = useMemo(() => {
-    if (!appState.totalPoints && pointsData?.stats?.total_points && address) {
-      setAppState({ totalPoints: { points: pointsData?.stats?.total_points, user: address } })
-    } else if (appState.totalPoints != pointsData?.stats?.total_points && address === appState.totalPoints?.user) {
+    if (!appState.totalPoints?.find((p) => p.user === address) && pointsData?.stats?.total_points && address) {
+      appState.totalPoints.push({ points: pointsData?.stats?.total_points, user: address })
+      setAppState({ totalPoints: appState.totalPoints })
+    } else if (appState.totalPoints?.find((p) => p.user === address)?.points != pointsData?.stats?.total_points && address === appState.totalPoints?.find((p) => p.user === address)?.user) {
       //Calc points earned
-      let pointsEarned = parseFloat(pointsData?.stats?.total_points ?? "0") - parseFloat(appState.totalPoints?.points ?? "0")
+      let pointsEarned = parseFloat(pointsData?.stats?.total_points ?? "0") - parseFloat(appState.totalPoints?.find((p) => p.user === address)!.points ?? "0")
       //Toast to tell users they have earned points
       toaster.message({
         title: 'You Earned Joules!',
@@ -31,8 +32,8 @@ function SoloLeveling() {
         )
       });
       //Update total points
-      setAppState({ totalPoints: { points: pointsData?.stats?.total_points ?? "0", user: address ?? "" } })
-
+      appState.totalPoints.find((p) => p.user === address)!.points = pointsData?.stats?.total_points ?? "0"
+      setAppState({ totalPoints: appState.totalPoints })
     }
 
     console.log("total points", pointsData)

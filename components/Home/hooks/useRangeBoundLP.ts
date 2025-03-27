@@ -66,7 +66,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
     queryFn: () => {
       if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices || !positionInfo) { console.log("bounded early return", address, boundedCDTAsset, quickActionState, underlyingCDT, boundedCDTBalance, usdcAsset, prices, positionInfo, manageMsg, manageAction); return { msgs: [] } }
       var msgs = [] as MsgExecuteContractEncodeObject[]
-      const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
+      // const cdtPrice = parseFloat(prices?.find((price) => price.denom === cdtAsset.base)?.price ?? "0")
 
       //Append manageMsg if its not errored
       if (!(manageAction?.simulate.isError || !manageAction?.simulate.data)) msgs = manageMsg ?? []

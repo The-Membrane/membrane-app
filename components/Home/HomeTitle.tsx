@@ -118,7 +118,7 @@ const HomeHeader = React.memo(() => {
   return (
     <HStack gap={"0.5rem"} justifyContent={"center"} mb={"3%"}>
       <Text variant="title" letterSpacing="unset" fontSize="50px" textTransform="none">
-        Passively power the evolution on Osmosis
+        Passively power the stablecoin evolution on Osmosis
       </Text>
       <Image src="/images/osmo.svg" w="65px" h="90px" alignSelf={"end"} />
     </HStack>

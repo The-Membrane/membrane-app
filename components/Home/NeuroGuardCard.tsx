@@ -760,9 +760,9 @@ const AcquireCDTEntry = React.memo(({
 const MemoizedNeuroGuardOpenEntry = memo(NeuroGuardOpenEntry);
 const MemoizedNeuroGuardExistingEntry = memo(NeuroGuardExistingEntry);
 const MemoizedVaultEntry = memo(VaultEntry);
-const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
-const MemoizedAcquireCDTEntry = memo(AcquireCDTEntry);
-const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
+// const MemoizedRBLPDepositEntry = memo(RBLPDepositEntry);
+// const MemoizedAcquireCDTEntry = memo(AcquireCDTEntry);
+// const MemoizedRBLPExistingEntry = memo(RBLPExistingEntry);
 
 
 
@@ -1177,7 +1177,7 @@ const NeuroGuardCard = () => {
   return (
     <Stack gap={1} marginBottom="3%">
       {/* This handles all deposits and withdrawals into the Rangebound LP */}
-      <MemoizedAcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} rblpDeposit={Number(underlyingCDT)} address={address ?? ""} />
+      <AcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} rblpDeposit={Number(underlyingCDT)} address={address ?? ""} />
 
       <Divider mt="5%" />
 

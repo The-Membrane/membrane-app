@@ -24,10 +24,10 @@ function SoloLeveling() {
       let pointsEarned = parseFloat(pointsData?.stats?.total_points ?? "0") - parseFloat(appState.totalPoints?.find((p) => p.user === address)!.points ?? "0")
       //Toast to tell users they have earned points
       toaster.message({
-        title: 'You Earned Joules!',
+        title: 'You Earned Points!',
         message: (
           <>
-            You've earned <strong>{pointsEarned.toFixed(1)} Joules</strong> from your recent actions.
+            You've earned <strong>{pointsEarned.toFixed(1)} Points</strong> from your recent actions.
           </>
         )
       });
@@ -57,7 +57,7 @@ function SoloLeveling() {
   return (
     <Stack as="solo-leveling" style={{ marginTop: "6%" }}>
       <Text fontSize="sm" color="whiteAlpha.700">
-        <span style={{ fontWeight: "bold", color: "white" }}>Rank {rank}:</span> {parseFloat(points.stats.total_points).toFixed(1)} Joules
+        <span style={{ fontWeight: "bold", color: "white" }}>Rank {rank}:</span> {parseFloat(points.stats.total_points).toFixed(1)} Points
       </Text>
       <Slider
         defaultValue={points_in_level}

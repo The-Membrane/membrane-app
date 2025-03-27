@@ -20,13 +20,13 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
         Can I get liquidated?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
-        Only if the smart contract malfunctions. Otherwise, once the position's health hits 0%, your loan will be withdrawn from The Membrane LP and used to repay the debt.
+        Only if the smart contract malfunctions. Otherwise once the position's health hits 0%, your loan will be withdrawn from The Membrane LP and used to repay the debt.
       </ListItem>
       <Text variant="title" mb={1} letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Where does the yield come from?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
-        The Membrane LP vault in the graphic below. It's a range bound concentrated liquidity position that is distributed protocol revenue.
+        It'll automatically mint CDT and deposit it into the Market Making vault in the graphic above which is also distributed protocol revenue.
       </ListItem>
       <Text variant="title" letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Why is the yield negative?
@@ -41,12 +41,6 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
         Compounds can be initiated by anyone in the Upper Management tab.
       </ListItem>
       <Text variant="title" letterSpacing={0} fontSize="md" color={colors.walletIcon}>
-        Is the CDT Guardian different?
-      </Text>
-      <ListItem fontFamily="Inter" fontSize="md">
-        The CDT Guardian deposits CDT directly into The Membrane. Sometimes this requires a swap into USDC (max slippage: 0.5%).
-      </ListItem>
-      <Text variant="title" letterSpacing={0} fontSize="md" color={colors.walletIcon}>
         Why can't I see my Guardian in the "Your CDPs" section?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
@@ -56,7 +50,7 @@ const FAQ = React.memo(({ isExpanded }: { isExpanded: boolean }) => {
         Are there close fees?
       </Text>
       <ListItem fontFamily="Inter" fontSize="md">
-        No, the closure pulls funds from The Membrane vault to repay the debt. The only close fee you'll see is slippage from a swap to repay 1 CDT, a buffer left for ease of closure.
+        No, the closure pulls funds from The Membrane vault to repay the debt. The only close fee you'll see is slippage from a swap to repay 1 CDT, a buffer left for easier executions.
       </ListItem>
     </List>
   )

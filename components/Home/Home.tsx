@@ -26,7 +26,7 @@ const Home = () => {
   console.log("Home")
 
   const { appState, setAppState } = useAppState();
-  useMemo(() => setAppState({ rpcUrl: 'https://g.w.lavanet.xyz:443/gateway/osmosis/rpc-http/c6667993e9a0fac0a9c98d29502aa0a7' }), [])
+  useMemo(() => setAppState({ rpcUrl: 'https://osmosis-rpc.polkachu.com/' }), [])
   const { rulesState } = useMembersRulesState()
 
   const [hasShownToast, setHasShownToast] = useState(false);

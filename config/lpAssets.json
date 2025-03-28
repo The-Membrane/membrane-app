@@ -33,7 +33,8 @@
     "base": "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized",
     "symbol": "marsUSDC",
     "decimal": 12,
-    "isLP": false
+    "isLP": false,
+    "logo": "/images/marsUSDC.svg"
   },
   {
     "description": "Auto-compounding CDT vault for Membrane's Stability Pool/OmniPool",

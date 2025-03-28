@@ -54,7 +54,7 @@ const SummaryItem = ({
       )}
     </HStack>
     <HStack>
-      <Text>{num(amount).abs().toString()}</Text>
+      <Text>{badge != "Mint" && badge != "Repay" && "$"}{num(amount).abs().toString()}</Text>
     </HStack>
   </HStack>
 )
@@ -73,7 +73,7 @@ export const Summary = () => {
   }
   const { summary } = mintState
   const cdt = useAssetBySymbol('CDT')
-  console.log("Mint Summary", mintState.repay??0, debtAmount)
+  console.log("Mint Summary", mintState.repay ?? 0, debtAmount)
 
   if (!mintState.isTakeAction) return null
 
@@ -85,7 +85,7 @@ export const Summary = () => {
           <SummaryItem
             key={asset?.label + asset?.amount}
             label={asset?.label}
-            amount={asset?.amount}
+            amount={asset?.usdValue}
             logo={asset?.logo}
             logos={asset?.logos}
             isLP={asset?.isLP}
@@ -105,9 +105,9 @@ export const Summary = () => {
 
       {num(mintState.repay).isGreaterThan(0) && (
         <SummaryItem
-          badge="Repay"
           label="CDT"
-          amount={Math.min(debtAmount, mintState.repay??0).toFixed(2)}
+          badge="Repay"
+          amount={Math.min(debtAmount, mintState.repay ?? 0).toFixed(2)}
           logo={cdt?.logo}
         />
       )}

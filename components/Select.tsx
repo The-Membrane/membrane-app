@@ -32,7 +32,7 @@ const chakraStyles: ChakraStylesConfig = {
     bg: 'transparent',
     color: '#fff',
     cursor: 'pointer',
-    width: 'fit-content',
+    width: 'full',
     _selected: {
       bg: colors.tabBG,
     },
@@ -88,7 +88,7 @@ const transparentStyles: ChakraStylesConfig = {
     bg: 'transparent',
     color: '#fff',
     cursor: 'pointer',
-    width: 'fit-content',
+    width: 'full',
     _selected: {
       bg: colors.tabBG,
     },
@@ -108,7 +108,7 @@ const transparentStyles: ChakraStylesConfig = {
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
     backdropFilter: 'blur(4px)',
     bg: 'rgba(26, 32, 44, 0.9)',
-    maxHeight: "200px", // Set max height for dropdown
+    maxHeight: "100px", // Set max height for dropdown
     overflowY: "auto",  // Enables scrollbar when needed
   })
 }

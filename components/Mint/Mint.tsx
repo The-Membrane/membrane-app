@@ -162,7 +162,7 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
 
   return (
     <>
-      <Stack width="425px">
+      <Stack width="500px">
         {isMobile && <HealthSlider summary={summary} />}
 
         <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="100%" paddingBottom={0}>
@@ -241,7 +241,7 @@ const Mint = React.memo(() => {
   }, [data]); // Runs when `data` changes
 
 
-  const zoomLevel = useBreakpointValue({ xxs: "70%", xs: "80%", sm: "90%", base: "100%", md: "100%" })
+  const zoomLevel = useBreakpointValue({ xxs: "60%", xs: "70%", sm: "80%", base: "90%", md: "100%" })
   console.log("zoomLevel", zoomLevel)
 
   return (

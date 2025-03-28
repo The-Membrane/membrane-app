@@ -210,7 +210,7 @@ export const InitialCDPDeposit = () => {
                     />
                     <HStack alignContent={"right"} width={"100%"} justifyContent={"right"}>
                         <Button
-                            onClick={() => { setTransactionValue(selectedAsset?.walletsdValue.toString() ?? "0"); handleTransaction("deposit", selectedAsset?.walletsdValue ?? 0) }}
+                            onClick={() => { setTransactionValue(selectedAsset?.walletsdValue.toFixed(2) ?? "0"); handleTransaction("deposit", selectedAsset?.walletsdValue ?? 0) }}
                             width="10%" variant="unstyled" fontWeight="normal"
                         >
                             <Text

@@ -228,7 +228,7 @@ export const InitialCDPDeposit = () => {
                 {selectedAsset && assetsWithOptions && assetsWithOptions.length > 1 && <Button
                     alignSelf="center"
                     onClick={() => { setOssifiedDeposits([...ossifiedDeposits, { ...selectedAsset, amountValue: transactionValue, txType: "deposit" }]); setSelectedAsset(undefined); setTransactionValue(""); }}
-                    width={"30%"}
+                    width={"fit-content"}
                     isDisabled={Number(transactionValue) === 0}
                     fontFamily="Inter"
                     fontWeight={"500"}

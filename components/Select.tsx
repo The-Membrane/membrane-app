@@ -32,7 +32,7 @@ const chakraStyles: ChakraStylesConfig = {
     bg: 'transparent',
     color: '#fff',
     cursor: 'pointer',
-    width: 'full',
+    width: 'fit-content',
     _selected: {
       bg: colors.tabBG,
     },
@@ -47,7 +47,9 @@ const chakraStyles: ChakraStylesConfig = {
     borderRadius: 16,
     width: 'max-content',
     minWidth: '200px',
-    ml: '-50px'
+    ml: '-50px',
+    maxHeight: "200px", // Set max height for dropdown
+    overflowY: "auto",  // Enables scrollbar when needed
   })
 }
 
@@ -86,7 +88,7 @@ const transparentStyles: ChakraStylesConfig = {
     bg: 'transparent',
     color: '#fff',
     cursor: 'pointer',
-    width: 'full',
+    width: 'fit-content',
     _selected: {
       bg: colors.tabBG,
     },
@@ -106,6 +108,8 @@ const transparentStyles: ChakraStylesConfig = {
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
     backdropFilter: 'blur(4px)',
     bg: 'rgba(26, 32, 44, 0.9)',
+    maxHeight: "200px", // Set max height for dropdown
+    overflowY: "auto",  // Enables scrollbar when needed
   })
 }
 

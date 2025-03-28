@@ -15,8 +15,13 @@ function SoloLeveling() {
   const { data: pointsData } = useUserPoints()
   const { address } = useWallet()
 
+  if (!appState.totalPoints) {
+    appState.totalPoints = []
+  }
+
   const points = useMemo(() => {
     if (!appState.totalPoints?.find((p) => p.user === address) && pointsData?.stats?.total_points && address) {
+
       appState.totalPoints.push({ points: pointsData?.stats?.total_points, user: address })
       setAppState({ totalPoints: appState.totalPoints })
     } else if (appState.totalPoints?.find((p) => p.user === address)?.points != pointsData?.stats?.total_points && address === appState.totalPoints?.find((p) => p.user === address)?.user) {

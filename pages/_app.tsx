@@ -99,7 +99,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             isLazy: true,
             endpoints: {
               osmosis: {
-                rpc: [appState.rpcUrl],
+                rpc: ['https://g.w.lavanet.xyz:443/gateway/osmosis/rpc-http/c6667993e9a0fac0a9c98d29502aa0a7'],
               },
             },
           }}

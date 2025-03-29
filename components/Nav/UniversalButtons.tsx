@@ -6,7 +6,7 @@ import useProtocolClaims from './hooks/useClaims'
 import useProtocolLiquidations from './hooks/useLiquidations'
 import { LiqSummary } from './LiqSummary'
 
-function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnabled: (enabled: boolean) => void }) {
+function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnabled: any }) {
     const { action: claim, claims_summary } = useProtocolClaims({ run: enabled })
     const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations({ run: enabled })
 
@@ -17,7 +17,7 @@ function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnable
     console.log('uni buttns disabled', liquidateDisabled, claimsDisabled)
 
     useMemo(() => {
-        if (!claimsDisabled && !liquidateDisabled) {
+        if (claimsDisabled && liquidateDisabled) {
             setEnabled(false)
         }
     }, [claimsDisabled, liquidateDisabled])

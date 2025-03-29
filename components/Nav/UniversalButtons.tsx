@@ -1,14 +1,23 @@
 import { Stack } from '@chakra-ui/react'
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import ConfirmModal from '../ConfirmModal'
 import { ClaimSummary } from '../Bid/ClaimSummary'
 import useProtocolClaims from './hooks/useClaims'
 import useProtocolLiquidations from './hooks/useLiquidations'
 import { LiqSummary } from './LiqSummary'
 
-function UniversalButtons({ enabled }: { enabled: boolean }) {
+function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnabled: (enabled: boolean) => void }) {
     const { action: claim, claims_summary } = useProtocolClaims({ run: enabled })
     const { action: liquidate, liquidating_positions: liq_summ } = useProtocolLiquidations({ run: enabled })
+
+    const claimsDisabled = claims_summary.length === 0 || !enabled
+    const liquidateDisabled = liq_summ.length === 0 || !enabled
+
+    useMemo(() => {
+        if (claimsDisabled && liquidateDisabled) {
+            setEnabled(false)
+        }
+    }, [claimsDisabled, liquidateDisabled])
 
     return (
         <Stack as="uniButtons" gap="1">
@@ -16,7 +25,7 @@ function UniversalButtons({ enabled }: { enabled: boolean }) {
             <ConfirmModal
                 label={'Claim'}
                 action={claim}
-                isDisabled={claims_summary.length === 0}
+                isDisabled={claimsDisabled}
             // isLoading={false}
             >
                 <ClaimSummary claims={claims_summary} />
@@ -25,7 +34,7 @@ function UniversalButtons({ enabled }: { enabled: boolean }) {
             <ConfirmModal
                 label={'Liquidate'}
                 action={liquidate}
-                isDisabled={liq_summ.length === 0}
+                isDisabled={liquidateDisabled}
             >
                 <LiqSummary liquidations={liq_summ} />
             </ConfirmModal>

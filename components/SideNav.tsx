@@ -178,7 +178,7 @@ function SideNav() {
         </Button>
 
         <div style={{ display: enable_msgs ? "block" : "none" }}>
-          <UniversalButtons enabled={enable_msgs} />
+          <UniversalButtons enabled={enable_msgs} setEnabled={setEnableMsgs} />
         </div>
         <MemoizedBalanceCard />
       </Stack>

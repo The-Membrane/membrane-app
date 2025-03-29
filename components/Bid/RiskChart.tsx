@@ -71,7 +71,7 @@ const RiskChart = () => {
   const { address } = useWallet()
   const { bidState, setBidState } = useBidState()
   const { data: liqudation, isLoading } = useLiquidation(bidState?.selectedAsset)
-  const { data: stabilityPoolAssets } = useStabilityAssetPool()
+  const { data: stabilityPoolAssets } = useStabilityAssetPool(true)
   const { data: capitalAheadAmount = 0 } = useCapitalAheadOfDeposit()
 
 

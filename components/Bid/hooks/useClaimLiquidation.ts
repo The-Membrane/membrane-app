@@ -10,25 +10,28 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { PointsMsgComposer } from '@/contracts/codegen/points/Points.message-composer'
+import { useRouter } from 'next/router'
 
-const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsResponse | undefined) => {
+const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsResponse | undefined, run: boolean) => {
   const { address } = useWallet()
   const claimKeys = claims.map((claim) => claim.bid_for)
+  const router = useRouter()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg claim liquidation', address, claimKeys, sp_claims],
+    queryKey: ['msg claim liquidation', address, claimKeys, sp_claims, run, router.pathname],
     queryFn: () => {
+      if (router.pathname != "/bid" && !run) return
       if (!address || (claimKeys.length === 0 && !sp_claims)) return [] as MsgExecuteContractEncodeObject[]
 
       const messageComposer = new LiquidationQueueMsgComposer(address, contracts.liquidation)
       const pointsMessageComposer = new PointsMsgComposer(address, contracts.points)
 
       //Start msgs with a ClaimCheck so we can award points
-      var msgs = [ pointsMessageComposer.checkClaims({
+      var msgs = [pointsMessageComposer.checkClaims({
         cdpRepayment: undefined,
         spClaims: sp_claims ? true : false,
         lqClaims: claimKeys.length > 0,
-      }) ] as MsgExecuteContractEncodeObject[]
+      })] as MsgExecuteContractEncodeObject[]
 
       msgs = msgs.concat(claims
         .filter((claim) => num(claim.pending_liquidated_collateral).gt(0))
@@ -77,10 +80,11 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
 
   return {
     action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['claim liquidation sim', (msgs?.toString() ?? '0')],
-    onSuccess,
-  }), msgs}
+      msgs,
+      queryKey: ['claim liquidation sim', (msgs?.toString() ?? '0')],
+      onSuccess,
+    }), msgs
+  }
 }
 
 export default useClaimLiquidation

@@ -3,15 +3,18 @@ import useWallet from '@/hooks/useWallet'
 import useAppState from '@/persisted-state/useAppState'
 import { getRewards, getStaked } from '@/services/staking'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/router'
 
 
-const useStaked = () => {
+const useStaked = (run: boolean) => {
   const { address } = useWallet()
   const { appState } = useAppState()
+  const router = useRouter()
 
   return useQuery({
-    queryKey: ['staked', address],
+    queryKey: ['staked', address, appState.rpcUrl, run, router.pathname],
     queryFn: async () => {
+      if (router.pathname != "/stake" && !run) return
       if (!address) return null
 
       // Check if we use stakeState or requery

@@ -18,7 +18,7 @@ const Stakeing = () => {
   const mbrnAsset = useAssetBySymbol('MBRN')
   const mbrnBalance = useBalanceByAsset(mbrnAsset)
   const { action: stake } = useStakeing({})
-  const { data } = useStaked()
+  const { data } = useStaked(true)
   const { staked } = data || {}
   const { stakeState, setStakeState } = useStakeState()
   console.log("STAKE", stake)

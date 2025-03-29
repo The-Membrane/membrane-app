@@ -18,7 +18,7 @@ const RestakeButton = (reward: any) => {
       size="sm"
       px="2"
       isDisabled={Number(reward) <= 0}
-      isLoading={claim?.simulate.isLoading || claim?.tx.isPending}      
+      isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
       onClick={() => claim?.tx.mutate()}
     >
       Restake
@@ -27,7 +27,7 @@ const RestakeButton = (reward: any) => {
 }
 
 export const ClaimAndRestake = (props: Props) => {
-  const { data } = useStaked()
+  const { data } = useStaked(true)
   const { rewards = [] } = data || {}
   const { action: claim } = useStakingClaim(false)
   console.log("CLAIM", claim)
@@ -36,31 +36,29 @@ export const ClaimAndRestake = (props: Props) => {
   const MBRN = useAssetBySymbol('MBRN')
 
   //MBRN claims
-  const mbrnClaims = useMemo(() => 
-    {
-      const reward = rewards.reduce((acc, reward) => {
-        if (reward?.asset?.symbol === 'MBRN') {
-          return acc.plus(reward?.amount)
-        }
-        return acc.plus(0)
-      }, num(0))
+  const mbrnClaims = useMemo(() => {
+    const reward = rewards.reduce((acc, reward) => {
+      if (reward?.asset?.symbol === 'MBRN') {
+        return acc.plus(reward?.amount)
+      }
+      return acc.plus(0)
+    }, num(0))
 
     return reward
   }, [rewards])
 
   ///CDT claims
-  const cdtClaims = useMemo(() => 
-    {
-      const reward = rewards.reduce((acc, reward) => {
-        if (reward?.asset?.symbol === 'CDT') {
-          return acc.plus(reward?.amount)
-        }
-        return acc.plus(0)
-      }, num(0))
-    
+  const cdtClaims = useMemo(() => {
+    const reward = rewards.reduce((acc, reward) => {
+      if (reward?.asset?.symbol === 'CDT') {
+        return acc.plus(reward?.amount)
+      }
+      return acc.plus(0)
+    }, num(0))
+
     return reward
   }, [rewards])
-  
+
 
   if (!rewards.length)
     return (
@@ -75,7 +73,7 @@ export const ClaimAndRestake = (props: Props) => {
     <Stack gap="10" pt="5">
       <Stack>
         {/* MBRN Claim */}
-        {MBRN && mbrnClaims > num(1) ? 
+        {MBRN && mbrnClaims > num(1) ?
           <HStack justifyContent="space-between">
             <HStack>
               <Image
@@ -90,22 +88,22 @@ export const ClaimAndRestake = (props: Props) => {
               <Text>{shiftDigits(mbrnClaims.toNumber(), -6).toString()}</Text>
               <RestakeButton reward={mbrnClaims} />
             </HStack>
-          </HStack> :  null}
-          {/* CDT Claim */}
-          {CDT && cdtClaims > num(1) ? <HStack justifyContent="space-between">
-            <HStack>
-              <Image
-                src={CDT.logo}
-                w="20px"
-                h="20px"
-                transform={'none'}
-              />
-              <Text>{CDT.symbol}</Text>
-            </HStack>
-            <HStack>
-              <Text>{shiftDigits(cdtClaims.toNumber(), -6).toString()}</Text>
-            </HStack>
           </HStack> : null}
+        {/* CDT Claim */}
+        {CDT && cdtClaims > num(1) ? <HStack justifyContent="space-between">
+          <HStack>
+            <Image
+              src={CDT.logo}
+              w="20px"
+              h="20px"
+              transform={'none'}
+            />
+            <Text>{CDT.symbol}</Text>
+          </HStack>
+          <HStack>
+            <Text>{shiftDigits(cdtClaims.toNumber(), -6).toString()}</Text>
+          </HStack>
+        </HStack> : null}
       </Stack>
       <TxButton
         isDisabled={!isGreaterThanZero(cdtClaims.toNumber()) && !isGreaterThanZero(mbrnClaims.toNumber())}

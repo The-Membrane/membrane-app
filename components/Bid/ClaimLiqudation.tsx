@@ -7,9 +7,9 @@ import { Coin } from '@cosmjs/stargate'
 import { useCheckClaims, useCheckSPClaims } from '@/hooks/useLiquidations'
 
 const ClaimLiqudation = () => {
-  const { data: claims } = useCheckClaims()
-  const { data: SP_claims } = useCheckSPClaims()
-  const claimLiqudation = useClaimLiquidation(claims, SP_claims).action
+  const { data: claims } = useCheckClaims(true)
+  const { data: SP_claims } = useCheckSPClaims(true)
+  const claimLiqudation = useClaimLiquidation(claims, SP_claims, true).action
 
   var claim_coins: Coin[] = claimstoCoins(claims)
   if (SP_claims) {

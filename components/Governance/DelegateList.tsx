@@ -34,7 +34,7 @@ const DelegateSlider = ({ validator, isDisabled }: DelegateProps) => {
   const { delegateState, setDelegateState } = useDelegateState()
   const { delegations = [] } = delegateState || {}
   const existingDelegation = delegations?.find((delegation) => delegation.address === address)
-  const { data: staked } = useStaked()
+  const { data: staked } = useStaked(true)
 
   const { data: userDelegation = [] } = useDelegations()
 

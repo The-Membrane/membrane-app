@@ -9,7 +9,7 @@ import { useDelegations } from '@/hooks/useGovernance'
 const Delegate = () => {
   const { isWalletConnected } = useWallet()
   const { isLoading } = useDelegations()
-  const { data: staked } = useStaked()
+  const { data: staked } = useStaked(true)
 
   if (!isWalletConnected || num(staked?.staked).isZero()) return null
 

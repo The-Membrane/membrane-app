@@ -43,18 +43,18 @@ const useProtocolClaims = ({ run }: { run: boolean }) => {
   console.log("claim logic")
 
   //Liquidations
-  const { data: claims } = useCheckClaims()
-  const { data: SP_claims } = useCheckSPClaims()
-  const claimLiq = useClaimLiquidation(claims, SP_claims)
+  const { data: claims } = useCheckClaims(run)
+  const { data: SP_claims } = useCheckSPClaims(run)
+  const claimLiq = useClaimLiquidation(claims, SP_claims, run)
   //SP Unstaking  
-  const { data: stabilityPoolAssets } = useStabilityAssetPool()
+  const { data: stabilityPoolAssets } = useStabilityAssetPool(run)
   const { deposits = [] } = stabilityPoolAssets || {}
 
   //Staking
-  const { data } = useStaked()
+  const { data } = useStaked(run)
   const { staked = [], unstaking = [], rewards = [] } = data || {}
-  const stakingClaim = useStakingClaim(false, false)
-  const unstakeClaim = useClaimUnstake({ address: address, sim: false })
+  const stakingClaim = useStakingClaim(false, false, run)
+  const unstakeClaim = useClaimUnstake({ address: address, sim: false, run: run })
   const mbrnAsset = useAssetBySymbol('MBRN')
   //Sum claims
   const mbrnClaimable = useMemo(() => {
@@ -85,8 +85,8 @@ const useProtocolClaims = ({ run }: { run: boolean }) => {
   //
 
   //Vesting
-  const claimFees = useClaimFees()
-  const { data: allocations } = useAllocation()
+  const claimFees = useClaimFees(run)
+  const { data: allocations } = useAllocation(run)
   const { claimables } = allocations || {}
 
 
@@ -250,7 +250,7 @@ const useProtocolClaims = ({ run }: { run: boolean }) => {
       msgs,
       queryKey: ['protocol_claim_sim', (msgs?.toString() ?? '0')],
       onSuccess,
-      enabled: !!msgs,
+      enabled: run,
     }), claims_summary: agg_claims
   }
 }

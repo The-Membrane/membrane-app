@@ -152,7 +152,7 @@ type Props = {
 }
 
 const StabilityPool = ({ setActiveTabIndex }: Props) => {
-  const { data: stabilityPoolAssets } = useStabilityAssetPool()
+  const { data: stabilityPoolAssets } = useStabilityAssetPool(true)
   const { deposits = [] } = stabilityPoolAssets || {}
 
   const { bidState, setBidState } = useBidState()

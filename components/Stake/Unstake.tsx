@@ -10,7 +10,7 @@ import useStaked from './hooks/useStaked'
 import useUnstake from './hooks/useUnstake'
 
 const Unstake = () => {
-  const { data: staked } = useStaked()
+  const { data: staked } = useStaked(true)
   const mbrnAsset = useAssetBySymbol('MBRN')
   const [unstakeAmount, setUnstakeAmount] = useState('0')
   const unstake = useUnstake({ amount: unstakeAmount })

@@ -27,13 +27,16 @@ export const useCapitalAheadOfDeposit = () => {
     })
 }
 
-export const useCheckClaims = () => {
+export const useCheckClaims = (run: boolean) => {
     const { address } = useWallet()
     const { appState } = useAppState()
+    const router = useRouter()
+
 
     return useQuery({
-        queryKey: ['liquidation claims', address, appState.rpcUrl],
+        queryKey: ['liquidation claims', address, appState.rpcUrl, run, router.pathname],
         queryFn: async () => {
+            if (router.pathname != "/bid" && !run) return
             if (!address) return
             return getUserClaims(address, appState.rpcUrl)
         },
@@ -56,13 +59,15 @@ export const useLiquidation = (asset?: Asset) => {
     })
 }
 
-export const useCheckSPClaims = () => {
+export const useCheckSPClaims = (run: boolean) => {
     const { address } = useWallet()
     const { appState } = useAppState()
+    const router = useRouter()
 
     return useQuery({
-        queryKey: ['stability pool claims', address],
+        queryKey: ['stability pool claims', address, appState.rpcUrl, run, router.pathname],
         queryFn: async () => {
+            if (router.pathname != "/bid" && !run) return
             if (!address) return
             return getSPUserClaims(address, appState.rpcUrl)
         },
@@ -103,15 +108,15 @@ export const useUserBids = () => {
     })
 }
 
-export const useStabilityAssetPool = () => {
+export const useStabilityAssetPool = (run: boolean) => {
     const { address } = useWallet()
     const { appState } = useAppState()
     const router = useRouter()
 
     return useQuery({
-        queryKey: ['stability asset pool', address, router.pathname, appState.rpcUrl],
+        queryKey: ['stability asset pool', address, router.pathname, appState.rpcUrl, run],
         queryFn: async () => {
-            if (router.pathname != "/bid") return
+            if (router.pathname != "/bid" && !run) return
             if (!address) return
             return getAssetPool(address, appState.rpcUrl)
         },

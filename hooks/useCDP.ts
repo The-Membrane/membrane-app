@@ -13,7 +13,7 @@ export const useBasket = () => {
   const result = useQuery({
     queryKey: ['basket', client, router.pathname],
     queryFn: async () => {
-      if (router.pathname != "/" && router.pathname != "/borrow" && router.pathname != "/bid") return
+      if (router.pathname != "/" && router.pathname != "/borrow" && router.pathname != "/bid" && router.pathname != "/management") return
       if (!client) return
       return getBasket(client)
     },

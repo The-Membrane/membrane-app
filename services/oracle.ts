@@ -7,6 +7,7 @@ import { Basket } from '@/contracts/codegen/positions/Positions.types'
 import { useOraclePrice } from '@/hooks/useOracle'
 
 export const oracleClient = async (rpcUrl: string) => {
+  console.log("oracle CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new OracleQueryClient(cosmWasmClient, contracts.oracle)
 }

@@ -4,6 +4,7 @@ import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { PointsQueryClient } from '@/contracts/codegen/points/Points.client'
 
 export const PointsClient = async (rpcUrl: string) => {
+  console.log("points CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new PointsQueryClient(cosmWasmClient, contracts.points)
 }

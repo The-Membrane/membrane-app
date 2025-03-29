@@ -14,6 +14,7 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { Coin } from '@cosmjs/stargate'
 
 export const liquidationClient = async (rpcUrl: string) => {
+  console.log("liquidation CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new LiquidationQueueQueryClient(cosmWasmClient, contracts.liquidation)
 }

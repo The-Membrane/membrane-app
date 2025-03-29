@@ -5,6 +5,7 @@ import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
 export const vestingClient = async (rpcUrl: string) => {
+  console.log("vesting CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new VestingQueryClient(cosmWasmClient, contracts.vesting)
 }

@@ -17,6 +17,7 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import dayjs from 'dayjs'
 
 export const getGovernanceClient = async (rpcUrl: string) => {
+  console.log("gov CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new GovernanceQueryClient(cosmWasmClient, contracts.governance)
 }

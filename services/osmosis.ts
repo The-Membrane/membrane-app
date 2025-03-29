@@ -77,6 +77,7 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 
 const OsmosisClient = async (rpcUrl: string) => {
     const { createRPCQueryClient } = osmosis.ClientFactory;
+    console.log("osmosis CW client")
     const osmosisClient = await createRPCQueryClient({ rpcEndpoint: rpcUrl })
     return osmosisClient
 }

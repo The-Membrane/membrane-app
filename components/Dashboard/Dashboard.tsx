@@ -52,7 +52,7 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
         }
         return fulfill?.simulate.isError || !fulfill?.simulate.data
     }, [fulfill?.simulate.isError, fulfill?.simulate.data])
-    if (isFulfillDisabled) console.log("isFulfillDisabled", fulfill?.simulate, fulfill?.simulate.isError, !fulfill?.simulate)
+    // if (isFulfillDisabled) console.log("isFulfillDisabled", fulfill?.simulate, fulfill?.simulate.isError, !fulfill?.simulate)
     return (
         <Stack>
             <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Product Management</Text>

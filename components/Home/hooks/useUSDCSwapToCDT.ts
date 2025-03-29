@@ -80,7 +80,7 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
   const msgs = queryData?.msgs ?? []
   const tokenOutMinAmount = queryData?.tokenOutMinAmount ?? 0
 
-  console.log("swap to cdt msgs", msgs)
+  // console.log("swap to cdt msgs", msgs)
 
   const onInitialSuccess = () => {
     onSuccess()

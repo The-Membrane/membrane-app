@@ -46,7 +46,10 @@ const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: s
             console.log("in query guardian", neuroState.depositSelectedAsset)
 
 
-            if (!run || !address || !neuroState.depositSelectedAsset || (neuroState.depositSelectedAsset && neuroState.depositSelectedAsset?.sliderValue == 0) || !basket || !position_id || (position_id && position_id === "0")) { console.log("existing neuroGuard early return", address, neuroState, basket, position_id); return { msgs: [] } }
+            if (!run || !address || !neuroState.depositSelectedAsset || (neuroState.depositSelectedAsset && neuroState.depositSelectedAsset?.sliderValue == 0) || !basket || !position_id || (position_id && position_id === "0")) {
+                // console.log("existing neuroGuard early return", address, neuroState, basket, position_id); 
+                return { msgs: [] }
+            }
             var msgs = [] as MsgExecuteContractEncodeObject[]
 
             const newDeposit = num(neuroState.depositSelectedAsset.sliderValue).toNumber()
@@ -95,10 +98,10 @@ const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: s
         enabled: !!address,
     })
 
-    console.log("neuroGuard msgs:", "enabled", !!address)
+    // console.log("neuroGuard msgs:", "enabled", !!address)
     const msgs = queryData?.msgs ?? []
 
-    console.log("neuroGuard msgs:", msgs)
+    // console.log("neuroGuard msgs:", msgs)
 
     const onInitialSuccess = () => {
         if (cookiedDepositAmount > 0) setCookie("neuroGuard " + position_id, num(cookiedDepositAmount).plus(neuroState?.depositSelectedAsset?.sliderValue ?? 0).toString(), 3650)

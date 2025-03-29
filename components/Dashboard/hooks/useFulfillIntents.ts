@@ -12,6 +12,7 @@ import { num } from '@/helpers/num'
 
 
 import { PurchaseIntent } from '@/services/earn'
+import { useRouter } from 'next/router'
 const MINIMUM_YIELD = 10000;
 
 const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }) => {
@@ -20,14 +21,19 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }
     const { data: intents } = useBoundedIntents()
     //Get current conversion rate
     const { data: currentConversionRate } = useBoundedCDTVaultTokenUnderlying("1000000000000")
+    const router = useRouter()
 
     type QueryData = {
         msgs: MsgExecuteContractEncodeObject[] | undefined
     }
     const { data: queryData } = useQuery<QueryData>({
-        queryKey: ['fillIntents_msg_creator', intents, currentConversionRate, run, skipIDs],
+        queryKey: ['fillIntents_msg_creator', intents, currentConversionRate, run, skipIDs, router.pathname],
         queryFn: async () => {
-            if (!intents || !currentConversionRate || !run) { console.log("fulfill intents early return", address, intents, currentConversionRate, run); return { msgs: [] } }
+            if (router.pathname != "/dashboard") return { msgs: [] }
+            if (!intents || !currentConversionRate || !run) {
+                //  console.log("fulfill intents early return", address, intents, currentConversionRate, run); 
+                return { msgs: [] }
+            }
 
             var msgs = [] as MsgExecuteContractEncodeObject[]
 

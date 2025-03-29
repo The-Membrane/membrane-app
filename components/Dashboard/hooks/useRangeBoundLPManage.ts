@@ -8,9 +8,11 @@ import { toUtf8 } from "@cosmjs/encoding";
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { queryClient } from '@/pages/_app';
+import { useRouter } from 'next/router';
 
 const useBoundedManage = () => {
   const { address } = useWallet()
+  const router = useRouter()
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
@@ -19,8 +21,10 @@ const useBoundedManage = () => {
     queryKey: [
       'quick_action_LP_manage',
       address,
+      router.pathname
     ],
     queryFn: () => {
+      if (router.pathname != "/dashboard") return { msgs: undefined }
       if (!address) return { msgs: undefined }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 

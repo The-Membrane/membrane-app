@@ -16,7 +16,7 @@ function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnable
     const liquidateLoading = (liquidate?.simulate.isLoading || liquidate?.tx.isPending)
 
 
-    console.log('uni buttns disabled', liquidateDisabled, claimsDisabled)
+    // console.log('uni buttns disabled', liquidateDisabled, claimsDisabled)
 
     useMemo(() => {
         if (claimsDisabled && liquidateDisabled && enabled) {

@@ -63,7 +63,10 @@ const useAutoSP = () => {
       earnCDTBalance
     ],
     queryFn: () => {
-      if (!address || !cdtAsset || !earnCDTAsset) { console.log("autoSP early return", address, earnCDTAsset, quickActionState, underlyingCDT, earnCDTBalance); return { msgs: [] } }
+      if (!address || !cdtAsset || !earnCDTAsset) {
+        // console.log("autoSP early return", address, earnCDTAsset, quickActionState, underlyingCDT, earnCDTBalance); 
+        return { msgs: [] }
+      }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       if (debouncedValue.withdraw != 0) {
@@ -124,7 +127,7 @@ const useAutoSP = () => {
 
   const msgs = queryData?.msgs ?? []
 
-  console.log("autoSP msgs:", msgs)
+  // console.log("autoSP msgs:", msgs)
 
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })

@@ -47,7 +47,10 @@ const useNeuroGuard = ({ onSuccess, run, asset }: { onSuccess: () => void, run: 
       console.log("in query guardian", asset)
 
 
-      if (!run || !address || !asset || (asset && asset?.sliderValue == 0) || !basket) { console.log("neuroGuard early return", address, neuroState, basket); return { msgs: [] } }
+      if (!run || !address || !asset || (asset && asset?.sliderValue == 0) || !basket) {
+        // console.log("neuroGuard early return", address, neuroState, basket); 
+        return { msgs: [] }
+      }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       const newDeposit = num(asset.sliderValue).toNumber()

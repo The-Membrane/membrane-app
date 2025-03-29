@@ -28,7 +28,7 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
   const { setRulesState } = useMembersRulesState()
   const isMobile = useBreakpointValue({ base: true, md: false })
 
-  console.log("rules modal", isOpen)
+  // console.log("rules modal", isOpen)
 
   const handleAgree = useCallback(() => {
     console.log("ran agree")

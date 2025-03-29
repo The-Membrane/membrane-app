@@ -6,8 +6,8 @@ const useCookie = (name: string) => {
   return useQuery({
     queryKey: ['cookie', name],
     queryFn: async () => {
-      console.log("attempting to get cookie: " + name)
-        return getCookie(name)
+      // console.log("attempting to get cookie: " + name)
+      return getCookie(name)
     },
   })
 }

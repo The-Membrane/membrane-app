@@ -11,6 +11,7 @@ import { useBoundedCDTVaultTokenUnderlying, useBoundedIntents } from '@/hooks/us
 import { num } from '@/helpers/num'
 import { useAllConversionRates } from '@/hooks/usePoints'
 import { UserConversionRateState } from '@/services/points'
+import { useRouter } from 'next/router'
 
 const MSG_CAP = undefined
 
@@ -20,14 +21,19 @@ const useGiveRBLPPoints = () => {
     const { data: conversionRates } = useAllConversionRates()
     //Get current conversion rate
     const { data: currentConversionRate } = useBoundedCDTVaultTokenUnderlying("1000000000000")
+    const router = useRouter()
 
     type QueryData = {
         msgs: MsgExecuteContractEncodeObject[] | undefined
     }
     const { data: queryData } = useQuery<QueryData>({
-        queryKey: ['rblp_points_allocation_msg_creator', conversionRates, currentConversionRate],
+        queryKey: ['rblp_points_allocation_msg_creator', conversionRates, currentConversionRate, router.pathname],
         queryFn: async () => {
-            if (!conversionRates || !currentConversionRate) { console.log("give points early return", address, conversionRates, currentConversionRate); return { msgs: [] } }
+            if (router.pathname != "/dashboard") return { msgs: [] }
+            if (!conversionRates || !currentConversionRate) {
+                // console.log("give points early return", address, conversionRates, currentConversionRate); 
+                return { msgs: [] }
+            }
             // console.log("conversionRates", conversionRates, currentConversionRate)
             var msgs = [] as MsgExecuteContractEncodeObject[]
 

@@ -46,7 +46,10 @@ const useNeuroIntentPolish = () => {
     queryFn: () => {
       //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
 
-      if (!address || !userIntents || !userPositions) { console.log("neuro Polish early return", address, userIntents, userPositions); return { msgs: [] } }
+      if (!address || !userIntents || !userPositions) {
+        // console.log("neuro Polish early return", address, userIntents, userPositions); 
+        return { msgs: [] }
+      }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       //Filter out the purchase intents that don't existing positions.

@@ -64,7 +64,7 @@ const useUnLoop = (positionIndex: number, desiredWithdrawal?: number) => {
 
       //4) Unloop 5 times
       const positions = updatedSummary(summary, basketPositions, prices)
-      // console.log("positions", positions)
+      // // console.log("positions", positions)
       const { msgs: loops, newValue, newLTV } = unloopPosition(
         cdtPrice,
         parseFloat(walletCDT),
@@ -100,7 +100,7 @@ const useUnLoop = (positionIndex: number, desiredWithdrawal?: number) => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
-  // console.log(msgs, newPositionValue)
+  // // console.log(msgs, newPositionValue)
   return {
     action: useSimulateAndBroadcast({
       msgs,

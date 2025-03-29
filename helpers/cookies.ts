@@ -8,13 +8,13 @@ export function setCookie(name: string, value: string, days: number): void {
     expires = "; expires=" + date.toUTCString();
   }
   document.cookie = name + "=" + value + expires + "; path=/";
-  console.log("setting cookie", document.cookie)
+  // console.log("setting cookie", document.cookie)
 }
 
 export function getCookie(name: string): string | null {
   const nameEQ = name + "=";
   const ca = document.cookie.split(';');
-  console.log("getting cookie", document.cookie)
+  // console.log("getting cookie", document.cookie)
   for (let i = 0; i < ca.length; i++) {
     let c = ca[i].trim();
     if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);

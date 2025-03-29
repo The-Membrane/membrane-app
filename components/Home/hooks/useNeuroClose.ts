@@ -120,7 +120,10 @@ const useNeuroClose = ({ position, onSuccess, ledger, run }: { position: Positio
     queryFn: () => {
       //   const guardedAsset = useAssetBySymbol(debouncedValue.position_to_close.symbol)
 
-      if (!run || !address || !position || (position && position.position_id === "0") || !basket || !assets || !userIntents || !assetInfo || !neuroState.withdrawSelectedAsset?.sliderValue || (neuroState.withdrawSelectedAsset && neuroState.withdrawSelectedAsset?.sliderValue == 0)) { console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.withdrawSelectedAsset?.sliderValue); return { msgs: [] } }
+      if (!run || !address || !position || (position && position.position_id === "0") || !basket || !assets || !userIntents || !assetInfo || !neuroState.withdrawSelectedAsset?.sliderValue || (neuroState.withdrawSelectedAsset && neuroState.withdrawSelectedAsset?.sliderValue == 0)) {
+        // console.log("neuroClose early return", address, position, basket, assets, userIntents, assetInfo, neuroState.withdrawSelectedAsset?.sliderValue); 
+        return { msgs: [] }
+      }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       //calc the % of the position to close     
@@ -235,7 +238,7 @@ const useNeuroClose = ({ position, onSuccess, ledger, run }: { position: Positio
 
   const msgs = queryData?.msgs ?? []
 
-  console.log("neuroClose msgs:", msgs)
+  // console.log("neuroClose msgs:", msgs)
 
   //Pop the last msg if ledger
   if (ledger && msgs.length > 2) msgs.pop()

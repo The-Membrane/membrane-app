@@ -39,7 +39,10 @@ const useSetUserRBClaims = () => {
     const { data: queryData } = useQuery<QueryData>({
         queryKey: ['toaster_set_RB_claim_msg_creator', hasRangeBoundRate, address, boundCDTBalance],
         queryFn: async () => {
-            if (hasRangeBoundRate || !address || num(boundCDTBalance).isZero()) { console.log("set RB point claim early return", address, hasRangeBoundRate, boundCDTBalance); return { msgs: [] } }
+            if (hasRangeBoundRate || !address || num(boundCDTBalance).isZero()) {
+                // console.log("set RB point claim early return", address, hasRangeBoundRate, boundCDTBalance); 
+                return { msgs: [] }
+            }
 
             var msgs = [] as MsgExecuteContractEncodeObject[]
             msgs.push({
@@ -65,7 +68,7 @@ const useSetUserRBClaims = () => {
 
     const msgs = queryData?.msgs ?? []
 
-    console.log("set RB point claim msgs", msgs)
+    // console.log("set RB point claim msgs", msgs)
 
 
     const onInitialSuccess = () => {

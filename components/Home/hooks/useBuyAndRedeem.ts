@@ -107,7 +107,7 @@ const useBuyAndRedeem = () => {
         else return queryData
     }, [queryData])
 
-    console.log("redeem msg:", msgs)
+    // console.log("redeem msg:", msgs)
 
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['positions'] })

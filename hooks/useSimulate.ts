@@ -13,7 +13,7 @@ type Simulate = {
   chain_id: string
 }
 
-const useSimulate = ({ msgs, amount, enabled = true, queryKey = [], chain_id }: Simulate) => {
+const useSimulate = ({ msgs, amount, enabled = false, queryKey = [], chain_id }: Simulate) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet(chain_id)
 

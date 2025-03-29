@@ -497,8 +497,8 @@ export const useVaultInfo = () => {
         queryKey: ['useVaultInfo', apr, prices, basket, client, router.pathname],
         queryFn: async () => {
 
-            if (router.pathname != "/manic") return
             console.log("vault info path", router.pathname)
+            if (router.pathname != "/manic") return
             if (!client || !basket || !prices) return
             //Query Vault's CDP 
             const vaultCDPs = await client.getBasketPositions({

@@ -18,6 +18,7 @@ function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnable
 
     useMemo(() => {
         if (claimsDisabled && liquidateDisabled) {
+            console.log("both disabled")
             setEnabled(false)
         }
     }, [claimsDisabled, liquidateDisabled])

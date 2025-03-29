@@ -68,7 +68,7 @@ const useMint = () => {
     msgs,
     queryKey: ['mint_msg_sim', (msgs?.toString() ?? "0")],
     onSuccess,
-    enabled: !!msgs,
+    enabled: false
   })
 }
 

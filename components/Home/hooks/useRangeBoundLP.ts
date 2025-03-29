@@ -196,7 +196,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
       msgs,
       queryKey: ['home_page_bounded', (msgs?.toString() ?? "0")],
       onSuccess: onInitialSuccess,
-      enabled: !!msgs,
+      enabled: false
     })
   }
 }

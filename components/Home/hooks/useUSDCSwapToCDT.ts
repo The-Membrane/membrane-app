@@ -93,7 +93,7 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
       msgs,
       queryKey: ['home_page_swap_sim', (msgs?.toString() ?? "0")],
       onSuccess: onInitialSuccess,
-      enabled: !!msgs,
+      enabled: false
     }), tokenOutMinAmount
   }
 }

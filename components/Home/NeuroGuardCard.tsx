@@ -36,6 +36,8 @@ import { TxButton } from "../TxButton"
 import { CustomTab } from "../Mint/AssetWithInput"
 import { set } from "react-hook-form"
 import useBoundedLP from "./hooks/useRangeBoundLP"
+import ConfirmModal from "../ConfirmModal"
+import { HomeSummary } from "./HomeSummary"
 
 // Extracted RBLPDepositEntry component
 const RBLPDepositEntry = React.memo(({
@@ -697,10 +699,10 @@ const AcquireCDTEntry = React.memo(({
             </Stack>
           </CardBody>
           <CardFooter as={Stack} justifyContent="end" borderTop="1px solid" borderColor="whiteAlpha.200" pt="5" gap="5">
-            <Text variant="title" textAlign="center" fontSize="sm" letterSpacing="1px" width="100%">
+            {/* <Text variant="title" textAlign="center" fontSize="sm" letterSpacing="1px" width="100%">
               {parseError(num(quickActionState?.usdcSwapToCDT).isGreaterThan(0) && txType === "deposit" && swap.simulate.isError ? swap.simulate.error?.message ?? "" : "")}
               {parseError((quickActionState?.rangeBoundLPwithdrawal > 0 || quickActionState?.rangeBoundLPdeposit > 0) && txType != "deposit" && rblp.simulate.isError ? rblp.simulate.error?.message ?? "" : "")}
-            </Text>
+            </Text> */}
             <HStack justify="space-between" width="100%">
               <Stack align="center">
                 <Text fontSize="xl" fontWeight="bold">{yieldValue}%</Text>
@@ -715,7 +717,17 @@ const AcquireCDTEntry = React.memo(({
                 <Text fontSize="sm" color="white">Est. Per Year</Text>
               </Stack>
             </HStack>
-            <TxButton
+
+            <HStack mt="0" gap="0">
+              <ConfirmModal
+                label={txType === "deposit" ? "Buy & Deposit Now" : "Withdraw & Lose Yield"}
+                action={txType === "deposit" ? swap : rblp}
+                isDisabled={txType === "deposit" ? isSwapDisabled : isRBLPDisabled}
+              >
+                <HomeSummary tokenOutMinAmount={tokenOutMinAmount} />
+              </ConfirmModal>
+            </HStack>
+            {/* <TxButton
               w="100%"
               isLoading={isLoading}
               isDisabled={txType === "deposit" ? isSwapDisabled : isRBLPDisabled}
@@ -723,8 +735,8 @@ const AcquireCDTEntry = React.memo(({
               toggleConnectLabel={false}
               style={{ alignSelf: "center" }}
             >
-              {txType === "deposit" ? "Buy & Deposit Now" : "Withdraw & Lose Yield"}
-            </TxButton>
+              
+            </TxButton> */}
           </CardFooter>
         </Card>
       </HStack >

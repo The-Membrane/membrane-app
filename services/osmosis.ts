@@ -82,9 +82,22 @@ const OsmosisClient = async (rpcUrl: string) => {
     return osmosisClient
 }
 
+
+export const useOsmosisClient = () => {
+    const { appState } = useAppState()
+
+    return useQuery({
+        queryKey: ['osmosis_client', appState.rpcUrl],
+        queryFn: async () => {
+            return OsmosisClient(appState.rpcUrl)
+        },
+        staleTime: 60000, // 60 seconds (adjust based on your needs)
+    })
+};
+
+
 //Pool Liquidity
-export const getPoolLiquidity = async (poolId: string, rpcUrl: string) => {
-    const osmosisClient = await OsmosisClient(rpcUrl)
+export const getPoolLiquidity = async (poolId: string, osmosisClient: any) => {
     const liquidity = await osmosisClient.osmosis.poolmanager.v1beta1.totalPoolLiquidity({
         poolId: BigInt(poolId),
     })
@@ -92,8 +105,7 @@ export const getPoolLiquidity = async (poolId: string, rpcUrl: string) => {
 }
 
 //Spread Rewards, not incentives
-const getCLRewards = async (positionId: string, rpcUrl: string) => {
-    const osmosisClient = await OsmosisClient(rpcUrl)
+const getCLRewards = async (positionId: string, osmosisClient: any) => {
     const rewards = await osmosisClient.osmosis.concentratedliquidity.v1beta1.claimableSpreadRewards({
         positionId: BigInt(positionId),
     })
@@ -101,8 +113,7 @@ const getCLRewards = async (positionId: string, rpcUrl: string) => {
 }
 
 //Position assets
-const getCLPosition = async (positionId: string, rpcUrl: string) => {
-    const osmosisClient = await OsmosisClient(rpcUrl)
+const getCLPosition = async (positionId: string, osmosisClient: any) => {
     const position = await osmosisClient.osmosis.concentratedliquidity.v1beta1.positionById({
         positionId: BigInt(positionId),
     })
@@ -111,19 +122,20 @@ const getCLPosition = async (positionId: string, rpcUrl: string) => {
 
 //Get the RangeBound positions
 export const getCLPositionsForVault = () => {
-    const { appState } = useAppState()
     const { data: config } = useBoundedConfig()
     const { data: prices } = useOraclePrice()
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
     const usdcPrice = parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0")
+    const { data: client } = useOsmosisClient()
+
 
     return useQuery({
-        queryKey: ['getCLPositionsForVault', config, prices, cdtPrice, usdcPrice],
+        queryKey: ['getCLPositionsForVault', config, prices, cdtPrice, usdcPrice, client],
         queryFn: async () => {
             if (!config) return;
             const positions = { ceiling: config.range_position_ids.ceiling, floor: config.range_position_ids.floor }
-            const ceilingPosition = await getCLPosition(positions.ceiling.toString(), appState.rpcUrl)
-            const floorPosition = positions.floor === 0 ? undefined : await getCLPosition(positions.floor.toString(), appState.rpcUrl)
+            const ceilingPosition = await getCLPosition(positions.ceiling.toString(), client)
+            const floorPosition = positions.floor === 0 ? undefined : await getCLPosition(positions.floor.toString(), client)
 
             // console.log("ceiling", ceilingPosition, "floor", floorPosition, "prices", cdtPrice, usdcPrice)
 
@@ -160,29 +172,29 @@ export const getCLPositionsForVault = () => {
 }
 
 export const useRBLPRewards = () => {
-    const { appState } = useAppState()
+    const { data: client } = useOsmosisClient()
 
     return useQuery({
-        queryKey: ['RBLPRewards'],
+        queryKey: ['RBLPRewards', client],
         queryFn: async () => {
 
-            const ceiling = getCLRewards("11541781", appState.rpcUrl)
-            const floor = getCLRewards("11541780", appState.rpcUrl)
+            const ceiling = getCLRewards("11541781", client)
+            const floor = getCLRewards("11541780", client)
             return { ceiling, floor }
         },
     })
 }
 
 
-export const getLPRewards = () => {
+export const useLPRewards = () => {
 
-    const { appState } = useAppState()
+    const { data: client } = useOsmosisClient()
 
     return useQueries({
         queries: clPositions.map((position) => ({
-            queryKey: ['cl_position_rewards', position.id],
+            queryKey: ['cl_position_rewards', position.id, client],
             queryFn: async () => {
-                return getCLRewards(position.id, appState.rpcUrl)
+                return getCLRewards(position.id, client)
             },
             staleTime: 60000, // 60 seconds (adjust based on your needs)
         })) || [],
@@ -190,7 +202,7 @@ export const getLPRewards = () => {
 }
 
 export const getBestCLRange = () => {
-    const clRewardsData = getLPRewards()
+    const clRewardsData = useLPRewards()
 
     return useQuery({
         queryKey: ['getBestCLRange', clRewardsData],

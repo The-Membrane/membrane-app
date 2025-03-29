@@ -18,7 +18,7 @@ const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
         return colors.sliderFilledTrack;
     };
 
-    // console.log(ratio)
+    // // console.log(ratio)
 
 
     return (
@@ -78,7 +78,7 @@ const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
 //         let totalValue = 0;
 
 //         for (const asset of liquidity.liquidity) {
-//             // console.log("asset", poolId, asset)
+//             // // console.log("asset", poolId, asset)
 //             const assetPrice = priceMap.get(asset.denom) || 0;
 //             const assetDecimal = assetDecimals.find(({ denom }) => denom === asset.denom)?.decimal || 6;
 //             const assetAmount = shiftDigits(asset.amount, -assetDecimal);
@@ -107,16 +107,16 @@ export const SupplyCaps = () => {
     // const usedDenoms = usedAssets.map((asset) => asset.native_token.denom)
     // const assetObjects = getAssetsByDenom(usedDenoms)
     // const assetDecimals = assetObjects.map((asset) => ({ decimal: asset.decimal || 6, denom: asset.base }))
-    // // console.log("usedAssets", usedAssets)
+    // // // console.log("usedAssets", usedAssets)
     // const { data: assetInfos } = useOracleAssetInfos(usedAssets)
-    // // console.log("assetInfos", assetInfos)
+    // // // console.log("assetInfos", assetInfos)
     // //Get pool IDS for each asset
     // const poolIDsPerAsset = useMemo(() => {
     //     if (!assetInfos) return []
     //     return transformAssets(assetInfos)
     // }, [assetInfos])
     // const poolIDs = poolIDsPerAsset.flatMap(({ pool_IDs }) => pool_IDs.toString())
-    // // console.log("poolIDsPerAsset", poolIDsPerAsset)
+    // // // console.log("poolIDsPerAsset", poolIDsPerAsset)
 
     // //Query pool liquidity for each pool
     // const poolData = usePoolLiquidity(poolIDs)
@@ -125,7 +125,7 @@ export const SupplyCaps = () => {
     //         .map(query => query.data) // Extract only the `data` property
     //         .filter((data): data is PoolLiquidityData => data !== undefined); // Remove undefined results
     // }, [poolData]);
-    // // console.log("poolLiquidityData", poolLiquidityData)
+    // // // console.log("poolLiquidityData", poolLiquidityData)
 
 
     // //Create a map of pool ID to liquidity value
@@ -133,7 +133,7 @@ export const SupplyCaps = () => {
     //     if (!prices || !poolLiquidityData) return {}
     //     return calculateTotalPoolValues(poolLiquidityData, prices, assetDecimals)
     // }, [prices, poolLiquidityData, assetDecimals])
-    // // console.log("totalPoolValues", totalPoolValues)
+    // // // console.log("totalPoolValues", totalPoolValues)
 
     // //Calculate the value of usedAssets in USD using basket.collateral_supply_caps.current_supply * price
     // const assetValues = useMemo(() => {
@@ -145,7 +145,7 @@ export const SupplyCaps = () => {
     //         return { name: cap.asset_info.native_token.denom, value: assetAmount.times(assetPrice).toNumber() }
     //     })
     // }, [basket, prices])
-    // // console.log("assetValues", assetValues)
+    // // // console.log("assetValues", assetValues)
 
     // //Group pool values by asset
     // const poolValuesByAsset = useMemo(() => {
@@ -156,7 +156,7 @@ export const SupplyCaps = () => {
     //     })
     // }, [poolIDsPerAsset, totalPoolValues])
 
-    // console.log("poolValuesByAsset", poolValuesByAsset)
+    // // console.log("poolValuesByAsset", poolValuesByAsset)
 
     //Create health object for each asset using the formula: (assetValue / poolValuesByAsset) * 100
     const capData = useMemo(() => {
@@ -167,7 +167,7 @@ export const SupplyCaps = () => {
             const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal ?? 6)).toNumber()
             const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
-            console.log(assetInfo?.symbol, amount, assetPrice)
+            // console.log(assetInfo?.symbol, amount, assetPrice)
 
             const usdValue = num(amount).times(assetPrice).toNumber()
             return {
@@ -189,7 +189,7 @@ export const SupplyCaps = () => {
 
     }, [basket?.collateral_supply_caps, prices])
 
-    console.log("capData", capData)
+    // // console.log("capData", capData)
 
     return (
         <Stack width="59%">

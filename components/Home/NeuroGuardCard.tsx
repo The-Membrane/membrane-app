@@ -122,11 +122,11 @@ const NeuroGuardOpenEntry = React.memo(({
 
 
   const cost = basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.base)?.interestRate || 0
-  // console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
+  // // console.log("yieldValue test", RBYield, asset.maxBorrowLTV, cost)
   const ltv = asset.symbol === "USDC" ? 0.89 : 0.8
   const yieldValue = num(RBYield).minus(cost).times(asset?.maxBorrowLTV ?? 0).times(ltv).times(100).toFixed(1)
-  console.log(RBYield)
-  // console.log("INFiNITY LOGS", (minAmount - asset?.balance).toFixed(2).toString() === "Infinity", (minAmount - asset?.balance) === Infinity)
+  // console.log(RBYield)
+  // // console.log("INFiNITY LOGS", (minAmount - asset?.balance).toFixed(2).toString() === "Infinity", (minAmount - asset?.balance) === Infinity)
 
   return (
     <>
@@ -204,17 +204,17 @@ const NeuroGuardExistingEntry = React.memo(({
   //find the asset in the assets array
   //@ts-ignore
   const asset = guardedPosition.symbol === "N/A" ? undefined : neuroStateAssets.find((asset) => asset.base === guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
-  // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
+  // // console.log("FOUND IT", asset, neuroState.assets, guardedPosition.position.collateral_assets[0].asset.info.native_token.denom)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
   const [initialDepositAmount, setInitialDepositAmount] = useState(0);
   useEffect(() => {
     const cookieKey = "neuroGuard " + guardedPosition.position.position_id;
     let cookie = getCookie(cookieKey);
-    console.log("cookie", cookie)
+    // console.log("cookie", cookie)
 
     if (cookie == null && appState.setCookie) {
-      console.log("setting NG cookie", cookie)
+      // console.log("setting NG cookie", cookie)
       setCookie(cookieKey, guardedPosition.amount.toString(), 3650);
       cookie = guardedPosition.amount.toString();
     }
@@ -222,7 +222,7 @@ const NeuroGuardExistingEntry = React.memo(({
     setInitialDepositAmount(Number(cookie || 0));
   }, [appState.setCookie, guardedPosition.amount]);
 
-  // console.log("initialDepositAmount", initialDepositAmount)
+  // // console.log("initialDepositAmount", initialDepositAmount)
 
 
   const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure()
@@ -230,7 +230,7 @@ const NeuroGuardExistingEntry = React.memo(({
 
   {/* @ts-ignore */ }
   const isDisabled = (asset?.balance ?? 0) === 0 || guardedPosition.symbol === "N/A"
-  // console.log("isDisabled", isDisabled, asset?.balance, asset)
+  // // console.log("isDisabled", isDisabled, asset?.balance, asset)
   const yieldValue = num(RBYield).minus(guardedPosition.cost).times(guardedPosition.LTV).times(100).toFixed(1)
 
   return (
@@ -324,17 +324,17 @@ const RBLPExistingEntry = React.memo(({
   //find the asset in the assets array
   //@ts-ignore
   const asset = neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) || { logo: "/images/cdt.svg", symbol: "CDT", balance: 0 }
-  // console.log("cdtAsset", asset, neuroState.assets)
+  // // console.log("cdtAsset", asset, neuroState.assets)
 
   //We need the cookie to be set even if these render before the user has checked the cookie box
   const [initialDepositAmount, setInitialDepositAmount] = useState(0);
   useEffect(() => {
     const cookieKey = "rblp " + address;
     let cookie = getCookie(cookieKey);
-    console.log("rblp cookie", cookie)
+    // console.log("rblp cookie", cookie)
 
     if (cookie == null && appState.setCookie) {
-      console.log("setting RBLP cookie", cookie)
+      // console.log("setting RBLP cookie", cookie)
       setCookie(cookieKey, rblpDeposit.toString(), 3650);
       cookie = rblpDeposit.toString();
     }
@@ -342,7 +342,7 @@ const RBLPExistingEntry = React.memo(({
     setInitialDepositAmount(Number(cookie || 0));
   }, [appState.setCookie, rblpDeposit]);
 
-  // console.log("initialDepositAmount", initialDepositAmount)
+  // // console.log("initialDepositAmount", initialDepositAmount)
 
 
   const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure()
@@ -351,7 +351,7 @@ const RBLPExistingEntry = React.memo(({
 
   {/* @ts-ignore */ }
   const isDisabled = (asset?.symbol === "N/A") || false
-  // console.log("isDisabled", isDisabled, asset?.balance, asset)
+  // // console.log("isDisabled", isDisabled, asset?.balance, asset)
   const yieldValue = num(RBYield).times(100).toFixed(1)
 
 
@@ -538,7 +538,7 @@ const AcquireCDTEntry = React.memo(({
   const yieldValue = num(RBYield).times(100).toFixed(1)
   // const usdcMintAPR = num(RBYield).minus(usdcCost).times(0.89).times(100).toFixed(1)
   // const isMintDisabled = usdcBalance < 24
-  // console.log("log usdc balance", shiftDigits(usdcBalance, -6).toNumber())
+  // // console.log("log usdc balance", shiftDigits(usdcBalance, -6).toNumber())
 
 
 
@@ -549,7 +549,7 @@ const AcquireCDTEntry = React.memo(({
   // const isLoading = swap?.simulate.isLoading || swap?.tx.isPending || rblp?.simulate.isLoading || rblp?.tx.isPending
   const isSwapDisabled = usdcBalance === 0
   const isRBLPDisabled = inputValue === 0
-  console.log("isDisabled", usdcBalance === 0, swap?.simulate.error?.message, !swap?.simulate.data, rblp?.simulate.error?.message, !rblp?.simulate.data)
+  // console.log("isDisabled", usdcBalance === 0, swap?.simulate.error?.message, !swap?.simulate.data, rblp?.simulate.error?.message, !rblp?.simulate.data)
   useEffect(() => {
     setTxType("deposit")
   }, [address])
@@ -562,7 +562,7 @@ const AcquireCDTEntry = React.memo(({
   const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
 
-  console.log("maxDepositAmount", maxDepositAmount, "rb WithdrawAmount", quickActionState.rangeBoundLPwithdrawal, "maxAmount", maxAmount)
+  // console.log("maxDepositAmount", maxDepositAmount, "rb WithdrawAmount", quickActionState.rangeBoundLPwithdrawal, "maxAmount", maxAmount)
   const onMaxClick = () => {
     setInputValue(Number(maxAmount.toFixed(2)))
     if (txType === "deposit") {
@@ -788,14 +788,14 @@ function ToastButton({ isLoading, isDisabled, onClick }) {
 }
 
 const NeuroGuardCard = () => {
-  console.log("NG render")
+  // console.log("NG render")
 
   // const { data: clRewardList } = getBestCLRange()
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
-  // console.log("basketPositions", basketPositions)
+  // // console.log("basketPositions", basketPositions)
   const { data: basket } = useBasket()
-  // console.log("basketPositions", basketPositions)
+  // // console.log("basketPositions", basketPositions)
   const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()
   const { setNeuroState } = useNeuroState()
@@ -828,7 +828,7 @@ const NeuroGuardCard = () => {
   //Toast if a msg is ever ready to rock
   useEffect(() => {
 
-    console.log("isDisabled polish", isDisabled, isLoading)
+    // console.log("isDisabled polish", isDisabled, isLoading)
 
     if (!hasShownToast && !isDisabled && !isLoading) {
       toaster.message({
@@ -864,11 +864,11 @@ const NeuroGuardCard = () => {
 
   const calculatedRBYield = useMemo(() => {
 
-    console.log(" calculatedRBYield")
+    // console.log(" calculatedRBYield")
     if (!basket || !interest || !TVL) return "0";
     return simpleBoundedAPRCalc(shiftDigits(basket.credit_asset.amount, -6).toNumber(), interest, TVL, shiftDigits(vaultInfo?.debtAmount, 6).toNumber() ?? 0);
   }, [basket, interest, TVL, vaultInfo?.debtAmount]);
-  // console.log(calculatedRBYield, basket, interest, TVL)
+  // // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////
   const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
@@ -884,7 +884,7 @@ const NeuroGuardCard = () => {
 
   const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price.price || "1"
   const usdcPrice = useMemo(() => {
-    console.log(" usdcPrice")
+    // console.log(" usdcPrice")
     return prices?.find((price) => price.denom === denoms.USDC[0])?.price ?? "1"
   }, [prices])
 
@@ -950,7 +950,7 @@ const NeuroGuardCard = () => {
   // Update state in a separate effect
   useMemo(() => {
 
-    console.log(" sortedAssets")
+    // console.log(" sortedAssets")
     if (sortedAssets && sortedAssets.length > 0) {
       setNeuroState({
         //@ts-ignore
@@ -969,10 +969,10 @@ const NeuroGuardCard = () => {
 
   // Memoize existing guards calculation
   const existingGuards = useMemo(() => {
-    console.log(" existingGuards")
-    // console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
+    // console.log(" existingGuards")
+    // // console.log("userIntents close", userIntents, basket, prices, basketPositions, assets)
     if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents && basket && prices && basketPositions && assets && basketAssets) {
-      // console.log(" in guards")
+      // // console.log(" in guards")
       //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
       // const neuroGuardIntents = userIntents[0].intent.intents.purchase_intents.filter((intent) => {
       //   return intent.position_id !== undefined
@@ -980,10 +980,10 @@ const NeuroGuardCard = () => {
 
       //If there are neuroGuardIntents, create an object that saves the ID, the compounding asset & the LTV
       return neuroGuardIntents.map((intent) => {
-        // console.log("big checkers", neuroGuardIntents, intent, basketPositions)
+        // // console.log("big checkers", neuroGuardIntents, intent, basketPositions)
         let position = basketPositions[0].positions.find((position) => position.position_id === (intent.position_id ?? 0).toString())
-        // console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
-        // console.log("position", position)
+        // // console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
+        // // console.log("position", position)
         if (position === undefined) return
         // if (position.credit_amount === "0") return
         let asset = position.collateral_assets[0] //@ts-ignore
@@ -996,7 +996,7 @@ const NeuroGuardCard = () => {
         let LTV = creditValue.dividedBy(assetValue).toString()
 
 
-        // console.log("basketAssets", basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate , asset.asset.info.native_token.denom, basketAssets)
+        // // console.log("basketAssets", basketAssets.find((basketAsset) => basketAsset?.asset?.base === asset.asset.info.native_token.denom)?.interestRate , asset.asset.info.native_token.denom, basketAssets)
         return {
           position: position,
           amount: shiftDigits(asset.asset.amount, -(assetDecimals)),
@@ -1011,7 +1011,7 @@ const NeuroGuardCard = () => {
     }
     else return []
   }, [basketPositions, userIntents, assets, prices, basket, underlyingCDT, basketAssets])
-  // console.log("existingGuards", existingGuards)
+  // // console.log("existingGuards", existingGuards)
 
 
 
@@ -1040,7 +1040,7 @@ const NeuroGuardCard = () => {
       }
     ]
   }, [basketPositions, neuroGuardIntents])
-  // console.log("nonNeuroGuardPositions", nonNeuroGuardPositions, basketPositions, neuroGuardIntents)
+  // // console.log("nonNeuroGuardPositions", nonNeuroGuardPositions, basketPositions, neuroGuardIntents)
 
 
   // Separate complex sections into components
@@ -1056,7 +1056,7 @@ const NeuroGuardCard = () => {
         && (asset.symbol != "CDT" || asset.symbol != "marsUSDC" || asset.symbol != "OSMO/USDC.axl LP" || asset.symbol != "ATOM/OSMO LP" || asset.symbol != "USDC")
       );
 
-    console.log("usableAssets", usableAssets)
+    // console.log("usableAssets", usableAssets)
 
 
     return (
@@ -1122,7 +1122,7 @@ const NeuroGuardCard = () => {
               if (!asset) {
                 return null;
               }
-              // console.log("wallet asset symbol", asset.symbol)
+              // // console.log("wallet asset symbol", asset.symbol)
               return (
                 <MemoizedNeuroGuardOpenEntry
                   key={asset.symbol}

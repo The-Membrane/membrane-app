@@ -49,7 +49,7 @@ export const useUserPoints = () => {
   const { data: points } = useAllUserPoints()
   //sort points by total_points
   points?.sort((a, b) => parseFloat(b.stats.total_points) - parseFloat(a.stats.total_points))
-  console.log("all points", points)
+  // console.log("all points", points)
 
   return useQuery({
     queryKey: ['one users points', address, points],

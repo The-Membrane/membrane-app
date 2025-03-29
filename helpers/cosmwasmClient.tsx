@@ -20,6 +20,7 @@ export const useCosmWasmClient = () => {
 
 //Osmosis
 export const getCosmWasmClient = (rpcUrl: string) => {
+  console.log('getCosmWasmClient')
   return CosmWasmClient.connect(rpcUrl)
 }
 

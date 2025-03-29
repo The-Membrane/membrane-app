@@ -283,20 +283,20 @@ export const useEarnCDTRealizedAPR = () => {
 
 
 export const useBoundedCDTRealizedAPR = () => {
-    const { data: earnClient } = useEarnClient()
+    const { data: cosmwasmClient } = useCosmWasmClient()
     const router = useRouter()
 
     return useQuery({
-        queryKey: ['useBoundedCDTRealizedAPR', earnClient, router.pathname],
+        queryKey: ['useBoundedCDTRealizedAPR', cosmwasmClient, router.pathname],
         queryFn: async () => {
-            console.log("eralized apy", !earnClient, router.pathname)
+            console.log("eralized apy", !cosmwasmClient, router.pathname)
             if (router.pathname != "/") return
 
-            if (!earnClient) return
+            if (!cosmwasmClient) return
 
-            const claimTracker = await getBoundedCDTRealizedAPR(earnClient)
-            const currentClaim = await getBoundedUnderlyingCDT("1000000000000", earnClient)
-            const blockTime = await earnClient.client.getBlock().then(block => Date.parse(block.header.time) / 1000)
+            const claimTracker = await getBoundedCDTRealizedAPR(cosmwasmClient)
+            const currentClaim = await getBoundedUnderlyingCDT("1000000000000", cosmwasmClient)
+            const blockTime = await cosmwasmClient.getBlock().then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(),

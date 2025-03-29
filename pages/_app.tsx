@@ -80,7 +80,7 @@ const App = ({ Component, pageProps }: AppProps) => {
           sessionOptions={{
             duration: 1000 * 60 * 60 * 24 * 7, // 7 days
           }}
-          allowedIframeParentOrigins={['http://localhost:*', 'https://*.abstract.money']}
+          // allowedIframeParentOrigins={['http://localhost:*', 'https://*.abstract.money']}
           chains={chains}
           assetLists={assets}
           wallets={[

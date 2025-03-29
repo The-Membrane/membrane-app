@@ -12,6 +12,8 @@ function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnable
 
     const claimsDisabled = claims_summary.length === 0
     const liquidateDisabled = liq_summ.length === 0
+    const claimsLoading = (claim?.simulate.isLoading || claim?.tx.isPending)
+    const liquidateLoading = (liquidate?.simulate.isLoading || liquidate?.tx.isPending)
 
 
     console.log('uni buttns disabled', liquidateDisabled, claimsDisabled)
@@ -20,9 +22,9 @@ function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnable
         if (claimsDisabled && liquidateDisabled && enabled) {
             console.log("both disabled")
             setTimeout(() => {
-                if (claimsDisabled && liquidateDisabled && enabled)
+                if (claimsDisabled && liquidateDisabled && enabled && !claimsLoading && !liquidateLoading)
                     setEnabled(false)
-            }, 5000)
+            }, 7000)
         }
     }, [claimsDisabled, liquidateDisabled, enabled])
 

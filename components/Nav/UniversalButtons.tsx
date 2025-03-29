@@ -13,6 +13,9 @@ function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnable
     const claimsDisabled = claims_summary.length === 0 || !enabled
     const liquidateDisabled = liq_summ.length === 0 || !enabled
 
+
+    console.log('uni buttns disabled', liquidateDisabled, claimsDisabled)
+
     useMemo(() => {
         if (claimsDisabled && liquidateDisabled) {
             setEnabled(false)

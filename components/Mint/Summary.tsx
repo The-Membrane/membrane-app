@@ -73,7 +73,7 @@ export const Summary = () => {
   }
   const { summary } = mintState
   const cdt = useAssetBySymbol('CDT')
-  console.log("Mint Summary", mintState.repay ?? 0, debtAmount)
+  // console.log("Mint Summary", mintState.repay ?? 0, debtAmount)
 
   if (!mintState.isTakeAction) return null
 
@@ -81,11 +81,12 @@ export const Summary = () => {
     <Stack h="max-content" overflow="auto" w="full">
       {summary?.map((asset) => {
         const badge = num(asset.amount).isGreaterThan(0) ? 'Deposit' : 'Withdraw'
+        console.log("Mint Summary", asset.amount, badge)
         return (
           <SummaryItem
             key={asset?.label + asset?.amount}
             label={asset?.label}
-            amount={asset?.usdValue}
+            amount={asset?.amountValue}
             logo={asset?.logo}
             logos={asset?.logos}
             isLP={asset?.isLP}

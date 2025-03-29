@@ -6,6 +6,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import contracts from '@/config/contracts.json'
 import { shiftDigits } from '@/helpers/math';
 import { rpcUrl } from '@/config/defaults';
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient';
 
 type Data = {
   apr?: number,
@@ -18,12 +19,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       res.setHeader('Allow', ['GET']);
       return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
-    const [basket, interest, vaultCDT, basketPositions, client] = await Promise.all([
-      getBasket(rpcUrl),
-      getCollateralInterest(rpcUrl),
-      getBoundedTVL(rpcUrl),
-      getBasketPositions(rpcUrl),
-      cdpClient(rpcUrl),
+    const client = await cdpClient(rpcUrl);
+    const cosmWasmClient = await getCosmWasmClient(rpcUrl);
+
+    const [basket, interest, vaultCDT, basketPositions] = await Promise.all([
+      getBasket(client),
+      getCollateralInterest(client),
+      getBoundedTVL(cosmWasmClient),
+      getBasketPositions(client),
     ]);
 
     if (!basket || !interest || !vaultCDT || !client || !basketPositions) {

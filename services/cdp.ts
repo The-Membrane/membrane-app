@@ -8,25 +8,39 @@ import {
   RedeemabilityResponse,
 } from '@/contracts/codegen/positions/Positions.types'
 import { Asset, getAssetByDenom } from '@/helpers/chain'
-import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
+import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { num } from '@/helpers/num'
 import { stableSymbols } from '@/config/defaults'
+import { useQuery } from '@tanstack/react-query'
+
+export const useCDPClient = () => {
+  const { data: cosmWasmClient } = useCosmWasmClient()
+
+  return useQuery({
+    queryKey: ['cdp_client', cosmWasmClient],
+    queryFn: async () => {
+      if (!cosmWasmClient) return null
+      return new PositionsQueryClient(cosmWasmClient, contracts.cdp)
+    },
+    // enabled: true,
+    // You might want to add staleTime to prevent unnecessary refetches
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
 
 export const cdpClient = async (rpcUrl: string) => {
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new PositionsQueryClient(cosmWasmClient, contracts.cdp)
 }
 
-export const getBasket = async (rpcUrl: string) => {
-  const client = await cdpClient(rpcUrl)
+export const getBasket = async (client: any) => {
   return client.getBasket()
 }
 
-export const getUserRedemptionInfo = async (address: string, rpcUrl: string) => {
-  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
-  console.log("CosmWasm Client:", cosmWasmClient);
+export const getUserRedemptionInfo = async (address: string, cosmWasmClient: any) => {
 
   const response =
     cosmWasmClient.queryContractSmart(contracts.cdp, {
@@ -35,7 +49,6 @@ export const getUserRedemptionInfo = async (address: string, rpcUrl: string) => 
       }
     }) as Promise<RedeemabilityResponse>
 
-  console.log("Query Response:", response);
 
   return response
 
@@ -98,32 +111,27 @@ export const getBasketAssets = (
   }) as BasketAsset[]
 }
 
-export const getCollateralInterest = async (rpcUrl: string) => {
-  const client = await cdpClient(rpcUrl)
+export const getCollateralInterest = async (client: any) => {
   return client.getCollateralInterest()
 }
 
-export const getCreditRate = async (rpcUrl: string) => {
-  const client = await cdpClient(rpcUrl)
+export const getCreditRate = async (client: any) => {
   return client.getCreditRate()
 }
 
-export const getUserPositions = async (address: Addr, rpcUrl: string) => {
-  const client = await cdpClient(rpcUrl)
+export const getUserPositions = async (address: Addr, client: any) => {
   return client.getBasketPositions({
     user: address,
   })
 }
 
-export const getUserDiscount = async (address: string, rpcUrl: string) => {
-  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
+export const getUserDiscount = async (address: string, cosmWasmClient: any) => {
   return cosmWasmClient.queryContractSmart(contracts.system_discounts, {
     user_discount: { user: address }
   }) as Promise<{ user: string, discount: string }>
 }
 
-export const getBasketPositions = async (rpcUrl: string) => {
-  const client = await cdpClient(rpcUrl)
+export const getBasketPositions = async (client: any) => {
   return client.getBasketPositions({
     limit: 1024,
   })

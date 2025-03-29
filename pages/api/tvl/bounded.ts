@@ -1,6 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+import { rpcUrl } from '@/config/defaults';
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient';
 import { num, shiftDigits } from '@/helpers/num';
-import { getBasket } from '@/services/cdp';
+import { cdpClient, getBasket } from '@/services/cdp';
 import { getBoundedTVL } from '@/services/earn';
 import { getOraclePrices } from '@/services/oracle';
 import type { NextApiRequest, NextApiResponse } from 'next'
@@ -18,17 +20,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
         }
 
+        const client = await cdpClient(rpcUrl);
+
 
         const [vaultCDT, basket] = await Promise.all([
-            getBoundedTVL(),
-            getBasket()
+            getBoundedTVL(rpcUrl),
+            getBasket(client)
         ]);
 
         if (!vaultCDT || !basket) {
             return res.status(500).json({ error: 'Failed to fetch required data.' });
         }
 
-        const prices = await getOraclePrices(basket)
+        const prices = await getOraclePrices(basket, rpcUrl)
 
         if (!prices) {
             return res.status(500).json({ error: 'Failed to fetch oracle prices.' });

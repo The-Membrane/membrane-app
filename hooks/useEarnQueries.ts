@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import contracts from '@/config/contracts.json'
-import { cdpClient, getUserDiscount } from "@/services/cdp"
-import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig, getBoundedIntents, getDepositTokenConversionforMarsUSDC, getMarsUSDCSupplyAPR } from "@/services/earn"
+import { cdpClient, getUserDiscount, useCDPClient } from "@/services/cdp"
+import { getUnderlyingUSDC, getUnderlyingCDT, getBoundedTVL, getBoundedUnderlyingCDT, getVaultAPRResponse, getEarnUSDCRealizedAPR, getEstimatedAnnualInterest, getEarnCDTRealizedAPR, getBoundedCDTRealizedAPR, getBoundedConfig, getBoundedIntents, getDepositTokenConversionforMarsUSDC, getMarsUSDCSupplyAPR, useEarnClient } from "@/services/earn"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { num, shiftDigits } from "@/helpers/num"
 import { useBasket, useBasketAssets, useBasketPositions, useCollateralInterest } from "@/hooks/useCDP"
@@ -13,14 +13,18 @@ import useWallet from "@/hooks/useWallet"
 import { mainnetAddrs } from "@/config/defaults"
 import { CollateralInterestResponse } from "@/contracts/codegen/positions/Positions.types"
 import useAppState from "@/persisted-state/useAppState"
+import { getCosmWasmClient, useCosmWasmClient } from "@/helpers/cosmwasmClient"
 
 export const useBoundedConfig = () => {
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
+
 
     return useQuery({
-        queryKey: ['use_Bounded_Config_plz_run'],
+        queryKey: ['use_Bounded_Config_plz_run', client],
         queryFn: async () => {
-            return getBoundedConfig(appState.rpcUrl)
+            if (!client) return
+
+            return getBoundedConfig(client)
         },
         staleTime: 1000 * 60 * 5,
     })
@@ -37,15 +41,17 @@ export const useBoundedConfig = () => {
 
 export const useUserBoundedIntents = () => {
     const { address } = useWallet()
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
 
     const result = useQuery({
-        queryKey: ['useUserBoundedIntents', address],
+        queryKey: ['useUserBoundedIntents', address, client],
         queryFn: async () => {
+            if (!client) return
+
             if (!address) return
 
             // If we need fresh data, fetch from API
-            return getBoundedIntents(appState.rpcUrl).then((intents) => {
+            return getBoundedIntents(client).then((intents) => {
                 return intents.filter((intent) => intent.user === address)
             })
         },
@@ -56,103 +62,122 @@ export const useUserBoundedIntents = () => {
 }
 
 export const useBoundedIntents = () => {
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
 
     return useQuery({
-        queryKey: ['useBoundedIntents'],
+        queryKey: ['useBoundedIntents', client],
         queryFn: async () => {
-            return getBoundedIntents(appState.rpcUrl)
+            if (!client) return
+
+            return getBoundedIntents(client)
         },
         staleTime: 1000 * 60 * 5,
     })
 }
 
 export const useBoundedTVL = () => {
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
 
     return useQuery({
-        queryKey: ['useBoundedTVL'],
+        queryKey: ['useBoundedTVL', client],
         queryFn: async () => {
-            return getBoundedTVL(appState.rpcUrl)
+            if (!client) return
+
+            return getBoundedTVL(client)
         },
         staleTime: 1000 * 60 * 5,
     })
 }
 
 export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
-    const { appState } = useAppState()
+
+    const { data: client } = useEarnClient()
 
     return useQuery({
-        queryKey: ['useUSDCVaultTokenUnderlying', vtAmount],
+        queryKey: ['useUSDCVaultTokenUnderlying', vtAmount, client],
         queryFn: async () => {
-            return getUnderlyingUSDC(vtAmount, appState.rpcUrl)
+            if (!client) return
+
+            return getUnderlyingUSDC(vtAmount, client)
         },
     })
 }
 export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
 
     return useQuery({
-        queryKey: ['useCDTVaultTokenUnderlying', vtAmount],
+        queryKey: ['useCDTVaultTokenUnderlying', vtAmount, client],
         queryFn: async () => {
-            return getUnderlyingCDT(vtAmount, appState.rpcUrl)
+            if (!client) return
+
+            return getUnderlyingCDT(vtAmount, client)
         },
     })
 }
 
 export const useDepositTokenConversionforMarsUSDC = (depositAmount: string) => {
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
 
     return useQuery({
-        queryKey: ['useDepositTokenConversionforMarsUSDC', depositAmount],
+        queryKey: ['useDepositTokenConversionforMarsUSDC', depositAmount, client],
         queryFn: async () => {
-            return getDepositTokenConversionforMarsUSDC(depositAmount, appState.rpcUrl)
+            if (!client) return
+
+            return getDepositTokenConversionforMarsUSDC(depositAmount, client)
         },
     })
 }
 
 export const useBoundedCDTVaultTokenUnderlying = (vtAmount: string) => {
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
 
     return useQuery({
-        queryKey: ['useBoundedCDTVaultTokenUnderlying', vtAmount],
+        queryKey: ['useBoundedCDTVaultTokenUnderlying', vtAmount, client],
         queryFn: async () => {
-            return getBoundedUnderlyingCDT(vtAmount, appState.rpcUrl)
+            if (!client) return
+
+            return getBoundedUnderlyingCDT(vtAmount, client)
         },
     })
 }
 
 export const useEarnUSDCEstimatedAPR = () => {
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
 
     return useQuery({
-        queryKey: ['useEarnUSDCEstimatedAPR'],
+        queryKey: ['useEarnUSDCEstimatedAPR', client],
         queryFn: async () => {
-            return getVaultAPRResponse(appState.rpcUrl)
+            if (!client) return
+
+            return getVaultAPRResponse(client)
         },
     })
 }
 
 export const useMarsUSDCSupplyAPR = () => {
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
 
     return useQuery({
-        queryKey: ['useMarsUSDCSupplyAPR'],
+        queryKey: ['useMarsUSDCSupplyAPR', client],
         queryFn: async () => {
-            return (await getMarsUSDCSupplyAPR(appState.rpcUrl))?.liquidity_rate ?? 0
+            if (!client) return
+
+            return (await getMarsUSDCSupplyAPR(client))?.liquidity_rate ?? 0
         },
     })
 }
 
 export const useEarnUSDCRealizedAPR = () => {
-    const { appState } = useAppState()
+    const { data: earnClient } = useEarnClient()
 
     return useQuery({
-        queryKey: ['useEarnUSDCRealizedAPR'],
+        queryKey: ['useEarnUSDCRealizedAPR', earnClient],
         queryFn: async () => {
-            const claimTracker = await getEarnUSDCRealizedAPR(appState.rpcUrl)
-            const currentClaim = await getUnderlyingUSDC("1000000000000", appState.rpcUrl)
-            const blockTime = await cdpClient(appState.rpcUrl).then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
+            if (!earnClient) return
+
+            const claimTracker = await getEarnUSDCRealizedAPR(earnClient)
+            const currentClaim = await getUnderlyingUSDC("1000000000000", earnClient)
+            const blockTime = await earnClient.client.getBlock().then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).minus(40237).toString(), //subtracting gains from the exit bug
@@ -186,14 +211,16 @@ export const useEarnUSDCRealizedAPR = () => {
 }
 
 export const useEarnCDTRealizedAPR = () => {
-    const { appState } = useAppState()
+    const { data: earnClient } = useEarnClient()
 
     return useQuery({
-        queryKey: ['useCDTUSDCRealizedAPR'],
+        queryKey: ['useCDTUSDCRealizedAPR', earnClient],
         queryFn: async () => {
-            const claimTracker = await getEarnCDTRealizedAPR(appState.rpcUrl)
-            const currentClaim = await getUnderlyingCDT("1000000000000", appState.rpcUrl)
-            const blockTime = await cdpClient(appState.rpcUrl).then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
+            if (!earnClient) return
+
+            const claimTracker = await getEarnCDTRealizedAPR(earnClient)
+            const currentClaim = await getUnderlyingCDT("1000000000000", earnClient)
+            const blockTime = await earnClient.client.getBlock().then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(), //subtracting gains from the exit bug
@@ -229,14 +256,17 @@ export const useEarnCDTRealizedAPR = () => {
 
 
 export const useBoundedCDTRealizedAPR = () => {
-    const { appState } = useAppState()
+    const { data: earnClient } = useEarnClient()
 
     return useQuery({
-        queryKey: ['useBoundedCDTRealizedAPR'],
+        queryKey: ['useBoundedCDTRealizedAPR', earnClient],
         queryFn: async () => {
-            const claimTracker = await getBoundedCDTRealizedAPR(appState.rpcUrl)
-            const currentClaim = await getBoundedUnderlyingCDT("1000000000000", appState.rpcUrl)
-            const blockTime = await cdpClient(appState.rpcUrl).then(client => client.client.getBlock()).then(block => Date.parse(block.header.time) / 1000)
+
+            if (!earnClient) return
+
+            const claimTracker = await getBoundedCDTRealizedAPR(earnClient)
+            const currentClaim = await getBoundedUnderlyingCDT("1000000000000", earnClient)
+            const blockTime = await earnClient.client.getBlock().then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(),
@@ -374,16 +404,18 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
     // console.log("AP in interstquery", allPositions) 
     const { data: basketAssets } = useBasketAssets()
     const { setBidState } = useBidState()
-    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient()
 
 
     const userDiscountQueries = useDiscounts ? useQueries({
         queries: (allPositions || []).map((basketPosition) => ({
-            queryKey: ['user', 'discount', 'cdp', basketPosition.user],
+            queryKey: ['user', 'discount', 'cdp', basketPosition.user, client],
             queryFn: async () => {
+
+                if (!client) return
                 // console.log(`Fetching discount for address: ${basketPosition.user}`);
                 if (basketPosition.positions.reduce((acc, position) => acc + parseInt(position.credit_amount), 0) <= 1000) return { discount: 0 }
-                return getUserDiscount(basketPosition.user, appState.rpcUrl)
+                return getUserDiscount(basketPosition.user, client)
             },
             staleTime: 60000, // 60 seconds (adjust based on your needs)
         })) || [],
@@ -419,14 +451,14 @@ export const useVaultInfo = () => {
     const { data: basket } = useBasket()
     const { data: apr } = useEarnUSDCEstimatedAPR()
     const { getRpcClient } = useRpcClient("osmosis")
-    const { appState } = useAppState()
+    const { data: client } = useCDPClient()
 
     return useQuery({
-        queryKey: ['useVaultInfo', apr, prices, basket],
+        queryKey: ['useVaultInfo', apr, prices, basket, client],
         queryFn: async () => {
 
+            if (!client || !basket || !prices) return
             //Query Vault's CDP 
-            const client = await cdpClient(appState.rpcUrl)
             const vaultCDPs = await client.getBasketPositions({
                 user: contracts.earn,
             })

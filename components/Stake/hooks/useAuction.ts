@@ -7,18 +7,18 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { isGreaterThanZero, shiftDigits } from '@/helpers/num'
-import { getLiveFeeAuction } from '@/services/asset_auction'
+import { getLiveFeeAuction, useAssetAuctionClient } from '@/services/asset_auction'
 import useWallet from '@/hooks/useWallet'
 import { coin } from '@cosmjs/stargate'
 import useAppState from '@/persisted-state/useAppState'
 
 
 export const useLiveFeeAuction = () => {
-  const { appState } = useAppState()
+  const { data: client } = useAssetAuctionClient()
   return useQuery({
-    queryKey: ['live fee auction'],
+    queryKey: ['live fee auction', client],
     queryFn: async () => {
-      return getLiveFeeAuction(appState.rpcUrl)
+      return getLiveFeeAuction(client)
     },
   })
 }

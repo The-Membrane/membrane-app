@@ -1,15 +1,27 @@
 
 import contracts from '@/config/contracts.json'
-import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
+import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { AuctionQueryClient } from '@/contracts/codegen/auction/Auction.client'
 import { FeeAuction } from '@/contracts/codegen/auction/Auction.types'
+import { useQuery } from '@tanstack/react-query'
 
-export const AssetAuctionClient = async (rpcUrl: string) => {
-  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
-  return new AuctionQueryClient(cosmWasmClient, contracts.auction)
+
+export const useAssetAuctionClient = () => {
+  const { data: cosmWasmClient } = useCosmWasmClient()
+
+  return useQuery({
+    queryKey: ['asset_auction_client', cosmWasmClient],
+    queryFn: async () => {
+      if (!cosmWasmClient) return null
+      return new AuctionQueryClient(cosmWasmClient, contracts.auction)
+    },
+    // enabled: true,
+    // You might want to add staleTime to prevent unnecessary refetches
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
 }
 
-export const getLiveFeeAuction = async (rpcUrl: string) => {
-  const client = await AssetAuctionClient(rpcUrl)
+
+export const getLiveFeeAuction = async (client: any) => {
   return client.ongoingFeeAuctions({}).then((res) => res) as Promise<FeeAuction[]>
 }

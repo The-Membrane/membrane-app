@@ -1,6 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import { denoms } from '@/config/defaults';
+import { denoms, rpcUrl } from '@/config/defaults';
 import { Asset, getAssets } from '@/helpers/chain';
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient';
 import { num, shiftDigits } from '@/helpers/num';
 import { getBasket } from '@/services/cdp';
 import { getBoundedUnderlyingCDT } from '@/services/earn';
@@ -55,11 +56,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
         }
         const address = req.query.address as string
+        const client = await getCosmWasmClient(rpcUrl)
 
         const [assets, balances, basket] = await Promise.all([
             getAssets(),
             getBalances(address),
-            getBasket()
+            getBasket(client)
         ]);
 
         if (!assets || !balances || !basket) {

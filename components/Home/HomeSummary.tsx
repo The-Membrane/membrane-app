@@ -2,6 +2,7 @@ import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import useQuickActionState from './hooks/useQuickActionState'
+import { shiftDigits } from '@/helpers/math'
 
 type SummaryItemProps = {
     label: string
@@ -66,7 +67,7 @@ export const HomeSummary = ({ tokenOutMinAmount }: { tokenOutMinAmount: number }
                     <SummaryItem
                         label="USDC"
                         badge="Swap"
-                        amount={tokenOutMinAmount.toFixed(2)}
+                        amount={shiftDigits(tokenOutMinAmount, -6).toFixed(2)}
                         logo={"https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.svg"}
                     />
 

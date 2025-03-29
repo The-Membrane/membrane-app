@@ -6,7 +6,7 @@ import React, { useMemo } from 'react'
 
 const useRpcStatus = () => {
   const { appState } = useAppState()
-  const rpc = useMemo(() => appState.rpcURL ?? rpcUrl, [appState.rpcURL])
+  const rpc = useMemo(() => appState.rpcUrl ?? rpcUrl, [appState.rpcUrl])
 
   return useQuery({
     queryKey: ['rpc status', rpc],
@@ -24,7 +24,7 @@ const useRpcStatus = () => {
         throw error
       }
     },
-    // refetchInterval: 60000,
+    refetchInterval: 60000,
   })
 }
 

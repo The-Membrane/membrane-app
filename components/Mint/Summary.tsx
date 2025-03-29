@@ -86,7 +86,7 @@ export const Summary = () => {
           <SummaryItem
             key={asset?.label + asset?.amount}
             label={asset?.label}
-            amount={asset?.amountValue}
+            amount={asset?.amountValue.toFixed(2)}
             logo={asset?.logo}
             logos={asset?.logos}
             isLP={asset?.isLP}

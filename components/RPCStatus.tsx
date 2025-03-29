@@ -15,7 +15,7 @@ const useRpcStatus = () => {
       // console.log('Requesting URL:', url)
       try {
         const response = await fetch(url)
-        console.log('Response status:', response)
+        // console.log('Response status:', response)
         const res = await response.json()
         if ('error' in res) throw new Error('rpc error')
         return res

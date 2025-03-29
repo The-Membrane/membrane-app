@@ -302,7 +302,7 @@ export const useBoundedCDTRealizedAPR = () => {
                 vt_claim_of_checkpoint: num(currentClaim).toString(),
                 time_since_last_checkpoint
             }
-            console.log("autoSP claim tracker", currentClaimTracker)
+            // console.log("autoSP claim tracker", currentClaimTracker)
 
             //Add the current claim to the claim tracker
             claimTracker.vt_claim_checkpoints.push(currentClaimTracker)

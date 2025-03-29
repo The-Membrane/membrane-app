@@ -6,13 +6,17 @@ import { getUserDelegations } from '@/services/staking'
 import { getUserVotingPower } from '@/services/governance'
 import { getProposals } from '@/services/governance'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/router'
 
 export const useProposalById = (proposalId: number) => {
     const { appState } = useAppState()
     const { address } = useWallet()
+    const router = useRouter()
+
     return useQuery({
-        queryKey: ['proposal', proposalId, address],
+        queryKey: ['proposal', appState.rpcUrl, proposalId, address, router.pathname],
         queryFn: async () => {
+            if (router.pathname != "/stake") return
             return getProposal(proposalId, appState.rpcUrl, address)
         },
         enabled: !!proposalId,
@@ -22,9 +26,12 @@ export const useProposalById = (proposalId: number) => {
 
 export const useDelegator = (address: string, enabled = false) => {
     const { appState } = useAppState()
+    const router = useRouter()
+
     return useQuery({
-        queryKey: ['delegator', address],
+        queryKey: ['delegator', appState.rpcUrl, address, router.pathname],
         queryFn: async () => {
+            if (router.pathname != "/stake") return
             if (!address) return Promise.reject('No address found')
 
             return getDelegatorInfo(address, appState.rpcUrl)
@@ -37,9 +44,12 @@ export const useDelegator = (address: string, enabled = false) => {
 export const useVotingPower = (proposalId: number) => {
     const { appState } = useAppState()
     const { address } = useWallet()
+    const router = useRouter()
+
     return useQuery({
-        queryKey: ['user voting power', address, proposalId],
+        queryKey: ['user voting power', appState.rpcUrl, address, proposalId, router.pathname],
         queryFn: async () => {
+            if (router.pathname != "/stake") return
             if (!address) return Promise.reject('No address found')
 
             return getUserVotingPower(address, proposalId, appState.rpcUrl)
@@ -51,10 +61,12 @@ export const useVotingPower = (proposalId: number) => {
 
 export const useProposals = () => {
     const { appState } = useAppState()
+    const router = useRouter()
 
     return useQuery({
-        queryKey: ['proposals'],
+        queryKey: ['proposals', appState.rpcUrl, router.pathname],
         queryFn: async () => {
+            if (router.pathname != "/stake") return
             return getProposals(appState.rpcUrl)
         },
     })
@@ -64,10 +76,12 @@ export const useProposals = () => {
 export const useDelegations = () => {
     const { address } = useWallet()
     const { appState } = useAppState()
+    const router = useRouter()
 
     return useQuery({
-        queryKey: ['delegations', address],
+        queryKey: ['delegations', address, appState.rpcUrl, router.pathname],
         queryFn: async () => {
+            if (router.pathname != "/stake") return
             if (!address) return Promise.reject('No address found')
 
             return getUserDelegations(address, appState.rpcUrl)

@@ -1,18 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
 import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getBasketPositions, getUserDiscount, getBasketAssets, getUserRedemptionInfo, useCDPClient } from '@/services/cdp'
 import useWallet from './useWallet'
-import { useCallback } from 'react'
 import useAssets from './useAssets'
-import useAppState from '@/persisted-state/useAppState'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
+import { useRouter } from 'next/router'
 
 
 export const useBasket = () => {
   const { data: client } = useCDPClient()
+  const router = useRouter()
 
   const result = useQuery({
-    queryKey: ['basket', client],
+    queryKey: ['basket', client, router.pathname],
     queryFn: async () => {
+      if (router.pathname != "/" && router.pathname != "/borrow" && router.pathname != "/bid") return
+      if (!client) return
       return getBasket(client)
     },
     // enabled: true,
@@ -27,11 +29,13 @@ export const useBasketAssets = () => {
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
   const assets = useAssets("osmosis")
+  const router = useRouter()
 
 
   return useQuery({
-    queryKey: ['get_basket_assets', basket, interest, assets],
+    queryKey: ['get_basket_assets', basket, interest, assets, router.pathname],
     queryFn: async () => {
+      if (router.pathname != "/" && router.pathname != "/borrow") return
       if (!basket || !interest || !assets) return []
 
       console.log(" basketAssets")
@@ -43,11 +47,13 @@ export const useBasketAssets = () => {
 
 export const useCollateralInterest = () => {
   const { data: client } = useCDPClient()
+  const router = useRouter()
 
   return useQuery({
-    queryKey: ['collateral interest', client],
+    queryKey: ['collateral interest', client, router.pathname],
     queryFn: async () => {
       if (!client) return
+      if (router.pathname != "/" && router.pathname != "/borrow") return
       return getCollateralInterest(client)
     },
     staleTime: 1000 * 60 * 5,
@@ -56,10 +62,13 @@ export const useCollateralInterest = () => {
 
 export const useCreditRate = () => {
   const { data: client } = useCDPClient()
+  const router = useRouter()
+
 
   return useQuery({
-    queryKey: ['credit rate', client],
+    queryKey: ['credit rate', client, router.pathname],
     queryFn: async () => {
+      if (router.pathname != "/borrow") return
       if (!client) return
       return getCreditRate(client)
     },
@@ -70,10 +79,12 @@ export const useCreditRate = () => {
 export const useUserRemptionInfo = () => {
   const { data: client } = useCosmWasmClient()
   const { address } = useWallet()
+  const router = useRouter()
 
   return useQuery({
-    queryKey: ['user_redemption_info', address, client],
+    queryKey: ['user_redemption_info', address, client, router.pathname],
     queryFn: async () => {
+      if (router.pathname != "/borrow") return
       if (!address || !client) return
       return getUserRedemptionInfo(address, client)
     },
@@ -84,10 +95,12 @@ export const useUserRemptionInfo = () => {
 export const useUserPositions = () => {
   const { address } = useWallet()
   const { data: client } = useCDPClient()
+  const router = useRouter()
 
   const result = useQuery({
-    queryKey: ['positions', address, client],
+    queryKey: ['positions', address, client, router.pathname],
     queryFn: async () => {
+      if (router.pathname != "/" && router.pathname != "/borrow") return
       if (!address || !client) return
       console.log("requerying basket positions")
       return getUserPositions(address, client)
@@ -102,10 +115,12 @@ export const useUserPositions = () => {
 
 export const useUserDiscount = (address: string | undefined) => {
   const { data: client } = useCosmWasmClient()
+  const router = useRouter()
 
   return useQuery({
-    queryKey: ['user', 'discount', 'cdp', address, client],
+    queryKey: ['user', 'discount', 'cdp', address, client, router.pathname],
     queryFn: async () => {
+      if (router.pathname != "/borrow") return
       if (!address || !client) return { user: "", discount: "0" }
       return getUserDiscount(address, client)
     },
@@ -117,10 +132,12 @@ export const useUserDiscount = (address: string | undefined) => {
 export const useBasketPositions = () => {
   const { address } = useWallet()
   const { data: client } = useCDPClient()
+  const router = useRouter()
 
   return useQuery({
-    queryKey: ['all positions', client],
+    queryKey: ['all positions', client, router.pathname],
     queryFn: async () => {
+      if (router.pathname != "/management" && router.pathname != "/borrow") return
       if (!client) return
       return getBasketPositions(client)
     },

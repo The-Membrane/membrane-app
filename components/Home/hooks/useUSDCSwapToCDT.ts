@@ -18,7 +18,6 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
   const { quickActionState } = useQuickActionState()
 
   const { address } = useWallet()
-  const { data: basket } = useBasket()
   const { data: prices } = useOraclePrice()
   const usdcAsset = useAssetBySymbol('USDC')
 
@@ -39,7 +38,7 @@ const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean 
       run
     ],
     queryFn: () => {
-      if (!address || !basket || !prices || !usdcAsset || quickActionState?.usdcSwapToCDT === 0 || !run) return { msgs: [], tokenOutMinAmount: 0 }
+      if (!address || !prices || !usdcAsset || quickActionState?.usdcSwapToCDT === 0 || !run) return { msgs: [], tokenOutMinAmount: 0 }
       var msgs = [] as MsgExecuteContractEncodeObject[]
       const cdtPrice = parseFloat(prices?.find((price) => price.denom === denoms.CDT[0])?.price ?? "0")
 

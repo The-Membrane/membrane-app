@@ -210,7 +210,7 @@ const useProtocolClaims = ({ run }: { run: boolean }) => {
     else return queryData
   }, [queryData])
 
-  console.log("claims msgs:", msgs)
+  // console.log("claims msgs:", msgs)
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['protocol_claim_sim'] })

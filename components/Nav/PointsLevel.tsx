@@ -41,7 +41,7 @@ function SoloLeveling() {
       setAppState({ totalPoints: appState.totalPoints })
     }
 
-    console.log("total points", pointsData)
+    // console.log("total points", pointsData)
     return pointsData || { stats: { total_points: "0" } }
 
   }, [pointsData])
@@ -49,7 +49,7 @@ function SoloLeveling() {
 
   const { data: data } = useSoloLevel()
   const { level, points_in_level, levelup_max_points } = useMemo(() => {
-    console.log("solo leveling", data)
+    // console.log("solo leveling", data)
     return data || {
       level: 1,
       points_in_level: 0,

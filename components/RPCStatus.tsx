@@ -12,7 +12,7 @@ const useRpcStatus = () => {
     queryKey: ['rpc status', rpc],
     queryFn: async () => {
       const url = rpc + '/status'
-      console.log('Requesting URL:', url)
+      // console.log('Requesting URL:', url)
       try {
         const response = await fetch(url)
         console.log('Response status:', response)

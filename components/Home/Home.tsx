@@ -23,7 +23,7 @@ const Home = () => {
   localStorage.removeItem('stakeState');
 
 
-  console.log("Home")
+  // console.log("Home")
 
   const { appState, setAppState } = useAppState();
   useMemo(() => setAppState({ rpcUrl: 'https://osmosis-rpc.polkachu.com/' }), [])

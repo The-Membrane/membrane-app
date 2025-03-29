@@ -52,7 +52,7 @@ const useBoundedManage = () => {
     else return queryData
   }, [queryData])
 
-  console.log("compound msg:", msgs)
+  // console.log("compound msg:", msgs)
 
   const onInitialSuccess = () => {
     //We want the vault to resim so that the Compound button isn't incorrectly Enabled

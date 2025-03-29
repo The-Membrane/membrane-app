@@ -289,7 +289,7 @@ export const useBoundedCDTRealizedAPR = () => {
     return useQuery({
         queryKey: ['useBoundedCDTRealizedAPR', cosmwasmClient, router.pathname],
         queryFn: async () => {
-            console.log("eralized apy", !cosmwasmClient, router.pathname)
+            // console.log("eralized apy", !cosmwasmClient, router.pathname)
             if (router.pathname != "/") return
 
             if (!cosmwasmClient) return

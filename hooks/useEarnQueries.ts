@@ -289,6 +289,7 @@ export const useBoundedCDTRealizedAPR = () => {
     return useQuery({
         queryKey: ['useBoundedCDTRealizedAPR', earnClient, router.pathname],
         queryFn: async () => {
+            console.log("eralized apy", !earnClient, router.pathname)
             if (router.pathname != "/") return
 
             if (!earnClient) return

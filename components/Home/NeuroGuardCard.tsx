@@ -858,20 +858,61 @@ const NeuroGuardCard = () => {
     boundCDTBalance,
     underlyingData
   ].some(data => data === undefined || data === null);
+  import { useMemo, useRef } from "react";
 
-  useMemo(() => console.log("hooks changes to cause a rerender"), [
+  const rerenderCounts = new Map<string, number>();
+
+  useMemo(() => {
+    console.log("hooks changes to cause a rerender");
+
+    const dependencies = {
+      basketPositions,
+      basket,
+      TVL,
+      userIntents,
+      walletBalances,
+      prices,
+      interest,
+      basketAssets,
+      cdtAsset,
+      usdcAsset,
+      boundCDTAsset,
+      boundCDTBalance,
+      underlyingData,
+    };
+
+    const prevDeps = useRef<typeof dependencies | null>(null);
+
+    if (prevDeps.current) {
+      Object.entries(dependencies).forEach(([key, value]) => {
+        if (prevDeps.current![key] !== value) {
+          console.log(`${key} changed`);
+
+          // Track the number of times each dependency changes
+          rerenderCounts.set(key, (rerenderCounts.get(key) || 0) + 1);
+        }
+      });
+    }
+
+    prevDeps.current = dependencies;
+
+    console.log("Total changes:", Object.fromEntries(rerenderCounts));
+  }, [
     basketPositions,
     basket,
     TVL,
     userIntents,
     walletBalances,
+    prices,
     interest,
     basketAssets,
     cdtAsset,
     usdcAsset,
     boundCDTAsset,
     boundCDTBalance,
-    underlyingData])
+    underlyingData,
+  ]);
+
 
   const [hasShownToast, setHasShownToast] = useState(false);
 

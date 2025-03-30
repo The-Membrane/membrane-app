@@ -16,17 +16,22 @@ import { set } from 'react-hook-form'
 
 const Home = () => {
   //Remove persisted state, we can get rid of this over time
-  localStorage.removeItem('basketState');
-  localStorage.removeItem('pointsState');
-  localStorage.removeItem('userIntentState');
-  localStorage.removeItem('userPositionState');
-  localStorage.removeItem('stakeState');
+  useEffect(() => {
+    localStorage.removeItem('basketState');
+    localStorage.removeItem('pointsState');
+    localStorage.removeItem('userIntentState');
+    localStorage.removeItem('userPositionState');
+    localStorage.removeItem('stakeState');
+  }, []);
 
 
   console.log("Home")
 
-  const { appState, setAppState } = useAppState();
-  useMemo(() => setAppState({ rpcUrl: 'https://osmosis-rpc.polkachu.com/' }), [])
+  const { appState, setAppState } = useAppState(); useMemo(() => {
+    if (appState.rpcUrl !== 'https://osmosis-rpc.polkachu.com/') {
+      setAppState({ rpcUrl: 'https://osmosis-rpc.polkachu.com/' });
+    }
+  }, [appState.rpcUrl, setAppState]);
   const { rulesState } = useMembersRulesState()
 
   const [hasShownToast, setHasShownToast] = useState(false);

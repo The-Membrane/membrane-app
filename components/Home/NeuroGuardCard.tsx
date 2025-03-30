@@ -813,6 +813,9 @@ const NeuroGuardCard = () => {
   const assets = useCollateralAssets()
   console.log("finsihed CollaterarlAssets")
   const { data: prices } = useOraclePrice()
+  useEffect(() => {
+    console.log("Prices changed:", prices);
+  }, [prices]);
   console.log("finsihed prices")
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()

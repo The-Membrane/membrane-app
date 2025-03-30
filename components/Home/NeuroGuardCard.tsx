@@ -1206,7 +1206,7 @@ const NeuroGuardCard = () => {
 
       </HStack>
       <HStack alignItems="none" flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
-        {/* <RangeBoundVisual /> */}
+        <RangeBoundVisual />
         {/* <Stack width={"32%"} justifyContent={(Number(cdtMarketPrice) < 0.985 && Number(minimumSwapCapacity) > 22) ? "center" : "none"} gap="1.5rem">
           <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
           {Number(cdtMarketPrice) < 0.985 && Number(minimumSwapCapacity) > 22 && <ManicRedemptionCard basket={basket} cdtMarketPrice={Number(cdtMarketPrice)} />}
@@ -1220,7 +1220,7 @@ const NeuroGuardCard = () => {
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
       ) ? */}
-      <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} basketAssets={basketAssets ?? []} />
+      {/* <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} basketAssets={basketAssets ?? []} /> */}
       {/* : null} */}
 
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) ?

@@ -815,33 +815,8 @@ const NeuroGuardCard = () => {
   const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
   const toaster = useToaster();
 
-  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
-  const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
-  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
-    num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
-  )
 
-  // Determine if any of these are still loading
-  const areQueriesLoading = [
-    basketPositions,
-    basket,
-    TVL,
-    userIntents,
-    walletBalances,
-    prices,
-    interest,
-    basketAssets,
-    cdtAsset,
-    usdcAsset,
-    boundCDTAsset,
-    underlyingData,
-    boundCDTBalance
-  ].some(data => data === undefined || data === null);
-
-  // Prevent rendering until all required data is ready
-  if (areQueriesLoading) {
-    return <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />; // Replace with your actual loading component
-  }
+  // Determine if any of these are still 
   const [hasShownToast, setHasShownToast] = useState(false);
 
 
@@ -890,6 +865,7 @@ const NeuroGuardCard = () => {
 
 
   const calculatedRBYield = useMemo(() => {
+
     // console.log(" calculatedRBYield")
     if (!basket || !interest || !TVL) return "0";
     return simpleBoundedAPRCalc(shiftDigits(basket.credit_asset.amount, -6).toNumber(), interest, TVL, 0);
@@ -897,6 +873,11 @@ const NeuroGuardCard = () => {
   // // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////
+  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
+  const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
+  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
+    num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
+  )
   const underlyingCDT = useMemo(() =>
     shiftDigits(underlyingData, -6).toString() ?? "0"
     , [underlyingData])

@@ -865,7 +865,6 @@ const NeuroGuardCard = () => {
     TVL,
     userIntents,
     walletBalances,
-    prices,
     interest,
     basketAssets,
     cdtAsset,

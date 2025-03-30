@@ -788,38 +788,43 @@ function ToastButton({ isLoading, isDisabled, onClick }) {
 }
 
 const NeuroGuardCard = () => {
-  // console.log("NG render")
+  console.log("NG render")
 
   // const { data: clRewardList } = getBestCLRange()
+  console.time("NG");
   const { address } = useWallet()
-  // const { data: basketPositions } = useUserPositions()
-  // // // console.log("basketPositions", basketPositions)
-  // const { data: basket } = useBasket()
-  // // // console.log("basketPositions", basketPositions)
-  // const { data: TVL } = useBoundedTVL()
-  // const { data: userIntents } = useUserBoundedIntents()
-  // const { setNeuroState } = useNeuroState()
+  const { data: basketPositions } = useUserPositions()
+  // // console.log("basketPositions", basketPositions)
+  const { data: basket } = useBasket()
+  // // console.log("basketPositions", basketPositions)
+  const { data: TVL } = useBoundedTVL()
+  const { data: userIntents } = useUserBoundedIntents()
+  const { setNeuroState } = useNeuroState()
 
-  // const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
-  // // useEstimatedAnnualInterest(false)
-  // const { data: walletBalances } = useBalance()
-  // const assets = useCollateralAssets()
-  // const { data: prices } = useOraclePrice()
-  // // const { data: clRewardList } = getBestCLRange()
-  // const { data: interest } = useCollateralInterest()
-  // const { data: basketAssets } = useBasketAssets()
-  // const { action: polishIntents } = useNeuroIntentPolish()
-  // const cdtAsset = useAssetBySymbol('CDT')
-  // // const cdtBalance = useBalanceByAsset(cdtAsset) ?? "0"
-  // const usdcAsset = useAssetBySymbol('USDC')
-  // const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
-  // const toaster = useToaster();
+  const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
+  // useEstimatedAnnualInterest(false)
+  const { data: walletBalances } = useBalance()
+  const assets = useCollateralAssets()
+  const { data: prices } = useOraclePrice()
+  // const { data: clRewardList } = getBestCLRange()
+  const { data: interest } = useCollateralInterest()
+  const { data: basketAssets } = useBasketAssets()
+  const { action: polishIntents } = useNeuroIntentPolish()
+  const cdtAsset = useAssetBySymbol('CDT')
+  // const cdtBalance = useBalanceByAsset(cdtAsset) ?? "0"
+  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
+  const toaster = useToaster();
 
-  // const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
-  // const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
-  // const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
-  //   num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
-  // )
+  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
+  const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
+  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
+    num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
+  )
+  const underlyingCDT = useMemo(() =>
+    shiftDigits(underlyingData, -6).toString() ?? "0"
+    , [underlyingData])
+  console.timeEnd("NG");
 
 
   // Determine if any of these are still loading
@@ -899,9 +904,6 @@ const NeuroGuardCard = () => {
   // // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////
-  const underlyingCDT = useMemo(() =>
-    shiftDigits(underlyingData, -6).toString() ?? "0"
-    , [underlyingData])
   ////
 
 

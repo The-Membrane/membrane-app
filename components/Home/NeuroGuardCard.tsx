@@ -807,15 +807,15 @@ const NeuroGuardCard = () => {
   const { setNeuroState } = useNeuroState()
 
   const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
+  useEffect(() => {
+    console.log("neuroStateAssets changed:", neuroStateAssets);
+  }, [neuroStateAssets]);
   // useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   console.log("finsihed useBalance")
   const assets = useCollateralAssets()
   console.log("finsihed CollaterarlAssets")
   const { data: prices } = useOraclePrice()
-  useEffect(() => {
-    console.log("Prices changed:", prices);
-  }, [prices]);
   console.log("finsihed prices", prices)
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()

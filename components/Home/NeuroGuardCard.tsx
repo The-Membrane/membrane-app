@@ -792,31 +792,57 @@ const NeuroGuardCard = () => {
 
   // const { data: clRewardList } = getBestCLRange()
   const { address } = useWallet()
-  const { data: basketPositions } = useUserPositions()
-  // // console.log("basketPositions", basketPositions)
-  const { data: basket } = useBasket()
-  // // console.log("basketPositions", basketPositions)
-  const { data: TVL } = useBoundedTVL()
-  const { data: userIntents } = useUserBoundedIntents()
-  const { setNeuroState } = useNeuroState()
+  // const { data: basketPositions } = useUserPositions()
+  // // // console.log("basketPositions", basketPositions)
+  // const { data: basket } = useBasket()
+  // // // console.log("basketPositions", basketPositions)
+  // const { data: TVL } = useBoundedTVL()
+  // const { data: userIntents } = useUserBoundedIntents()
+  // const { setNeuroState } = useNeuroState()
 
-  const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
-  // useEstimatedAnnualInterest(false)
-  const { data: walletBalances } = useBalance()
-  const assets = useCollateralAssets()
-  const { data: prices } = useOraclePrice()
-  // const { data: clRewardList } = getBestCLRange()
-  const { data: interest } = useCollateralInterest()
-  const { data: basketAssets } = useBasketAssets()
-  const { action: polishIntents } = useNeuroIntentPolish()
-  const cdtAsset = useAssetBySymbol('CDT')
-  // const cdtBalance = useBalanceByAsset(cdtAsset) ?? "0"
-  const usdcAsset = useAssetBySymbol('USDC')
-  const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
-  const toaster = useToaster();
+  // const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
+  // // useEstimatedAnnualInterest(false)
+  // const { data: walletBalances } = useBalance()
+  // const assets = useCollateralAssets()
+  // const { data: prices } = useOraclePrice()
+  // // const { data: clRewardList } = getBestCLRange()
+  // const { data: interest } = useCollateralInterest()
+  // const { data: basketAssets } = useBasketAssets()
+  // const { action: polishIntents } = useNeuroIntentPolish()
+  // const cdtAsset = useAssetBySymbol('CDT')
+  // // const cdtBalance = useBalanceByAsset(cdtAsset) ?? "0"
+  // const usdcAsset = useAssetBySymbol('USDC')
+  // const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
+  // const toaster = useToaster();
+
+  // const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
+  // const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
+  // const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
+  //   num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
+  // )
 
 
-  // Determine if any of these are still 
+  // Determine if any of these are still loading
+  const areQueriesLoading = [
+    basketPositions,
+    basket,
+    TVL,
+    userIntents,
+    walletBalances,
+    prices,
+    interest,
+    basketAssets,
+    cdtAsset,
+    usdcAsset,
+    boundCDTAsset,
+    boundCDTBalance,
+    underlyingData
+  ].some(data => data === undefined || data === null);
+
+  // Prevent rendering until all required data is ready
+  if (areQueriesLoading) {
+    return <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />; // Replace with your actual loading component
+  }
   const [hasShownToast, setHasShownToast] = useState(false);
 
 
@@ -873,11 +899,6 @@ const NeuroGuardCard = () => {
   // // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////
-  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
-  const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
-  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
-    num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
-  )
   const underlyingCDT = useMemo(() =>
     shiftDigits(underlyingData, -6).toString() ?? "0"
     , [underlyingData])
@@ -1044,102 +1065,6 @@ const NeuroGuardCard = () => {
   }, [basketPositions, neuroGuardIntents])
   // // console.log("nonNeuroGuardPositions", nonNeuroGuardPositions, basketPositions, neuroGuardIntents)
 
-
-  // Separate complex sections into components
-  const WalletSection = memo(({ assets, existingGuards, RBYield, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, basketAssets: BasketAsset[] }) => {
-    const [showAllYields, setShowAllYields] = useState(false);
-
-    const usableAssets = useMemo(() => assets
-      .filter(asset =>
-        asset &&
-        num(asset.combinUsdValue).isGreaterThan(0.01) &&
-        !existingGuards?.some(guard => guard?.symbol === asset.symbol) &&
-        asset.base !== denoms.CDT[0] // Exclude assets with base equal to CDT
-        && (asset.symbol != "CDT" || asset.symbol != "marsUSDC" || asset.symbol != "OSMO/USDC.axl LP" || asset.symbol != "ATOM/OSMO LP" || asset.symbol != "USDC")
-      ), [assets, existingGuards]);
-
-    // console.log("usableAssets", usableAssets)
-
-
-    return (
-      <Stack>
-        <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-          Your Wallet -&nbsp;
-          <a onClick={toggleExpanded} style={{ color: colors.tabBG, textDecoration: "underline", cursor: "pointer" }}>FAQ</a>
-        </Text>
-
-        <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
-        </FAQModal>
-        <Checkbox
-          checked={showAllYields}
-          onChange={() => { setShowAllYields(!showAllYields) }}
-          fontFamily="Inter"
-          fontSize={"9px"}
-        >
-          Show All Yields
-        </Checkbox>
-        {usableAssets && usableAssets.length != 0 &&
-          <HStack gap="1%" p={4}>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-              Asset
-            </Text>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-              Balance
-            </Text>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-              Potential APR
-            </Text>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-              Actions
-            </Text>
-          </HStack>}
-        <Stack gap={"1rem"}>{showAllYields ?
-
-          basketAssets.map((basketAsset) => {
-            if (!basketAsset || basketAsset.asset?.symbol === "marsUSDC" || basketAsset.asset?.symbol === "OSMO/USDC.axl LP" || basketAsset.asset?.symbol === "ATOM/OSMO LP" || basketAsset.asset?.symbol === "USDC") {
-              return null;
-            }
-
-            return (
-              <MemoizedNeuroGuardOpenEntry
-                key={basketAsset.asset?.symbol ?? basketAsset.asset?.base}
-                asset={{
-                  base: basketAsset.asset?.base,
-                  symbol: basketAsset.asset?.symbol ?? "",
-                  logo: basketAsset.asset?.logo ?? "",
-                  maxBorrowLTV: basketAsset.maxBorrowLTV,
-                  // @ts-ignore
-                  balance: 0,
-                  combinUsdValue: num(basketAsset.interestRate).toNumber(),
-                }}
-                RBYield={RBYield}
-                basketAssets={basketAssets}
-              />
-            );
-          })
-
-          : <Stack>
-            {/* Wallet Assets */}
-            {usableAssets.map((asset) => {
-              if (!asset) {
-                return null;
-              }
-              // // console.log("wallet asset symbol", asset.symbol)
-              return (
-                <MemoizedNeuroGuardOpenEntry
-                  key={asset.symbol}
-                  asset={asset}
-                  basketAssets={basketAssets}
-                  RBYield={RBYield}
-                />
-              )
-            })}
-          </Stack>
-
-        }</Stack>
-      </Stack>
-    );
-  });
 
   const CDPsSection = memo(({ positions, cdtMarketPrice }: { positions: any[], cdtMarketPrice: string }) => {
     return (

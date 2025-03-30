@@ -840,21 +840,21 @@ const NeuroGuardCard = () => {
   )
 
   // Determine if any of these are still loading
-  const areQueriesLoading = [
-    basketPositions,
-    basket,
-    TVL,
-    userIntents,
-    walletBalances,
-    prices,
-    interest,
-    basketAssets,
-    cdtAsset,
-    usdcAsset,
-    boundCDTAsset,
-    boundCDTBalance,
-    underlyingData
-  ].some(data => data === undefined || data === null);
+  // const areQueriesLoading = [
+  //   basketPositions,
+  //   basket,
+  //   TVL,
+  //   userIntents,
+  //   walletBalances,
+  //   prices,
+  //   interest,
+  //   basketAssets,
+  //   cdtAsset,
+  //   usdcAsset,
+  //   boundCDTAsset,
+  //   boundCDTBalance,
+  //   underlyingData
+  // ].some(data => data === undefined || data === null);
 
   const [hasShownToast, setHasShownToast] = useState(false);
 
@@ -1213,9 +1213,9 @@ const NeuroGuardCard = () => {
 
 
   // Prevent rendering until all required data is ready
-  if (true) {
-    return <AnimatedBorderImage />;
-  }
+  // if (areQueriesLoading) {
+  //   return <AnimatedBorderImage />;
+  // }
 
   return (
     <Stack gap={1} marginBottom="3%">

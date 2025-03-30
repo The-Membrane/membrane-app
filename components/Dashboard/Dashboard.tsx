@@ -164,7 +164,7 @@ const Dashboard = () => {
                     <OracleHealth />
                 </HStack>
                 <HStack justifyContent={"space-between"}>
-                    <ManagementCard basket={basket} />
+                    {/* <ManagementCard basket={basket} /> */}
                     <SupplyCaps />
                 </HStack>
             </Stack>

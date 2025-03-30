@@ -100,6 +100,7 @@ export const useUserPositions = () => {
   const result = useQuery({
     queryKey: ['positions', address, client, router.pathname],
     queryFn: async () => {
+      console.log("route_running")
       if (router.pathname != "/" && router.pathname != "/borrow") return
       if (!address || !client) return
       console.log("requerying basket positions")

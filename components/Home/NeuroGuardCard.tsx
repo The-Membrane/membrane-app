@@ -861,42 +861,7 @@ const NeuroGuardCard = () => {
 
   const rerenderCounts = new Map<string, number>();
 
-  useMemo(() => {
-    console.log("hooks changes to cause a rerender");
-
-    const dependencies = {
-      basketPositions,
-      basket,
-      TVL,
-      userIntents,
-      walletBalances,
-      prices,
-      interest,
-      basketAssets,
-      cdtAsset,
-      usdcAsset,
-      boundCDTAsset,
-      boundCDTBalance,
-      underlyingData,
-    };
-
-    const prevDeps = useRef<typeof dependencies | null>(null);
-
-    if (prevDeps.current) {
-      Object.entries(dependencies).forEach(([key, value]) => {
-        if (prevDeps.current![key as keyof typeof dependencies] !== value) {
-          console.log(`${key} changed`);
-
-          // Track the number of times each dependency changes
-          rerenderCounts.set(key, (rerenderCounts.get(key) || 0) + 1);
-        }
-      });
-    }
-
-    prevDeps.current = dependencies;
-
-    console.log("Total changes:", Object.fromEntries(rerenderCounts));
-  }, [
+  const dependencies = {
     basketPositions,
     basket,
     TVL,
@@ -910,9 +875,31 @@ const NeuroGuardCard = () => {
     boundCDTAsset,
     boundCDTBalance,
     underlyingData,
-  ]);
+  };
 
+  // Store previous dependencies
+  const prevDeps = useRef<typeof dependencies | null>(null);
 
+  // Memoize hook execution
+  useMemo(() => {
+    console.log("hooks changes to cause a rerender");
+  }, Object.values(dependencies));
+
+  // Track changes in useEffect
+  useEffect(() => {
+    if (prevDeps.current) {
+      Object.entries(dependencies).forEach(([key, value]) => {
+        if (prevDeps.current && prevDeps.current[key as keyof typeof dependencies] !== value) {
+          console.log(`${key} changed`);
+          rerenderCounts.set(key, (rerenderCounts.get(key) || 0) + 1);
+        }
+      });
+
+      console.log("Total changes:", Object.fromEntries(rerenderCounts));
+    }
+
+    prevDeps.current = dependencies;
+  }, Object.values(dependencies));
   const [hasShownToast, setHasShownToast] = useState(false);
 
 

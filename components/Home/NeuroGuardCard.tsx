@@ -1047,14 +1047,14 @@ const NeuroGuardCard = () => {
   const WalletSection = memo(({ assets, existingGuards, RBYield, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, basketAssets: BasketAsset[] }) => {
     const [showAllYields, setShowAllYields] = useState(false);
 
-    const usableAssets = assets
+    const usableAssets = useMemo(() => assets
       .filter(asset =>
         asset &&
         num(asset.combinUsdValue).isGreaterThan(0.01) &&
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) &&
         asset.base !== denoms.CDT[0] // Exclude assets with base equal to CDT
         && (asset.symbol != "CDT" || asset.symbol != "marsUSDC" || asset.symbol != "OSMO/USDC.axl LP" || asset.symbol != "ATOM/OSMO LP" || asset.symbol != "USDC")
-      );
+      ), [assets, existingGuards]);
 
     // console.log("usableAssets", usableAssets)
 
@@ -1220,7 +1220,7 @@ const NeuroGuardCard = () => {
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
       ) ? */}
-      {/* <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} basketAssets={basketAssets ?? []} /> */}
+      <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} basketAssets={basketAssets ?? []} />
       {/* : null} */}
 
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) ?

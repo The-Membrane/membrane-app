@@ -821,9 +821,6 @@ const NeuroGuardCard = () => {
   const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
     num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
   )
-  const underlyingCDT = useMemo(() =>
-    shiftDigits(underlyingData, -6).toString() ?? "0"
-    , [underlyingData])
   console.timeEnd("NG");
 
 
@@ -850,6 +847,9 @@ const NeuroGuardCard = () => {
   }
   const [hasShownToast, setHasShownToast] = useState(false);
 
+  const underlyingCDT = useMemo(() =>
+    shiftDigits(underlyingData, -6).toString() ?? "0"
+    , [underlyingData])
 
   const isDisabled = polishIntents?.simulate.isError || !polishIntents?.simulate.data
   const isLoading = polishIntents?.simulate.isLoading || polishIntents?.tx.isPending

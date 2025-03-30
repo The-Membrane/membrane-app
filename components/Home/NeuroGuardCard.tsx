@@ -1214,7 +1214,7 @@ const NeuroGuardCard = () => {
 
   // Prevent rendering until all required data is ready
   if (areQueriesLoading) {
-    return <AnimatedBorderImage imageSrc={"/images/cdt.svg"} size={"60%"} />;
+    return <AnimatedBorderImage />;
   }
 
   return (

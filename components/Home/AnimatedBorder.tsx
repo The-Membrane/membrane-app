@@ -12,12 +12,12 @@ const AnimatedBorderImage = () => {
                 style={{ width: containerSize, height: containerSize }}
             >
                 <img
-                    src="/api/placeholder/65/65"
+                    src="/images/cdt.svg"
                     alt="Logo"
                     style={{
                         position: 'absolute',
-                        width: size,
-                        height: size,
+                        width: `${size}px`,
+                        height: `${size}px`,
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',

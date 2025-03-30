@@ -1213,7 +1213,7 @@ const NeuroGuardCard = () => {
 
 
   // Prevent rendering until all required data is ready
-  if (areQueriesLoading) {
+  if (true) {
     return <AnimatedBorderImage />;
   }
 

@@ -858,7 +858,6 @@ const NeuroGuardCard = () => {
     boundCDTBalance,
     underlyingData
   ].some(data => data === undefined || data === null);
-  import { useMemo, useRef } from "react";
 
   const rerenderCounts = new Map<string, number>();
 
@@ -885,7 +884,7 @@ const NeuroGuardCard = () => {
 
     if (prevDeps.current) {
       Object.entries(dependencies).forEach(([key, value]) => {
-        if (prevDeps.current![key] !== value) {
+        if (prevDeps.current![key as keyof typeof dependencies] !== value) {
           console.log(`${key} changed`);
 
           // Track the number of times each dependency changes

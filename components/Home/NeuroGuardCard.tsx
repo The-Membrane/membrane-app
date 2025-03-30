@@ -810,10 +810,38 @@ const NeuroGuardCard = () => {
   const { data: basketAssets } = useBasketAssets()
   const { action: polishIntents } = useNeuroIntentPolish()
   const cdtAsset = useAssetBySymbol('CDT')
-  const cdtBalance = useBalanceByAsset(cdtAsset) ?? "0"
+  // const cdtBalance = useBalanceByAsset(cdtAsset) ?? "0"
   const usdcAsset = useAssetBySymbol('USDC')
   const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
   const toaster = useToaster();
+
+  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
+  const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
+  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
+    num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
+  )
+
+  // Determine if any of these are still loading
+  const areQueriesLoading = [
+    basketPositions,
+    basket,
+    TVL,
+    userIntents,
+    walletBalances,
+    prices,
+    interest,
+    basketAssets,
+    cdtAsset,
+    usdcAsset,
+    boundCDTAsset,
+    underlyingData,
+    boundCDTBalance
+  ].some(data => data === undefined || data === null);
+
+  // Prevent rendering until all required data is ready
+  if (areQueriesLoading) {
+    return <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />; // Replace with your actual loading component
+  }
   const [hasShownToast, setHasShownToast] = useState(false);
 
 
@@ -860,22 +888,15 @@ const NeuroGuardCard = () => {
     }
   }, [isDisabled, isLoading]);
 
-  const { data: vaultInfo } = useVaultInfo()
 
   const calculatedRBYield = useMemo(() => {
-
     // console.log(" calculatedRBYield")
     if (!basket || !interest || !TVL) return "0";
-    return simpleBoundedAPRCalc(shiftDigits(basket.credit_asset.amount, -6).toNumber(), interest, TVL, shiftDigits(vaultInfo?.debtAmount, 6).toNumber() ?? 0);
-  }, [basket, interest, TVL, vaultInfo?.debtAmount]);
+    return simpleBoundedAPRCalc(shiftDigits(basket.credit_asset.amount, -6).toNumber(), interest, TVL, 0);
+  }, [basket, interest, TVL]);
   // // console.log(calculatedRBYield, basket, interest, TVL)
 
   ////
-  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
-  const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
-  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
-    num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
-  )
   const underlyingCDT = useMemo(() =>
     shiftDigits(underlyingData, -6).toString() ?? "0"
     , [underlyingData])
@@ -1252,9 +1273,9 @@ const NeuroGuardCard = () => {
         </Stack>
         : null}
 
-      {/* {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?
+      {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?
         <CDPsSection positions={nonNeuroGuardPositions} cdtMarketPrice={cdtMarketPrice} />
-        : null} */}
+        : null}
     </Stack>
   )
 }

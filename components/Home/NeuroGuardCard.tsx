@@ -787,6 +787,24 @@ function ToastButton({ isLoading, isDisabled, onClick }) {
   );
 }
 
+function deepEqual(obj1: any, obj2: any): boolean {
+  if (Object.is(obj1, obj2)) return true; // Handles primitives and identical references
+
+  if (
+    typeof obj1 !== "object" || obj1 === null ||
+    typeof obj2 !== "object" || obj2 === null
+  ) {
+    return false; // If either isn't an object, they're not equal
+  }
+
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  if (keys1.length !== keys2.length) return false; // Different number of keys
+
+  return keys1.every(key => deepEqual(obj1[key], obj2[key])); // Recursively compare values
+}
+
 const NeuroGuardCard = () => {
   console.log("NG render")
 
@@ -894,7 +912,7 @@ const NeuroGuardCard = () => {
       let changeDetected = false;
 
       Object.entries(dependencies).forEach(([key, value]) => {
-        if (prevDeps.current && prevDeps.current[key as keyof typeof dependencies] !== value) {
+        if (!deepEqual(prevDeps.current![key as keyof typeof dependencies], value)) { // Deep compare
           console.log(`${key} changed`);
           rerenderCounts.current.set(key, (rerenderCounts.current.get(key) || 0) + 1);
           changeDetected = true;

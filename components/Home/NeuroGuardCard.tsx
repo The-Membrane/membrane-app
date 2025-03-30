@@ -1206,7 +1206,7 @@ const NeuroGuardCard = () => {
 
       </HStack>
       <HStack alignItems="none" flexWrap={"wrap"} height={"600px"} justifyContent="center" marginBottom={"5%"} gap="3">
-        <RangeBoundVisual />
+        {/* <RangeBoundVisual /> */}
         {/* <Stack width={"32%"} justifyContent={(Number(cdtMarketPrice) < 0.985 && Number(minimumSwapCapacity) > 22) ? "center" : "none"} gap="1.5rem">
           <RangeBoundInfoCard RBYield={calculatedRBYield} TVL={num(TVL).times(cdtMarketPrice).toFixed(2) ?? "0"} scrollFn={scrollToSection} />
           {Number(cdtMarketPrice) < 0.985 && Number(minimumSwapCapacity) > 22 && <ManicRedemptionCard basket={basket} cdtMarketPrice={Number(cdtMarketPrice)} />}
@@ -1222,7 +1222,7 @@ const NeuroGuardCard = () => {
       ) ? */}
       <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} basketAssets={basketAssets ?? []} />
       {/* : null} */}
-      {/* 
+
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) ?
         <Stack>
           <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
@@ -1250,7 +1250,7 @@ const NeuroGuardCard = () => {
             <>{guard && guard.symbol != "CDT" && (guard.symbol == "N/A" ? Number(boundCDTBalance) === 0 : true) ? <MemoizedNeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} /> : null}</>
           )}
         </Stack>
-        : null} */}
+        : null}
 
       {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?
         <CDPsSection positions={nonNeuroGuardPositions} cdtMarketPrice={cdtMarketPrice} />

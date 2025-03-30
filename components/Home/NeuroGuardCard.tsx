@@ -1086,7 +1086,7 @@ const NeuroGuardCard = () => {
         && (asset.symbol != "CDT" || asset.symbol != "marsUSDC" || asset.symbol != "OSMO/USDC.axl LP" || asset.symbol != "ATOM/OSMO LP" || asset.symbol != "USDC")
       ), [assets, existingGuards]);
 
-    console.log("wallet rerendered")
+    console.log("wallet rerendered", assets, existingGuards, RBYield, basketAssets)
 
 
     return (

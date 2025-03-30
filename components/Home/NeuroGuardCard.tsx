@@ -547,8 +547,8 @@ const AcquireCDTEntry = React.memo(({
   const { action: swap, tokenOutMinAmount } = useSwapToCDT({ onSuccess: () => { }, run: txType === "deposit" })
   const { action: rblp } = useBoundedLP({ onSuccess: () => { }, run: txType != "deposit" })
   // const isLoading = swap?.simulate.isLoading || swap?.tx.isPending || rblp?.simulate.isLoading || rblp?.tx.isPending
-  const isSwapDisabled = usdcBalance === 0
-  const isRBLPDisabled = inputValue === 0
+  const isSwapDisabled = usdcBalance === 0 || quickActionState?.usdcSwapToCDT === 0
+  const isRBLPDisabled = inputValue === 0 || rblpDeposit === 0 || quickActionState?.rangeBoundLPwithdrawal === 0
   // console.log("isDisabled", usdcBalance === 0, swap?.simulate.error?.message, !swap?.simulate.data, rblp?.simulate.error?.message, !rblp?.simulate.data)
   useEffect(() => {
     setTxType("deposit")
@@ -807,9 +807,9 @@ const NeuroGuardCard = () => {
   const { setNeuroState } = useNeuroState()
 
   const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
-  useEffect(() => {
-    console.log("neuroStateAssets changed:", neuroStateAssets);
-  }, [neuroStateAssets]);
+  // useEffect(() => {
+  //   console.log("neuroStateAssets changed:", neuroStateAssets);
+  // }, [neuroStateAssets]);
   // useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
   console.log("finsihed useBalance")
@@ -859,6 +859,21 @@ const NeuroGuardCard = () => {
     underlyingData
   ].some(data => data === undefined || data === null);
 
+  useMemo(() => console.log("hooks changes to cause a rerender"), [
+    basketPositions,
+    basket,
+    TVL,
+    userIntents,
+    walletBalances,
+    prices,
+    interest,
+    basketAssets,
+    cdtAsset,
+    usdcAsset,
+    boundCDTAsset,
+    boundCDTBalance,
+    underlyingData])
+
   const [hasShownToast, setHasShownToast] = useState(false);
 
 
@@ -872,8 +887,6 @@ const NeuroGuardCard = () => {
 
   //Toast if a msg is ever ready to rock
   useEffect(() => {
-
-    console.log("isDisabled polish",)
 
     if (!hasShownToast && !isDisabled && !isLoading) {
       toaster.message({
@@ -941,7 +954,7 @@ const NeuroGuardCard = () => {
   }, [walletBalances]);
 
   const sortedAssets = useMemo(() => {
-    if (!prices || !walletBalances || !assets) return [];
+    if (!prices || !walletBalances || !assets || !walletDenoms) return [];
 
     const assetsPlusCDT = [...assets, {
       base: denoms.CDT[0],

@@ -816,7 +816,7 @@ const NeuroGuardCard = () => {
   useEffect(() => {
     console.log("Prices changed:", prices);
   }, [prices]);
-  console.log("finsihed prices")
+  console.log("finsihed prices", prices)
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
   console.log("finsihed CollateralInterest")
@@ -873,7 +873,7 @@ const NeuroGuardCard = () => {
   //Toast if a msg is ever ready to rock
   useEffect(() => {
 
-    // console.log("isDisabled polish", isDisabled, isLoading)
+    console.log("isDisabled polish",)
 
     if (!hasShownToast && !isDisabled && !isLoading) {
       toaster.message({
@@ -1086,7 +1086,7 @@ const NeuroGuardCard = () => {
         && (asset.symbol != "CDT" || asset.symbol != "marsUSDC" || asset.symbol != "OSMO/USDC.axl LP" || asset.symbol != "ATOM/OSMO LP" || asset.symbol != "USDC")
       ), [assets, existingGuards]);
 
-    // console.log("usableAssets", usableAssets)
+    console.log("wallet rerendered")
 
 
     return (

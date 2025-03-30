@@ -1189,7 +1189,7 @@ const NeuroGuardCard = () => {
   return (
     <Stack gap={1} marginBottom="3%">
       {/* This handles all deposits and withdrawals into the Rangebound LP */}
-      {/* <AcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} rblpDeposit={Number(underlyingCDT)} address={address ?? ""} /> */}
+      <AcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} rblpDeposit={Number(underlyingCDT)} address={address ?? ""} />
 
       <Divider mt="5%" />
 
@@ -1222,7 +1222,7 @@ const NeuroGuardCard = () => {
       ) ? */}
       <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} basketAssets={basketAssets ?? []} />
       {/* : null} */}
-
+      {/* 
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) ?
         <Stack>
           <Text marginTop="3%" width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
@@ -1250,7 +1250,7 @@ const NeuroGuardCard = () => {
             <>{guard && guard.symbol != "CDT" && (guard.symbol == "N/A" ? Number(boundCDTBalance) === 0 : true) ? <MemoizedNeuroGuardExistingEntry guardedPosition={guard} RBYield={calculatedRBYield} prices={prices} /> : null}</>
           )}
         </Stack>
-        : null}
+        : null} */}
 
       {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?
         <CDPsSection positions={nonNeuroGuardPositions} cdtMarketPrice={cdtMarketPrice} />

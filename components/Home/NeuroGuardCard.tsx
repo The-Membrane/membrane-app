@@ -859,7 +859,8 @@ const NeuroGuardCard = () => {
     underlyingData
   ].some(data => data === undefined || data === null);
 
-  const rerenderCounts = new Map<string, number>();
+
+  const rerenderCounts = useRef(new Map<string, number>()); // Use ref to persist across renders
 
   const dependencies = {
     basketPositions,
@@ -880,26 +881,34 @@ const NeuroGuardCard = () => {
   // Store previous dependencies
   const prevDeps = useRef<typeof dependencies | null>(null);
 
-  // Memoize hook execution
+  // Log rerender trigger
   useMemo(() => {
     console.log("hooks changes to cause a rerender");
   }, Object.values(dependencies));
 
   // Track changes in useEffect
   useEffect(() => {
+    console.log("useEffect triggered");
+
     if (prevDeps.current) {
+      let changeDetected = false;
+
       Object.entries(dependencies).forEach(([key, value]) => {
         if (prevDeps.current && prevDeps.current[key as keyof typeof dependencies] !== value) {
           console.log(`${key} changed`);
-          rerenderCounts.set(key, (rerenderCounts.get(key) || 0) + 1);
+          rerenderCounts.current.set(key, (rerenderCounts.current.get(key) || 0) + 1);
+          changeDetected = true;
         }
       });
 
-      console.log("Total changes:", Object.fromEntries(rerenderCounts));
+      if (changeDetected) {
+        console.log("Total changes:", Object.fromEntries(rerenderCounts.current));
+      }
     }
 
     prevDeps.current = dependencies;
   }, Object.values(dependencies));
+
   const [hasShownToast, setHasShownToast] = useState(false);
 
 

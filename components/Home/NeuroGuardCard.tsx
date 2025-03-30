@@ -1252,9 +1252,9 @@ const NeuroGuardCard = () => {
         </Stack>
         : null}
 
-      {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?
+      {/* {nonNeuroGuardPositions && nonNeuroGuardPositions.length > 0 && nonNeuroGuardPositions[0] ?
         <CDPsSection positions={nonNeuroGuardPositions} cdtMarketPrice={cdtMarketPrice} />
-        : null}
+        : null} */}
     </Stack>
   )
 }

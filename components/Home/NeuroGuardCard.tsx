@@ -40,67 +40,67 @@ import ConfirmModal from "../ConfirmModal"
 import { HomeSummary } from "./HomeSummary"
 
 // Extracted RBLPDepositEntry component
-const RBLPDepositEntry = React.memo(({
-  asset,
-  RBYield
-}: {
-  asset: AssetWithBalance
-  RBYield: string
-}) => {
+// const RBLPDepositEntry = React.memo(({
+//   asset,
+//   RBYield
+// }: {
+//   asset: AssetWithBalance
+//   RBYield: string
+// }) => {
 
-  const { isOpen, onOpen, onClose } = useDisclosure()
+//   const { isOpen, onOpen, onClose } = useDisclosure()
 
-  {/* @ts-ignore */ }
-  const isDisabled = false
+//   {/* @ts-ignore */ }
+//   const isDisabled = false
 
-  const yieldValue = num(RBYield).times(100).toFixed(2)
+//   const yieldValue = num(RBYield).times(100).toFixed(2)
 
 
-  return (
-    <>
-      <Card width="100%" borderWidth={3} padding={4}>
-        <HStack gap="9%">
-          {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
-          <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            Your
-            {/* @ts-ignore */}
-            {num((asset?.balance ?? 0)).toFixed(2)}
-            CDT could be earning
-            {yieldValue}% APR
-          </Text>
-          <Button
-            width="36%"
-            minWidth={"262px"}
-            display="flex"
-            padding="0"
-            alignSelf="center"
-            margin="0"
-            onClick={onOpen}
-            isDisabled={isDisabled}
-          >
-            Deposit
-          </Button>
-        </HStack>
-      </Card >
+//   return (
+//     <>
+//       <Card width="100%" borderWidth={3} padding={4}>
+//         <HStack gap="9%">
+//           {asset.logo ? <Image src={asset.logo} w="30px" h="30px" /> : null}
+//           <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+//             Your
+//             {/* @ts-ignore */}
+//             {num((asset?.balance ?? 0)).toFixed(2)}
+//             CDT could be earning
+//             {yieldValue}% APR
+//           </Text>
+//           <Button
+//             width="36%"
+//             minWidth={"262px"}
+//             display="flex"
+//             padding="0"
+//             alignSelf="center"
+//             margin="0"
+//             onClick={onOpen}
+//             isDisabled={isDisabled}
+//           >
+//             Deposit
+//           </Button>
+//         </HStack>
+//       </Card >
 
-      <Modal
-        isOpen={isOpen}
-        onClose={onClose}
-        isCentered
-        size="xl"
-        closeOnOverlayClick={true}
-      >
-        <ModalOverlay />
-        <RBLPDepositModal
-          isOpen={isOpen}
-          onClose={onClose}
-          cdtAsset={asset}
-        />
-      </Modal>
-    </>
+//       <Modal
+//         isOpen={isOpen}
+//         onClose={onClose}
+//         isCentered
+//         size="xl"
+//         closeOnOverlayClick={true}
+//       >
+//         <ModalOverlay />
+//         <RBLPDepositModal
+//           isOpen={isOpen}
+//           onClose={onClose}
+//           cdtAsset={asset}
+//         />
+//       </Modal>
+//     </>
 
-  )
-})
+//   )
+// })
 
 
 // Extracted NeuroGuardOpenEntry component
@@ -307,123 +307,123 @@ const NeuroGuardExistingEntry = React.memo(({
 })
 
 // Extracted RBLPExistingEntry component
-const RBLPExistingEntry = React.memo(({
-  rblpDeposit,
-  RBYield,
-  cdtMarketPrice,
-  address
-}: {
-  rblpDeposit: number
-  RBYield: string
-  cdtMarketPrice: string
-  address: string
-}) => {
+// const RBLPExistingEntry = React.memo(({
+//   rblpDeposit,
+//   RBYield,
+//   cdtMarketPrice,
+//   address
+// }: {
+//   rblpDeposit: number
+//   RBYield: string
+//   cdtMarketPrice: string
+//   address: string
+// }) => {
 
-  const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
-  const { appState } = useAppState();
-  //find the asset in the assets array
-  //@ts-ignore
-  const asset = neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) || { logo: "/images/cdt.svg", symbol: "CDT", balance: 0 }
-  // // console.log("cdtAsset", asset, neuroState.assets)
+//   const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
+//   const { appState } = useAppState();
+//   //find the asset in the assets array
+//   //@ts-ignore
+//   const asset = neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) || { logo: "/images/cdt.svg", symbol: "CDT", balance: 0 }
+//   // // console.log("cdtAsset", asset, neuroState.assets)
 
-  //We need the cookie to be set even if these render before the user has checked the cookie box
-  const [initialDepositAmount, setInitialDepositAmount] = useState(0);
-  useEffect(() => {
-    const cookieKey = "rblp " + address;
-    let cookie = getCookie(cookieKey);
-    // console.log("rblp cookie", cookie)
+//   //We need the cookie to be set even if these render before the user has checked the cookie box
+//   const [initialDepositAmount, setInitialDepositAmount] = useState(0);
+//   useEffect(() => {
+//     const cookieKey = "rblp " + address;
+//     let cookie = getCookie(cookieKey);
+//     // console.log("rblp cookie", cookie)
 
-    if (cookie == null && appState.setCookie) {
-      // console.log("setting RBLP cookie", cookie)
-      setCookie(cookieKey, rblpDeposit.toString(), 3650);
-      cookie = rblpDeposit.toString();
-    }
+//     if (cookie == null && appState.setCookie) {
+//       // console.log("setting RBLP cookie", cookie)
+//       setCookie(cookieKey, rblpDeposit.toString(), 3650);
+//       cookie = rblpDeposit.toString();
+//     }
 
-    setInitialDepositAmount(Number(cookie || 0));
-  }, [appState.setCookie, rblpDeposit]);
+//     setInitialDepositAmount(Number(cookie || 0));
+//   }, [appState.setCookie, rblpDeposit]);
 
-  // // console.log("initialDepositAmount", initialDepositAmount)
-
-
-  const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure()
-  const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure()
+//   // // console.log("initialDepositAmount", initialDepositAmount)
 
 
-  {/* @ts-ignore */ }
-  const isDisabled = (asset?.symbol === "N/A") || false
-  // // console.log("isDisabled", isDisabled, asset?.balance, asset)
-  const yieldValue = num(RBYield).times(100).toFixed(1)
+//   const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure()
+//   const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure()
+
+
+//   {/* @ts-ignore */ }
+//   const isDisabled = (asset?.symbol === "N/A") || false
+//   // // console.log("isDisabled", isDisabled, asset?.balance, asset)
+//   const yieldValue = num(RBYield).times(100).toFixed(1)
 
 
 
-  return (
-    <>
-      <Card width="fit-content" alignSelf="center" marginBottom="5%" borderWidth={3} padding={4}>
-        <HStack>
-          <Image src={"/images/cdt.svg"} w="45px" h="45px" />
-          <Text width="fit-content" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-            {rblpDeposit.toFixed(2)}&nbsp;CDT earning&nbsp;
-            {yieldValue}% APR
-            {/* {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%&nbsp; */}
-            {/* historical profits */}
-          </Text>
-          <HStack width="55%">
-            {/* @ts-ignore */}
-            <Button
-              width="100%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={onDepositOpen}
-              //@ts-ignore
-              isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
-            >
-              Deposit
-            </Button>
+//   return (
+//     <>
+//       <Card width="fit-content" alignSelf="center" marginBottom="5%" borderWidth={3} padding={4}>
+//         <HStack>
+//           <Image src={"/images/cdt.svg"} w="45px" h="45px" />
+//           <Text width="fit-content" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
+//             {rblpDeposit.toFixed(2)}&nbsp;CDT earning&nbsp;
+//             {yieldValue}% APR
+//             {/* {initialDepositAmount == 0 ? "0.00" : Math.max(0, num(rblpDeposit).dividedBy(initialDepositAmount).minus(1).times(100).toNumber()).toFixed(2)}%&nbsp; */}
+//             {/* historical profits */}
+//           </Text>
+//           <HStack width="55%">
+//             {/* @ts-ignore */}
+//             <Button
+//               width="100%"
+//               display="flex"
+//               padding="0"
+//               alignSelf="center"
+//               margin="0"
+//               onClick={onDepositOpen}
+//               //@ts-ignore
+//               isDisabled={isDisabled || (asset?.balance ?? 0) === 0}
+//             >
+//               Deposit
+//             </Button>
 
-            <Button
-              width="100%"
-              display="flex"
-              padding="0"
-              alignSelf="center"
-              margin="0"
-              onClick={onWithdrawOpen}
-              isDisabled={isDisabled || rblpDeposit === 0}
-            >
-              Withdraw
-            </Button>
-          </HStack>
-        </HStack>
-      </Card>
+//             <Button
+//               width="100%"
+//               display="flex"
+//               padding="0"
+//               alignSelf="center"
+//               margin="0"
+//               onClick={onWithdrawOpen}
+//               isDisabled={isDisabled || rblpDeposit === 0}
+//             >
+//               Withdraw
+//             </Button>
+//           </HStack>
+//         </HStack>
+//       </Card>
 
-      <Modal
-        isOpen={isDepositOpen}
-        onClose={onDepositClose}
-        isCentered
-        size="xl"
-        closeOnOverlayClick={true}
-      >
-        <ModalOverlay />
-        {/* @ts-ignore */}
-        <RBLPDepositModal isOpen={isDepositOpen} onClose={onDepositClose} cdtAsset={asset} />
+//       <Modal
+//         isOpen={isDepositOpen}
+//         onClose={onDepositClose}
+//         isCentered
+//         size="xl"
+//         closeOnOverlayClick={true}
+//       >
+//         <ModalOverlay />
+//         {/* @ts-ignore */}
+//         <RBLPDepositModal isOpen={isDepositOpen} onClose={onDepositClose} cdtAsset={asset} />
 
-      </Modal>
-      <Modal
-        isOpen={isWithdrawOpen}
-        onClose={onWithdrawClose}
-        isCentered
-        size="xl"
-        closeOnOverlayClick={true}
-      >
-        <ModalOverlay />
-        <RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={onWithdrawClose} cdtMarketPrice={cdtMarketPrice} rblpDeposit={rblpDeposit} />
+//       </Modal>
+//       <Modal
+//         isOpen={isWithdrawOpen}
+//         onClose={onWithdrawClose}
+//         isCentered
+//         size="xl"
+//         closeOnOverlayClick={true}
+//       >
+//         <ModalOverlay />
+//         <RBLPWithdrawModal isOpen={isWithdrawOpen} onClose={onWithdrawClose} cdtMarketPrice={cdtMarketPrice} rblpDeposit={rblpDeposit} />
 
-      </Modal>
+//       </Modal>
 
-    </>
-  )
-})
+//     </>
+//   )
+// })
 
 
 // Extracted VaultEntry component
@@ -883,10 +883,10 @@ const NeuroGuardCard = () => {
 
 
   const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price.price || "1"
-  const usdcPrice = useMemo(() => {
-    // console.log(" usdcPrice")
-    return prices?.find((price) => price.denom === denoms.USDC[0])?.price ?? "1"
-  }, [prices])
+  // const usdcPrice = useMemo(() => {
+  //   // console.log(" usdcPrice")
+  //   return prices?.find((price) => price.denom === denoms.USDC[0])?.price ?? "1"
+  // }, [prices])
 
   // Define priority order for specific symbols
   const prioritySymbols = ['WBTC.ETH.AXL', 'stATOM', 'stOSMO', 'stTIA']

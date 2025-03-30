@@ -1,7 +1,7 @@
 import useWallet from '@/hooks/useWallet'
 import useAppState from '@/persisted-state/useAppState'
-import { getDelegatorInfo } from '@/services/staking'
-import { getProposal } from '@/services/governance'
+import { getDelegatorInfo, useStakingClient } from '@/services/staking'
+import { getProposal, useGovernanceClient } from '@/services/governance'
 import { getUserDelegations } from '@/services/staking'
 import { getUserVotingPower } from '@/services/governance'
 import { getProposals } from '@/services/governance'
@@ -9,15 +9,15 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/router'
 
 export const useProposalById = (proposalId: number) => {
-    const { appState } = useAppState()
+    const { data: client } = useGovernanceClient()
     const { address } = useWallet()
     const router = useRouter()
 
     return useQuery({
-        queryKey: ['proposal', appState.rpcUrl, proposalId, address, router.pathname],
+        queryKey: ['proposal', client, proposalId, address, router.pathname],
         queryFn: async () => {
             if (router.pathname != "/stake") return
-            return getProposal(proposalId, appState.rpcUrl, address)
+            return getProposal(proposalId, client, address)
         },
         enabled: !!proposalId,
     })
@@ -25,16 +25,16 @@ export const useProposalById = (proposalId: number) => {
 
 
 export const useDelegator = (address: string, enabled = false) => {
-    const { appState } = useAppState()
+    const { data: client } = useStakingClient()
     const router = useRouter()
 
     return useQuery({
-        queryKey: ['delegator', appState.rpcUrl, address, router.pathname],
+        queryKey: ['delegator', client, address, router.pathname],
         queryFn: async () => {
             if (router.pathname != "/stake") return
             if (!address) return Promise.reject('No address found')
 
-            return getDelegatorInfo(address, appState.rpcUrl)
+            return getDelegatorInfo(address, client)
         },
         enabled: !!address && enabled,
     })
@@ -44,15 +44,17 @@ export const useDelegator = (address: string, enabled = false) => {
 export const useVotingPower = (proposalId: number) => {
     const { appState } = useAppState()
     const { address } = useWallet()
+
+    const { data: client } = useGovernanceClient()
     const router = useRouter()
 
     return useQuery({
-        queryKey: ['user voting power', appState.rpcUrl, address, proposalId, router.pathname],
+        queryKey: ['user voting power', client, address, proposalId, router.pathname],
         queryFn: async () => {
             if (router.pathname != "/stake") return
             if (!address) return Promise.reject('No address found')
 
-            return getUserVotingPower(address, proposalId, appState.rpcUrl)
+            return getUserVotingPower(address, proposalId, client)
         },
         enabled: !!address && !!proposalId,
     })
@@ -60,14 +62,14 @@ export const useVotingPower = (proposalId: number) => {
 
 
 export const useProposals = () => {
-    const { appState } = useAppState()
+    const { data: client } = useGovernanceClient()
     const router = useRouter()
 
     return useQuery({
-        queryKey: ['proposals', appState.rpcUrl, router.pathname],
+        queryKey: ['proposals', client, router.pathname],
         queryFn: async () => {
             if (router.pathname != "/stake") return
-            return getProposals(appState.rpcUrl)
+            return getProposals(client)
         },
     })
 }
@@ -75,16 +77,16 @@ export const useProposals = () => {
 
 export const useDelegations = () => {
     const { address } = useWallet()
-    const { appState } = useAppState()
+    const { data: client } = useStakingClient()
     const router = useRouter()
 
     return useQuery({
-        queryKey: ['delegations', address, appState.rpcUrl, router.pathname],
+        queryKey: ['delegations', address, client, router.pathname],
         queryFn: async () => {
             if (router.pathname != "/stake") return
             if (!address) return Promise.reject('No address found')
 
-            return getUserDelegations(address, appState.rpcUrl)
+            return getUserDelegations(address, client)
         },
         enabled: !!address,
     })

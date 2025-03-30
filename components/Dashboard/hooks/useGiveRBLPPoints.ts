@@ -78,7 +78,7 @@ const useGiveRBLPPoints = () => {
 
     const msgs = queryData?.msgs ?? []
 
-    console.log("rblp give points msgs", msgs)
+    // console.log("rblp give points msgs", msgs)
 
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['dashboard_rblp_give_points'] })

@@ -1,6 +1,6 @@
 import contracts from '@/config/contracts.json'
 import { Addr } from '@/contracts/generated/positions/Positions.types'
-import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
+import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { StakingClient, StakingQueryClient } from '@/contracts/generated/staking/Staking.client'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { coin } from '@cosmjs/amino'
@@ -10,6 +10,22 @@ import delegates from '@/config/delegates.json'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
+import { useQuery } from '@tanstack/react-query'
+
+export const useStakingClient = () => {
+  const { data: cosmWasmClient } = useCosmWasmClient()
+
+  return useQuery({
+    queryKey: ['staking_client', cosmWasmClient],
+    queryFn: async () => {
+      if (!cosmWasmClient) return null
+      return new StakingQueryClient(cosmWasmClient, contracts.staking)
+    },
+    // enabled: true,
+    // You might want to add staleTime to prevent unnecessary refetches
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
 
 export const stakingClient = async (rpcUrl: string) => {
   console.log("staking CW client")
@@ -35,13 +51,11 @@ export const stake = async ({ signingClient, address, denom, amount }: StakingPa
   return client.stake({}, 'auto', undefined, funds)
 }
 
-export const getConfig = async (rpcUrl: string) => {
-  const client = await stakingClient(rpcUrl)
+export const getConfig = async (client: any) => {
   return client.config()
 }
 
-export const getStaked = async (address: Addr, rpcUrl: string) => {
-  const client = await stakingClient(rpcUrl)
+export const getStaked = async (address: Addr, client: any) => {
   return client.userStake({
     staker: address,
   })
@@ -57,8 +71,7 @@ const parseClaimable = (claimable: LiqAsset[]) => {
     }
   })
 }
-export const getRewards = async (address: Addr, rpcUrl: string) => {
-  const client = await stakingClient(rpcUrl)
+export const getRewards = async (address: Addr, client: any) => {
   let rewards;
   try {
     rewards = await client.userRewards({
@@ -79,10 +92,9 @@ export const getRewards = async (address: Addr, rpcUrl: string) => {
   ]
 }
 
-export const getUserDelegations = async (address: Addr, rpcUrl: string) => {
+export const getUserDelegations = async (address: Addr, client: any) => {
   // 'osmo1d9ryqp7yfmr92vkk2yal96824pewf2g5wx0h2r'
-  const client = await stakingClient(rpcUrl)
-  const config = await getConfig(rpcUrl)
+  const config = await getConfig(client)
   try {
     const [userDelegation, ...other] = await client.delegations({
       user: address,
@@ -135,8 +147,7 @@ export const buildUpdateDelegationMsg = async (address: Addr, delegations: any[]
   return msgs
 }
 
-export const getDelegatorInfo = async (address: Addr, rpcUrl: string) => {
-  const client = await stakingClient(rpcUrl)
+export const getDelegatorInfo = async (address: Addr, client: any) => {
   const [userDelegation] = await client.delegations({
     user: address,
   })

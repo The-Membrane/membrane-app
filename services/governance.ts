@@ -11,10 +11,26 @@ import {
   ProposalResponse as ProposalResponseType,
   ProposalStatus,
 } from '@/contracts/codegen/governance/Governance.types'
-import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
+import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { num } from '@/helpers/num'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
+import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
+
+export const useGovernanceClient = () => {
+  const { data: cosmWasmClient } = useCosmWasmClient()
+
+  return useQuery({
+    queryKey: ['gov_client', cosmWasmClient],
+    queryFn: async () => {
+      if (!cosmWasmClient) return null
+      return new GovernanceQueryClient(cosmWasmClient, contracts.governance)
+    },
+    // enabled: true,
+    // You might want to add staleTime to prevent unnecessary refetches
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
 
 export const getGovernanceClient = async (rpcUrl: string) => {
   console.log("gov CW client")
@@ -156,14 +172,12 @@ const parseProposal = (proposals: ProposalResponseType[]) => {
   return [...activeProposals, ...completedProposals, ...executedProposals, ...pendingProposals]
 }
 
-export const getConfig = async (rpcUrl: string) => {
-  const client = await getGovernanceClient(rpcUrl)
+export const getConfig = async (client: any) => {
   return client.config()
 }
 
-export const getProposals = async (rpcUrl: string) => {
-  const client = await getGovernanceClient(rpcUrl)
-  const config = await getConfig(rpcUrl)
+export const getProposals = async (client: any) => {
+  const config = await getConfig(client)
   // const requiredQuorum = parseFloat(config.proposal_required_quorum)
   const requiredQuorum = num(config.proposal_required_quorum).times(100).toNumber()
 
@@ -240,19 +254,18 @@ const checkIfVoted = (proposal: Proposal, address?: Addr) => {
   }
 }
 
-const getTotalVotingPower = async (proposal: Proposal, rpcUrl: string) => {
-  const client = await getGovernanceClient(rpcUrl)
+const getTotalVotingPower = async (proposal: Proposal, client: any) => {
 
   return client.totalVotingPower({
     proposalId: Number(proposal.proposal_id),
   })
 }
 
-const getQuorum = async (proposal: Proposal, rpcUrl: string) => {
-  const config = await getConfig(rpcUrl)
+const getQuorum = async (proposal: Proposal, client: any) => {
+  const config = await getConfig(client)
   const { against_power, for_power, aligned_power, amendment_power, removal_power } = proposal
 
-  const totalVotingPower = await getTotalVotingPower(proposal, rpcUrl)
+  const totalVotingPower = await getTotalVotingPower(proposal, client)
 
   var standardized_align_power = num(aligned_power)
     .minus(config.proposal_required_stake)
@@ -271,10 +284,9 @@ const getQuorum = async (proposal: Proposal, rpcUrl: string) => {
   return num(q).isLessThan(1) ? num(q).times(100).toNumber() : q
 }
 
-export const getProposal = async (proposalId: number, rpcUrl: string, address?: Addr) => {
-  const client = await getGovernanceClient(rpcUrl)
+export const getProposal = async (proposalId: number, client: any, address?: Addr) => {
   const proposal = await client.proposal({ proposalId })
-  const quorum = await getQuorum(proposal, rpcUrl)
+  const quorum = await getQuorum(proposal, client)
   const vote = checkIfVoted(proposal, address)
 
   return {
@@ -284,8 +296,7 @@ export const getProposal = async (proposalId: number, rpcUrl: string, address?: 
   }
 }
 
-export const getUserVotingPower = async (address: Addr, proposalId: number, rpcUrl: string) => {
-  const client = await getGovernanceClient(rpcUrl)
+export const getUserVotingPower = async (address: Addr, proposalId: number, client: any) => {
   return client.userVotingPower({
     user: address,
     proposalId,

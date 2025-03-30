@@ -364,11 +364,11 @@ export const useRBLPCDTBalance = () => {
 export const getBoundedCDTBalance = () => {
     const boundCDTAsset = useAssetBySymbol("range-bound-CDT")
     const boundCDTBalance = useBalanceByAsset(boundCDTAsset)
-    console.log("bound balance", boundCDTAsset, boundCDTBalance)
+    // console.log("bound balance", boundCDTAsset, boundCDTBalance)
 
     //Get VTs that are in RBLP's intents
     const { data } = useUserBoundedIntents()
-    console.log("user intents", data)
+    // console.log("user intents", data)
     const router = useRouter()
 
     return useQuery({
@@ -498,7 +498,6 @@ export const useVaultInfo = () => {
         queryFn: async () => {
 
             console.log("vault info path", router.pathname)
-            if (router.pathname != "/manic") return
             if (!client || !basket || !prices) return
             //Query Vault's CDP 
             const vaultCDPs = await client.getBasketPositions({

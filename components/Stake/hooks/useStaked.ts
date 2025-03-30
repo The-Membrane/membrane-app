@@ -1,24 +1,24 @@
 import { num } from '@/helpers/num'
 import useWallet from '@/hooks/useWallet'
 import useAppState from '@/persisted-state/useAppState'
-import { getRewards, getStaked } from '@/services/staking'
+import { getRewards, getStaked, useStakingClient } from '@/services/staking'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/router'
 
 
 const useStaked = (run: boolean) => {
   const { address } = useWallet()
-  const { appState } = useAppState()
   const router = useRouter()
+  const { data: client } = useStakingClient()
 
   return useQuery({
-    queryKey: ['staked', address, appState.rpcUrl, run, router.pathname],
+    queryKey: ['staked', address, client, run, router.pathname],
     queryFn: async () => {
       if (router.pathname != "/stake" && !run) return
       if (!address) return null
 
       // Check if we use stakeState or requery
-      const data = await getStaked(address, appState.rpcUrl)
+      const data = await getStaked(address, client)
 
       const { deposit_list } = data
 
@@ -29,7 +29,7 @@ const useStaked = (run: boolean) => {
         return acc.plus(s.amount)
       }, num(0)).toNumber()
 
-      const rewards = await getRewards(address, appState.rpcUrl)
+      const rewards = await getRewards(address, client)
       //Reward query is erroring (?)
 
       return {

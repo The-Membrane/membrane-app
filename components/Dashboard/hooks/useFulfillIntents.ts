@@ -72,7 +72,7 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }
 
     const msgs = queryData?.msgs ?? []
 
-    console.log("msgs", msgs)
+    // console.log("msgs", msgs)
 
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })

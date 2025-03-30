@@ -61,7 +61,7 @@ function SoloLeveling() {
 
   return (
     <Stack as="solo-leveling" style={{ marginTop: "6%" }}>
-      <Text fontSize="sm" color="whiteAlpha.700">
+      <Text fontSize="1rem" color="whiteAlpha.700">
         <span style={{ fontWeight: "bold", color: "white" }}>Rank {rank}:</span> {parseFloat(points.stats.total_points).toFixed(1)} Points
       </Text>
       <Slider

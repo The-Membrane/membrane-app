@@ -23,7 +23,7 @@ const AnimatedBorderImage = () => {
             <div className="relative" style={{ width: totalSize, height: totalSize }}>
                 {/* The image */}
                 <img
-                    src="/api/placeholder/65/65"
+                    src="/images/cdt.svg"
                     alt="Logo"
                     className="absolute"
                     style={{

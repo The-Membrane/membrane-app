@@ -38,6 +38,7 @@ import { set } from "react-hook-form"
 import useBoundedLP from "./hooks/useRangeBoundLP"
 import ConfirmModal from "../ConfirmModal"
 import { HomeSummary } from "./HomeSummary"
+import AnimatedBorderImage from "./AnimatedBorder"
 
 // Extracted RBLPDepositEntry component
 // const RBLPDepositEntry = React.memo(({
@@ -808,40 +809,23 @@ function deepEqual(obj1: any, obj2: any): boolean {
 const NeuroGuardCard = () => {
   console.log("NG render")
 
-  // const { data: clRewardList } = getBestCLRange()
-  console.time("NG")
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
 
-  console.log("finsihed basketPositions")
-  // // console.log("basketPositions", basketPositions)
   const { data: basket } = useBasket()
-  console.log("finsihed basket")
   // // console.log("basketPositions", basketPositions)
   const { data: TVL } = useBoundedTVL()
-  console.log("finsihed boundedTVL")
   const { data: userIntents } = useUserBoundedIntents()
-  console.log("finsihed userIntents")
   const { setNeuroState } = useNeuroState()
 
   const neuroStateAssets = useNeuroState(state => state.neuroState.assets);
-  // useEffect(() => {
-  //   console.log("neuroStateAssets changed:", neuroStateAssets);
-  // }, [neuroStateAssets]);
-  // useEstimatedAnnualInterest(false)
   const { data: walletBalances } = useBalance()
-  console.log("finsihed useBalance")
   const assets = useCollateralAssets()
-  console.log("finsihed CollaterarlAssets")
   const { data: prices } = useOraclePrice()
-  console.log("finsihed prices", prices)
   // const { data: clRewardList } = getBestCLRange()
   const { data: interest } = useCollateralInterest()
-  console.log("finsihed CollateralInterest")
   const { data: basketAssets } = useBasketAssets()
-  console.log("finsihed basketASsets")
   const { action: polishIntents } = useNeuroIntentPolish()
-  console.log("finsihed polish action")
 
   const cdtAsset = useAssetBySymbol('CDT')
   // const cdtBalance = useBalanceByAsset(cdtAsset) ?? "0"
@@ -854,11 +838,6 @@ const NeuroGuardCard = () => {
   const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
     num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
   )
-  console.log("finsihed asset shit")
-
-
-  console.timeEnd("NG")
-
 
   // Determine if any of these are still loading
   const areQueriesLoading = [
@@ -876,56 +855,6 @@ const NeuroGuardCard = () => {
     boundCDTBalance,
     underlyingData
   ].some(data => data === undefined || data === null);
-
-
-  const rerenderCounts = useRef(new Map<string, number>()); // Use ref to persist across renders
-
-  const dependencies = {
-    basketPositions,
-    basket,
-    TVL,
-    userIntents,
-    walletBalances,
-    prices,
-    interest,
-    basketAssets,
-    cdtAsset,
-    usdcAsset,
-    boundCDTAsset,
-    boundCDTBalance,
-    underlyingData,
-  };
-
-  // Store previous dependencies
-  const prevDeps = useRef<typeof dependencies | null>(null);
-
-  // Log rerender trigger
-  useMemo(() => {
-    console.log("hooks changes to cause a rerender");
-  }, Object.values(dependencies));
-
-  // Track changes in useEffect
-  useEffect(() => {
-    console.log("useEffect triggered");
-
-    if (prevDeps.current) {
-      let changeDetected = false;
-
-      Object.entries(dependencies).forEach(([key, value]) => {
-        if (!deepEqual(prevDeps.current![key as keyof typeof dependencies], value)) { // Deep compare
-          console.log(`${key} changed`);
-          rerenderCounts.current.set(key, (rerenderCounts.current.get(key) || 0) + 1);
-          changeDetected = true;
-        }
-      });
-
-      if (changeDetected) {
-        console.log("Total changes:", Object.fromEntries(rerenderCounts.current));
-      }
-    }
-
-    prevDeps.current = dependencies;
-  }, Object.values(dependencies));
 
   const [hasShownToast, setHasShownToast] = useState(false);
 
@@ -1285,7 +1214,7 @@ const NeuroGuardCard = () => {
 
   // Prevent rendering until all required data is ready
   if (areQueriesLoading) {
-    return <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />; // Replace with your actual loading component
+    return <AnimatedBorderImage imageSrc={"/images/cdt.svg"} size={"60%"} />;
   }
 
   return (

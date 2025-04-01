@@ -39,6 +39,7 @@ import { setInitialMintState } from '@/helpers/mint'
 import { GrPowerReset } from 'react-icons/gr'
 import { NeuroCloseModal } from '../Home/NeuroModals'
 import { useOraclePrice } from '@/hooks/useOracle'
+import { OnboardModal } from './OnboardModal'
 
 type PaginationProps = {
   pagination: {
@@ -244,6 +245,11 @@ const Mint = React.memo(() => {
   const zoomLevel = useBreakpointValue({ xxs: "60%", xs: "70%", sm: "80%", base: "90%", md: "100%" })
   console.log("zoomLevel", zoomLevel)
 
+  const { isOpen: isOnboardOpen, onOpen: onOnboardOpen, onClose: onOnboardClose } = useDisclosure()
+  useEffect(() => {
+    onOnboardOpen()
+  }, [isOnboardOpen])
+
   return (
     <Stack gap="1rem" paddingTop="4%" height={"100%"} alignSelf={"center"} style={{ zoom: `${zoomLevel}` }} >
       {
@@ -286,7 +292,7 @@ const Mint = React.memo(() => {
             </Stack>
           </>
       }
-
+      <OnboardModal isOpen={isOnboardOpen} onClose={onOnboardClose} />
     </Stack>
   )
 })

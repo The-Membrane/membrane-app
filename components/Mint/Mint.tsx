@@ -253,7 +253,7 @@ const Mint = React.memo(() => {
     if (!rulesState.cdpShow && rulesState.cdpShow !== undefined) {
       onOnboardClose()
     }
-    if (rulesState.cdpShow) {
+    if (rulesState.cdpShow || rulesState.cdpShow === undefined) {
       onOnboardOpen()
     }
   }, [rulesState.cdpShow])

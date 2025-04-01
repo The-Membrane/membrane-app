@@ -32,8 +32,8 @@ export const OnboardModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: ()
     // console.log("rules modal", isOpen)
 
     const handleAgree = useCallback(() => {
-        console.log("ran agree")
-        setRulesState({ show: false })
+        console.log("ran cdp rules")
+        setRulesState({ cdpShow: false })
         onClose()
     }, [setRulesState, onClose])
 

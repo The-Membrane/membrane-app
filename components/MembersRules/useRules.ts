@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 
 export type RulesState = {
   show: boolean
+  cdpShow: boolean
 }
 
 type Store = {
@@ -13,6 +14,7 @@ type Store = {
 
 const initialState: RulesState = {
   show: true,
+  cdpShow: true
 }
 
 // @ts-ignore

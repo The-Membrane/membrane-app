@@ -40,6 +40,7 @@ import { GrPowerReset } from 'react-icons/gr'
 import { NeuroCloseModal } from '../Home/NeuroModals'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { OnboardModal } from './OnboardModal'
+import useMembersRulesState from '../MembersRules/useRules'
 
 type PaginationProps = {
   pagination: {
@@ -246,9 +247,17 @@ const Mint = React.memo(() => {
   console.log("zoomLevel", zoomLevel)
 
   const { isOpen: isOnboardOpen, onOpen: onOnboardOpen, onClose: onOnboardClose } = useDisclosure()
-  useEffect(() => {
-    onOnboardOpen()
-  }, [isOnboardOpen])
+  const { rulesState } = useMembersRulesState()
+
+  useMemo(() => {
+    if (!rulesState.cdpShow && rulesState.cdpShow !== undefined) {
+      onOnboardClose()
+    }
+    if (rulesState.cdpShow) {
+      onOnboardOpen()
+    }
+  }, [rulesState.cdpShow])
+
 
   return (
     <Stack gap="1rem" paddingTop="4%" height={"100%"} alignSelf={"center"} style={{ zoom: `${zoomLevel}` }} >

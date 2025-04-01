@@ -22,7 +22,7 @@ export const notes = [
     "Individual collateral parameters influence the overall loan parameters",
     "Interest rates automatically increase when CDT depegs",
     "Liquidations are partial, ~25% ",
-    "Deposits and withdrawals are limited by supply caps"
+    "Deposits and withdrawals are limited by supply caps if you have debt"
 ]
 
 export const OnboardModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {

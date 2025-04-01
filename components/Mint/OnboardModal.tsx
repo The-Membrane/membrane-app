@@ -18,8 +18,8 @@ import { colors } from '@/config/defaults'
 import useMembersRulesState from '../MembersRules/useRules'
 
 export const notes = [
-    "You can add any number of collateral ",
-    "Collateral params proportionally influence the Loan params",
+    "You can add any number of collateral to your bundle",
+    "Individual collateral parameters influence the overall loan params",
     "Interest rates automatically increase when CDT depegs",
     "Liquidations are partial, ~25% ",
     "Individual collateral deposits and withdrawals are limited by supply caps"
@@ -51,7 +51,7 @@ export const OnboardModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: ()
                 >
                     <ModalBody p="24x 23px" position="relative" zIndex={1}>
                         <Stack h="full">
-                            <Text variant="title" fontSize={isMobile ? "20px" : "45px"} textAlign="center" py={4}>
+                            <Text variant="title" fontSize={isMobile ? "20px" : "35px"} textAlign="center" py={4}>
                                 Loan Information
                             </Text>
 

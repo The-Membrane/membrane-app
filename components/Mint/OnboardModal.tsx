@@ -22,7 +22,7 @@ export const notes = [
     "Individual collateral parameters influence the overall loan params",
     "Interest rates automatically increase when CDT depegs",
     "Liquidations are partial, ~25% ",
-    "Individual collateral deposits and withdrawals are limited by supply caps"
+    "Deposits and withdrawals are limited by supply caps"
 ]
 
 export const OnboardModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
@@ -44,7 +44,7 @@ export const OnboardModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: ()
                 <ModalOverlay />
 
                 <ModalContent
-                    h={"493px"}
+                    h={"fit-content"}
                     w="534px"
                     borderWidth={"2px"}
                     borderColor={colors.tabBG}

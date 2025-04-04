@@ -1069,100 +1069,100 @@ const NeuroGuardCard = () => {
 
 
   // Separate complex sections into components
-  const WalletSection = memo(({ assets, existingGuards, RBYield, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, basketAssets: BasketAsset[] }) => {
-    const [showAllYields, setShowAllYields] = useState(false);
+  // const WalletSection = memo(({ assets, existingGuards, RBYield, basketAssets }: { assets: any[], existingGuards: any[], RBYield: string, basketAssets: BasketAsset[] }) => {
+  //   const [showAllYields, setShowAllYields] = useState(false);
 
-    const usableAssets = useMemo(() => assets
-      .filter(asset =>
-        asset &&
-        num(asset.combinUsdValue).isGreaterThan(0.01) &&
-        !existingGuards?.some(guard => guard?.symbol === asset.symbol) &&
-        asset.base !== denoms.CDT[0] // Exclude assets with base equal to CDT
-        && (asset.symbol != "CDT" || asset.symbol != "marsUSDC" || asset.symbol != "OSMO/USDC.axl LP" || asset.symbol != "ATOM/OSMO LP" || asset.symbol != "USDC")
-      ), [assets, existingGuards]);
+  //   const usableAssets = useMemo(() => assets
+  //     .filter(asset =>
+  //       asset &&
+  //       num(asset.combinUsdValue).isGreaterThan(0.01) &&
+  //       !existingGuards?.some(guard => guard?.symbol === asset.symbol) &&
+  //       asset.base !== denoms.CDT[0] // Exclude assets with base equal to CDT
+  //       && (asset.symbol != "CDT" || asset.symbol != "marsUSDC" || asset.symbol != "OSMO/USDC.axl LP" || asset.symbol != "ATOM/OSMO LP" || asset.symbol != "USDC")
+  //     ), [assets, existingGuards]);
 
-    console.log("wallet rerendered", assets, existingGuards, RBYield, basketAssets)
+  //   console.log("wallet rerendered", assets, existingGuards, RBYield, basketAssets)
 
 
-    return (
-      <Stack>
-        <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
-          Your Wallet -&nbsp;
-          <a onClick={toggleExpanded} style={{ color: colors.tabBG, textDecoration: "underline", cursor: "pointer" }}>FAQ</a>
-        </Text>
+  //   return (
+  //     <Stack>
+  //       <Text width="35%" variant="title" textTransform={"capitalize"} fontFamily="Inter" fontSize="xl" letterSpacing="1px" display="flex" color={colors.earnText}>
+  //         Your Wallet -&nbsp;
+  //         <a onClick={toggleExpanded} style={{ color: colors.tabBG, textDecoration: "underline", cursor: "pointer" }}>FAQ</a>
+  //       </Text>
 
-        <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
-        </FAQModal>
-        <Checkbox
-          checked={showAllYields}
-          onChange={() => { setShowAllYields(!showAllYields) }}
-          fontFamily="Inter"
-          fontSize={"9px"}
-        >
-          Show All Yields
-        </Checkbox>
-        {usableAssets && usableAssets.length != 0 &&
-          <HStack gap="1%" p={4}>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-              Asset
-            </Text>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-              Balance
-            </Text>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-              Potential APR
-            </Text>
-            <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
-              Actions
-            </Text>
-          </HStack>}
-        <Stack gap={"1rem"}>{showAllYields ?
+  //       <FAQModal isOpen={isExpanded} onClose={toggleExpanded}>
+  //       </FAQModal>
+  //       <Checkbox
+  //         checked={showAllYields}
+  //         onChange={() => { setShowAllYields(!showAllYields) }}
+  //         fontFamily="Inter"
+  //         fontSize={"9px"}
+  //       >
+  //         Show All Yields
+  //       </Checkbox>
+  //       {usableAssets && usableAssets.length != 0 &&
+  //         <HStack gap="1%" p={4}>
+  //           <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+  //             Asset
+  //           </Text>
+  //           <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+  //             Balance
+  //           </Text>
+  //           <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+  //             Potential APR
+  //           </Text>
+  //           <Text width="25%" justifyContent="left" variant="title" textAlign="center" color={colors.noState} fontSize="md" letterSpacing="1px" display="flex">
+  //             Actions
+  //           </Text>
+  //         </HStack>}
+  //       <Stack gap={"1rem"}>{showAllYields ?
 
-          basketAssets.map((basketAsset) => {
-            if (!basketAsset || basketAsset.asset?.symbol === "marsUSDC" || basketAsset.asset?.symbol === "OSMO/USDC.axl LP" || basketAsset.asset?.symbol === "ATOM/OSMO LP" || basketAsset.asset?.symbol === "USDC") {
-              return null;
-            }
+  //         basketAssets.map((basketAsset) => {
+  //           if (!basketAsset || basketAsset.asset?.symbol === "marsUSDC" || basketAsset.asset?.symbol === "OSMO/USDC.axl LP" || basketAsset.asset?.symbol === "ATOM/OSMO LP" || basketAsset.asset?.symbol === "USDC") {
+  //             return null;
+  //           }
 
-            return (
-              <MemoizedNeuroGuardOpenEntry
-                key={basketAsset.asset?.symbol ?? basketAsset.asset?.base}
-                asset={{
-                  base: basketAsset.asset?.base,
-                  symbol: basketAsset.asset?.symbol ?? "",
-                  logo: basketAsset.asset?.logo ?? "",
-                  maxBorrowLTV: basketAsset.maxBorrowLTV,
-                  // @ts-ignore
-                  balance: 0,
-                  combinUsdValue: num(basketAsset.interestRate).toNumber(),
-                }}
-                RBYield={RBYield}
-                basketAssets={basketAssets}
-              />
-            );
-          })
+  //           return (
+  //             <MemoizedNeuroGuardOpenEntry
+  //               key={basketAsset.asset?.symbol ?? basketAsset.asset?.base}
+  //               asset={{
+  //                 base: basketAsset.asset?.base,
+  //                 symbol: basketAsset.asset?.symbol ?? "",
+  //                 logo: basketAsset.asset?.logo ?? "",
+  //                 maxBorrowLTV: basketAsset.maxBorrowLTV,
+  //                 // @ts-ignore
+  //                 balance: 0,
+  //                 combinUsdValue: num(basketAsset.interestRate).toNumber(),
+  //               }}
+  //               RBYield={RBYield}
+  //               basketAssets={basketAssets}
+  //             />
+  //           );
+  //         })
 
-          : <Stack>
-            {/* Wallet Assets */}
-            {usableAssets.map((asset) => {
-              if (!asset) {
-                return null;
-              }
-              // // console.log("wallet asset symbol", asset.symbol)
-              return (
-                <MemoizedNeuroGuardOpenEntry
-                  key={asset.symbol}
-                  asset={asset}
-                  basketAssets={basketAssets}
-                  RBYield={RBYield}
-                />
-              )
-            })}
-          </Stack>
+  //         : <Stack>
+  //           {/* Wallet Assets */}
+  //           {usableAssets.map((asset) => {
+  //             if (!asset) {
+  //               return null;
+  //             }
+  //             // // console.log("wallet asset symbol", asset.symbol)
+  //             return (
+  //               <MemoizedNeuroGuardOpenEntry
+  //                 key={asset.symbol}
+  //                 asset={asset}
+  //                 basketAssets={basketAssets}
+  //                 RBYield={RBYield}
+  //               />
+  //             )
+  //           })}
+  //         </Stack>
 
-        }</Stack>
-      </Stack>
-    );
-  });
+  //       }</Stack>
+  //     </Stack>
+  //   );
+  // });
 
   const CDPsSection = memo(({ positions, cdtMarketPrice }: { positions: any[], cdtMarketPrice: string }) => {
     return (
@@ -1251,7 +1251,7 @@ const NeuroGuardCard = () => {
         Number(asset.combinUsdValue) > 0.01 && // check USD value
         !existingGuards?.some(guard => guard?.symbol === asset.symbol) // check not in existing guards
       ) ? */}
-      <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} basketAssets={basketAssets ?? []} />
+      {/* <WalletSection assets={neuroStateAssets} existingGuards={existingGuards} RBYield={calculatedRBYield} basketAssets={basketAssets ?? []} /> */}
       {/* : null} */}
 
       {(existingGuards && existingGuards.length > 0 && existingGuards[0]) ?

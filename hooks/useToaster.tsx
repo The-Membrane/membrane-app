@@ -60,7 +60,7 @@ const defaultSettings: UseToastOptions = {
 const ToastContent = ({ message, txHash, explorer }: ToastProps) => {
   const first4 = txHash?.slice(0, 4)
   const last4 = txHash?.slice(-4)
-  const txLink = eval('`' + explorer?.tx_page + '`')
+  const txLink = eval('`' + "https://celatone.osmosis.zone/osmosis-1/txs/${txHash}" + '`')
 
   // console.log("tx ready to toast", txLink)
 

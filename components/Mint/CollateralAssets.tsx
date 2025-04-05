@@ -8,11 +8,11 @@ import { colors } from '@/config/defaults'
 import { InitialCDPDeposit } from './InitialCDPDeposit'
 import { useUserPositions } from '@/hooks/useCDP'
 
-export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => {
+export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[], transactionType: string) => {
   return combinBalance
     ?.filter((asset) => {
       if (!asset) return false
-      return num(asset.combinUsdValue || 0).isGreaterThan(0.01)
+      return num(transactionType === "deposit" ? asset.walletsdValue : asset.depositUsdValue).isGreaterThan(0.01)
     })
     .map((asset) => ({
       ...asset,
@@ -30,12 +30,12 @@ const CollateralAssets = () => {
   const { assets } = mintState
 
   useEffect(() => {
-    const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance)
+    const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance, mintState.transactionType)
     setMintState({ assets: assetsWithValuesGreaterThanZero })
   }, [combinBalance])
 
   useEffect(() => {
-    const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance)
+    const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance, mintState.transactionType)
 
     if (toggle) {
       //Replace assets in combinBalance that are in assetsWithValuesGreaterThanZero
@@ -47,7 +47,7 @@ const CollateralAssets = () => {
     } else {
       setMintState({ assets: assetsWithValuesGreaterThanZero })
     }
-  }, [toggle])
+  }, [toggle, mintState.transactionType])
 
   const showInitialCDPDeposit = basketPositions !== undefined && mintState.positionNumber <= basketPositions[0].positions.length
 

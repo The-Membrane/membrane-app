@@ -27,7 +27,7 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = fals
 
 const TakeAction = React.memo(() => {
   const { mintState, setMintState } = useMintState()
-  // const { reset } = useBasketState()
+  const combinBalance = useCombinBalance(mintState.positionNumber - 1)
 
   const { data } = useVaultSummary()
   const { ltv, borrowLTV, initialBorrowLTV, initialLTV, debtAmount } = data || {
@@ -45,6 +45,13 @@ const TakeAction = React.memo(() => {
   const handleTabClick = (index: string) => {
     setActiveTabIndex(index === "deposit" ? 0 : 1);
     setMintState({ transactionType: index });
+    setInitialMintState({
+      combinBalance,
+      ltv: initialLTV,
+      borrowLTV: initialBorrowLTV,
+      setMintState,
+      reset: mintState.reset
+    });
   };
 
   return (

@@ -28,7 +28,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
   // const { isOpen: isDepositOpen, onOpen: onDepositOpen, onClose: onDepositClose } = useDisclosure();
   // const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure();
   const [transactionValue, setTransactionValue] = useState('');
-  const [transactionType, setTransactionType] = useState<string>("deposit");
+  const { transactionType } = mintState
 
   // const [changeValue, setChangeValue] = useState(0);
 

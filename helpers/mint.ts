@@ -102,7 +102,7 @@ export const setInitialMintState = ({
 
   const assetsWithValuesGreaterThanZero = combinBalance
     ?.filter((asset) => {
-      return num(asset.combinUsdValue || 0).isGreaterThan(1)
+      return num(asset.combinUsdValue || 0).isGreaterThan(0.01)
     })
     .map((asset) => ({
       ...asset,

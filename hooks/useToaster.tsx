@@ -79,6 +79,7 @@ const ToastContent = ({ message, txHash, explorer }: ToastProps) => {
 export const getExplorer = (chain: Chain | undefined) => {
   const explorerOrder = ['mintscan', 'atomscan'].reverse()
   const explorers = chain?.explorers || []
+  console.log("explorers", explorers)
 
   return explorers
     .filter((explorer) => explorer?.kind)

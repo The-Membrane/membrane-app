@@ -63,7 +63,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
   // const isAdditionDisabled = asset.walletsdValue === 0 || transactionValue === '';
   // const isSubtractionDisabled = asset.depositUsdValue === 0 || transactionValue === '';
-  console.log("asset in withInput", asset);
+  console.log("asset in withInput", asset, transactionType);
 
 
   //Handle Reset Button

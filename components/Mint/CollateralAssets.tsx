@@ -12,7 +12,7 @@ export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[]) => 
   return combinBalance
     ?.filter((asset) => {
       if (!asset) return false
-      return num(asset.combinUsdValue || 0).isGreaterThan(1)
+      return num(asset.combinUsdValue || 0).isGreaterThan(0)
     })
     .map((asset) => ({
       ...asset,

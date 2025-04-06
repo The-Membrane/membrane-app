@@ -8,6 +8,8 @@ import { HomeTitle } from './HomeTitle'
 import { RulesModal } from '../MembersRules/RulesModal'
 import useMembersRulesState from '../MembersRules/useRules'
 import { set } from 'react-hook-form'
+import PointsLeaderboard from './PointsLeaderboard'
+import { useLeaderboardData } from '@/hooks/usePoints'
 
 // Memoize child components
 // const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
@@ -74,6 +76,8 @@ const Home = () => {
 
 
 
+  const { data: leaderboardData } = useLeaderboardData()
+
   // Memoize the entire content to prevent unnecessary re-renders
   return (
     <Stack>
@@ -82,6 +86,7 @@ const Home = () => {
       <Stack>
         <NeuroGuardCard />
       </Stack>
+      <PointsLeaderboard data={leaderboardData} />
     </Stack>
   );
 

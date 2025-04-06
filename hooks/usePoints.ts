@@ -48,7 +48,7 @@ export const useUserPoints = () => {
   const { address } = useWallet()
   const { data: points } = useAllUserPoints()
   //sort points by total_points
-  points?.sort((a, b) => parseFloat(b.stats.total_points) - parseFloat(a.stats.total_points))
+  // points?.sort((a, b) => parseFloat(b.stats.total_points) - parseFloat(a.stats.total_points))
   // console.log("all points", points)
 
   return useQuery({
@@ -111,6 +111,38 @@ export const useSoloLevel = () => {
 
       //Return level
       return { level, points_in_level, levelup_max_points }
+    },
+  })
+}
+
+export const useLeaderboardData = () => {
+  const { address } = useWallet()
+  const { data: points } = useAllUserPoints()
+
+  return useQuery({
+    queryKey: ['points_leaderboard', address, points],
+    queryFn: async () => {
+      if (!points) return
+
+      // Step 1: Convert total_points to numbers
+      const parsed = points.map((entry) => ({
+        address: entry.user,
+        points: parseFloat(entry.stats.total_points),
+      }));
+
+      // Step 2: Sort by total points descending
+      parsed.sort((a, b) => b.points - a.points);
+
+      // Step 3: Calculate total supply
+      const totalSupply = parsed.reduce((sum, entry) => sum + entry.points, 0);
+
+      // Step 4: Map to leaderboard format with rank and % of total supply
+      return parsed.map((entry, index) => ({
+        rank: index + 1,
+        address: entry.address,
+        points: entry.points,
+        percentOfSupply: totalSupply === 0 ? '0.000%' : `${((entry.points / totalSupply) * 100).toFixed(3)}%`,
+      }));
     },
   })
 }

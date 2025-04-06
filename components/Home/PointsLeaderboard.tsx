@@ -12,6 +12,8 @@ import {
     useColorModeValue,
 } from '@chakra-ui/react';
 import { useLeaderboardData } from '@/hooks/usePoints';
+import { colors } from '@/config/defaults';
+import useWallet from '@/hooks/useWallet';
 
 export type LeaderboardEntry = {
     rank: number;
@@ -28,10 +30,11 @@ type Props = {
 const PointsLeaderboard: React.FC<Props> = ({ data }) => {
     const bg = useColorModeValue('white', 'gray.800');
     const border = useColorModeValue('gray.200', 'gray.700');
+    const { address } = useWallet();
 
     if (!data || data.length === 0) {
         return (
-            <Box bg={bg} border="1px" borderColor={border} borderRadius="xl" p={6} boxShadow="md">
+            <Box bg={bg} border="1px" borderColor={border} borderRadius="xl" p={6} boxShadow="md" mt={"10%"}>
                 <Heading size="md" mb={4}>
                     Points Leaderboard
                 </Heading>
@@ -43,7 +46,7 @@ const PointsLeaderboard: React.FC<Props> = ({ data }) => {
     }
 
     return (
-        <Box bg={bg} border="1px" borderColor={border} borderRadius="xl" p={6} boxShadow="md">
+        <Box bg={bg} border="1px" borderColor={border} borderRadius="xl" p={6} boxShadow="md" mt={"10%"}>
             <Heading size="md" mb={4}>
                 Points Leaderboard
             </Heading>
@@ -60,10 +63,10 @@ const PointsLeaderboard: React.FC<Props> = ({ data }) => {
                     <Tbody>
                         {data.map((entry) => (
                             <Tr key={entry.rank}>
-                                <Td>{entry.rank}</Td>
-                                <Td>{entry.address}</Td>
-                                <Td isNumeric>{entry.points.toLocaleString()}</Td>
-                                <Td isNumeric>{entry.percentOfSupply}</Td>
+                                <Td color={entry.address === address ? colors.tabBG : undefined}>{entry.rank}</Td>
+                                <Td color={entry.address === address ? colors.tabBG : undefined}>{entry.address}</Td>
+                                <Td isNumeric color={entry.address === address ? colors.tabBG : undefined}>{entry.points.toLocaleString()}</Td>
+                                <Td isNumeric color={entry.address === address ? colors.tabBG : undefined}>{entry.percentOfSupply}</Td>
                             </Tr>
                         ))}
                     </Tbody>

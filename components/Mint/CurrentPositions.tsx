@@ -17,6 +17,7 @@ const CurrentPositions = () => {
         </Text>
 
         <IconButton
+          onClick={onToggle}
           icon={<ChevronDownIcon />}
           size="sm"
           variant="ghost"

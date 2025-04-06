@@ -37,7 +37,7 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
     queryKey: ['msg_liquidations', run, address, allPositions, prices, basket],
     queryFn: () => {
       if (!address || !allPositions || !prices || !basket || !basketAssets || !run) {
-        // console.log("liq attempt", !address, !allPositions, !prices, !basket, !basketAssets, !run); 
+        console.log("liq attempt", !address, !allPositions, !prices, !basket, !basketAssets, !run);
         return { msgs: [], liquidating_positions: [] }
       }
 
@@ -46,7 +46,7 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
       var msgs = [] as MsgExecuteContractEncodeObject[]
 
       const cdpCalcs = getRiskyPositions(allPositions, prices, basket, basketAssets)
-      // console.log("liquidatible positions:", cdpCalcs.liquidatibleCDPs)
+      console.log("liquidatible positions:", cdpCalcs.liquidatibleCDPs)
       const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as { address: string, id: string, fee: string }[]
       console.log("liquidatible positions:", liq)
 

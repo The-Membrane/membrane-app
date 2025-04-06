@@ -29,13 +29,13 @@ export const useBasketAssets = () => {
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
   const assets = useAssets("osmosis")
-  const router = useRouter()
+  // const router = useRouter()
 
 
   return useQuery({
-    queryKey: ['get_basket_assets', basket, interest, assets, router.pathname],
+    queryKey: ['get_basket_assets', basket, interest, assets],
     queryFn: async () => {
-      if (router.pathname != "/" && router.pathname != "/borrow") return
+      // if (router.pathname != "/" && router.pathname != "/borrow") return
       if (!basket || !interest || !assets) return []
 
       console.log(" basketAssets")
@@ -133,12 +133,12 @@ export const useUserDiscount = (address: string | undefined) => {
 export const useBasketPositions = () => {
   const { address } = useWallet()
   const { data: client } = useCDPClient()
-  const router = useRouter()
+  // const router = useRouter()
 
   return useQuery({
-    queryKey: ['all positions', client, router.pathname],
+    queryKey: ['all positions', client],
     queryFn: async () => {
-      if (router.pathname != "/management" && router.pathname != "/borrow") return
+      // if (router.pathname != "/management" && router.pathname != "/borrow") return
       if (!client) return
       return getBasketPositions(client)
     },

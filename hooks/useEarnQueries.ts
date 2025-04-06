@@ -236,18 +236,18 @@ export const useEarnUSDCRealizedAPR = () => {
 }
 
 export const useEarnCDTRealizedAPR = () => {
-    const { data: earnClient } = useEarnClient()
+    const { data: client } = useCosmWasmClient()
     const router = useRouter()
 
     return useQuery({
-        queryKey: ['useCDTUSDCRealizedAPR', earnClient, router.pathname],
+        queryKey: ['useCDTUSDCRealizedAPR', client, router.pathname],
         queryFn: async () => {
             if (router.pathname != "/bid") return
-            if (!earnClient) return
+            if (!client) return
 
-            const claimTracker = await getEarnCDTRealizedAPR(earnClient)
-            const currentClaim = await getUnderlyingCDT("1000000000000", earnClient)
-            const blockTime = await earnClient.client.getBlock().then(block => Date.parse(block.header.time) / 1000)
+            const claimTracker = await getEarnCDTRealizedAPR(client)
+            const currentClaim = await getUnderlyingCDT("1000000000000", client)
+            const blockTime = await client.getBlock().then(block => Date.parse(block.header.time) / 1000)
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(), //subtracting gains from the exit bug

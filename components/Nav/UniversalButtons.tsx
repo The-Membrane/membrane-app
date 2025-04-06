@@ -1,5 +1,5 @@
 import { Stack } from '@chakra-ui/react'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import ConfirmModal from '../ConfirmModal'
 import { ClaimSummary } from '../Bid/ClaimSummary'
 import useProtocolClaims from './hooks/useClaims'
@@ -16,15 +16,36 @@ function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnable
     const liquidateLoading = (liquidate?.simulate.isLoading || liquidate?.tx.isPending)
 
 
+    const claimsDisabledRef = useRef(claimsDisabled);
+    const liquidateDisabledRef = useRef(liquidateDisabled);
+    const enabledRef = useRef(enabled);
+    const claimsLoadingRef = useRef(claimsLoading);
+    const liquidateLoadingRef = useRef(liquidateLoading);
+
     // console.log('uni buttns disabled', liquidateDisabled, claimsDisabled)
+    useEffect(() => {
+        claimsDisabledRef.current = claimsDisabled;
+        liquidateDisabledRef.current = liquidateDisabled;
+        enabledRef.current = enabled;
+        claimsLoadingRef.current = claimsLoading;
+        liquidateLoadingRef.current = liquidateLoading;
+    }, [claimsDisabled, liquidateDisabled, enabled, claimsLoading, liquidateLoading]);
+
 
     useMemo(() => {
         if (claimsDisabled && liquidateDisabled && enabled) {
             console.log("both disabled")
             setTimeout(() => {
-                if (claimsDisabled && liquidateDisabled && enabled && !claimsLoading && !liquidateLoading)
-                    setEnabled(false)
-            }, 7000)
+                if (
+                    claimsDisabledRef.current &&
+                    liquidateDisabledRef.current &&
+                    enabledRef.current &&
+                    !claimsLoadingRef.current &&
+                    !liquidateLoadingRef.current
+                ) {
+                    setEnabled(false);
+                }
+            }, 7000);
         }
     }, [claimsDisabled, liquidateDisabled, enabled])
 

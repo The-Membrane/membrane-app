@@ -8,12 +8,12 @@ import { useRouter } from 'next/router'
 
 export const useBasket = () => {
   const { data: client } = useCDPClient()
-  const router = useRouter()
+  // const router = useRouter()
 
   const result = useQuery({
-    queryKey: ['basket', client, router.pathname],
+    queryKey: ['basket', client],
     queryFn: async () => {
-      if (router.pathname != "/" && router.pathname != "/borrow" && router.pathname != "/bid" && router.pathname != "/management" && router.pathname != "/manic") return
+      // if (router.pathname != "/" && router.pathname != "/borrow" && router.pathname != "/bid" && router.pathname != "/management" && router.pathname != "/manic") return
       if (!client) return
       return getBasket(client)
     },
@@ -47,13 +47,13 @@ export const useBasketAssets = () => {
 
 export const useCollateralInterest = () => {
   const { data: client } = useCDPClient()
-  const router = useRouter()
+  // const router = useRouter()
 
   return useQuery({
-    queryKey: ['collateral interest', client, router.pathname],
+    queryKey: ['collateral interest', client],
     queryFn: async () => {
       if (!client) return
-      if (router.pathname != "/" && router.pathname != "/borrow") return
+      // if (router.pathname != "/" && router.pathname != "/borrow") return
       return getCollateralInterest(client)
     },
     staleTime: 1000 * 60 * 5,

@@ -34,7 +34,7 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
 
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg_liquidations', run, address, allPositions, prices, basket],
+    queryKey: ['msg_liquidations', run, address, allPositions, prices, basket, basketAssets],
     queryFn: () => {
       if (!address || !allPositions || !prices || !basket || !basketAssets || !run) {
         console.log("liq attempt", !address, !allPositions, !prices, !basket, !basketAssets, !run);

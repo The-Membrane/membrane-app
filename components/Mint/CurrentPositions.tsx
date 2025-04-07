@@ -1,4 +1,4 @@
-import { HStack, Stack, TabPanel, Card, Text, useBreakpointValue, Box, Collapse, IconButton, useDisclosure, Flex, Icon } from '@chakra-ui/react'
+import { HStack, Stack, TabPanel, Card, Text, useBreakpointValue, Box, Collapse, IconButton, useDisclosure, Flex } from '@chakra-ui/react'
 import { useCurrentPosition } from './hooks/useCurrentPosition'
 import React from 'react'
 import { colors } from '@/config/defaults'
@@ -16,17 +16,20 @@ const CurrentPositions = () => {
           Health: {Math.min(Math.max(0, stats.health), 100)}%
         </Text>
 
-        <Flex align="center" gap={1} transition="transform 0.2s">
-          <Text fontSize="sm" color="gray.600">
+
+        <IconButton
+          onClick={onToggle}
+          icon={<ChevronDownIcon />}
+          size="lg"
+          variant="ghost"
+          aria-label="Toggle"
+          transform={isOpen ? "rotate(180deg)" : "rotate(0deg)"}
+          transition="transform 0.2s"
+        >
+          <Text fontSize="lg" color={colors.tabBG}>
             {isOpen ? "Collapse" : "Expand"}
           </Text>
-          <Icon
-            as={ChevronDownIcon}
-            boxSize={4}
-            transform={isOpen ? "rotate(180deg)" : "rotate(0deg)"}
-            transition="transform 0.2s"
-          />
-        </Flex>
+        </IconButton>
 
         <Collapse in={isOpen} animateOpacity>
           {stats.stats.map(({ label, value, textColor = 'white' }) => (

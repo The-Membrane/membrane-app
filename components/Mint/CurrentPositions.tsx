@@ -19,7 +19,7 @@ const CurrentPositions = () => {
         <IconButton
           onClick={onToggle}
           icon={<ChevronDownIcon />}
-          size="sm"
+          size="lg"
           variant="ghost"
           aria-label="Toggle"
           transform={isOpen ? "rotate(180deg)" : "rotate(0deg)"}

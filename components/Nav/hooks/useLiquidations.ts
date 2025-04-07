@@ -31,6 +31,8 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
   const { data: basket } = useBasket()
   const { data: basketAssets } = useBasketAssets()
 
+  console.log(" basketAssets", basketAssets)
+
 
 
   const { data: queryData } = useQuery<QueryData>({

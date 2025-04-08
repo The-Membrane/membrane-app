@@ -123,7 +123,7 @@ const SPCard = ({ width = "33%", title = "Liquidate CDT" }: { width?: string, ti
         <Divider marginBottom={"3vh"} />
         <List spacing={3} styleType="disc" padding="6" paddingTop="0">
           <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: colors.slider }}>Yield:</a> Compounded Liquidations (no longer gets revenue)</ListItem>
-          <ListItem fontFamily="Inter" fontSize="md">Compounds over 10% Slippage = <a style={{ fontWeight: "bold", color: "rgb(231, 58, 58)" }}>Capital Loss</a> </ListItem>
+          <ListItem fontFamily="Inter" fontSize="md">Vault won't compound over 10% slippage. Holds assets otherwise.</ListItem>
           <ListItem fontFamily="Inter" fontSize="md">Minimum Deposit: 6 CDT</ListItem>
         </List>
         <ActSlider />

@@ -143,6 +143,7 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
       ltv: initialLTV,
       borrowLTV: initialBorrowLTV,
       setMintState,
+      transactionType: mintState.transactionType,
       reset: mintState.reset
     });
     //Requery basket to get updated current_position_id
@@ -306,3 +307,5 @@ const Mint = React.memo(() => {
 })
 
 export default Mint
+
+//FIX SUPPLY CAP ERRORS FOR EXPUNGED ASSETS/MAKE A MODAL TO ALERT EXPUNGED ASSETS. CHECK TWITTER DMS FOR INFO.

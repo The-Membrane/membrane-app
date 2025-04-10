@@ -14,7 +14,7 @@ const collateralSupplyCapErrors = () => {
     const assetSymbol = getAssetByDenom(assetDenom)?.symbol
     return {
       regex: new RegExp(`Supply cap ratio for ${assetDenom}`, 'i'),
-      message: `This transaction puts ${assetSymbol} over its supply cap. If withdrawing, withdraw ${assetSymbol}. If depositing with debt, withdraw ${assetSymbol} first. If depositing without debt, deposit enough of a different asset to reduce ${assetSymbol}'s cap so you can deposit it. If minting from zero debt with multiple cllateral, withdraw ${assetSymbol} first & attempt to deposit it after the mint.`,
+      message: `This transaction puts ${assetSymbol} over its supply cap. If withdrawing, withdraw ${assetSymbol}. If depositing with debt, withdraw ${assetSymbol} first. If depositing without debt, deposit enough of a different asset to reduce ${assetSymbol}'s cap so you can deposit it. If minting from zero debt with multiple collateral, withdraw ${assetSymbol} first & attempt to deposit it after the mint.`,
     }
   })
 }

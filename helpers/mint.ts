@@ -9,6 +9,7 @@ import { shiftDigits } from './math'
 import { getAssetBySymbol } from './chain'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { PointsMsgComposer } from '@/contracts/codegen/points/Points.message-composer'
+import { getAssetWithNonZeroValues } from '@/components/Mint/CollateralAssets'
 
 // const getDeposited = (deposited = 0, newDeposit: string) => {
 //   const diff = num(newDeposit).minus(deposited).dp(6).toNumber()
@@ -70,12 +71,14 @@ export const setInitialMintState = ({
   ltv,
   borrowLTV,
   setMintState,
+  transactionType = 'deposit',
   reset = false,
 }: {
   combinBalance: any
   ltv: any
   borrowLTV: any
   setMintState: any
+  transactionType?: string
   reset?: boolean
 }) => {
   // const assets = combinBalance
@@ -100,17 +103,8 @@ export const setInitialMintState = ({
   //     }
   //   })
 
-  const assetsWithValuesGreaterThanZero = combinBalance
-    ?.filter((asset) => {
-      return num(asset.combinUsdValue || 0).isGreaterThan(0.01)
-    })
-    .map((asset) => ({
-      ...asset,
-      sliderValue: asset.depositUsdValue || 0,
-      amount: 0,
-      amountValue: 0,
-    }))
 
+  const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance, transactionType)
   const ltvSlider = num(ltv).times(100).dividedBy(borrowLTV).toNumber()
 
   setMintState({

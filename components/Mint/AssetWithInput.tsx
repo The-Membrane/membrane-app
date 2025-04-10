@@ -94,8 +94,8 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
             value={transactionValue}
             onChange={(e) => {
               e.preventDefault();
-              setTransactionValue(String(Math.min(Number(e.target.value), (asset?.walletsdValue ?? 0))));
-              handleTransaction(transactionType, Math.min(Number(e.target.value), (asset?.walletsdValue ?? 0)));
+              setTransactionValue(String(Math.min(Number(e.target.value), Number(transactionType === "deposit" ? String(asset.walletsdValue.toFixed(2)) : String(asset.depositUsdValue.toFixed(2))))));
+              handleTransaction(transactionType, Math.min(Number(e.target.value), Number(transactionType === "deposit" ? String(asset.walletsdValue.toFixed(2)) : String(asset.depositUsdValue.toFixed(2)))));
             }}
           />
           <HStack alignContent={"right"} width={"100%"} justifyContent={"right"} height={"3vh"}>

@@ -16,9 +16,10 @@ const ActionButtons = () => {
   const mint = useMint()
   const { mintState } = useMintState()
   const { summary } = mintState
-  const { data: basketPositions } = useUserPositions()
+  // const { data: basketPositions } = useUserPositions()
 
   const isDisabled = mintState?.overdraft || mintState?.belowMinDebt || (!summary?.length && (!mintState?.mint && !mintState?.repay))
+  console.log(mint.tx.error, mint.simulate.error, mint.simulate.errorMessage)
 
   return (
     <HStack mt="0" gap="0">

@@ -13,7 +13,7 @@ import useNeuroState from "./useNeuroState"
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 
 
-const useCloseCDP = ({ position, debtAmount, onSuccess, run, debtCloseAmount }: { position: PositionResponse, debtAmount: number, onSuccess: () => void, run: boolean, debtCloseAmount: number }) => {
+const useCloseCDP = ({ position, debtAmount, onSuccess, run, debtCloseAmount, maxSpread }: { position: PositionResponse, debtAmount: number, onSuccess: () => void, run: boolean, debtCloseAmount: number, maxSpread: string }) => {
     const { address } = useWallet()
     // const { neuroState } = useNeuroState()
 
@@ -27,6 +27,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess, run, debtCloseAmount }: 
             position.position_id,
             position.credit_amount,
             debtCloseAmount,
+            maxSpread,
             run
         ],
         queryFn: () => {
@@ -52,7 +53,7 @@ const useCloseCDP = ({ position, debtAmount, onSuccess, run, debtCloseAmount }: 
                         msg: toUtf8(JSON.stringify({
                             close_position: {
                                 position_id: position.position_id,
-                                max_spread: "0.05",
+                                max_spread: maxSpread,
                                 close_percentage: Number(percentToClose) <= 0 ? "1" : percentToClose,
                             }
                         })),

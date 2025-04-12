@@ -1,4 +1,4 @@
-import React, { ChangeEvent, PropsWithChildren, useCallback, useMemo, useRef, useState } from "react"
+import React, { ChangeEvent, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import useNeuroState from "./hooks/useNeuroState"
 import useNeuroGuard from "./hooks/useNeuroGuard"
 import { num } from "@/helpers/num"
@@ -690,10 +690,21 @@ export const NeuroCloseModal = React.memo(({
     cdtMarketPrice: string
 }>) => {
     const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
+    const [spread, setSpread] = useState<number>(0.01); // close position spread
     // const { neuroState, setNeuroState } = useNeuroState()
-    const { action: close } = useCloseCDP({ position, debtAmount, onSuccess: onClose, run: isOpen, debtCloseAmount: inputValue ?? 0 })
+    const { action: close } = useCloseCDP({ position, debtAmount, onSuccess: onClose, run: isOpen, debtCloseAmount: inputValue ?? 0, maxSpread: String(spread) })
     const isDisabled = close?.simulate.isError || !close?.simulate.data
     const isLoading = close?.simulate.isLoading || close?.tx.isPending
+
+    //If slippage is too lwo & it errors, increase it by 1%
+    //The slippage error contains "max spread assertion"
+    useMemo(() => {
+        if (close?.simulate.errorMessage && close?.simulate.errorMessage.includes("max spread assertion")) {
+            setSpread((prev) => prev + 0.01)
+            console.log("Increasing spread to", spread + 0.01)
+        }
+    }, [close?.simulate.errorMessage, spread])
+
 
     const maxAmount = debtAmount
     const updateTimeout = useRef<NodeJS.Timeout | null>(null);

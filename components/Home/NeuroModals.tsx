@@ -698,13 +698,13 @@ export const NeuroCloseModal = React.memo(({
 
     //If slippage is too lwo & it errors, increase it by 1%
     //The slippage error contains "max spread assertion"
-    console.log(close?.simulate.isError, !close?.simulate.data, close?.simulate.errorMessage, close?.simulate.errorMessage && close?.simulate.errorMessage.includes("max spread assertion"))
+    console.log(close.simulate.error?.message, close?.simulate.errorMessage && close?.simulate.errorMessage.includes("max spread assertion"))
     useMemo(() => {
-        if (close?.simulate.errorMessage && close?.simulate.errorMessage.includes("max spread assertion")) {
+        if (close.simulate.error?.message && (close.simulate.error?.message.includes("max spread assertion") || close.simulate.error?.message.includes("token amount calculated"))) {
             setSpread((prev) => prev + 0.01)
             console.log("Increasing spread to", spread + 0.01)
         }
-    }, [close?.simulate.errorMessage, spread])
+    }, [close.simulate.error?.message, spread])
 
 
     const maxAmount = debtAmount

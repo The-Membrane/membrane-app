@@ -698,7 +698,7 @@ export const NeuroCloseModal = React.memo(({
 
     //If slippage is too lwo & it errors, increase it by 1%
     //The slippage error contains "max spread assertion"
-    console.log(close?.simulate.errorMessage, close?.simulate.errorMessage && close?.simulate.errorMessage.includes("max spread assertion"))
+    console.log(close?.simulate.isError, !close?.simulate.data, close?.simulate.errorMessage, close?.simulate.errorMessage && close?.simulate.errorMessage.includes("max spread assertion"))
     useMemo(() => {
         if (close?.simulate.errorMessage && close?.simulate.errorMessage.includes("max spread assertion")) {
             setSpread((prev) => prev + 0.01)

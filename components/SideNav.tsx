@@ -158,10 +158,12 @@ function SideNav() {
             <MemoizedLogo />
             <Text
               color={colors.tabBG}
-              fontSize="md"
+              fontSize="sm"
               letterSpacing="0.5em"
               fontWeight="500"
               textTransform="uppercase"
+              alignSelf={"center"}
+              textShadow={`0px 0px 8px ${colors.tabBG}`}
             >
               Beta
             </Text>

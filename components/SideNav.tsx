@@ -156,11 +156,15 @@ function SideNav() {
         <Stack as="ul" gap="7">
           <Stack marginTop={"6%"}>
             <MemoizedLogo />
-            <div className="flex items-center">
-              <span className="text-cyan-400 font-medium tracking-wider text-lg">
-                B E T A
-              </span>
-            </div>
+            <Text
+              color={colors.tabBG}
+              fontSize="md"
+              letterSpacing="0.5em"
+              fontWeight="500"
+              textTransform="uppercase"
+            >
+              Beta
+            </Text>
             {priceDisplay}
           </Stack>
           <MemoizedSoloLeveling />

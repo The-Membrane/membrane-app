@@ -358,7 +358,16 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
     })
   }
 
-  const positions = getPositions(basketPositions, prices, positionIndex)
+  var positions = getPositions(basketPositions, prices, positionIndex)
+
+  //Adds assets in the summary that aren't already in positions
+  const newPositions = summary.filter((position: any) => {
+    return !positions.find((p: any) => p.symbol === position.symbol)
+  })
+  //Adds the new positions to the updated positions
+  positions = [...positions, ...newPositions]
+  console.log("allPositions", positions)
+
 
   return positions.map((position) => {
     if (!position) return

@@ -258,6 +258,7 @@ export const getBorrowLTV = (
   ratios?: any[],
 ) => {
   const positionsWithRatio = ratios ?? getAssetRatio(false, tvl, positions);
+  console.log(positionsWithRatio, "positionsWithRatio")
   const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => {
     if (!position) return acc
     const ltv =

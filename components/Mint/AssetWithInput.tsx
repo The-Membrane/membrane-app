@@ -59,11 +59,14 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
     const { summary, totalUsdValue } = getSummary(updatedAssets);
     setMintState({ assets: updatedAssets, summary, totalUsdValue });
+    console.log("updatedAssets", updatedAssets);
+    console.log("summary", summary);
+    console.log("totalUsdValue", totalUsdValue);
   };
 
   // const isAdditionDisabled = asset.walletsdValue === 0 || transactionValue === '';
   // const isSubtractionDisabled = asset.depositUsdValue === 0 || transactionValue === '';
-  console.log("asset in withInput", asset, transactionType);
+  // console.log("asset in withInput", asset, transactionType);
 
 
   //Handle Reset Button

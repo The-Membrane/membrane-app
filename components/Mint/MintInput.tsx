@@ -19,6 +19,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
     const [mintInputValue, setMintInputValue] = useState<number>(0)
 
     useEffect(() => {
+        console.log("sumData", data)
         if (data != undefined) setSumData(data)
     }, [data])
 

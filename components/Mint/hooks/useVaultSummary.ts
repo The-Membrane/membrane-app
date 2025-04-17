@@ -28,6 +28,8 @@ export const useVaultSummary = ({ positionNumber }: { positionNumber?: number } 
     debtAmount = 0
   } = vaultSummary ?? {}
 
+  console.log("mint summary", mintState.summary)
+
   return useQuery({
     queryKey: [
       'vault summary',

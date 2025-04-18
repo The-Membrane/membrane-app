@@ -369,7 +369,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
   })
   //Adds the new positions to the updated positions
   positions = [...positions, ...newPositions]
-  console.log("allPositions", positions)
+  // console.log("allPositions", positions)
 
 
   return positions.map((position) => {
@@ -444,7 +444,7 @@ export const calculateVaultSummary = ({
     }
   }
 
-  console.log("Positions", positions)
+  // console.log("Positions", positions)
   const tvl = initialTVL + newDeposit
   var { cost, ratios, costRatios } = getRateCost(positions, tvl, basketAssets)
   cost = debtAmount == 0 && newDebtAmount == 0 ? 0 : cost

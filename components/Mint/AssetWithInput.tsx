@@ -46,7 +46,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         ? newDeposit
         : -diffInUsd
       const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
-      console.log("amountValue", amountValue, asset.price, asset.decimal);
+      // console.log("amount", amountValue, asset.price, asset.decimal);
       //
       // setChangeValue(amountValue);
       //
@@ -61,9 +61,9 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
     const { summary, totalUsdValue } = getSummary(updatedAssets);
     setMintState({ assets: updatedAssets, summary, totalUsdValue });
-    console.log("updatedAssets", updatedAssets);
-    console.log("summary", summary);
-    console.log("totalUsdValue", totalUsdValue);
+    // console.log("updatedAssets", updatedAssets);
+    // console.log("summary", summary);
+    // console.log("totalUsdValue", totalUsdValue);
   };
 
   // const isAdditionDisabled = asset.walletsdValue === 0 || transactionValue === '';

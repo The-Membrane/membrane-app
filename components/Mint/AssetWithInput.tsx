@@ -54,6 +54,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         amount,
         amountValue,
         sliderValue: sliderValue + asset.depositUsdValue,
+        usdValue: num(asset.depositUsdValue).plus(sliderValue).toNumber(),
       }
     });
 

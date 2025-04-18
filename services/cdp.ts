@@ -193,7 +193,7 @@ export const getAssetRatio = (skipStable: boolean, tvl: number, positions: Posit
       ...position,
       ratio: 1,
     }
-    // console.log("position.usdValue", position.usdValue, "tvl", tvl)
+    console.log("position.usdValue", position.usdValue, "tvl", tvl)
 
     return {
       ...position,
@@ -440,7 +440,8 @@ export const calculateVaultSummary = ({
       positionId: "0",
     }
   }
-  // console.log("running summ")
+
+  console.log("Positions", positions)
   const tvl = initialTVL + newDeposit
   var { cost, ratios, costRatios } = getRateCost(positions, tvl, basketAssets)
   cost = debtAmount == 0 && newDebtAmount == 0 ? 0 : cost

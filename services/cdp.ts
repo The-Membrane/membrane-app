@@ -364,6 +364,9 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
   const newPositions = summary.filter((position: any) => {
     return !positions.find((p: any) => p.symbol === position.symbol)
   })
+  summary = summary.filter((position: any) => {
+    return positions.find((p: any) => p.symbol === position.symbol)
+  })
   //Adds the new positions to the updated positions
   positions = [...positions, ...newPositions]
   console.log("allPositions", positions)
@@ -373,7 +376,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
     if (!position) return
     const updatedPosition = summary.find((p: any) => p.symbol === position.symbol)
     //@ts-ignore
-    const price = prices?.find((p) => p.denom === position.denom)?.price || 0
+    const price = prices?.find((p) => p.denom === position.base)?.price || 0
     const amount = num(position.amount)
       .plus(updatedPosition?.amount || 0)
       .toNumber()

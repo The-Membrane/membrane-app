@@ -46,6 +46,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         ? newDeposit
         : -diffInUsd
       const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
+      console.log("amountValue", amountValue, asset.price, asset.decimal);
       //
       // setChangeValue(amountValue);
       //

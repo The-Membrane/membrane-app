@@ -27,7 +27,7 @@ export const TxDetails = ({ action, onClose }: Props) => {
   if (!action?.tx?.isSuccess) return null
 
   //Check for stability pool events & invalidate related queries
-  if (action?.tx?.data?.events.find((e) => e.attributes.find((a) => a.value === contracts.stabilityPool))){
+  if (action?.tx?.data?.events.find((e) => e.attributes.find((a) => a.value === contracts.stabilityPool))) {
     queryClient.invalidateQueries({ queryKey: ['stability pool claims'] })
     queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
     queryClient.invalidateQueries({ queryKey: ['capital ahead'] })
@@ -43,7 +43,7 @@ export const TxDetails = ({ action, onClose }: Props) => {
           Transaction details
         </Text>
         <Text color="white" fontSize="xs" fontWeight="normal">
-          Transaction succesful
+          Transaction {code === 0 ? 'Success' : 'Failed'}
         </Text>
       </ModalHeader>
       <ModalCloseButton />

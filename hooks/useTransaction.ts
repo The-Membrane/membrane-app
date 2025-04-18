@@ -40,9 +40,9 @@ const useTransaction = ({ msgs, onSuccess, fee, chain_id }: Transaction) => {
     },
     onSuccess: (res: DeliverTxResponse) => {
       console.log("tx success", res)
-      const { transactionHash } = res
+      const { transactionHash, code } = res
       toaster.success({
-        message: 'Transaction Successful',
+        message: `Transaction ${code === 0 ? 'Successful' : 'Failed'}`,
         txHash: transactionHash,
       })
 

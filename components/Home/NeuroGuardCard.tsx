@@ -632,7 +632,7 @@ const AcquireCDTEntry = React.memo(({
             <List spacing={3} styleType="disc" padding="6" paddingTop="0">
               <ListItem fontFamily="Inter" fontSize="md"> All in stablecoins. Sourced from revenue & LP profits.</ListItem>
               <ListItem fontFamily="Inter" fontSize="md"> 100% liquid. No lock-in or withdrawal penalty.</ListItem>
-              <ListItem fontFamily="Inter" fontSize="md"> Earn MBRN for every $1 in yield you earn.</ListItem>
+              <ListItem fontFamily="Inter" fontSize="md"> Earn 100 MBRN for every $1 in yield you earn.</ListItem>
             </List>
           </Stack>
 

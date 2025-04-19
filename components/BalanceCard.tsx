@@ -1,5 +1,5 @@
 import { Button, HStack, Stack, Text } from '@chakra-ui/react'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import Divider from './Divider'
 import { Formatter } from '@/helpers/formatter'
 import { useBalanceByAsset } from '@/hooks/useBalance'
@@ -26,16 +26,35 @@ export const Stats = ({ label, value }) => (
   </Stack>
 )
 
+export function useTemporaryDisable(durationMs: number = 3000) {
+  const [isDisabled, setIsDisabled] = useState(false);
+
+  const triggerDisable = () => {
+    setIsDisabled(true);
+    setTimeout(() => setIsDisabled(false), durationMs);
+  };
+
+  return { isDisabled, triggerDisable };
+}
+
 export const BalanceCard = () => {
   const cdt = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdt)
   const mbrn = useAssetBySymbol('MBRN')
   const mbrnBalance = useBalanceByAsset(mbrn)
 
+
+
+  const { isDisabled, triggerDisable } = useTemporaryDisable(7000);
+
+
   //onRest
   const onRest = () => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    triggerDisable()
   }
+
+
 
   return (
     <Stack gap="3">
@@ -51,8 +70,8 @@ export const BalanceCard = () => {
         >
           Wallet Balances
         </Text>
-        <div style={{ width: "6%", display: "flex", justifyContent: "flex-end", marginBottom: "1%" }}>
-          <Button variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset size={32} />} marginLeft={"auto"} onClick={onRest} />
+        <div style={{ width: "21%", display: "flex", justifyContent: "flex-end", marginBottom: "1%" }}>
+          <Button isDisabled={isDisabled} variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset size={25} />} marginLeft={"auto"} onClick={onRest} />
         </div>
       </HStack>
       <Stats label="" value={`${Formatter.tvl(mbrnBalance)} MBRN`} />

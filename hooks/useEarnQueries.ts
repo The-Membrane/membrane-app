@@ -311,7 +311,7 @@ export const useBoundedCDTRealizedAPR = () => {
             //     return acc + checkpoint.time_since_last_checkpoint
             // }, 0);
 
-            var APR = num(currentClaimTracker.vt_claim_of_checkpoint).dividedBy(rb_conversion_rates["119D"]).minus(1)
+            var APR = num(currentClaimTracker.vt_claim_of_checkpoint).minus(rb_conversion_rates["119D"]).minus(1)
             var negative = false
 
             //If the APR is negative, set the negative flag to true and multiply the APR by -1

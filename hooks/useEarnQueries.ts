@@ -311,7 +311,7 @@ export const useBoundedCDTRealizedAPR = () => {
             //     return acc + checkpoint.time_since_last_checkpoint
             // }, 0);
 
-            var APR = num(currentClaimTracker.vt_claim_of_checkpoint).minus(rb_conversion_rates["119D"]).minus(1)
+            var APR = num(currentClaimTracker.vt_claim_of_checkpoint).minus(rb_conversion_rates["119D"])
             var negative = false
 
             //If the APR is negative, set the negative flag to true and multiply the APR by -1
@@ -323,7 +323,7 @@ export const useBoundedCDTRealizedAPR = () => {
             // console.log("APR calcs", APR.dividedBy(runningDuration/(86400*365)).toString(), runningDuration.toString(), claimTracker)
 
             //Divide the APR by the duration in years
-            return { apr: APR.dividedBy(time_since_last_checkpoint / (86400 * 365)).toString(), negative, runningDuration: num(time_since_last_checkpoint).dividedBy(86400).dp(0) }
+            return { apr: APR.times((86400 * 365) / time_since_last_checkpoint).toString(), negative, runningDuration: num(time_since_last_checkpoint).dividedBy(86400).dp(0) }
 
         },
     })

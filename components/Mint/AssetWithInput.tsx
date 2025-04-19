@@ -41,12 +41,14 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
       const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
 
       const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
+      console.log("diffInUsd", diffInUsd, asset);
       const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
+      console.log("newDeposit", newDeposit, asset.price, asset.decimal);
       const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
         ? newDeposit
         : -diffInUsd
       const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
-      // console.log("amount", amountValue, asset.price, asset.decimal);
+      console.log("amount", amountValue, asset.price, asset.decimal);
       //
       // setChangeValue(amountValue);
       //

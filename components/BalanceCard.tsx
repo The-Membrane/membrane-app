@@ -71,7 +71,7 @@ export const BalanceCard = () => {
           Wallet Balances
         </Text>
         <div style={{ width: "21%", display: "flex", justifyContent: "flex-end", marginBottom: "1%" }}>
-          <Button isDisabled={isDisabled} variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset size={25} />} marginLeft={"auto"} onClick={onRest} />
+          <Button isDisabled={isDisabled} variant="ghost" width={"5%"} padding={0} leftIcon={<GrPowerReset style={{ marginInlineEnd: "0" }} size={25} />} marginLeft={"auto"} onClick={onRest} />
         </div>
       </HStack>
       <Stats label="" value={`${Formatter.tvl(mbrnBalance)} MBRN`} />

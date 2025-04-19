@@ -10,7 +10,7 @@ import useBidState from "@/components/Bid/hooks/useBidState"
 import { useBalanceByAsset } from "@/hooks/useBalance"
 import { useAssetBySymbol } from "@/hooks/useAssets"
 import useWallet from "@/hooks/useWallet"
-import { mainnetAddrs } from "@/config/defaults"
+import { mainnetAddrs, rb_conversion_rates } from "@/config/defaults"
 import { CollateralInterestResponse } from "@/contracts/codegen/positions/Positions.types"
 import useAppState from "@/persisted-state/useAppState"
 import { getCosmWasmClient, useCosmWasmClient } from "@/helpers/cosmwasmClient"
@@ -294,10 +294,10 @@ export const useBoundedCDTRealizedAPR = () => {
 
             if (!cosmwasmClient) return
 
-            const claimTracker = await getBoundedCDTRealizedAPR(cosmwasmClient)
+            // const claimTracker = await getBoundedCDTRealizedAPR(cosmwasmClient)
             const currentClaim = await getBoundedUnderlyingCDT("1000000000000", cosmwasmClient)
             const blockTime = await cosmwasmClient.getBlock().then(block => Date.parse(block.header.time) / 1000)
-            const time_since_last_checkpoint = blockTime - claimTracker.last_updated
+            const time_since_last_checkpoint = blockTime - (86400 * 119) //119D bc that's the checkpoint for when the vault changed to market making
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(),
                 time_since_last_checkpoint
@@ -305,13 +305,13 @@ export const useBoundedCDTRealizedAPR = () => {
             // console.log("autoSP claim tracker", currentClaimTracker)
 
             //Add the current claim to the claim tracker
-            claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
-            //Parse the claim tracker to get the realized APR//
-            const runningDuration = claimTracker.vt_claim_checkpoints.reduce((acc, checkpoint) => {
-                return acc + checkpoint.time_since_last_checkpoint
-            }, 0);
+            // claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
+            // //Parse the claim tracker to get the realized APR//
+            // const runningDuration = claimTracker.vt_claim_checkpoints.reduce((acc, checkpoint) => {
+            //     return acc + checkpoint.time_since_last_checkpoint
+            // }, 0);
 
-            var APR = num(claimTracker.vt_claim_checkpoints[claimTracker.vt_claim_checkpoints.length - 1].vt_claim_of_checkpoint).dividedBy(claimTracker.vt_claim_checkpoints[1].vt_claim_of_checkpoint).minus(1)
+            var APR = num(currentClaimTracker.vt_claim_of_checkpoint).dividedBy(rb_conversion_rates["119D"]).minus(1)
             var negative = false
 
             //If the APR is negative, set the negative flag to true and multiply the APR by -1
@@ -323,7 +323,7 @@ export const useBoundedCDTRealizedAPR = () => {
             // console.log("APR calcs", APR.dividedBy(runningDuration/(86400*365)).toString(), runningDuration.toString(), claimTracker)
 
             //Divide the APR by the duration in years
-            return { apr: APR.dividedBy(runningDuration / (86400 * 365)).toString(), negative, runningDuration: num(runningDuration).dividedBy(86400).dp(0) }
+            return { apr: APR.dividedBy(time_since_last_checkpoint / (86400 * 365)).toString(), negative, runningDuration: num(time_since_last_checkpoint).dividedBy(86400).dp(0) }
 
         },
     })

@@ -44,7 +44,7 @@ export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
 export const USDC_CL_RATIO = 0.115; //11.5% CL
 
 //Rangebound Converation Rate checkpoints
-const rb_conversion_rates = {
+export const rb_conversion_rates = {
   "119D": 2745965,
 }
 

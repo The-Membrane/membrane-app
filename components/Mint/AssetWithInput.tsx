@@ -40,13 +40,13 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
       const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
 
-      const diffInUsd = num(asset.sliderValue ?? asset.depositUsdValue).minus(sliderValue).toNumber()
-      const newDeposit = num(asset.sliderValue ?? asset.depositUsdValue).minus(diffInUsd).toNumber()
-      const amountValue = num(diffInUsd).isGreaterThan(asset.sliderValue ?? asset.depositUsdValue)
+      const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
+      const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
+      const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
         ? newDeposit
         : -diffInUsd
       const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
-      console.log("asset", asset);
+      // console.log("amount", amountValue, asset.price, asset.decimal);
       //
       // setChangeValue(amountValue);
       //
@@ -54,16 +54,16 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         ...asset,
         amount,
         amountValue,
-        sliderValue: sliderValue + (asset.sliderValue ?? asset.depositUsdValue),
-        usdValue: num(asset.sliderValue ?? asset.depositUsdValue).plus(sliderValue).toNumber(),
+        sliderValue: sliderValue + asset.depositUsdValue,
+        usdValue: num(asset.depositUsdValue).plus(sliderValue).toNumber(),
       }
     });
 
     const { summary, totalUsdValue } = getSummary(updatedAssets);
     setMintState({ assets: updatedAssets, summary, totalUsdValue });
-    // console.log("updatedAssets", updatedAssets);
-    // console.log("summary", summary);
-    // console.log("totalUsdValue", totalUsdValue);
+    console.log("updatedAssets", updatedAssets);
+    console.log("summary", summary);
+    console.log("totalUsdValue", totalUsdValue);
   };
 
   // const isAdditionDisabled = asset.walletsdValue === 0 || transactionValue === '';

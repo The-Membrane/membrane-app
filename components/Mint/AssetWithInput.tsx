@@ -38,27 +38,47 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     let updatedAssets = mintState.assets.map((a) => {
       if (a.symbol !== label) return a;
 
-      const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
+      if (transactionType === "deposit") {
+        const sliderValue = Number(transactionValue);
 
-      const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
-      console.log("diffInUsd", diffInUsd, asset);
-      const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
-      console.log("newDeposit", newDeposit, asset.price, asset.decimal);
-      const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
-        ? newDeposit
-        : -diffInUsd
-      const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
-      console.log("amount", amountValue, asset.price, asset.decimal);
-      //
-      // setChangeValue(amountValue);
-      //
-      return {
-        ...asset,
-        amount,
-        amountValue,
-        sliderValue: sliderValue + asset.depositUsdValue,
-        usdValue: num(asset.depositUsdValue).plus(sliderValue).toNumber(),
+        const usdValue = num(asset.depositUsdValue).plus(sliderValue).toNumber();
+        const amountValue = sliderValue;
+        const amount = num(amountValue)
+          .dividedBy(asset.price)
+          .dp(asset.decimal ?? 6)
+          .toNumber();
+
+        console.log("deposit:", { sliderValue, usdValue, amountValue, amount });
+
+        return {
+          ...asset,
+          amount,
+          amountValue,
+          sliderValue: asset.depositUsdValue + sliderValue,
+          usdValue,
+        };
+      } else {
+        // Withdraw
+        const sliderValue = -Number(transactionValue);
+
+        const usdValue = num(asset.depositUsdValue).plus(sliderValue).toNumber();
+        const amountValue = sliderValue;
+        const amount = num(amountValue)
+          .dividedBy(asset.price)
+          .dp(asset.decimal ?? 6)
+          .toNumber();
+
+        console.log("withdraw:", { sliderValue, usdValue, amountValue, amount });
+
+        return {
+          ...asset,
+          amount,
+          amountValue,
+          sliderValue: asset.depositUsdValue + sliderValue,
+          usdValue,
+        };
       }
+
     });
 
     const { summary, totalUsdValue } = getSummary(updatedAssets);

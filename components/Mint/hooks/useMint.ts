@@ -57,7 +57,7 @@ const useMint = () => {
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    setMintState({ positionNumber: 1, mint: 0, repay: 0, summary: [] })
+    setMintState({ positionNumber: 1, mint: 0, repay: 0, summary: [], reset: true })
     //Reset points queries
     queryClient.invalidateQueries({ queryKey: ['all users points'] })
     queryClient.invalidateQueries({ queryKey: ['one users points'] })

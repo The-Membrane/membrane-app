@@ -40,9 +40,9 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
 
       const sliderValue = transactionType === "deposit" ? Number(transactionValue) : -Number(transactionValue);
 
-      const diffInUsd = num(asset.depositUsdValue).minus(sliderValue).toNumber()
-      const newDeposit = num(asset.depositUsdValue).minus(diffInUsd).toNumber()
-      const amountValue = num(diffInUsd).isGreaterThan(asset.depositUsdValue)
+      const diffInUsd = num(asset.sliderValue ?? asset.depositUsdValue).minus(sliderValue).toNumber()
+      const newDeposit = num(asset.sliderValue ?? asset.depositUsdValue).minus(diffInUsd).toNumber()
+      const amountValue = num(diffInUsd).isGreaterThan(asset.sliderValue ?? asset.depositUsdValue)
         ? newDeposit
         : -diffInUsd
       const amount = num(amountValue).dividedBy(asset.price).dp(asset.decimal ?? 6).toNumber()
@@ -54,8 +54,8 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
         ...asset,
         amount,
         amountValue,
-        sliderValue: sliderValue + asset.depositUsdValue,
-        usdValue: num(asset.depositUsdValue).plus(sliderValue).toNumber(),
+        sliderValue: sliderValue + (asset.sliderValue ?? asset.depositUsdValue),
+        usdValue: num(asset.sliderValue ?? asset.depositUsdValue).plus(sliderValue).toNumber(),
       }
     });
 

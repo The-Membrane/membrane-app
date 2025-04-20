@@ -1228,7 +1228,7 @@ const NeuroGuardCard = () => {
         className={"home-title"}
         style={{ marginTop: "2%" }}
       >
-        Market Making Dashboard
+        Yield Vault Dashboard
       </h1>
       <HStack w={"100%"} justifyContent={"center"} marginBottom={"4%"}>
         <Text>

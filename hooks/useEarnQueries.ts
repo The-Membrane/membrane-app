@@ -297,7 +297,12 @@ export const useBoundedCDTRealizedAPR = () => {
             // const claimTracker = await getBoundedCDTRealizedAPR(cosmwasmClient)
             const currentClaim = await getBoundedUnderlyingCDT("1000000000000", cosmwasmClient)
             const blockTime = await cosmwasmClient.getBlock().then(block => Date.parse(block.header.time) / 1000)
-            const time_since_last_checkpoint = blockTime - (86400 * 39) //39D bc that's the checkpoint for when the vault changed to market making
+            //Calc days since March 11th 2025 using date
+            const march11th = new Date("2025-03-11T00:00:00Z").getTime() / 1000
+
+
+            const time_since_last_checkpoint = blockTime - march11th //39D bc that's the checkpoint for when the vault changed to market making
+            // NEED TO DYNAMICALLY Calculate the time since last checkpoint using March 11th as the start date
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(),
                 time_since_last_checkpoint

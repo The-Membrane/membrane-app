@@ -193,7 +193,7 @@ export const getAssetRatio = (skipStable: boolean, tvl: number, positions: Posit
       ...position,
       ratio: 1,
     }
-    console.log("position.usdValue", position.usdValue, "tvl", tvl)
+    // console.log("position.usdValue", position.usdValue, "tvl", tvl)
 
     return {
       ...position,
@@ -258,7 +258,7 @@ export const getBorrowLTV = (
   ratios?: any[],
 ) => {
   const positionsWithRatio = ratios ?? getAssetRatio(false, tvl, positions);
-  console.log(positionsWithRatio, "positionsWithRatio")
+  // console.log(positionsWithRatio, "positionsWithRatio")
   const maxBorrowLTV = positionsWithRatio.reduce((acc, position) => {
     if (!position) return acc
     const ltv =
@@ -453,7 +453,7 @@ export const calculateVaultSummary = ({
   const creditPrice = Number(basket?.credit_price.price) || 1
   const liqudationLTV = getLiqudationLTV(tvl, positions, basketAssets, ratios)
   const borrowLTV = getBorrowLTV(tvl, positions, basketAssets, ratios)
-  console.log("max mint", tvl, borrowLTV, creditPrice)
+  // console.log("max mint", tvl, borrowLTV, creditPrice)
   const maxMint = getMaxMint(tvl, borrowLTV, creditPrice)
 
 

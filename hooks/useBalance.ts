@@ -33,7 +33,7 @@ export const useBalance = (chainID: string = "osmosis") => {
         })
     },
     enabled: !!getRpcClient && !!address,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 10,
     refetchOnWindowFocus: true,
   })
 }

@@ -29,7 +29,7 @@ const useGiveRBLPPoints = () => {
     const { data: queryData } = useQuery<QueryData>({
         queryKey: ['rblp_points_allocation_msg_creator', conversionRates, currentConversionRate, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/dashboard") return { msgs: [] }
+            if (router.pathname != "/management") return { msgs: [] }
             if (!conversionRates || !currentConversionRate) {
                 console.log("give points early return", address, conversionRates, currentConversionRate);
                 return { msgs: [] }

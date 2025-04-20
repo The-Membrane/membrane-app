@@ -31,7 +31,7 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
   const { data: basket } = useBasket()
   const { data: basketAssets } = useBasketAssets()
 
-  console.log(" basketAssets", basketAssets)
+  // console.log(" basketAssets", basketAssets)
 
 
 
@@ -39,7 +39,7 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
     queryKey: ['msg_liquidations', run, address, allPositions, prices, basket, basketAssets],
     queryFn: () => {
       if (!address || !allPositions || !prices || !basket || !basketAssets || !run) {
-        console.log("liq attempt", !address, !allPositions, !prices, !basket, !basketAssets, !run);
+        // console.log("liq attempt", !address, !allPositions, !prices, !basket, !basketAssets, !run);
         return { msgs: [], liquidating_positions: [] }
       }
 

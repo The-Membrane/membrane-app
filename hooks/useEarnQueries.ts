@@ -301,6 +301,7 @@ export const useBoundedCDTRealizedAPR = () => {
             const march11th = new Date("2025-03-11T00:00:00Z").getTime() / 1000
 
 
+            console.log("block time", blockTime, "march 11th", march11th)
             const time_since_last_checkpoint = blockTime - march11th //39D bc that's the checkpoint for when the vault changed to market making
             // console.log("time since last checkpoint", time_since_last_checkpoint)
             // NEED TO DYNAMICALLY Calculate the time since last checkpoint using March 11th as the start date

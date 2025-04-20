@@ -24,7 +24,7 @@ const useBoundedManage = () => {
       router.pathname
     ],
     queryFn: () => {
-      if (router.pathname != "/dashboard") return { msgs: undefined }
+      if (router.pathname != "/management") return { msgs: undefined }
       if (!address) return { msgs: undefined }
       var msgs = [] as MsgExecuteContractEncodeObject[]
 

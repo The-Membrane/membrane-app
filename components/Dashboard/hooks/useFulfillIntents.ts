@@ -29,7 +29,7 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean, skipIDs: number[] }
     const { data: queryData } = useQuery<QueryData>({
         queryKey: ['fillIntents_msg_creator', intents, currentConversionRate, run, skipIDs, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/dashboard") return { msgs: [] }
+            if (router.pathname != "/management") return { msgs: [] }
             if (!intents || !currentConversionRate || !run) {
                 //  console.log("fulfill intents early return", address, intents, currentConversionRate, run); 
                 return { msgs: [] }

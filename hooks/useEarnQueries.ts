@@ -302,12 +302,13 @@ export const useBoundedCDTRealizedAPR = () => {
 
 
             const time_since_last_checkpoint = blockTime - march11th //39D bc that's the checkpoint for when the vault changed to market making
+            // console.log("time since last checkpoint", time_since_last_checkpoint)
             // NEED TO DYNAMICALLY Calculate the time since last checkpoint using March 11th as the start date
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(),
                 time_since_last_checkpoint
             }
-            // console.log("autoSP claim tracker", currentClaimTracker)
+            console.log("autoSP claim tracker", currentClaimTracker)
 
             //Add the current claim to the claim tracker
             // claimTracker.vt_claim_checkpoints.push(currentClaimTracker)

@@ -804,7 +804,7 @@ export const NeuroCloseModal = React.memo(({
                         {debtAmount == 0 ? "Withdraw All Collateral" : "Sell Collateral to Repay Debt"}
                     </TxButton>
                     <Text variant="title" textAlign="center" fontSize="sm" letterSpacing="1px" width="100%">
-                        {num(spread).times(100).toFixed(0)}%
+                        max slippage: {num(spread).times(100).toFixed(0)}%
                     </Text>
                 </ModalFooter>
             )}

@@ -17,8 +17,10 @@ import {
   Tag,
   useColorModeValue,
 } from '@chakra-ui/react';
+import { useRouter } from 'next/router';
 
-import Link from "next/link";
+
+// import Link from "next/link";
 
 // const filters = [
 //   { label: 'Collateral asset is', value: 'any asset' },
@@ -119,6 +121,13 @@ const filters = [
 
 const activeFilter = { label: 'Liquidity is', value: '>$100,000' };
 
+const router = useRouter();
+
+const handleRowClick = (slug: string) => {
+  router.push(`/borrow/${slug}`);
+};
+
+
 export default function BorrowPage() {
   return (
     <Box bg="gray.900" color="white" minH="100vh" p={6}>
@@ -189,6 +198,7 @@ export default function BorrowPage() {
                 key={row.slug}
                 // as={Link}
                 // href={`/managed/${row.slug}`}
+                onClick={() => handleRowClick(row.slug)}
                 _hover={{ bg: "gray.700" }}
                 cursor="pointer">
                 <Td>

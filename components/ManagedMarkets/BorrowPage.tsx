@@ -121,14 +121,15 @@ const filters = [
 
 const activeFilter = { label: 'Liquidity is', value: '>$100,000' };
 
-const router = useRouter();
-
-const handleRowClick = (slug: string) => {
-  router.push(`/borrow/${slug}`);
-};
-
 
 export default function BorrowPage() {
+
+  const router = useRouter();
+
+  const handleRowClick = (slug: string) => {
+    router.push(`/borrow/${slug}`);
+  };
+
   return (
     <Box bg="gray.900" color="white" minH="100vh" p={6}>
       {/* Header */}

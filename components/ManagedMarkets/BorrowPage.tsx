@@ -187,8 +187,8 @@ export default function BorrowPage() {
             {borrowMarkets.map((row, i) => (
               <Tr
                 key={row.slug}
-                as={Link}
-                href={`/managed/${row.slug}`}
+                // as={Link}
+                // href={`/managed/${row.slug}`}
                 _hover={{ bg: "gray.700" }}
                 cursor="pointer">
                 <Td>

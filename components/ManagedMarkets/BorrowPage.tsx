@@ -110,12 +110,21 @@ const tableData = [
   },
 ];
 
+
+const filters = [
+  { label: 'Collateral asset is', value: 'any asset' },
+  { label: 'Debt asset is', value: 'any asset' },
+  { label: 'Market is', value: 'any market' },
+];
+
+const activeFilter = { label: 'Liquidity is', value: '>$100,000' };
+
 export default function BorrowPage() {
   return (
     <Box bg="gray.900" color="white" minH="100vh" p={6}>
       {/* Header */}
       <Flex align="center" gap={4} mb={6}>
-        {/* <Box boxSize="50px" bg="teal.500" borderRadius="12px" /> */}
+        <Box boxSize="50px" bg="teal.500" borderRadius="12px" />
         <Box>
           <Heading fontSize="2xl">Borrow</Heading>
           <Text fontSize="sm" color="gray.400">
@@ -123,6 +132,21 @@ export default function BorrowPage() {
           </Text>
         </Box>
       </Flex>
+
+      {/* Filters */}
+      {/* <Flex flexWrap="wrap" gap={2} mb={6}>
+        {filters.map((filter, i) => (
+          <Tag key={i} px={4} py={2} borderRadius="full" bg="gray.700" color="gray.100">
+            {filter.label} <Text fontWeight="bold" ml={2}>{filter.value}</Text>
+          </Tag>
+        ))}
+        <Tag px={4} py={2} borderRadius="full" bg="blue.400" color="black" fontWeight="bold">
+          {activeFilter.label} <Text ml={2}>{activeFilter.value}</Text>
+        </Tag>
+        <Button variant="outline" colorScheme="whiteAlpha" borderColor="gray.600">
+          Add Filter
+        </Button>
+      </Flex> */}
 
       {/* Stats */}
       <Flex mb={4}>
@@ -160,31 +184,36 @@ export default function BorrowPage() {
             </Tr>
           </Thead>
           <Tbody>
-            {borrowMarkets.map((row) => (
+            {borrowMarkets.map((row, i) => (
               <Tr
                 key={row.slug}
                 as={Link}
                 href={`/managed/${row.slug}`}
                 _hover={{ bg: "gray.700" }}
-                cursor="pointer"
-              >
+                cursor="pointer">
                 <Td>
-                  <Flex gap={2} align="center">
-                    <Tag>{row.collateral.platform}</Tag>
-                    {row.collateral.name}
-                  </Flex>
+                  <VStack align="start" spacing={0}>
+                    <Text fontWeight="bold">{row.collateral.name}</Text>
+                    <Text fontSize="sm" color="gray.400">{row.collateral.platform}</Text>
+                  </VStack>
                 </Td>
                 <Td>
-                  <Flex gap={2} align="center">
-                    <Tag>{row.debt.platform}</Tag>
-                    {row.debt.name}
-                  </Flex>
+                  <VStack align="start" spacing={0}>
+                    <Text fontWeight="bold">{row.debt.name}</Text>
+                    <Text fontSize="sm" color="gray.400">{row.debt.platform}</Text>
+                  </VStack>
                 </Td>
                 <Td>{row.supplyAPY}</Td>
                 <Td>{row.borrowAPY}</Td>
                 <Td>{row.multiplier}</Td>
                 <Td>{row.lltv}</Td>
-                <Td>{row.liquidity}</Td>
+                <Td>
+                  {row.liquidity.split("\n").map((line, j) => (
+                    <Text key={j} fontSize={j === 0 ? "md" : "sm"} color={j === 0 ? "white" : "gray.400"}>
+                      {line}
+                    </Text>
+                  ))}
+                </Td>
               </Tr>
             ))}
           </Tbody>
@@ -193,3 +222,4 @@ export default function BorrowPage() {
     </Box>
   );
 }
+

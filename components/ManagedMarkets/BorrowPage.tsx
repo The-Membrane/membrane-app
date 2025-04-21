@@ -18,13 +18,58 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react';
 
-const filters = [
-  { label: 'Collateral asset is', value: 'any asset' },
-  { label: 'Debt asset is', value: 'any asset' },
-  { label: 'Market is', value: 'any market' },
-];
+import Link from "next/link";
 
-const activeFilter = { label: 'Liquidity is', value: '>$100,000' };
+// const filters = [
+//   { label: 'Collateral asset is', value: 'any asset' },
+//   { label: 'Debt asset is', value: 'any asset' },
+//   { label: 'Market is', value: 'any market' },
+// ];
+
+// const activeFilter = { label: 'Liquidity is', value: '>$100,000' };
+
+const borrowMarkets = [
+  {
+    slug: "rlp-usr",
+    collateral: { name: "RLP", platform: "Resolv" },
+    debt: { name: "USR", platform: "Resolv" },
+    supplyAPY: "27.84%",
+    borrowAPY: "7.38%",
+    multiplier: "5.69x",
+    lltv: "87.50%",
+    liquidity: "$6.29M",
+  },
+  {
+    slug: "rlp-usdc",
+    collateral: { name: "RLP", platform: "Resolv" },
+    debt: { name: "USDC", platform: "Resolv" },
+    supplyAPY: "27.84%",
+    borrowAPY: "8.93%",
+    multiplier: "5.69x",
+    lltv: "87.50%",
+    liquidity: "$1.08M",
+  },
+  {
+    slug: "rlp-wstusr",
+    collateral: { name: "RLP", platform: "Resolv" },
+    debt: { name: "WSTUSR", platform: "Resolv" },
+    supplyAPY: "27.84%",
+    borrowAPY: "9.73%",
+    multiplier: "5.69x",
+    lltv: "87.50%",
+    liquidity: "$176,958.31",
+  },
+  {
+    slug: "usdopp-wm",
+    collateral: { name: "USD0++", platform: "Euler Yield" },
+    debt: { name: "wM", platform: "Euler Yield" },
+    supplyAPY: "14.08%",
+    borrowAPY: "5.41%",
+    multiplier: "8.31x",
+    lltv: "90.00%",
+    liquidity: "$375,228.74",
+  },
+];
 
 const tableData = [
   {
@@ -70,28 +115,13 @@ export default function BorrowPage() {
     <Box bg="gray.900" color="white" minH="100vh" p={6}>
       {/* Header */}
       <Flex align="center" gap={4} mb={6}>
-        <Box boxSize="50px" bg="teal.500" borderRadius="12px" />
+        {/* <Box boxSize="50px" bg="teal.500" borderRadius="12px" /> */}
         <Box>
           <Heading fontSize="2xl">Borrow</Heading>
           <Text fontSize="sm" color="gray.400">
             Borrow against collateral or multiply your exposure by looping or going long and short.
           </Text>
         </Box>
-      </Flex>
-
-      {/* Filters */}
-      <Flex flexWrap="wrap" gap={2} mb={6}>
-        {filters.map((filter, i) => (
-          <Tag key={i} px={4} py={2} borderRadius="full" bg="gray.700" color="gray.100">
-            {filter.label} <Text fontWeight="bold" ml={2}>{filter.value}</Text>
-          </Tag>
-        ))}
-        <Tag px={4} py={2} borderRadius="full" bg="blue.400" color="black" fontWeight="bold">
-          {activeFilter.label} <Text ml={2}>{activeFilter.value}</Text>
-        </Tag>
-        <Button variant="outline" colorScheme="whiteAlpha" borderColor="gray.600">
-          Add Filter
-        </Button>
       </Flex>
 
       {/* Stats */}
@@ -130,31 +160,31 @@ export default function BorrowPage() {
             </Tr>
           </Thead>
           <Tbody>
-            {tableData.map((row, i) => (
-              <Tr key={i}>
+            {borrowMarkets.map((row) => (
+              <Tr
+                key={row.slug}
+                as={Link}
+                href={`/managed/${row.slug}`}
+                _hover={{ bg: "gray.700" }}
+                cursor="pointer"
+              >
                 <Td>
-                  <VStack align="start" spacing={0}>
-                    <Text fontWeight="bold">{row.collateral.name}</Text>
-                    <Text fontSize="sm" color="gray.400">{row.collateral.platform}</Text>
-                  </VStack>
+                  <Flex gap={2} align="center">
+                    <Tag>{row.collateral.platform}</Tag>
+                    {row.collateral.name}
+                  </Flex>
                 </Td>
                 <Td>
-                  <VStack align="start" spacing={0}>
-                    <Text fontWeight="bold">{row.debt.name}</Text>
-                    <Text fontSize="sm" color="gray.400">{row.debt.platform}</Text>
-                  </VStack>
+                  <Flex gap={2} align="center">
+                    <Tag>{row.debt.platform}</Tag>
+                    {row.debt.name}
+                  </Flex>
                 </Td>
-                <Td>{row.supplyApy}</Td>
-                <Td>{row.borrowApy}</Td>
-                <Td>{row.maxMultiplier}</Td>
+                <Td>{row.supplyAPY}</Td>
+                <Td>{row.borrowAPY}</Td>
+                <Td>{row.multiplier}</Td>
                 <Td>{row.lltv}</Td>
-                <Td>
-                  {row.liquidity.split("\n").map((line, j) => (
-                    <Text key={j} fontSize={j === 0 ? "md" : "sm"} color={j === 0 ? "white" : "gray.400"}>
-                      {line}
-                    </Text>
-                  ))}
-                </Td>
+                <Td>{row.liquidity}</Td>
               </Tr>
             ))}
           </Tbody>

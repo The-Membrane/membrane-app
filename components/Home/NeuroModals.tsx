@@ -793,7 +793,6 @@ export const NeuroCloseModal = React.memo(({
                         {parseError((num(inputValue).isGreaterThan(0) || debtAmount == 0) && close.simulate.isError ? close.simulate.error?.message ?? "" : "")}
                     </Text>
 
-
                     <TxButton
                         w="100%"
                         isLoading={isLoading}
@@ -804,6 +803,9 @@ export const NeuroCloseModal = React.memo(({
                     >
                         {debtAmount == 0 ? "Withdraw All Collateral" : "Sell Collateral to Repay Debt"}
                     </TxButton>
+                    <Text variant="title" textAlign="center" fontSize="sm" letterSpacing="1px" width="100%">
+                        {num(spread).times(100).toFixed(0)}%
+                    </Text>
                 </ModalFooter>
             )}
         </ModalContent>

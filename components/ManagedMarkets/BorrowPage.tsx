@@ -243,6 +243,7 @@ import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
 import { useState } from 'react';
 import Select from '../Select';
+import { on } from 'events';
 
 export function WhitelistedAddressInput({
   value,
@@ -384,7 +385,7 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
           onClick={() => setManagerState({ updateOverallMarket: data })}
           isDisabled={isDisabled}
         >
-          Edit
+          <a color='white'>Edit</a>
         </Button>
         <Text
           as="button"
@@ -415,6 +416,7 @@ export type UpdateCollateralParams = {
 interface CollateralCardProps {
   options: Option[];
   initialData: UpdateCollateralParams;
+  onEditMarket: () => void;
 }
 
 interface Option {
@@ -422,7 +424,7 @@ interface Option {
   value: string;
 }
 
-export function CollateralCard({ options, initialData }: CollateralCardProps) {
+export function CollateralCard({ options, initialData, onEditMarket }: CollateralCardProps) {
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
   const [selectedCollateral, setSelectedCollateral] = useState(options[0] || '');
 
@@ -483,8 +485,17 @@ export function CollateralCard({ options, initialData }: CollateralCardProps) {
           color={colors.tabBG}
           onClick={() => console.log('Save Collateral Params:', data, 'for', selectedCollateral)}
           isDisabled={isDisabled}>
-          Save
+          <a color='white'>Edit</a>
         </Button>
+        <Text
+          as="button"
+          fontSize="sm"
+          color="white"
+          fontWeight="bold"
+          onClick={onEditMarket}
+        >
+          ← Edit market
+        </Text>
       </CardFooter>
     </Card>
   );
@@ -495,6 +506,10 @@ export default function ManagePage() {
 
   const handleEditCollateral = () => {
     console.log('Swapping to edit collateral view...');
+    // You can implement the view swap here
+  };
+  const handleEditMarket = () => {
+    console.log('Swapping to edit market view...');
     // You can implement the view swap here
   };
 
@@ -524,6 +539,7 @@ export default function ManagePage() {
             { label: 'wM', value: 'wM' },
           ]}
           initialData={{}}
+          onEditMarket={handleEditMarket}
         />
       </Box>
     </HStack>

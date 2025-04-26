@@ -236,36 +236,73 @@
 
 
 import { colors } from '@/config/defaults';
-import { Box, Button, Card, CardBody, CardFooter, CardHeader, Checkbox, Flex, FormControl, FormLabel, Input, Stack, Text } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, Input, Stack, Text } from '@chakra-ui/react';
+import { useEffect } from 'react';
 import { UpdateOverallMarket } from './hooks/useManagerState';
+import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
+import { CloseIcon } from '@chakra-ui/icons';
+import { useState } from 'react';
 
-interface Param {
-  label: string;
-  value: string;
-  current: string;
+export function WhitelistedAddressInput({
+  value,
+  onChange,
+}: {
+  value?: string[] | null;
+  onChange: (newList: string[]) => void;
+}) {
+  const [input, setInput] = useState('');
+
+  const handleAddAddress = () => {
+    if (!input.trim()) return;
+    const newList = [...(value || []), input.trim()];
+    onChange(newList);
+    setInput('');
+  };
+
+  const handleRemoveAddress = (index: number) => {
+    if (!value) return;
+    const newList = [...value];
+    newList.splice(index, 1); // remove the item
+    onChange(newList);
+  };
+
+  return (
+    <Box>
+      <Stack direction="row" mb={2}>
+        <Input
+          value={input}
+          placeholder="Enter address"
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddAddress();
+            }
+          }}
+        />
+        <Button onClick={handleAddAddress}>Add</Button>
+      </Stack>
+
+      <Stack spacing={1}>
+        {(value || []).map((addr, idx) => (
+          <Flex key={idx} align="center" justify="space-between" bg="gray.50" p={2} borderRadius="md">
+            <Text fontSize="sm" color="gray.700" isTruncated maxW="80%">
+              {addr}
+            </Text>
+            <IconButton
+              size="sm"
+              variant="ghost"
+              colorScheme="red"
+              aria-label="Remove address"
+              icon={<CloseIcon boxSize={16} />}
+              onClick={() => handleRemoveAddress(idx)}
+            />
+          </Flex>
+        ))}
+      </Stack>
+    </Box>
+  );
 }
-
-var updateOverallMarketParams = [
-  { label: 'Pause Actions', value: '', current: 'false' },  // Example default
-  { label: 'Manager Fee', value: '', current: '0.01' },     // Example 1% fee
-  { label: 'Whitelisted Debt Suppliers', value: '', current: '["addr1", "addr2"]' },
-  { label: 'Debt Supply Cap', value: '', current: '1000000' },
-  { label: 'Per User Debt Cap', value: '', current: '10000' },
-];
-
-var updateCollateralParams = [
-  { label: 'Max Borrow LTV', value: '', current: '0.75' },
-  { label: 'Liquidation LTV Ramp', value: '', current: '{"min": 0.85, "max": 0.9}' },
-  { label: 'Rate Params', value: '', current: '{"base_rate": "0.02", "slope1": "0.1", "slope2": "0.5"}' },
-  { label: 'Borrow Fee', value: '', current: '0.005' },
-  { label: 'Whitelisted Collateral Suppliers', value: '', current: '["addr1", "addr2"]' },
-  { label: 'Borrow Cap', value: '', current: '{"global_cap": "5000000", "per_user_cap": "50000"}' },
-  { label: 'Max Slippage', value: '', current: '0.02' },
-  { label: 'Pool for Oracle and Liquidations', value: '', current: '{"pool_id": "123", "oracle": "oracle_addr"}' },
-];
-
-
 
 interface MarketCardProps {
   title: string;
@@ -298,16 +335,10 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
           </FormControl>
 
           <FormControl>
-            <FormLabel>Whitelisted Debt Suppliers (comma separated)</FormLabel>
-            <Input
-              value={data.whitelisted_debt_suppliers?.join(', ') ?? ''}
-              placeholder="Enter addresses"
-              onChange={(e) =>
-                handleChange(
-                  'whitelisted_debt_suppliers',
-                  e.target.value.split(',').map((addr) => addr.trim())
-                )
-              }
+            <FormLabel>Whitelisted Debt Suppliers</FormLabel>
+            <WhitelistedAddressInput
+              value={data.whitelisted_debt_suppliers}
+              onChange={(newList) => handleChange('whitelisted_debt_suppliers', newList)}
             />
           </FormControl>
 

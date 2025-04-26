@@ -413,8 +413,13 @@ export type UpdateCollateralParams = {
 };
 
 interface CollateralCardProps {
-  options: string[];
+  options: Option[];
   initialData: UpdateCollateralParams;
+}
+
+interface Option {
+  label: string;
+  value: string;
 }
 
 export function CollateralCard({ options, initialData }: CollateralCardProps) {
@@ -424,6 +429,12 @@ export function CollateralCard({ options, initialData }: CollateralCardProps) {
   const handleChange = (field: keyof UpdateCollateralParams, value: any) => {
     setData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const isDisabled = useMemo(() => {
+    return JSON.stringify(data) === JSON.stringify(initialData);
+  }, [initialData, data]);
+
+
 
   return (
     <Card width="400px">
@@ -468,7 +479,10 @@ export function CollateralCard({ options, initialData }: CollateralCardProps) {
       </CardBody>
 
       <CardFooter justifyContent="space-between" alignItems="center">
-        <Button colorScheme="blue" onClick={() => console.log('Save Collateral Params:', data, 'for', selectedCollateral)}>
+        <Button
+          color={colors.tabBG}
+          onClick={() => console.log('Save Collateral Params:', data, 'for', selectedCollateral)}
+          isDisabled={isDisabled}>
           Save
         </Button>
       </CardFooter>
@@ -503,7 +517,12 @@ export default function ManagePage() {
       </Box>
       <Box p={8}>
         <CollateralCard
-          options={['USDC', 'DAI', 'WETH']}
+          options={[
+            { label: 'RLP', value: 'RLP' },
+            { label: 'USDC', value: 'USDC' },
+            { label: 'WSTUSR', value: 'WSTUSR' },
+            { label: 'wM', value: 'wM' },
+          ]}
           initialData={{}}
         />
       </Box>

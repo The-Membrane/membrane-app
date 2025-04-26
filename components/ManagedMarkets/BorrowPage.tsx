@@ -295,6 +295,8 @@ export function WhitelistedAddressInput({
               colorScheme="red"
               aria-label="Remove address"
               icon={<CloseIcon boxSize={8} />}
+              justifyContent={'end'}
+              marginInlineEnd={"4%"}
               onClick={() => handleRemoveAddress(idx)}
             />
           </Flex>
@@ -375,7 +377,7 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
 
       <CardFooter justifyContent="space-between" alignItems="center">
         <Button
-          colorScheme={colors.tabBG}
+          color={colors.tabBG}
           onClick={() => console.log('Save:', data)}
           isDisabled={isDisabled}
         >

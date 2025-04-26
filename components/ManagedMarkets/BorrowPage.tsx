@@ -407,7 +407,7 @@ export default function ManagePage() {
     <Box p={8}>
       <MarketCard
         title="E-Market"
-        params={defaultUpdateOverallMarket}
+        initialData={defaultUpdateOverallMarket}
         onEditCollateral={handleEditCollateral}
       />
     </Box>

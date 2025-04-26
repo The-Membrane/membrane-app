@@ -10,7 +10,6 @@ const chakraStyles: ChakraStylesConfig = {
     px: 2,
     cursor: 'pointer',
     justifySelf: 'center',
-    color: colors.globalBG,
     fontWeight: "500",
   }),
   control: (provided, state) => ({

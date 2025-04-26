@@ -402,6 +402,71 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
 }
 
 
+interface WhitelistedCollateralSupplierInputProps {
+  value: string[] | null;
+  onChange: (newList: string[]) => void;
+}
+
+export function WhitelistedCollateralSupplierInput({
+  value,
+  onChange,
+}: WhitelistedCollateralSupplierInputProps) {
+  const [input, setInput] = useState('');
+
+  const handleAddSupplier = () => {
+    if (!input.trim()) return;
+
+    const newList = [...(value || []), input.trim()];
+    onChange(newList);
+    setInput(''); // Clear input after adding
+  };
+
+  const handleRemoveSupplier = (index: number) => {
+    if (!value) return;
+
+    const newList = [...value];
+    newList.splice(index, 1); // Remove the supplier at index
+    onChange(newList);
+  };
+
+  return (
+    <Box>
+      <Stack direction="row" mb={2}>
+        <Input
+          value={input}
+          placeholder="Enter collateral supplier address"
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddSupplier();
+            }
+          }}
+        />
+        <Button onClick={handleAddSupplier}>Add</Button>
+      </Stack>
+
+      <Stack spacing={1}>
+        {(value || []).map((addr, idx) => (
+          <Flex key={idx} align="center" justify="space-between" bg="gray.50" p={2} borderRadius="md">
+            <Text fontSize="sm" color="gray.700" isTruncated maxW="80%">
+              {addr}
+            </Text>
+            <IconButton
+              size="sm"
+              variant="ghost"
+              colorScheme="red"
+              aria-label="Remove supplier"
+              icon={<CloseIcon boxSize={8} />}
+              onClick={() => handleRemoveSupplier(idx)}
+            />
+          </Flex>
+        ))}
+      </Stack>
+    </Box>
+  );
+}
+
 export type UpdateCollateralParams = {
   max_borrow_LTV?: string;
   liquidation_LTV?: any;
@@ -472,11 +537,14 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
           </FormControl>
 
           {/* You can add similar inputs for max_slippage, liquidation_LTV, etc. */}
-
           <FormControl>
             <FormLabel>Whitelisted Collateral Suppliers</FormLabel>
-            {/* You can reuse the WhitelistedAddressInput component here too */}
+            <WhitelistedCollateralSupplierInput
+              value={data.whitelisted_collateral_suppliers}
+              onChange={(newList) => handleChange('whitelisted_collateral_suppliers', newList)}
+            />
           </FormControl>
+
         </Stack>
       </CardBody>
 

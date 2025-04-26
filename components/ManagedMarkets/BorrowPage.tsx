@@ -385,7 +385,7 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
           onClick={() => setManagerState({ updateOverallMarket: data })}
           isDisabled={isDisabled}
         >
-          <a color='white'>Edit</a>
+          <a style={{ color: 'white' }}>Edit</a>
         </Button>
         <Text
           as="button"
@@ -485,7 +485,7 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
           color={colors.tabBG}
           onClick={() => console.log('Save Collateral Params:', data, 'for', selectedCollateral)}
           isDisabled={isDisabled}>
-          <a color='white'>Edit</a>
+          <a style={{ color: 'white' }}>Edit</a>
         </Button>
         <Text
           as="button"

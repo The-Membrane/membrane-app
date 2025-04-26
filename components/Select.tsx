@@ -1,4 +1,5 @@
 import { colors } from '@/config/defaults'
+import { fontWeights } from '@/theme/fonts'
 import { Select as ChakraSelect, ChakraStylesConfig, OptionProps } from 'chakra-react-select'
 
 const chakraStyles: ChakraStylesConfig = {
@@ -9,6 +10,8 @@ const chakraStyles: ChakraStylesConfig = {
     px: 2,
     cursor: 'pointer',
     justifySelf: 'center',
+    color: colors.globalBG,
+    fontWeight: "500",
   }),
   control: (provided, state) => ({
     ...provided,
@@ -24,7 +27,7 @@ const chakraStyles: ChakraStylesConfig = {
     ...provided,
     padding: 1,
     borderRadius: 16,
-    bg: colors.tabBG,
+    bg: colors.globalBG,
     color: '#fff',
   }),
   option: (provided) => ({

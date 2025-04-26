@@ -236,12 +236,13 @@
 
 
 import { colors } from '@/config/defaults';
-import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, Input, Stack, Text } from '@chakra-ui/react';
+import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, HStack, Input, Stack, Text } from '@chakra-ui/react';
 import { useEffect, useMemo } from 'react';
-import { UpdateOverallMarket } from './hooks/useManagerState';
+import useManagerState, { UpdateOverallMarket } from './hooks/useManagerState';
 import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
 import { useState } from 'react';
+import Select from '../Select';
 
 export function WhitelistedAddressInput({
   value,
@@ -313,6 +314,7 @@ interface MarketCardProps {
 }
 
 export function MarketCard({ title, initialData, onEditCollateral }: MarketCardProps) {
+  const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateOverallMarket>(initialData);
 
   const handleChange = (field: keyof UpdateOverallMarket, value: any) => {
@@ -366,19 +368,20 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
             />
           </FormControl>
 
-          <Checkbox
-            isChecked={data.pause_actions ?? false}
-            onChange={(e) => handleChange('pause_actions', e.target.checked)}
-          >
-            Pause Actions
-          </Checkbox>
+          {data.pause_actions &&
+            <Checkbox
+              isChecked={data.pause_actions ?? false}
+              onChange={(e) => handleChange('pause_actions', e.target.checked)}
+            >
+              Pause Actions
+            </Checkbox>}
         </Stack>
       </CardBody>
 
       <CardFooter justifyContent="space-between" alignItems="center">
         <Button
           color={colors.tabBG}
-          onClick={() => console.log('Save:', data)}
+          onClick={() => setManagerState({ updateOverallMarket: data })}
           isDisabled={isDisabled}
         >
           Edit
@@ -392,6 +395,82 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
         >
           Edit collateral →
         </Text>
+      </CardFooter>
+    </Card>
+  );
+}
+
+
+export type UpdateCollateralParams = {
+  max_borrow_LTV?: string;
+  liquidation_LTV?: any;
+  rate_params?: any;
+  borrow_fee?: string;
+  whitelisted_collateral_suppliers?: string[] | null;
+  borrow_cap?: any;
+  max_slippage?: string;
+  pool_for_oracle_and_liquidations?: any;
+};
+
+interface CollateralCardProps {
+  options: string[];
+  initialData: UpdateCollateralParams;
+}
+
+export function CollateralCard({ options, initialData }: CollateralCardProps) {
+  const [data, setData] = useState<UpdateCollateralParams>(initialData);
+  const [selectedCollateral, setSelectedCollateral] = useState(options[0] || '');
+
+  const handleChange = (field: keyof UpdateCollateralParams, value: any) => {
+    setData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <Card width="400px">
+      <CardHeader>
+        <FormControl>
+          <FormLabel>Collateral</FormLabel>
+          <Select
+            value={selectedCollateral}
+            onChange={(e) => setSelectedCollateral(e.target.value)}
+            options={options}
+          />
+        </FormControl>
+      </CardHeader>
+
+      <CardBody>
+        <Stack spacing={4}>
+          <FormControl>
+            <FormLabel>Max Borrow LTV</FormLabel>
+            <Input
+              value={data.max_borrow_LTV ?? ''}
+              placeholder="Enter max borrow LTV"
+              onChange={(e) => handleChange('max_borrow_LTV', e.target.value)}
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Borrow Fee</FormLabel>
+            <Input
+              value={data.borrow_fee ?? ''}
+              placeholder="Enter borrow fee"
+              onChange={(e) => handleChange('borrow_fee', e.target.value)}
+            />
+          </FormControl>
+
+          {/* You can add similar inputs for max_slippage, liquidation_LTV, etc. */}
+
+          <FormControl>
+            <FormLabel>Whitelisted Collateral Suppliers</FormLabel>
+            {/* You can reuse the WhitelistedAddressInput component here too */}
+          </FormControl>
+        </Stack>
+      </CardBody>
+
+      <CardFooter justifyContent="space-between" alignItems="center">
+        <Button colorScheme="blue" onClick={() => console.log('Save Collateral Params:', data, 'for', selectedCollateral)}>
+          Save
+        </Button>
       </CardFooter>
     </Card>
   );
@@ -414,12 +493,20 @@ export default function ManagePage() {
   };
 
   return (
-    <Box p={8}>
-      <MarketCard
-        title="E-Market"
-        initialData={defaultUpdateOverallMarket}
-        onEditCollateral={handleEditCollateral}
-      />
-    </Box>
+    <HStack spacing={4} direction="row" align="stretch">
+      <Box p={8}>
+        <MarketCard
+          title="CULTivate"
+          initialData={defaultUpdateOverallMarket}
+          onEditCollateral={handleEditCollateral}
+        />
+      </Box>
+      <Box p={8}>
+        <CollateralCard
+          options={['USDC', 'DAI', 'WETH']}
+          initialData={{}}
+        />
+      </Box>
+    </HStack>
   );
 }

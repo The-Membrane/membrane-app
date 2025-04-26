@@ -151,7 +151,7 @@ const RangeBoundVisual = () => {
 
       <HStack justifyContent="center" pb="1rem">
         <Text alignSelf="center" fontFamily="Inter" fontSize="16px" fontWeight={"bold"}> TVL: ${(num(shiftDigits(TVL ?? "0", -6)).times(cdtPrice).toFixed(2))}</Text>
-        <Text alignSelf="center" fontFamily="Inter" fontSize="16px"> with {Number(shiftDigits(existingBuffer ?? "0", -6)).toFixed(0)} CDT Waiting to Sell High</Text>
+        {/* <Text alignSelf="center" fontFamily="Inter" fontSize="16px"> with {Number(shiftDigits(existingBuffer ?? "0", -6)).toFixed(0)} CDT Waiting to Sell High</Text> */}
       </HStack>
 
 

@@ -237,7 +237,7 @@
 
 import { colors } from '@/config/defaults';
 import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, Input, Stack, Text } from '@chakra-ui/react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { UpdateOverallMarket } from './hooks/useManagerState';
 import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
@@ -294,7 +294,7 @@ export function WhitelistedAddressInput({
               variant="ghost"
               colorScheme="red"
               aria-label="Remove address"
-              icon={<CloseIcon boxSize={16} />}
+              icon={<CloseIcon boxSize={8} />}
               onClick={() => handleRemoveAddress(idx)}
             />
           </Flex>
@@ -317,6 +317,10 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
     setData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const isDisabled = useMemo(() => {
+    return JSON.stringify(data) === JSON.stringify(initialData);
+  }, [initialData, data]);
+
   return (
     <Card width="400px">
       <CardHeader fontWeight="bold" fontSize="xl">
@@ -331,14 +335,6 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
               value={data.manager_fee ?? ''}
               placeholder="Enter manager fee"
               onChange={(e) => handleChange('manager_fee', e.target.value)}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>Whitelisted Debt Suppliers</FormLabel>
-            <WhitelistedAddressInput
-              value={data.whitelisted_debt_suppliers}
-              onChange={(newList) => handleChange('whitelisted_debt_suppliers', newList)}
             />
           </FormControl>
 
@@ -360,6 +356,14 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
             />
           </FormControl>
 
+          <FormControl>
+            <FormLabel>Whitelisted Debt Suppliers</FormLabel>
+            <WhitelistedAddressInput
+              value={data.whitelisted_debt_suppliers}
+              onChange={(newList) => handleChange('whitelisted_debt_suppliers', newList)}
+            />
+          </FormControl>
+
           <Checkbox
             isChecked={data.pause_actions ?? false}
             onChange={(e) => handleChange('pause_actions', e.target.checked)}
@@ -370,7 +374,11 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
       </CardBody>
 
       <CardFooter justifyContent="space-between" alignItems="center">
-        <Button colorScheme="blue" onClick={() => console.log('Save:', data)}>
+        <Button
+          colorScheme={colors.tabBG}
+          onClick={() => console.log('Save:', data)}
+          isDisabled={isDisabled}
+        >
           Edit
         </Button>
         <Text

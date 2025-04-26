@@ -235,8 +235,10 @@
 // }
 
 
+import { colors } from '@/config/defaults';
 import { Box, Button, Card, CardBody, CardFooter, CardHeader, Checkbox, Flex, FormControl, FormLabel, Input, Stack, Text } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { UpdateOverallMarket } from './hooks/useManagerState';
 
 interface Param {
   label: string;
@@ -267,12 +269,16 @@ var updateCollateralParams = [
 
 interface MarketCardProps {
   title: string;
-  params: Param[];
+  initialData: UpdateOverallMarket;
   onEditCollateral: () => void;
 }
 
-export function MarketCard({ title, params, onEditCollateral }: MarketCardProps) {
-  const [paused, setPaused] = useState(false);
+export function MarketCard({ title, initialData, onEditCollateral }: MarketCardProps) {
+  const [data, setData] = useState<UpdateOverallMarket>(initialData);
+
+  const handleChange = (field: keyof UpdateOverallMarket, value: any) => {
+    setData((prev) => ({ ...prev, [field]: value }));
+  };
 
   return (
     <Card width="400px">
@@ -282,26 +288,64 @@ export function MarketCard({ title, params, onEditCollateral }: MarketCardProps)
 
       <CardBody>
         <Stack spacing={4}>
-          {params.map((param, index) => (
-            <FormControl key={index}>
-              <FormLabel>{param.label}</FormLabel>
-              <Input value={param.value} placeholder="Enter new value" />
-              <Text fontSize="sm" color="gray.500">Current: {param.current}</Text>
-            </FormControl>
-          ))}
+          <FormControl>
+            <FormLabel>Manager Fee</FormLabel>
+            <Input
+              value={data.manager_fee ?? ''}
+              placeholder="Enter manager fee"
+              onChange={(e) => handleChange('manager_fee', e.target.value)}
+            />
+          </FormControl>
 
-          <Checkbox isChecked={paused} onChange={(e) => setPaused(e.target.checked)}>
-            Pause
+          <FormControl>
+            <FormLabel>Whitelisted Debt Suppliers (comma separated)</FormLabel>
+            <Input
+              value={data.whitelisted_debt_suppliers?.join(', ') ?? ''}
+              placeholder="Enter addresses"
+              onChange={(e) =>
+                handleChange(
+                  'whitelisted_debt_suppliers',
+                  e.target.value.split(',').map((addr) => addr.trim())
+                )
+              }
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Debt Supply Cap</FormLabel>
+            <Input
+              value={data.debt_supply_cap ?? ''}
+              placeholder="Enter debt supply cap"
+              onChange={(e) => handleChange('debt_supply_cap', e.target.value)}
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Per User Debt Cap</FormLabel>
+            <Input
+              value={data.per_user_debt_cap ?? ''}
+              placeholder="Enter per user debt cap"
+              onChange={(e) => handleChange('per_user_debt_cap', e.target.value)}
+            />
+          </FormControl>
+
+          <Checkbox
+            isChecked={data.pause_actions ?? false}
+            onChange={(e) => handleChange('pause_actions', e.target.checked)}
+          >
+            Pause Actions
           </Checkbox>
         </Stack>
       </CardBody>
 
       <CardFooter justifyContent="space-between" alignItems="center">
-        <Button colorScheme="blue">Edit</Button>
+        <Button colorScheme="blue" onClick={() => console.log('Save:', data)}>
+          Edit
+        </Button>
         <Text
           as="button"
           fontSize="sm"
-          color="blue.500"
+          color="white"
           fontWeight="bold"
           onClick={onEditCollateral}
         >
@@ -313,7 +357,6 @@ export function MarketCard({ title, params, onEditCollateral }: MarketCardProps)
 }
 
 
-
 export default function ManagePage() {
 
   const handleEditCollateral = () => {
@@ -321,11 +364,19 @@ export default function ManagePage() {
     // You can implement the view swap here
   };
 
+  const defaultUpdateOverallMarket: UpdateOverallMarket = {
+    pause_actions: false,
+    manager_fee: '',
+    whitelisted_debt_suppliers: [],
+    debt_supply_cap: '',
+    per_user_debt_cap: ''
+  };
+
   return (
     <Box p={8}>
       <MarketCard
         title="E-Market"
-        params={updateOverallMarketParams}
+        params={defaultUpdateOverallMarket}
         onEditCollateral={handleEditCollateral}
       />
     </Box>

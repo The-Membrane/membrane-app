@@ -244,6 +244,27 @@ interface Param {
   current: string;
 }
 
+var updateOverallMarketParams = [
+  { label: 'Pause Actions', value: '', current: 'false' },  // Example default
+  { label: 'Manager Fee', value: '', current: '0.01' },     // Example 1% fee
+  { label: 'Whitelisted Debt Suppliers', value: '', current: '["addr1", "addr2"]' },
+  { label: 'Debt Supply Cap', value: '', current: '1000000' },
+  { label: 'Per User Debt Cap', value: '', current: '10000' },
+];
+
+var updateCollateralParams = [
+  { label: 'Max Borrow LTV', value: '', current: '0.75' },
+  { label: 'Liquidation LTV Ramp', value: '', current: '{"min": 0.85, "max": 0.9}' },
+  { label: 'Rate Params', value: '', current: '{"base_rate": "0.02", "slope1": "0.1", "slope2": "0.5"}' },
+  { label: 'Borrow Fee', value: '', current: '0.005' },
+  { label: 'Whitelisted Collateral Suppliers', value: '', current: '["addr1", "addr2"]' },
+  { label: 'Borrow Cap', value: '', current: '{"global_cap": "5000000", "per_user_cap": "50000"}' },
+  { label: 'Max Slippage', value: '', current: '0.02' },
+  { label: 'Pool for Oracle and Liquidations', value: '', current: '{"pool_id": "123", "oracle": "oracle_addr"}' },
+];
+
+
+
 interface MarketCardProps {
   title: string;
   params: Param[];
@@ -291,15 +312,9 @@ export function MarketCard({ title, params, onEditCollateral }: MarketCardProps)
   );
 }
 
-// import { Box } from '@chakra-ui/react';
-// import { MarketCard } from './MarketCard'; // Adjust the import path if needed
+
 
 export default function ManagePage() {
-  const params = [
-    { label: 'Param 1', value: '', current: '10' },
-    { label: 'Param 2', value: '', current: '20' },
-    { label: 'Param 3', value: '', current: '30' },
-  ];
 
   const handleEditCollateral = () => {
     console.log('Swapping to edit collateral view...');
@@ -310,7 +325,7 @@ export default function ManagePage() {
     <Box p={8}>
       <MarketCard
         title="E-Market"
-        params={params}
+        params={updateOverallMarketParams}
         onEditCollateral={handleEditCollateral}
       />
     </Box>

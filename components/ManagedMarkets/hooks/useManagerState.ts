@@ -81,6 +81,25 @@ export type MarketParams = {
   max_slippage: string; // Decimal
 };
 
+export interface MarketConfig {
+  owner: string; // Addr is typically a string in CosmWasm
+  osmosis_proxy_contract: string;
+  global_rate_index: RateIndex;
+  /** This includes supplied CDT & CDT accrued from interest to make sure debt suppliers always withdraw their full share. */
+  total_debt_tokens: string; // Uint128 →  string
+  bad_debt: string; // Uint128 → string
+  debt_supply_cap?: string; // Option<Uint128>
+  debt_supply_vault_token: string;
+  /** Set Whitelists to empty vec to disable new capital */
+  whitelisted_debt_suppliers?: string[]; // Option<Vec<String>> → optional string array
+  manager_fee: string; // Decimal → string
+}
+
+export interface MarketData {
+  config: MarketConfig,
+  params: MarketParams
+}
+
 export type LTVRamp = {
   /** The LTV at the end of the ramp */
   end_ltv: string; // Decimal
@@ -100,6 +119,7 @@ export type UpdateOverallMarket = {
 }
 
 export type UpdateCollateralParams = {
+  collateral_denom: string;
   max_borrow_LTV?: string; // Option<Decimal>
   liquidation_LTV?: LTVRamp; // Option<LTVRamp>
   rate_params?: RateParams; // Option<RateParams>

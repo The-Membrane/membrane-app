@@ -244,6 +244,7 @@ import { CloseIcon } from '@chakra-ui/icons';
 import { useState } from 'react';
 import Select from '../Select';
 import { on } from 'events';
+import { useAssetBySymbol } from '@/hooks/useAssets';
 
 export function WhitelistedAddressInput({
   value,
@@ -403,7 +404,7 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
 
 
 interface WhitelistedCollateralSupplierInputProps {
-  value: string[] | null;
+  value?: string[] | null;
   onChange: (newList: string[]) => void;
 }
 
@@ -468,6 +469,7 @@ export function WhitelistedCollateralSupplierInput({
 }
 
 export type UpdateCollateralParams = {
+  collateral_denom: string;
   max_borrow_LTV?: string;
   liquidation_LTV?: any;
   rate_params?: any;
@@ -490,6 +492,7 @@ interface Option {
 }
 
 export function CollateralCard({ options, initialData, onEditMarket }: CollateralCardProps) {
+  const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
   const [selectedCollateral, setSelectedCollateral] = useState(options[0] || '');
 
@@ -501,6 +504,16 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
     return JSON.stringify(data) === JSON.stringify(initialData);
   }, [initialData, data]);
 
+  useEffect(() => {
+    //Find the selectedCollateral 
+    const asset = useAssetBySymbol(selectedCollateral.label)
+    if (asset) {
+      setData((prev) => ({
+        ...prev,
+        collateral_denom: asset.base,
+      }));
+    }
+  }, [selectedCollateral]);
 
 
   return (
@@ -551,7 +564,7 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
       <CardFooter justifyContent="space-between" alignItems="center">
         <Button
           color={colors.tabBG}
-          onClick={() => console.log('Save Collateral Params:', data, 'for', selectedCollateral)}
+          onClick={() => setManagerState({ updateCollateralParams: data })}
           isDisabled={isDisabled}>
           <a style={{ color: 'white' }}>Edit</a>
         </Button>
@@ -581,6 +594,21 @@ export default function ManagePage() {
     // You can implement the view swap here
   };
 
+  const options: Option[] = [
+    { label: 'RLP', value: 'RLP' },
+    { label: 'USDC', value: 'USDC' },
+    { label: 'WSTUSR', value: 'WSTUSR' },
+    { label: 'wM', value: 'wM' },
+  ]
+
+  const asset = useAssetBySymbol(options[0].label ?? '')
+  if (asset) {
+    setData((prev) => ({
+      ...prev,
+      collateral_denom: asset.base,
+    }));
+  }
+
   const defaultUpdateOverallMarket: UpdateOverallMarket = {
     pause_actions: false,
     manager_fee: '',
@@ -600,13 +628,10 @@ export default function ManagePage() {
       </Box>
       <Box p={8}>
         <CollateralCard
-          options={[
-            { label: 'RLP', value: 'RLP' },
-            { label: 'USDC', value: 'USDC' },
-            { label: 'WSTUSR', value: 'WSTUSR' },
-            { label: 'wM', value: 'wM' },
-          ]}
-          initialData={{}}
+          options={options}
+          initialData={
+            { collateral_denom: asset?.base ?? '' }
+          }
           onEditMarket={handleEditMarket}
         />
       </Box>

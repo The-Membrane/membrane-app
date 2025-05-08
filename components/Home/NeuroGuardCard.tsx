@@ -700,15 +700,17 @@ const AcquireCDTEntry = React.memo(({
                   : "Current Deposit: " + rblpDeposit.toFixed(2) + " CDT"}
               </Text>
               {/* Toggle for swapToCDT under Withdraw button */}
-              <Checkbox
-                id="swap-to-cdt-checkbox"
-                isChecked={swapToCDT}
-                onChange={() => setSwapToCDT(v => !v)}
-                colorScheme="blue"
-                mt={4}
-              >
-                Swap to CDT
-              </Checkbox>
+              {txType === 'withdraw' && (
+                <Checkbox
+                  id="swap-to-cdt-checkbox"
+                  isChecked={swapToCDT}
+                  onChange={() => setSwapToCDT(v => !v)}
+                  colorScheme="blue"
+                  mt={4}
+                >
+                  Swap to CDT
+                </Checkbox>
+              )}
             </Stack>
           </CardBody>
           <CardFooter as={Stack} justifyContent="end" borderTop="1px solid" borderColor="whiteAlpha.200" pt="5" gap="5">

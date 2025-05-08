@@ -707,8 +707,9 @@ const AcquireCDTEntry = React.memo(({
                   onChange={() => setSwapToCDT(v => !v)}
                   colorScheme="blue"
                   mt={4}
+                  fontWeight={"700"}
                 >
-                  Swap to CDT
+                  Swap any USDC to CDT on exit
                 </Checkbox>
               )}
             </Stack>

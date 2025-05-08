@@ -128,112 +128,115 @@ const EarnHero = () => {
     }, [selectedDeposits]);
 
     return (
-        <Box
-            w="full"
-            minH={{ base: '60vh', md: '70vh' }}
-            bgGradient="linear(to-b, #181B23 60%, #181B23 100%)"
-            borderRadius="2xl"
-            px={{ base: 4, md: 12 }}
-            py={{ base: 10, md: 20 }}
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
-            flexDir={{ base: 'column', md: 'row' }}
-            position="relative"
-        >
-            {/* Table Header with Filter */}
-            <HStack mb={6} justifyContent="flex-start" spacing={8}>
-                <HStack>
-                    <Text color="whiteAlpha.800" fontWeight="semibold">Deposit:</Text>
-                    <Popover isOpen={isOpen} onOpen={onOpen} onClose={onClose} placement="bottom-start" closeOnBlur>
-                        <PopoverTrigger>
-                            <Button
-                                rightIcon={<ChevronDownIcon />}
-                                bg="#23252B"
-                                color="white"
-                                borderRadius="md"
-                                minW="120px"
-                                _hover={{ bg: '#23252B' }}
-                                onClick={onOpen}
-                            >
-                                {selectedDisplay}
-                            </Button>
-                        </PopoverTrigger>
-                        <Portal>
-                            <PopoverContent bg="#23252B" color="white" minW="320px" border="none" boxShadow="xl">
-                                <PopoverArrow bg="#23252B" />
-                                <PopoverCloseButton />
-                                <PopoverHeader borderBottom="1px solid #333" pb={2}>
-                                    <Input
-                                        placeholder="Search for deposit asset"
-                                        value={search}
-                                        onChange={e => setSearch(e.target.value)}
-                                        bg="#23252B"
-                                        color="white"
-                                        borderColor="#333"
-                                        _placeholder={{ color: 'whiteAlpha.600' }}
-                                        size="sm"
-                                        mb={2}
-                                        autoFocus
-                                    />
-                                </PopoverHeader>
-                                <PopoverBody maxH="300px" overflowY="auto" px={0}>
-                                    <VStack align="stretch" spacing={0}>
-                                        <Checkbox
-                                            colorScheme="blue"
-                                            isChecked={selectedDeposits.includes('All')}
-                                            onChange={() => handleSelect('All')}
-                                            px={4}
-                                            py={2}
-                                        >
-                                            All
-                                        </Checkbox>
-                                        {filteredOptions.map(opt => (
+        <Box w="100vw" minH="100vh" bg="#181B23" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
+            {/* Main content box with outline effect */}
+            <Box
+                w={{ base: '98vw', md: '80vw', lg: '65vw' }}
+                maxW="1200px"
+                bg="#20232C"
+                borderRadius="2xl"
+                boxShadow="0 0 0 4px #232A3E"
+                p={{ base: 4, md: 8 }}
+                mx="auto"
+                minH="70vh"
+                display="flex"
+                flexDirection="column"
+                alignItems="center"
+            >
+                {/* Deposit Selector stacked on top */}
+                <Box w={{ base: '100%', md: '85%' }} mx="auto" mb={6}>
+                    <HStack justifyContent="flex-start">
+                        <Text color="whiteAlpha.800" fontWeight="semibold">Deposit:</Text>
+                        <Popover isOpen={isOpen} onOpen={onOpen} onClose={onClose} placement="bottom-start" closeOnBlur>
+                            <PopoverTrigger>
+                                <Button
+                                    rightIcon={<ChevronDownIcon />}
+                                    bg="#23252B"
+                                    color="white"
+                                    borderRadius="md"
+                                    minW="120px"
+                                    _hover={{ bg: '#23252B' }}
+                                    onClick={onOpen}
+                                >
+                                    {selectedDisplay}
+                                </Button>
+                            </PopoverTrigger>
+                            <Portal>
+                                <PopoverContent bg="#23252B" color="white" minW="220px" border="none" boxShadow="xl">
+                                    <PopoverArrow bg="#23252B" />
+                                    <PopoverCloseButton />
+                                    <PopoverHeader borderBottom="1px solid #333" pb={2}>
+                                        <Input
+                                            placeholder="Search for deposit asset"
+                                            value={search}
+                                            onChange={e => setSearch(e.target.value)}
+                                            bg="#23252B"
+                                            color="white"
+                                            borderColor="#333"
+                                            _placeholder={{ color: 'whiteAlpha.600' }}
+                                            size="sm"
+                                            mb={2}
+                                            autoFocus
+                                        />
+                                    </PopoverHeader>
+                                    <PopoverBody maxH="300px" overflowY="auto" px={0}>
+                                        <VStack align="stretch" spacing={0}>
                                             <Checkbox
-                                                key={opt}
                                                 colorScheme="blue"
-                                                isChecked={selectedDeposits.includes(opt)}
-                                                onChange={() => handleSelect(opt)}
+                                                isChecked={selectedDeposits.includes('All')}
+                                                onChange={() => handleSelect('All')}
                                                 px={4}
                                                 py={2}
                                             >
-                                                {opt}
+                                                All
                                             </Checkbox>
-                                        ))}
-                                    </VStack>
-                                </PopoverBody>
-                            </PopoverContent>
-                        </Portal>
-                    </Popover>
-                </HStack>
-            </HStack>
-            {/* Table */}
-            <Box bg="#23252B" borderRadius="lg" p={4}>
-                <Table variant="unstyled" colorScheme="gray">
-                    <Thead>
-                        <Tr>
-                            <Th color="whiteAlpha.700" fontWeight="semibold">Asset</Th>
-                            <Th color="whiteAlpha.700" fontWeight="semibold">TVL</Th>
-                            <Th color="whiteAlpha.700" fontWeight="semibold">Vault Name</Th>
-                            <Th color="whiteAlpha.700" fontWeight="semibold">Multiplier</Th>
-                            <Th color="whiteAlpha.700" fontWeight="semibold">Cost</Th>
-                        </Tr>
-                    </Thead>
-                    <Tbody>
-                        {filteredRows.map((row, idx) => (
-                            <Tr key={idx} _hover={{ bg: '#232A3E' }}>
-                                <Td color="white" fontWeight="medium">{row.asset}</Td>
-                                <Td color="whiteAlpha.900">{row.tvl}</Td>
-                                <Td color="whiteAlpha.900">{row.vaultName}</Td>
-                                <Td color="whiteAlpha.900">{row.multiplier}</Td>
-                                <Td color="whiteAlpha.900">{row.cost}</Td>
+                                            {filteredOptions.map(opt => (
+                                                <Checkbox
+                                                    key={opt}
+                                                    colorScheme="blue"
+                                                    isChecked={selectedDeposits.includes(opt)}
+                                                    onChange={() => handleSelect(opt)}
+                                                    px={4}
+                                                    py={2}
+                                                >
+                                                    {opt}
+                                                </Checkbox>
+                                            ))}
+                                        </VStack>
+                                    </PopoverBody>
+                                </PopoverContent>
+                            </Portal>
+                        </Popover>
+                    </HStack>
+                </Box>
+                {/* Table centered and 85% width */}
+                <Box w={{ base: '100%', md: '85%' }} mx="auto" bg="#23252B" borderRadius="lg" p={4}>
+                    <Table variant="unstyled" colorScheme="gray">
+                        <Thead>
+                            <Tr>
+                                <Th color="whiteAlpha.700" fontWeight="semibold">Asset</Th>
+                                <Th color="whiteAlpha.700" fontWeight="semibold">TVL</Th>
+                                <Th color="whiteAlpha.700" fontWeight="semibold">Vault Name</Th>
+                                <Th color="whiteAlpha.700" fontWeight="semibold">Multiplier</Th>
+                                <Th color="whiteAlpha.700" fontWeight="semibold">Cost</Th>
                             </Tr>
-                        ))}
-                    </Tbody>
-                </Table>
-                {filteredRows.length === 0 && (
-                    <Text color="whiteAlpha.600" textAlign="center" py={8}>No results found.</Text>
-                )}
+                        </Thead>
+                        <Tbody>
+                            {filteredRows.map((row, idx) => (
+                                <Tr key={idx} _hover={{ bg: '#232A3E' }}>
+                                    <Td color="white" fontWeight="medium">{row.asset}</Td>
+                                    <Td color="whiteAlpha.900">{row.tvl}</Td>
+                                    <Td color="whiteAlpha.900">{row.vaultName}</Td>
+                                    <Td color="whiteAlpha.900">{row.multiplier}</Td>
+                                    <Td color="whiteAlpha.900">{row.cost}</Td>
+                                </Tr>
+                            ))}
+                        </Tbody>
+                    </Table>
+                    {filteredRows.length === 0 && (
+                        <Text color="whiteAlpha.600" textAlign="center" py={8}>No results found.</Text>
+                    )}
+                </Box>
             </Box>
         </Box>
     );

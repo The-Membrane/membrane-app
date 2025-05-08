@@ -144,9 +144,9 @@ const EarnHero = () => {
                 alignItems="center"
             >
                 {/* Deposit Selector stacked on top */}
-                <Box w={{ base: '100%', md: '85%' }} mx="auto" mb={6}>
-                    <HStack justifyContent="flex-start">
-                        <Text color="whiteAlpha.800" fontWeight="semibold">Deposit:</Text>
+                <Box w={{ base: '100%', md: '25%' }} mx="auto" mb={6}>
+                    <HStack justifyContent="flex-start" alignItems="center">
+                        <Text color="white" fontWeight="bold">Deposit:</Text>
                         <Popover isOpen={isOpen} onOpen={onOpen} onClose={onClose} placement="bottom-start" closeOnBlur>
                             <PopoverTrigger>
                                 <Button
@@ -214,11 +214,11 @@ const EarnHero = () => {
                     <Table variant="unstyled" colorScheme="gray" fontSize="13px">
                         <Thead>
                             <Tr>
-                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">Asset</Th>
-                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">TVL</Th>
-                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">Vault Name</Th>
-                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">Multiplier</Th>
-                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">Cost</Th>
+                                <Th color="white" fontWeight="bold" fontSize="13px">Asset</Th>
+                                <Th color="white" fontWeight="bold" fontSize="13px">TVL</Th>
+                                <Th color="white" fontWeight="bold" fontSize="13px">Vault Name</Th>
+                                <Th color="white" fontWeight="bold" fontSize="13px">Multiplier</Th>
+                                <Th color="white" fontWeight="bold" fontSize="13px">Cost</Th>
                             </Tr>
                         </Thead>
                         <Tbody>

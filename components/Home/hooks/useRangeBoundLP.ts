@@ -21,7 +21,7 @@ import useBoundedManage from "../../Dashboard/hooks/useRangeBoundLPManage"
 import { deleteCookie, getCookie, setCookie } from '@/helpers/cookies'
 import useAppState from '@/persisted-state/useAppState'
 
-const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?: boolean }) => {
+const useBoundedLP = ({ onSuccess, run = true, swapToCDT = true }: { onSuccess?: () => void, run?: boolean, swapToCDT?: boolean }) => {
   const { address } = useWallet()
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const cdtAsset = useAssetBySymbol('CDT')
@@ -61,7 +61,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
       boundedCDTAsset,
       underlyingCDT,
       boundedCDTBalance,
-      usdcAsset, prices, positionInfo?.assetRatios, run
+      usdcAsset, prices, positionInfo?.assetRatios, run, swapToCDT
     ],
     queryFn: () => {
       if (!address || !cdtAsset || !boundedCDTAsset || !usdcAsset || !prices || !positionInfo) {
@@ -91,7 +91,7 @@ const useBoundedLP = ({ onSuccess, run = true }: { onSuccess?: () => void, run?:
             sender: address,
             contract: contracts.rangeboundLP,
             msg: toUtf8(JSON.stringify({
-              exit_vault: { swap_to_cdt: true }
+              exit_vault: { swap_to_cdt: swapToCDT }
             })),
             funds: funds
           })

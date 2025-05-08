@@ -211,24 +211,24 @@ const EarnHero = () => {
                 </Box>
                 {/* Table centered and 85% width */}
                 <Box w={{ base: '100%', md: '85%' }} mx="auto" bg="#23252B" borderRadius="lg" p={4}>
-                    <Table variant="unstyled" colorScheme="gray">
+                    <Table variant="unstyled" colorScheme="gray" fontSize="13px">
                         <Thead>
                             <Tr>
-                                <Th color="whiteAlpha.700" fontWeight="semibold">Asset</Th>
-                                <Th color="whiteAlpha.700" fontWeight="semibold">TVL</Th>
-                                <Th color="whiteAlpha.700" fontWeight="semibold">Vault Name</Th>
-                                <Th color="whiteAlpha.700" fontWeight="semibold">Multiplier</Th>
-                                <Th color="whiteAlpha.700" fontWeight="semibold">Cost</Th>
+                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">Asset</Th>
+                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">TVL</Th>
+                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">Vault Name</Th>
+                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">Multiplier</Th>
+                                <Th color="whiteAlpha.700" fontWeight="semibold" fontSize="13px">Cost</Th>
                             </Tr>
                         </Thead>
                         <Tbody>
                             {filteredRows.map((row, idx) => (
-                                <Tr key={idx} _hover={{ bg: '#232A3E' }}>
-                                    <Td color="white" fontWeight="medium">{row.asset}</Td>
-                                    <Td color="whiteAlpha.900">{row.tvl}</Td>
-                                    <Td color="whiteAlpha.900">{row.vaultName}</Td>
-                                    <Td color="whiteAlpha.900">{row.multiplier}</Td>
-                                    <Td color="whiteAlpha.900">{row.cost}</Td>
+                                <Tr key={idx} _hover={{ bg: '#232A3E' }} fontSize="13px">
+                                    <Td color="white" fontWeight="medium" fontSize="13px">{row.asset}</Td>
+                                    <Td color="whiteAlpha.900" fontSize="13px">{row.tvl}</Td>
+                                    <Td color="whiteAlpha.900" fontSize="13px">{row.vaultName}</Td>
+                                    <Td color="whiteAlpha.900" fontSize="13px">{row.multiplier}</Td>
+                                    <Td color="whiteAlpha.900" fontSize="13px">{row.cost}</Td>
                                 </Tr>
                             ))}
                         </Tbody>

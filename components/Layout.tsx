@@ -108,8 +108,8 @@ const Layout = ({ children }: Props) => {
     <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={"column"}>
       {/* <HexagonBackground /> */}
       <Stack marginRight={"2.5%"} flexBasis="240px" overflow="undefined">
-        {/* <SideNav /> */}
-        <HorizontalNav />
+        <SideNav />
+        {/* <HorizontalNav /> */}
       </Stack>
       <Stack
         h="full"

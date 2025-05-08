@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, memo, useRef, ChangeEvent, use } from "react"
-import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem, Input, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, CardHeader, CardBody, CardFooter, TabIndicator, TabList, Tabs } from "@chakra-ui/react"
+import { Card, Text, Stack, HStack, Button, Image, Modal, ModalOverlay, Checkbox, useDisclosure, List, ListItem, Input, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, CardHeader, CardBody, CardFooter, TabIndicator, TabList, Tabs, Switch, FormControl, FormLabel } from "@chakra-ui/react"
 import { num } from "@/helpers/num"
 import { shiftDigits } from "@/helpers/math"
 import { colors, denoms, INPUT_DELAY } from "@/config/defaults"
@@ -38,7 +38,7 @@ import { set } from "react-hook-form"
 import useBoundedLP from "./hooks/useRangeBoundLP"
 import ConfirmModal from "../ConfirmModal"
 import { HomeSummary } from "./HomeSummary"
-import AnimatedBorderImage from "./AnimatedBorder"
+// import AnimatedBorderImage from "./AnimatedBorder"
 
 // Extracted RBLPDepositEntry component
 // const RBLPDepositEntry = React.memo(({
@@ -541,12 +541,14 @@ const AcquireCDTEntry = React.memo(({
   // const isMintDisabled = usdcBalance < 24
   // // console.log("log usdc balance", shiftDigits(usdcBalance, -6).toNumber())
 
+  const [swapToCDT, setSwapToCDT] = useState<boolean>(true);
+
 
 
   const [txType, setTxType] = useState("deposit");
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const { action: swap, tokenOutMinAmount } = useSwapToCDT({ onSuccess: () => { }, run: txType === "deposit" })
-  const { action: rblp } = useBoundedLP({ onSuccess: () => { }, run: txType != "deposit" })
+  const { action: rblp } = useBoundedLP({ onSuccess: () => { }, run: txType != "deposit", swapToCDT })
   // const isLoading = swap?.simulate.isLoading || swap?.tx.isPending || rblp?.simulate.isLoading || rblp?.tx.isPending
   const isSwapDisabled = usdcBalance === 0 || quickActionState?.usdcSwapToCDT === 0
   const isRBLPDisabled = inputValue === 0 || rblpDeposit === 0 || quickActionState?.rangeBoundLPwithdrawal === 0
@@ -697,6 +699,16 @@ const AcquireCDTEntry = React.memo(({
                 {txType === "deposit" ? tokenOutMinAmount ? `Minimum CDT: ${shiftDigits(tokenOutMinAmount, -6).toFixed(2)}` : "Minimum CDT: N/A"
                   : "Current Deposit: " + rblpDeposit.toFixed(2) + " CDT"}
               </Text>
+              {/* Toggle for swapToCDT under Withdraw button */}
+              <Checkbox
+                id="swap-to-cdt-checkbox"
+                isChecked={swapToCDT}
+                onChange={() => setSwapToCDT(v => !v)}
+                colorScheme="blue"
+                mt={4}
+              >
+                Swap to CDT
+              </Checkbox>
             </Stack>
           </CardBody>
           <CardFooter as={Stack} justifyContent="end" borderTop="1px solid" borderColor="whiteAlpha.200" pt="5" gap="5">
@@ -1008,14 +1020,9 @@ const NeuroGuardCard = () => {
     if (userIntents && userIntents[0] && userIntents[0].intent.intents.purchase_intents && basket && prices && basketPositions && assets && basketAssets) {
       // // console.log(" in guards")
       //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
-      // const neuroGuardIntents = userIntents[0].intent.intents.purchase_intents.filter((intent) => {
-      //   return intent.position_id !== undefined
-      // })
-
-      //If there are neuroGuardIntents, create an object that saves the ID, the compounding asset & the LTV
-      return neuroGuardIntents.map((intent) => {
+      return neuroGuardIntents.map((intent: any) => {
         // // console.log("big checkers", neuroGuardIntents, intent, basketPositions)
-        let position = basketPositions[0].positions.find((position) => position.position_id === (intent.position_id ?? 0).toString())
+        let position = basketPositions[0].positions.find((position: any) => position.position_id === (intent.position_id ?? 0).toString())
         // // console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
         // // console.log("position", position)
         if (position === undefined) return
@@ -1052,11 +1059,9 @@ const NeuroGuardCard = () => {
   const nonNeuroGuardPositions = useMemo(() => {
     if (basketPositions) {
       return basketPositions[0].positions
-        .map((position, index) => ({ position, positionNumber: index + 1 }))
-        .filter(({ position }) =>
-          neuroGuardIntents.find(
-            (intent) => (intent.position_id ?? 0).toString() === position.position_id
-          ) === undefined
+        .map((position: any, index: number) => ({ position, positionNumber: index + 1 }))
+        .filter(({ position }: { position: any }) =>
+          neuroGuardIntents.find((intent: any) => (intent.position_id ?? 0).toString() === position.position_id) === undefined
         );
     } else return [
       {

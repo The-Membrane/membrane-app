@@ -1,0 +1,2 @@
+- Show slippage for current collateral total (liquidation ability)
+- 

@@ -10,6 +10,7 @@ import Select from './Select'
 import useAppState from '@/persisted-state/useAppState'
 import React from 'react'
 import { RulesModal } from './MembersRules/RulesModal'
+import HorizontalNav from './HorizontalNav'
 
 type Props = PropsWithChildren & {}
 
@@ -107,7 +108,8 @@ const Layout = ({ children }: Props) => {
     <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{ base: "column", md: "row" }}>
       {/* <HexagonBackground /> */}
       <Stack marginRight={"2.5%"} flexBasis="240px" overflow="undefined">
-        <SideNav />
+        {/* <SideNav /> */}
+        <HorizontalNav />
       </Stack>
       <Stack
         h="full"

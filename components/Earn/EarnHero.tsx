@@ -38,7 +38,7 @@ import ConnectButton from '../WallectConnect/ConnectButton';
 
 // Example filter options
 const depositOptions = [
-    'AUSD', 'cbBTC', 'crvUSD', 'DAI', 'EURCV', 'EURE', 'eUSD', 'FRAX', 'USDC', 'USDT', 'WBTC', 'WETH', 'stETH', 'LUSD', 'GUSD', 'TUSD', 'sUSD', 'BUSD', 'USD+', 'alUSD', 'MIM', 'RAI', 'USDP', 'USDN', 'FEI', 'RSV', 'XUSD', 'USDV', 'USDX', 'USDD', 'USDE', 'USDS', 'USDK', 'USDL', 'USDM', 'USDP', 'USDR', 'USDS', 'USDT', 'USDX', 'UST', 'VAI', 'ZUSD',
+    'USDC', 'DAI', 'WETH', 'FRAX', 'USDT', 'cbBTC'
 ];
 
 // Example table data

@@ -214,7 +214,7 @@ const EarnHero = () => {
             >
                 {/* Deposit Selector stacked on top */}
                 <Box w={{ base: '100%', md: '25%' }} mb={6}>
-                    <HStack justifyContent="flex-start" alignItems="center" w="100%">
+                    <HStack justifyContent="flex-start" alignItems="center" w="100%" alignSelf={"flex-end"} marginLeft={"10%"}>
                         <Text color="white" fontWeight="bold">Deposit:</Text>
                         <Popover isOpen={isOpen} onOpen={onOpen} onClose={onClose} placement="bottom-start" closeOnBlur>
                             <PopoverTrigger>

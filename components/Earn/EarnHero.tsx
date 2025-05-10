@@ -201,7 +201,7 @@ const EarnHero = () => {
             {/* Outer border effect container */}
             <Box
                 w={{ base: '98vw' }}
-                maxW="1200px"
+                // maxW="1200px"
                 borderRadius="2xl"
                 p={{ base: 1.5, md: 2.5 }}
                 bgGradient="linear(135deg, #232A3E 0%, #232A3E 100%)"

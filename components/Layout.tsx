@@ -104,10 +104,10 @@ const Layout = ({ children }: Props) => {
   return (
     //<Fragment>
     //<Mobile />
-    ////////////////////////////////////////change md to row if we're using the side nav
-    <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{ base: "column", md: "column" }} overflowX={"hidden"}>
+    ////////////////////////////////////////change md to row if we're using the side nav/// Add margin right 2.5 to the side nav stack////
+    <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{ base: "column", md: "column" }}>
       {/* <HexagonBackground /> */}
-      <Stack marginRight={"2.5%"} flexBasis="240px" overflow="undefined">
+      <Stack flexBasis="240px" overflow="undefined">
         {/* <SideNav /> */}
         <HorizontalNav />
       </Stack>
@@ -120,7 +120,7 @@ const Layout = ({ children }: Props) => {
         zIndex={1}
       >
         {/* <Header /> */}
-        <Stack as="main" p={{ base: "2" }} w="full" flex={1} mt={{ base: "0px", md: "15px" }}>
+        <Stack as="main" paddingLeft={"3"} w="full" flex={1} mt={{ base: "0px", md: "15px" }}>
           <RPCStatus />
           {children}
         </Stack>

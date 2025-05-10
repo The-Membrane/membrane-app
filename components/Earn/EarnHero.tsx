@@ -200,7 +200,7 @@ const EarnHero = () => {
         <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
             {/* Outer border effect container */}
             <Box
-                w={{ base: '98vw', md: '80vw', lg: '65vw' }}
+                w={{ base: '98vw' }}
                 maxW="1200px"
                 borderRadius="2xl"
                 p={{ base: 1.5, md: 2.5 }}
@@ -212,7 +212,7 @@ const EarnHero = () => {
             >
                 {/* Main content box with scrollable area */}
                 <Box
-                    w="100vw"
+                    w="100%"
                     bg="#20232C"
                     borderRadius="2xl"
                     p={{ base: 4, md: 8 }}

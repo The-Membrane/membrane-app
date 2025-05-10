@@ -4,9 +4,13 @@ import useWallet from './useWallet'
 import useAssets from './useAssets'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { useRouter } from 'next/router'
-import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers } from '@/services/managed'
+import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralPrice } from '@/services/managed'
 import { useState, useEffect, useMemo } from 'react'
 import { MarketData } from '@/components/ManagedMarkets/hooks/useManagerState'
+import { getAssetByDenom } from '@/helpers/chain'
+import { useBalanceByAsset } from './useBalance'
+import { useOraclePrice } from './useOracle'
+import { num } from '@/helpers/num'
 
 
 
@@ -114,4 +118,48 @@ export const useAllMarkets = () => {
     const { data: managedMarkets } = usePromise(markets);
 
     return managedMarkets;
+};
+
+//Use market collateral price
+export const useMarketCollateralPrice = (marketContract: string, collateral_denom: string) => {
+    const { data: client } = useCosmWasmClient();
+    return useQuery({
+        queryKey: ['managed_market_collateral_price', client, marketContract, collateral_denom],
+        queryFn: async () => getMarketCollateralPrice(client, marketContract, collateral_denom),
+    })
+}
+
+
+export const useMarketsTableData = () => {
+    const allMarkets = useAllMarkets();
+    const assets = useAssets();
+    const { data: client } = useCosmWasmClient();
+    const { data: prices } = useOraclePrice();
+
+    const { data: tableData } = useQuery({
+        queryKey: ['markets_table_data', allMarkets, client, assets],
+        enabled: !!allMarkets && !!client && !!assets && !!prices,
+        queryFn: async () => {
+            if (!allMarkets || !client || !assets || !prices) return [];
+            return Promise.all(
+                allMarkets.map(async (market) => {
+                    const denom = market.params?.collateral_params?.collateral_asset;
+                    const asset = getAssetByDenom(denom, 'osmosis');
+                    //@ts-ignore
+                    const assetBalance = useBalanceByAsset(asset, 'osmosis', market.address);
+                    //Get asset price
+                    const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
+                    return {
+                        asset: asset?.symbol ?? denom,
+                        tvl: num(assetBalance).times(collateralPrice?.price || 0).toString(),
+                        vaultName: market.name,
+                        multiplier: '', // Placeholder
+                        cost: '', // Placeholder
+                    };
+                })
+            );
+        }
+    });
+
+    return tableData;
 };

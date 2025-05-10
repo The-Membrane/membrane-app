@@ -96,6 +96,9 @@ export interface MarketConfig {
 }
 
 export interface MarketData {
+  address: string;
+  name: string;
+  socials: string[];
   config: MarketConfig,
   params: MarketParams
 }

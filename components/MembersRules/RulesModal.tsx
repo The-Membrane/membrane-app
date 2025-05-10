@@ -66,9 +66,9 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                 alignSelf="center"
                 paddingTop="1rem"
               >
-                The evolution of money is now.</Text>
+                The old world is cracking. </Text>
               <Button onClick={handleAgree} w="fit-content" alignSelf="center" mt={4}>
-                Join the evolution
+                Join the resistance
               </Button>
             </Stack>
           </ModalBody>

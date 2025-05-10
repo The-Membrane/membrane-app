@@ -6,20 +6,21 @@ import { useRpcClient } from './useRpcClient'
 import useWallet from './useWallet'
 import { Asset } from '@/helpers/chain'
 
-export const useBalance = (chainID: string = "osmosis") => {
+export const useBalance = (chainID: string = "osmosis", inputedAddress?: string) => {
   const { address, chain } = useWallet(chainID)
+  const addressToUse = inputedAddress || address
   // console.log("useBalance", address, chain)
   const { getRpcClient } = useRpcClient(chain.chain_name)
 
   return useQuery<QueryAllBalancesResponse['balances'] | null>({
-    queryKey: [chainID + ' balances', address, chain.chain_id],
+    queryKey: [chainID + ' balances', addressToUse, chain.chain_id],
     queryFn: async () => {
       const client = await getRpcClient()
-      if (!address) return null
+      if (!addressToUse) return null
 
       return client.cosmos.bank.v1beta1
         .allBalances({
-          address,
+          address: addressToUse,
           pagination: {
             key: new Uint8Array(),
             offset: BigInt(0),
@@ -38,14 +39,15 @@ export const useBalance = (chainID: string = "osmosis") => {
   })
 }
 
-export const useBalanceByAsset = (asset: Asset | null, chainID: string = "osmosis") => {
-  const { data: balances } = useBalance(chainID)
+export const useBalanceByAsset = (asset: Asset | null, chainID: string = "osmosis", inputedAddress?: string) => {
+  const { data: balances } = useBalance(chainID, inputedAddress)
   const { address } = useWallet(chainID)
+  const addressToUse = inputedAddress || address
 
   return useMemo(() => {
 
     // console.log(" useBalanceByAsset")
-    if (!balances || !asset || !address) return '0'
+    if (!balances || !asset || !addressToUse) return '0'
 
     const balance = balances.find((b: any) => b.denom === asset.base)?.amount
     const denom = asset.base
@@ -53,7 +55,7 @@ export const useBalanceByAsset = (asset: Asset | null, chainID: string = "osmosi
 
     if (!balance || !decimals || !denom) return '0'
     return shiftDigits(balance, -decimals).toString()
-  }, [balances, asset, address, chainID])
+  }, [balances, asset, addressToUse, chainID])
 }
 
 export default useBalance

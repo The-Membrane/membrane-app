@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ManagedConfig, MarketConfig, MarketData, MarketParams } from '@/components/ManagedMarkets/hooks/useManagerState'
 import { IntentResponse } from './earn'
 import { start } from 'repl'
+import { PriceResponse } from '@/contracts/codegen/oracle/Oracle.types'
 
 export const getManagers = async (cosmWasmClient: any) => {
     return cosmWasmClient.queryContractSmart(contracts.marketManager, {
@@ -53,5 +54,13 @@ export const getManagedMarkets = async (cosmWasmClient: any, manager: string) =>
     }) as Promise<MarketData[]>
 }
 
-//////////
+////////// 
+
+
+export const getMarketCollateralPrice = async (cosmWasmClient: any, marketContract: string, collateral_denom: string) => {
+    return cosmWasmClient.queryContractSmart(marketContract, {
+        get_collateral_price: { asset: collateral_denom }
+    }) as Promise<PriceResponse>
+}
+
 

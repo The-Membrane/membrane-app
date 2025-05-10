@@ -197,7 +197,7 @@ const EarnHero = () => {
     };
 
     return (
-        <Box w="100vw" minH="100vh" bg="#181B23" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
+        <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
             {/* Outer border effect container */}
             <Box
                 w={{ base: '98vw', md: '80vw', lg: '65vw' }}
@@ -212,7 +212,7 @@ const EarnHero = () => {
             >
                 {/* Main content box with scrollable area */}
                 <Box
-                    w="100%"
+                    w="100vw"
                     bg="#20232C"
                     borderRadius="2xl"
                     p={{ base: 4, md: 8 }}
@@ -237,8 +237,8 @@ const EarnHero = () => {
                     alignItems="center"
                 >
                     {/* Deposit Selector stacked on top */}
-                    <Box w={{ base: '100%', md: '25%' }} mb={6}>
-                        <HStack justifyContent="flex-start" alignItems="center" w="100%" alignSelf={"flex-end"} marginLeft={"10%"}>
+                    <Box w={{ base: '100%', md: '25%' }} mb={6} alignSelf={"start"} ml={"10%"}>
+                        <HStack justifyContent="flex-start" alignItems="center" w="100%" alignSelf={"flex-end"} marginLeft={"8%"}>
                             <Text color="white" fontWeight="bold">Deposit:</Text>
                             <Popover isOpen={isOpen} onOpen={onOpen} onClose={onClose} placement="bottom-start" closeOnBlur>
                                 <PopoverTrigger>

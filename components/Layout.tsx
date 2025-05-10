@@ -105,7 +105,7 @@ const Layout = ({ children }: Props) => {
     //<Fragment>
     //<Mobile />
     ////////////////////////////////////////change md to row if we're using the side nav
-    <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{ base: "column", md: "column" }}>
+    <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{ base: "column", md: "column" }} overflowX={"hidden"}>
       {/* <HexagonBackground /> */}
       <Stack marginRight={"2.5%"} flexBasis="240px" overflow="undefined">
         {/* <SideNav /> */}

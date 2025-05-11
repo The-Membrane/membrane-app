@@ -31,9 +31,9 @@ const HorizontalNav = () => {
             <HStack spacing={6} align="center">
                 {/* Placeholder Logo */}
                 <Box boxSize="32px" borderRadius="full" bgGradient="linear(to-br, #3B5998, #4568DC)" display="flex" alignItems="center" justifyContent="center">
-                    <Text fontWeight="bold" color="white" fontSize="xl">M</Text>
+                    <Image src="/images/cdt.svg" alt="CDT" boxSize="24px" />
                 </Box>
-                <Text fontWeight="bold" color="white" letterSpacing="wide" fontSize="13px">Morpho</Text>
+                <Text fontWeight="bold" color="white" letterSpacing="wide" fontSize="13px">Membrane</Text>
                 {/* Desktop Nav */}
                 <HStack spacing={1} ml={4} display={{ base: 'none', md: 'flex' }}>
                     {navItems.map((item, idx) => (

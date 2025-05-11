@@ -30,9 +30,7 @@ const HorizontalNav = () => {
             {/* Left: Logo, Title, Page Selector or Hamburger */}
             <HStack spacing={6} align="center">
                 {/* Placeholder Logo */}
-                <Box boxSize="32px" borderRadius="full" bgGradient="linear(to-br, #3B5998, #4568DC)" display="flex" alignItems="center" justifyContent="center">
-                    <Image src="/images/cdt.svg" alt="CDT" boxSize="24px" />
-                </Box>
+                <Image src="/images/cdt.svg" alt="CDT" boxSize="32px" />
                 <Text fontWeight="bold" color="white" letterSpacing="wide" fontSize="13px">Membrane</Text>
                 {/* Desktop Nav */}
                 <HStack spacing={1} ml={4} display={{ base: 'none', md: 'flex' }}>

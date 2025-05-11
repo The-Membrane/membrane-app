@@ -67,7 +67,7 @@ const HorizontalNav = () => {
             <Spacer />
             {/* Right: Connect Wallet & User Icon */}
             <HStack spacing={4} align="center">
-                <Box as={FaUserCircle} color="whiteAlpha.800" boxSize={8} />
+                <Image src="/images/osmo.svg" alt="OSMO Logo" boxSize={8} />
                 <ConnectButton
                     size="md"
                     borderRadius="xl"

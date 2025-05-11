@@ -36,6 +36,7 @@ import {
 } from '@chakra-ui/react';
 import { ChevronDownIcon, CloseIcon, SearchIcon, TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons';
 import ConnectButton from '../WallectConnect/ConnectButton';
+import { useRouter } from 'next/router';
 
 // Example filter options
 const depositOptions = [
@@ -196,6 +197,14 @@ const EarnHero = () => {
         );
     };
 
+    const router = useRouter();
+
+    // Handler for row click
+    const handleRowClick = (row: any) => {
+        // TODO: Replace '0x1234' with the real market address from row when available
+        router.push(`/0x1234/multiply`);
+    };
+
     return (
         <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
             {/* Outer border effect container */}
@@ -239,7 +248,7 @@ const EarnHero = () => {
                     {/* Deposit Selector stacked on top */}
                     <Box w={{ base: '100%', md: '25%' }} mb={6} alignSelf={"start"} ml={"10%"}>
                         <HStack justifyContent="flex-start" alignItems="center" w="100%" alignSelf={"flex-end"} marginLeft={"8%"}>
-                            <Text color="white" fontWeight="bold">Deposit:</Text>
+                            <Text color="white" fontWeight="bold">Multiply:</Text>
                             <Popover isOpen={isOpen} onOpen={onOpen} onClose={onClose} placement="bottom-start" closeOnBlur>
                                 <PopoverTrigger>
                                     <Button
@@ -343,7 +352,18 @@ const EarnHero = () => {
                             </Thead>
                             <Tbody>
                                 {sortedRows.map((row, idx) => (
-                                    <Tr key={idx} _hover={{ bg: '#232A3E' }} fontSize="13px">
+                                    <Tr
+                                        key={idx}
+                                        _hover={{
+                                            bg: '#2D3748',
+                                            boxShadow: '0 4px 16px 0 rgba(0,0,0,0.25)',
+                                            cursor: 'pointer',
+                                            transform: 'translateY(-2px) scale(1.01)',
+                                            zIndex: 1,
+                                        }}
+                                        transition="all 0.15s cubic-bezier(.4,0,.2,1)"
+                                        onClick={() => handleRowClick(row)}
+                                    >
                                         <Td color="white" fontWeight="medium" fontSize="13px">{row.asset}</Td>
                                         <Td color="whiteAlpha.900" fontSize="13px">{row.tvl}</Td>
                                         <Td color="whiteAlpha.900" fontSize="13px">{row.vaultName}</Td>

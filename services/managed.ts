@@ -63,4 +63,10 @@ export const getMarketCollateralPrice = async (cosmWasmClient: any, marketContra
     }) as Promise<PriceResponse>
 }
 
+export const getMarketCollateralCost = async (cosmWasmClient: any, marketContract: string, collateral_denom: string) => {
+    return cosmWasmClient.queryContractSmart(marketContract, {
+        get_current_interest_rate: { collateral_denom }
+    }) as Promise<string>
+}
+
 

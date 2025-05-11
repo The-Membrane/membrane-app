@@ -4,7 +4,7 @@ import useWallet from './useWallet'
 import useAssets from './useAssets'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { useRouter } from 'next/router'
-import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralPrice } from '@/services/managed'
+import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralPrice } from '@/services/managed'
 import { useState, useEffect, useMemo } from 'react'
 import { MarketData } from '@/components/ManagedMarkets/hooks/useManagerState'
 import { getAssetByDenom } from '@/helpers/chain'
@@ -129,6 +129,15 @@ export const useMarketCollateralPrice = (marketContract: string, collateral_deno
     })
 }
 
+//Use market collateral cost
+export const useMarketCollateralCost = (marketContract: string, collateral_denom: string) => {
+    const { data: client } = useCosmWasmClient();
+    return useQuery({
+        queryKey: ['managed_market_collateral_cost', client, marketContract, collateral_denom],
+        queryFn: async () => getMarketCollateralCost(client, marketContract, collateral_denom),
+    })
+}
+
 
 export const useMarketsTableData = () => {
     const allMarkets = useAllMarkets();
@@ -153,8 +162,8 @@ export const useMarketsTableData = () => {
                         asset: asset?.symbol ?? denom,
                         tvl: num(assetBalance).times(collateralPrice?.price || 0).toString(),
                         vaultName: market.name,
-                        multiplier: '', // Placeholder
-                        cost: '', // Placeholder
+                        multiplier: 1 / (1 - Number(market.params?.collateral_params.max_borrow_LTV || 0)),
+                        cost: useMarketCollateralCost(market.address, denom),
                     };
                 })
             );

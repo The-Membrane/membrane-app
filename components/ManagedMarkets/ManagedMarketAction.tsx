@@ -3,6 +3,8 @@ import { Box, Text, HStack, VStack, Input, Button, Slider, SliderTrack, SliderFi
 import { useAssetByDenom } from '@/hooks/useAssets';
 import { useBalanceByAsset } from '@/hooks/useBalance';
 
+const STICKY_THRESHOLD = 0.05;
+
 // Props: action, asset, manager, market
 const ManagedMarketAction = ({
     action = 'Multiply',
@@ -30,11 +32,19 @@ const ManagedMarketAction = ({
     // Sticky points for slider
     const stickyPoints = [1, 1 + (maxMultiplier - 1) * 0.25, 1 + (maxMultiplier - 1) * 0.5, 1 + (maxMultiplier - 1) * 0.75, maxMultiplier];
 
-    // Snap slider to sticky points
+    // Snap slider to sticky points if close, else allow smooth
     const handleSliderChange = (val: number) => {
-        // Find closest sticky point
-        const closest = stickyPoints.reduce((prev, curr) => Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev);
-        setMultiplier(closest);
+        const closest = stickyPoints.find(pt => Math.abs(pt - val) < STICKY_THRESHOLD);
+        setMultiplier(closest ?? val);
+    };
+
+    // Handle manual input for multiplier
+    const handleMultiplierInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let val = parseFloat(e.target.value);
+        if (isNaN(val)) val = 1;
+        if (val < 1) val = 1;
+        if (val > maxMultiplier) val = maxMultiplier;
+        setMultiplier(val);
     };
 
     return (
@@ -70,9 +80,23 @@ const ManagedMarketAction = ({
                     <Button size="sm" onClick={() => setCollateral(max.toString())} variant="outline" colorScheme="blue">Max</Button>
                 </HStack>
             </Box>
-            {/* Multiplier slider */}
+            {/* Multiplier input and slider */}
             <Box px={2}>
-                <Text mb={2} fontWeight="bold" color="whiteAlpha.800" textAlign="right">Max: {maxMultiplier.toFixed(2)}x</Text>
+                <HStack mb={2} justify="flex-end">
+                    <Text fontWeight="bold" color="whiteAlpha.800">Multiplier:</Text>
+                    <Input
+                        value={multiplier.toFixed(2)}
+                        onChange={handleMultiplierInput}
+                        type="number"
+                        min={1}
+                        max={maxMultiplier}
+                        step={0.01}
+                        w="100px"
+                        bg="gray.800"
+                        color="white"
+                        textAlign="right"
+                    />
+                </HStack>
                 <Slider
                     min={1}
                     max={maxMultiplier}

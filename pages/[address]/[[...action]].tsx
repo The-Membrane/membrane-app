@@ -1,25 +1,23 @@
 import { useRouter } from 'next/router';
-import { Box, Text } from '@chakra-ui/react';
+import ManagedMarketAction from '@/components/ManagedMarkets/ManagedMarketAction';
 
 const AddressActionPage = () => {
     const router = useRouter();
     const { address, action } = router.query;
+    const actionType = Array.isArray(action) && action.length > 0 ? action[0] : 'multiply';
 
-    // action will be an array or undefined
-    const actionType = Array.isArray(action) && action.length > 0 ? action[0] : 'multiply'; // default to multiply
+    // Placeholder asset, manager, and market
+    const asset = { symbol: 'OSMO', base: 'uosmo', logo: '/osmo-logo.png' };
+    const manager = 'osmo1manageraddress';
+    const market = { params: { collateral_params: { max_borrow_LTV: '0.67' } } };
 
     return (
-        <Box minH="100vh" display="flex" flexDirection="column" alignItems="center" justifyContent="center" bg="#181B23">
-            <Text fontSize="2xl" color="white" fontWeight="bold">
-                {actionType.charAt(0).toUpperCase() + actionType.slice(1)} Placeholder
-            </Text>
-            <Text fontSize="lg" color="whiteAlpha.700" mt={4}>
-                Address: {address}
-            </Text>
-            <Text fontSize="md" color="whiteAlpha.600" mt={2}>
-                This is a placeholder for the {actionType} action page.
-            </Text>
-        </Box>
+        <ManagedMarketAction
+            action={actionType.charAt(0).toUpperCase() + actionType.slice(1)}
+            asset={asset}
+            manager={manager}
+            market={market}
+        />
     );
 };
 

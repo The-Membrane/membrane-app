@@ -34,7 +34,7 @@ const WalletConnect = () => {
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => disconnect()}
         leftIcon={<Icon as={RxExit} boxSize={5} color={isHovered ? colors.walletIcon : 'white'} />}
-        color={isHovered ? colors.walletIcon : 'white'}
+        color={isHovered ? colors.tabBG : 'white'}
         py="6"
         pl="2"
         bg="whiteAlpha.100"

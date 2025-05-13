@@ -3,6 +3,8 @@ import { Box, Text, HStack, VStack, Input, Button, Slider, SliderTrack, SliderFi
 import { useAssetByDenom, useAssetBySymbol } from '@/hooks/useAssets';
 import { useBalanceByAsset } from '@/hooks/useBalance';
 import { useManagedConfig, useManagedMarket } from '@/hooks/useManaged';
+import { useOraclePrice } from '@/hooks/useOracle';
+import { num } from '@/helpers/num';
 
 const STICKY_THRESHOLD = 0.05;
 
@@ -17,18 +19,21 @@ const ManagedMarketAction = ({
     //Get market details
     const { data: market } = useManagedMarket(marketAddress, collateralAsset?.base || "");
     const { data: config } = useManagedConfig(marketAddress);
+    //Get asset price
+    const { data: prices } = useOraclePrice();
+    const collateralPrice = prices?.find(p => p.denom === collateralAsset?.base)?.price;
     // Get asset details and balance
     // (Assume assets array is available or fetched elsewhere, or use placeholder)
     // const assetDetails = useAssetByDenom(asset.base, 'osmosis', assets)
     // For now, use asset.logo
-    const [collateral, setCollateral] = useState('');
+    const [collateralAmount, setCollateralAmount] = useState('');
     const [multiplier, setMultiplier] = useState(1);
     const [takeProfit, setTakeProfit] = useState('');
     const [stopLoss, setStopLoss] = useState('');
 
     // Placeholder: get max from balance (assume 100 for now)
     // const max = useBalanceByAsset(assetDetails)
-    const max = 100;
+    const maxBalance = useBalanceByAsset(collateralAsset);
 
     // Calculate max multiplier
     const maxLTV = parseFloat(market?.collateral_params?.max_borrow_LTV || '0.67');
@@ -127,16 +132,17 @@ const ManagedMarketAction = ({
                                         fontSize="3xl"
                                         fontWeight="bold"
                                         color="white"
-                                        value={collateral}
-                                        onChange={e => setCollateral(e.target.value)}
+                                        value={collateralAmount}
+                                        onChange={e => setCollateralAmount(e.target.value)}
                                         type="number"
                                         min={0}
-                                        max={max}
+                                        max={maxBalance}
                                         placeholder="0"
                                         w="100%"
                                         _placeholder={{ color: 'whiteAlpha.400' }}
+                                        paddingInlineEnd={"3"}
                                     />
-                                    <Text color="whiteAlpha.600" fontSize="md">~ $0.00</Text>
+                                    <Text color="whiteAlpha.600" fontSize="md">~ ${collateralPrice ? num(collateralPrice).times(collateralAmount).toFixed(2) : "0.00"}</Text>
                                 </VStack>
                                 <VStack align="flex-end" spacing={2}>
                                     <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
@@ -148,7 +154,7 @@ const ManagedMarketAction = ({
                                         fontSize="md"
                                         cursor="pointer"
                                         _hover={{ textDecoration: 'underline', color: 'blue.300' }}
-                                        onClick={() => setCollateral(max.toString())}
+                                        onClick={() => setCollateralAmount(maxBalance.toString())}
                                     >
                                         Wallet 0
                                     </Text>

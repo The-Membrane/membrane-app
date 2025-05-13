@@ -68,7 +68,7 @@ const ManagedMarketAction = ({
         <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
             {/* Outer border effect container */}
             <Box
-                w={{ base: '98vw' }}
+                // w={{ base: '98vw' }} 
                 borderRadius="2xl"
                 p={{ base: 1.5, md: 2.5 }}
                 bgGradient="linear(135deg, #232A3E 0%, #232A3E 100%)"
@@ -174,7 +174,7 @@ const ManagedMarketAction = ({
                         {/* Take Profit / Stop Loss + Deploy */}
                         <HStack align="flex-end" spacing={4}>
                             <VStack spacing={4} flex={1} align="stretch">
-                                <HStack>
+                                <HStack gap="0">
                                     <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Take Profit @ $</Text>
                                     <Input
                                         value={takeProfit}
@@ -182,9 +182,12 @@ const ManagedMarketAction = ({
                                         type="text"
                                         bg="gray.800"
                                         color="white"
+                                        textAlign={"left"}
+                                        paddingInlineEnd={"2"}
+                                        paddingInlineStart={"2"}
                                     />
                                 </HStack>
-                                <HStack>
+                                <HStack gap="0">
                                     <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Stop Loss @ $</Text>
                                     <Input
                                         value={stopLoss}
@@ -192,6 +195,9 @@ const ManagedMarketAction = ({
                                         type="text"
                                         bg="gray.800"
                                         color="white"
+                                        textAlign={"left"}
+                                        paddingInlineEnd={"2"}
+                                        paddingInlineStart={"2"}
                                     />
                                 </HStack>
                             </VStack>

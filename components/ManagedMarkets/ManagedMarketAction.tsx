@@ -1,17 +1,22 @@
 import React, { useMemo, useState } from 'react';
 import { Box, Text, HStack, VStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, SliderThumb, SliderMark, Image, useNumberInput, Stack } from '@chakra-ui/react';
-import { useAssetByDenom } from '@/hooks/useAssets';
+import { useAssetByDenom, useAssetBySymbol } from '@/hooks/useAssets';
 import { useBalanceByAsset } from '@/hooks/useBalance';
+import { useManagedMarket } from '@/hooks/useManaged';
 
 const STICKY_THRESHOLD = 0.05;
 
 // Props: action, asset, manager, market
 const ManagedMarketAction = ({
     action = 'Multiply',
-    asset = { symbol: 'OSMO', base: 'uosmo', logo: '/osmo-logo.png' },
-    manager = 'osmo1manageraddress',
-    market = { params: { collateral_params: { max_borrow_LTV: '0.67' } } },
+    marketAddress = "Loading...",
+    collateralSymbol = "Loading...",
 }) => {
+    //Get collateral asset from symbol
+    const collateralAsset = useAssetBySymbol(collateralSymbol, 'osmosis');
+    //Get market details
+    const { data: market } = useManagedMarket(marketAddress, collateralAsset?.base || "");
+    const { data: config } = useManagedConfig(marketAddress);
     // Get asset details and balance
     // (Assume assets array is available or fetched elsewhere, or use placeholder)
     // const assetDetails = useAssetByDenom(asset.base, 'osmosis', assets)
@@ -26,7 +31,7 @@ const ManagedMarketAction = ({
     const max = 100;
 
     // Calculate max multiplier
-    const maxLTV = parseFloat(market.params.collateral_params.max_borrow_LTV || '0.67');
+    const maxLTV = parseFloat(market?.collateral_params?.max_borrow_LTV || '0');
     const maxMultiplier = useMemo(() => 1 / (1 - maxLTV), [maxLTV]);
 
     // Sticky points for slider
@@ -53,21 +58,21 @@ const ManagedMarketAction = ({
             <HStack justify="space-between" align="center" w="100%">
                 <Text fontSize="2xl" fontWeight="bold">{action}</Text>
                 <HStack>
-                    <Image src={asset.logo} alt={asset.symbol} boxSize="32px" />
-                    <Text fontSize="xl" fontWeight="bold">{asset.symbol}</Text>
+                    <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="32px" />
+                    <Text fontSize="xl" fontWeight="bold">{collateralAsset?.symbol}</Text>
                 </HStack>
                 <Box bg="gray.700" px={3} py={1} borderRadius="md">
                     <Text fontSize="sm" color="whiteAlpha.800">Managed by</Text>
-                    <Text fontSize="sm" fontWeight="bold">{manager}</Text>
+                    <Text fontSize="sm" fontWeight="bold">{config?.owner}</Text>
                 </Box>
             </HStack>
 
             {/* Collateral input */}
             <Box>
                 <HStack spacing={2} align="center">
-                    <Image src={asset.logo} alt={asset.symbol} boxSize="28px" />
+                    <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="28px" />
                     <Input
-                        placeholder={`Amount of ${asset.symbol}`}
+                        placeholder={`Amount of ${collateralAsset?.symbol}`}
                         value={collateral}
                         onChange={e => setCollateral(e.target.value)}
                         type="number"
@@ -106,7 +111,20 @@ const ManagedMarketAction = ({
                     colorScheme="blue"
                 >
                     {stickyPoints.map((pt, i) => (
-                        <SliderMark key={i} value={pt} mt="2" ml="-2.5" fontSize="sm" color="whiteAlpha.700">
+                        <SliderMark
+                            key={i}
+                            value={pt}
+                            mt="2"
+                            ml={
+                                i === 0
+                                    ? "-1.5"
+                                    : i === stickyPoints.length - 1
+                                        ? "-3.5"
+                                        : "-2.5"
+                            }
+                            fontSize="sm"
+                            color="whiteAlpha.700"
+                        >
                             {pt.toFixed(2)}x
                         </SliderMark>
                     ))}
@@ -119,22 +137,26 @@ const ManagedMarketAction = ({
             {/* Take Profit / Stop Loss + Deploy */}
             <HStack align="flex-end" spacing={4}>
                 <VStack spacing={4} flex={1} align="stretch">
-                    <Input
-                        placeholder="Take Profit @ $"
-                        value={takeProfit}
-                        onChange={e => setTakeProfit(e.target.value)}
-                        type="number"
-                        bg="gray.800"
-                        color="white"
-                    />
-                    <Input
-                        placeholder="Stop Loss @ $"
-                        value={stopLoss}
-                        onChange={e => setStopLoss(e.target.value)}
-                        type="number"
-                        bg="gray.800"
-                        color="white"
-                    />
+                    <HStack>
+                        <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Take Profit @ $</Text>
+                        <Input
+                            value={takeProfit}
+                            onChange={e => setTakeProfit(e.target.value)}
+                            type="number"
+                            bg="gray.800"
+                            color="white"
+                        />
+                    </HStack>
+                    <HStack>
+                        <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Stop Loss @ $</Text>
+                        <Input
+                            value={stopLoss}
+                            onChange={e => setStopLoss(e.target.value)}
+                            type="number"
+                            bg="gray.800"
+                            color="white"
+                        />
+                    </HStack>
                 </VStack>
                 <Button h="88px" colorScheme="blue" fontSize="2xl" px={10} borderRadius="xl">
                     DEPLOY
@@ -144,4 +166,8 @@ const ManagedMarketAction = ({
     );
 };
 
-export default ManagedMarketAction; 
+export default ManagedMarketAction;
+
+function useManagedConfig(marketAddress: any): { data: any; } {
+    throw new Error('Function not implemented.');
+}

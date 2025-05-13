@@ -110,7 +110,7 @@ function parseCost(val: string): number {
     return parseFloat(val.replace('%', ''));
 }
 
-const EarnHero = () => {
+const ManagedTable = () => {
     // State for filter dropdown
     const [selectedDeposits, setSelectedDeposits] = useState<string[]>(['All']);
     const [search, setSearch] = useState('');
@@ -383,4 +383,4 @@ const EarnHero = () => {
     );
 };
 
-export default EarnHero; 
+export default ManagedTable; 

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Box, Text, HStack, VStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, SliderThumb, SliderMark, Image, useNumberInput, Stack } from '@chakra-ui/react';
 import { useAssetByDenom, useAssetBySymbol } from '@/hooks/useAssets';
 import { useBalanceByAsset } from '@/hooks/useBalance';
-import { useManagedMarket } from '@/hooks/useManaged';
+import { useManagedConfig, useManagedMarket } from '@/hooks/useManaged';
 
 const STICKY_THRESHOLD = 0.05;
 
@@ -167,7 +167,3 @@ const ManagedMarketAction = ({
 };
 
 export default ManagedMarketAction;
-
-function useManagedConfig(marketAddress: any): { data: any; } {
-    throw new Error('Function not implemented.');
-}

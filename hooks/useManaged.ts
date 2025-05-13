@@ -50,7 +50,7 @@ export const useManagedMarketContracts = (manager: string) => {
     })
 }
 
-export const useMarketConfig = (marketContract: string) => {
+export const useManagedConfig = (marketContract: string) => {
     const { data: client } = useCosmWasmClient()
     const router = useRouter()
 

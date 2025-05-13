@@ -233,7 +233,7 @@ const ManagedMarketAction = ({
                                 </HStack>
                             </VStack>
                             <Button h="88px" color={colors.tabBG} fontSize="2xl" px={10} borderRadius="xl">
-                                DEPLOY
+                                <span style={{ color: "white" }}>DEPLOY</span>
                             </Button>
                         </HStack>
                     </VStack>

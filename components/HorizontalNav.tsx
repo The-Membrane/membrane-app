@@ -2,6 +2,7 @@ import { Box, Button, HStack, Image, Stack, Text, Spacer, IconButton, Drawer, Dr
 import React from 'react';
 import ConnectButton from './WallectConnect/ConnectButton';
 import { FaUserCircle, FaBars } from 'react-icons/fa';
+import WallectConnect from './WallectConnect';
 
 const navItems = [
     { label: 'Earn' },
@@ -68,18 +69,7 @@ const HorizontalNav = () => {
             {/* Right: Connect Wallet & User Icon */}
             <HStack spacing={4} align="center">
                 <Image src="/images/osmo.svg" alt="OSMO Logo" boxSize={8} />
-                <ConnectButton
-                    size="md"
-                    borderRadius="xl"
-                    px={6}
-                    py={2}
-                    fontSize="13px"
-                    bgGradient="linear(to-r, #3B5998, #4568DC)"
-                    color="white"
-                    _hover={{ bgGradient: 'linear(to-r, #4568DC, #3B5998)' }}
-                >
-                    Connect Wallet
-                </ConnectButton>
+                <WallectConnect />
             </HStack>
             {/* Drawer for mobile nav */}
             <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs">

@@ -185,6 +185,7 @@ const ManagedMarketAction = ({
                                         textAlign={"left"}
                                         paddingInlineEnd={"2"}
                                         paddingInlineStart={"2"}
+                                        minWidth={"60px"}
                                     />
                                 </HStack>
                                 <HStack gap="0">
@@ -198,6 +199,7 @@ const ManagedMarketAction = ({
                                         textAlign={"left"}
                                         paddingInlineEnd={"2"}
                                         paddingInlineStart={"2"}
+                                        minWidth={"60px"}
                                     />
                                 </HStack>
                             </VStack>

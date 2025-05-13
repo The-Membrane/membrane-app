@@ -111,14 +111,8 @@ const ManagedMarketAction = ({
                     colorScheme="blue"
                 >
                     {stickyPoints.map((pt, i) => (
-                        <SliderMark
-                            key={i}
-                            value={pt}
-                            mt="2"
-                            ml={i === stickyPoints.length - 1 ? '0' : '-1.5'}
-                            fontSize="sm"
-                            color="whiteAlpha.700"
-                        >
+
+                        <SliderMark key={i} value={pt} mt="2" ml="-1.5" fontSize="sm" color="whiteAlpha.700">
                             {pt.toFixed(2)}x
                         </SliderMark>
                     ))}

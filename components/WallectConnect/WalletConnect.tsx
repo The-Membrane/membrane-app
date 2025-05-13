@@ -5,6 +5,7 @@ import useWallet from '@/hooks/useWallet'
 import { Button, HStack, Icon, Stack, Text } from '@chakra-ui/react'
 import { useMemo, useState } from 'react'
 import { RxExit } from 'react-icons/rx'
+import ConnectButton from './ConnectButton'
 
 const hoverStyles = {
   borderRadius: '8px',
@@ -47,22 +48,22 @@ const WalletConnect = () => {
       </HStack>
     )
   }
-
-  return (
-    <HStack
-      as={Button}
-      variant="unstyled"
-      _hover={hoverStyles}
-      justifyContent={{ base: "center", md: "start" }}
-      fontWeight="normal"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={connect}
-    >
-      <WalletIcon color={isHovered ? colors.walletIcon : 'white'} />
-      <Text fontSize="lg">Wallet</Text>
-    </HStack>
-  )
+  return <ConnectButton />
+  // return (
+  //   <HStack
+  //     as={Button}
+  //     variant="unstyled"
+  //     _hover={hoverStyles}
+  //     justifyContent={{ base: "center", md: "start" }}
+  //     fontWeight="normal"
+  //     onMouseEnter={() => setIsHovered(true)}
+  //     onMouseLeave={() => setIsHovered(false)}
+  //     onClick={connect}
+  //   >
+  //     <WalletIcon color={isHovered ? colors.walletIcon : 'white'} />
+  //     <Text fontSize="lg">Wallet</Text>
+  //   </HStack>
+  // )
 }
 
 export default WalletConnect

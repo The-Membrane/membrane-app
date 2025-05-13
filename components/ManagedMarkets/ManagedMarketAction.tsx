@@ -63,7 +63,7 @@ const ManagedMarketAction = ({
                 </HStack>
                 <Box bg="gray.700" px={3} py={1} borderRadius="md">
                     <Text fontSize="sm" color="whiteAlpha.800">Managed by</Text>
-                    <Text fontSize="sm" fontWeight="bold">{config?.owner}</Text>
+                    <Text fontSize="sm" fontWeight="bold">{config?.owner ?? "..."}</Text>
                 </Box>
             </HStack>
 
@@ -115,13 +115,7 @@ const ManagedMarketAction = ({
                             key={i}
                             value={pt}
                             mt="2"
-                            ml={
-                                i === 0
-                                    ? "-1.5"
-                                    : i === stickyPoints.length - 1
-                                        ? "-3.5"
-                                        : "-2.5"
-                            }
+                            ml={i === stickyPoints.length - 1 ? '0' : '-1.5'}
                             fontSize="sm"
                             color="whiteAlpha.700"
                         >

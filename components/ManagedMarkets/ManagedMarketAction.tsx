@@ -109,6 +109,7 @@ const ManagedMarketAction = ({
                     flexDirection="column"
                     alignItems="center"
                 >
+
                     <VStack spacing={8} align="stretch" w="100%" maxW="600px" mx="auto">
                         {/* Top: Action, Asset, Manager */}
                         <HStack justify="flex-start" align="center" w="100%" spacing={3} mb={2}>
@@ -120,6 +121,10 @@ const ManagedMarketAction = ({
                             <Text fontSize="2xl" fontWeight="bold">{collateralAsset?.symbol}</Text>
                             <Text fontSize="2xl" fontWeight="bold">by</Text>
                             <Text fontSize="2xl" fontWeight="bold">{multiplier.toFixed(2)}x</Text>
+                            <Box bg="gray.700" px={3} py={1} borderRadius="md">
+                                <Text fontSize="sm" color="whiteAlpha.800">Managed by</Text>
+                                <Text fontSize="sm" fontWeight="bold">{config?.owner ?? "..."}</Text>
+                            </Box>
                         </HStack>
 
                         {/* Collateral input */}

@@ -118,21 +118,41 @@ const ManagedMarketAction = ({
                         </HStack>
 
                         {/* Collateral input */}
-                        <Box>
-                            <HStack spacing={2} align="center">
-                                <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="28px" />
-                                <Input
-                                    placeholder={`Amount of ${collateralAsset?.symbol}`}
-                                    value={collateral}
-                                    onChange={e => setCollateral(e.target.value)}
-                                    type="number"
-                                    min={0}
-                                    max={max}
-                                    flex={1}
-                                    bg="gray.800"
-                                    color="white"
-                                />
-                                <Button size="sm" onClick={() => setCollateral(max.toString())} variant="outline" colorScheme="blue">Max</Button>
+                        <Box w="100%" bg="#11161e" borderRadius="lg" p={5}>
+                            <HStack justify="space-between" align="flex-start" w="100%">
+                                <VStack align="flex-start" spacing={1} flex={1}>
+                                    <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium">Margin collateral</Text>
+                                    <Input
+                                        variant="unstyled"
+                                        fontSize="3xl"
+                                        fontWeight="bold"
+                                        color="white"
+                                        value={collateral}
+                                        onChange={e => setCollateral(e.target.value)}
+                                        type="number"
+                                        min={0}
+                                        max={max}
+                                        placeholder="0"
+                                        w="100%"
+                                        _placeholder={{ color: 'whiteAlpha.400' }}
+                                    />
+                                    <Text color="whiteAlpha.600" fontSize="md">~ $0.00</Text>
+                                </VStack>
+                                <VStack align="flex-end" spacing={2}>
+                                    <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
+                                        <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="24px" />
+                                        <Text color="white" fontWeight="bold">{collateralAsset?.symbol}</Text>
+                                    </HStack>
+                                    <Text
+                                        color="whiteAlpha.700"
+                                        fontSize="md"
+                                        cursor="pointer"
+                                        _hover={{ textDecoration: 'underline', color: 'blue.300' }}
+                                        onClick={() => setCollateral(max.toString())}
+                                    >
+                                        Wallet 0
+                                    </Text>
+                                </VStack>
                             </HStack>
                         </Box>
                         {/* Multiplier input and slider */}
@@ -152,7 +172,6 @@ const ManagedMarketAction = ({
                                     textAlign="right"
                                     paddingInlineEnd={"2"}
                                     paddingInlineStart={"2"}
-                                    maxWidth={"fit-content"}
                                 />
                             </HStack>
                             <Slider

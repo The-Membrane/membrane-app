@@ -51,106 +51,158 @@ const ManagedMarketAction = ({
         if (val > maxMultiplier) val = maxMultiplier;
         setMultiplier(val);
     };
+    console.log(takeProfit, stopLoss);
+    // Handle Take Profit and Stop Loss input changes
+    const handleTakeProfitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const val = e.target.value;
+        if (val === '' || /^\d*\.?\d*$/.test(val)) setTakeProfit(val);
+    };
+    const handleStopLossChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const val = e.target.value;
+        if (val === '' || /^\d*\.?\d*$/.test(val)) setStopLoss(val);
+    };
 
     return (
-        <VStack spacing={8} align="stretch" w="100%" maxW="600px" mx="auto" py={8}>
-            {/* Top: Action, Asset, Manager */}
-            <HStack justify="space-between" align="center" w="100%">
-                <Text fontSize="2xl" fontWeight="bold">{action}</Text>
-                <HStack>
-                    <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="32px" />
-                    <Text fontSize="xl" fontWeight="bold">{collateralAsset?.symbol}</Text>
-                </HStack>
-                <Box bg="gray.700" px={3} py={1} borderRadius="md">
-                    <Text fontSize="sm" color="whiteAlpha.800">Managed by</Text>
-                    <Text fontSize="sm" fontWeight="bold">{config?.owner ?? "..."}</Text>
-                </Box>
-            </HStack>
-
-            {/* Collateral input */}
-            <Box>
-                <HStack spacing={2} align="center">
-                    <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="28px" />
-                    <Input
-                        placeholder={`Amount of ${collateralAsset?.symbol}`}
-                        value={collateral}
-                        onChange={e => setCollateral(e.target.value)}
-                        type="number"
-                        min={0}
-                        max={max}
-                        flex={1}
-                        bg="gray.800"
-                        color="white"
-                    />
-                    <Button size="sm" onClick={() => setCollateral(max.toString())} variant="outline" colorScheme="blue">Max</Button>
-                </HStack>
-            </Box>
-            {/* Multiplier input and slider */}
-            <Box px={2}>
-                <HStack mb={2} justify="flex-end">
-                    <Text fontWeight="bold" color="whiteAlpha.800">Multiplier:</Text>
-                    <Input
-                        value={multiplier.toFixed(2)}
-                        onChange={handleMultiplierInput}
-                        type="number"
-                        min={1}
-                        max={maxMultiplier}
-                        step={0.01}
-                        w="100px"
-                        bg="gray.800"
-                        color="white"
-                        textAlign="right"
-                    />
-                </HStack>
-                <Slider
-                    min={1}
-                    max={maxMultiplier}
-                    step={0.01}
-                    value={multiplier}
-                    onChange={handleSliderChange}
-                    colorScheme="blue"
+        <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
+            {/* Outer border effect container */}
+            <Box
+                w={{ base: '98vw' }}
+                borderRadius="2xl"
+                p={{ base: 1.5, md: 2.5 }}
+                bgGradient="linear(135deg, #232A3E 0%, #232A3E 100%)"
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                boxShadow="0 0 0 4px #232A3E"
+            >
+                {/* Main content box */}
+                <Box
+                    w="100%"
+                    bg="#20232C"
+                    borderRadius="2xl"
+                    p={{ base: 4, md: 8 }}
+                    minH="70vh"
+                    maxH="80vh"
+                    overflowY="auto"
+                    sx={{
+                        /* Custom scrollbar */
+                        '&::-webkit-scrollbar': {
+                            width: '8px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            background: '#232A3E',
+                            borderRadius: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            background: 'transparent',
+                        },
+                    }}
+                    display="flex"
+                    flexDirection="column"
+                    alignItems="center"
                 >
-                    {stickyPoints.map((pt, i) => (
+                    <VStack spacing={8} align="stretch" w="100%" maxW="600px" mx="auto">
+                        {/* Top: Action, Asset, Manager */}
+                        <HStack justify="space-between" align="center" w="100%">
+                            <Text fontSize="2xl" fontWeight="bold">{action}</Text>
+                            <HStack>
+                                <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="32px" />
+                                <Text fontSize="xl" fontWeight="bold">{collateralAsset?.symbol}</Text>
+                            </HStack>
+                            <Box bg="gray.700" px={3} py={1} borderRadius="md">
+                                <Text fontSize="sm" color="whiteAlpha.800">Managed by</Text>
+                                <Text fontSize="sm" fontWeight="bold">{config?.owner ?? "..."}</Text>
+                            </Box>
+                        </HStack>
 
-                        <SliderMark key={i} value={pt} mt="2" ml="-1.5" fontSize="sm" color="whiteAlpha.700">
-                            {pt.toFixed(2)}x
-                        </SliderMark>
-                    ))}
-                    <SliderTrack bg="gray.700">
-                        <SliderFilledTrack bg="blue.400" />
-                    </SliderTrack>
-                    <SliderThumb boxSize={6} />
-                </Slider>
+                        {/* Collateral input */}
+                        <Box>
+                            <HStack spacing={2} align="center">
+                                <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="28px" />
+                                <Input
+                                    placeholder={`Amount of ${collateralAsset?.symbol}`}
+                                    value={collateral}
+                                    onChange={e => setCollateral(e.target.value)}
+                                    type="number"
+                                    min={0}
+                                    max={max}
+                                    flex={1}
+                                    bg="gray.800"
+                                    color="white"
+                                />
+                                <Button size="sm" onClick={() => setCollateral(max.toString())} variant="outline" colorScheme="blue">Max</Button>
+                            </HStack>
+                        </Box>
+                        {/* Multiplier input and slider */}
+                        <Box px={2}>
+                            <HStack mb={2} justify="flex-end">
+                                <Text fontWeight="bold" color="whiteAlpha.800">Multiplier:</Text>
+                                <Input
+                                    value={multiplier.toFixed(2)}
+                                    onChange={handleMultiplierInput}
+                                    type="number"
+                                    min={1}
+                                    max={maxMultiplier}
+                                    step={0.01}
+                                    w="100px"
+                                    bg="gray.800"
+                                    color="white"
+                                    textAlign="right"
+                                />
+                            </HStack>
+                            <Slider
+                                min={1}
+                                max={maxMultiplier}
+                                step={0.01}
+                                value={multiplier}
+                                onChange={handleSliderChange}
+                                colorScheme="blue"
+                            >
+                                {stickyPoints.map((pt, i) => (
+                                    <SliderMark key={i} value={pt} mt="2" ml="-1.5" fontSize="sm" color="whiteAlpha.700">
+                                        {pt.toFixed(2)}x
+                                    </SliderMark>
+                                ))}
+                                <SliderTrack bg="gray.700">
+                                    <SliderFilledTrack bg="blue.400" />
+                                </SliderTrack>
+                                <SliderThumb boxSize={6} />
+                            </Slider>
+                        </Box>
+                        {/* Take Profit / Stop Loss + Deploy */}
+                        <HStack align="flex-end" spacing={4}>
+                            <VStack spacing={4} flex={1} align="stretch">
+                                <HStack>
+                                    <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Take Profit @ $</Text>
+                                    <Input
+                                        value={takeProfit}
+                                        onChange={handleTakeProfitChange}
+                                        type="text"
+                                        bg="gray.800"
+                                        color="white"
+                                    />
+                                </HStack>
+                                <HStack>
+                                    <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Stop Loss @ $</Text>
+                                    <Input
+                                        value={stopLoss}
+                                        onChange={handleStopLossChange}
+                                        type="text"
+                                        bg="gray.800"
+                                        color="white"
+                                    />
+                                </HStack>
+                            </VStack>
+                            <Button h="88px" colorScheme="blue" fontSize="2xl" px={10} borderRadius="xl">
+                                DEPLOY
+                            </Button>
+                        </HStack>
+                    </VStack>
+                </Box>
             </Box>
-            {/* Take Profit / Stop Loss + Deploy */}
-            <HStack align="flex-end" spacing={4}>
-                <VStack spacing={4} flex={1} align="stretch">
-                    <HStack>
-                        <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Take Profit @ $</Text>
-                        <Input
-                            value={takeProfit}
-                            onChange={e => setTakeProfit(e.target.value)}
-                            type="number"
-                            bg="gray.800"
-                            color="white"
-                        />
-                    </HStack>
-                    <HStack>
-                        <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Stop Loss @ $</Text>
-                        <Input
-                            value={stopLoss}
-                            onChange={e => setStopLoss(e.target.value)}
-                            type="number"
-                            bg="gray.800"
-                            color="white"
-                        />
-                    </HStack>
-                </VStack>
-                <Button h="88px" colorScheme="blue" fontSize="2xl" px={10} borderRadius="xl">
-                    DEPLOY
-                </Button>
-            </HStack>
-        </VStack>
+        </Box>
     );
 };
 

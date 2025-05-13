@@ -31,7 +31,7 @@ const ManagedMarketAction = ({
     const max = 100;
 
     // Calculate max multiplier
-    const maxLTV = parseFloat(market?.collateral_params?.max_borrow_LTV || '0');
+    const maxLTV = parseFloat(market?.collateral_params?.max_borrow_LTV || '0.67');
     const maxMultiplier = useMemo(() => 1 / (1 - maxLTV), [maxLTV]);
 
     // Sticky points for slider

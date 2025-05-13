@@ -46,6 +46,7 @@ const depositOptions = [
 // Example table data
 const exampleRows = [
     {
+        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
         asset: 'USDC',
         tvl: '$1.59M',
         vaultName: '9S Mount D...USDC Core',
@@ -53,6 +54,7 @@ const exampleRows = [
         cost: '0.15%'
     },
     {
+        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
         asset: 'DAI',
         tvl: '$957.9k',
         vaultName: '9S Mount K...uszko USR',
@@ -60,6 +62,7 @@ const exampleRows = [
         cost: '0.10%'
     },
     {
+        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
         asset: 'WETH',
         tvl: '$84.1k',
         vaultName: 'Alpha WETH Vault',
@@ -67,6 +70,7 @@ const exampleRows = [
         cost: '0.20%'
     },
     {
+        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
         asset: 'FRAX',
         tvl: '$200.07k',
         vaultName: 'Alpha ZCHF Safe Vault',
@@ -74,6 +78,7 @@ const exampleRows = [
         cost: '0.05%'
     },
     {
+        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
         asset: 'USDT',
         tvl: '$5.4M',
         vaultName: 'Apostro Resolv USDC',
@@ -81,6 +86,7 @@ const exampleRows = [
         cost: '0.18%'
     },
     {
+        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
         asset: 'cbBTC',
         tvl: '$168.29k',
         vaultName: 'Apostro Resolv USR',
@@ -201,8 +207,9 @@ const ManagedTable = () => {
 
     // Handler for row click
     const handleRowClick = (row: any) => {
-        // TODO: Replace '0x1234' with the real market address from row when available
-        router.push(`/0x1234/multiply`);
+        // TODO: Replace '0x1234' and 'OSMO' with real market address and asset symbol from row when available
+        router.push(`/0x1234/OSMO/multiply`);
+        // router.push(`/${row.marketAddress}/${row.asset}/multiply`);
     };
 
     return (

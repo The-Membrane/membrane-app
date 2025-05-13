@@ -5,6 +5,7 @@ import { useBalanceByAsset } from '@/hooks/useBalance';
 import { useManagedConfig, useManagedMarket } from '@/hooks/useManaged';
 import { useOraclePrice } from '@/hooks/useOracle';
 import { num } from '@/helpers/num';
+import { colors } from '@/config/defaults';
 
 const STICKY_THRESHOLD = 0.05;
 
@@ -231,7 +232,7 @@ const ManagedMarketAction = ({
                                     />
                                 </HStack>
                             </VStack>
-                            <Button h="88px" colorScheme="blue" fontSize="2xl" px={10} borderRadius="xl">
+                            <Button h="88px" color={colors.tabBG} fontSize="2xl" px={10} borderRadius="xl">
                                 DEPLOY
                             </Button>
                         </HStack>

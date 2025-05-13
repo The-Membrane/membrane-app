@@ -146,10 +146,13 @@ const ManagedMarketAction = ({
                                     min={1}
                                     max={maxMultiplier}
                                     step={0.01}
-                                    w="100px"
+                                    w={`${Math.max(multiplier.toFixed(2).length, 4)}ch`}
                                     bg="gray.800"
                                     color="white"
                                     textAlign="right"
+                                    paddingInlineEnd={"2"}
+                                    paddingInlineStart={"2"}
+                                    maxWidth={"fit-content"}
                                 />
                             </HStack>
                             <Slider

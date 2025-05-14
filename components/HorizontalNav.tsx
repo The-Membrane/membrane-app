@@ -3,16 +3,22 @@ import React from 'react';
 import ConnectButton from './WallectConnect/ConnectButton';
 import { FaUserCircle, FaBars } from 'react-icons/fa';
 import WallectConnect from './WallectConnect';
+import NextLink from 'next/link';
+import { useRouter } from 'next/router';
 
 const navItems = [
-    { label: 'Earn' },
-    { label: 'Borrow' },
-    { label: 'Explore' },
-    { label: 'Migrate' },
+    { label: 'Home', href: '/' },
+    { label: 'Borrow', href: '/borrow' },
+    { label: 'Bid', href: '/bid' },
+    { label: 'Stake', href: '/stake' },
+    { label: 'Manic', href: '/manic' },
+    { label: 'Upper Management', href: '/management' },
 ];
 
 const HorizontalNav = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
+    const router = useRouter();
+
     return (
         <Box
             as="nav"
@@ -35,17 +41,19 @@ const HorizontalNav = () => {
                 <Text fontWeight="bold" color="white" letterSpacing="wide" fontSize="13px">Membrane</Text>
                 {/* Desktop Nav */}
                 <HStack spacing={1} ml={4} display={{ base: 'none', md: 'flex' }}>
-                    {navItems.map((item, idx) => (
+                    {navItems.map((item) => (
                         <Button
                             key={item.label}
-                            variant={idx === 0 ? 'solid' : 'ghost'}
+                            as={NextLink}
+                            href={item.href}
+                            variant={router.asPath === item.href ? 'solid' : 'ghost'}
                             colorScheme="blue"
                             color="white"
                             fontWeight="semibold"
                             borderRadius="full"
                             px={6}
                             py={2}
-                            bg={idx === 0 ? 'whiteAlpha.200' : 'transparent'}
+                            bg={router.asPath === item.href ? 'whiteAlpha.200' : 'transparent'}
                             _hover={{ bg: 'whiteAlpha.300' }}
                             fontSize="13px"
                         >
@@ -77,20 +85,23 @@ const HorizontalNav = () => {
                 <DrawerContent bg="#232A3E">
                     <DrawerBody p={0} pt={8}>
                         <VStack align="stretch" spacing={1}>
-                            {navItems.map((item, idx) => (
+                            {navItems.map((item) => (
                                 <Button
                                     key={item.label}
-                                    variant={idx === 0 ? 'solid' : 'ghost'}
+                                    as={NextLink}
+                                    href={item.href}
+                                    variant={router.asPath === item.href ? 'solid' : 'ghost'}
                                     colorScheme="blue"
                                     color="white"
                                     fontWeight="semibold"
                                     borderRadius="full"
                                     px={6}
                                     py={4}
-                                    bg={idx === 0 ? 'whiteAlpha.200' : 'transparent'}
+                                    bg={router.asPath === item.href ? 'whiteAlpha.200' : 'transparent'}
                                     _hover={{ bg: 'whiteAlpha.300' }}
                                     fontSize="13px"
                                     justifyContent="flex-start"
+                                    onClick={onClose}
                                 >
                                     {item.label}
                                 </Button>

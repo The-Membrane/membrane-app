@@ -1,6 +1,5 @@
 import { Box, Button, HStack, Image, Stack, Text, Spacer, IconButton, Drawer, DrawerOverlay, DrawerContent, DrawerBody, useDisclosure, VStack } from '@chakra-ui/react';
 import React from 'react';
-import ConnectButton from './WallectConnect/ConnectButton';
 import { FaUserCircle, FaBars } from 'react-icons/fa';
 import WallectConnect from './WallectConnect';
 import NextLink from 'next/link';

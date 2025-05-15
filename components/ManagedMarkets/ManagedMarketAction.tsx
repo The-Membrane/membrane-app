@@ -112,20 +112,7 @@ const ManagedMarketAction = ({
 
                     <VStack spacing={8} align="stretch" w="100%" maxW="600px" mx="auto">
                         {/* Top: Action, Asset, Manager */}
-                        <HStack justify="flex-start" align="center" w="100%" spacing={3} mb={2}>
-                            <Text fontSize="2xl" fontWeight="bold">Multiply</Text>
-                            <Text fontSize="2xl" fontWeight="bold">{collateralAmount || 0}</Text>
-                            {collateralAsset?.logo && (
-                                <Image src={collateralAsset.logo} alt={collateralAsset.symbol} boxSize="32px" mx={1} />
-                            )}
-                            <Text fontSize="2xl" fontWeight="bold">{collateralAsset?.symbol}</Text>
-                            <Text fontSize="2xl" fontWeight="bold">by</Text>
-                            <Text fontSize="2xl" fontWeight="bold">{multiplier.toFixed(2)}x</Text>
-                            <Box bg="gray.700" px={3} py={1} borderRadius="md">
-                                <Text fontSize="sm" color="whiteAlpha.800">Managed by</Text>
-                                <Text fontSize="sm" fontWeight="bold">{config?.owner ?? "..."}</Text>
-                            </Box>
-                        </HStack>
+                        {/* Removed the HStack with the title row */}
 
                         {/* Collateral input */}
                         <Box w="100%" bg="#11161e" borderRadius="lg" p={5}>
@@ -165,6 +152,51 @@ const ManagedMarketAction = ({
                                     </Text>
                                 </VStack>
                             </HStack>
+                        </Box>
+                        {/* Info Card mirroring the image */}
+                        <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={2} mb={2}>
+                            <VStack align="stretch" spacing={2}>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Multiplier</Text>
+                                    <Text color="white" fontWeight="bold">{multiplier.toFixed(2)}x</Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Collateral</Text>
+                                    <Text color="white" fontWeight="bold">{collateralAmount || 0} {collateralAsset?.symbol}</Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Managed by</Text>
+                                    <Text color="white" fontWeight="bold">{config?.owner ?? "-"}</Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Current price</Text>
+                                    <Text color="white" fontWeight="bold">{collateralPrice ? `$${num(collateralPrice).toFixed(2)}` : '-'}</Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Liquidation price</Text>
+                                    <Text color="white" fontWeight="bold">-</Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Your LTV (LLTV)</Text>
+                                    <Text color="white" fontWeight="bold">-</Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Your health</Text>
+                                    <Text color="white" fontWeight="bold">-</Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Your Take Profit</Text>
+                                    <Text color="white" fontWeight="bold">{takeProfit ? `$${takeProfit}` : '-'}</Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Your Stop Loss</Text>
+                                    <Text color="white" fontWeight="bold">{stopLoss ? `$${stopLoss}` : '-'}</Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                    <Text color="whiteAlpha.700">Slippage tolerance</Text>
+                                    <Text color="white" fontWeight="bold">0.1%</Text>
+                                </HStack>
+                            </VStack>
                         </Box>
                         {/* Multiplier input and slider */}
                         <Box px={2}>

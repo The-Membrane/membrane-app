@@ -193,8 +193,8 @@ const ManagedMarketAction = ({
                         </Box>
                         {/* Take Profit / Stop Loss Inputs - full width below multiplier */}
                         <VStack spacing={4} w="100%" align="stretch">
-                            <HStack gap="0" w="100%">
-                                <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Take Profit @ $</Text>
+                            <HStack w="100%">
+                                <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Take Profit Price: </Text>
                                 <Input
                                     value={takeProfit}
                                     onChange={handleTakeProfitChange}
@@ -208,8 +208,8 @@ const ManagedMarketAction = ({
                                     w="100%"
                                 />
                             </HStack>
-                            <HStack gap="0" w="100%">
-                                <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Stop Loss @ $</Text>
+                            <HStack w="100%">
+                                <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Stop Loss Price: </Text>
                                 <Input
                                     value={stopLoss}
                                     onChange={handleStopLossChange}

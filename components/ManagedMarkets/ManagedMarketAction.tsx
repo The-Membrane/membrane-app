@@ -153,7 +153,78 @@ const ManagedMarketAction = ({
                                 </VStack>
                             </HStack>
                         </Box>
-                        {/* Info Card mirroring the image */}
+                        {/* Multiplier input and slider - moved here */}
+                        <Box px={2} w="100%">
+                            <HStack mb={2} justify="flex-end">
+                                <Text fontWeight="bold" color="whiteAlpha.800">Multiplier:</Text>
+                                <Input
+                                    value={multiplier.toFixed(2)}
+                                    onChange={handleMultiplierInput}
+                                    type="number"
+                                    min={1}
+                                    max={maxMultiplier}
+                                    step={0.01}
+                                    w={`${Math.max(multiplier.toFixed(2).length + 1, 5)}ch`}
+                                    bg="gray.800"
+                                    color="white"
+                                    textAlign="right"
+                                    paddingInlineEnd={"2"}
+                                    paddingInlineStart={"2"}
+                                />
+                            </HStack>
+                            <Slider
+                                min={1}
+                                max={maxMultiplier}
+                                step={0.01}
+                                value={multiplier}
+                                onChange={handleSliderChange}
+                                colorScheme="blue"
+                            >
+                                {stickyPoints.map((pt, i) => (
+                                    <SliderMark key={i} value={pt} mt="2" ml="-1.5" fontSize="sm" color="whiteAlpha.700">
+                                        {pt.toFixed(2)}x
+                                    </SliderMark>
+                                ))}
+                                <SliderTrack bg="gray.700">
+                                    <SliderFilledTrack bg="blue.400" />
+                                </SliderTrack>
+                                <SliderThumb boxSize={6} />
+                            </Slider>
+                        </Box>
+                        {/* Take Profit / Stop Loss Inputs - full width below multiplier */}
+                        <VStack spacing={4} w="100%" align="stretch">
+                            <HStack gap="0" w="100%">
+                                <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Take Profit @ $</Text>
+                                <Input
+                                    value={takeProfit}
+                                    onChange={handleTakeProfitChange}
+                                    type="text"
+                                    bg="gray.800"
+                                    color="white"
+                                    textAlign={"left"}
+                                    paddingInlineEnd={"2"}
+                                    paddingInlineStart={"2"}
+                                    minWidth={"60px"}
+                                    w="100%"
+                                />
+                            </HStack>
+                            <HStack gap="0" w="100%">
+                                <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Stop Loss @ $</Text>
+                                <Input
+                                    value={stopLoss}
+                                    onChange={handleStopLossChange}
+                                    type="text"
+                                    bg="gray.800"
+                                    color="white"
+                                    textAlign={"left"}
+                                    paddingInlineEnd={"2"}
+                                    paddingInlineStart={"2"}
+                                    minWidth={"60px"}
+                                    w="100%"
+                                />
+                            </HStack>
+                        </VStack>
+                        {/* Info Card mirroring the image - moved above Deploy button */}
                         <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={2} mb={2}>
                             <VStack align="stretch" spacing={2}>
                                 <HStack justify="space-between">
@@ -198,80 +269,10 @@ const ManagedMarketAction = ({
                                 </HStack>
                             </VStack>
                         </Box>
-                        {/* Multiplier input and slider */}
-                        <Box px={2}>
-                            <HStack mb={2} justify="flex-end">
-                                <Text fontWeight="bold" color="whiteAlpha.800">Multiplier:</Text>
-                                <Input
-                                    value={multiplier.toFixed(2)}
-                                    onChange={handleMultiplierInput}
-                                    type="number"
-                                    min={1}
-                                    max={maxMultiplier}
-                                    step={0.01}
-                                    w={`${Math.max(multiplier.toFixed(2).length + 1, 5)}ch`}
-                                    bg="gray.800"
-                                    color="white"
-                                    textAlign="right"
-                                    paddingInlineEnd={"2"}
-                                    paddingInlineStart={"2"}
-                                />
-                            </HStack>
-                            <Slider
-                                min={1}
-                                max={maxMultiplier}
-                                step={0.01}
-                                value={multiplier}
-                                onChange={handleSliderChange}
-                                colorScheme="blue"
-                            >
-                                {stickyPoints.map((pt, i) => (
-                                    <SliderMark key={i} value={pt} mt="2" ml="-1.5" fontSize="sm" color="whiteAlpha.700">
-                                        {pt.toFixed(2)}x
-                                    </SliderMark>
-                                ))}
-                                <SliderTrack bg="gray.700">
-                                    <SliderFilledTrack bg="blue.400" />
-                                </SliderTrack>
-                                <SliderThumb boxSize={6} />
-                            </Slider>
-                        </Box>
-                        {/* Take Profit / Stop Loss + Deploy */}
-                        <HStack align="flex-end" spacing={4}>
-                            <VStack spacing={4} flex={1} align="stretch">
-                                <HStack gap="0">
-                                    <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Take Profit @ $</Text>
-                                    <Input
-                                        value={takeProfit}
-                                        onChange={handleTakeProfitChange}
-                                        type="text"
-                                        bg="gray.800"
-                                        color="white"
-                                        textAlign={"left"}
-                                        paddingInlineEnd={"2"}
-                                        paddingInlineStart={"2"}
-                                        minWidth={"60px"}
-                                    />
-                                </HStack>
-                                <HStack gap="0">
-                                    <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Stop Loss @ $</Text>
-                                    <Input
-                                        value={stopLoss}
-                                        onChange={handleStopLossChange}
-                                        type="text"
-                                        bg="gray.800"
-                                        color="white"
-                                        textAlign={"left"}
-                                        paddingInlineEnd={"2"}
-                                        paddingInlineStart={"2"}
-                                        minWidth={"60px"}
-                                    />
-                                </HStack>
-                            </VStack>
-                            <Button h="88px" color={colors.tabBG} fontSize="2xl" px={10} borderRadius="xl">
-                                <span style={{ color: "white" }}>DEPLOY</span>
-                            </Button>
-                        </HStack>
+                        {/* Deploy button at the bottom */}
+                        <Button h="88px" color={colors.tabBG} fontSize="2xl" px={10} borderRadius="xl">
+                            <span style={{ color: "white" }}>DEPLOY</span>
+                        </Button>
                     </VStack>
                 </Box>
             </Box>

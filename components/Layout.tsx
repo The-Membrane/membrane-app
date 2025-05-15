@@ -107,7 +107,7 @@ const Layout = ({ children }: Props) => {
     ////////////////////////////////////////change md to row if we're using the side nav/// Add margin right 2.5 to the side nav stack////
     <Stack w="100vw" h="100vh" display={['flex']} position="relative" direction={{ base: "column", md: "column" }}>
       {/* <HexagonBackground /> */}
-      <Stack flexBasis="240px" overflow="undefined">
+      <Stack spacing={0} p={0} overflow="visible" height="auto" minH="unset" maxH="unset">
         {/* <SideNav /> */}
         <HorizontalNav />
       </Stack>

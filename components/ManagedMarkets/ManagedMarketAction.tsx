@@ -69,8 +69,9 @@ const ManagedMarketAction = ({
         const val = e.target.value;
         if (val === '' || /^\d*\.?\d*$/.test(val)) setStopLoss(val);
     };
+
     return (
-        <Box style={{ zoom: "80%" }} w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
+        <Box style={{ zoom: "80%" }} w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 0, md: 0 }}>
             {/* Outer border effect container */}
             <Box
                 // w={{ base: '98vw' }} 

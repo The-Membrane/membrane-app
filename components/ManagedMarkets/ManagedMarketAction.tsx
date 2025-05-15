@@ -76,7 +76,7 @@ const ManagedMarketAction = ({
             <Box
                 // w={{ base: '98vw' }} 
                 borderRadius="2xl"
-                p={{ base: 1.5, md: 2.5 }}
+                p={{ base: 1, md: 2 }}
                 bgGradient="linear(135deg, #232A3E 0%, #232A3E 100%)"
                 display="flex"
                 justifyContent="center"
@@ -88,10 +88,10 @@ const ManagedMarketAction = ({
                     w="100%"
                     bg="#20232C"
                     borderRadius="2xl"
-                    p={{ base: 4, md: 8 }}
-                    minH="70vh"
-                    maxH="80vh"
-                    overflowY="auto"
+                    p={{ base: 2, md: 4 }}
+                    minH="auto"
+                    maxH="90vh"
+                    overflowY="visible"
                     sx={{
                         /* Custom scrollbar */
                         '&::-webkit-scrollbar': {
@@ -110,7 +110,7 @@ const ManagedMarketAction = ({
                     alignItems="center"
                 >
 
-                    <VStack spacing={8} align="stretch" w="100%" maxW="600px" mx="auto">
+                    <VStack spacing={4} align="stretch" w="100%" maxW="500px" mx="auto">
                         {/* Top: Action, Asset, Manager */}
                         {/* Removed the HStack with the title row */}
 
@@ -201,7 +201,7 @@ const ManagedMarketAction = ({
                                     type="text"
                                     bg="gray.800"
                                     color="white"
-                                    textAlign={"left"}
+                                    textAlign={"right"}
                                     paddingInlineEnd={"2"}
                                     paddingInlineStart={"2"}
                                     minWidth={"60px"}
@@ -216,7 +216,7 @@ const ManagedMarketAction = ({
                                     type="text"
                                     bg="gray.800"
                                     color="white"
-                                    textAlign={"left"}
+                                    textAlign={"right"}
                                     paddingInlineEnd={"2"}
                                     paddingInlineStart={"2"}
                                     minWidth={"60px"}

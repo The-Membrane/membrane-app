@@ -85,7 +85,7 @@ const ManagedMarketAction = ({
             >
                 <TabList
                     bg="transparent"
-                    borderRadius="xl"
+                    borderRadius="xl xl 0 0"
                     border="1px solid #232A3E"
                     px={2}
                     py={1}
@@ -119,7 +119,7 @@ const ManagedMarketAction = ({
                             p={{ base: 4, md: 8 }}
                             h="fit-content"
                             // maxH="98vh"
-                            w="vwvw"
+                            w="40vw"
                             maxW="600px"
                             m="0 auto"
                             overflowY="auto"

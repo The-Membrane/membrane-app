@@ -71,7 +71,7 @@ const ManagedMarketAction = ({
     };
 
     return (
-        <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
+        <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 2, md: 4 }}>
             {/* Outer border effect container */}
             <Box
                 // w={{ base: '98vw' }} 
@@ -179,6 +179,7 @@ const ManagedMarketAction = ({
                                 value={multiplier}
                                 onChange={handleSliderChange}
                                 colorScheme="blue"
+                                mb={4}
                             >
                                 {stickyPoints.map((pt, i) => (
                                     <SliderMark key={i} value={pt} mt="2" ml="-1.5" fontSize="sm" color="whiteAlpha.700">
@@ -270,7 +271,7 @@ const ManagedMarketAction = ({
                             </VStack>
                         </Box>
                         {/* Deploy button at the bottom */}
-                        <Button h="88px" color={colors.tabBG} fontSize="2xl" px={10} borderRadius="xl">
+                        <Button h="56px" minW="160px" color={colors.tabBG} fontSize="xl" px={6} borderRadius="lg" alignSelf="center">
                             <span style={{ color: "white" }}>DEPLOY</span>
                         </Button>
                     </VStack>

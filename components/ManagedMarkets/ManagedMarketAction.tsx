@@ -90,7 +90,7 @@ const ManagedMarketAction = ({
                     borderRadius="2xl"
                     p={{ base: 4, md: 8 }}
                     minH="70vh"
-                    maxH="80vh"
+                    maxH="98vh"
                     overflowY="auto"
                     sx={{
                         /* Custom scrollbar */

@@ -85,13 +85,13 @@ const ManagedMarketAction = ({
             >
                 <TabList
                     bg="transparent"
+                    borderRadius="xl"
                     border="1px solid #232A3E"
                     px={2}
                     py={1}
                     paddingInlineEnd={"0"}
                     display="flex"
                     justifyContent="space-between"
-                    borderRadius="xl xl 0 0"
                 >
                     {actionLabels.map((label, idx) => (
                         <Tab
@@ -114,15 +114,15 @@ const ManagedMarketAction = ({
                 <TabPanels>
                     <TabPanel px={0} py={0}>
                         <Card
-                            borderRadius="0 0 2xl 2xl"
+                            borderRadius="2xl"
                             border="4px solid #232A3E"
                             bg="#20232C"
                             p={{ base: 4, md: 8 }}
                             h="fit-content"
+                            // maxH="98vh"
                             w="40vw"
                             maxW="600px"
                             m="0 auto"
-                            mt={0}
                             overflowY="auto"
                             sx={{
                                 /* Custom scrollbar */
@@ -309,15 +309,14 @@ const ManagedMarketAction = ({
                     </TabPanel>
                     <TabPanel px={0} py={0}>
                         <Card
-                            borderRadius="0 0 2xl 2xl"
+                            borderRadius="2xl"
                             border="4px solid #232A3E"
                             bg="#20232C"
                             p={{ base: 4, md: 8 }}
                             h="fit-content"
-                            w="40vw"
+                            w="vwvw"
                             maxW="600px"
                             m="0 auto"
-                            mt={0}
                             overflowY="auto"
                             display="flex"
                             flexDirection="column"
@@ -328,15 +327,14 @@ const ManagedMarketAction = ({
                     </TabPanel>
                     <TabPanel px={0} py={0}>
                         <Card
-                            borderRadius="0 0 2xl 2xl"
+                            borderRadius="2xl"
                             border="4px solid #232A3E"
                             bg="#20232C"
                             p={{ base: 4, md: 8 }}
                             h="fit-content"
-                            w="40vw"
+                            w="vwvw"
                             maxW="600px"
                             m="0 auto"
-                            mt={0}
                             overflowY="auto"
                             display="flex"
                             flexDirection="column"

@@ -80,12 +80,12 @@ const ManagedMarketAction = ({
                 index={selectedAction}
                 onChange={setSelectedAction}
                 variant="unstyled"
-                w="100%"
+                // w="100%"
                 maxW="600px"
             >
                 <TabList
                     bg="transparent"
-                    borderRadius="xl xl 0 0"
+                    borderRadius="xl"
                     border="1px solid #232A3E"
                     px={2}
                     py={1}

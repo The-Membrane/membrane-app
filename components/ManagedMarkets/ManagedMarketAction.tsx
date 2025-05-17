@@ -85,7 +85,7 @@ const ManagedMarketAction = ({
             >
                 <TabList
                     bg="transparent"
-                    borderRadius="xl"
+                    borderRadius="xl xl 0 0"
                     border="1px solid #232A3E"
                     px={2}
                     py={1}
@@ -113,15 +113,15 @@ const ManagedMarketAction = ({
                 <TabPanels>
                     <TabPanel px={0} py={0}>
                         <Card
-                            borderRadius="2xl"
+                            borderRadius="0 0 2xl 2xl"
                             border="4px solid #232A3E"
                             bg="#20232C"
                             p={{ base: 4, md: 8 }}
                             h="fit-content"
-                            // maxH="98vh"
                             w="40vw"
                             maxW="600px"
                             m="0 auto"
+                            mt={0}
                             overflowY="auto"
                             sx={{
                                 /* Custom scrollbar */
@@ -308,14 +308,15 @@ const ManagedMarketAction = ({
                     </TabPanel>
                     <TabPanel px={0} py={0}>
                         <Card
-                            borderRadius="2xl"
+                            borderRadius="0 0 2xl 2xl"
                             border="4px solid #232A3E"
                             bg="#20232C"
                             p={{ base: 4, md: 8 }}
                             h="fit-content"
-                            w="vwvw"
+                            w="40vw"
                             maxW="600px"
                             m="0 auto"
+                            mt={0}
                             overflowY="auto"
                             display="flex"
                             flexDirection="column"
@@ -326,14 +327,15 @@ const ManagedMarketAction = ({
                     </TabPanel>
                     <TabPanel px={0} py={0}>
                         <Card
-                            borderRadius="2xl"
+                            borderRadius="0 0 2xl 2xl"
                             border="4px solid #232A3E"
                             bg="#20232C"
                             p={{ base: 4, md: 8 }}
                             h="fit-content"
-                            w="vwvw"
+                            w="40vw"
                             maxW="600px"
                             m="0 auto"
+                            mt={0}
                             overflowY="auto"
                             display="flex"
                             flexDirection="column"

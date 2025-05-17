@@ -99,6 +99,7 @@ const HorizontalNav = () => {
                                     bg={router.asPath === item.href ? 'whiteAlpha.200' : 'transparent'}
                                     _hover={{ bg: 'whiteAlpha.300' }}
                                     fontSize="13px"
+                                    maxW={"fit-content"}
                                     justifyContent="flex-start"
                                     onClick={onClose}
                                 >

@@ -85,12 +85,13 @@ const ManagedMarketAction = ({
             >
                 <TabList
                     bg="transparent"
-                    borderRadius="xl xl 0 0"
                     border="1px solid #232A3E"
                     px={2}
                     py={1}
+                    paddingInlineEnd={"0"}
                     display="flex"
                     justifyContent="space-between"
+                    borderRadius="xl xl 0 0"
                 >
                     {actionLabels.map((label, idx) => (
                         <Tab

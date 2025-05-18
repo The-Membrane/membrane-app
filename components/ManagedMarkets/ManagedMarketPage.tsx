@@ -39,7 +39,7 @@ const ManagedMarketPage: React.FC = () => {
     };
 
     return (
-        <HStack align="flex-start" spacing={2} w="100%" px={8} py={8}>
+        <HStack align="flex-start" justify="center" spacing={2} w="100%" px={8} py={8}>
             <Box flex={1} maxW="480px">
                 <ManagedMarketInfo {...infoProps} />
             </Box>

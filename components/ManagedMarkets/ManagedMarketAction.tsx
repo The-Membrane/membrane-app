@@ -107,6 +107,7 @@ const ManagedMarketAction = ({
     const handleTabChange = (idx: number) => {
         const newAction = actionMap[idx];
         // Build new route: /[address]/[collateralSymbol]/[newAction]
+        console.log(address, collateralSymbol, newAction);
         if (address && collateralSymbol) {
             router.push(`/${address}/${collateralSymbol}/${newAction}`, undefined, { shallow: true });
         }

@@ -37,7 +37,7 @@ const HorizontalNav = () => {
         >
             {/* Left: Logo, Title, Page Selector or Hamburger */}
             <HStack spacing={6} align="center">
-                <HStack spacing={2}>
+                <Stack spacing={2} alignContent={"start"}>
                     <Logo />
                     <Text
                         color={colors.tabBG}
@@ -49,7 +49,7 @@ const HorizontalNav = () => {
                     >
                         Beta
                     </Text>
-                </HStack>
+                </Stack>
 
                 {/* Desktop Nav */}
                 <HStack spacing={1} ml={4} display={{ base: 'none', md: 'flex' }}>

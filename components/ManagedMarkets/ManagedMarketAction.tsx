@@ -7,6 +7,7 @@ import { useOraclePrice } from '@/hooks/useOracle';
 import { num } from '@/helpers/num';
 import { colors } from '@/config/defaults';
 import useManagedAction from './hooks/useManagedMarket';
+import { useRouter } from 'next/router';
 
 const STICKY_THRESHOLD = 0.05;
 
@@ -29,14 +30,13 @@ const ManagedMarketAction = ({
     // const assetDetails = useAssetByDenom(asset.base, 'osmosis', assets)
     // For now, use asset.logo
 
-    // Zustand state
+    // Zustand state (no selectedAction)
     const {
         managedActionState: {
             collateralAmount,
             multiplier,
             takeProfit,
-            stopLoss,
-            selectedAction
+            stopLoss
         },
         setManagedActionState
     } = useManagedAction();
@@ -55,6 +55,21 @@ const ManagedMarketAction = ({
 
     // Sticky points for slider
     const stickyPoints = [1, 1 + (maxMultiplier - 1) * 0.25, 1 + (maxMultiplier - 1) * 0.5, 1 + (maxMultiplier - 1) * 0.75, maxMultiplier];
+
+    // Router for shallow routing
+    const router = useRouter();
+    const { address, action: routeAction } = router.query;
+    const actionLabels = ["Multiply", "Lend", "Strategize"];
+    const actionMap = ['multiply', 'lend', 'strategize'];
+
+    // Derive selected tab index from route
+    let selectedTab = 0;
+    if (Array.isArray(routeAction) && routeAction[1]) {
+        selectedTab = actionMap.indexOf(routeAction[1]);
+    } else if (typeof routeAction === 'string') {
+        selectedTab = actionMap.indexOf(routeAction);
+    }
+    if (selectedTab === -1) selectedTab = 0;
 
     // Snap slider to sticky points if close, else allow smooth
     const handleSliderChange = (val: number) => {
@@ -88,17 +103,19 @@ const ManagedMarketAction = ({
         setManagedActionState({ collateralAmount: e.target.value });
     };
 
-    // Handle selected action/tab
+    // Handle selected action/tab: update route shallowly
     const handleTabChange = (idx: number) => {
-        setManagedActionState({ selectedAction: idx });
+        const newAction = actionMap[idx];
+        // Build new route: /[address]/[collateralSymbol]/[newAction]
+        if (address && collateralSymbol) {
+            router.push(`/${address}/${collateralSymbol}/${newAction}`, undefined, { shallow: true });
+        }
     };
-
-    const actionLabels = ["Multiply", "Lend", "Strategize"];
 
     return (
         <VStack w="fit-content" spacing={6} align="center" mt={8}>
             <Tabs
-                index={selectedAction}
+                index={selectedTab}
                 onChange={handleTabChange}
                 variant="unstyled"
                 // w="100%"
@@ -119,8 +136,8 @@ const ManagedMarketAction = ({
                             key={label}
                             fontSize="2xl"
                             fontWeight="bold"
-                            color={selectedAction === idx ? 'white' : 'whiteAlpha.600'}
-                            borderBottom={selectedAction === idx ? '2px solid #6fffc2' : '2px solid transparent'}
+                            color={selectedTab === idx ? 'white' : 'whiteAlpha.600'}
+                            borderBottom={selectedTab === idx ? '2px solid #6fffc2' : '2px solid transparent'}
                             _selected={{ color: 'white', borderBottom: '2px solid #6fffc2', bg: 'transparent' }}
                             _focus={{ boxShadow: 'none' }}
                             px={8}
@@ -349,7 +366,7 @@ const ManagedMarketAction = ({
                                 </Box>
                                 {/* Deploy button at the bottom */}
                                 <Button h="52px" color={colors.tabBG} fontSize="2xl" px={10} borderRadius="xl">
-                                    <span style={{ color: "white" }}>{actionLabels[selectedAction].toUpperCase()}</span>
+                                    <span style={{ color: "white" }}>{actionLabels[selectedTab].toUpperCase()}</span>
                                 </Button>
                             </VStack>
                         </Card>

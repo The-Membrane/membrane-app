@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-export type ManagedMarketState = {
+export type ManagedActionState = {
     collateralAmount: string;
     multiplier: number;
     takeProfit: string;
@@ -10,12 +10,12 @@ export type ManagedMarketState = {
 };
 
 type Store = {
-    managedMarketState: ManagedMarketState;
-    setManagedMarketState: (partial: Partial<ManagedMarketState>) => void;
+    managedActionState: ManagedActionState;
+    setManagedActionState: (partial: Partial<ManagedActionState>) => void;
     reset: () => void;
 };
 
-const initialState: ManagedMarketState = {
+const initialState: ManagedActionState = {
     collateralAmount: '',
     multiplier: 1,
     takeProfit: '',
@@ -23,16 +23,16 @@ const initialState: ManagedMarketState = {
     selectedAction: 0,
 };
 
-const useManagedMarket = create<Store>()(
+const useManagedAction = create<Store>()(
     devtools(
         (set) => ({
-            managedMarketState: initialState,
-            setManagedMarketState: (partial: Partial<ManagedMarketState>) =>
-                set((state) => ({ managedMarketState: { ...state.managedMarketState, ...partial } })),
-            reset: () => set((state) => ({ ...state, managedMarketState: initialState })),
+            managedActionState: initialState,
+            setManagedActionState: (partial: Partial<ManagedActionState>) =>
+                set((state) => ({ managedActionState: { ...state.managedActionState, ...partial } })),
+            reset: () => set((state) => ({ ...state, managedActionState: initialState })),
         }),
-        { name: 'managedMarketState' }
+        { name: 'managedActionState' }
     )
 );
 
-export default useManagedMarket; 
+export default useManagedAction; 

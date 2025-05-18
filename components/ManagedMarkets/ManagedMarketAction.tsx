@@ -6,7 +6,7 @@ import { useManagedConfig, useManagedMarket } from '@/hooks/useManaged';
 import { useOraclePrice } from '@/hooks/useOracle';
 import { num } from '@/helpers/num';
 import { colors } from '@/config/defaults';
-import useManagedMarket from './hooks/useManagedMarket';
+import useManagedAction from './hooks/useManagedMarket';
 
 const STICKY_THRESHOLD = 0.05;
 
@@ -31,15 +31,15 @@ const ManagedMarketAction = ({
 
     // Zustand state
     const {
-        managedMarketState: {
+        managedActionState: {
             collateralAmount,
             multiplier,
             takeProfit,
             stopLoss,
             selectedAction
         },
-        setManagedMarketState
-    } = useManagedMarket();
+        setManagedActionState
+    } = useManagedAction();
 
     // Local UI toggles
     const [showTakeProfit, setShowTakeProfit] = useState(false);
@@ -59,7 +59,7 @@ const ManagedMarketAction = ({
     // Snap slider to sticky points if close, else allow smooth
     const handleSliderChange = (val: number) => {
         const closest = stickyPoints.find(pt => Math.abs(pt - val) < STICKY_THRESHOLD);
-        setManagedMarketState({ multiplier: closest ?? val });
+        setManagedActionState({ multiplier: closest ?? val });
     };
 
     // Handle manual input for multiplier
@@ -68,29 +68,29 @@ const ManagedMarketAction = ({
         if (isNaN(val)) val = 1;
         if (val < 1) val = 1;
         if (val > maxMultiplier) val = maxMultiplier;
-        setManagedMarketState({ multiplier: val });
+        setManagedActionState({ multiplier: val });
     };
 
     // Handle Take Profit and Stop Loss input changes
     const handleTakeProfitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
         const val = e.target.value;
-        if (val === '' || /^\d*\.?\d*$/.test(val)) setManagedMarketState({ takeProfit: val });
+        if (val === '' || /^\d*\.?\d*$/.test(val)) setManagedActionState({ takeProfit: val });
     };
     const handleStopLossChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
         const val = e.target.value;
-        if (val === '' || /^\d*\.?\d*$/.test(val)) setManagedMarketState({ stopLoss: val });
+        if (val === '' || /^\d*\.?\d*$/.test(val)) setManagedActionState({ stopLoss: val });
     };
 
     // Handle collateral amount input
     const handleCollateralAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setManagedMarketState({ collateralAmount: e.target.value });
+        setManagedActionState({ collateralAmount: e.target.value });
     };
 
     // Handle selected action/tab
     const handleTabChange = (idx: number) => {
-        setManagedMarketState({ selectedAction: idx });
+        setManagedActionState({ selectedAction: idx });
     };
 
     const actionLabels = ["Multiply", "Lend", "Strategize"];
@@ -198,7 +198,7 @@ const ManagedMarketAction = ({
                                                 fontSize="md"
                                                 cursor="pointer"
                                                 _hover={{ textDecoration: 'underline', color: 'blue.300' }}
-                                                onClick={() => setManagedMarketState({ collateralAmount: maxBalance.toString() })}
+                                                onClick={() => setManagedActionState({ collateralAmount: maxBalance.toString() })}
                                             >
                                                 Wallet 0
                                             </Text>

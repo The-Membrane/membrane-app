@@ -37,11 +37,12 @@ const HorizontalNav = () => {
         >
             {/* Left: Logo, Title, Page Selector or Hamburger */}
             <HStack spacing={6} align="center">
-                <Stack spacing={2} alignContent={"start"}>
+                <Stack spacing={0} alignContent={"start"}>
                     <Logo />
                     <Text
                         color={colors.tabBG}
-                        fontSize="sm"
+                        fontSize="2xs"
+                        alignSelf={"center"}
                         letterSpacing="0.5em"
                         fontWeight="500"
                         textTransform="uppercase"

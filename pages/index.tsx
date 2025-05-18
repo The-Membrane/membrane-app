@@ -4,11 +4,11 @@ import { supportedChains } from '@/config/chains'
 
 export default function Redirect() {
   const router = useRouter()
-  
+
   useEffect(() => {
     router.replace(`/${supportedChains[0].name}`)
   }, [router])
 
   return null
 }
-EOF 
+

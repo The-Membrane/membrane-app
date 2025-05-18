@@ -1,6 +1,7 @@
 import { FC, PropsWithChildren } from 'react'
 import { Button, ButtonProps, Tooltip } from '@chakra-ui/react'
 import useWallet from '@/hooks/useWallet'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 interface ConnectionButtonProps {
   disabledTooltip?: string
@@ -17,7 +18,8 @@ export const TxButton: FC<PropsWithChildren<ConnectionButtonProps & ButtonProps>
   fontSize = 'md',
   ...buttonProps
 }) => {
-  const { isWalletConnected, connect } = useWallet(chain_name)
+  const { chainName } = useChainRoute()
+  const { isWalletConnected, connect } = useWallet(chainName)
 
   if (!isWalletConnected) {
     return toggleConnectLabel ? <Button {...buttonProps} isDisabled={false} onClick={connect}>Connect to {chain_name.toUpperCase()}</Button>

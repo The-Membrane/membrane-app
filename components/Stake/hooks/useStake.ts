@@ -10,11 +10,12 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useStakeState from './useStakeState'
 import { useMemo } from 'react'
-
+import { useChainRoute } from '@/hooks/useChainRoute'
 type UseStake = {}
 
-const useStakeing = ({}: UseStake) => {
-  const { address } = useWallet()
+const useStakeing = ({ }: UseStake) => {
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const mbrnAsset = useAssetBySymbol('MBRN')
   const { stakeState } = useStakeState()
   const { amount, txType } = stakeState
@@ -53,12 +54,14 @@ const useStakeing = ({}: UseStake) => {
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
-  return {action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['manage_staking', (msgs?.toString()??"0")],
-    onSuccess: onInitialSuccess,
-    enabled: !!msgs,
-  }) }
+  return {
+    action: useSimulateAndBroadcast({
+      msgs,
+      queryKey: ['manage_staking', (msgs?.toString() ?? "0")],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs,
+    })
+  }
 }
 
 export default useStakeing

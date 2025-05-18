@@ -11,7 +11,7 @@ import { getLiveFeeAuction, useAssetAuctionClient } from '@/services/asset_aucti
 import useWallet from '@/hooks/useWallet'
 import { coin } from '@cosmjs/stargate'
 import useAppState from '@/persisted-state/useAppState'
-
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 export const useLiveFeeAuction = () => {
   const { data: client } = useAssetAuctionClient()
@@ -24,7 +24,8 @@ export const useLiveFeeAuction = () => {
 }
 
 export const useAuction = () => {
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const cdt = useAssetBySymbol('CDT')
   const mbrn = useAssetBySymbol('MBRN')
   const MBRNBalance = useBalanceByAsset(mbrn)

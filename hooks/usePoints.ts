@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getAllConversionRates, getAllUserPoints, getUserConversionRates } from '@/services/points'
 import useWallet from './useWallet'
 import useAppState from '@/persisted-state/useAppState'
+import { useChainRoute } from './useChainRoute'
 
 export const useAllUserPoints = () => {
   const { appState } = useAppState()
@@ -20,7 +21,8 @@ export const useAllUserPoints = () => {
 
 export const useUserConversionRates = () => {
   const { appState } = useAppState()
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
 
   return useQuery({
     queryKey: ['use_user_conversion_rates', address],
@@ -45,7 +47,8 @@ export const useAllConversionRates = () => {
 }
 
 export const useUserPoints = () => {
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const { data: points } = useAllUserPoints()
   //sort points by total_points
   // points?.sort((a, b) => parseFloat(b.stats.total_points) - parseFloat(a.stats.total_points))
@@ -67,7 +70,8 @@ export const useUserPoints = () => {
 
 
 export const useUserRank = () => {
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const { data: points } = useAllUserPoints()
   //sort points by total_points
   points?.sort((a, b) => parseFloat(b.stats.total_points) - parseFloat(a.stats.total_points))
@@ -116,7 +120,8 @@ export const useSoloLevel = () => {
 }
 
 export const useLeaderboardData = () => {
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const { data: points } = useAllUserPoints()
 
   return useQuery({

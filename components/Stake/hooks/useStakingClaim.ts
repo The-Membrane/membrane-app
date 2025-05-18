@@ -6,10 +6,11 @@ import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useRouter } from 'next/router'
-
+import { useChainRoute } from '@/hooks/useChainRoute'
 export const useStakingClaim = (restake: boolean = false, sim: boolean = true, run: boolean = true
 ) => {
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const router = useRouter()
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({

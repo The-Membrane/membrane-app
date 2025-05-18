@@ -8,6 +8,7 @@ import { colors } from '@/config/defaults';
 import Logo from './Logo';
 import { supportedChains, getChainConfig } from '@/config/chains';
 import { useChainRoute } from '@/hooks/useChainRoute';
+import useAppState from '@/persisted-state/useAppState';
 
 const navItems = [
     { label: 'Home', href: '/' },
@@ -23,10 +24,13 @@ const HorizontalNav = () => {
     const router = useRouter();
     const { chainName } = useChainRoute();
     const currentChain = getChainConfig(chainName);
+    const { setAppState } = useAppState();
 
     const handleChainChange = (newChain: string) => {
         const currentPath = router.asPath;
         const newPath = currentPath.replace(/^\/[^/]+/, `/${newChain}`);
+        const newChainConfig = getChainConfig(newChain);
+        setAppState({ rpcUrl: newChainConfig.rpcUrl });
         router.push(newPath);
     };
 
@@ -108,8 +112,8 @@ const HorizontalNav = () => {
                         variant="ghost"
                         color="white"
                         _hover={{ bg: 'whiteAlpha.200' }}
+                        px={2}
                     >
-                        {currentChain.name}
                     </MenuButton>
                     <MenuList bg="#232A3E">
                         {supportedChains.map((chain) => (

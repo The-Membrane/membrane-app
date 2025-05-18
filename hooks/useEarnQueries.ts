@@ -90,8 +90,9 @@ export const useBoundedTVL = () => {
     const { chainName } = useChainRoute()
 
     return useQuery({
-        queryKey: ['useBoundedTVL', client, router.pathname],
+        queryKey: ['useBoundedTVL', client, router.pathname, chainName],
         queryFn: async () => {
+            console.log("useBoundedTVL", router.pathname, chainName, client)
             if (router.pathname !== `/${chainName}`) return
             if (!client) return
 

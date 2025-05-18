@@ -1,3 +1,5 @@
+import { rpcUrl } from "./defaults";
+
 export interface ChainConfig {
     name: string;
     logo: string;
@@ -10,7 +12,7 @@ export const supportedChains: ChainConfig[] = [
         name: 'osmosis',
         logo: '/images/osmo.svg',
         chainId: 'osmosis-1',
-        rpcUrl: 'https://rpc.cosmos.directory/osmosis'
+        rpcUrl: rpcUrl
     },
     {
         name: 'neutron',

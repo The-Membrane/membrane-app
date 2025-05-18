@@ -132,6 +132,7 @@ const RangeBoundVisual = () => {
 
   const { data: realizedAPR } = useBoundedCDTRealizedAPR()
   const { data: TVL } = useBoundedTVL()
+  console.log("TVL", TVL)
   const { data: existingBuffer } = useRBLPCDTBalance()
 
 

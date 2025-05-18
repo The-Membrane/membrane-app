@@ -31,6 +31,8 @@ const ManagedMarketAction = ({
     const [multiplier, setMultiplier] = useState(1);
     const [takeProfit, setTakeProfit] = useState('');
     const [stopLoss, setStopLoss] = useState('');
+    const [showTakeProfit, setShowTakeProfit] = useState(false);
+    const [showStopLoss, setShowStopLoss] = useState(false);
 
     // Placeholder: get max from balance (assume 100 for now)
     // const max = useBalanceByAsset(assetDetails)
@@ -224,35 +226,57 @@ const ManagedMarketAction = ({
                                 </Box>
                                 {/* Take Profit / Stop Loss Inputs - full width below multiplier */}
                                 <VStack spacing={4} w="100%" align="stretch">
-                                    <HStack w="100%">
-                                        <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Take Profit Price: </Text>
-                                        <Input
-                                            value={takeProfit}
-                                            onChange={handleTakeProfitChange}
-                                            type="text"
-                                            bg="gray.800"
-                                            color="white"
-                                            textAlign={"right"}
-                                            paddingInlineEnd={"2"}
-                                            paddingInlineStart={"2"}
-                                            minWidth={"60px"}
-                                            w="100%"
-                                        />
+                                    <HStack w="100%" justify="space-between">
+                                        <Text
+                                            minW="120px"
+                                            color="whiteAlpha.800"
+                                            fontWeight="medium"
+                                            cursor="pointer"
+                                            onClick={() => setShowTakeProfit(!showTakeProfit)}
+                                            _hover={{ color: 'white' }}
+                                        >
+                                            {showTakeProfit ? 'Take Profit Price:' : 'Set a TP'}
+                                        </Text>
+                                        {showTakeProfit && (
+                                            <Input
+                                                value={takeProfit}
+                                                onChange={handleTakeProfitChange}
+                                                type="text"
+                                                bg="gray.800"
+                                                color="white"
+                                                textAlign={"right"}
+                                                paddingInlineEnd={"2"}
+                                                paddingInlineStart={"2"}
+                                                minWidth={"60px"}
+                                                w="100%"
+                                            />
+                                        )}
                                     </HStack>
-                                    <HStack w="100%">
-                                        <Text minW="120px" color="whiteAlpha.800" fontWeight="medium">Stop Loss Price: </Text>
-                                        <Input
-                                            value={stopLoss}
-                                            onChange={handleStopLossChange}
-                                            type="text"
-                                            bg="gray.800"
-                                            color="white"
-                                            textAlign={"right"}
-                                            paddingInlineEnd={"2"}
-                                            paddingInlineStart={"2"}
-                                            minWidth={"60px"}
-                                            w="100%"
-                                        />
+                                    <HStack w="100%" justify="space-between">
+                                        <Text
+                                            minW="120px"
+                                            color="whiteAlpha.800"
+                                            fontWeight="medium"
+                                            cursor="pointer"
+                                            onClick={() => setShowStopLoss(!showStopLoss)}
+                                            _hover={{ color: 'white' }}
+                                        >
+                                            {showStopLoss ? 'Stop Loss Price:' : 'Set a SL'}
+                                        </Text>
+                                        {showStopLoss && (
+                                            <Input
+                                                value={stopLoss}
+                                                onChange={handleStopLossChange}
+                                                type="text"
+                                                bg="gray.800"
+                                                color="white"
+                                                textAlign={"right"}
+                                                paddingInlineEnd={"2"}
+                                                paddingInlineStart={"2"}
+                                                minWidth={"60px"}
+                                                w="100%"
+                                            />
+                                        )}
                                     </HStack>
                                 </VStack>
                                 {/* Info Card mirroring the image - moved above Deploy button */}

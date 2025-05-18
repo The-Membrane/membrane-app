@@ -2,9 +2,11 @@ import useWallet from '@/hooks/useWallet'
 import { useQuery } from '@tanstack/react-query'
 import { Block } from 'cosmwasm'
 import { DEFAULT_CHAIN } from '@/config/chains'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 export const useClient = (chain_name: string = DEFAULT_CHAIN) => {
-  const { address, getSigningStargateClient } = useWallet(chain_name)
+  const { chainName } = useChainRoute()
+  const { address, getSigningStargateClient } = useWallet(chainName)
 
   return useQuery({
     queryKey: [chain_name + ' client', address],

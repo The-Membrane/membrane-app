@@ -1,12 +1,13 @@
 import { getAssetByDenom, getAssets } from '@/helpers/chain'
 import useAssets, { useAssetByDenom } from '@/hooks/useAssets'
 import { useBasket } from '@/hooks/useCDP'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import { useMemo } from 'react'
 
 const useCollateralAssets = () => {
   const { data: basket } = useBasket()
-
-  const assets = useAssets("osmosis")
+  const { chainName } = useChainRoute()
+  const assets = useAssets(chainName)
   // console.log("assets in collateral assets", assets)
 
   return useMemo(() => {

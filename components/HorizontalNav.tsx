@@ -127,7 +127,7 @@ const HorizontalNav = () => {
                         ))}
                     </MenuList>
                 </Menu>
-                <WallectConnect />
+                <WallectConnect chain_name={chainName} />
             </HStack>
             {/* Drawer for mobile nav */}
             <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs">

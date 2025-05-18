@@ -18,7 +18,7 @@ import { AssetWithBalance } from "../Mint/hooks/useCombinBalance"
 import BigNumber from "bignumber.js"
 import useSwapToCDT from "./hooks/useUSDCSwapToCDT"
 import useUSDCToMint from "./hooks/useUSDCToMint"
-import { useChainAssets } from '@/hooks/useChainAssets'
+import { useChainRoute } from "@/hooks/useChainRoute"
 
 
 export const RBLPDepositModal = React.memo(({
@@ -553,8 +553,10 @@ export const NeuroWithdrawModal = React.memo(({
     const isLedgerDisabled = ledgerSheathe?.simulate.isError || !ledgerSheathe?.simulate.data
     const isLedgerLoading = ledgerSheathe?.simulate.isLoading || ledgerSheathe?.tx.isPending
 
-    const { getAssetBySymbol } = useChainAssets()
-    const assetInfo = getAssetBySymbol(guardedPosition.symbol)
+    //Get asset by symbols
+    const { chainName } = useChainRoute()
+    const assetInfo = getAssetBySymbol(guardedPosition.symbol, chainName)
+    //Get asset price
     const assetPrice = Number(prices?.find((p: any) => p.denom === assetInfo?.base)?.price ?? "0")
     //@ts-ignore
     const maxAmount = shiftDigits(guardedPosition.position.collateral_assets[0].asset.amount, -assetInfo?.decimal).toNumber()

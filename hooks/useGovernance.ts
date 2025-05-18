@@ -7,10 +7,12 @@ import { getUserVotingPower } from '@/services/governance'
 import { getProposals } from '@/services/governance'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/router'
+import { useChainRoute } from './useChainRoute'
 
 export const useProposalById = (proposalId: number) => {
     const { data: client } = useGovernanceClient()
-    const { address } = useWallet()
+    const { chainName } = useChainRoute()
+    const { address } = useWallet(chainName)
     const router = useRouter()
 
     return useQuery({
@@ -43,7 +45,8 @@ export const useDelegator = (address: string, enabled = false) => {
 
 export const useVotingPower = (proposalId: number) => {
     const { appState } = useAppState()
-    const { address } = useWallet()
+    const { chainName } = useChainRoute()
+    const { address } = useWallet(chainName)
 
     const { data: client } = useGovernanceClient()
     const router = useRouter()

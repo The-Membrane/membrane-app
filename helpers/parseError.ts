@@ -2,16 +2,18 @@ import { useBasket } from "@/hooks/useCDP"
 import { stake } from "@/services/staking"
 import { position } from "@chakra-ui/react"
 import { getAssetByDenom } from "./chain"
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 //Get the collateral assets from the Basket and create regex errors for them
 const collateralSupplyCapErrors = () => {
   const { data: basket } = useBasket()
   const basketAssets = basket?.collateral_types
+  const { chainName } = useChainRoute()
 
   return basketAssets?.map((asset) => {
     //@ts-ignore
     const assetDenom = asset.asset.info.native_token.denom
-    const assetSymbol = getAssetByDenom(assetDenom)?.symbol
+    const assetSymbol = getAssetByDenom(assetDenom, chainName)?.symbol
     return {
       regex: new RegExp(`Supply cap ratio for ${assetDenom}`, 'i'),
       message: `This transaction puts ${assetSymbol} over its supply cap. If withdrawing, withdraw ${assetSymbol}. If depositing with debt, withdraw ${assetSymbol} first. If depositing without debt, deposit enough of a different asset to reduce ${assetSymbol}'s cap so you can deposit it. If minting from zero debt with multiple collateral, withdraw ${assetSymbol} first & attempt to deposit it after the mint.`,

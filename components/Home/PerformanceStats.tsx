@@ -9,7 +9,7 @@ import useUnLoop from './hooks/useUnloop'
 import { SWAP_SLIPPAGE } from '@/config/defaults'
 import { num } from '@/helpers/num'
 import useCookie from './hooks/useCookie'
-import { useChainAssets } from '@/hooks/useChainAssets'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 type Props = {
   positionIndex: number
@@ -40,8 +40,8 @@ const PerformanceStats = ({ positionIndex }: Props) => {
 
   //Get the volatile asset being leveraged
   //We know its the first asset bc we deposit the stable second
-  const { getAssetByDenom } = useChainAssets()
-  const levAsset = getAssetByDenom(position.collateral_assets[0].asset.info.native_token.denom)
+  const { chainName } = useChainRoute()
+  const levAsset = getAssetByDenom(position.collateral_assets[0].asset.info.native_token.denom, chainName)
 
   //Get performance 
   const sign = parseFloat(initialTVL) > (currentTVL ?? 0) ? "-" : "+"

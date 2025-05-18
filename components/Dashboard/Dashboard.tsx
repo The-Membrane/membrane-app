@@ -25,7 +25,7 @@ import { colors } from '@/config/defaults'
 import { OracleHealth } from './OracleHealth'
 import useGiveRBLPPoints from './hooks/useGiveRBLPPoints'
 import { SupplyCaps } from './SupplyCaps'
-import { useChainAssets } from '@/hooks/useChainAssets'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const [idSkips, setSkips] = useState([] as number[])
@@ -109,10 +109,11 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
 
 const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }) => {
     if (!basket || !prices) return { TVL: 0, positions: [] }
+    const { chainName } = useChainRoute()
     const positions = basket?.collateral_types.map((asset) => {
         //@ts-ignore
         const denom = asset.asset?.info.native_token?.denom
-        const assetInfo = getAssetByDenom(denom)
+        const assetInfo = getAssetByDenom(denom, chainName)
         // console.log(assetInfo, denom, asset.asset)
         const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal ?? 6)).toNumber()
         const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
@@ -134,7 +135,6 @@ const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }
 const Dashboard = () => {
     const { data: basket } = useBasket()
     const { data: prices } = useOraclePrice()
-    const { getAssetByDenom } = useChainAssets()
     const assetData = useMemo(() => {
         const { TVL, positions } = getProjectTVL({ basket, prices })
         //Set TVL in each position object to the outputted TVL

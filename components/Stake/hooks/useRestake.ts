@@ -1,10 +1,12 @@
+import { useChainRoute } from '@/hooks/useChainRoute'
 import useExecute from '@/hooks/useExecute'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import { getSigningStakingClient } from '@/services/staking'
 
 const useRestake = (mbrnAmount?: string) => {
-  const { address, getSigningCosmWasmClient } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address, getSigningCosmWasmClient } = useWallet(chainName)
 
   return useExecute({
     onSubmit: async () => {

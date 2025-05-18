@@ -4,6 +4,7 @@ import useWallet from './useWallet'
 import useAssets from './useAssets'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { useRouter } from 'next/router'
+import { useChainRoute } from './useChainRoute'
 
 
 export const useBasket = () => {
@@ -28,7 +29,8 @@ export const useBasket = () => {
 export const useBasketAssets = () => {
   const { data: basket } = useBasket()
   const { data: interest } = useCollateralInterest()
-  const assets = useAssets("osmosis")
+  const { chainName } = useChainRoute()
+  const assets = useAssets(chainName)
   // const router = useRouter()
 
 

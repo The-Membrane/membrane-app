@@ -5,9 +5,11 @@ import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import contracts from '@/config/contracts.json'
 import { PointsMsgComposer } from '@/contracts/codegen/points/Points.message-composer'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 const useClaimPoints = () => {
-    const { address } = useWallet()
+    const { chainName } = useChainRoute()
+    const { address } = useWallet(chainName)
 
     const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
         queryKey: [

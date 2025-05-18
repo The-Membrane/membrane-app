@@ -5,6 +5,7 @@ import { num } from '@/helpers/num'
 import { Asset } from '@chain-registry/types'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { colors } from '@/config/defaults'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -68,7 +69,8 @@ export const ClaimSummary = ({ claims = [] }: Props) => {
       {claims
         .filter((a) => num(a.amount).isGreaterThan(0))
         .map((claim) => {
-          const asset = getAssetByDenom(claim.denom)
+          const { chainName } = useChainRoute()
+          const asset = getAssetByDenom(claim.denom, chainName)
           const amount = shiftDigits(
             claim.amount,
             -asset?.decimal!,

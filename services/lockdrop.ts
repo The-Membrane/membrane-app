@@ -5,6 +5,7 @@ import { Addr } from '@/contracts/generated/positions/Positions.types'
 import { getAssetBySymbol } from '@/helpers/chain'
 import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { shiftDigits } from '@/helpers/math'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
 export const lockdropClient = async (rpcUrl: string) => {
@@ -65,7 +66,8 @@ export const getIncentives = async (user: Addr, rpcUrl: string) => {
 }
 
 export const getUserInfo = async (address: Addr, rpcUrl: string) => {
-  const osmos = getAssetBySymbol('OSMO')
+  const { chainName } = useChainRoute()
+  const osmos = getAssetBySymbol('OSMO', chainName)
   const client = await lockdropClient(rpcUrl)
   const userInfo = await client.userInfo({
     user: address,

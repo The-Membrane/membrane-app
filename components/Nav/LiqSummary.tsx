@@ -10,7 +10,7 @@ type SummaryItemProps = {
   fee: number
 }
 
-const SummaryItem = ({id, fee}: SummaryItemProps) => (
+const SummaryItem = ({ id, fee }: SummaryItemProps) => (
   <HStack
     key={id}
     justifyContent="space-between"
@@ -20,7 +20,7 @@ const SummaryItem = ({id, fee}: SummaryItemProps) => (
     borderColor="whiteAlpha.200"
   >
     <Text variant="value" textTransform="unset">
-         Liquidating position {id} with a ${fee} reward
+      Liquidating position {id} with a ${fee} reward
     </Text>
   </HStack>
 )
@@ -36,8 +36,8 @@ export const LiqSummary = ({ liquidations }: Props) => {
         .map((liq) => {
           return (
             <SummaryItem
-            id={liq.position_id}
-            fee={liq.position_fee}
+              id={liq.position_id}
+              fee={liq.position_fee}
             />
           )
         })}

@@ -8,31 +8,11 @@ import { TxButton } from "../TxButton"
 import useLiveAssetBid from "./hooks/useLiveAssetBid"
 import { shiftDigits } from "@/helpers/math"
 import { useEffect, useState } from "react"
-import { getAssetBySymbol } from "@/helpers/chain"
+import { Asset, getAssetBySymbol } from "@/helpers/chain"
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Price } from "@/services/oracle"
 import Countdown from "../Countdown"
 import React from "react"
-import { useChainAssets } from '@/hooks/useChainAssets'
-
-type Asset = {
-    logo?: string;
-    decimal?: number;
-    isLP: boolean;
-    base: string;
-    symbol: string;
-    name: string;
-    deprecated?: boolean;
-    description?: string;
-    extended_description?: string;
-    type_asset?: string;
-    address?: string;
-    socials?: {
-        webiste?: string;
-        website?: string;
-        twitter?: string;
-    };
-}
 
 interface Prop {
     currentBid: any,
@@ -41,15 +21,12 @@ interface Prop {
     assetBidAmount: number
 }
 
-const getMBRNPrice = (prices: Price[] | undefined, MBRN: Asset | undefined) => {
-    if (!MBRN) return '0'
+const getMBRNPrice = (prices: Price[] | undefined, MBRN: Asset) => {
     const price = prices?.find((price) => price.denom === MBRN?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)
 }
-
-const getCDTPrice = (prices: Price[] | undefined, cdt: Asset | undefined) => {
-    if (!cdt) return '0'
+const getCDTPrice = (prices: Price[] | undefined, cdt: Asset) => {
     const price = prices?.find((price) => price.denom === cdt?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)
@@ -66,7 +43,6 @@ const AssetAuction = React.memo(({ currentBid, auctionAmount, auctionEndTime, as
     const stargazeMBRNBalance = useBalanceByAsset(stargazeMBRN, 'stargaze')
 
     const { data: prices } = useOraclePrice()
-    const { getAssetBySymbol } = useChainAssets()
     const CDT = getAssetBySymbol('CDT')
     const MBRN = getAssetBySymbol('MBRN')
     const [cdtPrice, setcdtPrice] = useState('0')

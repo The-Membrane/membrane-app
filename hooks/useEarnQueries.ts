@@ -15,6 +15,7 @@ import { CollateralInterestResponse } from "@/contracts/codegen/positions/Positi
 import useAppState from "@/persisted-state/useAppState"
 import { getCosmWasmClient, useCosmWasmClient } from "@/helpers/cosmwasmClient"
 import { useRouter } from "next/router"
+import { useChainRoute } from "./useChainRoute"
 
 export const useBoundedConfig = () => {
     const { data: client } = useCosmWasmClient()
@@ -43,7 +44,8 @@ export const useBoundedConfig = () => {
 // }
 
 export const useUserBoundedIntents = () => {
-    const { address } = useWallet()
+    const { chainName } = useChainRoute()
+    const { address } = useWallet(chainName)
     const { data: client } = useCosmWasmClient()
     const router
         = useRouter()

@@ -15,8 +15,8 @@ import { BidIcon, EarnIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuction
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
+import { getAssetBySymbol } from '@/helpers/chain'
 import { useOraclePrice } from '@/hooks/useOracle'
-import { useChainAssets } from '@/hooks/useChainAssets'
 
 import { HamburgerIcon } from "@chakra-ui/icons";
 import UniversalButtons from './Nav/UniversalButtons'
@@ -86,8 +86,8 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
 }
 
 const getCDTPrice = () => {
-  const { getAssetBySymbol } = useChainAssets()
-  const cdt = getAssetBySymbol('CDT')
+  const { chainName } = useChainRoute()
+  const cdt = getAssetBySymbol('CDT', chainName)
   const { data: prices } = useOraclePrice()
   const price = prices?.find((price) => price.denom === cdt?.base)
   if (!price) return '0'
@@ -102,7 +102,6 @@ const MemoizedSoloLeveling = memo(SoloLeveling);
 const MemoizedNavItem = memo(NavItem);
 
 function SideNav() {
-  const { getAssetBySymbol } = useChainAssets()
   // console.log("render heavy")
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cdtPrice, setcdtPrice] = useState(" ");
@@ -197,7 +196,7 @@ function SideNav() {
       </Stack>
 
       {/* Mobile Menu */}
-      <HStack display={{ base: "flex", md: "none" }} spacing="0.5rem">
+      <HStack as="mobile" display={{ base: "flex", md: "none" }} spacing="0.5rem">
         {!isMobileMenuOpen && (
           <IconButton
             icon={<HamburgerIcon />}

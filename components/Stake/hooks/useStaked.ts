@@ -1,4 +1,5 @@
 import { num } from '@/helpers/num'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
 import useAppState from '@/persisted-state/useAppState'
 import { getRewards, getStaked, useStakingClient } from '@/services/staking'
@@ -7,7 +8,8 @@ import { useRouter } from 'next/router'
 
 
 const useStaked = (run: boolean) => {
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const router = useRouter()
   const { data: client } = useStakingClient()
 

@@ -5,7 +5,7 @@ import { Coin, coin, coins } from "@cosmjs/amino";
 import { calcAmountWithSlippage, calcShareOutAmount, convertGeckoPricesToDenomPriceHash, LiquidityPoolCalculator } from "@osmonauts/math";
 
 import { osmosis } from 'osmojs';
-import { getAssetBySymbol, exported_supportedAssets } from "@/helpers/chain";
+import { exported_supportedAssets } from "@/helpers/chain";
 import { PositionsMsgComposer } from "@/contracts/codegen/positions/Positions.message-composer";
 
 import { asset_list, assets } from '@chain-registry/osmosis';

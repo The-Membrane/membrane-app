@@ -4,6 +4,7 @@ import { getAssetByDenom } from '@/helpers/chain'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import {
   Box,
   Card,
@@ -29,7 +30,8 @@ type ClaimAssetProps = {
 }
 
 const ClaimAsset = ({ claimable }: ClaimAssetProps) => {
-  const asset = getAssetByDenom(claimable.info.native_token.denom)
+  const { chainName } = useChainRoute()
+  const asset = getAssetByDenom(claimable.info.native_token.denom, chainName)
   return (
     <Tr>
       <Td>

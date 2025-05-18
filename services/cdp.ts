@@ -14,6 +14,7 @@ import { Price } from './oracle'
 import { num } from '@/helpers/num'
 import { stableSymbols } from '@/config/defaults'
 import { useQuery } from '@tanstack/react-query'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 export const useCDPClient = () => {
   const { data: cosmWasmClient } = useCosmWasmClient()
@@ -494,10 +495,11 @@ export const calculateVaultSummary = ({
 
 export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }) => {
   if (!basket || !prices) return 0
+  const { chainName } = useChainRoute()
   const positions = basket?.collateral_types.map((asset) => {
     //@ts-ignore
     const denom = asset.asset?.info.native_token?.denom
-    const assetInfo = getAssetByDenom(denom)
+    const assetInfo = getAssetByDenom(denom, chainName)
     // console.log(assetInfo, denom, asset.asset)
     const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal ?? 6)).toNumber()
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0

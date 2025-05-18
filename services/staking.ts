@@ -11,6 +11,7 @@ import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
 import { useQuery } from '@tanstack/react-query'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 export const useStakingClient = () => {
   const { data: cosmWasmClient } = useCosmWasmClient()
@@ -62,9 +63,10 @@ export const getStaked = async (address: Addr, client: any) => {
 }
 
 const parseClaimable = (claimable: LiqAsset[]) => {
+  const { chainName } = useChainRoute()
   return claimable?.map((c) => {
     const denom = c.info.native_token?.denom
-    const asset = getAssetByDenom(denom)
+    const asset = getAssetByDenom(denom, chainName)
     return {
       amount: c.amount,
       asset,
@@ -81,7 +83,8 @@ export const getRewards = async (address: Addr, client: any) => {
     console.error("Error fetching user rewards:", error);
     rewards = { claimables: [], accrued_interest: '0' };
   }
-  const mbrn = getAssetBySymbol('MBRN')
+  const { chainName } = useChainRoute()
+  const mbrn = getAssetBySymbol('MBRN', chainName)
   const claimable = parseClaimable(rewards.claimables)
   return [
     {

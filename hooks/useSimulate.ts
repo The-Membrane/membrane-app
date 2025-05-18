@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import useWallet from './useWallet'
 import { StdFee } from '@cosmjs/stargate'
 import { useQuery } from '@tanstack/react-query'
+import { useChainRoute } from './useChainRoute'
 
 type Simulate = {
   msgs: MsgExecuteContractEncodeObject[] | undefined | null
@@ -15,7 +16,8 @@ type Simulate = {
 
 const useSimulate = ({ msgs, amount, enabled = false, queryKey = [], chain_id }: Simulate) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet(chain_id)
+  const { chainName } = useChainRoute()
+  const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet(chainName)
 
   // clear error message when amount is changed
   useEffect(() => {

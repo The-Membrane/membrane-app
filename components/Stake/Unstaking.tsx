@@ -8,6 +8,7 @@ import dayjs from 'dayjs'
 import useClaimUnstake from './hooks/useClaimUnstake'
 import useWallet from '@/hooks/useWallet'
 import { colors } from '@/config/defaults'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 type Props = {}
 
@@ -66,7 +67,8 @@ const Unstaking = (props: Props) => {
   const mbrn = useAssetBySymbol('MBRN')
   const { data } = useStaked(true)
   const { unstaking } = useMemo(() => data || { unstaking: [] }, [data])
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const { action: claim } = useClaimUnstake({ address: address, sim: true })
 
   console.log("unstaking", data)

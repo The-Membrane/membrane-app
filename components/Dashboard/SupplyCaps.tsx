@@ -10,7 +10,7 @@ import { Box, Text, Circle, Tooltip, Stack, HStack, Slider, SliderFilledTrack, S
 import { colors } from '@/config/defaults';
 import { getAssetRatio, getTVL, Positions } from '@/services/cdp';
 import { num } from '@/helpers/num';
-import { useChainAssets } from '@/hooks/useChainAssets'
+import { useChainRoute } from '@/hooks/useChainRoute';
 
 const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
     // Calculate color based on health value
@@ -92,7 +92,8 @@ const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
 // }
 
 export const SupplyCaps = () => {
-    const { getAssetByDenom } = useChainAssets()
+    //We'll forego using the config to get the OSMO pool ID for now, and just hardcode it
+    // const { data: config } = useOracleConfig()
     const { data: prices } = useOraclePrice()
     const { data: basket } = useBasket()
     // const usedAssets = useMemo(() => {
@@ -160,10 +161,11 @@ export const SupplyCaps = () => {
 
     //Create health object for each asset using the formula: (assetValue / poolValuesByAsset) * 100
     const capData = useMemo(() => {
+        const { chainName } = useChainRoute()
         const basketPositions = basket?.collateral_types.map((asset) => {
             //@ts-ignore
             const denom = asset.asset.info.native_token.denom
-            const assetInfo = getAssetByDenom(denom)
+            const assetInfo = getAssetByDenom(denom, chainName)
             const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal ?? 6)).toNumber()
             const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 

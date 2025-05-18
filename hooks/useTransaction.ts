@@ -5,6 +5,7 @@ import { useState } from 'react'
 import useWallet from './useWallet'
 import useToaster from './useToaster'
 import { parseError } from '@/helpers/parseError'
+import { useChainRoute } from './useChainRoute'
 
 type Transaction = {
   msgs: MsgExecuteContractEncodeObject[] | undefined | null
@@ -20,8 +21,9 @@ const mock = {
 const useTransaction = ({ msgs, onSuccess, fee, chain_id }: Transaction) => {
   const [isApproved, setIsApproved] = useState(false)
   const toaster = useToaster()
+  const { chainName } = useChainRoute()
 
-  const { isWalletConnected, address, sign, broadcast } = useWallet(chain_id)
+  const { isWalletConnected, address, sign, broadcast } = useWallet(chainName)
 
   const tx = useMutation<DeliverTxResponse, Error>({
     mutationFn: async () => {

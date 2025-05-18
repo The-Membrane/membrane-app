@@ -2,6 +2,7 @@ import contracts from '@/config/contracts.json'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import useSimulate from '@/hooks/useSimulate'
 import useTransaction from '@/hooks/useTransaction'
 import useWallet from '@/hooks/useWallet'
@@ -13,7 +14,8 @@ type UseUnstake = {
 }
 
 const useUnstake = ({ amount }: UseUnstake) => {
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const mbrnAsset = useAssetBySymbol('MBRN')
 
   const { data: unstakeMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[] | null>({

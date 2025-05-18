@@ -10,6 +10,7 @@ import { getAssetBySymbol } from './chain'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { PointsMsgComposer } from '@/contracts/codegen/points/Points.message-composer'
 import { getAssetWithNonZeroValues } from '@/components/Mint/CollateralAssets'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 // const getDeposited = (deposited = 0, newDeposit: string) => {
 //   const diff = num(newDeposit).minus(deposited).dp(6).toNumber()
@@ -248,7 +249,8 @@ export const getMintAndRepayMsgs = ({
       lqClaims: false,
     }))
 
-    const cdt = getAssetBySymbol('CDT')
+    const { chainName } = useChainRoute()
+    const cdt = getAssetBySymbol('CDT', chainName)
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
     const funds = [coin(microAmount, cdt?.base!)]
     const repayMsg = messageComposer.repay({ positionId, sendExcessTo: address }, funds)

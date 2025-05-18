@@ -21,7 +21,7 @@ import useCollateralAssets from '@/components/Bid/hooks/useCollateralAssets'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { getAssetByDenom } from '@/helpers/chain'
 import { deleteCookie, getCookie, setCookie } from '@/helpers/cookies'
-import { useChainAssets } from '@/hooks/useChainAssets'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 export type UserIntentData = {
   vault_tokens: string,
@@ -88,11 +88,11 @@ const useNeuroClose = ({ position, onSuccess, ledger, run }: { position: Positio
   const assets = useCollateralAssets()
   const { neuroState } = useNeuroState()
   const { data: userIntents } = useUserBoundedIntents()
-  const { getAssetByDenom } = useChainAssets()
   //Get asset by symbol
   const collateralAsset = position.collateral_assets[0].asset
   //@ts-ignore
-  const assetInfo = getAssetByDenom(collateralAsset.info.native_token.denom)
+  const { chainName } = useChainRoute()
+  const assetInfo = getAssetByDenom(collateralAsset.info.native_token.denom, chainName)
 
   //Get cookie for the position_id. If cookie exists, we add the deposit to it.
   const cookie = getCookie("neuroGuard " + position.position_id)

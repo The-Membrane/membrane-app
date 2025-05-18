@@ -6,9 +6,11 @@ import { useRpcClient } from './useRpcClient'
 import useWallet from './useWallet'
 import { Asset } from '@/helpers/chain'
 import { DEFAULT_CHAIN } from '@/config/chains'
+import { useChainRoute } from './useChainRoute'
 
 export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
-  const { address, chain } = useWallet(chainID)
+  const { chainName } = useChainRoute()
+  const { address, chain } = useWallet(chainName)
   const addressToUse = inputedAddress || address
   // console.log("useBalance", address, chain)
   const { getRpcClient } = useRpcClient(chain.chain_name)
@@ -41,8 +43,9 @@ export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: str
 }
 
 export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
-  const { data: balances } = useBalance(chainID, inputedAddress)
-  const { address } = useWallet(chainID)
+  const { chainName } = useChainRoute()
+  const { data: balances } = useBalance(chainName, inputedAddress)
+  const { address } = useWallet(chainName)
   const addressToUse = inputedAddress || address
 
   return useMemo(() => {
@@ -56,7 +59,7 @@ export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT
 
     if (!balance || !decimals || !denom) return '0'
     return shiftDigits(balance, -decimals).toString()
-  }, [balances, asset, addressToUse, chainID])
+  }, [balances, asset, addressToUse, chainName])
 }
 
 export default useBalance

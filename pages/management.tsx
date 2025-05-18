@@ -1,8 +1,13 @@
-import Dashboard from '@/components/Dashboard/Dashboard'
-import React from 'react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { supportedChains } from '@/config/chains'
 
-const DashboardPage = () => {
-    return <Dashboard />
+export default function Redirect() {
+  const router = useRouter()
+  
+  useEffect(() => {
+    router.replace(`/${supportedChains[0].name}/management`)
+  }, [router])
+
+  return null
 }
-
-export default DashboardPage

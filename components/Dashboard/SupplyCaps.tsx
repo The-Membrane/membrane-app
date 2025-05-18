@@ -10,6 +10,7 @@ import { Box, Text, Circle, Tooltip, Stack, HStack, Slider, SliderFilledTrack, S
 import { colors } from '@/config/defaults';
 import { getAssetRatio, getTVL, Positions } from '@/services/cdp';
 import { num } from '@/helpers/num';
+import { useChainAssets } from '@/hooks/useChainAssets'
 
 const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
     // Calculate color based on health value
@@ -91,8 +92,7 @@ const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
 // }
 
 export const SupplyCaps = () => {
-    //We'll forego using the config to get the OSMO pool ID for now, and just hardcode it
-    // const { data: config } = useOracleConfig()
+    const { getAssetByDenom } = useChainAssets()
     const { data: prices } = useOraclePrice()
     const { data: basket } = useBasket()
     // const usedAssets = useMemo(() => {

@@ -1,20 +1,13 @@
-import LockedAccess from '@/components/Mint/LockedAccess'
-import Mint from '@/components/Mint'
-import useWallet from '@/hooks/useWallet'
-import Beaker from '@/components/Mint/Beaker'
-import { HStack } from '@chakra-ui/react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { supportedChains } from '@/config/chains'
 
-const MintPage = () => {
-  // const { isWalletConnected } = useWallet()
+export default function Redirect() {
+  const router = useRouter()
+  
+  useEffect(() => {
+    router.replace(`/${supportedChains[0].name}/borrow`)
+  }, [router])
 
-  // if (!isWalletConnected) return (
-  //   <HStack justifyContent={"center"} mt="10%">
-  //     <LockedAccess />
-  //     {/* <Beaker /> */}
-  //     {/* <BeakerScale /> */}
-  //   </HStack>)
-
-  return <Mint />
+  return null
 }
-
-export default MintPage

@@ -1,8 +1,13 @@
-import Stake from '@/components/Stake'
-import React from 'react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { supportedChains } from '@/config/chains'
 
-const StakePage = () => {
-  return <Stake />
+export default function Redirect() {
+  const router = useRouter()
+  
+  useEffect(() => {
+    router.replace(`/${supportedChains[0].name}/stake`)
+  }, [router])
+
+  return null
 }
-
-export default StakePage

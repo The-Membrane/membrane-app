@@ -1,11 +1,13 @@
-import { Box, Button, HStack, Image, Stack, Text, Spacer, IconButton, Drawer, DrawerOverlay, DrawerContent, DrawerBody, useDisclosure, VStack } from '@chakra-ui/react';
+import { Box, Button, HStack, Image, Stack, Text, Spacer, IconButton, Drawer, DrawerOverlay, DrawerContent, DrawerBody, useDisclosure, VStack, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
 import React from 'react';
-import { FaUserCircle, FaBars } from 'react-icons/fa';
+import { FaUserCircle, FaBars, FaChevronDown } from 'react-icons/fa';
 import WallectConnect from './WallectConnect';
 import NextLink from 'next/link';
 import { useRouter } from 'next/router';
 import { colors } from '@/config/defaults';
 import Logo from './Logo';
+import { supportedChains, getChainConfig } from '@/config/chains';
+import { useChainRoute } from '@/hooks/useChainRoute';
 
 const navItems = [
     { label: 'Home', href: '/' },
@@ -19,6 +21,14 @@ const navItems = [
 const HorizontalNav = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const router = useRouter();
+    const { chainName } = useChainRoute();
+    const currentChain = getChainConfig(chainName);
+
+    const handleChainChange = (newChain: string) => {
+        const currentPath = router.asPath;
+        const newPath = currentPath.replace(/^\/[^/]+/, `/${newChain}`);
+        router.push(newPath);
+    };
 
     return (
         <Box
@@ -58,15 +68,15 @@ const HorizontalNav = () => {
                         <Button
                             key={item.label}
                             as={NextLink}
-                            href={item.href}
-                            variant={router.asPath === item.href ? 'solid' : 'ghost'}
+                            href={`/${chainName}${item.href}`}
+                            variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
                             colorScheme="blue"
                             color="white"
                             fontWeight="semibold"
                             borderRadius="full"
                             px={6}
                             py={2}
-                            bg={router.asPath === item.href ? 'whiteAlpha.200' : 'transparent'}
+                            bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
                             _hover={{ bg: 'whiteAlpha.300' }}
                             fontSize="13px"
                         >
@@ -87,9 +97,36 @@ const HorizontalNav = () => {
                 />
             </HStack>
             <Spacer />
-            {/* Right: Connect Wallet & User Icon */}
+            {/* Right: Chain Selector & Connect Wallet */}
             <HStack spacing={4} align="center">
-                <Image src="/images/osmo.svg" alt="OSMO Logo" boxSize={8} />
+                <Menu>
+                    <MenuButton
+                        as={Button}
+                        rightIcon={<FaChevronDown />}
+                        leftIcon={<Image src={currentChain.logo} alt={`${currentChain.name} Logo`} boxSize={6} />}
+                        variant="ghost"
+                        color="white"
+                        _hover={{ bg: 'whiteAlpha.200' }}
+                    >
+                        {currentChain.name}
+                    </MenuButton>
+                    <MenuList bg="#232A3E">
+                        {supportedChains.map((chain) => (
+                            <MenuItem
+                                key={chain.name}
+                                onClick={() => handleChainChange(chain.name)}
+                                bg={chain.name === currentChain.name ? 'whiteAlpha.200' : 'transparent'}
+                                _hover={{ bg: 'whiteAlpha.300' }}
+                                color="white"
+                            >
+                                <HStack>
+                                    <Image src={chain.logo} alt={`${chain.name} Logo`} boxSize={6} />
+                                    <Text>{chain.name}</Text>
+                                </HStack>
+                            </MenuItem>
+                        ))}
+                    </MenuList>
+                </Menu>
                 <WallectConnect />
             </HStack>
             {/* Drawer for mobile nav */}
@@ -102,15 +139,15 @@ const HorizontalNav = () => {
                                 <Button
                                     key={item.label}
                                     as={NextLink}
-                                    href={item.href}
-                                    variant={router.asPath === item.href ? 'solid' : 'ghost'}
+                                    href={`/${chainName}${item.href}`}
+                                    variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
                                     colorScheme="blue"
                                     color="white"
                                     fontWeight="semibold"
                                     borderRadius="full"
                                     px={6}
                                     py={4}
-                                    bg={router.asPath === item.href ? 'whiteAlpha.200' : 'transparent'}
+                                    bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
                                     _hover={{ bg: 'whiteAlpha.300' }}
                                     fontSize="13px"
                                     maxW={"fit-content"}

@@ -25,6 +25,7 @@ import { colors } from '@/config/defaults'
 import { OracleHealth } from './OracleHealth'
 import useGiveRBLPPoints from './hooks/useGiveRBLPPoints'
 import { SupplyCaps } from './SupplyCaps'
+import { useChainAssets } from '@/hooks/useChainAssets'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const [idSkips, setSkips] = useState([] as number[])
@@ -133,6 +134,7 @@ const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }
 const Dashboard = () => {
     const { data: basket } = useBasket()
     const { data: prices } = useOraclePrice()
+    const { getAssetByDenom } = useChainAssets()
     const assetData = useMemo(() => {
         const { TVL, positions } = getProjectTVL({ basket, prices })
         //Set TVL in each position object to the outputted TVL

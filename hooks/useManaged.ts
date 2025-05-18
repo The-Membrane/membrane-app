@@ -11,6 +11,7 @@ import { getAssetByDenom } from '@/helpers/chain'
 import { useBalanceByAsset } from './useBalance'
 import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
+import { useChainAssets } from '@/hooks/useChainAssets'
 
 
 
@@ -117,7 +118,8 @@ export const useAllMarkets = () => {
 
     const { data: managedMarkets } = usePromise(markets);
 
-    return managedMarkets;
+    // Memoize the final result so consumers always get a stable reference
+    return useMemo(() => managedMarkets, [managedMarkets]);
 };
 
 //Use market collateral price
@@ -172,3 +174,25 @@ export const useMarketsTableData = () => {
 
     return tableData;
 };
+
+export const useManaged = () => {
+    const { getAssetByDenom } = useChainAssets()
+    const { data: prices } = useOraclePrice()
+
+    const getManagedData = (denom: string) => {
+        const asset = getAssetByDenom(denom)
+        if (!asset) return null
+
+        const price = prices?.find((p: any) => p.denom === asset.base)?.price
+        if (!price) return null
+
+        return {
+            asset,
+            price: num(price)
+        }
+    }
+
+    return {
+        getManagedData
+    }
+}

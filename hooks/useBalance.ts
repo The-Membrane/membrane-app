@@ -5,8 +5,9 @@ import { useMemo } from 'react'
 import { useRpcClient } from './useRpcClient'
 import useWallet from './useWallet'
 import { Asset } from '@/helpers/chain'
+import { DEFAULT_CHAIN } from '@/config/chains'
 
-export const useBalance = (chainID: string = "osmosis", inputedAddress?: string) => {
+export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
   const { address, chain } = useWallet(chainID)
   const addressToUse = inputedAddress || address
   // console.log("useBalance", address, chain)
@@ -39,7 +40,7 @@ export const useBalance = (chainID: string = "osmosis", inputedAddress?: string)
   })
 }
 
-export const useBalanceByAsset = (asset: Asset | null, chainID: string = "osmosis", inputedAddress?: string) => {
+export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
   const { data: balances } = useBalance(chainID, inputedAddress)
   const { address } = useWallet(chainID)
   const addressToUse = inputedAddress || address

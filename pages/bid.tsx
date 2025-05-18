@@ -1,8 +1,13 @@
-import Bid from '@/components/Bid'
-import React from 'react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { supportedChains } from '@/config/chains'
 
-const BidPage = () => {
-  return <Bid />
+export default function Redirect() {
+  const router = useRouter()
+  
+  useEffect(() => {
+    router.replace(`/${supportedChains[0].name}/bid`)
+  }, [router])
+
+  return null
 }
-
-export default BidPage

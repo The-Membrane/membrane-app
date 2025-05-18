@@ -1,8 +1,14 @@
-import Home from '@/components/Home/Home'
-import React from 'react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { supportedChains } from '@/config/chains'
 
-const IndexPage = () => {
-  return <Home />
+export default function Redirect() {
+  const router = useRouter()
+  
+  useEffect(() => {
+    router.replace(`/${supportedChains[0].name}`)
+  }, [router])
+
+  return null
 }
-
-export default IndexPage
+EOF 

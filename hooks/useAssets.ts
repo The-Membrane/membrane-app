@@ -1,12 +1,12 @@
 import { Asset, getAssets } from '@/helpers/chain'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { DEFAULT_CHAIN } from '@/config/chains'
 
-const useAssets = (chainID: string = 'osmosis') => {
+const useAssets = (chainID: string = DEFAULT_CHAIN) => {
   const { data: assets } = useQuery({
     queryKey: [chainID + ' assets'],
     queryFn: async () => {
-
       return getAssets(chainID)
     },
   })
@@ -23,10 +23,7 @@ export const useAssetBySymbol = (symbol: string, chainID: string = 'osmosis') =>
   }, [assets, symbol])
 }
 
-
-
 export const useAssetByDenom = (denom: string, chainID: string = 'osmosis', assets: any[]) => {
-
   return useMemo(() => {
     if (!assets || !denom) return null
     return assets.find((asset) => asset.base === denom)

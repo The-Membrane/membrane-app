@@ -8,6 +8,7 @@ import { getAssetByDenom, getAssetsByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
 import { Box, Text, Circle, Tooltip, Stack } from "@chakra-ui/react";
 import { colors } from '@/config/defaults';
+import { useChainAssets } from '@/hooks/useChainAssets'
 
 const HealthStatus = ({ health = 100, label = "N/A" }) => {
     // Calculate color based on health value
@@ -84,6 +85,7 @@ function calculateTotalPoolValues(
 }
 
 export const OracleHealth = () => {
+    const { getAssetsByDenom } = useChainAssets()
     //We'll forego using the config to get the OSMO pool ID for now, and just hardcode it
     // const { data: config } = useOracleConfig()
     const { data: prices } = useOraclePrice()

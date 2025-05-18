@@ -1,8 +1,13 @@
-import Earn from '@/components/Earn/Earn'
-import React from 'react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { supportedChains } from '@/config/chains'
 
-const EarnPage = () => {
-  return <Earn />
+export default function Redirect() {
+  const router = useRouter()
+  
+  useEffect(() => {
+    router.replace(`/${supportedChains[0].name}/manic`)
+  }, [router])
+
+  return null
 }
-
-export default EarnPage

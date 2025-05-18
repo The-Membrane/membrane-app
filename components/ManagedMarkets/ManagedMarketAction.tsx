@@ -330,7 +330,7 @@ const ManagedMarketAction = ({
                                 </Box>
                                 {/* Deploy button at the bottom */}
                                 <Button h="52px" color={colors.tabBG} fontSize="2xl" px={10} borderRadius="xl">
-                                    <span style={{ color: "white" }}>DEPLOY</span>
+                                    <span style={{ color: "white" }}>{actionLabels[selectedAction].toUpperCase()}</span>
                                 </Button>
                             </VStack>
                         </Card>

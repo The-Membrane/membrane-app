@@ -5,6 +5,7 @@ import WallectConnect from './WallectConnect';
 import NextLink from 'next/link';
 import { useRouter } from 'next/router';
 import { colors } from '@/config/defaults';
+import Logo from './Logo';
 
 const navItems = [
     { label: 'Home', href: '/' },
@@ -36,10 +37,31 @@ const HorizontalNav = () => {
         >
             {/* Left: Logo, Title, Page Selector or Hamburger */}
             <HStack spacing={6} align="center">
-                <Stack spacing={0}>
-                    <HStack spacing={2}>
-                        <Image src="/images/cdt.svg" alt="CDT" boxSize="32px" />
-                        <Text fontWeight="bold" color="white" letterSpacing="wide" fontSize="13px">Membrane</Text>
+                <Stack spacing={0} align="center">
+                    <HStack spacing={1} ml={4} display={{ base: 'none', md: 'flex' }}>
+                        <HStack spacing={2}>
+                            <Image src="/images/cdt.svg" alt="CDT" boxSize="32px" />
+                            <Logo />
+                        </HStack>
+                        {navItems.map((item) => (
+                            <Button
+                                key={item.label}
+                                as={NextLink}
+                                href={item.href}
+                                variant={router.asPath === item.href ? 'solid' : 'ghost'}
+                                colorScheme="blue"
+                                color="white"
+                                fontWeight="semibold"
+                                borderRadius="full"
+                                px={6}
+                                py={2}
+                                bg={router.asPath === item.href ? 'whiteAlpha.200' : 'transparent'}
+                                _hover={{ bg: 'whiteAlpha.300' }}
+                                fontSize="13px"
+                            >
+                                {item.label}
+                            </Button>
+                        ))}
                     </HStack>
                     <Text
                         color={colors.tabBG}
@@ -48,32 +70,12 @@ const HorizontalNav = () => {
                         fontWeight="500"
                         textTransform="uppercase"
                         textShadow={`0px 0px 8px ${colors.tabBG}`}
+                        textAlign="center"
+                        w="full"
                     >
                         Beta
                     </Text>
                 </Stack>
-                {/* Desktop Nav */}
-                <HStack spacing={1} ml={4} display={{ base: 'none', md: 'flex' }}>
-                    {navItems.map((item) => (
-                        <Button
-                            key={item.label}
-                            as={NextLink}
-                            href={item.href}
-                            variant={router.asPath === item.href ? 'solid' : 'ghost'}
-                            colorScheme="blue"
-                            color="white"
-                            fontWeight="semibold"
-                            borderRadius="full"
-                            px={6}
-                            py={2}
-                            bg={router.asPath === item.href ? 'whiteAlpha.200' : 'transparent'}
-                            _hover={{ bg: 'whiteAlpha.300' }}
-                            fontSize="13px"
-                        >
-                            {item.label}
-                        </Button>
-                    ))}
-                </HStack>
                 {/* Hamburger for mobile */}
                 <IconButton
                     aria-label="Open menu"

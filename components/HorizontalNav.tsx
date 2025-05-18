@@ -4,6 +4,7 @@ import { FaUserCircle, FaBars } from 'react-icons/fa';
 import WallectConnect from './WallectConnect';
 import NextLink from 'next/link';
 import { useRouter } from 'next/router';
+import { colors } from '@/config/defaults';
 
 const navItems = [
     { label: 'Home', href: '/' },
@@ -35,9 +36,22 @@ const HorizontalNav = () => {
         >
             {/* Left: Logo, Title, Page Selector or Hamburger */}
             <HStack spacing={6} align="center">
-                {/* Placeholder Logo */}
-                <Image src="/images/cdt.svg" alt="CDT" boxSize="32px" />
-                <Text fontWeight="bold" color="white" letterSpacing="wide" fontSize="13px">Membrane</Text>
+                <Stack spacing={0}>
+                    <HStack spacing={2}>
+                        <Image src="/images/cdt.svg" alt="CDT" boxSize="32px" />
+                        <Text fontWeight="bold" color="white" letterSpacing="wide" fontSize="13px">Membrane</Text>
+                    </HStack>
+                    <Text
+                        color={colors.tabBG}
+                        fontSize="sm"
+                        letterSpacing="0.5em"
+                        fontWeight="500"
+                        textTransform="uppercase"
+                        textShadow={`0px 0px 8px ${colors.tabBG}`}
+                    >
+                        Beta
+                    </Text>
+                </Stack>
                 {/* Desktop Nav */}
                 <HStack spacing={1} ml={4} display={{ base: 'none', md: 'flex' }}>
                     {navItems.map((item) => (

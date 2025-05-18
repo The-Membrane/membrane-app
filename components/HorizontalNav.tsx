@@ -38,7 +38,6 @@ const HorizontalNav = () => {
             {/* Left: Logo, Title, Page Selector or Hamburger */}
             <HStack spacing={6} align="center">
                 <HStack spacing={2}>
-                    <Image src="/images/cdt.svg" alt="CDT" boxSize="32px" />
                     <Logo />
                     <Text
                         color={colors.tabBG}

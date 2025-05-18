@@ -13,8 +13,19 @@ const ManagedMarketPage: React.FC = () => {
         return <Spinner size="xl" />;
     }
 
-    // Determine tab type from action (default to 'collateral')
-    const tab = action === 'debt' ? 'debt' : 'collateral';
+    // Extract collateral symbol and action type from action param (if array)
+    let collateralSymbol = '';
+    let actionType = '';
+    if (Array.isArray(action)) {
+        collateralSymbol = action[0] || '';
+        actionType = action[1] || '';
+    } else if (typeof action === 'string') {
+        collateralSymbol = action;
+        actionType = action;
+    }
+
+    // Determine tab type from actionType (default to 'collateral')
+    const tab = actionType === 'lend' ? 'debt' : 'collateral';
 
     // Placeholder data for info card (replace with real data as available)
     const infoProps = {
@@ -40,12 +51,8 @@ const ManagedMarketPage: React.FC = () => {
 
     return (
         <HStack align="flex-start" justify="center" spacing={2} w="100%" px={8} py={8}>
-            <Box flex={1} maxW="480px">
-                <ManagedMarketInfo {...infoProps} />
-            </Box>
-            <Box flex={2} w="100%">
-                <ManagedMarketAction marketAddress={address as string} action={action as string} />
-            </Box>
+            <ManagedMarketInfo {...infoProps} />
+            <ManagedMarketAction marketAddress={address as string} action={actionType} collateralSymbol={collateralSymbol} />
         </HStack>
     );
 };

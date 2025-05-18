@@ -20,12 +20,12 @@ import { useChainRoute } from "./useChainRoute"
 export const useBoundedConfig = () => {
     const { data: client } = useCosmWasmClient()
     const router = useRouter()
-
+    const { chainName } = useChainRoute()
 
     return useQuery({
         queryKey: ['use_Bounded_Config_plz_run', client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/") return
+            if (router.pathname !== `/${chainName}`) return
             if (!client) return
 
             return getBoundedConfig(client)
@@ -47,13 +47,12 @@ export const useUserBoundedIntents = () => {
     const { chainName } = useChainRoute()
     const { address } = useWallet(chainName)
     const { data: client } = useCosmWasmClient()
-    const router
-        = useRouter()
+    const router = useRouter()
 
     const result = useQuery({
         queryKey: ['useUserBoundedIntents', address, client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/") return
+            if (router.pathname !== `/${chainName}`) return
             if (!client) return
 
             if (!address) return
@@ -66,17 +65,17 @@ export const useUserBoundedIntents = () => {
     })
 
     return result
-
 }
 
 export const useBoundedIntents = () => {
     const { data: client } = useCosmWasmClient()
     const router = useRouter()
+    const { chainName } = useChainRoute()
 
     return useQuery({
         queryKey: ['useBoundedIntents', client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/") return
+            if (router.pathname !== `/${chainName}`) return
             if (!client) return
 
             return getBoundedIntents(client)
@@ -88,11 +87,12 @@ export const useBoundedIntents = () => {
 export const useBoundedTVL = () => {
     const { data: client } = useCosmWasmClient()
     const router = useRouter()
+    const { chainName } = useChainRoute()
 
     return useQuery({
         queryKey: ['useBoundedTVL', client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/") return
+            if (router.pathname !== `/${chainName}`) return
             if (!client) return
 
             return getBoundedTVL(client)
@@ -102,20 +102,20 @@ export const useBoundedTVL = () => {
 }
 
 export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
-
     const { data: client } = useEarnClient()
     const router = useRouter()
 
     return useQuery({
         queryKey: ['useUSDCVaultTokenUnderlying', vtAmount, client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/manic") return
+            if (!router.pathname.endsWith("/manic")) return
             if (!client) return
 
             return getUnderlyingUSDC(vtAmount, client)
         },
     })
 }
+
 export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
     const { data: client } = useCosmWasmClient()
     const router = useRouter()
@@ -123,7 +123,7 @@ export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
     return useQuery({
         queryKey: ['useCDTVaultTokenUnderlying', vtAmount, client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/bid") return
+            if (!router.pathname.endsWith("/bid")) return
             if (!client) return
 
             return getUnderlyingCDT(vtAmount, client)
@@ -138,7 +138,7 @@ export const useDepositTokenConversionforMarsUSDC = (depositAmount: string) => {
     return useQuery({
         queryKey: ['useDepositTokenConversionforMarsUSDC', depositAmount, client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/borrow") return
+            if (!router.pathname.endsWith("/borrow")) return
             if (!client || depositAmount === "0") return
 
             return getDepositTokenConversionforMarsUSDC(depositAmount, client)
@@ -149,11 +149,12 @@ export const useDepositTokenConversionforMarsUSDC = (depositAmount: string) => {
 export const useBoundedCDTVaultTokenUnderlying = (vtAmount: string) => {
     const { data: client } = useCosmWasmClient()
     const router = useRouter()
+    const { chainName } = useChainRoute()
 
     return useQuery({
         queryKey: ['useBoundedCDTVaultTokenUnderlying', vtAmount, client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/" && router.pathname != "/management") return
+            if (router.pathname !== `/${chainName}` && !router.pathname.endsWith("/management")) return
             if (!client) return
 
             return getBoundedUnderlyingCDT(vtAmount, client)
@@ -165,11 +166,10 @@ export const useEarnUSDCEstimatedAPR = () => {
     const { data: client } = useCosmWasmClient()
     const router = useRouter()
 
-
     return useQuery({
         queryKey: ['useEarnUSDCEstimatedAPR', client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/manic") return
+            if (!router.pathname.endsWith("/manic")) return
             if (!client) return
 
             return getVaultAPRResponse(client)
@@ -184,7 +184,7 @@ export const useMarsUSDCSupplyAPR = () => {
     return useQuery({
         queryKey: ['useMarsUSDCSupplyAPR', client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/manic") return
+            if (!router.pathname.endsWith("/manic")) return
             if (!client) return
 
             return (await getMarsUSDCSupplyAPR(client))?.liquidity_rate ?? 0
@@ -199,7 +199,7 @@ export const useEarnUSDCRealizedAPR = () => {
     return useQuery({
         queryKey: ['useEarnUSDCRealizedAPR', earnClient, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/manic") return
+            if (!router.pathname.endsWith("/manic")) return
             if (!earnClient) return
 
             const claimTracker = await getEarnUSDCRealizedAPR(earnClient)
@@ -244,7 +244,7 @@ export const useEarnCDTRealizedAPR = () => {
     return useQuery({
         queryKey: ['useCDTUSDCRealizedAPR', client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/bid") return
+            if (!router.pathname.endsWith("/bid")) return
             if (!client) return
 
             const claimTracker = await getEarnCDTRealizedAPR(client)
@@ -283,16 +283,16 @@ export const useEarnCDTRealizedAPR = () => {
     })
 }
 
-
 export const useBoundedCDTRealizedAPR = () => {
     const { data: cosmwasmClient } = useCosmWasmClient()
     const router = useRouter()
+    const { chainName } = useChainRoute()
 
     return useQuery({
         queryKey: ['useBoundedCDTRealizedAPR', cosmwasmClient, router.pathname],
         queryFn: async () => {
             // console.log("eralized apy", !cosmwasmClient, router.pathname)
-            if (router.pathname != "/") return
+            if (router.pathname !== `/${chainName}`) return
 
             if (!cosmwasmClient) return
 
@@ -342,11 +342,12 @@ export const useBoundedCDTRealizedAPR = () => {
 export const useRBLPCDTBalance = () => {
     const { getRpcClient } = useRpcClient("osmosis")
     const router = useRouter()
+    const { chainName } = useChainRoute()
 
     return useQuery({
         queryKey: ['useRBLPCDTBalance', router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/") return
+            if (router.pathname !== `/${chainName}`) return
             //Query balance of the buffer in the vault
             const rpcClient = await getRpcClient()
             const rbLPBalances = await rpcClient.cosmos.bank.v1beta1
@@ -373,17 +374,14 @@ export const useRBLPCDTBalance = () => {
 export const getBoundedCDTBalance = () => {
     const boundCDTAsset = useAssetBySymbol("range-bound-CDT")
     const boundCDTBalance = useBalanceByAsset(boundCDTAsset)
-    // console.log("bound balance", boundCDTAsset, boundCDTBalance)
-
-    //Get VTs that are in RBLP's intents
-    const { data } = useUserBoundedIntents()
-    // console.log("user intents", data)
     const router = useRouter()
+    const { chainName } = useChainRoute()
+    const { data } = useUserBoundedIntents()
 
     return useQuery({
         queryKey: ['getBoundedCDTBalance', data, boundCDTBalance, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/") return
+            if (router.pathname !== `/${chainName}`) return
             if (!data || !boundCDTBalance) return "0"
             const intents = data
             console.log("hello", intents)
@@ -398,15 +396,15 @@ export const getBoundedCDTBalance = () => {
         },
         staleTime: 1000 * 60 * 5,
     })
-    ////////////////////////////////////
 }
 
 export const useBoundedCDTBalance = () => {
     const router = useRouter()
+    const { chainName } = useChainRoute()
     return useQuery({
         queryKey: ['useBoundedCDTBalance', router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/") return
+            if (router.pathname !== `/${chainName}`) return
             return getBoundedCDTBalance()
         },
         staleTime: 1000 * 60 * 5,
@@ -451,6 +449,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
     const { setBidState } = useBidState()
     const { data: client } = useCosmWasmClient()
     const router = useRouter()
+    const { chainName } = useChainRoute()
 
 
     const userDiscountQueries = useDiscounts ? useQueries({
@@ -477,7 +476,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
             router.pathname
         ],
         queryFn: async () => {
-            if (router.pathname != "/") return
+            if (router.pathname !== `/${chainName}`) return
             if (!allPositions || !prices || !basketAssets || !setBidState || !userDiscountQueries.every(query => query.isSuccess || query.failureReason?.message === "Query failed with (6): Generic error: Querier contract error: alloc::vec::Vec<membrane::types::StakeDeposit> not found: query wasm contract failed: query wasm contract failed: unknown request")) { console.log("revenue calc attempt", allPositions, !prices, !basketAssets); return { totalExpectedRevenue: 0, undiscountedTER: 0 } }
 
             const cdpCalcs = getEstimatedAnnualInterest(allPositions, prices, userDiscountQueries, basketAssets)
@@ -505,9 +504,8 @@ export const useVaultInfo = () => {
     return useQuery({
         queryKey: ['useVaultInfo', apr, prices, basket, client, router.pathname],
         queryFn: async () => {
-
             // console.log("vault info path", router.pathname)
-            if (router.pathname != "/manic") return
+            if (!router.pathname.endsWith("/manic")) return
             if (!client || !basket || !prices) return
             //Query Vault's CDP 
             const vaultCDPs = await client.getBasketPositions({

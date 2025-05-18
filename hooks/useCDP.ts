@@ -70,7 +70,7 @@ export const useCreditRate = () => {
   return useQuery({
     queryKey: ['credit rate', client, router.pathname],
     queryFn: async () => {
-      if (router.pathname != "/borrow") return
+      if (!router.pathname.endsWith("/borrow")) return
       if (!client) return
       return getCreditRate(client)
     },
@@ -80,13 +80,14 @@ export const useCreditRate = () => {
 
 export const useUserRemptionInfo = () => {
   const { data: client } = useCosmWasmClient()
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const router = useRouter()
 
   return useQuery({
     queryKey: ['user_redemption_info', address, client, router.pathname],
     queryFn: async () => {
-      if (router.pathname != "/borrow") return
+      if (!router.pathname.endsWith("/borrow")) return
       if (!address || !client) return
       return getUserRedemptionInfo(address, client)
     },
@@ -95,7 +96,8 @@ export const useUserRemptionInfo = () => {
 }
 
 export const useUserPositions = () => {
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const { data: client } = useCDPClient()
   const router = useRouter()
 
@@ -103,7 +105,7 @@ export const useUserPositions = () => {
     queryKey: ['positions', address, client, router.pathname],
     queryFn: async () => {
       console.log("route_running")
-      if (router.pathname != "/" && router.pathname != "/borrow") return
+      if (!router.pathname.endsWith("/borrow")) return
       if (!address || !client) return
       console.log("requerying basket positions")
       return getUserPositions(address, client)
@@ -123,7 +125,7 @@ export const useUserDiscount = (address: string | undefined) => {
   return useQuery({
     queryKey: ['user', 'discount', 'cdp', address, client, router.pathname],
     queryFn: async () => {
-      if (router.pathname != "/borrow") return
+      if (!router.pathname.endsWith("/borrow")) return
       if (!address || !client) return { user: "", discount: "0" }
       return getUserDiscount(address, client)
     },
@@ -133,7 +135,8 @@ export const useUserDiscount = (address: string | undefined) => {
 
 
 export const useBasketPositions = () => {
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
   const { data: client } = useCDPClient()
   // const router = useRouter()
 

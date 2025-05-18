@@ -18,7 +18,7 @@ export const useProposalById = (proposalId: number) => {
     return useQuery({
         queryKey: ['proposal', client, proposalId, address, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/stake") return
+            if (!router.pathname.endsWith("/stake")) return
             return getProposal(proposalId, client, address)
         },
         enabled: !!proposalId,
@@ -33,7 +33,7 @@ export const useDelegator = (address: string, enabled = false) => {
     return useQuery({
         queryKey: ['delegator', client, address, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/stake") return
+            if (!router.pathname.endsWith("/stake")) return
             if (!address) return Promise.reject('No address found')
 
             return getDelegatorInfo(address, client)
@@ -54,7 +54,7 @@ export const useVotingPower = (proposalId: number) => {
     return useQuery({
         queryKey: ['user voting power', client, address, proposalId, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/stake") return
+            if (!router.pathname.endsWith("/stake")) return
             if (!address) return Promise.reject('No address found')
 
             return getUserVotingPower(address, proposalId, client)
@@ -71,7 +71,7 @@ export const useProposals = () => {
     return useQuery({
         queryKey: ['proposals', client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/stake") return
+            if (!router.pathname.endsWith("/stake")) return
             return getProposals(client)
         },
     })
@@ -86,7 +86,7 @@ export const useDelegations = () => {
     return useQuery({
         queryKey: ['delegations', address, client, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/stake") return
+            if (!router.pathname.endsWith("/stake")) return
             if (!address) return Promise.reject('No address found')
 
             return getUserDelegations(address, client)

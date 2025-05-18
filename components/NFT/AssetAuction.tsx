@@ -13,6 +13,7 @@ import { useOraclePrice } from "@/hooks/useOracle"
 import { Price } from "@/services/oracle"
 import Countdown from "../Countdown"
 import React from "react"
+import { useChainRoute } from "@/hooks/useChainRoute"
 
 interface Prop {
     currentBid: any,
@@ -43,8 +44,9 @@ const AssetAuction = React.memo(({ currentBid, auctionAmount, auctionEndTime, as
     const stargazeMBRNBalance = useBalanceByAsset(stargazeMBRN, 'stargaze')
 
     const { data: prices } = useOraclePrice()
-    const CDT = getAssetBySymbol('CDT')
-    const MBRN = getAssetBySymbol('MBRN')
+    const { chainName } = useChainRoute()
+    const CDT = getAssetBySymbol('CDT', chainName)
+    const MBRN = getAssetBySymbol('MBRN', chainName)
     const [cdtPrice, setcdtPrice] = useState('0')
     const [mbrnPrice, setmbrnPrice] = useState('0')
     useEffect(() => {

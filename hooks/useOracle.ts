@@ -28,7 +28,7 @@ export const useOracleConfig = () => {
   return useQuery({
     queryKey: ['oracleConfig', router.pathname, appState.rpcUrl],
     queryFn: async () => {
-      if (router.pathname != "/management") return
+      if (!router.pathname.endsWith("/management")) return
       return getOracleConfig(appState.rpcUrl)
     },
     refetchInterval: false,
@@ -44,7 +44,7 @@ export const useOracleAssetInfos = (assetInfos: AssetInfo[]) => {
   return useQuery({
     queryKey: ['oracleAssetInfos', assetInfos, router.pathname, appState.rpcUrl],
     queryFn: async () => {
-      if (router.pathname != "/management") return
+      if (!router.pathname.endsWith("/management")) return
       return getOracleAssetInfos(assetInfos, appState.rpcUrl)
     },
     refetchInterval: false,

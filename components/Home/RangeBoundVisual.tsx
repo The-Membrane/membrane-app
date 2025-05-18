@@ -145,7 +145,7 @@ const RangeBoundVisual = () => {
           {realizedAPR?.runningDuration ? realizedAPR?.runningDuration.toFixed(0) + "D" : ""} Realized APY: &nbsp;
         </a>
         <a>
-          {realizedAPR?.negative ? "(-" : "("}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%)" : "loading..."}
+          {realizedAPR?.negative ? "(-" : "("}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%)" : "loading...)"}
         </a>
       </Text>
 

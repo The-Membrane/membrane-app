@@ -10,16 +10,18 @@ import { useQuery } from '@tanstack/react-query'
 import useAppState from '@/persisted-state/useAppState'
 import { Asset } from '@/helpers/chain'
 import { useRouter } from 'next/router'
+import { useChainRoute } from './useChainRoute'
 
 export const useCapitalAheadOfDeposit = () => {
-    const { address } = useWallet()
+    const { chainName } = useChainRoute()
+    const { address } = useWallet(chainName)
     const { appState } = useAppState()
     const router = useRouter()
 
     return useQuery({
         queryKey: ['capital ahead', address, router.pathname, appState.rpcUrl],
         queryFn: async () => {
-            if (router.pathname != "/bid") return
+            if (!router.pathname.endsWith("/bid")) return
             if (!address) return
             return getCapitalAheadOfDeposit(address, appState.rpcUrl)
         },
@@ -28,7 +30,8 @@ export const useCapitalAheadOfDeposit = () => {
 }
 
 export const useCheckClaims = (run: boolean) => {
-    const { address } = useWallet()
+    const { chainName } = useChainRoute()
+    const { address } = useWallet(chainName)
     const { appState } = useAppState()
     const router = useRouter()
 
@@ -36,7 +39,7 @@ export const useCheckClaims = (run: boolean) => {
     return useQuery({
         queryKey: ['liquidation claims', address, appState.rpcUrl, run, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/bid" && !run) return
+            if (!router.pathname.endsWith("/bid") && !run) return
             if (!address) return
             return getUserClaims(address, appState.rpcUrl)
         },
@@ -51,7 +54,7 @@ export const useLiquidation = (asset?: Asset) => {
     return useQuery({
         queryKey: ['liquidation info', asset?.base, router.pathname, appState.rpcUrl],
         queryFn: async () => {
-            if (router.pathname != "/bid") return
+            if (!router.pathname.endsWith("/bid")) return
             if (!asset) return []
             return getLiquidationQueue(asset, appState.rpcUrl)
         },
@@ -60,14 +63,15 @@ export const useLiquidation = (asset?: Asset) => {
 }
 
 export const useCheckSPClaims = (run: boolean) => {
-    const { address } = useWallet()
+    const { chainName } = useChainRoute()
+    const { address } = useWallet(chainName)
     const { appState } = useAppState()
     const router = useRouter()
 
     return useQuery({
         queryKey: ['stability pool claims', address, appState.rpcUrl, run, router.pathname],
         queryFn: async () => {
-            if (router.pathname != "/bid" && !run) return
+            if (!router.pathname.endsWith("/bid") && !run) return
             if (!address) return
             return getSPUserClaims(address, appState.rpcUrl)
         },
@@ -82,7 +86,7 @@ export const useQueue = (asset?: Asset) => {
     return useQuery({
         queryKey: ['queue', asset?.base, router.pathname, appState.rpcUrl],
         queryFn: async () => {
-            if (router.pathname != "/bid") return
+            if (!router.pathname.endsWith("/bid")) return
             if (!asset) return
             return getQueue(asset, appState.rpcUrl)
         },
@@ -91,7 +95,8 @@ export const useQueue = (asset?: Asset) => {
 }
 
 export const useUserBids = () => {
-    const { address } = useWallet()
+    const { chainName } = useChainRoute()
+    const { address } = useWallet(chainName)
     const { appState } = useAppState()
     const { bidState } = useBidState()
     const router = useRouter()
@@ -100,7 +105,7 @@ export const useUserBids = () => {
     return useQuery({
         queryKey: ['user bids', address, bidState?.selectedAsset?.base, router.pathname, appState.rpcUrl],
         queryFn: async () => {
-            if (router.pathname != "/bid") return
+            if (!router.pathname.endsWith("/bid")) return
             if (!address || !bidState?.selectedAsset?.base) return []
             return getUserBids(address, appState.rpcUrl, bidState?.selectedAsset?.base)
         },
@@ -109,14 +114,15 @@ export const useUserBids = () => {
 }
 
 export const useStabilityAssetPool = (run: boolean) => {
-    const { address } = useWallet()
+    const { chainName } = useChainRoute()
+    const { address } = useWallet(chainName)
     const { appState } = useAppState()
     const router = useRouter()
 
     return useQuery({
         queryKey: ['stability asset pool', address, router.pathname, appState.rpcUrl, run],
         queryFn: async () => {
-            if (router.pathname != "/bid" && !run) return
+            if (!router.pathname.endsWith("/bid") && !run) return
             if (!address) return
             return getAssetPool(address, appState.rpcUrl)
         },

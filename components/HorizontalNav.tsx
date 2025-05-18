@@ -79,6 +79,7 @@ const HorizontalNav = () => {
                             bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
                             _hover={{ bg: 'whiteAlpha.300' }}
                             fontSize="13px"
+                            w={"fit-content"}
                         >
                             {item.label}
                         </Button>

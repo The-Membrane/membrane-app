@@ -58,7 +58,7 @@ const ManagedMarketAction = ({
 
     // Router for shallow routing
     const router = useRouter();
-    const { address, action: routeAction } = router.query;
+    const { marketAddress: address, action: routeAction } = router.query;
     const actionLabels = ["Multiply", "Lend", "Strategize"];
     const actionMap = ['multiply', 'lend', 'strategize'];
 

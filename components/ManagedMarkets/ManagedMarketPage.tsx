@@ -6,7 +6,7 @@ import ManagedMarketAction from './ManagedMarketAction';
 
 const ManagedMarketPage: React.FC = () => {
     const router = useRouter();
-    const { address, action } = router.query;
+    const { marketAddress: address, action } = router.query;
 
     // Wait for router to be ready
     if (!router.isReady) {

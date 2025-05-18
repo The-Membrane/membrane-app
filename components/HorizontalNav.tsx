@@ -107,6 +107,7 @@ const HorizontalNav = () => {
                 <Menu>
                     <MenuButton
                         as={Button}
+                        w={"fit-content"}
                         rightIcon={<FaChevronDown />}
                         leftIcon={<Image src={currentChain.logo} alt={`${currentChain.name} Logo`} boxSize={6} />}
                         variant="ghost"

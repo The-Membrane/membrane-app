@@ -25,7 +25,7 @@ export const useBoundedConfig = () => {
     return useQuery({
         queryKey: ['use_Bounded_Config_plz_run', client, router.pathname],
         queryFn: async () => {
-            if (router.pathname !== `/${chainName}`) return
+            if (!router.pathname.startsWith('/[')) return
             if (!client) return
 
             return getBoundedConfig(client)
@@ -52,12 +52,10 @@ export const useUserBoundedIntents = () => {
     const result = useQuery({
         queryKey: ['useUserBoundedIntents', address, client, router.pathname],
         queryFn: async () => {
-            if (router.pathname !== `/${chainName}`) return
+            if (!router.pathname.startsWith('/[')) return
             if (!client) return
-
             if (!address) return
 
-            // If we need fresh data, fetch from API
             return getBoundedIntents(client).then((intents) => {
                 return intents.filter((intent) => intent.user === address)
             })
@@ -75,7 +73,7 @@ export const useBoundedIntents = () => {
     return useQuery({
         queryKey: ['useBoundedIntents', client, router.pathname],
         queryFn: async () => {
-            if (router.pathname !== `/${chainName}`) return
+            if (!router.pathname.startsWith('/[')) return
             if (!client) return
 
             return getBoundedIntents(client)
@@ -90,10 +88,9 @@ export const useBoundedTVL = () => {
     const { chainName } = useChainRoute()
 
     return useQuery({
-        queryKey: ['useBoundedTVL', client, router.pathname, chainName],
+        queryKey: ['useBoundedTVL', client, router.pathname],
         queryFn: async () => {
-            console.log("useBoundedTVL", router.pathname, chainName, client)
-            if (router.pathname !== `/${chainName}`) return
+            if (!router.pathname.startsWith('/[')) return
             if (!client) return
 
             return getBoundedTVL(client)
@@ -155,7 +152,7 @@ export const useBoundedCDTVaultTokenUnderlying = (vtAmount: string) => {
     return useQuery({
         queryKey: ['useBoundedCDTVaultTokenUnderlying', vtAmount, client, router.pathname],
         queryFn: async () => {
-            if (router.pathname !== `/${chainName}` && !router.pathname.endsWith("/management")) return
+            if (!router.pathname.startsWith('/[') && !router.pathname.endsWith("/management")) return
             if (!client) return
 
             return getBoundedUnderlyingCDT(vtAmount, client)

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text, VStack, HStack, Divider, Image, Tooltip, Flex } from '@chakra-ui/react';
+import { colors } from '@/config/defaults';
 
 // Types for props
 interface Oracle {
@@ -76,10 +77,10 @@ const OracleRow: React.FC<{ oracles?: Oracle[] }> = ({ oracles }) => (
 );
 
 const InfoRow = ({ label, value }: { label: string; value?: string | number }) => (
-    <HStack justify="space-between" w="100%">
+    <VStack justify="space-between" w="100%">
         <Text color="whiteAlpha.700">{label}</Text>
         <Text color="white" fontWeight="bold">{value ?? '—'}</Text>
-    </HStack>
+    </VStack>
 );
 
 const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
@@ -100,7 +101,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
     return (
         <VStack align="stretch" spacing={6} w="100%" maxW="420px" minW="320px">
             {/* Top line */}
-            <Box bg="#181C23" borderRadius="lg" p={5}>
+            <Box bg="#181C23" borderRadius="lg" p={5} border="1px solid" borderColor={colors.tabBG}>
                 <HStack justify="space-between" w="100%">
                     <InfoRow label="TVL" value={tvl} />
                     <Divider orientation="vertical" h="32px" borderColor="#232A3E" />
@@ -111,7 +112,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
             </Box>
 
             {/* Tab content */}
-            <Box bg="#181C23" borderRadius="lg" p={5}>
+            <Box bg="#181C23" borderRadius="lg" p={5} border="1px solid" borderColor={colors.tabBG}>
                 <VStack align="stretch" spacing={4}>
                     <InfoRow label="Price" value={price} />
                     {tab === 'collateral' ? (

@@ -5,6 +5,7 @@ import ManagedMarketInfo from './ManagedMarketInfo';
 import ManagedMarketAction from './ManagedMarketAction';
 import { useAssetBySymbol } from '@/hooks/useAssets';
 import { useManagedConfig, useManagedMarket, useAllMarkets } from '@/hooks/useManaged';
+import { Formatter } from '@/helpers/formatter';
 
 const ManagedMarketPage: React.FC = () => {
     const router = useRouter();
@@ -43,14 +44,20 @@ const ManagedMarketPage: React.FC = () => {
     // Determine tab type from actionType (default to 'collateral')
     const tab = actionType === 'lend' ? 'debt' : 'collateral';
 
+    // Format numbers using Formatter.tvlShort
+    const formatNumber = (value: string) => {
+        const num = parseFloat(value.replace(/[^0-9.]/g, ''));
+        return Formatter.tvlShort(num);
+    };
+
     // Placeholder data for info card (replace with real data as available)
     const infoProps = {
         tab: tab as 'collateral' | 'debt',
-        tvl: '571M',
-        suppliedDebt: '32M',
+        tvl: formatNumber('573000000'),
+        suppliedDebt: formatNumber('32000000'),
         maxMultiplier: '3.03x',
-        price: '0.23',
-        totalSupply: '751M',
+        price: '$0.23',
+        totalSupply: formatNumber('751000000'),
         borrowCost: '5%',
         totalDebt: '—',
         borrowAPY: '—',
@@ -69,7 +76,7 @@ const ManagedMarketPage: React.FC = () => {
     };
 
     return (
-        <HStack align="flex-start" justify="center" spacing={2} w="100%" px={8} py={8}>
+        <HStack align="flex-start" justify="center" spacing={4} w="100%" px={8} py={8}>
             <VStack align="start" w="100%" maxW="420px" minW="320px" spacing={4}>
                 {/* Right-aligned header */}
                 <Flex w="100%" justify="flex-end" align="center" direction="column" mb={2}>

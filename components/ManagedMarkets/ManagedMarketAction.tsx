@@ -275,6 +275,9 @@ const ManagedMarketAction = ({
                                                     _hover={{ color: 'white' }}
                                                     textAlign="center"
                                                     flex={1}
+                                                    bg="gray.800"
+                                                    py={2}
+                                                    borderRadius="md"
                                                 >
                                                     {showTakeProfit ? 'Take Profit Price:' : 'Set a TP'}
                                                 </Text>
@@ -303,6 +306,9 @@ const ManagedMarketAction = ({
                                                     _hover={{ color: 'white' }}
                                                     textAlign="center"
                                                     flex={1}
+                                                    bg="gray.800"
+                                                    py={2}
+                                                    borderRadius="md"
                                                 >
                                                     {showStopLoss ? 'Stop Loss Price:' : 'Set a SL'}
                                                 </Text>

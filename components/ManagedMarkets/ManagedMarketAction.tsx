@@ -321,7 +321,7 @@ const ManagedMarketAction = ({
                                     </HStack>
                                 </VStack>
                                 {/* Info Card mirroring the image - moved above Deploy button */}
-                                <Box w="100%" bg="#181C23" borderRadius="lg" p={6} pt={0} mt={0} mb={2}>
+                                <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>
                                     <VStack align="stretch" spacing={2}>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Multiplier</Text>

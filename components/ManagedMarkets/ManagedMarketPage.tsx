@@ -76,7 +76,7 @@ const ManagedMarketPage: React.FC = () => {
     };
 
     return (
-        <HStack align="flex-start" justify="center" spacing={4} w="100%" px={8} py={8}>
+        <HStack align="flex-start" justify="center" spacing={8} w="100%" px={8} py={8}>
             <VStack align="start" w="100%" maxW="420px" minW="320px" spacing={4}>
                 {/* Right-aligned header */}
                 <Flex w="100%" justify="flex-end" align="center" direction="column" mb={2}>

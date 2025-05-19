@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Text, VStack, HStack, Divider, Image, Tooltip, Flex } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, Divider, Image, Tooltip, Flex, Stack } from '@chakra-ui/react';
 import { colors } from '@/config/defaults';
 
 // Types for props
@@ -75,12 +75,11 @@ const OracleRow: React.FC<{ oracles?: Oracle[] }> = ({ oracles }) => (
         )}
     </HStack>
 );
-
-const InfoRow = ({ label, value }: { label: string; value?: string | number }) => (
-    <VStack justify="space-between" w="100%">
+const InfoRow = ({ label, value, horizontal }: { label: string; value?: string | number, horizontal: boolean }) => (
+    <Stack justify="space-between" w="100%" direction={horizontal ? "row" : "column"}>
         <Text color="whiteAlpha.700">{label}</Text>
         <Text color="white" fontWeight="bold">{value ?? '—'}</Text>
-    </VStack>
+    </Stack>
 );
 
 const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
@@ -103,30 +102,30 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
             {/* Top line */}
             <Box bg="#181C23" borderRadius="lg" p={5} border="1px solid" borderColor={colors.tabBG}>
                 <HStack justify="space-between" w="100%">
-                    <InfoRow label="TVL" value={tvl} />
+                    <InfoRow label="TVL" value={tvl} horizontal={false} />
                     <Divider orientation="vertical" h="32px" borderColor="#232A3E" />
-                    <InfoRow label="Supplied Debt" value={suppliedDebt} />
+                    <InfoRow label="Supplied Debt" value={suppliedDebt} horizontal={false} />
                     <Divider orientation="vertical" h="32px" borderColor="#232A3E" />
-                    <InfoRow label="Max Multiplier" value={maxMultiplier} />
+                    <InfoRow label="Max Multiplier" value={maxMultiplier} horizontal={false} />
                 </HStack>
             </Box>
 
             {/* Tab content */}
             <Box bg="#181C23" borderRadius="lg" p={5} border="1px solid" borderColor={colors.tabBG}>
                 <VStack align="stretch" spacing={4}>
-                    <InfoRow label="Price" value={price} />
+                    <InfoRow label="Price" value={price} horizontal={true} />
                     {tab === 'collateral' ? (
                         <>
                             <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Statistics</Text>
-                            <InfoRow label="Total Supply" value={totalSupply} />
-                            <InfoRow label="Borrow Cost" value={borrowCost} />
+                            <InfoRow label="Total Supply" value={totalSupply} horizontal={true} />
+                            <InfoRow label="Borrow Cost" value={borrowCost} horizontal={true} />
                         </>
                     ) : (
                         <>
                             <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Statistics</Text>
-                            <InfoRow label="Total Debt" value={totalDebt} />
-                            <InfoRow label="Borrow APY" value={borrowAPY} />
-                            <InfoRow label="Max Collateral Liquidatibility" value={maxCollateralLiquidatibility} />
+                            <InfoRow label="Total Debt" value={totalDebt} horizontal={true} />
+                            <InfoRow label="Borrow APY" value={borrowAPY} horizontal={true} />
+                            <InfoRow label="Max Collateral Liquidatibility" value={maxCollateralLiquidatibility} horizontal={true} />
                             {interestRateModelProps && <InterestRateModel {...interestRateModelProps} />}
                         </>
                     )}

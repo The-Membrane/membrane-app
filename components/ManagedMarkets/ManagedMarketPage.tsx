@@ -46,12 +46,12 @@ const ManagedMarketPage: React.FC = () => {
     // Placeholder data for info card (replace with real data as available)
     const infoProps = {
         tab: tab as 'collateral' | 'debt',
-        tvl: '—',
-        suppliedDebt: '—',
-        maxMultiplier: '—',
-        price: '—',
-        totalSupply: '—',
-        supplyAPY: '—',
+        tvl: '571M',
+        suppliedDebt: '32M',
+        maxMultiplier: '3.03x',
+        price: '0.23',
+        totalSupply: '751M',
+        borrowCost: '5%',
         totalDebt: '—',
         borrowAPY: '—',
         maxCollateralLiquidatibility: '—',

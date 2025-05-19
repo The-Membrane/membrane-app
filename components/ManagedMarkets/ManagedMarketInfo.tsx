@@ -25,7 +25,7 @@ interface ManagedMarketInfoProps {
     maxMultiplier?: string | number;
     price?: string | number;
     totalSupply?: string | number;
-    supplyAPY?: string | number;
+    borrowCost?: string | number;
     totalDebt?: string | number;
     borrowAPY?: string | number;
     maxCollateralLiquidatibility?: string | number;
@@ -78,7 +78,7 @@ const OracleRow: React.FC<{ oracles?: Oracle[] }> = ({ oracles }) => (
 const InfoRow = ({ label, value }: { label: string; value?: string | number }) => (
     <HStack justify="space-between" w="100%">
         <Text color="whiteAlpha.700">{label}</Text>
-        <Text color="white" fontWeight="bold">{value ?? '571'}</Text>
+        <Text color="white" fontWeight="bold">{value ?? '—'}</Text>
     </HStack>
 );
 
@@ -89,7 +89,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
     maxMultiplier,
     price,
     totalSupply,
-    supplyAPY,
+    borrowCost,
     totalDebt,
     borrowAPY,
     maxCollateralLiquidatibility,
@@ -118,7 +118,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                         <>
                             <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Statistics</Text>
                             <InfoRow label="Total Supply" value={totalSupply} />
-                            <InfoRow label="Supply APY" value={supplyAPY} />
+                            <InfoRow label="Borrow Cost" value={borrowCost} />
                         </>
                     ) : (
                         <>
@@ -132,7 +132,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Oracles</Text>
                     <OracleRow oracles={oracles} />
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Market Address</Text>
-                    <Text color="white" fontWeight="bold">{address ?? 'noaddressexists3242351351'}</Text>
+                    <Text color="white" fontWeight="bold">{address ?? '—'}</Text>
                 </VStack>
             </Box>
         </VStack>

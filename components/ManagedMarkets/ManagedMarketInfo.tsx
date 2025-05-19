@@ -100,7 +100,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
     return (
         <VStack align="stretch" spacing={6} w="100%" maxW="420px" minW="320px">
             {/* Top line */}
-            <Box bg="#181C23" borderRadius="lg" p={5} border="1px solid" borderColor="gray.800">
+            <Box bg="#181C23" borderRadius="lg" p={5} border="5px solid" borderColor="gray.800">
                 <HStack justify="space-between" w="100%">
                     <InfoRow label="TVL" value={tvl} horizontal={false} />
                     <Divider orientation="vertical" h="32px" borderColor="#232A3E" />
@@ -111,7 +111,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
             </Box>
 
             {/* Tab content */}
-            <Box bg="#181C23" borderRadius="lg" p={5} border="1px solid" borderColor="gray.800">
+            <Box bg="#181C23" borderRadius="lg" p={5} border="5px solid" borderColor="gray.800">
                 <VStack align="stretch" spacing={4}>
                     <InfoRow label="Price" value={price} horizontal={true} />
                     {tab === 'collateral' ? (

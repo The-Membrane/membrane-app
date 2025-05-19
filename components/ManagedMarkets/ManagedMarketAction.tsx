@@ -263,62 +263,97 @@ const ManagedMarketAction = ({
                                 </Box>
                                 {/* Take Profit / Stop Loss Inputs - full width below multiplier */}
                                 <VStack spacing={4} w="100%" align="stretch">
-                                    <HStack w="100%" justify="space-between">
-                                        <Text
-                                            minW="120px"
-                                            color="whiteAlpha.800"
-                                            fontWeight="medium"
-                                            cursor="pointer"
-                                            onClick={() => setShowTakeProfit(!showTakeProfit)}
-                                            _hover={{ color: 'white' }}
-                                            textAlign="center"
-                                            flex={1}
-                                        >
-                                            {showTakeProfit ? 'Take Profit Price:' : 'Set a TP'}
-                                        </Text>
-                                        {showTakeProfit && (
-                                            <Input
-                                                value={takeProfit}
-                                                onChange={handleTakeProfitChange}
-                                                type="text"
+                                    {showTakeProfit || showStopLoss ? (
+                                        <VStack spacing={4} w="100%" align="stretch">
+                                            <HStack w="100%" justify="space-between">
+                                                <Text
+                                                    minW="120px"
+                                                    color="whiteAlpha.800"
+                                                    fontWeight="medium"
+                                                    cursor="pointer"
+                                                    onClick={() => setShowTakeProfit(!showTakeProfit)}
+                                                    _hover={{ color: 'white' }}
+                                                    textAlign="center"
+                                                    flex={1}
+                                                >
+                                                    {showTakeProfit ? 'Take Profit Price:' : 'Set a TP'}
+                                                </Text>
+                                                {showTakeProfit && (
+                                                    <Input
+                                                        value={takeProfit}
+                                                        onChange={handleTakeProfitChange}
+                                                        type="text"
+                                                        bg="gray.800"
+                                                        color="white"
+                                                        textAlign={"right"}
+                                                        paddingInlineEnd={"2"}
+                                                        paddingInlineStart={"2"}
+                                                        minWidth={"60px"}
+                                                        w="100%"
+                                                    />
+                                                )}
+                                            </HStack>
+                                            <HStack w="100%" justify="space-between">
+                                                <Text
+                                                    minW="120px"
+                                                    color="whiteAlpha.800"
+                                                    fontWeight="medium"
+                                                    cursor="pointer"
+                                                    onClick={() => setShowStopLoss(!showStopLoss)}
+                                                    _hover={{ color: 'white' }}
+                                                    textAlign="center"
+                                                    flex={1}
+                                                >
+                                                    {showStopLoss ? 'Stop Loss Price:' : 'Set a SL'}
+                                                </Text>
+                                                {showStopLoss && (
+                                                    <Input
+                                                        value={stopLoss}
+                                                        onChange={handleStopLossChange}
+                                                        type="text"
+                                                        bg="gray.800"
+                                                        color="white"
+                                                        textAlign={"right"}
+                                                        paddingInlineEnd={"2"}
+                                                        paddingInlineStart={"2"}
+                                                        minWidth={"60px"}
+                                                        w="100%"
+                                                    />
+                                                )}
+                                            </HStack>
+                                        </VStack>
+                                    ) : (
+                                        <HStack w="100%" justify="space-between" spacing={4}>
+                                            <Text
+                                                color="whiteAlpha.800"
+                                                fontWeight="medium"
+                                                cursor="pointer"
+                                                onClick={() => setShowTakeProfit(!showTakeProfit)}
+                                                _hover={{ color: 'white' }}
+                                                textAlign="center"
+                                                flex={1}
                                                 bg="gray.800"
-                                                color="white"
-                                                textAlign={"right"}
-                                                paddingInlineEnd={"2"}
-                                                paddingInlineStart={"2"}
-                                                minWidth={"60px"}
-                                                w="100%"
-                                            />
-                                        )}
-                                    </HStack>
-                                    <HStack w="100%" justify="space-between">
-                                        <Text
-                                            minW="120px"
-                                            color="whiteAlpha.800"
-                                            fontWeight="medium"
-                                            cursor="pointer"
-                                            onClick={() => setShowStopLoss(!showStopLoss)}
-                                            _hover={{ color: 'white' }}
-                                            textAlign="center"
-                                            flex={1}
-                                        >
-                                            {showStopLoss ? 'Stop Loss Price:' : 'Set a SL'}
-                                        </Text>
-                                        {showStopLoss && (
-                                            <Input
-                                                value={stopLoss}
-                                                onChange={handleStopLossChange}
-                                                type="text"
+                                                py={2}
+                                                borderRadius="md"
+                                            >
+                                                Set a TP
+                                            </Text>
+                                            <Text
+                                                color="whiteAlpha.800"
+                                                fontWeight="medium"
+                                                cursor="pointer"
+                                                onClick={() => setShowStopLoss(!showStopLoss)}
+                                                _hover={{ color: 'white' }}
+                                                textAlign="center"
+                                                flex={1}
                                                 bg="gray.800"
-                                                color="white"
-                                                textAlign={"right"}
-                                                paddingInlineEnd={"2"}
-                                                paddingInlineStart={"2"}
-                                                minWidth={"60px"}
-                                                w="100%"
-                                            />
-                                        )}
-                                    </HStack>
+                                                py={2}
+                                                borderRadius="md"
+                                            >
+                                                Set a SL
+                                            </Text>
+                                        </HStack>
+                                    )}
                                 </VStack>
                                 {/* Info Card mirroring the image - moved above Deploy button */}
                                 <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>

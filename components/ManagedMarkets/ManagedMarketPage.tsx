@@ -37,7 +37,7 @@ const ManagedMarketPage: React.FC = () => {
             const found = allMarkets.find((m: any) => m.address === address);
             if (found) return found.name;
         }
-        return 'Tester bester';
+        return 'Unnamed Market';
     }, [allMarkets, address]);
 
     // Determine tab type from actionType (default to 'collateral')

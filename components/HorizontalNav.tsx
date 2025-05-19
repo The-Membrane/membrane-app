@@ -124,6 +124,9 @@ const HorizontalNav = () => {
                                 bg={chain.name === currentChain.name ? 'whiteAlpha.200' : 'transparent'}
                                 _hover={{ bg: 'whiteAlpha.300' }}
                                 color="white"
+                                isDisabled={true}
+                                opacity={0.5}
+                                cursor="not-allowed"
                             >
                                 <HStack>
                                     <Image src={chain.logo} alt={`${chain.name} Logo`} boxSize={6} />
@@ -133,7 +136,7 @@ const HorizontalNav = () => {
                         ))}
                     </MenuList>
                 </Menu>
-                <WallectConnect chain_name={chainName} />
+                <WallectConnect />
             </HStack>
             {/* Drawer for mobile nav */}
             <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs">

@@ -16,7 +16,7 @@ export const supportedChains: ChainConfig[] = [
     },
     {
         name: 'neutron',
-        logo: '/images/neutron.svg',
+        logo: '/images/ntrn.svg',
         chainId: 'neutron-1',
         rpcUrl: 'https://rpc.cosmos.directory/neutron'
     },

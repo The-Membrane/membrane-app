@@ -86,6 +86,28 @@ const useBorrowAndBoost = ({
         stopLossLTV = borrowAmountValue.times(currentDebtPrice).div(slPrice.times(collateralAmount)).toString();
       }
 
+      // Prepare Deposit message
+      const depositMsg: MsgExecuteContractEncodeObject = {
+        typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
+        value: MsgExecuteContract.fromPartial({
+          sender: address,
+          contract: marketContract,
+          msg: toUtf8(
+            JSON.stringify({
+              supply_collateral: {
+                collateral_denom: collateralDenom,
+                send_to: undefined,
+              }})
+          ),
+          funds: [
+            {
+              denom: collateralDenom,
+              amount: managedActionState.collateralAmount,
+            },
+          ],
+        }),
+      };
+
       // Prepare Borrow message
       const borrowMsg: MsgExecuteContractEncodeObject = {
         typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
@@ -141,7 +163,7 @@ const useBorrowAndBoost = ({
         }),
       };
 
-      return { msgs: [borrowMsg, editUXBoostsMsg] };
+      return { msgs: [depositMsg, borrowMsg, editUXBoostsMsg] };
     },
     enabled: !!address && !!marketParams && !!collateralPriceData?.price && !!debtPriceData?.price && !!managedActionState.collateralAmount && !!managedActionState.multiplier && run,
   });

@@ -23,6 +23,7 @@ import { useBalanceByAsset } from '@/hooks/useBalance';
 import { useAssetByDenom } from '@/hooks/useAssets';
 import useWallet from '@/hooks/useWallet';
 import { useChainRoute } from '@/hooks/useChainRoute';
+import Divider from '@/components/Divider';
 
 // Mock: Replace with real data fetching
 const fetchPositions = () => {
@@ -33,6 +34,7 @@ const fetchPositions = () => {
   if (positions.length === 0) {
     return [
       {
+        marketAddress: '0x123',
         asset: 'WETH',
         debt: '98.52',
         marketValue: '500.00',
@@ -65,13 +67,38 @@ const fetchYield = (userAddress: string, chainName: string) => {
 
 const PositionCard = ({ position }: { position: any }) => (
   <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C">
-    <VStack align="start">
-      <Text fontWeight="bold" color="white">{position.asset || 'Asset'}</Text>
-      <Text color="whiteAlpha.800">Debt: ${position.debt || '0.00'}</Text>
-      <Text color="whiteAlpha.800">Market Value: ${position.marketValue || '0.00'}</Text>
-      <Text color="whiteAlpha.800">Borrow APY: {position.borrowAPY || '0.00'}%</Text>
-      <Text color="whiteAlpha.800">Liquidation Price: {position.liquidationPrice || '-'}%</Text>
-    </VStack>
+    <HStack align="stretch" justify="space-between" w="100%">
+      {/* Asset */}
+      <VStack flex={1} spacing={1} align="center">
+        <Text color="whiteAlpha.700" fontSize="sm">Asset</Text>
+        <Divider my={1} />
+        <Text color="white" fontWeight="bold" fontSize="lg">{position.asset || 'Asset'}</Text>
+      </VStack>
+      {/* Debt */}
+      <VStack flex={1} spacing={1} align="center">
+        <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
+        <Divider my={1} />
+        <Text color="white" fontWeight="bold" fontSize="lg">${position.debt || '0.00'}</Text>
+      </VStack>
+      {/* Market Value */}
+      <VStack flex={1} spacing={1} align="center">
+        <Text color="whiteAlpha.700" fontSize="sm">Market Value</Text>
+        <Divider my={1} />
+        <Text color="white" fontWeight="bold" fontSize="lg">${position.marketValue || '0.00'}</Text>
+      </VStack>
+      {/* Borrow APY */}
+      <VStack flex={1} spacing={1} align="center">
+        <Text color="whiteAlpha.700" fontSize="sm">Borrow APY</Text>
+        <Divider my={1} />
+        <Text color="white" fontWeight="bold" fontSize="lg">{position.borrowAPY || '0.00'}%</Text>
+      </VStack>
+      {/* Liquidation Price */}
+      <VStack flex={1} spacing={1} align="center">
+        <Text color="whiteAlpha.700" fontSize="sm">Liquidation Price</Text>
+        <Divider my={1} />
+        <Text color="white" fontWeight="bold" fontSize="lg">{position.liquidationPrice || '-'}</Text>
+      </VStack>
+    </HStack>
   </Card>
 );
 
@@ -119,19 +146,19 @@ const Portfolio: React.FC = () => {
   }, [tabIndex, userAddress, chainName]);
 
   return (
-    <Box w="100%" maxW="900px" mx="auto" mt={8}>
+    <Box w="90vw" mx="auto" mt={8}>
       {/* Portfolio Title and Stats */}
       <HStack align="center" justify="space-between" mb={8} w="100%">
         <HStack spacing={4} align="center">
           <Avatar boxSize="64px" bg="#1a2330" icon={<Box boxSize="32px" as="span" bgGradient="linear(to-br, #6fffc2, #1a2330)" borderRadius="md" />} />
           <Box>
             <Text fontSize="2xl" fontWeight="bold" color="white">Your Portfolio</Text>
-            <Text color="whiteAlpha.600" fontSize="md">Ethereum</Text>
+            <Text color="whiteAlpha.600" fontSize="md">{chainName.charAt(0).toUpperCase() + chainName.slice(1)}</Text>
           </Box>
         </HStack>
         <HStack spacing={10}>
           {stats.map((stat, idx) => (
-            <Stat key={idx} minW="120px">
+            <Stat key={idx}>
               <StatLabel color="whiteAlpha.700" fontSize="md">{stat.label}</StatLabel>
               <StatNumber color="white" fontWeight="bold" fontSize="xl">{stat.value}</StatNumber>
             </Stat>

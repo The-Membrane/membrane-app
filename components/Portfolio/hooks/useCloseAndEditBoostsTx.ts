@@ -3,6 +3,9 @@ import useWallet from '@/hooks/useWallet';
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate';
 import { toUtf8 } from '@cosmjs/encoding';
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx';
+import { queryClient } from '@/pages/_app';
+import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
+import useManagedAction from '@/components/ManagedMarkets/hooks/useManagedMarket';
 
 interface CloseAndEditBoostsTxParams {
   marketContract: string;
@@ -19,7 +22,13 @@ const useCloseAndEditBoostsTx = ({
 }: CloseAndEditBoostsTxParams) => {
   const { address } = useWallet();
 
-  return useQuery({
+  const { setManagedActionState } = useManagedAction();
+
+  
+  type QueryData = {
+    msgs: MsgExecuteContractEncodeObject[]
+  }
+  const { data: queryData } = useQuery<QueryData>({
     queryKey: [
       'closeAndEditBoostsTx',
       address || '',
@@ -138,10 +147,36 @@ const useCloseAndEditBoostsTx = ({
             
         }
     }
-      return msgs;
+      return { msgs };
     },
     enabled: !!address && !!marketContract && !!collateralDenom && run,
   });
+
+
+  const msgs = queryData?.msgs ?? []
+
+  const onInitialSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['positions'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    //setManagedActionState to 0s
+    setManagedActionState({
+      ...managedActionState,
+      collateralAmount: '0',
+      multiplier: 0,
+      takeProfit: '0',
+      stopLoss: '0',
+    })
+  }
+
+  return {
+    action: useSimulateAndBroadcast({
+      msgs,
+      queryKey: ['EditManagedMarket_msgs', (msgs?.toString() ?? "0")],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs?.length,
+    })
+  }
+
 };
 
 export default useCloseAndEditBoostsTx; 

@@ -41,6 +41,7 @@ import { useManagedMarket } from '@/hooks/useManaged';
 import { useQuery } from '@tanstack/react-query';
 import { num } from '@/helpers/num';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
+import useCloseAndEditBoostsTx from './hooks/useCloseAndEditBoostsTx';
 
 // Mock: Replace with real data fetching
 const fetchPositions = () => {

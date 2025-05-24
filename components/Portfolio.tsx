@@ -92,26 +92,23 @@ const PositionCard = ({ position }: { position: any }) => {
         <Button size="sm" variant="ghost" colorScheme="gray" color="whiteAlpha.700" onClick={onOpen} borderRadius="full" px={4} fontWeight="bold">Edit</Button>
       </HStack>
       <Divider my={2} />
-      {/* Stats row */}
+      {/* Stats row: Debt, Market Value, Borrow APY, Liquidation Price */}
       <HStack w="100%" justify="space-between" align="center" mt={2}>
         <VStack flex={1} align="start" spacing={0}>
-          <Text color="whiteAlpha.700" fontSize="sm">Your supply</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">500.02141 {asset?.symbol || position.asset}</Text>
+          <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${position.debt || '0.00'}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
-          <Text color="whiteAlpha.700" fontSize="sm">Supply value</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">$1,028,232.01</Text>
+          <Text color="whiteAlpha.700" fontSize="sm">Market Value</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${position.marketValue || '0.00'}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
-          <Text color="whiteAlpha.700" fontSize="sm">Supply APY</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">3.12%</Text>
+          <Text color="whiteAlpha.700" fontSize="sm">Borrow APY</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">{position.borrowAPY || '0.00'}%</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
-          <Text color="whiteAlpha.700" fontSize="sm">Exposure</Text>
-          <HStack>
-            <Image src="/images/osmo.svg" alt="osmo" boxSize="20px" />
-            <Image src="/images/atom.svg" alt="atom" boxSize="20px" />
-          </HStack>
+          <Text color="whiteAlpha.700" fontSize="sm">Liquidation Price</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">{position.liquidationPrice || '-'}</Text>
         </VStack>
       </HStack>
       {/* Edit Modal Placeholder */}

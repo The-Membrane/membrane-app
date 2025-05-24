@@ -5,6 +5,7 @@ export interface ChainConfig {
     logo: string;
     chainId: string;
     rpcUrl: string;
+    addressPrefix: string;
 }
 
 export const supportedChains: ChainConfig[] = [
@@ -12,19 +13,22 @@ export const supportedChains: ChainConfig[] = [
         name: 'osmosis',
         logo: '/images/osmo.svg',
         chainId: 'osmosis-1',
-        rpcUrl: rpcUrl
+        rpcUrl: rpcUrl,
+        addressPrefix: 'osmo'
     },
     {
         name: 'neutron',
         logo: '/images/ntrn.svg',
         chainId: 'neutron-1',
-        rpcUrl: 'https://rpc.cosmos.directory/neutron'
+        rpcUrl: 'https://rpc.cosmos.directory/neutron',
+        addressPrefix: 'neutron'
     },
     {
         name: 'cosmoshub',
         logo: '/images/atom.svg',
         chainId: 'cosmoshub-4',
-        rpcUrl: 'https://rpc.cosmos.directory/cosmoshub'
+        rpcUrl: 'https://rpc.cosmos.directory/cosmoshub',
+        addressPrefix: 'cosmos'
     }
 ];
 

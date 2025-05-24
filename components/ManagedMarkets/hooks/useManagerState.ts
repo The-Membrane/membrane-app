@@ -2,6 +2,12 @@ import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
+export interface AutoCloseParams {
+    ltv: string; // Decimal as string
+    percent_to_close: string; // Decimal as string 
+    send_to?: string; // Optional string
+}
+
 
 export type RateIndex = {
   rate_index: string; // Decimal as string

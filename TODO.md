@@ -1,3 +1,26 @@
+Next Steps:
+- Create market execution useQueries
+- Create Lend Tab & state save for lending
+- "Not available yet" for Strategize
+- have cursor create tests for the contract
+- Test the contract
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Free Money Generation Kit
 - Level 1: Titled card with intent & liquidation searching
 - Level 2: 1-click Akash deployments for Intent & Liquidation Fulfillment

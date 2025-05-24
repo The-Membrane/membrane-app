@@ -11,7 +11,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { getLiquidationMsgs } from '@/helpers/mint'
 import useBidState from '@/components/Bid/hooks/useBidState'
 import useStaked from '@/components/Stake/hooks/useStaked'
-
+import { useChainRoute } from '@/hooks/useChainRoute'
 export type Liq = {
   position_id: string
   position_fee: string
@@ -24,7 +24,8 @@ type QueryData = {
 
 const useProtocolLiquidations = ({ run }: { run: boolean }) => {
   const liquidating_positions: Liq[] = [];
-  const { address } = useWallet()
+  const { chainName } = useChainRoute()
+  const { address } = useWallet(chainName)
 
   const { data: prices } = useOraclePrice()
   const { data: allPositions } = useBasketPositions()

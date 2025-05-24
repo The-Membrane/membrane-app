@@ -2,6 +2,7 @@ import { Link, Text, useToast, UseToastOptions, VStack } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import useWallet from './useWallet'
 import { Chain } from '@chain-registry/types'
+import { useChainRoute } from './useChainRoute'
 
 type Explorer = {
   name?: string
@@ -92,7 +93,8 @@ export const getExplorer = (chain: Chain | undefined) => {
 
 const useToaster = (): IToaster => {
   const toast = useToast()
-  const { chain } = useWallet()
+  const { chainName } = useChainRoute()
+  const { chain } = useWallet(chainName)
   //@ts-ignore
   const [_explorer] = useMemo(() => getExplorer(chain), [chain])
 

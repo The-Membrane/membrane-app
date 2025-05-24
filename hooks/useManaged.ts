@@ -4,7 +4,7 @@ import useWallet from './useWallet'
 import useAssets from './useAssets'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { useRouter } from 'next/router'
-import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralPrice } from '@/services/managed'
+import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralPrice, getMarketDebtPrice } from '@/services/managed'
 import { useState, useEffect, useMemo } from 'react'
 import { MarketData } from '@/components/ManagedMarkets/hooks/useManagerState'
 import { getAssetByDenom } from '@/helpers/chain'
@@ -128,6 +128,15 @@ export const useMarketCollateralPrice = (marketContract: string, collateral_deno
     return useQuery({
         queryKey: ['managed_market_collateral_price', client, marketContract, collateral_denom],
         queryFn: async () => getMarketCollateralPrice(client, marketContract, collateral_denom),
+    })
+}
+
+//Use market debt price
+export const useMarketDebtPrice = (marketContract: string) => {
+    const { data: client } = useCosmWasmClient();
+    return useQuery({
+        queryKey: ['managed_market_debt_price', client, marketContract],
+        queryFn: async () => getMarketDebtPrice(client, marketContract),
     })
 }
 

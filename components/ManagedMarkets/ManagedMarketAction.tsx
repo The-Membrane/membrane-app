@@ -8,10 +8,13 @@ import { num } from '@/helpers/num';
 import { colors } from '@/config/defaults';
 import useManagedAction from './hooks/useManagedMarket';
 import { useRouter } from 'next/router';
+import useBorrowAndBoost from './hooks/useBorrowAndBoost';
+import ConfirmModal from '@/components/ConfirmModal/ConfirmModal';
+import ManagedMarketSummary from '@/components/ManagedMarkets/ManagedMarketSummary';
 
 const STICKY_THRESHOLD = 0.05;
 
-// Props: action, asset, manager, market
+// Props: action, marketAddress, collateralSymbol
 const ManagedMarketAction = ({
     action = 'Multiply',
     marketAddress = "Loading...",
@@ -32,12 +35,7 @@ const ManagedMarketAction = ({
 
     // Zustand state (no selectedAction)
     const {
-        managedActionState: {
-            collateralAmount,
-            multiplier,
-            takeProfit,
-            stopLoss
-        },
+        managedActionState,
         setManagedActionState
     } = useManagedAction();
 
@@ -112,6 +110,14 @@ const ManagedMarketAction = ({
             router.push(`/${address}/${collateralSymbol}/${newAction}`, undefined, { shallow: true });
         }
     };
+
+    // Add useBorrowAndBoost for Multiply action
+    const { action: borrowAndBoost } = useBorrowAndBoost({
+        marketContract: marketAddress,
+        collateralDenom: collateralAsset?.base || '',
+        managedActionState,
+        run: selectedTab === 0, // Only run for Multiply tab
+    });
 
     return (
         <VStack w="fit-content" spacing={6} align="center" mt={8}>
@@ -194,7 +200,7 @@ const ManagedMarketAction = ({
                                                 fontSize="3xl"
                                                 fontWeight="bold"
                                                 color="white"
-                                                value={collateralAmount}
+                                                value={managedActionState.collateralAmount}
                                                 onChange={handleCollateralAmountChange}
                                                 type="number"
                                                 min={0}
@@ -204,7 +210,7 @@ const ManagedMarketAction = ({
                                                 _placeholder={{ color: 'whiteAlpha.400' }}
                                                 paddingInlineEnd={"3"}
                                             />
-                                            <Text color="whiteAlpha.600" fontSize="md">~ ${collateralPrice ? num(collateralPrice).times(collateralAmount).toFixed(2) : "0.00"}</Text>
+                                            <Text color="whiteAlpha.600" fontSize="md">~ ${collateralPrice ? num(collateralPrice).times(managedActionState.collateralAmount).toFixed(2) : "0.00"}</Text>
                                         </VStack>
                                         <VStack align="flex-end" spacing={2}>
                                             <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
@@ -228,13 +234,13 @@ const ManagedMarketAction = ({
                                     <HStack mb={2} justify="flex-end">
                                         <Text fontWeight="bold" color="whiteAlpha.800">Multiplier:</Text>
                                         <Input
-                                            value={multiplier.toFixed(2)}
+                                            value={managedActionState.multiplier.toFixed(2)}
                                             onChange={handleMultiplierInput}
                                             type="number"
                                             min={1}
                                             max={maxMultiplier}
                                             step={0.01}
-                                            w={`${Math.max(multiplier.toFixed(2).length + 1, 5)}ch`}
+                                            w={`${Math.max(managedActionState.multiplier.toFixed(2).length + 1, 5)}ch`}
                                             bg="gray.800"
                                             color="white"
                                             textAlign="right"
@@ -246,7 +252,7 @@ const ManagedMarketAction = ({
                                         min={1}
                                         max={maxMultiplier}
                                         step={0.01}
-                                        value={multiplier}
+                                        value={managedActionState.multiplier}
                                         onChange={handleSliderChange}
                                         colorScheme="blue"
                                     >
@@ -283,7 +289,7 @@ const ManagedMarketAction = ({
                                                 </Text>
                                                 {showTakeProfit && (
                                                     <Input
-                                                        value={takeProfit}
+                                                        value={managedActionState.takeProfit}
                                                         onChange={handleTakeProfitChange}
                                                         type="text"
                                                         bg="gray.800"
@@ -314,7 +320,7 @@ const ManagedMarketAction = ({
                                                 </Text>
                                                 {showStopLoss && (
                                                     <Input
-                                                        value={stopLoss}
+                                                        value={managedActionState.stopLoss}
                                                         onChange={handleStopLossChange}
                                                         type="text"
                                                         bg="gray.800"
@@ -366,11 +372,11 @@ const ManagedMarketAction = ({
                                     <VStack align="stretch" spacing={2}>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Multiplier</Text>
-                                            <Text color="white" fontWeight="bold">{multiplier.toFixed(2)}x</Text>
+                                            <Text color="white" fontWeight="bold">{managedActionState.multiplier.toFixed(2)}x</Text>
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Collateral</Text>
-                                            <Text color="white" fontWeight="bold">{collateralAmount || 0} {collateralAsset?.symbol}</Text>
+                                            <Text color="white" fontWeight="bold">{managedActionState.collateralAmount || 0} {collateralAsset?.symbol}</Text>
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Managed by</Text>
@@ -394,11 +400,11 @@ const ManagedMarketAction = ({
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Your Take Profit</Text>
-                                            <Text color="white" fontWeight="bold">{takeProfit ? `$${takeProfit}` : '-'}</Text>
+                                            <Text color="white" fontWeight="bold">{managedActionState.takeProfit ? `$${managedActionState.takeProfit}` : '-'}</Text>
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Your Stop Loss</Text>
-                                            <Text color="white" fontWeight="bold">{stopLoss ? `$${stopLoss}` : '-'}</Text>
+                                            <Text color="white" fontWeight="bold">{managedActionState.stopLoss ? `$${managedActionState.stopLoss}` : '-'}</Text>
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Slippage tolerance</Text>
@@ -407,9 +413,13 @@ const ManagedMarketAction = ({
                                     </VStack>
                                 </Box>
                                 {/* Deploy button at the bottom */}
-                                <Button h="52px" color={colors.tabBG} fontSize="2xl" px={10} borderRadius="xl">
-                                    <span style={{ color: "white" }}>{actionLabels[selectedTab].toUpperCase()}</span>
-                                </Button>
+                                <ConfirmModal
+                                    label={actionLabels[selectedTab].toUpperCase()}
+                                    action={borrowAndBoost}
+                                    isDisabled={!managedActionState.collateralAmount || !managedActionState.multiplier || Number(managedActionState.collateralAmount) <= 0 || managedActionState.multiplier < 1}
+                                >
+                                    <ManagedMarketSummary managedActionState={managedActionState} borrowAndBoost={borrowAndBoost} collateralAsset={collateralAsset} />
+                                </ConfirmModal>
                             </VStack>
                         </Card>
                     </TabPanel>

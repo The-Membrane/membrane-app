@@ -12,6 +12,10 @@ import {
   Card,
   HStack,
   Spinner,
+  Stat,
+  StatLabel,
+  StatNumber,
+  Avatar,
 } from '@chakra-ui/react';
 import { getObjectCookie } from '@/helpers/cookies';
 import { getChainConfig, supportedChains } from '@/config/chains';
@@ -25,6 +29,18 @@ const fetchPositions = () => {
   // Try to get from cookies
   const positions = getObjectCookie('positions') || [];
   // If not found, fallback to empty or query all markets (to be implemented)
+  // Add a mock position for demonstration
+  if (positions.length === 0) {
+    return [
+      {
+        asset: 'WETH',
+        debt: '98.52',
+        marketValue: '500.00',
+        borrowAPY: '0.73',
+        liquidationPrice: '+50.00',
+      },
+    ];
+  }
   return positions;
 };
 
@@ -79,6 +95,14 @@ const Portfolio: React.FC = () => {
   const { chainName } = useChainRoute();
   const { address: userAddress } = useWallet(chainName);
 
+  // Mock stats values
+  const stats = [
+    { label: 'Your rewards', value: '$12,540.33' },
+    { label: 'Your debt', value: '$600,00.04' },
+    { label: 'Your supply', value: '$2,00,000.77' },
+    { label: 'Net asset value', value: '$1,400,000.73' },
+  ];
+
   useEffect(() => {
     setLoading(true);
     if (tabIndex === 0) {
@@ -96,6 +120,24 @@ const Portfolio: React.FC = () => {
 
   return (
     <Box w="100%" maxW="900px" mx="auto" mt={8}>
+      {/* Portfolio Title and Stats */}
+      <HStack align="center" justify="space-between" mb={8} w="100%">
+        <HStack spacing={4} align="center">
+          <Avatar boxSize="64px" bg="#1a2330" icon={<Box boxSize="32px" as="span" bgGradient="linear(to-br, #6fffc2, #1a2330)" borderRadius="md" />} />
+          <Box>
+            <Text fontSize="2xl" fontWeight="bold" color="white">Your Portfolio</Text>
+            <Text color="whiteAlpha.600" fontSize="md">Ethereum</Text>
+          </Box>
+        </HStack>
+        <HStack spacing={10}>
+          {stats.map((stat, idx) => (
+            <Stat key={idx} minW="120px">
+              <StatLabel color="whiteAlpha.700" fontSize="md">{stat.label}</StatLabel>
+              <StatNumber color="white" fontWeight="bold" fontSize="xl">{stat.value}</StatNumber>
+            </Stat>
+          ))}
+        </HStack>
+      </HStack>
       <Tabs index={tabIndex} onChange={setTabIndex} variant="unstyled">
         <TabList borderBottom="1px solid #232A3E">
           <Tab fontWeight="bold" color={tabIndex === 0 ? 'white' : 'whiteAlpha.600'}>Positions</Tab>

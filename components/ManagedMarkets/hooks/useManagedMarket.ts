@@ -7,6 +7,8 @@ export type ManagedActionState = {
     takeProfit: string;
     stopLoss: string;
     selectedAction: number;
+    deposit: boolean;
+    closePercent?: number;
 };
 
 type Store = {
@@ -21,6 +23,7 @@ const initialState: ManagedActionState = {
     takeProfit: '',
     stopLoss: '',
     selectedAction: 0,
+    deposit: false,
 };
 
 const useManagedAction = create<Store>()(

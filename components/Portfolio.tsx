@@ -25,6 +25,8 @@ import {
   ModalCloseButton,
   ModalBody,
   useDisclosure,
+  Switch,
+  Input,
 } from '@chakra-ui/react';
 import { getObjectCookie } from '@/helpers/cookies';
 import { getChainConfig, supportedChains } from '@/config/chains';
@@ -33,6 +35,8 @@ import { useAssetByDenom, useAssetBySymbol } from '@/hooks/useAssets';
 import useWallet from '@/hooks/useWallet';
 import { useChainRoute } from '@/hooks/useChainRoute';
 import Divider from '@/components/Divider';
+import useManagedAction from '@/components/ManagedMarkets/hooks/useManagedMarket';
+import ConfirmModal from '@/components/ConfirmModal/ConfirmModal';
 
 // Mock: Replace with real data fetching
 const fetchPositions = () => {
@@ -44,7 +48,8 @@ const fetchPositions = () => {
     return [
       {
         marketAddress: '0x123',
-        asset: 'WETH',
+        marketName: 'Unnamed Market',
+        asset: 'OSMO',
         debt: '98.52',
         marketValue: '500.00',
         borrowAPY: '0.73',
@@ -74,9 +79,126 @@ const fetchYield = (userAddress: string, chainName: string) => {
   ];
 };
 
+const MarketActionEdit = ({ assetSymbol, position }: { assetSymbol: string, position: any }) => {
+  const asset = useAssetBySymbol(assetSymbol);
+  const { setManagedActionState } = useManagedAction();
+
+  // Initialize managedActionState on mount
+  React.useEffect(() => {
+    setManagedActionState({
+      collateralAmount: position.collateralAmount || '',
+      multiplier: position.multiplier || 1,
+      takeProfit: position.takeProfit || '',
+      stopLoss: position.stopLoss || '',
+      deposit: !(position.isWithdraw),
+    });
+    // eslint-disable-next-line
+  }, [position]);
+
+  // Handlers update Zustand state directly
+  const handleToggle = (v: boolean) => setManagedActionState({ deposit: !v });
+  const handleCollateral = (v: string) => setManagedActionState({ collateralAmount: v });
+  const handleTP = (v: string) => setManagedActionState({ takeProfit: v });
+  const handleSL = (v: string) => setManagedActionState({ stopLoss: v });
+  const handleMultiplier = (v: number) => setManagedActionState({ multiplier: v });
+
+  return (
+    <VStack spacing={6} align="stretch" w="100%">
+      <HStack justify="space-between" align="center">
+        <Text color="whiteAlpha.800" fontWeight="medium">
+          Collateral Action
+        </Text>
+        <Switch
+          onChange={e => handleToggle(e.target.checked)}
+          colorScheme="teal"
+        />
+      </HStack>
+      <Box w="100%" bg="#11161e" borderRadius="lg" p={4}>
+        <HStack justify="space-between" align="flex-start" w="100%">
+          <VStack align="flex-start" spacing={1} flex={1}>
+            <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium">
+              Collateral amount
+            </Text>
+            <Input
+              variant="unstyled"
+              fontSize="2xl"
+              fontWeight="bold"
+              color="white"
+              defaultValue={position.collateralAmount || ''}
+              onChange={e => handleCollateral(e.target.value)}
+              type="number"
+              min={0}
+              placeholder="0"
+              w="100%"
+              _placeholder={{ color: 'whiteAlpha.400' }}
+              paddingInlineEnd={"3"}
+            />
+          </VStack>
+          <VStack align="flex-end" spacing={2}>
+            <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
+              <Image src={asset?.logo} alt={asset?.symbol} boxSize="24px" />
+              <Text color="white" fontWeight="bold">{asset?.symbol}</Text>
+            </HStack>
+          </VStack>
+        </HStack>
+      </Box>
+      {/* TP/SL Inputs */}
+      <HStack w="100%" spacing={4}>
+        <VStack flex={1} align="start" spacing={1}>
+          <Text color="whiteAlpha.700" fontSize="sm">Take Profit (TP)</Text>
+          <Input
+            variant="filled"
+            defaultValue={position.takeProfit || ''}
+            onChange={e => handleTP(e.target.value)}
+            placeholder="TP Price"
+            color="white"
+            bg="#232A3E"
+            _placeholder={{ color: 'whiteAlpha.400' }}
+          />
+        </VStack>
+        <VStack flex={1} align="start" spacing={1}>
+          <Text color="whiteAlpha.700" fontSize="sm">Stop Loss (SL)</Text>
+          <Input
+            variant="filled"
+            defaultValue={position.stopLoss || ''}
+            onChange={e => handleSL(e.target.value)}
+            placeholder="SL Price"
+            color="white"
+            bg="#232A3E"
+            _placeholder={{ color: 'whiteAlpha.400' }}
+          />
+        </VStack>
+      </HStack>
+      {/* Multiplier Input */}
+      <VStack align="start" spacing={1} w="100%">
+        <Text color="whiteAlpha.700" fontSize="sm">Multiplier</Text>
+        <Input
+          variant="filled"
+          defaultValue={position.multiplier || 1}
+          onChange={e => handleMultiplier(Number(e.target.value))}
+          type="number"
+          min={1}
+          step={0.01}
+          color="white"
+          bg="#232A3E"
+          _placeholder={{ color: 'whiteAlpha.400' }}
+        />
+      </VStack>
+      {/* Placeholder ConfirmModal for future tx logic */}
+      <ConfirmModal label="Confirm" action={undefined} isDisabled={false} />
+    </VStack>
+  );
+};
+
 const PositionCard = ({ position }: { position: any }) => {
-  const asset = useAssetBySymbol(position.asset);
+  const [editState, setEditState] = React.useState(position);
+  const asset = useAssetBySymbol(editState.asset);
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+//   const handleEditSave = (newState: any) => {
+//     setEditState(newState);
+//     onClose();
+//   };
 
   return (
     <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C" width="100%">
@@ -85,8 +207,8 @@ const PositionCard = ({ position }: { position: any }) => {
         <HStack spacing={3} align="center">
           <Image src={asset?.logo} alt={asset?.symbol} boxSize="36px" borderRadius="full" bg="#181C23" />
           <VStack align="start" spacing={0}>
-            <Text color="whiteAlpha.700" fontSize="sm">Re7 Labs Cluster</Text>
-            <Text color="white" fontWeight="bold" fontSize="xl">{asset?.symbol || position.asset}</Text>
+            <Text color="whiteAlpha.700" fontSize="sm">{editState.marketName}</Text>
+            <Text color="white" fontWeight="bold" fontSize="xl">{asset?.symbol || editState.asset}</Text>
           </VStack>
         </HStack>
         <Button size="sm" variant="ghost" colorScheme="gray" color="whiteAlpha.700" onClick={onOpen} borderRadius="full" px={4} fontWeight="bold">Edit</Button>
@@ -96,29 +218,29 @@ const PositionCard = ({ position }: { position: any }) => {
       <HStack w="100%" justify="space-between" align="center" mt={2}>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">${position.debt || '0.00'}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${editState.debt || '0.00'}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Market Value</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">${position.marketValue || '0.00'}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${editState.marketValue || '0.00'}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Borrow APY</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">{position.borrowAPY || '0.00'}%</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">{editState.borrowAPY || '0.00'}%</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Liquidation Price</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">{position.liquidationPrice || '-'}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">{editState.liquidationPrice || '-'}</Text>
         </VStack>
       </HStack>
       {/* Edit Modal Placeholder */}
       <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay />
         <ModalContent bg="#20232C" color="white">
-          <ModalHeader>Edit Position (Placeholder)</ModalHeader>
+          <ModalHeader>Edit Position</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Text>Edit functionality coming soon.</Text>
+            <MarketActionEdit assetSymbol={asset?.symbol || editState.asset} position={editState} />
           </ModalBody>
         </ModalContent>
       </Modal>

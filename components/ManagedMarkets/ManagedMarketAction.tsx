@@ -186,6 +186,7 @@ const ManagedMarketAction = ({
                             flexDirection="column"
                             alignItems="center"
                         >
+                            {/* {Market Action input components} */}
                             <VStack spacing={8} align="stretch" w="100%" maxW="600px" mx="auto">
                                 {/* Top: Action, Asset, Manager */}
                                 {/* Removed the HStack with the title row */}
@@ -367,6 +368,7 @@ const ManagedMarketAction = ({
                                         </HStack>
                                     )}
                                 </VStack>
+                                {/* Input components end */}
                                 {/* Info Card mirroring the image - moved above Deploy button */}
                                 <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>
                                     <VStack align="stretch" spacing={2}>

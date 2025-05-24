@@ -16,11 +16,20 @@ import {
   StatLabel,
   StatNumber,
   Avatar,
+  Image,
+  Button,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { getObjectCookie } from '@/helpers/cookies';
 import { getChainConfig, supportedChains } from '@/config/chains';
 import { useBalanceByAsset } from '@/hooks/useBalance';
-import { useAssetByDenom } from '@/hooks/useAssets';
+import { useAssetByDenom, useAssetBySymbol } from '@/hooks/useAssets';
 import useWallet from '@/hooks/useWallet';
 import { useChainRoute } from '@/hooks/useChainRoute';
 import Divider from '@/components/Divider';
@@ -65,42 +74,60 @@ const fetchYield = (userAddress: string, chainName: string) => {
   ];
 };
 
-const PositionCard = ({ position }: { position: any }) => (
-  <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C">
-    <HStack align="stretch" justify="space-between" w="100%">
-      {/* Asset */}
-      <VStack flex={1} spacing={1} align="center">
-        <Text color="whiteAlpha.700" fontSize="sm">Asset</Text>
-        <Divider my={1} />
-        <Text color="white" fontWeight="bold" fontSize="lg">{position.asset || 'Asset'}</Text>
-      </VStack>
-      {/* Debt */}
-      <VStack flex={1} spacing={1} align="center">
-        <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
-        <Divider my={1} />
-        <Text color="white" fontWeight="bold" fontSize="lg">${position.debt || '0.00'}</Text>
-      </VStack>
-      {/* Market Value */}
-      <VStack flex={1} spacing={1} align="center">
-        <Text color="whiteAlpha.700" fontSize="sm">Market Value</Text>
-        <Divider my={1} />
-        <Text color="white" fontWeight="bold" fontSize="lg">${position.marketValue || '0.00'}</Text>
-      </VStack>
-      {/* Borrow APY */}
-      <VStack flex={1} spacing={1} align="center">
-        <Text color="whiteAlpha.700" fontSize="sm">Borrow APY</Text>
-        <Divider my={1} />
-        <Text color="white" fontWeight="bold" fontSize="lg">{position.borrowAPY || '0.00'}%</Text>
-      </VStack>
-      {/* Liquidation Price */}
-      <VStack flex={1} spacing={1} align="center">
-        <Text color="whiteAlpha.700" fontSize="sm">Liquidation Price</Text>
-        <Divider my={1} />
-        <Text color="white" fontWeight="bold" fontSize="lg">{position.liquidationPrice || '-'}</Text>
-      </VStack>
-    </HStack>
-  </Card>
-);
+const PositionCard = ({ position }: { position: any }) => {
+  const asset = useAssetBySymbol(position.asset);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  return (
+    <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C" width="100%">
+      {/* Top section: logo, cluster, symbol, Edit button */}
+      <HStack w="100%" justify="space-between" align="center" mb={2}>
+        <HStack spacing={3} align="center">
+          <Image src={asset?.logo} alt={asset?.symbol} boxSize="36px" borderRadius="full" bg="#181C23" />
+          <VStack align="start" spacing={0}>
+            <Text color="whiteAlpha.700" fontSize="sm">Re7 Labs Cluster</Text>
+            <Text color="white" fontWeight="bold" fontSize="xl">{asset?.symbol || position.asset}</Text>
+          </VStack>
+        </HStack>
+        <Button size="sm" variant="ghost" colorScheme="gray" color="whiteAlpha.700" onClick={onOpen} borderRadius="full" px={4} fontWeight="bold">Edit</Button>
+      </HStack>
+      <Divider my={2} />
+      {/* Stats row */}
+      <HStack w="100%" justify="space-between" align="center" mt={2}>
+        <VStack flex={1} align="start" spacing={0}>
+          <Text color="whiteAlpha.700" fontSize="sm">Your supply</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">500.02141 {asset?.symbol || position.asset}</Text>
+        </VStack>
+        <VStack flex={1} align="start" spacing={0}>
+          <Text color="whiteAlpha.700" fontSize="sm">Supply value</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">$1,028,232.01</Text>
+        </VStack>
+        <VStack flex={1} align="start" spacing={0}>
+          <Text color="whiteAlpha.700" fontSize="sm">Supply APY</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">3.12%</Text>
+        </VStack>
+        <VStack flex={1} align="start" spacing={0}>
+          <Text color="whiteAlpha.700" fontSize="sm">Exposure</Text>
+          <HStack>
+            <Image src="/images/osmo.svg" alt="osmo" boxSize="20px" />
+            <Image src="/images/atom.svg" alt="atom" boxSize="20px" />
+          </HStack>
+        </VStack>
+      </HStack>
+      {/* Edit Modal Placeholder */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+        <ModalOverlay />
+        <ModalContent bg="#20232C" color="white">
+          <ModalHeader>Edit Position (Placeholder)</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>Edit functionality coming soon.</Text>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </Card>
+  );
+};
 
 const YieldCard = ({ yieldItem }: { yieldItem: any }) => (
   <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C">
@@ -177,7 +204,7 @@ const Portfolio: React.FC = () => {
             ) : positions.length === 0 ? (
               <Text color="whiteAlpha.700" mt={8}>No positions found.</Text>
             ) : (
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mt={4}>
+              <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4} mt={4}>
                 {positions.map((position, idx) => (
                   <PositionCard key={idx} position={position} />
                 ))}
@@ -190,7 +217,7 @@ const Portfolio: React.FC = () => {
             ) : yieldData.length === 0 ? (
               <Text color="whiteAlpha.700" mt={8}>No yield data found.</Text>
             ) : (
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mt={4}>
+              <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4} mt={4}>
                 {yieldData.map((yieldItem, idx) => (
                   <YieldCard key={idx} yieldItem={yieldItem} />
                 ))}

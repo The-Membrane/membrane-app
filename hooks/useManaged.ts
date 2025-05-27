@@ -216,5 +216,7 @@ export const useMarketsTableData = () => {
         }
     });
 
+    console.log(tableData)
+
     return tableData;
 };

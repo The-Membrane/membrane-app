@@ -33,66 +33,16 @@ import {
     MenuItem,
     Portal,
     Icon,
+    Spinner,
 } from '@chakra-ui/react';
 import { ChevronDownIcon, CloseIcon, SearchIcon, TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons';
 import ConnectButton from '../WallectConnect/ConnectButton';
 import { useRouter } from 'next/router';
+import { useMarketsTableData } from '@/hooks/useManaged';
 
 // Example filter options
 const depositOptions = [
     'USDC', 'DAI', 'WETH', 'FRAX', 'USDT', 'cbBTC'
-];
-
-// Example table data
-const exampleRows = [
-    {
-        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
-        asset: 'USDC',
-        tvl: '$1.59M',
-        vaultName: '9S Mount D...USDC Core',
-        multiplier: '2.0x',
-        cost: '0.15%'
-    },
-    {
-        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
-        asset: 'DAI',
-        tvl: '$957.9k',
-        vaultName: '9S Mount K...uszko USR',
-        multiplier: '1.5x',
-        cost: '0.10%'
-    },
-    {
-        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
-        asset: 'WETH',
-        tvl: '$84.1k',
-        vaultName: 'Alpha WETH Vault',
-        multiplier: '3.0x',
-        cost: '0.20%'
-    },
-    {
-        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
-        asset: 'FRAX',
-        tvl: '$200.07k',
-        vaultName: 'Alpha ZCHF Safe Vault',
-        multiplier: '1.2x',
-        cost: '0.05%'
-    },
-    {
-        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
-        asset: 'USDT',
-        tvl: '$5.4M',
-        vaultName: 'Apostro Resolv USDC',
-        multiplier: '2.5x',
-        cost: '0.18%'
-    },
-    {
-        marketAddress: 'osmo1c3ljch9dfw5kf52nfwpxd2zmj2ese7agnx0p9tenkrryasrle5sqf3ftpg',
-        asset: 'cbBTC',
-        tvl: '$168.29k',
-        vaultName: 'Apostro Resolv USR',
-        multiplier: '1.8x',
-        cost: '0.12%'
-    },
 ];
 
 // Helper to parse TVL string to number
@@ -117,6 +67,9 @@ function parseCost(val: string): number {
 }
 
 const ManagedTable = () => {
+    // Use real table data
+    const tableData = useMarketsTableData();
+
     // State for filter dropdown
     const [selectedDeposits, setSelectedDeposits] = useState<string[]>(['All']);
     const [search, setSearch] = useState('');
@@ -156,12 +109,14 @@ const ManagedTable = () => {
 
     // Filter table rows by selectedDeposits
     const filteredRows = useMemo(() => {
-        if (selectedDeposits.includes('All')) return exampleRows;
-        return exampleRows.filter(row => selectedDeposits.includes(row.asset));
-    }, [selectedDeposits]);
+        if (!tableData) return [];
+        if (selectedDeposits.includes('All')) return tableData;
+        return tableData.filter(row => selectedDeposits.includes(row.asset));
+    }, [selectedDeposits, tableData]);
 
     // Sort rows if needed
     const sortedRows = useMemo(() => {
+        if (!filteredRows) return [];
         if (!sortCol) return filteredRows;
         const rows = [...filteredRows];
         rows.sort((a, b) => {
@@ -211,6 +166,11 @@ const ManagedTable = () => {
         router.push(`/0x1234/OSMO/multiply`);
         // router.push(`/${row.marketAddress}/${row.asset}/multiply`);
     };
+
+    // Add loading and empty state handling
+    if (tableData === undefined || tableData === null) {
+        return <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="center"><Spinner size="xl" color="white" /></Box>;
+    }
 
     return (
         <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="flex-start" py={{ base: 6, md: 12 }}>
@@ -358,31 +318,36 @@ const ManagedTable = () => {
                                 </Tr>
                             </Thead>
                             <Tbody>
-                                {sortedRows.map((row, idx) => (
-                                    <Tr
-                                        key={idx}
-                                        _hover={{
-                                            bg: '#2D3748',
-                                            boxShadow: '0 4px 16px 0 rgba(0,0,0,0.25)',
-                                            cursor: 'pointer',
-                                            transform: 'translateY(-2px) scale(1.01)',
-                                            zIndex: 1,
-                                        }}
-                                        transition="all 0.15s cubic-bezier(.4,0,.2,1)"
-                                        onClick={() => handleRowClick(row)}
-                                    >
-                                        <Td color="white" fontWeight="medium" fontSize="13px">{row.asset}</Td>
-                                        <Td color="whiteAlpha.900" fontSize="13px">{row.tvl}</Td>
-                                        <Td color="whiteAlpha.900" fontSize="13px">{row.vaultName}</Td>
-                                        <Td color="whiteAlpha.900" fontSize="13px">{row.multiplier}</Td>
-                                        <Td color="whiteAlpha.900" fontSize="13px">{row.cost}</Td>
+                                {sortedRows.length === 0 ? (
+                                    <Tr>
+                                        <Td colSpan={5} textAlign="center" color="whiteAlpha.600" py={8}>
+                                            No markets available
+                                        </Td>
                                     </Tr>
-                                ))}
+                                ) : (
+                                    sortedRows.map((row, idx) => (
+                                        <Tr
+                                            key={idx}
+                                            _hover={{
+                                                bg: '#2D3748',
+                                                boxShadow: '0 4px 16px 0 rgba(0,0,0,0.25)',
+                                                cursor: 'pointer',
+                                                transform: 'translateY(-2px) scale(1.01)',
+                                                zIndex: 1,
+                                            }}
+                                            transition="all 0.15s cubic-bezier(.4,0,.2,1)"
+                                            onClick={() => handleRowClick(row)}
+                                        >
+                                            <Td color="white" fontWeight="medium" fontSize="13px">{row.asset}</Td>
+                                            <Td color="whiteAlpha.900" fontSize="13px">{row.tvl}</Td>
+                                            <Td color="whiteAlpha.900" fontSize="13px">{row.vaultName}</Td>
+                                            <Td color="whiteAlpha.900" fontSize="13px">{row.multiplier}</Td>
+                                            <Td color="whiteAlpha.900" fontSize="13px">{row.cost}</Td>
+                                        </Tr>
+                                    ))
+                                )}
                             </Tbody>
                         </Table>
-                        {sortedRows.length === 0 && (
-                            <Text color="whiteAlpha.600" textAlign="center" py={8}>No results found.</Text>
-                        )}
                     </Box>
                 </Box>
             </Box>

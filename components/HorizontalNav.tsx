@@ -16,7 +16,7 @@ const navItems = [
     { label: 'Mint', href: '/mint' },
     { label: 'Bid', href: '/bid' },
     { label: 'Stake', href: '/stake' },
-    { label: 'Manic', href: '/manic' },
+    // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
     { label: 'Managed Markets', href: '/managed' },
     { label: 'Upper Management', href: '/management' },
 ];

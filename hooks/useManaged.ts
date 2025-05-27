@@ -157,6 +157,25 @@ export const useMarketsTableData = () => {
     const { data: client } = useCosmWasmClient();
     const { data: prices } = useOraclePrice();
 
+    // Helper to format TVL as $X.XXK/M
+    function formatTvl(val: string | number): string {
+        let n = typeof val === 'number' ? val : parseFloat(val);
+        if (isNaN(n)) return '$0';
+        if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+        if (n >= 1e3) return `$${(n / 1e3).toFixed(2)}K`;
+        return `$${n.toFixed(2)}`;
+    }
+    // Helper to format multiplier as 'X.XXx'
+    function formatMultiplier(val: number): string {
+        return `${val.toFixed(2)}x`;
+    }
+    // Helper to format cost as 'X.XX%'
+    function formatCost(val: string | number): string {
+        let n = typeof val === 'number' ? val : parseFloat(val);
+        if (isNaN(n)) return '0%';
+        return `${(n * 100).toFixed(2)}%`;
+    }
+
     const { data: tableData } = useQuery({
         queryKey: ['markets_table_data', allMarkets, client, assets],
         enabled: !!allMarkets && !!client && !!assets && !!prices,
@@ -166,16 +185,31 @@ export const useMarketsTableData = () => {
                 allMarkets.map(async (market) => {
                     const denom = market.params?.collateral_params?.collateral_asset;
                     const asset = getAssetByDenom(denom, 'osmosis');
-                    //@ts-ignore
                     const assetBalance = useBalanceByAsset(asset, 'osmosis', market.address);
                     //Get asset price
                     const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
+                    //Get cost value
+                    let costValue = '0';
+                    try {
+                        costValue = await getMarketCollateralCost(client, market.address, denom);
+                    } catch (e) {}
+                    // Format multiplier
+                    let multiplier = 1;
+                    try {
+                        multiplier = 1 / (1 - Number(market.params?.collateral_params.max_borrow_LTV || 0));
+                    } catch (e) {}
+                    // Format TVL
+                    let tvl = 0;
+                    try {
+                        tvl = num(assetBalance).times(collateralPrice?.price || 0).toNumber();
+                    } catch (e) {}
                     return {
+                        marketAddress: market.address,
                         asset: asset?.symbol ?? denom,
-                        tvl: num(assetBalance).times(collateralPrice?.price || 0).toString(),
+                        tvl: formatTvl(tvl),
                         vaultName: market.name,
-                        multiplier: 1 / (1 - Number(market.params?.collateral_params.max_borrow_LTV || 0)),
-                        cost: useMarketCollateralCost(market.address, denom),
+                        multiplier: formatMultiplier(multiplier),
+                        cost: formatCost(costValue),
                     };
                 })
             );

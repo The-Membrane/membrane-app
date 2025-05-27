@@ -216,6 +216,10 @@ export const useMarketsTableData = () => {
         }
     });
 
+    if (!tableData) {
+        return []
+    }
+
     console.log(tableData)
 
     return tableData;

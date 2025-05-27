@@ -12,10 +12,11 @@ import useAppState from '@/persisted-state/useAppState';
 
 const navItems = [
     { label: 'Home', href: '/' },
-    { label: 'Borrow', href: '/borrow' },
+    { label: 'Mint', href: '/mint' },
     { label: 'Bid', href: '/bid' },
     { label: 'Stake', href: '/stake' },
     { label: 'Manic', href: '/manic' },
+    { label: 'Managed Markets', href: '/managed' },
     { label: 'Upper Management', href: '/management' },
 ];
 

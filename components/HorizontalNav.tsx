@@ -12,6 +12,7 @@ import useAppState from '@/persisted-state/useAppState';
 
 const navItems = [
     { label: 'Home', href: '/' },
+    { label: 'Portfolio', href: '/portfolio' },
     { label: 'Mint', href: '/mint' },
     { label: 'Bid', href: '/bid' },
     { label: 'Stake', href: '/stake' },

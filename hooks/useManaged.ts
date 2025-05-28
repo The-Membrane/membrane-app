@@ -176,6 +176,7 @@ export const useMarketsTableData = () => {
         return `${(n * 100).toFixed(2)}%`;
     }
 
+    console.log("useMarketsTableData", allMarkets, assets, prices)
     // Compute table data using useMemo
     const tableData = useMemo(() => {
         if (!allMarkets || !assets || !prices) return [];

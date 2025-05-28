@@ -70,6 +70,8 @@ const ManagedTable = () => {
     // Use real table data
     const tableData = useMarketsTableData();
 
+    console.log("tableData in component",tableData)
+
     // State for filter dropdown
     const [selectedDeposits, setSelectedDeposits] = useState<string[]>(['All']);
     const [search, setSearch] = useState('');

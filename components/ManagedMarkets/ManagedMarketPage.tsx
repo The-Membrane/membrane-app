@@ -54,6 +54,15 @@ const ManagedMarketPage: React.FC = () => {
     const { data: priceData, isLoading: priceLoading } = useMarketCollateralPrice(marketAddress as string, asset?.base ?? '');
     const { data: costData, isLoading: costLoading } = useMarketCollateralCost(marketAddress as string, asset?.base ?? '');
 
+    // Guard: show spinner if loading or missing critical data
+    if (
+        paramsLoading ||
+        !params ||
+        !params.collateral_params
+    ) {
+        return <Spinner size="xl" />;
+    }
+
     // Format numbers using Formatter.tvlShort
     const formatNumber = (value: string | number | undefined) => {
         if (value === undefined || value === null || value === '—') return '—';
@@ -165,7 +174,7 @@ const ManagedMarketPage: React.FC = () => {
                 </Flex>
                 <ManagedMarketInfo {...infoProps} />
             </VStack>
-            <ManagedMarketAction marketmarketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />
+            <ManagedMarketAction marketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />
         </HStack>
     );
 };

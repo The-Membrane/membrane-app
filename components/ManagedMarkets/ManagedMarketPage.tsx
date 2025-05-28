@@ -54,15 +54,6 @@ const ManagedMarketPage: React.FC = () => {
     const { data: priceData, isLoading: priceLoading } = useMarketCollateralPrice(marketAddress as string, asset?.base ?? '');
     const { data: costData, isLoading: costLoading } = useMarketCollateralCost(marketAddress as string, asset?.base ?? '');
 
-    // Guard: show spinner if loading or missing critical data
-    if (
-        paramsLoading ||
-        !params ||
-        !params.collateral_params
-    ) {
-        return <Spinner size="xl" />;
-    }
-
     // Format numbers using Formatter.tvlShort
     const formatNumber = (value: string | number | undefined) => {
         if (value === undefined || value === null || value === '—') return '—';
@@ -89,6 +80,8 @@ const ManagedMarketPage: React.FC = () => {
     // Debug log for params and ltv
     console.log('params', params);
     try {
+
+    console.log('params params', params);
         console.log('collateral params', params?.collateral_params);
         console.log('max_borrow_LTV', params?.collateral_params?.max_borrow_LTV);
         const ltv = params?.collateral_params?.max_borrow_LTV;

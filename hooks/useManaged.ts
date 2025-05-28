@@ -189,7 +189,12 @@ export const useMarketsTableData = () => {
                     const denom = market.params?.collateral_params?.collateral_asset;
                     const asset = getAssetByDenom(denom, 'osmosis');
                     console.log("asset", asset)
-                    const assetBalance = useBalanceByAsset(asset as Asset, 'osmosis', market.address);
+                    let assetBalance = '0';
+                    let assetSymbol = denom;
+                    if (asset) {
+                        assetBalance = useBalanceByAsset(asset, 'osmosis', market.address);
+                        assetSymbol = asset.symbol;
+                    }
                     console.log("assetBalance", assetBalance)
                     //Get asset price
                     const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
@@ -210,7 +215,7 @@ export const useMarketsTableData = () => {
                     } catch (e) {}
                     return {
                         marketAddress: market.address,
-                        asset: asset?.symbol ?? denom,
+                        asset: assetSymbol,
                         tvl: formatTvl(tvl),
                         vaultName: market.name,
                         multiplier: formatMultiplier(multiplier),

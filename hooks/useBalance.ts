@@ -45,7 +45,10 @@ export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: str
 export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
   const { chainName } = useChainRoute()
   const { data: balances } = useBalance(chainName, inputedAddress)
+  console.log("useBalanceByAsset", asset, chainID, inputedAddress, balances)
+
   const { address } = useWallet(chainName)
+  console.log("useBalanceByAsset", address)
   const addressToUse = inputedAddress || address
 
   return useMemo(() => {

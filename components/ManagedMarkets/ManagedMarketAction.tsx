@@ -441,6 +441,7 @@ const ManagedMarketAction = ({
                             alignItems="center"
                         >
                             <Text fontSize="2xl" color="white">Lend {collateralAsset?.symbol ? collateralAsset.symbol : ''}</Text>
+                            <Text fontSize="lg" color="whiteAlpha.600" mt={4}>Not available yet.</Text>
                         </Card>
                     </TabPanel>
                     <TabPanel px={0} py={0}>
@@ -459,6 +460,7 @@ const ManagedMarketAction = ({
                             alignItems="center"
                         >
                             <Text fontSize="2xl" color="white">Strategize {collateralAsset?.symbol ? collateralAsset.symbol : ''}</Text>
+                            <Text fontSize="lg" color="whiteAlpha.600" mt={4}>Not available yet.</Text>
                         </Card>
                     </TabPanel>
                 </TabPanels>

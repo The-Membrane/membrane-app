@@ -1,9 +1,8 @@
 Next Steps:
-- Create market execution useQueries
-- Create Lend Tab & state save for lending
-- "Not available yet" for Strategize
+- "Not available yet" for Strategize & Lend
 - have cursor create tests for the contract
 - Test the contract
+- Create Lend Tab & state save for lending
 
 
 

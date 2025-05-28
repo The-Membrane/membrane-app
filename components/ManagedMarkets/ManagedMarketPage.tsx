@@ -144,11 +144,9 @@ const ManagedMarketPage: React.FC = () => {
         borrowAPY,
         maxCollateralLiquidatibility,
         oracles,
-        marketAddress: marketAddress as string || '—',
+        address: marketAddress as string || '—',
         interestRateModelProps,
-        logo,
-        symbol,
-        marketName,
+        name: marketName,
     };
 
     return (

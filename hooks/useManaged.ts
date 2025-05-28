@@ -176,19 +176,21 @@ export const useMarketsTableData = () => {
         return `${(n * 100).toFixed(2)}%`;
     }
 
-    console.log("Managed Markets Data", allMarkets, client, assets, prices)
+    // console.log("Managed Markets Data", allMarkets, client, assets, prices)
 
     const { data: tableData } = useQuery({
         queryKey: ['markets_table_data', allMarkets, client, assets, prices],
         queryFn: async () => {
-            console.log("Managed Markets Data", allMarkets, client, assets, prices)
+            // console.log("Managed Markets Data", allMarkets, client, assets, prices)
             if (!allMarkets || !client || !assets || !prices) return [];
             console.log("allMarkets", allMarkets)
             return Promise.all(
                 allMarkets.map(async (market) => {
                     const denom = market.params?.collateral_params?.collateral_asset;
                     const asset = getAssetByDenom(denom, 'osmosis');
+                    console.log("asset", asset)
                     const assetBalance = useBalanceByAsset(asset, 'osmosis', market.address);
+                    console.log("assetBalance", assetBalance)
                     //Get asset price
                     const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
                     //Get cost value

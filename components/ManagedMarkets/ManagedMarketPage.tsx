@@ -10,7 +10,7 @@ import { getAssetByDenom } from '@/helpers/chain';
 
 const ManagedMarketPage: React.FC = () => {
     const router = useRouter();
-    const { marketmarketAddress, action } = router.query;
+    const { marketAddress, action } = router.query;
     //Get chain name from route
     const chainName = router.query.chainName as string;
 

@@ -36,6 +36,7 @@ const ManagedMarketPage: React.FC = () => {
     const symbol = asset?.symbol || collateralSymbol;
     // Memoize allMarkets and marketName
     const allMarkets = useAllMarkets();
+    console.log('allMarkets', allMarkets);
     const marketName = useMemo(() => {
         if (allMarkets && marketAddress) {
             const found = allMarkets.find((m: any) => m.marketAddress === marketAddress);
@@ -144,9 +145,11 @@ const ManagedMarketPage: React.FC = () => {
         borrowAPY,
         maxCollateralLiquidatibility,
         oracles,
-        address: marketAddress as string || '—',
+        marketAddress: marketAddress as string || '—',
         interestRateModelProps,
-        name: marketName,
+        logo,
+        symbol,
+        marketName,
     };
 
     return (

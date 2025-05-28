@@ -20,7 +20,6 @@ interface InterestRateModelProps {
 }
 
 interface ManagedMarketInfoProps {
-    name?: string;
     tab: 'collateral' | 'debt';
     tvl?: string | number;
     suppliedDebt?: string | number;
@@ -84,7 +83,6 @@ const InfoRow = ({ label, value, horizontal }: { label: string; value?: string |
 );
 
 const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
-    name,
     tab,
     tvl,
     suppliedDebt,
@@ -101,10 +99,6 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
 }) => {
     return (
         <VStack align="stretch" spacing={6} w="100%" maxW="420px" minW="320px">
-            {/* Market Name */}
-            <Text color="whiteAlpha.900" fontWeight="extrabold" fontSize="2xl" mb={-2} textAlign="center">
-                {name ?? 'Unnamed Market'}
-            </Text>
             {/* Top line */}
             <Box bg="#181C23" borderRadius="lg" p={5} border="5px solid" borderColor="gray.800">
                 <HStack justify="space-between" w="100%">

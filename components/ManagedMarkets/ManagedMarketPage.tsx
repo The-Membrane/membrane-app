@@ -36,10 +36,9 @@ const ManagedMarketPage: React.FC = () => {
     const symbol = asset?.symbol || collateralSymbol;
     // Memoize allMarkets and marketName
     const allMarkets = useAllMarkets();
-    console.log('allMarkets', allMarkets);
     const marketName = useMemo(() => {
         if (allMarkets && marketAddress) {
-            const found = allMarkets.find((m: any) => m.marketAddress === marketAddress);
+            const found = allMarkets.find((m: any) => m.address === marketAddress);
             if (found) return found.name;
         }
         return 'Unnamed Market';

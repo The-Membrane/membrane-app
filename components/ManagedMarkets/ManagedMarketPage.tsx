@@ -74,33 +74,32 @@ const ManagedMarketPage: React.FC = () => {
     };
 
     // Derive info card values
-    const tvl = !paramsLoading && params?.total_borrowed ? formatNumber(params.total_borrowed) : '—';
+    const tvl = !paramsLoading && params?.[0]?.total_borrowed ? formatNumber(params[0].total_borrowed) : '—';
     const suppliedDebt = !configLoading && config?.total_debt_tokens ? formatNumber(config.total_debt_tokens) : '—';
     let maxMultiplier = '—';
     // Debug log for params and ltv
     console.log('params', params);
     try {
-
-    console.log('params params', params);
-        console.log('collateral params', params?.collateral_params);
-        console.log('max_borrow_LTV', params?.collateral_params?.max_borrow_LTV);
-        const ltv = params?.collateral_params?.max_borrow_LTV;
+        console.log('params params', params);
+        console.log('collateral params', params?.[0]?.collateral_params);
+        console.log('max_borrow_LTV', params?.[0]?.collateral_params?.max_borrow_LTV);
+        const ltv = params?.[0]?.collateral_params?.max_borrow_LTV;
         console.log('max_borrow_LTV', ltv);
         if (ltv && !isNaN(Number(ltv)) && Number(ltv) > 0 && Number(ltv) < 1) {
             maxMultiplier = `${(1 / (1 - Number(ltv))).toFixed(2)}x`;
         }
     } catch {}
     const price = !priceLoading && priceData?.price ? formatPrice(priceData.price) : '—';
-    const totalSupply = !paramsLoading && params?.total_borrowed ? formatNumber(params.total_borrowed) : '—';
+    const totalSupply = !paramsLoading && params?.[0]?.total_borrowed ? formatNumber(params[0].total_borrowed) : '—';
     const borrowCost = !costLoading && costData ? formatPercent(costData) : '—';
     // These may need more specific queries:
     const totalDebt = !configLoading && config?.total_debt_tokens ? formatNumber(config.total_debt_tokens) : '—';
     const borrowAPY = borrowCost;
-    const maxCollateralLiquidatibility = params?.borrow_cap?.cap_borrows_by_liquidity ? 'Yes' : 'No';
+    const maxCollateralLiquidatibility = params?.[0]?.borrow_cap?.cap_borrows_by_liquidity ? 'Yes' : 'No';
     // Oracles: extract from params.pool_for_oracle_and_liquidations
     const oracles = [];
-    if (params?.pool_for_oracle_and_liquidations) {
-        const oracleInfo = params.pool_for_oracle_and_liquidations;
+    if (params?.[0]?.pool_for_oracle_and_liquidations) {
+        const oracleInfo = params[0].pool_for_oracle_and_liquidations;
         const pools = oracleInfo.pools_for_osmo_twap || [];
         console.log('pools', oracleInfo, pools);
         for (let i = 0; i < pools.length; i++) {
@@ -126,11 +125,11 @@ const ManagedMarketPage: React.FC = () => {
     }
     console.log('oracles', oracles);
     // Interest Rate Model
-    const interestRateModelProps = tab === 'debt' && params?.rate_params ? {
-        baseRate: params.rate_params.base_rate ?? '—',
-        rateMax: params.rate_params.rate_max ?? '—',
-        kinkMultiplier: params.rate_params.rate_kink?.rate_mulitplier ?? '—',
-        kinkPoint: params.rate_params.rate_kink?.kink_starting_point_ratio ?? '—',
+    const interestRateModelProps = tab === 'debt' && params?.[0]?.rate_params ? {
+        baseRate: params[0].rate_params.base_rate ?? '—',
+        rateMax: params[0].rate_params.rate_max ?? '—',
+        kinkMultiplier: params[0].rate_params.rate_kink?.rate_mulitplier ?? '—',
+        kinkPoint: params[0].rate_params.rate_kink?.kink_starting_point_ratio ?? '—',
     } : undefined;
 
     const infoProps = {

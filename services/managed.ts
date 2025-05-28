@@ -41,7 +41,7 @@ export const getManagedConfig = async (cosmWasmClient: any, marketContract: stri
 export const getManagedMarket = async (cosmWasmClient: any, marketContract: string, collateral_denom: string) => {
     return cosmWasmClient.queryContractSmart(marketContract, {
         market_params: { collateral_denom }
-    }) as Promise<MarketParams>
+    }) as Promise<MarketParams[]>
 }
 
 export const getManagedMarkets = async (cosmWasmClient: any, manager: string) => {

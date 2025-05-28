@@ -6,10 +6,13 @@ import ManagedMarketAction from './ManagedMarketAction';
 import { useAssetBySymbol } from '@/hooks/useAssets';
 import { useManagedConfig, useManagedMarket, useAllMarkets, useMarketCollateralPrice, useMarketCollateralCost } from '@/hooks/useManaged';
 import { Formatter } from '@/helpers/formatter';
+import { getAssetByDenom } from '@/helpers/chain';
 
 const ManagedMarketPage: React.FC = () => {
     const router = useRouter();
     const { marketAddress: address, action } = router.query;
+    //Get chain name from route
+    const chainName = router.query.chainName as string;
 
     // Wait for router to be ready
     if (!router.isReady) {
@@ -28,7 +31,7 @@ const ManagedMarketPage: React.FC = () => {
     }
 
     // Get asset info for header
-    const asset = useAssetBySymbol(collateralSymbol, 'osmosis');
+    const asset = useAssetBySymbol(collateralSymbol, chainName);
     const logo = asset?.logo || '';
     const symbol = asset?.symbol || collateralSymbol;
     // Memoize allMarkets and marketName
@@ -46,9 +49,9 @@ const ManagedMarketPage: React.FC = () => {
 
     // Fetch market data
     const { data: config, isLoading: configLoading } = useManagedConfig(address as string);
-    const { data: params, isLoading: paramsLoading } = useManagedMarket(address as string, asset?.base);
-    const { data: priceData, isLoading: priceLoading } = useMarketCollateralPrice(address as string, asset?.base);
-    const { data: costData, isLoading: costLoading } = useMarketCollateralCost(address as string, asset?.base);
+    const { data: params, isLoading: paramsLoading } = useManagedMarket(address as string, asset?.base ?? '');
+    const { data: priceData, isLoading: priceLoading } = useMarketCollateralPrice(address as string, asset?.base ?? '');
+    const { data: costData, isLoading: costLoading } = useMarketCollateralCost(address as string, asset?.base ?? '');
 
     // Format numbers using Formatter.tvlShort
     const formatNumber = (value: string | number | undefined) => {
@@ -73,9 +76,14 @@ const ManagedMarketPage: React.FC = () => {
     const tvl = !paramsLoading && params?.total_borrowed ? formatNumber(params.total_borrowed) : '—';
     const suppliedDebt = !configLoading && config?.total_debt_tokens ? formatNumber(config.total_debt_tokens) : '—';
     let maxMultiplier = '—';
+    // Debug log for params and ltv
+    console.log('params', params);
     try {
         const ltv = params?.collateral_params?.max_borrow_LTV;
-        if (ltv) maxMultiplier = `${(1 / (1 - Number(ltv))).toFixed(2)}x`;
+        console.log('max_borrow_LTV', ltv);
+        if (ltv && !isNaN(Number(ltv)) && Number(ltv) > 0 && Number(ltv) < 1) {
+            maxMultiplier = `${(1 / (1 - Number(ltv))).toFixed(2)}x`;
+        }
     } catch {}
     const price = !priceLoading && priceData?.price ? formatPrice(priceData.price) : '—';
     const totalSupply = !paramsLoading && params?.total_borrowed ? formatNumber(params.total_borrowed) : '—';
@@ -84,8 +92,32 @@ const ManagedMarketPage: React.FC = () => {
     const totalDebt = !configLoading && config?.total_debt_tokens ? formatNumber(config.total_debt_tokens) : '—';
     const borrowAPY = borrowCost;
     const maxCollateralLiquidatibility = params?.borrow_cap?.cap_borrows_by_liquidity ? 'Yes' : 'No';
-    // Oracles: placeholder, unless you have oracle info in params
+    // Oracles: extract from params.pool_for_oracle_and_liquidations
     const oracles = [];
+    if (params?.pool_for_oracle_and_liquidations) {
+        const oracleInfo = params.pool_for_oracle_and_liquidations;
+        const pools = oracleInfo.pools_for_osmo_twap || [];
+        for (let i = 0; i < pools.length; i++) {
+            const pool = pools[i];
+            const isLast = i === pools.length - 1;
+            // Always show base asset logo
+            const baseAsset = getAssetByDenom(pool.base_asset_denom, chainName);
+            oracles.push({
+                name: baseAsset?.symbol || pool.base_asset_denom,
+                logo: baseAsset?.logo || '',
+                address: pool.base_asset_denom,
+            });
+            // If last pool, also show quote asset logo
+            if (isLast) {
+                const quoteAsset = getAssetByDenom(pool.quote_asset_denom, chainName);
+                oracles.push({
+                    name: quoteAsset?.symbol || pool.quote_asset_denom,
+                    logo: quoteAsset?.logo || '',
+                    address: pool.quote_asset_denom,
+                });
+            }
+        }
+    }
     // Interest Rate Model
     const interestRateModelProps = tab === 'debt' && params?.rate_params ? {
         baseRate: params.rate_params.base_rate ?? '—',

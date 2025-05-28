@@ -47,6 +47,7 @@ const ManagedMarketPage: React.FC = () => {
     // Determine tab type from actionType (default to 'collateral')
     const tab = actionType === 'lend' ? 'debt' : 'collateral';
 
+    console.log('asset', asset);
     // Fetch market data
     const { data: config, isLoading: configLoading } = useManagedConfig(address as string);
     const { data: params, isLoading: paramsLoading } = useManagedMarket(address as string, asset?.base ?? '');

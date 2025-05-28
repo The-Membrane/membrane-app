@@ -43,9 +43,9 @@ export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: str
 }
 
 export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
-  console.log("useBalanceByAsset1", asset, chainID, inputedAddress)
+  // console.log("useBalanceByAsset1", asset, chainID, inputedAddress)
   const { data: balances } = useBalance(chainID, inputedAddress)
-  console.log("useBalanceByAsset3", asset, chainID, inputedAddress, balances)
+  // console.log("useBalanceByAsset3", asset, chainID, inputedAddress, balances)
 
   let addressToUse = inputedAddress
   if (!inputedAddress) {
@@ -56,7 +56,7 @@ export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT
 
   return useMemo(() => {
 
-    console.log(" useBalanceByAsset", balances, asset, addressToUse)
+    // console.log(" useBalanceByAsset", balances, asset, addressToUse)
     if (!balances || !asset || !addressToUse) return '0'
 
     const balance = balances.find((b: any) => b.denom === asset.base)?.amount

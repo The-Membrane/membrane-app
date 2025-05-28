@@ -4,7 +4,7 @@ import { HStack, Box, Spinner, Flex, Text, Image, VStack } from '@chakra-ui/reac
 import ManagedMarketInfo from './ManagedMarketInfo';
 import ManagedMarketAction from './ManagedMarketAction';
 import { useAssetBySymbol } from '@/hooks/useAssets';
-import { useManagedConfig, useManagedMarket, useAllMarkets } from '@/hooks/useManaged';
+import { useManagedConfig, useManagedMarket, useAllMarkets, useMarketCollateralPrice, useMarketCollateralCost } from '@/hooks/useManaged';
 import { Formatter } from '@/helpers/formatter';
 
 const ManagedMarketPage: React.FC = () => {
@@ -44,32 +44,70 @@ const ManagedMarketPage: React.FC = () => {
     // Determine tab type from actionType (default to 'collateral')
     const tab = actionType === 'lend' ? 'debt' : 'collateral';
 
+    // Fetch market data
+    const { data: config, isLoading: configLoading } = useManagedConfig(address as string);
+    const { data: params, isLoading: paramsLoading } = useManagedMarket(address as string, asset?.base);
+    const { data: priceData, isLoading: priceLoading } = useMarketCollateralPrice(address as string, asset?.base);
+    const { data: costData, isLoading: costLoading } = useMarketCollateralCost(address as string, asset?.base);
+
     // Format numbers using Formatter.tvlShort
-    const formatNumber = (value: string) => {
-        const num = parseFloat(value.replace(/[^0-9.]/g, ''));
-        return Formatter.tvlShort(num);
+    const formatNumber = (value: string | number | undefined) => {
+        if (value === undefined || value === null || value === '—') return '—';
+        if (typeof value === 'string' && value.match(/[^0-9.]/)) return value;
+        return Formatter.tvlShort(Number(value));
     };
 
-    // Placeholder data for info card (replace with real data as available)
+    // Helper to format percent
+    const formatPercent = (value: string | number | undefined) => {
+        if (value === undefined || value === null || value === '—') return '—';
+        return Formatter.percent(Number(value) * 100, 2); // expects 0.05 for 5%
+    };
+
+    // Helper to format price
+    const formatPrice = (value: string | number | undefined) => {
+        if (value === undefined || value === null || value === '—') return '—';
+        return Formatter.currency(Number(value), 4);
+    };
+
+    // Derive info card values
+    const tvl = !paramsLoading && params?.total_borrowed ? formatNumber(params.total_borrowed) : '—';
+    const suppliedDebt = !configLoading && config?.total_debt_tokens ? formatNumber(config.total_debt_tokens) : '—';
+    let maxMultiplier = '—';
+    try {
+        const ltv = params?.collateral_params?.max_borrow_LTV;
+        if (ltv) maxMultiplier = `${(1 / (1 - Number(ltv))).toFixed(2)}x`;
+    } catch {}
+    const price = !priceLoading && priceData?.price ? formatPrice(priceData.price) : '—';
+    const totalSupply = !paramsLoading && params?.total_borrowed ? formatNumber(params.total_borrowed) : '—';
+    const borrowCost = !costLoading && costData ? formatPercent(costData) : '—';
+    // These may need more specific queries:
+    const totalDebt = !configLoading && config?.total_debt_tokens ? formatNumber(config.total_debt_tokens) : '—';
+    const borrowAPY = borrowCost;
+    const maxCollateralLiquidatibility = params?.borrow_cap?.cap_borrows_by_liquidity ? 'Yes' : 'No';
+    // Oracles: placeholder, unless you have oracle info in params
+    const oracles = [];
+    // Interest Rate Model
+    const interestRateModelProps = tab === 'debt' && params?.rate_params ? {
+        baseRate: params.rate_params.base_rate ?? '—',
+        rateMax: params.rate_params.rate_max ?? '—',
+        kinkMultiplier: params.rate_params.rate_kink?.rate_mulitplier ?? '—',
+        kinkPoint: params.rate_params.rate_kink?.kink_starting_point_ratio ?? '—',
+    } : undefined;
+
     const infoProps = {
         tab: tab as 'collateral' | 'debt',
-        tvl: formatNumber('573000000'),
-        suppliedDebt: formatNumber('32000000'),
-        maxMultiplier: '3.03x',
-        price: '$0.23',
-        totalSupply: formatNumber('751000000'),
-        borrowCost: '5%',
-        totalDebt: '—',
-        borrowAPY: '—',
-        maxCollateralLiquidatibility: '—',
-        oracles: [],
+        tvl,
+        suppliedDebt,
+        maxMultiplier,
+        price,
+        totalSupply,
+        borrowCost,
+        totalDebt,
+        borrowAPY,
+        maxCollateralLiquidatibility,
+        oracles,
         address: address as string || '—',
-        interestRateModelProps: tab === 'debt' ? {
-            baseRate: '—',
-            rateMax: '—',
-            kinkMultiplier: '—',
-            kinkPoint: '—',
-        } : undefined,
+        interestRateModelProps,
         logo,
         symbol,
         marketName,

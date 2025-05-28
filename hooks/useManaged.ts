@@ -12,9 +12,7 @@ import { useBalanceByAsset } from './useBalance'
 import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
 import { useChainRoute } from './useChainRoute'
-
-
-
+import React from 'react'
 
 export const useManagers = () => {
     const { data: client } = useCosmWasmClient()
@@ -32,7 +30,6 @@ export const useManagers = () => {
         staleTime: 1000 * 60 * 5, // 5 minutes
     })
 }
-
 
 export const useManagedMarketContracts = (manager: string) => {
     const { data: client } = useCosmWasmClient()
@@ -148,66 +145,3 @@ export const useMarketCollateralCost = (marketContract: string, collateral_denom
         queryFn: async () => getMarketCollateralCost(client, marketContract, collateral_denom),
     })
 }
-
-
-export const useMarketsTableData = () => {
-    const allMarkets = useAllMarkets();
-    const { chainName } = useChainRoute();
-    const assets = useAssets(chainName);
-    const { data: client } = useCosmWasmClient();
-    const { data: prices } = useOraclePrice();
-
-    // Helper to format TVL as $X.XXK/M
-    function formatTvl(val: string | number): string {
-        let n = typeof val === 'number' ? val : parseFloat(val);
-        if (isNaN(n)) return '$0';
-        if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-        if (n >= 1e3) return `$${(n / 1e3).toFixed(2)}K`;
-        return `$${n.toFixed(2)}`;
-    }
-    // Helper to format multiplier as 'X.XXx'
-    function formatMultiplier(val: number): string {
-        return `${val.toFixed(2)}x`;
-    }
-    // Helper to format cost as 'X.XX%'
-    function formatCost(val: string | number): string {
-        let n = typeof val === 'number' ? val : parseFloat(val);
-        if (isNaN(n)) return '0%';
-        return `${(n * 100).toFixed(2)}%`;
-    }
-
-    console.log("useMarketsTableData", allMarkets, assets, prices)
-    // Compute table data using useMemo
-    const tableData = useMemo(() => {
-        if (!allMarkets || !assets || !prices) return [];
-        return allMarkets.map((market) => {
-            const denom = market.params?.collateral_params?.collateral_asset;
-            const asset = getAssetByDenom(denom, chainName);
-            console.log("useMarketsTableData1", asset)
-            // const assetBalance = useBalanceByAsset(asset as Asset, chainName, market.address);
-            const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
-            console.log("useMarketsTableData2", collateralPrice)
-            const { data: costValueRaw } = useMarketCollateralCost(market.address, denom);
-            console.log("useMarketsTableData3", costValueRaw)
-            const costValue = costValueRaw ?? '0';
-            let multiplier = 1;
-            try {
-                multiplier = 1 / (1 - Number(market.params?.collateral_params.max_borrow_LTV || 0));
-            } catch (e) {}
-            let tvl = 0;
-            try {
-                // tvl = num(assetBalance).times(collateralPrice?.price || 0).toNumber();
-            } catch (e) {}
-            return {
-                marketAddress: market.address,
-                asset: asset?.symbol ?? denom,
-                tvl: formatTvl(tvl),
-                vaultName: market.name,
-                multiplier: formatMultiplier(multiplier),
-                cost: formatCost(costValue),
-            };
-        });
-    }, [allMarkets, assets, prices, chainName]);
-
-    return tableData;
-};

@@ -38,7 +38,14 @@ import {
 import { ChevronDownIcon, CloseIcon, SearchIcon, TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons';
 import ConnectButton from '../WallectConnect/ConnectButton';
 import { useRouter } from 'next/router';
-import { useMarketsTableData } from '@/hooks/useManaged';
+import { getAssetByDenom } from '@/helpers/chain';
+import { useAllMarkets } from '@/hooks/useManaged';
+import { useChainRoute } from '@/hooks/useChainRoute';
+import { num } from '@/helpers/num';
+import { useQueries } from '@tanstack/react-query';
+import { getMarketCollateralPrice, getMarketCollateralCost } from '@/services/managed';
+import { useCosmWasmClient } from '@/helpers/cosmwasmClient';
+import { useBalanceByAsset } from '@/hooks/useBalance';
 
 // Example filter options
 const depositOptions = [
@@ -66,11 +73,20 @@ function parseCost(val: string): number {
     return parseFloat(val.replace('%', ''));
 }
 
-const ManagedTable = () => {
-    // Use real table data
-    const tableData = useMarketsTableData();
+// Helper to format TVL as $X.XXK/M
+function formatTvl(val: number): string {
+    if (isNaN(val)) return '$0';
+    if (val >= 1e6) return `$${(val / 1e6).toFixed(2)}M`;
+    if (val >= 1e3) return `$${(val / 1e3).toFixed(2)}K`;
+    return `$${val.toFixed(2)}`;
+}
 
-    console.log("tableData in component",tableData)
+const ManagedTable = () => {
+    const allMarkets = useAllMarkets();
+    const { chainName } = useChainRoute();
+    const { data: client } = useCosmWasmClient();
+    const router = useRouter();
+    // ...other top-level hooks as needed
 
     // State for filter dropdown
     const [selectedDeposits, setSelectedDeposits] = useState<string[]>(['All']);
@@ -87,21 +103,6 @@ const ManagedTable = () => {
         return depositOptions.filter(opt => opt.toLowerCase().includes(search.toLowerCase()));
     }, [search]);
 
-    // Handle selection logic
-    const handleSelect = (option: string) => {
-        if (option === 'All') {
-            setSelectedDeposits(['All']);
-        } else {
-            let newSelected = selectedDeposits.filter(s => s !== 'All');
-            if (newSelected.includes(option)) {
-                newSelected = newSelected.filter(s => s !== option);
-            } else {
-                newSelected = [...newSelected, option];
-            }
-            setSelectedDeposits(newSelected.length === 0 ? ['All'] : newSelected);
-        }
-    };
-
     // Displayed string for selected
     const selectedDisplay = useMemo(() => {
         if (selectedDeposits.includes('All')) return 'All';
@@ -109,14 +110,81 @@ const ManagedTable = () => {
         return `${selectedDeposits.slice(0, 2).join(', ')} & ${selectedDeposits.length - 2} more`;
     }, [selectedDeposits]);
 
-    // Filter table rows by selectedDeposits
-    const filteredRows = useMemo(() => {
-        if (!tableData) return [];
-        if (selectedDeposits.includes('All')) return tableData;
-        return tableData.filter(row => selectedDeposits.includes(row.asset));
-    }, [selectedDeposits, tableData]);
+    // Prepare queries for all markets
+    const priceQueries = useQueries({
+        queries: (allMarkets || []).map(market => {
+            const denom = market.params?.collateral_params?.collateral_asset;
+            return {
+                queryKey: ['managed_market_collateral_price', client, market.address, denom],
+                queryFn: () => getMarketCollateralPrice(client, market.address, denom),
+                enabled: !!market && !!client,
+            };
+        }),
+    });
+    const costQueries = useQueries({
+        queries: (allMarkets || []).map(market => {
+            const denom = market.params?.collateral_params?.collateral_asset;
+            return {
+                queryKey: ['managed_market_collateral_cost', client, market.address, denom],
+                queryFn: () => getMarketCollateralCost(client, market.address, denom),
+                enabled: !!market && !!client,
+            };
+        }),
+    });
+    // Add balance queries for TVL
+    const balanceQueries = useQueries({
+        queries: (allMarkets || []).map(market => {
+            const denom = market.params?.collateral_params?.collateral_asset;
+            const asset = getAssetByDenom(denom, chainName);
+            return {
+                queryKey: ['market_balance', chainName, market.address, denom],
+                queryFn: () => {
+                    // useBalanceByAsset returns a string, parseFloat for math
+                    return useBalanceByAsset(asset as Asset, chainName, market.address);
+                },
+                enabled: !!asset && !!market && !!chainName && !!market.address,
+            };
+        }),
+    });
 
-    // Sort rows if needed
+    // Build derived data array
+    const derivedRows = useMemo(() => {
+        if (!allMarkets) return [];
+        return allMarkets.map((market, idx) => {
+            const denom = market.params?.collateral_params?.collateral_asset;
+            const asset = getAssetByDenom(denom, chainName);
+            const price = parseFloat(priceQueries[idx]?.data?.price ?? '0');
+            const cost = costQueries[idx]?.data ?? '0';
+            let multiplier = 1;
+            try {
+                multiplier = 1 / (1 - Number(market.params?.collateral_params.max_borrow_LTV || 0));
+            } catch {
+                multiplier = 1;
+            }
+            // TVL calculation
+            const balance = parseFloat(balanceQueries[idx]?.data ?? '0');
+            const tvl = balance * price;
+            const tvlDisplay = formatTvl(tvl);
+            return {
+                market,
+                assetSymbol: asset?.symbol ?? denom,
+                tvl, // numeric for sorting
+                tvlDisplay, // formatted for display
+                vaultName: market.name,
+                multiplier,
+                cost,
+            };
+        });
+    }, [allMarkets, chainName, priceQueries, costQueries, balanceQueries]);
+
+    // Filtering
+    const filteredRows = useMemo(() => {
+        if (!derivedRows) return [];
+        if (selectedDeposits.includes('All')) return derivedRows;
+        return derivedRows.filter(row => selectedDeposits.includes(row.assetSymbol));
+    }, [derivedRows, selectedDeposits]);
+
+    // Sorting
     const sortedRows = useMemo(() => {
         if (!filteredRows) return [];
         if (!sortCol) return filteredRows;
@@ -124,14 +192,14 @@ const ManagedTable = () => {
         rows.sort((a, b) => {
             let aVal: number = 0, bVal: number = 0;
             if (sortCol === 'tvl') {
-                aVal = parseTvl(a.tvl);
-                bVal = parseTvl(b.tvl);
+                aVal = typeof a.tvl === 'number' ? a.tvl : parseFloat(a.tvl);
+                bVal = typeof b.tvl === 'number' ? b.tvl : parseFloat(b.tvl);
             } else if (sortCol === 'multiplier') {
-                aVal = parseMultiplier(a.multiplier);
-                bVal = parseMultiplier(b.multiplier);
+                aVal = typeof a.multiplier === 'number' ? a.multiplier : parseFloat(a.multiplier);
+                bVal = typeof b.multiplier === 'number' ? b.multiplier : parseFloat(b.multiplier);
             } else if (sortCol === 'cost') {
-                aVal = parseCost(a.cost);
-                bVal = parseCost(b.cost);
+                aVal = typeof a.cost === 'number' ? a.cost : parseFloat(a.cost);
+                bVal = typeof b.cost === 'number' ? b.cost : parseFloat(b.cost);
             }
             if (aVal === bVal) return 0;
             if (sortDir === 'asc') return aVal - bVal;
@@ -139,16 +207,6 @@ const ManagedTable = () => {
         });
         return rows;
     }, [filteredRows, sortCol, sortDir]);
-
-    // Handle header click
-    const handleSort = (col: 'tvl' | 'multiplier' | 'cost') => {
-        if (sortCol === col) {
-            setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortCol(col);
-            setSortDir('desc');
-        }
-    };
 
     // Arrow icon for sort direction
     const sortArrow = (col: 'tvl' | 'multiplier' | 'cost') => {
@@ -160,17 +218,8 @@ const ManagedTable = () => {
         );
     };
 
-    const router = useRouter();
-
-    // Handler for row click
-    const handleRowClick = (row: any) => {
-        // TODO: Replace '0x1234' and 'OSMO' with real market address and asset symbol from row when available
-        router.push(`/0x1234/OSMO/multiply`);
-        // router.push(`/${row.marketAddress}/${row.asset}/multiply`);
-    };
-
     // Add loading and empty state handling
-    if (tableData === undefined || tableData === null) {
+    if (!allMarkets) {
         return <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="center"><Spinner size="xl" color="white" /></Box>;
     }
 
@@ -179,7 +228,6 @@ const ManagedTable = () => {
             {/* Outer border effect container */}
             <Box
                 w={{ base: '98vw' }}
-                // maxW="1200px"
                 borderRadius="2xl"
                 p={{ base: 1.5, md: 2.5 }}
                 bgGradient="linear(135deg, #232A3E 0%, #232A3E 100%)"
@@ -198,17 +246,9 @@ const ManagedTable = () => {
                     maxH="80vh"
                     overflowY="auto"
                     sx={{
-                        /* Custom scrollbar */
-                        '&::-webkit-scrollbar': {
-                            width: '8px',
-                        },
-                        '&::-webkit-scrollbar-thumb': {
-                            background: '#232A3E',
-                            borderRadius: '8px',
-                        },
-                        '&::-webkit-scrollbar-track': {
-                            background: 'transparent',
-                        },
+                        '&::-webkit-scrollbar': { width: '8px' },
+                        '&::-webkit-scrollbar-thumb': { background: '#232A3E', borderRadius: '8px' },
+                        '&::-webkit-scrollbar-track': { background: 'transparent' },
                     }}
                     display="flex"
                     flexDirection="column"
@@ -255,7 +295,7 @@ const ManagedTable = () => {
                                                 <Checkbox
                                                     colorScheme="blue"
                                                     isChecked={selectedDeposits.includes('All')}
-                                                    onChange={() => handleSelect('All')}
+                                                    onChange={() => setSelectedDeposits(['All'])}
                                                     px={4}
                                                     py={2}
                                                 >
@@ -266,7 +306,15 @@ const ManagedTable = () => {
                                                         key={opt}
                                                         colorScheme="blue"
                                                         isChecked={selectedDeposits.includes(opt)}
-                                                        onChange={() => handleSelect(opt)}
+                                                        onChange={() => {
+                                                            let newSelected = selectedDeposits.filter(s => s !== 'All');
+                                                            if (newSelected.includes(opt)) {
+                                                                newSelected = newSelected.filter(s => s !== opt);
+                                                            } else {
+                                                                newSelected = [...newSelected, opt];
+                                                            }
+                                                            setSelectedDeposits(newSelected.length === 0 ? ['All'] : newSelected);
+                                                        }}
                                                         px={4}
                                                         py={2}
                                                     >
@@ -286,37 +334,10 @@ const ManagedTable = () => {
                             <Thead>
                                 <Tr>
                                     <Th color="white" fontWeight="bold" fontSize="13px">Asset</Th>
-                                    <Th
-                                        color="white"
-                                        fontWeight="bold"
-                                        fontSize="13px"
-                                        cursor="pointer"
-                                        onClick={() => handleSort('tvl')}
-                                        userSelect="none"
-                                    >
-                                        TVL {sortArrow('tvl')}
-                                    </Th>
+                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => setSortCol('tvl')}>TVL {sortArrow('tvl')}</Th>
                                     <Th color="white" fontWeight="bold" fontSize="13px">Vault Name</Th>
-                                    <Th
-                                        color="white"
-                                        fontWeight="bold"
-                                        fontSize="13px"
-                                        cursor="pointer"
-                                        onClick={() => handleSort('multiplier')}
-                                        userSelect="none"
-                                    >
-                                        Multiplier {sortArrow('multiplier')}
-                                    </Th>
-                                    <Th
-                                        color="white"
-                                        fontWeight="bold"
-                                        fontSize="13px"
-                                        cursor="pointer"
-                                        onClick={() => handleSort('cost')}
-                                        userSelect="none"
-                                    >
-                                        Cost {sortArrow('cost')}
-                                    </Th>
+                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => setSortCol('multiplier')}>Multiplier {sortArrow('multiplier')}</Th>
+                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => setSortCol('cost')}>Cost {sortArrow('cost')}</Th>
                                 </Tr>
                             </Thead>
                             <Tbody>
@@ -328,24 +349,7 @@ const ManagedTable = () => {
                                     </Tr>
                                 ) : (
                                     sortedRows.map((row, idx) => (
-                                        <Tr
-                                            key={idx}
-                                            _hover={{
-                                                bg: '#2D3748',
-                                                boxShadow: '0 4px 16px 0 rgba(0,0,0,0.25)',
-                                                cursor: 'pointer',
-                                                transform: 'translateY(-2px) scale(1.01)',
-                                                zIndex: 1,
-                                            }}
-                                            transition="all 0.15s cubic-bezier(.4,0,.2,1)"
-                                            onClick={() => handleRowClick(row)}
-                                        >
-                                            <Td color="white" fontWeight="medium" fontSize="13px">{row.asset}</Td>
-                                            <Td color="whiteAlpha.900" fontSize="13px">{row.tvl}</Td>
-                                            <Td color="whiteAlpha.900" fontSize="13px">{row.vaultName}</Td>
-                                            <Td color="whiteAlpha.900" fontSize="13px">{row.multiplier}</Td>
-                                            <Td color="whiteAlpha.900" fontSize="13px">{row.cost}</Td>
-                                        </Tr>
+                                        <MarketRow key={row.market.address || idx} {...row} onClick={() => router.push(`/0x1234/OSMO/multiply`)} />
                                     ))
                                 )}
                             </Tbody>
@@ -356,5 +360,39 @@ const ManagedTable = () => {
         </Box>
     );
 };
+
+// Add types for MarketRow props
+interface MarketRowProps {
+    market: any;
+    assetSymbol: string;
+    tvl: number;
+    tvlDisplay: string;
+    vaultName: string;
+    multiplier: number | string;
+    cost: number | string;
+    onClick: () => void;
+}
+
+function MarketRow({ assetSymbol, tvlDisplay, vaultName, multiplier, cost, onClick }: MarketRowProps) {
+    function formatMultiplier(val: number | string): string {
+        let n = typeof val === 'number' ? val : parseFloat(val as string);
+        if (isNaN(n)) return '0x';
+        return `${n.toFixed(2)}x`;
+    }
+    function formatCost(val: number | string): string {
+        let n = typeof val === 'number' ? val : parseFloat(val as string);
+        if (isNaN(n)) return '0%';
+        return `${(n * 100).toFixed(2)}%`;
+    }
+    return (
+        <Tr onClick={onClick} _hover={{ bg: '#2D3748', cursor: 'pointer' }}>
+            <Td color="white" fontWeight="medium" fontSize="13px">{assetSymbol}</Td>
+            <Td color="whiteAlpha.900" fontSize="13px">{tvlDisplay}</Td>
+            <Td color="whiteAlpha.900" fontSize="13px">{vaultName}</Td>
+            <Td color="whiteAlpha.900" fontSize="13px">{formatMultiplier(multiplier)}</Td>
+            <Td color="whiteAlpha.900" fontSize="13px">{formatCost(cost)}</Td>
+        </Tr>
+    );
+}
 
 export default ManagedTable; 

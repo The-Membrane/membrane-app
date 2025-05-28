@@ -129,7 +129,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                             {interestRateModelProps && <InterestRateModel {...interestRateModelProps} />}
                         </>
                     )}
-                    <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Oracles</Text>
+                    <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Oracle</Text>
                     <OracleRow oracles={oracles} />
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Market Address</Text>
                     <Text color="white" fontWeight="bold">{address ?? '—'}</Text>

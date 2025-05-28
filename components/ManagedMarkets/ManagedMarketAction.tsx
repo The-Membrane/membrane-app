@@ -382,7 +382,11 @@ const ManagedMarketAction = ({
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Managed by</Text>
-                                            <Text color="white" fontWeight="bold">{config?.owner ?? "-"}</Text>
+                                            <Text color="white" fontWeight="bold">
+                                                {config?.owner
+                                                    ? `${config.owner.slice(0, 5)}...${config.owner.slice(-5)}`
+                                                    : "-"}
+                                            </Text>
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Current price</Text>

@@ -184,8 +184,8 @@ export const useMarketsTableData = () => {
             const asset = getAssetByDenom(denom, 'osmosis');
             const assetBalance = useBalanceByAsset(asset as Asset, chainName, market.address);
             const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
-            // Cost is async, so we can't fetch it here; use a placeholder or refactor further if needed
-            let costValue = '0';
+            const { data: costValueRaw } = useMarketCollateralCost(market.address, denom);
+            const costValue = costValueRaw ?? '0';
             let multiplier = 1;
             try {
                 multiplier = 1 / (1 - Number(market.params?.collateral_params.max_borrow_LTV || 0));

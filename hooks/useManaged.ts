@@ -176,6 +176,8 @@ export const useMarketsTableData = () => {
         return `${(n * 100).toFixed(2)}%`;
     }
 
+    console.log("Managed Markets Data", allMarkets, client, assets, prices)
+    
     const { data: tableData } = useQuery({
         queryKey: ['markets_table_data', allMarkets, client, assets, prices],
         enabled: !!allMarkets && !!client && !!assets && !!prices,

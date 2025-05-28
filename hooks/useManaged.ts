@@ -177,10 +177,9 @@ export const useMarketsTableData = () => {
     }
 
     console.log("Managed Markets Data", allMarkets, client, assets, prices)
-    
+
     const { data: tableData } = useQuery({
         queryKey: ['markets_table_data', allMarkets, client, assets, prices],
-        enabled: !!allMarkets && !!client && !!assets && !!prices,
         queryFn: async () => {
             console.log("Managed Markets Data", allMarkets, client, assets, prices)
             if (!allMarkets || !client || !assets || !prices) return [];

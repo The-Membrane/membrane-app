@@ -44,12 +44,10 @@ export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: str
 
 export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
   console.log("useBalanceByAsset1", asset, chainID, inputedAddress)
-  const { chainName } = useChainRoute()
-  console.log("useBalanceByAsset2", chainName)
-  const { data: balances } = useBalance(chainName, inputedAddress)
+  const { data: balances } = useBalance(chainID, inputedAddress)
   console.log("useBalanceByAsset3", asset, chainID, inputedAddress, balances)
 
-  const { address } = useWallet(chainName)
+  const { address } = useWallet(chainID)
   console.log("useBalanceByAsset4", address)
   const addressToUse = inputedAddress || address
 
@@ -64,7 +62,7 @@ export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT
 
     if (!balance || !decimals || !denom) return '0'
     return shiftDigits(balance, -decimals).toString()
-  }, [balances, asset, addressToUse, chainName])
+  }, [balances, asset, addressToUse])
 }
 
 export default useBalance

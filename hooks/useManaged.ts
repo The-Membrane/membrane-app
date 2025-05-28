@@ -182,7 +182,7 @@ export const useMarketsTableData = () => {
         return allMarkets.map((market) => {
             const denom = market.params?.collateral_params?.collateral_asset;
             const asset = getAssetByDenom(denom, chainName);
-            const assetBalance = useBalanceByAsset(asset as Asset, chainName, market.address);
+            // const assetBalance = useBalanceByAsset(asset as Asset, chainName, market.address);
             const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
             const { data: costValueRaw } = useMarketCollateralCost(market.address, denom);
             const costValue = costValueRaw ?? '0';
@@ -192,7 +192,7 @@ export const useMarketsTableData = () => {
             } catch (e) {}
             let tvl = 0;
             try {
-                tvl = num(assetBalance).times(collateralPrice?.price || 0).toNumber();
+                // tvl = num(assetBalance).times(collateralPrice?.price || 0).toNumber();
             } catch (e) {}
             return {
                 marketAddress: market.address,

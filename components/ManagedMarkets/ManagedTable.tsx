@@ -39,6 +39,7 @@ import { ChevronDownIcon, CloseIcon, SearchIcon, TriangleDownIcon, TriangleUpIco
 import ConnectButton from '../WallectConnect/ConnectButton';
 import { useRouter } from 'next/router';
 import { getAssetByDenom } from '@/helpers/chain';
+import type { Asset } from '@/helpers/chain';
 import { useAllMarkets } from '@/hooks/useManaged';
 import { useChainRoute } from '@/hooks/useChainRoute';
 import { num } from '@/helpers/num';
@@ -96,6 +97,21 @@ const ManagedTable = () => {
     // Sorting state
     const [sortCol, setSortCol] = useState<'tvl' | 'multiplier' | 'cost' | null>(null);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+    // Sorting handler
+    const handleSort = (col: 'tvl' | 'multiplier' | 'cost') => {
+        if (sortCol === col) {
+            if (sortDir === 'desc') {
+                setSortDir('asc');
+            } else if (sortDir === 'asc') {
+                setSortCol(null);
+                setSortDir('desc'); // or null, but keep as 'desc' for default
+            }
+        } else {
+            setSortCol(col);
+            setSortDir('desc');
+        }
+    };
 
     // Filtered options for search
     const filteredOptions = useMemo(() => {
@@ -334,10 +350,10 @@ const ManagedTable = () => {
                             <Thead>
                                 <Tr>
                                     <Th color="white" fontWeight="bold" fontSize="13px">Asset</Th>
-                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => setSortCol('tvl')}>TVL {sortArrow('tvl')}</Th>
+                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => handleSort('tvl')}>TVL {sortArrow('tvl')}</Th>
                                     <Th color="white" fontWeight="bold" fontSize="13px">Vault Name</Th>
-                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => setSortCol('multiplier')}>Multiplier {sortArrow('multiplier')}</Th>
-                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => setSortCol('cost')}>Cost {sortArrow('cost')}</Th>
+                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => handleSort('multiplier')}>Multiplier {sortArrow('multiplier')}</Th>
+                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => handleSort('cost')}>Cost {sortArrow('cost')}</Th>
                                 </Tr>
                             </Thead>
                             <Tbody>

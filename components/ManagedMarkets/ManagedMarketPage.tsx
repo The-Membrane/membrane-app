@@ -80,6 +80,8 @@ const ManagedMarketPage: React.FC = () => {
     // Debug log for params and ltv
     console.log('params', params);
     try {
+        console.log('collateral params', params?.collateral_params);
+        console.log('max_borrow_LTV', params?.collateral_params?.max_borrow_LTV);
         const ltv = params?.collateral_params?.max_borrow_LTV;
         console.log('max_borrow_LTV', ltv);
         if (ltv && !isNaN(Number(ltv)) && Number(ltv) > 0 && Number(ltv) < 1) {
@@ -98,6 +100,7 @@ const ManagedMarketPage: React.FC = () => {
     if (params?.pool_for_oracle_and_liquidations) {
         const oracleInfo = params.pool_for_oracle_and_liquidations;
         const pools = oracleInfo.pools_for_osmo_twap || [];
+        console.log('pools', oracleInfo, pools);
         for (let i = 0; i < pools.length; i++) {
             const pool = pools[i];
             const isLast = i === pools.length - 1;
@@ -119,6 +122,7 @@ const ManagedMarketPage: React.FC = () => {
             }
         }
     }
+    console.log('oracles', oracles);
     // Interest Rate Model
     const interestRateModelProps = tab === 'debt' && params?.rate_params ? {
         baseRate: params.rate_params.base_rate ?? '—',

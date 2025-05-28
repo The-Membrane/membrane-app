@@ -180,6 +180,7 @@ export const useMarketsTableData = () => {
         queryKey: ['markets_table_data', allMarkets, client, assets],
         enabled: !!allMarkets && !!client && !!assets && !!prices,
         queryFn: async () => {
+            console.log("Managed Markets Data", allMarkets, client, assets, prices)
             if (!allMarkets || !client || !assets || !prices) return [];
             console.log("allMarkets", allMarkets)
             return Promise.all(

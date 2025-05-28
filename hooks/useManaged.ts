@@ -7,7 +7,7 @@ import { useRouter } from 'next/router'
 import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralPrice, getMarketDebtPrice } from '@/services/managed'
 import { useState, useEffect, useMemo } from 'react'
 import { MarketData } from '@/components/ManagedMarkets/hooks/useManagerState'
-import { getAssetByDenom } from '@/helpers/chain'
+import { Asset, getAssetByDenom } from '@/helpers/chain'
 import { useBalanceByAsset } from './useBalance'
 import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
@@ -189,7 +189,7 @@ export const useMarketsTableData = () => {
                     const denom = market.params?.collateral_params?.collateral_asset;
                     const asset = getAssetByDenom(denom, 'osmosis');
                     console.log("asset", asset)
-                    const assetBalance = useBalanceByAsset(asset, 'osmosis', market.address);
+                    const assetBalance = useBalanceByAsset(asset as Asset, 'osmosis', market.address);
                     console.log("assetBalance", assetBalance)
                     //Get asset price
                     const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);

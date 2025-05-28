@@ -54,25 +54,25 @@ const depositOptions = [
 ];
 
 // Helper to parse TVL string to number
-function parseTvl(val: string): number {
-    if (!val) return 0;
-    let n = val.replace(/[$,]/g, '').toUpperCase();
-    if (n.endsWith('M')) return parseFloat(n) * 1e6;
-    if (n.endsWith('K')) return parseFloat(n) * 1e3;
-    return parseFloat(n);
-}
+// function parseTvl(val: string): number {
+//     if (!val) return 0;
+//     let n = val.replace(/[$,]/g, '').toUpperCase();
+//     if (n.endsWith('M')) return parseFloat(n) * 1e6;
+//     if (n.endsWith('K')) return parseFloat(n) * 1e3;
+//     return parseFloat(n);
+// }
 
-// Helper to parse Multiplier string to number
-function parseMultiplier(val: string): number {
-    if (!val) return 0;
-    return parseFloat(val.replace('x', ''));
-}
+// // Helper to parse Multiplier string to number
+// function parseMultiplier(val: string): number {
+//     if (!val) return 0;
+//     return parseFloat(val.replace('x', ''));
+// }
 
-// Helper to parse Cost string to number
-function parseCost(val: string): number {
-    if (!val) return 0;
-    return parseFloat(val.replace('%', ''));
-}
+// // Helper to parse Cost string to number
+// function parseCost(val: string): number {
+//     if (!val) return 0;
+//     return parseFloat(val.replace('%', ''));
+// }
 
 // Helper to format TVL as $X.XXK/M
 function formatTvl(val: number): string {
@@ -365,7 +365,7 @@ const ManagedTable = () => {
                                     </Tr>
                                 ) : (
                                     sortedRows.map((row, idx) => (
-                                        <MarketRow key={row.market.address || idx} {...row} onClick={() => router.push(`/0x1234/OSMO/multiply`)} />
+                                        <MarketRow key={row.market.address || idx} {...row} onClick={() => router.push(`/${row.market.address}/${row.assetSymbol}/multiply`)} />
                                     ))
                                 )}
                             </Tbody>

@@ -56,7 +56,7 @@ export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT
 
   return useMemo(() => {
 
-    // console.log(" useBalanceByAsset")
+    console.log(" useBalanceByAsset", balances, asset, addressToUse)
     if (!balances || !asset || !addressToUse) return '0'
 
     const balance = balances.find((b: any) => b.denom === asset.base)?.amount

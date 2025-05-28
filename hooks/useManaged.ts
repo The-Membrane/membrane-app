@@ -181,7 +181,7 @@ export const useMarketsTableData = () => {
         if (!allMarkets || !assets || !prices) return [];
         return allMarkets.map((market) => {
             const denom = market.params?.collateral_params?.collateral_asset;
-            const asset = getAssetByDenom(denom, 'osmosis');
+            const asset = getAssetByDenom(denom, chainName);
             const assetBalance = useBalanceByAsset(asset as Asset, chainName, market.address);
             const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
             const { data: costValueRaw } = useMarketCollateralCost(market.address, denom);

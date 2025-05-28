@@ -23,7 +23,7 @@ export const useManagers = () => {
     return useQuery({
         queryKey: ['market_managers', client],
         queryFn: async () => {
-            if (!router.pathname.startsWith("/managed")) return
+            if (!router.pathname.endsWith("/managed")) return
             if (!client) return
             return getManagers(client)
         },
@@ -41,7 +41,7 @@ export const useManagedMarketContracts = (manager: string) => {
     return useQuery({
         queryKey: ['managed_market_contracts', client, manager],
         queryFn: async () => {
-            if (!router.pathname.startsWith("/managed")) return
+            if (!router.pathname.endsWith("/managed")) return
             if (!client) return
             return getManagedMarketContracts(client, manager)
         },
@@ -58,7 +58,7 @@ export const useManagedConfig = (marketContract: string) => {
     return useQuery({
         queryKey: ['managed_market_config', client, marketContract],
         queryFn: async () => {
-            if (!router.pathname.startsWith("/managed")) return
+            if (!router.pathname.endsWith("/managed")) return
             if (!client) return
             return getManagedConfig(client, marketContract)
         },
@@ -76,7 +76,7 @@ export const useManagedMarket = (marketContract: string, collateral_denom: strin
     return useQuery({
         queryKey: ['managed_market_params', client, marketContract, collateral_denom],
         queryFn: async () => {
-            if (!router.pathname.startsWith("/managed")) return
+            if (!router.pathname.endsWith("/managed")) return
             if (!client) return
             return getManagedMarket(client, marketContract, collateral_denom)
         },

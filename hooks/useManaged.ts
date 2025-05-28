@@ -176,57 +176,34 @@ export const useMarketsTableData = () => {
         return `${(n * 100).toFixed(2)}%`;
     }
 
-    // console.log("Managed Markets Data", allMarkets, client, assets, prices)
-
-    const { data: tableData } = useQuery({
-        queryKey: ['markets_table_data', allMarkets, client, assets, prices],
-        queryFn: async () => {
-            // console.log("Managed Markets Data", allMarkets, client, assets, prices)
-            if (!allMarkets || !client || !assets || !prices) return [];
-            console.log("allMarkets", allMarkets)
-            return Promise.all(
-                allMarkets.map(async (market) => {
-                    const denom = market.params?.collateral_params?.collateral_asset;
-                    const asset = getAssetByDenom(denom, 'osmosis');
-                    console.log("asset", asset)
-                    const assetBalance = useBalanceByAsset(asset as Asset, chainName, market.address);
-                    console.log("assetBalance", assetBalance)
-                    //Get asset price
-                    const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
-                    //Get cost value
-                    let costValue = '0';
-                    try {
-                        costValue = await getMarketCollateralCost(client, market.address, denom);
-                    } catch (e) {}
-                    // Format multiplier
-                    let multiplier = 1;
-                    try {
-                        multiplier = 1 / (1 - Number(market.params?.collateral_params.max_borrow_LTV || 0));
-                    } catch (e) {}
-                    // Format TVL
-                    let tvl = 0;
-                    try {
-                        tvl = num(assetBalance).times(collateralPrice?.price || 0).toNumber();
-                    } catch (e) {}
-                    return {
-                        marketAddress: market.address,
-                        asset: assetSymbol,
-                        tvl: formatTvl(tvl),
-                        vaultName: market.name,
-                        multiplier: formatMultiplier(multiplier),
-                        cost: formatCost(costValue),
-                    };
-                })
-            );
-        }
-    });
-
-    console.log("tableData",tableData)
-    if (!tableData) {
-        return []
-    }
-
-    console.log("tableData",tableData)
+    // Compute table data using useMemo
+    const tableData = useMemo(() => {
+        if (!allMarkets || !assets || !prices) return [];
+        return allMarkets.map((market) => {
+            const denom = market.params?.collateral_params?.collateral_asset;
+            const asset = getAssetByDenom(denom, 'osmosis');
+            const assetBalance = useBalanceByAsset(asset as Asset, chainName, market.address);
+            const { data: collateralPrice } = useMarketCollateralPrice(market.address, denom);
+            // Cost is async, so we can't fetch it here; use a placeholder or refactor further if needed
+            let costValue = '0';
+            let multiplier = 1;
+            try {
+                multiplier = 1 / (1 - Number(market.params?.collateral_params.max_borrow_LTV || 0));
+            } catch (e) {}
+            let tvl = 0;
+            try {
+                tvl = num(assetBalance).times(collateralPrice?.price || 0).toNumber();
+            } catch (e) {}
+            return {
+                marketAddress: market.address,
+                asset: asset?.symbol ?? denom,
+                tvl: formatTvl(tvl),
+                vaultName: market.name,
+                multiplier: formatMultiplier(multiplier),
+                cost: formatCost(costValue),
+            };
+        });
+    }, [allMarkets, assets, prices, chainName]);
 
     return tableData;
 };

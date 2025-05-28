@@ -50,7 +50,7 @@ export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT
   let addressToUse = inputedAddress
   if (!inputedAddress) {
     const { address } = useWallet(chainID)
-    console.log("useBalanceByAsset4", address)
+    // console.log("useBalanceByAsset4", address)
     addressToUse = address
   }
 

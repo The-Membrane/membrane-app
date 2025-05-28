@@ -10,7 +10,7 @@ import { getAssetByDenom } from '@/helpers/chain';
 
 const ManagedMarketPage: React.FC = () => {
     const router = useRouter();
-    const { marketAddress: address, action } = router.query;
+    const { marketmarketAddress, action } = router.query;
     //Get chain name from route
     const chainName = router.query.chainName as string;
 
@@ -37,22 +37,22 @@ const ManagedMarketPage: React.FC = () => {
     // Memoize allMarkets and marketName
     const allMarkets = useAllMarkets();
     const marketName = useMemo(() => {
-        if (allMarkets && address) {
-            const found = allMarkets.find((m: any) => m.address === address);
+        if (allMarkets && marketAddress) {
+            const found = allMarkets.find((m: any) => m.marketAddress === marketAddress);
             if (found) return found.name;
         }
         return 'Unnamed Market';
-    }, [allMarkets, address]);
+    }, [allMarkets, marketAddress]);
 
     // Determine tab type from actionType (default to 'collateral')
     const tab = actionType === 'lend' ? 'debt' : 'collateral';
 
     console.log('asset', asset);
     // Fetch market data
-    const { data: config, isLoading: configLoading } = useManagedConfig(address as string);
-    const { data: params, isLoading: paramsLoading } = useManagedMarket(address as string, asset?.base ?? '');
-    const { data: priceData, isLoading: priceLoading } = useMarketCollateralPrice(address as string, asset?.base ?? '');
-    const { data: costData, isLoading: costLoading } = useMarketCollateralCost(address as string, asset?.base ?? '');
+    const { data: config, isLoading: configLoading } = useManagedConfig(marketAddress as string);
+    const { data: params, isLoading: paramsLoading } = useManagedMarket(marketAddress as string, asset?.base ?? '');
+    const { data: priceData, isLoading: priceLoading } = useMarketCollateralPrice(marketAddress as string, asset?.base ?? '');
+    const { data: costData, isLoading: costLoading } = useMarketCollateralCost(marketAddress as string, asset?.base ?? '');
 
     // Format numbers using Formatter.tvlShort
     const formatNumber = (value: string | number | undefined) => {
@@ -106,7 +106,7 @@ const ManagedMarketPage: React.FC = () => {
             oracles.push({
                 name: baseAsset?.symbol || pool.base_asset_denom,
                 logo: baseAsset?.logo || '',
-                address: pool.base_asset_denom,
+                marketAddress: pool.base_asset_denom,
             });
             // If last pool, also show quote asset logo
             if (isLast) {
@@ -114,7 +114,7 @@ const ManagedMarketPage: React.FC = () => {
                 oracles.push({
                     name: quoteAsset?.symbol || pool.quote_asset_denom,
                     logo: quoteAsset?.logo || '',
-                    address: pool.quote_asset_denom,
+                    marketAddress: pool.quote_asset_denom,
                 });
             }
         }
@@ -139,7 +139,7 @@ const ManagedMarketPage: React.FC = () => {
         borrowAPY,
         maxCollateralLiquidatibility,
         oracles,
-        address: address as string || '—',
+        marketAddress: marketAddress as string || '—',
         interestRateModelProps,
         logo,
         symbol,
@@ -161,7 +161,7 @@ const ManagedMarketPage: React.FC = () => {
                 </Flex>
                 <ManagedMarketInfo {...infoProps} />
             </VStack>
-            <ManagedMarketAction marketAddress={address as string} action={actionType} collateralSymbol={collateralSymbol} />
+            <ManagedMarketAction marketmarketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />
         </HStack>
     );
 };

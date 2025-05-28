@@ -3,8 +3,6 @@ import { getBasket, getUserPositions, getCollateralInterest, getCreditRate, getB
 import useWallet from './useWallet'
 import useAssets from './useAssets'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
-import { useRouter } from 'next/router'
-import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralPrice, getMarketDebtPrice } from '@/services/managed'
 import { useState, useEffect, useMemo } from 'react'
 import { MarketData } from '@/components/ManagedMarkets/hooks/useManagerState'
 import { Asset, getAssetByDenom } from '@/helpers/chain'
@@ -13,15 +11,14 @@ import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
 import { useChainRoute } from './useChainRoute'
 import React from 'react'
+import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralPrice, getMarketDebtPrice } from '@/services/managed'
 
 export const useManagers = () => {
     const { data: client } = useCosmWasmClient()
-    const router = useRouter()
 
     return useQuery({
         queryKey: ['market_managers', client],
         queryFn: async () => {
-            if (!router.pathname.endsWith("/managed")) return
             if (!client) return
             return getManagers(client)
         },
@@ -33,12 +30,10 @@ export const useManagers = () => {
 
 export const useManagedMarketContracts = (manager: string) => {
     const { data: client } = useCosmWasmClient()
-    const router = useRouter()
 
     return useQuery({
         queryKey: ['managed_market_contracts', client, manager],
         queryFn: async () => {
-            if (!router.pathname.endsWith("/managed")) return
             if (!client) return
             return getManagedMarketContracts(client, manager)
         },
@@ -50,12 +45,10 @@ export const useManagedMarketContracts = (manager: string) => {
 
 export const useManagedConfig = (marketContract: string) => {
     const { data: client } = useCosmWasmClient()
-    const router = useRouter()
 
     return useQuery({
         queryKey: ['managed_market_config', client, marketContract],
         queryFn: async () => {
-            if (!router.pathname.endsWith("/managed")) return
             if (!client) return
             return getManagedConfig(client, marketContract)
         },
@@ -68,12 +61,10 @@ export const useManagedConfig = (marketContract: string) => {
 
 export const useManagedMarket = (marketContract: string, collateral_denom: string) => {
     const { data: client } = useCosmWasmClient()
-    const router = useRouter()
 
     return useQuery({
         queryKey: ['managed_market_params', client, marketContract, collateral_denom],
         queryFn: async () => {
-            if (!router.pathname.endsWith("/managed")) return
             if (!client) return
             return getManagedMarket(client, marketContract, collateral_denom)
         },

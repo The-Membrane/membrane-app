@@ -181,6 +181,7 @@ export const useMarketsTableData = () => {
         enabled: !!allMarkets && !!client && !!assets && !!prices,
         queryFn: async () => {
             if (!allMarkets || !client || !assets || !prices) return [];
+            console.log("allMarkets", allMarkets)
             return Promise.all(
                 allMarkets.map(async (market) => {
                     const denom = market.params?.collateral_params?.collateral_asset;
@@ -216,11 +217,12 @@ export const useMarketsTableData = () => {
         }
     });
 
+    console.log("tableData",tableData)
     if (!tableData) {
         return []
     }
 
-    console.log(tableData)
+    console.log("tableData",tableData)
 
     return tableData;
 };

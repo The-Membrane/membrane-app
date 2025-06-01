@@ -138,7 +138,7 @@ const useBorrowAndBoost = ({
           contract: marketContract,
           msg: toUtf8(
             JSON.stringify({
-              edit_ux_boosts: {
+              edit_u_x_boosts: {
                 collateral_denom: collateralDenom,
                 loop_ltv: loopLTV ? loopLTV.toString() : undefined,
                 take_profit_params: takeProfitLTV

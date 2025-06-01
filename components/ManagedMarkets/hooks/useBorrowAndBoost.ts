@@ -62,6 +62,7 @@ const useBorrowAndBoost = ({
       const loopLTV = 1 - 1 / managedActionState.multiplier;
       // Collateral value in USD
       const collateralValue = num(managedActionState.collateralAmount).times(collateralPriceData.price);
+      console.log("collateralValue", collateralValue.toString(), managedActionState.collateralAmount, collateralPriceData.price);
       // Borrow amount in debt token units
       const borrowAmount = shiftDigits(collateralValue.times(loopLTV).div(debtPriceData.price).toString(), 6).toString();
 

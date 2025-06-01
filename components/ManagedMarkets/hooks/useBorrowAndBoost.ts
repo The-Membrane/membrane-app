@@ -17,11 +17,13 @@ const useBorrowAndBoost = ({
   marketContract,
   collateralDenom,
   managedActionState,
+  maxBorrowLTV,
   run = true,
 }: {
   marketContract: string;
   collateralDenom: string;
   managedActionState: ManagedActionState;
+  maxBorrowLTV: number;
   run?: boolean;
 }) => {
   const { address } = useWallet();
@@ -60,7 +62,10 @@ const useBorrowAndBoost = ({
       }
 
       // Calculate LTV from multiplier: multiplier = 1 / (1 - LTV) => LTV = 1 - 1/multiplier
-      const loopLTV = 1 - 1 / managedActionState.multiplier;
+      var loopLTV = 1 - 1 / managedActionState.multiplier;
+      if (loopLTV > maxBorrowLTV) {
+        loopLTV = maxBorrowLTV;
+      }
       // Collateral value in USD
       const collateralValue = num(managedActionState.collateralAmount).times(collateralPriceData.price);
       console.log("collateralValue", collateralValue.toString(), managedActionState.collateralAmount, collateralPriceData.price);

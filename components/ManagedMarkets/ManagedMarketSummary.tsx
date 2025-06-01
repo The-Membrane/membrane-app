@@ -54,7 +54,7 @@ const ManagedMarketSummary: React.FC<ManagedMarketSummaryProps> = ({ managedActi
             <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Collateral Amount: {collateralAmount}</pre>
           </Box>
           <Box key="multiplier" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
-            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Multiplier: {multiplier}</pre>
+            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Multiplier: {multiplier.toFixed(2)}x</pre>
           </Box>
           {debtAmount && (
             <Box key="debtAmount" bg="gray.800" p={2} borderRadius="md" overflowX="auto">

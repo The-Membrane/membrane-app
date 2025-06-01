@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useBorrowAndBoost from './hooks/useBorrowAndBoost';
 import ConfirmModal from '@/components/ConfirmModal/ConfirmModal';
 import ManagedMarketSummary from '@/components/ManagedMarkets/ManagedMarketSummary';
+import { Formatter } from '@/helpers/formatter';
 
 
 // Props: action, marketAddress, collateralSymbol
@@ -49,8 +50,9 @@ const ManagedMarketAction = ({
     const maxBalance = useBalanceByAsset(collateralAsset);
 
     // Calculate max multiplier
-    const maxLTV = parseFloat(market?.[0]?.collateral_params?.max_borrow_LTV || '0.67');
-    const maxMultiplier = useMemo(() => 1 / (1 - maxLTV), [maxLTV]);
+    const maxBorrowLTV = parseFloat(market?.[0]?.collateral_params?.max_borrow_LTV || '0.67');
+    const maxMultiplier = useMemo(() => 1 / (1 - maxBorrowLTV), [maxBorrowLTV]);
+    const liquidationLTV = parseFloat(market?.[0]?.collateral_params?.liquidation_LTV || '0');
 
     const STICKY_THRESHOLD = (maxMultiplier - 1) * 0.1;
 
@@ -119,16 +121,17 @@ const ManagedMarketAction = ({
         marketContract: marketAddress,
         collateralDenom: collateralAsset?.base || '',
         managedActionState,
+        maxBorrowLTV: maxBorrowLTV,
         run: selectedTab === 0, // Only run for Multiply tab
     });
 
     //Log borrowAndBoost errors
-    console.log("borrowAndBoost", borrowAndBoost.tx.error, borrowAndBoost.simulate.error, borrowAndBoost.simulate.errorMessage);
+    // console.log("borrowAndBoost", borrowAndBoost.tx.error, borrowAndBoost.simulate.error, borrowAndBoost.simulate.errorMessage);
 
     // --- Calculations for LTV, Liquidation Price, Health ---
     const safeDebtAmountTokens = shiftDigits(debtAmount, -6).toString() || '0';
     const safeCollateralAmount = managedActionState.collateralAmount || '0';
-    const safeMaxLTV = isNaN(maxLTV) ? 0 : maxLTV;
+    const safeliquidationLTV = isNaN(liquidationLTV) ? 0 : liquidationLTV;
     const safeCollateralPrice = collateralPrice || 0;
     const safeDebtPrice = debtPrice || 0;
     const collateralValue = num(safeCollateralAmount).times(safeCollateralPrice); // USD value
@@ -136,14 +139,14 @@ const ManagedMarketAction = ({
     const ltv = debtValue && collateralValue.gt(0)
         ? debtValue.div(collateralValue).toNumber()
         : 0;
-    // Liquidation price: price of collateral that would cause LTV to reach maxLTV
-    // LTV = DebtValue / (CollateralAmount * CollateralPrice) = maxLTV
-    // => CollateralPrice = DebtValue / (CollateralAmount * maxLTV)
-    const liquidationPrice = (debtValue.gt(0) && safeCollateralAmount && safeMaxLTV)
-        ? debtValue.div(num(safeCollateralAmount).times(safeMaxLTV)).toNumber()
+    // Liquidation price: price of collateral that would cause LTV to reach maxBorrowLTV
+    // LTV = DebtValue / (CollateralAmount * CollateralPrice) = maxBorrowLTV
+    // => CollateralPrice = DebtValue / (CollateralAmount * maxBorrowLTV)
+    const liquidationPrice = (debtValue.gt(0) && safeCollateralAmount && safeliquidationLTV)
+        ? debtValue.div(num(safeCollateralAmount).times(safeliquidationLTV)).toNumber()
         : 0;
-    const health = (ltv && safeMaxLTV)
-        ? 1 - (ltv / safeMaxLTV)
+    const health = (ltv && safeliquidationLTV)
+        ? 1 - (ltv / safeliquidationLTV)
         : 1;
     ///////////
     return (
@@ -423,18 +426,26 @@ const ManagedMarketAction = ({
                                                     : "-"}
                                             </Text>
                                         </HStack>
+                                        
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Current price</Text>
-                                            <Text color="white" fontWeight="bold">{collateralPrice ? `$${num(collateralPrice).toFixed(2)}` : '-'}</Text>
+                                            <Text color="white" fontWeight="bold">{collateralPrice ? `$${Formatter.priceDynamicDecimals(num(collateralPrice).toNumber(), 6)}` : '-'}</Text>
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Liquidation price</Text>
                                             <Text color="white" fontWeight="bold">
-                                                {liquidationPrice ? `$${num(liquidationPrice).toFixed(2)}` : '-'}
+                                                {liquidationPrice ? `$${Formatter.priceDynamicDecimals(num(liquidationPrice).toNumber(), 6)}` : '-'}
+                                            </Text>
+                                        </HStack>
+
+                                        <HStack justify="space-between">
+                                            <Text color="whiteAlpha.700">Debt</Text>
+                                            <Text color="white" fontWeight="bold">
+                                                {debtAmount ? `$${num(shiftDigits(debtAmount, -6)).times(debtPrice).toFixed(2)}` : '-'}
                                             </Text>
                                         </HStack>
                                         <HStack justify="space-between">
-                                            <Text color="whiteAlpha.700">Your LTV (LLTV)</Text>
+                                            <Text color="whiteAlpha.700">Your LTV</Text>
                                             <Text color="white" fontWeight="bold">
                                                 {ltv ? `${(ltv * 100).toFixed(2)}%` : '-'}
                                             </Text>

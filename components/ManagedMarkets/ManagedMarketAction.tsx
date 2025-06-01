@@ -218,15 +218,23 @@ const ManagedMarketAction = ({
                                                 <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="24px" />
                                                 <Text color="white" fontWeight="bold">{collateralAsset?.symbol}</Text>
                                             </HStack>
-                                            <Text
-                                                color="whiteAlpha.700"
-                                                fontSize="md"
+                                            <VStack 
                                                 cursor="pointer"
-                                                _hover={{ textDecoration: 'underline', color: 'blue.300' }}
                                                 onClick={() => setManagedActionState({ collateralAmount: maxBalance.toString() })}
+                                                sx={{
+                                                    '&:hover > .wallet-hover-text': {
+                                                        textDecoration: 'underline',
+                                                        color: 'blue.300',
+                                                    },
+                                                }}
                                             >
-                                                Wallet {num(maxBalance).toFixed(2)}
-                                            </Text>
+                                                <Text className="wallet-hover-text" color="whiteAlpha.700" fontSize="md">
+                                                    Wallet
+                                                </Text>
+                                                <Text className="wallet-hover-text" color="whiteAlpha.700" fontSize="md">
+                                                    {num(maxBalance).toFixed(2)}
+                                                </Text>
+                                            </VStack>
                                         </VStack>
                                     </HStack>
                                 </Box>

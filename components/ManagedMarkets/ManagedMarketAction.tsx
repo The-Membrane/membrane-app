@@ -415,26 +415,14 @@ const ManagedMarketAction = ({
                                             <Text color="white" fontWeight="bold">{managedActionState.multiplier.toFixed(2)}x</Text>
                                         </HStack>
                                         <HStack justify="space-between">
-                                            <Text color="whiteAlpha.700">Collateral</Text>
+                                            <Text color="whiteAlpha.700">Collateral Amount</Text>
                                             <Text color="white" fontWeight="bold">{managedActionState.collateralAmount || 0} {collateralAsset?.symbol}</Text>
                                         </HStack>
+
                                         <HStack justify="space-between">
-                                            <Text color="whiteAlpha.700">Managed by</Text>
+                                            <Text color="whiteAlpha.700">Collateral Value</Text>
                                             <Text color="white" fontWeight="bold">
-                                                {config?.owner
-                                                    ? `${config.owner.slice(0, 5)}...${config.owner.slice(-5)}`
-                                                    : "-"}
-                                            </Text>
-                                        </HStack>
-                                        
-                                        <HStack justify="space-between">
-                                            <Text color="whiteAlpha.700">Current price</Text>
-                                            <Text color="white" fontWeight="bold">{collateralPrice ? `$${Formatter.priceDynamicDecimals(num(collateralPrice).toNumber(), 6)}` : '-'}</Text>
-                                        </HStack>
-                                        <HStack justify="space-between">
-                                            <Text color="whiteAlpha.700">Liquidation price</Text>
-                                            <Text color="white" fontWeight="bold">
-                                                {liquidationPrice ? `$${Formatter.priceDynamicDecimals(num(liquidationPrice).toNumber(), 6)}` : '-'}
+                                                {collateralValue ? `$${Formatter.priceDynamicDecimals(num(collateralValue).toNumber(), 6)}` : '-'}
                                             </Text>
                                         </HStack>
 
@@ -444,6 +432,18 @@ const ManagedMarketAction = ({
                                                 {debtAmount ? `$${num(shiftDigits(debtAmount, -6)).times(debtPrice).toFixed(2)}` : '-'}
                                             </Text>
                                         </HStack>
+                                        
+                                        <HStack justify="space-between">
+                                            <Text color="whiteAlpha.700">Current Price</Text>
+                                            <Text color="white" fontWeight="bold">{collateralPrice ? `$${Formatter.priceDynamicDecimals(num(collateralPrice).toNumber(), 6)}` : '-'}</Text>
+                                        </HStack>
+                                        <HStack justify="space-between">
+                                            <Text color="whiteAlpha.700">Liquidation Price</Text>
+                                            <Text color="white" fontWeight="bold">
+                                                {liquidationPrice ? `$${Formatter.priceDynamicDecimals(num(liquidationPrice).toNumber(), 6)}` : '-'}
+                                            </Text>
+                                        </HStack>
+
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Your LTV</Text>
                                             <Text color="white" fontWeight="bold">

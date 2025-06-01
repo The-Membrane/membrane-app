@@ -33,6 +33,7 @@ interface ManagedMarketInfoProps {
     oracles?: Oracle[];
     address?: string;
     interestRateModelProps?: InterestRateModelProps;
+    owner?: string;
 }
 
 // Placeholder for Interest Rate Model chart/component
@@ -95,6 +96,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
     maxCollateralLiquidatibility,
     oracles,
     address,
+    owner,
     interestRateModelProps,
 }) => {
     return (
@@ -133,6 +135,9 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                     <OracleRow oracles={oracles} />
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Market Address</Text>
                     <Text color="white" fontWeight="bold">{address ?? '—'}</Text>
+                    <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Managed by</Text>
+                    <Text color="white" fontWeight="bold">{owner ? owner : "-"}
+                    </Text>
                 </VStack>
             </Box>
         </VStack>

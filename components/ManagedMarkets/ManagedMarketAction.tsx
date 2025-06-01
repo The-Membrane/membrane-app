@@ -214,7 +214,7 @@ const ManagedMarketAction = ({
                                                 _placeholder={{ color: 'whiteAlpha.400' }}
                                                 paddingInlineEnd={"3"}
                                             />
-                                            <Text color="whiteAlpha.600" fontSize="md">~ ${collateralPrice ? num(collateralPrice).times(managedActionState.collateralAmount).toFixed(2) : "0.00"}</Text>
+                                            <Text color="whiteAlpha.600" fontSize="md">~ ${collateralPrice ? num(collateralPrice).times(managedActionState.collateralAmount || 0).toFixed(2) : "0.00"}</Text>
                                         </VStack>
                                         <VStack align="flex-end" spacing={2}>
                                             <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>

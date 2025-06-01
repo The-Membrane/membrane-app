@@ -10,6 +10,7 @@ import BigNumber from 'bignumber.js';
 import useManagedAction, { ManagedActionState } from './useManagedMarket';
 import { queryClient } from '@/pages/_app';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
+import { shiftDigits } from '@/helpers/math';
 
 
 const useBorrowAndBoost = ({
@@ -71,7 +72,7 @@ const useBorrowAndBoost = ({
       let takeProfitLTV: string | undefined = undefined;
       let stopLossLTV: string | undefined = undefined;
       const collateralAmount = num(managedActionState.collateralAmount);
-      const currentCollateralPrice = num(collateralPriceData.price);
+      // const currentCollateralPrice = num(collateralPriceData.price);
       const currentDebtPrice = num(debtPriceData.price);
       const borrowAmountValue = borrowAmount;
 
@@ -102,7 +103,7 @@ const useBorrowAndBoost = ({
           funds: [
             {
               denom: collateralDenom,
-              amount: managedActionState.collateralAmount,
+              amount: shiftDigits(managedActionState.collateralAmount, 6).toString(),
             },
           ],
         }),

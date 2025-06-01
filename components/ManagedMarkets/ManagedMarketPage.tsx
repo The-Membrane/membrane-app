@@ -7,6 +7,8 @@ import { useAssetBySymbol } from '@/hooks/useAssets';
 import { useManagedConfig, useManagedMarket, useAllMarkets, useMarketCollateralPrice, useMarketCollateralCost } from '@/hooks/useManaged';
 import { Formatter } from '@/helpers/formatter';
 import { getAssetByDenom } from '@/helpers/chain';
+import { shiftDigits } from '@/helpers/math';
+import { useBalanceByAsset } from '@/hooks/useBalance';
 
 const ManagedMarketPage: React.FC = () => {
     const router = useRouter();
@@ -53,6 +55,8 @@ const ManagedMarketPage: React.FC = () => {
     const { data: params, isLoading: paramsLoading } = useManagedMarket(marketAddress as string, asset?.base ?? '');
     const { data: priceData, isLoading: priceLoading } = useMarketCollateralPrice(marketAddress as string, asset?.base ?? '');
     const { data: costData, isLoading: costLoading } = useMarketCollateralCost(marketAddress as string, asset?.base ?? '');
+    // Fetch contract's balance of the collateral denom
+    const contractCollateralBalance = useBalanceByAsset(asset, chainName, marketAddress as string);
 
     // Format numbers using Formatter.tvlShort
     const formatNumber = (value: string | number | undefined) => {
@@ -74,8 +78,21 @@ const ManagedMarketPage: React.FC = () => {
     };
 
     // Derive info card values
-    const tvl = !paramsLoading && params?.[0]?.total_borrowed ? formatNumber(params[0].total_borrowed) : '—';
-    const suppliedDebt = !configLoading && config?.total_debt_tokens ? formatNumber(config.total_debt_tokens) : '—';
+    // TVL: contract's balance of the collateral denom * price
+    const tvl = useMemo(() => {
+        if (
+            priceLoading ||
+            !priceData?.price ||
+            !contractCollateralBalance ||
+            contractCollateralBalance === '0' ||
+            contractCollateralBalance === '—'
+        ) {
+            return '—';
+        }
+        const tvlValue = Number(contractCollateralBalance) * Number(priceData.price);
+        return formatNumber(tvlValue);
+    }, [priceLoading, priceData, contractCollateralBalance]);
+    const suppliedDebt = !configLoading && config?.total_debt_tokens ? formatNumber(shiftDigits(config.total_debt_tokens, -6).toString()) : '—';
     let maxMultiplier = '—';
     // Debug log for params and ltv
     console.log('params', params);

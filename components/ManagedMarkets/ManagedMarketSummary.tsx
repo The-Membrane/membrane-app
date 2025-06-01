@@ -50,15 +50,27 @@ const ManagedMarketSummary: React.FC<ManagedMarketSummaryProps> = ({ managedActi
       <Box>
         <Text fontWeight="semibold" mb={1}>Pending Position:</Text>
         <Stack spacing={2} fontSize="xs">
-          {msgs.map((msg: any, i: number) => (
-            <Box key={i} bg="gray.800" p={2} borderRadius="md" overflowX="auto">
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{collateralAmount}</pre>
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{multiplier}</pre>
-              {debtAmount && <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{debtAmount}</pre>}
-              {takeProfit && <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{takeProfit}</pre>}
-              {stopLoss && <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{stopLoss}</pre>}
+          <Box key="collateralAmount" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
+            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Collateral Amount: {collateralAmount}</pre>
+          </Box>
+          <Box key="multiplier" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
+            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Multiplier: {multiplier}</pre>
+          </Box>
+          {debtAmount && (
+            <Box key="debtAmount" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Debt Amount: {debtAmount}</pre>
             </Box>
-          ))}
+          )}
+          {takeProfit && (
+            <Box key="takeProfit" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Take Profit: {takeProfit}</pre>
+            </Box>
+          )}
+          {stopLoss && (
+            <Box key="stopLoss" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Stop Loss: {stopLoss}</pre>
+            </Box>
+          )}
         </Stack>
       </Box>
     </Stack>

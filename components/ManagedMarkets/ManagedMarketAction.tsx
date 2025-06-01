@@ -2,9 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { Box, Text, HStack, VStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, SliderThumb, SliderMark, Image, useNumberInput, Stack, Card, Tabs, TabList, Tab, TabPanels, TabPanel } from '@chakra-ui/react';
 import { useAssetByDenom, useAssetBySymbol } from '@/hooks/useAssets';
 import { useBalanceByAsset } from '@/hooks/useBalance';
-import { useManagedConfig, useManagedMarket } from '@/hooks/useManaged';
+import { useManagedConfig, useManagedMarket, useMarketDebtPrice, useMarketCollateralPrice } from '@/hooks/useManaged';
 import { useOraclePrice } from '@/hooks/useOracle';
-import { num } from '@/helpers/num';
+import { num, shiftDigits } from '@/helpers/num';
 import { colors } from '@/config/defaults';
 import useManagedAction from './hooks/useManagedMarket';
 import { useRouter } from 'next/router';
@@ -24,9 +24,11 @@ const ManagedMarketAction = ({
     //Get market details
     const { data: market } = useManagedMarket(marketAddress, collateralAsset?.base || "");
     const { data: config } = useManagedConfig(marketAddress);
-    //Get asset price
-    const { data: prices } = useOraclePrice();
-    const collateralPrice = prices?.find(p => p.denom === collateralAsset?.base)?.price;
+    //Get collateral price
+    const { data: collateralPriceData } = useMarketCollateralPrice(marketAddress, collateralAsset?.base || "");
+    const { data: debtPriceData } = useMarketDebtPrice(marketAddress);
+    const collateralPrice = collateralPriceData?.price || 0;
+    const debtPrice = debtPriceData?.price || 0;
     // Get asset details and balance
     // (Assume assets array is available or fetched elsewhere, or use placeholder)
     // const assetDetails = useAssetByDenom(asset.base, 'osmosis', assets)
@@ -124,21 +126,26 @@ const ManagedMarketAction = ({
     console.log("borrowAndBoost", borrowAndBoost.tx.error, borrowAndBoost.simulate.error, borrowAndBoost.simulate.errorMessage);
 
     // --- Calculations for LTV, Liquidation Price, Health ---
-    const safeDebtAmount = debtAmount || '0';
+    const safeDebtAmountTokens = shiftDigits(debtAmount, -6).toString() || '0';
     const safeCollateralAmount = managedActionState.collateralAmount || '0';
-    const safeMaxLTV = isNaN(maxLTV) ? 0.67 : maxLTV;
+    const safeMaxLTV = isNaN(maxLTV) ? 0 : maxLTV;
     const safeCollateralPrice = collateralPrice || 0;
-    const collateralValue = num(safeCollateralAmount).times(safeCollateralPrice);
-    const ltv = safeDebtAmount && collateralValue.gt(0)
-        ? num(safeDebtAmount).div(collateralValue).toNumber()
+    const safeDebtPrice = debtPrice || 0;
+    const collateralValue = num(safeCollateralAmount).times(safeCollateralPrice); // USD value
+    const debtValue = num(safeDebtAmountTokens).times(safeDebtPrice); // USD value
+    const ltv = debtValue && collateralValue.gt(0)
+        ? debtValue.div(collateralValue).toNumber()
         : 0;
-    const liquidationPrice = (safeDebtAmount && safeCollateralAmount && safeMaxLTV)
-        ? num(safeDebtAmount).div(num(safeCollateralAmount).times(safeMaxLTV)).toNumber()
+    // Liquidation price: price of collateral that would cause LTV to reach maxLTV
+    // LTV = DebtValue / (CollateralAmount * CollateralPrice) = maxLTV
+    // => CollateralPrice = DebtValue / (CollateralAmount * maxLTV)
+    const liquidationPrice = (debtValue.gt(0) && safeCollateralAmount && safeMaxLTV)
+        ? debtValue.div(num(safeCollateralAmount).times(safeMaxLTV)).toNumber()
         : 0;
     const health = (ltv && safeMaxLTV)
         ? 1 - (ltv / safeMaxLTV)
         : 1;
-
+    ///////////
     return (
         <VStack w="fit-content" spacing={6} align="center" mt={8}>
             <Tabs

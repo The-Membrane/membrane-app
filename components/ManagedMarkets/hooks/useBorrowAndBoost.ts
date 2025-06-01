@@ -155,7 +155,7 @@ const useBorrowAndBoost = ({
                       send_to: undefined,
                     }]
                   : null,
-                collateral_value_fee_to_executor: feeToExecutor.toString(),
+                collateral_value_fee_to_executor: feeToExecutor.toFixed(2),
               },
             })
           ),

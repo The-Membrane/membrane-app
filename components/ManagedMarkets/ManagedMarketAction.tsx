@@ -12,7 +12,6 @@ import useBorrowAndBoost from './hooks/useBorrowAndBoost';
 import ConfirmModal from '@/components/ConfirmModal/ConfirmModal';
 import ManagedMarketSummary from '@/components/ManagedMarkets/ManagedMarketSummary';
 
-const STICKY_THRESHOLD = 0.05;
 
 // Props: action, marketAddress, collateralSymbol
 const ManagedMarketAction = ({
@@ -50,6 +49,8 @@ const ManagedMarketAction = ({
     // Calculate max multiplier
     const maxLTV = parseFloat(market?.[0]?.collateral_params?.max_borrow_LTV || '0.67');
     const maxMultiplier = useMemo(() => 1 / (1 - maxLTV), [maxLTV]);
+
+    const STICKY_THRESHOLD = (maxMultiplier - 1) * 0.1;
 
     // Sticky points for slider
     const stickyPoints = [1, 1 + (maxMultiplier - 1) * 0.25, 1 + (maxMultiplier - 1) * 0.5, 1 + (maxMultiplier - 1) * 0.75, maxMultiplier];

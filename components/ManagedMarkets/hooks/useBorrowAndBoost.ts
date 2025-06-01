@@ -63,7 +63,7 @@ const useBorrowAndBoost = ({
       // Collateral value in USD
       const collateralValue = num(managedActionState.collateralAmount).times(collateralPriceData.price);
       // Borrow amount in debt token units
-      const borrowAmount = collateralValue.times(loopLTV).div(debtPriceData.price);
+      const borrowAmount = shiftDigits(collateralValue.times(loopLTV).div(debtPriceData.price).toString(), 6).toString();
 
       // Collateral value fee to executor: min($1, 1% of collateral value)
       const feeToExecutor = BigNumber.min(new BigNumber(1), collateralValue.times(0.01));
@@ -79,12 +79,12 @@ const useBorrowAndBoost = ({
       if (managedActionState.takeProfit) {
         const tpPrice = num(managedActionState.takeProfit);
         // LTV = (debt_price * debt_amount) / (tpPrice * collateralAmount)
-        takeProfitLTV = borrowAmountValue.times(currentDebtPrice).div(tpPrice.times(collateralAmount)).toString();
+        takeProfitLTV = num(borrowAmountValue).times(currentDebtPrice).div(tpPrice.times(collateralAmount)).toString();
       }
       if (managedActionState.stopLoss) {
         const slPrice = num(managedActionState.stopLoss);
         // LTV = (debt_price * debt_amount) / (slPrice * collateralAmount)
-        stopLossLTV = borrowAmountValue.times(currentDebtPrice).div(slPrice.times(collateralAmount)).toString();
+        stopLossLTV = num(borrowAmountValue).times(currentDebtPrice).div(slPrice.times(collateralAmount)).toString();
       }
 
       // Prepare Deposit message
@@ -118,7 +118,7 @@ const useBorrowAndBoost = ({
                 collateral_denom: collateralDenom,
                 send_to: undefined,
                 borrow_amount: {
-                  amount: borrowAmount.integerValue().toString(),
+                  amount: borrowAmount.toString(),
                   ltv: undefined,
                 },
               },
@@ -127,7 +127,7 @@ const useBorrowAndBoost = ({
           funds: [],
         }),
       };
-      console.log("borrowAmount", borrowAmount.integerValue().toString());
+      console.log("borrowAmount", borrowAmount.toString());
 
       // Prepare EditUXBoosts message
       const editUXBoostsMsg: MsgExecuteContractEncodeObject = {

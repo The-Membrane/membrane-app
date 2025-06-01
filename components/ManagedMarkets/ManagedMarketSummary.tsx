@@ -12,11 +12,13 @@ interface ManagedMarketSummaryProps {
   managedActionState: ManagedActionState;
   borrowAndBoost: any; // TODO: type this more specifically if possible
   collateralAsset: any; // TODO: type this more specifically if possible
+  debtAmount: string | undefined;
 }
 
-const ManagedMarketSummary: React.FC<ManagedMarketSummaryProps> = ({ managedActionState, borrowAndBoost, collateralAsset }) => {
+const ManagedMarketSummary: React.FC<ManagedMarketSummaryProps> = ({ managedActionState, borrowAndBoost, collateralAsset, debtAmount }) => {
   const { collateralAmount, multiplier, takeProfit, stopLoss } = managedActionState;
   const msgs = borrowAndBoost?.data?.msgs || [];
+
 
   return (
     <Stack spacing={4} w="full" p={2}>
@@ -31,7 +33,7 @@ const ManagedMarketSummary: React.FC<ManagedMarketSummaryProps> = ({ managedActi
       </HStack>
       <HStack justifyContent="space-between">
         <Text>Multiplier </Text>
-        <Text>{multiplier}x</Text>
+        <Text>{multiplier.toFixed(2)}x</Text>
       </HStack>
       {takeProfit && (
         <HStack justifyContent="space-between">
@@ -50,7 +52,11 @@ const ManagedMarketSummary: React.FC<ManagedMarketSummaryProps> = ({ managedActi
         <Stack spacing={2} fontSize="xs">
           {msgs.map((msg: any, i: number) => (
             <Box key={i} bg="gray.800" p={2} borderRadius="md" overflowX="auto">
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(msg.value, null, 2)}</pre>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{collateralAmount}</pre>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{multiplier}</pre>
+              {debtAmount && <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{debtAmount}</pre>}
+              {takeProfit && <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{takeProfit}</pre>}
+              {stopLoss && <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{stopLoss}</pre>}
             </Box>
           ))}
         </Stack>

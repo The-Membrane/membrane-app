@@ -31,7 +31,8 @@ const useBorrowAndBoost = ({
   const { setManagedActionState } = useManagedAction();
 
   type QueryData = {
-    msgs: MsgExecuteContractEncodeObject[]
+    msgs: MsgExecuteContractEncodeObject[],
+    debtAmount: string,
   }
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
@@ -55,7 +56,7 @@ const useBorrowAndBoost = ({
         !managedActionState.collateralAmount ||
         !managedActionState.multiplier
       ) {
-        return { msgs: [] };
+        return { msgs: [], debtAmount: '0' };
       }
 
       // Calculate LTV from multiplier: multiplier = 1 / (1 - LTV) => LTV = 1 - 1/multiplier
@@ -163,7 +164,7 @@ const useBorrowAndBoost = ({
         }),
       };
 
-      return { msgs: [depositMsg, borrowMsg, editUXBoostsMsg] };
+      return { msgs: [depositMsg, borrowMsg, editUXBoostsMsg], debtAmount: borrowAmount };
     },
     enabled: !!address && !!marketParams && !!collateralPriceData?.price && !!debtPriceData?.price && !!managedActionState.collateralAmount && !!managedActionState.multiplier && run,
   });
@@ -171,6 +172,7 @@ const useBorrowAndBoost = ({
 
 
   const msgs = queryData?.msgs ?? []
+  const debtAmount = queryData?.debtAmount ?? '0'
 
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
@@ -191,7 +193,8 @@ const useBorrowAndBoost = ({
       queryKey: ['borrowAndBoost_msgs', (msgs?.toString() ?? "0")],
       onSuccess: onInitialSuccess,
       enabled: !!msgs?.length,
-    })
+    }),
+    debtAmount,
   }
 };
 

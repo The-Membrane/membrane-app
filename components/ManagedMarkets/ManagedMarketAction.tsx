@@ -113,7 +113,7 @@ const ManagedMarketAction = ({
     };
 
     // Add useBorrowAndBoost for Multiply action
-    const { action: borrowAndBoost } = useBorrowAndBoost({
+    const { action: borrowAndBoost, debtAmount } = useBorrowAndBoost({
         marketContract: marketAddress,
         collateralDenom: collateralAsset?.base || '',
         managedActionState,
@@ -122,6 +122,22 @@ const ManagedMarketAction = ({
 
     //Log borrowAndBoost errors
     console.log("borrowAndBoost", borrowAndBoost.tx.error, borrowAndBoost.simulate.error, borrowAndBoost.simulate.errorMessage);
+
+    // --- Calculations for LTV, Liquidation Price, Health ---
+    const safeDebtAmount = debtAmount || '0';
+    const safeCollateralAmount = managedActionState.collateralAmount || '0';
+    const safeMaxLTV = isNaN(maxLTV) ? 0.67 : maxLTV;
+    const safeCollateralPrice = collateralPrice || 0;
+    const collateralValue = num(safeCollateralAmount).times(safeCollateralPrice);
+    const ltv = safeDebtAmount && collateralValue.gt(0)
+        ? num(safeDebtAmount).div(collateralValue).toNumber()
+        : 0;
+    const liquidationPrice = (safeDebtAmount && safeCollateralAmount && safeMaxLTV)
+        ? num(safeDebtAmount).div(num(safeCollateralAmount).times(safeMaxLTV)).toNumber()
+        : 0;
+    const health = (ltv && safeMaxLTV)
+        ? 1 - (ltv / safeMaxLTV)
+        : 1;
 
     return (
         <VStack w="fit-content" spacing={6} align="center" mt={8}>
@@ -406,15 +422,21 @@ const ManagedMarketAction = ({
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Liquidation price</Text>
-                                            <Text color="white" fontWeight="bold">-</Text>
+                                            <Text color="white" fontWeight="bold">
+                                                {liquidationPrice ? `$${num(liquidationPrice).toFixed(2)}` : '-'}
+                                            </Text>
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Your LTV (LLTV)</Text>
-                                            <Text color="white" fontWeight="bold">-</Text>
+                                            <Text color="white" fontWeight="bold">
+                                                {ltv ? `${(ltv * 100).toFixed(2)}%` : '-'}
+                                            </Text>
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Your health</Text>
-                                            <Text color="white" fontWeight="bold">-</Text>
+                                            <Text color="white" fontWeight="bold">
+                                                {health !== undefined && health !== null ? `${(health * 100).toFixed(0)}%` : '-'}
+                                            </Text>
                                         </HStack>
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Your Take Profit</Text>
@@ -436,7 +458,7 @@ const ManagedMarketAction = ({
                                     action={borrowAndBoost}
                                     isDisabled={!managedActionState.collateralAmount || !managedActionState.multiplier || Number(managedActionState.collateralAmount) <= 0 || managedActionState.multiplier < 1.01}
                                 >
-                                    <ManagedMarketSummary managedActionState={managedActionState} borrowAndBoost={borrowAndBoost} collateralAsset={collateralAsset} />
+                                    <ManagedMarketSummary managedActionState={managedActionState} borrowAndBoost={borrowAndBoost} collateralAsset={collateralAsset} debtAmount={debtAmount} />
                                 </ConfirmModal>
                             </VStack>
                         </Card>

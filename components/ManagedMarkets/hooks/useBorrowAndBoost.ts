@@ -127,6 +127,7 @@ const useBorrowAndBoost = ({
           funds: [],
         }),
       };
+      console.log("borrowAmount", borrowAmount.integerValue().toString());
 
       // Prepare EditUXBoosts message
       const editUXBoostsMsg: MsgExecuteContractEncodeObject = {

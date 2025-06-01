@@ -95,10 +95,7 @@ const useBorrowAndBoost = ({
           contract: marketContract,
           msg: toUtf8(
             JSON.stringify({
-              supply_collateral: {
-                collateral_denom: collateralDenom,
-                send_to: undefined,
-              }})
+              supply_collateral: { }})
           ),
           funds: [
             {

@@ -119,6 +119,9 @@ const ManagedMarketAction = ({
         run: selectedTab === 0, // Only run for Multiply tab
     });
 
+    //Log borrowAndBoost errors
+    console.log("borrowAndBoost", borrowAndBoost.tx.error, borrowAndBoost.simulate.error, borrowAndBoost.simulate.errorMessage);
+
     return (
         <VStack w="fit-content" spacing={6} align="center" mt={8}>
             <Tabs

@@ -433,7 +433,7 @@ const ManagedMarketAction = ({
                                 <ConfirmModal
                                     label={actionLabels[selectedTab].toUpperCase()}
                                     action={borrowAndBoost}
-                                    isDisabled={!managedActionState.collateralAmount || !managedActionState.multiplier || Number(managedActionState.collateralAmount) <= 0 || managedActionState.multiplier < 1}
+                                    isDisabled={!managedActionState.collateralAmount || !managedActionState.multiplier || Number(managedActionState.collateralAmount) <= 0 || managedActionState.multiplier < 1.01}
                                 >
                                     <ManagedMarketSummary managedActionState={managedActionState} borrowAndBoost={borrowAndBoost} collateralAsset={collateralAsset} />
                                 </ConfirmModal>

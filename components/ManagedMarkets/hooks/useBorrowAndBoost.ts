@@ -64,7 +64,7 @@ const useBorrowAndBoost = ({
       const collateralValue = num(managedActionState.collateralAmount).times(collateralPriceData.price);
       console.log("collateralValue", collateralValue.toString(), managedActionState.collateralAmount, collateralPriceData.price);
       // Borrow amount in debt token units
-      const borrowAmount = shiftDigits(collateralValue.times(loopLTV).div(debtPriceData.price).toString(), 6).toString();
+      const borrowAmount = shiftDigits(collateralValue.times(loopLTV).div(debtPriceData.price).toString(), 6).toFixed(0);
 
       // Collateral value fee to executor: min($1, 1% of collateral value)
       const feeToExecutor = BigNumber.min(new BigNumber(1), collateralValue.times(0.01));
@@ -101,7 +101,7 @@ const useBorrowAndBoost = ({
           funds: [
             {
               denom: collateralDenom,
-              amount: shiftDigits(managedActionState.collateralAmount, 6).toString(),
+              amount: shiftDigits(managedActionState.collateralAmount, 6).toFixed(0),
             },
           ],
         }),

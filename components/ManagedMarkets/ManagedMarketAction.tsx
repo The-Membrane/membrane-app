@@ -429,7 +429,7 @@ const ManagedMarketAction = ({
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Debt</Text>
                                             <Text color="white" fontWeight="bold">
-                                                {debtAmount ? `$${num(shiftDigits(debtAmount, -6)).times(debtPrice).toFixed(2)}` : '-'}
+                                                {debtAmount && Number(debtAmount) > 0 ? `$${num(shiftDigits(debtAmount, -6)).times(debtPrice).toFixed(2)}` : '-'}
                                             </Text>
                                         </HStack>
                                         

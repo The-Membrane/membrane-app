@@ -225,7 +225,7 @@ const ManagedMarketAction = ({
                                                 _hover={{ textDecoration: 'underline', color: 'blue.300' }}
                                                 onClick={() => setManagedActionState({ collateralAmount: maxBalance.toString() })}
                                             >
-                                                Wallet 0
+                                                Wallet {num(maxBalance).toFixed(2)}
                                             </Text>
                                         </VStack>
                                     </HStack>

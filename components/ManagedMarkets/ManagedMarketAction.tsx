@@ -48,8 +48,7 @@ const ManagedMarketAction = ({
     const maxBalance = useBalanceByAsset(collateralAsset);
 
     // Calculate max multiplier
-    //@ts-ignore
-    const maxLTV = parseFloat(market?.[0].collateral_params?.max_borrow_LTV);
+    const maxLTV = parseFloat(market?.[0]?.collateral_params?.max_borrow_LTV || '0.67');
     const maxMultiplier = useMemo(() => 1 / (1 - maxLTV), [maxLTV]);
 
     // Sticky points for slider

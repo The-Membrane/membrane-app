@@ -10,6 +10,7 @@ interface Oracle {
     methodology?: string;
     checks?: string;
     dashboardUrl?: string;
+    poolId?: string | number;
 }
 
 interface InterestRateModelProps {
@@ -64,7 +65,13 @@ const OracleRow: React.FC<{ oracles?: Oracle[] }> = ({ oracles }) => (
             oracles.map((oracle, idx) => (
                 <React.Fragment key={oracle.name + idx}>
                     <Tooltip label={oracle.name}>
-                        <Image src={oracle.logo} alt={oracle.name} boxSize="32px" borderRadius="full" bg="#232A3E" />
+                        {oracle.poolId ? (
+                            <a href={`https://app.osmosis.zone/pool/${oracle.poolId}`} target="_blank" rel="noopener noreferrer">
+                                <Image src={oracle.logo} alt={oracle.name} boxSize="32px" borderRadius="full" bg="#232A3E" />
+                            </a>
+                        ) : (
+                            <Image src={oracle.logo} alt={oracle.name} boxSize="32px" borderRadius="full" bg="#232A3E" />
+                        )}
                     </Tooltip>
                     {idx < oracles.length - 1 && (
                         <Text color="whiteAlpha.600" fontWeight="bold" fontSize="xl">→</Text>

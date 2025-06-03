@@ -148,18 +148,18 @@ const useBorrowAndBoost = ({
                 collateral_denom: collateralDenom,
                 loop_ltv: loopLTV ? loopLTV.toString() : undefined,
                 take_profit_params: takeProfitLTV
-                  ? [{
+                  ? {
                       ltv: takeProfitLTV,
                       percent_to_close: '1',
                       send_to: undefined,
-                    }]
+                    }
                   : null,
                 stop_loss_params: stopLossLTV
-                  ? [{
+                  ? {
                       ltv: stopLossLTV,
                       percent_to_close: '1',
                       send_to: undefined,
-                    }]
+                    }
                   : null,
                 collateral_value_fee_to_executor: feeToExecutor.toFixed(2),
               },

@@ -128,6 +128,7 @@ const ManagedMarketPage: React.FC = () => {
                 name: baseAsset?.symbol || pool.base_asset_denom,
                 logo: baseAsset?.logo || '',
                 marketAddress: pool.base_asset_denom,
+                poolId: pool.pool_id,
             });
             // If last pool, also show quote asset logo
             if (isLast) {
@@ -136,11 +137,12 @@ const ManagedMarketPage: React.FC = () => {
                     name: quoteAsset?.symbol || pool.quote_asset_denom,
                     logo: quoteAsset?.logo || '',
                     marketAddress: pool.quote_asset_denom,
+                    poolId: pool.pool_id,
                 });
             }
         }
     }
-    console.log('oracles', oracles);
+    // console.log('oracles', oracles);
     // Interest Rate Model
     const interestRateModelProps = tab === 'debt' && params?.[0]?.rate_params ? {
         baseRate: params[0].rate_params.base_rate ?? '—',

@@ -242,8 +242,6 @@ import useManagerState, { UpdateOverallMarket } from './hooks/useManagerState';
 import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
 import { useState } from 'react';
-import Select from '../Select';
-import { on } from 'events';
 import { useAssetBySymbol } from '@/hooks/useAssets';
 
 export function WhitelistedAddressInput({
@@ -521,11 +519,12 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
       <CardHeader>
         <FormControl>
           <FormLabel>Collateral</FormLabel>
-          <Select
-            value={selectedCollateral}
-            onChange={(e) => setSelectedCollateral(e.target.value)}
-            options={options}
-          />
+          <select value={selectedCollateral.value} onChange={e => {
+            const opt = options.find(o => o.value === e.target.value);
+            if (opt) setSelectedCollateral(opt);
+          }}>
+            {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
         </FormControl>
       </CardHeader>
 
@@ -582,9 +581,11 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
   );
 }
 
+interface ManagePageProps {
+  marketAddress?: string;
+}
 
-export default function ManagePage() {
-
+const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
   const handleEditCollateral = () => {
     console.log('Swapping to edit collateral view...');
     // You can implement the view swap here
@@ -599,22 +600,14 @@ export default function ManagePage() {
     { label: 'USDC', value: 'USDC' },
     { label: 'WSTUSR', value: 'WSTUSR' },
     { label: 'wM', value: 'wM' },
-  ]
-
-  const asset = useAssetBySymbol(options[0].label ?? '')
-  if (asset) {
-    setData((prev) => ({
-      ...prev,
-      collateral_denom: asset.base,
-    }));
-  }
+  ];
 
   const defaultUpdateOverallMarket: UpdateOverallMarket = {
     pause_actions: false,
     manager_fee: '',
     whitelisted_debt_suppliers: [],
     debt_supply_cap: '',
-    per_user_debt_cap: ''
+    per_user_debt_cap: '',
   };
 
   return (
@@ -629,12 +622,12 @@ export default function ManagePage() {
       <Box p={8}>
         <CollateralCard
           options={options}
-          initialData={
-            { collateral_denom: asset?.base ?? '' }
-          }
+          initialData={{ collateral_denom: options[0].value }}
           onEditMarket={handleEditMarket}
         />
       </Box>
     </HStack>
   );
-}
+};
+
+export default ManagePage;

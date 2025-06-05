@@ -1,6 +1,8 @@
 import React from 'react';
-import { Box, Text, VStack, HStack, Divider, Image, Tooltip, Flex, Stack } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, Divider, Image, Tooltip, Flex, Stack, Button } from '@chakra-ui/react';
 import { colors } from '@/config/defaults';
+import { useRouter } from 'next/router';
+import useWallet from '@/hooks/useWallet';
 
 // Types for props
 interface Oracle {
@@ -106,6 +108,9 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
     owner,
     interestRateModelProps,
 }) => {
+    const { address: walletAddress } = useWallet();
+    const router = useRouter();
+    const isManager = owner && walletAddress && owner.toLowerCase() === walletAddress.toLowerCase();
     return (
         <VStack align="stretch" spacing={6} w="100%" maxW="420px" minW="320px">
             {/* Top line */}
@@ -147,6 +152,16 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                     </Text>
                 </VStack>
             </Box>
+            {/* Manager-only button */}
+            {isManager && address && (
+                <Button
+                    colorScheme="blue"
+                    mt={4}
+                    onClick={() => router.push(`/managed/${address}`)}
+                >
+                    Manage Market
+                </Button>
+            )}
         </VStack>
     );
 };

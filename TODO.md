@@ -4,6 +4,8 @@ Next Steps:
 - Test the contract
 - Create Lend Tab & state save for lending
 
+- If liquidations error with our "False positive" parse, remove that position from the liquidation execution. This will require us to sim each liquidation separately or randomize which one gets removed to test.
+
 
 
 

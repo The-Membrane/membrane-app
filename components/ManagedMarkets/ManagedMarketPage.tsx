@@ -10,6 +10,7 @@ import { getAssetByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
 import { useBalanceByAsset } from '@/hooks/useBalance';
 import ManagePage from './ManagePage';
+import { getMarketName } from '@/services/managed';
 
 const ManagedMarketPage: React.FC = () => {
     const router = useRouter();
@@ -37,15 +38,8 @@ const ManagedMarketPage: React.FC = () => {
     const asset = useAssetBySymbol(collateralSymbol, chainName);
     const logo = asset?.logo || '';
     const symbol = asset?.symbol || collateralSymbol;
-    // Memoize allMarkets and marketName
-    const allMarkets = useAllMarkets();
-    const marketName = useMemo(() => {
-        if (allMarkets && marketAddress) {
-            const found = allMarkets.find((m: any) => m.address === marketAddress);
-            if (found) return found.name;
-        }
-        return 'Unnamed Market';
-    }, [allMarkets, marketAddress]);
+    // Get market name
+    const marketName = getMarketName(marketAddress as string);
 
     // Determine tab type from actionType (default to 'collateral')
     const tab = actionType === 'lend' ? 'debt' : 'collateral';

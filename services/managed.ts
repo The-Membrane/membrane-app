@@ -12,6 +12,8 @@ import { ManagedConfig, MarketConfig, MarketData, MarketParams } from '@/compone
 import { IntentResponse } from './earn'
 import { start } from 'repl'
 import { PriceResponse } from '@/contracts/codegen/oracle/Oracle.types'
+import { useAllMarkets } from '@/hooks/useManaged'
+import { useMemo } from 'react'
 
 export const getManagers = async (cosmWasmClient: any) => {
     return cosmWasmClient.queryContractSmart(contracts.marketManager, {
@@ -55,6 +57,26 @@ export const getManagedMarkets = async (cosmWasmClient: any, manager: string) =>
 }
 
 ////////// 
+
+//Get market name from address
+export const getMarketName = (marketAddress: string) => {
+
+    const allMarkets = useAllMarkets();
+    const marketName = useMemo(() => {
+        if (allMarkets && marketAddress) {
+            const found = allMarkets.find((m: any) => m.address === marketAddress);
+            if (found) return found.name;
+        }
+        return 'Unnamed Market';
+    }, [allMarkets, marketAddress]);
+
+    return marketName
+}
+export const getMarketCollateralDenoms = async (cosmWasmClient: any, marketContract: string) => {
+    return cosmWasmClient.queryContractSmart(marketContract, {
+        get_collateral_assets: {}
+    }) as Promise<string[]>
+}
 
 
 export const getMarketCollateralPrice = async (cosmWasmClient: any, marketContract: string, collateral_denom: string) => {

@@ -243,6 +243,11 @@ import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
 import { useState } from 'react';
 import { useAssetBySymbol } from '@/hooks/useAssets';
+import { useManagedConfig, useManagedMarket, useMarketCollateralDenoms } from '@/hooks/useManaged';
+import useAssets, { useAssetByDenom } from '@/hooks/useAssets';
+import { useRouter } from 'next/router';
+import { DEFAULT_CHAIN } from '@/config/chains';
+import { getMarketName } from '@/services/managed';
 
 export function WhitelistedAddressInput({
   value,
@@ -586,6 +591,8 @@ interface ManagePageProps {
 }
 
 const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
+  const router = useRouter();
+  const chainName = router.query.chainName as string || DEFAULT_CHAIN;
   const handleEditCollateral = () => {
     console.log('Swapping to edit collateral view...');
     // You can implement the view swap here
@@ -595,12 +602,23 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
     // You can implement the view swap here
   };
 
-  const options: Option[] = [
-    { label: 'RLP', value: 'RLP' },
-    { label: 'USDC', value: 'USDC' },
-    { label: 'WSTUSR', value: 'WSTUSR' },
-    { label: 'wM', value: 'wM' },
-  ];
+  // Get market name
+  const marketName = getMarketName(marketAddress as string);
+  
+  // Fetch all assets for the selected chain
+  const assets = useAssets(chainName);
+  // Fetch supported collateral denoms for this market
+  const { data: collateralDenoms } = useMarketCollateralDenoms(marketAddress || '');
+
+  // Map denoms to asset info for options
+  const collateralOptions = useMemo(() => {
+    if (!assets || !collateralDenoms) return [];
+    return collateralDenoms.map(denom => {
+      const asset = assets.find(a => a.base === denom);
+      return asset ? { label: asset.symbol, value: asset.base } : { label: denom, value: denom };
+    });
+  }, [assets, collateralDenoms]);
+
 
   const defaultUpdateOverallMarket: UpdateOverallMarket = {
     pause_actions: false,
@@ -614,15 +632,15 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
     <HStack spacing={4} direction="row" align="stretch">
       <Box p={8}>
         <MarketCard
-          title="CULTivate"
+          title={marketName}
           initialData={defaultUpdateOverallMarket}
           onEditCollateral={handleEditCollateral}
         />
       </Box>
       <Box p={8}>
         <CollateralCard
-          options={options}
-          initialData={{ collateral_denom: options[0].value }}
+          options={collateralOptions}
+          initialData={{ collateral_denom: collateralOptions[0]?.value || '' }}
           onEditMarket={handleEditMarket}
         />
       </Box>

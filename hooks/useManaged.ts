@@ -11,7 +11,7 @@ import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
 import { useChainRoute } from './useChainRoute'
 import React from 'react'
-import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralPrice, getMarketDebtPrice } from '@/services/managed'
+import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice } from '@/services/managed'
 
 export const useManagers = () => {
     const { data: client } = useCosmWasmClient()
@@ -67,6 +67,19 @@ export const useManagedMarket = (marketContract: string, collateral_denom: strin
         queryFn: async () => {
             if (!client) return
             return getManagedMarket(client, marketContract, collateral_denom)
+        },
+        staleTime: 1000 * 60 * 5,
+    })
+}
+
+export const useMarketCollateralDenoms = (marketContract: string) => {
+    const { data: client } = useCosmWasmClient()
+
+    return useQuery({
+        queryKey: ['managed_market_collateral_denoms', client, marketContract],
+        queryFn: async () => {
+            if (!client) return
+            return getMarketCollateralDenoms(client, marketContract)
         },
         staleTime: 1000 * 60 * 5,
     })

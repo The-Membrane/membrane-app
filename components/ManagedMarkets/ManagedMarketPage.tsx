@@ -9,6 +9,7 @@ import { Formatter } from '@/helpers/formatter';
 import { getAssetByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
 import { useBalanceByAsset } from '@/hooks/useBalance';
+import ManagePage from './ManagePage';
 
 const ManagedMarketPage: React.FC = () => {
     const router = useRouter();
@@ -185,6 +186,7 @@ const ManagedMarketPage: React.FC = () => {
                     </HStack>
                 </Flex>
                 <ManagedMarketInfo {...infoProps} />
+                <ManagePage marketAddress={marketAddress as string} />
             </VStack>
             <ManagedMarketAction marketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />
         </HStack>

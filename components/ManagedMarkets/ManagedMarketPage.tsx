@@ -187,7 +187,24 @@ const ManagedMarketPage: React.FC = () => {
                 <ManagedMarketInfo {...infoProps} />
                 {/* If user is the owner, show a button that sends the user to the ManagePage */}
                 {config?.owner === address && 
-                <Button onClick={() => router.push(`${chainName}/managed/${marketAddress}/manage`)}>Manage</Button>
+                 <Button 
+                    onClick={() => {
+                        const asPath = router.asPath;
+                        let newPath;
+                        if (asPath.endsWith('/manage')) {
+                            newPath = asPath;
+                        } else if (asPath.match(/\/[^/]+$/)) {
+                            // Replace last segment with 'manage'
+                            newPath = asPath.replace(/\/[^/]+$/, '/manage');
+                        } else {
+                            // Append '/manage'
+                            newPath = asPath + '/manage';
+                        }
+                        router.push(newPath);
+                    }}
+                >
+                    Manage
+                </Button>
                 }
             </VStack>
             <ManagedMarketAction marketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />

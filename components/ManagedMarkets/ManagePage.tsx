@@ -499,6 +499,9 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
   const [selectedCollateral, setSelectedCollateral] = useState(options[0] || '');
 
+  // Move hook call to top level
+  const asset = useAssetBySymbol(selectedCollateral.label);
+
   const handleChange = (field: keyof UpdateCollateralParams, value: any) => {
     setData((prev) => ({ ...prev, [field]: value }));
   };
@@ -508,15 +511,13 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
   }, [initialData, data]);
 
   useEffect(() => {
-    //Find the selectedCollateral 
-    const asset = useAssetBySymbol(selectedCollateral.label)
     if (asset) {
       setData((prev) => ({
         ...prev,
         collateral_denom: asset.base,
       }));
     }
-  }, [selectedCollateral]);
+  }, [asset]);
 
 
   return (

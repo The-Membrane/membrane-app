@@ -195,7 +195,7 @@ const ManagedMarketPage: React.FC = () => {
                             newPath = asPath;
                         } else if (asPath.match(/\/[^/]+$/)) {
                             // Replace last segment with 'manage'
-                            newPath = asPath.replace(/\/[^/]+$/, '/manage');
+                            newPath = asPath.replace(/\/[^/]+\/[^/]+$/, '/manage');
                         } else {
                             // Append '/manage'
                             newPath = asPath + '/manage';

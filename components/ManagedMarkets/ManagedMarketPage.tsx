@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useRouter } from 'next/router';
-import { HStack, Box, Spinner, Flex, Text, Image, VStack } from '@chakra-ui/react';
+import { HStack, Box, Spinner, Flex, Text, Image, VStack, Button } from '@chakra-ui/react';
 import ManagedMarketInfo from './ManagedMarketInfo';
 import ManagedMarketAction from './ManagedMarketAction';
 import { useAssetBySymbol } from '@/hooks/useAssets';
@@ -11,8 +11,10 @@ import { shiftDigits } from '@/helpers/math';
 import { useBalanceByAsset } from '@/hooks/useBalance';
 import ManagePage from './ManagePage';
 import { getMarketName } from '@/services/managed';
+import useWallet from '@/hooks/useWallet';
 
 const ManagedMarketPage: React.FC = () => {
+    const { address } = useWallet();
     const router = useRouter();
     const { marketAddress, action } = router.query;
     //Get chain name from route
@@ -21,6 +23,11 @@ const ManagedMarketPage: React.FC = () => {
     // Wait for router to be ready
     if (!router.isReady) {
         return <Spinner size="xl" />;
+    }
+
+    // If no action, show ManagePage
+    if (!action || (Array.isArray(action) && action.length === 0)) {
+        return <ManagePage marketAddress={marketAddress as string} />;
     }
 
     // Extract collateral symbol and action type from action param (if array)
@@ -180,7 +187,10 @@ const ManagedMarketPage: React.FC = () => {
                     </HStack>
                 </Flex>
                 <ManagedMarketInfo {...infoProps} />
-                <ManagePage marketAddress={marketAddress as string} />
+                {/* If user is the owner, show a button that sends the user to the ManagePage */}
+                {config?.owner === address && 
+                <Button onClick={() => router.push(`${router.asPath}/managed/${marketAddress}`)}>Manage</Button>
+                }
             </VStack>
             <ManagedMarketAction marketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />
         </HStack>

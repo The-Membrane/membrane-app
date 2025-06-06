@@ -129,7 +129,6 @@ const ManagedMarketPage: React.FC = () => {
             oracles.push({
                 name: baseAsset?.symbol || pool.base_asset_denom,
                 logo: baseAsset?.logo || '',
-                marketAddress: pool.base_asset_denom,
                 poolId: pool.pool_id,
             });
             // If last pool, also show quote asset logo
@@ -138,7 +137,6 @@ const ManagedMarketPage: React.FC = () => {
                 oracles.push({
                     name: quoteAsset?.symbol || pool.quote_asset_denom,
                     logo: quoteAsset?.logo || '',
-                    marketAddress: pool.quote_asset_denom,
                     poolId: pool.pool_id,
                 });
             }
@@ -165,7 +163,7 @@ const ManagedMarketPage: React.FC = () => {
         borrowAPY,
         maxCollateralLiquidatibility,
         oracles,
-        marketAddress: marketAddress,
+        marketAddress: marketAddress as string,
         owner: config?.owner,
         interestRateModelProps,
         logo,

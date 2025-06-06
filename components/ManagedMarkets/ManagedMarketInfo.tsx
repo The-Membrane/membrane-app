@@ -34,7 +34,7 @@ interface ManagedMarketInfoProps {
     borrowAPY?: string | number;
     maxCollateralLiquidatibility?: string | number;
     oracles?: Oracle[];
-    address?: string;
+    marketAddress?: string;
     interestRateModelProps?: InterestRateModelProps;
     owner?: string;
 }
@@ -104,13 +104,11 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
     borrowAPY,
     maxCollateralLiquidatibility,
     oracles,
-    address,
+    marketAddress,
     owner,
     interestRateModelProps,
 }) => {
-    const { address: walletAddress } = useWallet();
-    const router = useRouter();
-    const isManager = owner && walletAddress && owner.toLowerCase() === walletAddress.toLowerCase();
+    console.log("market address", marketAddress);
     return (
         <VStack align="stretch" spacing={6} w="100%" maxW="420px" minW="320px">
             {/* Top line */}
@@ -146,22 +144,12 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Oracle</Text>
                     <OracleRow oracles={oracles} />
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Market Address</Text>
-                    <Text color="white" fontWeight="bold">{address ?? '—'}</Text>
+                    <Text color="white" fontWeight="bold">{marketAddress ?? '—'}</Text>
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Managed by</Text>
                     <Text color="white" fontWeight="bold">{owner ? owner : "-"}
                     </Text>
                 </VStack>
             </Box>
-            {/* Manager-only button */}
-            {isManager && address && (
-                <Button
-                    colorScheme="blue"
-                    mt={4}
-                    onClick={() => router.push(`/managed/${address}`)}
-                >
-                    Manage Market
-                </Button>
-            )}
         </VStack>
     );
 };

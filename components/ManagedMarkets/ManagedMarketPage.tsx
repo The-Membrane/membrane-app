@@ -25,6 +25,11 @@ const ManagedMarketPage: React.FC = () => {
         return <Spinner size="xl" />;
     }
 
+    // If action is manage, show ManagePage
+    if (action === 'manage') {
+        return <ManagePage marketAddress={marketAddress as string} />;
+    }
+
     // Extract collateral symbol and action type from action param (if array)
     let collateralSymbol = '';
     let actionType = '';
@@ -182,24 +187,7 @@ const ManagedMarketPage: React.FC = () => {
                 <ManagedMarketInfo {...infoProps} />
                 {/* If user is the owner, show a button that sends the user to the ManagePage */}
                 {config?.owner === address && 
-                    <Button 
-                        onClick={() => {
-                            const asPath = router.asPath;
-                            let newPath;
-                            if (asPath.endsWith('/manage')) {
-                                newPath = asPath;
-                            } else if (asPath.match(/\/[^/]+$/)) {
-                                // Replace last segment with 'manage'
-                                newPath = asPath.replace(/\/[^/]+$/, '/manage');
-                            } else {
-                                // Append '/manage'
-                                newPath = asPath + '/manage';
-                            }
-                            router.push(newPath);
-                        }}
-                    >
-                        Manage
-                    </Button>
+                <Button onClick={() => router.push(`${chainName}/managed/${marketAddress}/manage`)}>Manage</Button>
                 }
             </VStack>
             <ManagedMarketAction marketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />

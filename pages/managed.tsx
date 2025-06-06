@@ -1,8 +1,8 @@
-// import BorrowPage from '@/components/ManagedMarkets/ManagePage'
 import React from 'react'
+import ManagePage from '@/components/ManagedMarkets/ManagePage'
 
 const ManagedPage = () => {
-    // return <BorrowPage />
+    return <ManagePage />
 }
 
 export default ManagedPage

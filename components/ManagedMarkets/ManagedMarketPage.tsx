@@ -25,8 +25,8 @@ const ManagedMarketPage: React.FC = () => {
         return <Spinner size="xl" />;
     }
 
-    // If no action, show ManagePage
-    if (!action || (Array.isArray(action) && action.length === 0)) {
+    // If action is manage, show ManagePage
+    if (action === 'manage') {
         return <ManagePage marketAddress={marketAddress as string} />;
     }
 
@@ -189,7 +189,7 @@ const ManagedMarketPage: React.FC = () => {
                 <ManagedMarketInfo {...infoProps} />
                 {/* If user is the owner, show a button that sends the user to the ManagePage */}
                 {config?.owner === address && 
-                <Button onClick={() => router.push(`${router.asPath}/managed/${marketAddress}`)}>Manage</Button>
+                <Button onClick={() => router.push(`${router.asPath}/manage`)}>Manage</Button>
                 }
             </VStack>
             <ManagedMarketAction marketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />

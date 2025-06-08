@@ -29,6 +29,7 @@ const useUpdateCollateral = ({
   const { address } = useWallet();
   //Get market config
   const { data: marketParams } = useManagedMarket(marketContract, collateralDenom);
+  console.log("in action collateralDenom", collateralDenom, managerState?.updateCollateralParams?.collateral_denom);
 
   const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[]>({
     queryKey: [
@@ -39,7 +40,7 @@ const useUpdateCollateral = ({
       run,
     ],
     queryFn: async () => {
-      if (!run || !address || !managerState?.updateCollateralParams || !marketParams) {
+      if (!run || !address || !managerState?.updateCollateralParams) {
         return [];
       }
       // Clone and prepare updateCollateralParams

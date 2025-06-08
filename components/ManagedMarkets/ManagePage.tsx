@@ -700,6 +700,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
   const assets = useAssets(chainName);
   // Fetch supported collateral denoms for this market
   const { data: collateralDenoms } = useMarketCollateralDenoms(marketAddress || '');
+  console.log("collateralDenoms", collateralDenoms);
 
   // Map denoms to asset info for options
   const collateralOptions = useMemo(() => {

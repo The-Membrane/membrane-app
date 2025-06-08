@@ -497,7 +497,7 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
   const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
   console.log("options", options, options[0]);
-  const [selectedCollateral, setSelectedCollateral] = useState(options[0]);
+  const [selectedCollateral, setSelectedCollateral] = useState(options[0] || { label: '', value: '' });
 
   // Move hook call to top level
   const asset = useAssetBySymbol(selectedCollateral.label);

@@ -92,6 +92,12 @@ const InfoRow = ({ label, value, horizontal }: { label: string; value?: string |
     </Stack>
 );
 
+// Helper to truncate addresses
+const truncateAddress = (address?: string) => {
+    if (!address) return '—';
+    return address.length > 10 ? `${address.slice(0, 5)}...${address.slice(-5)}` : address;
+};
+
 const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
     tab,
     tvl,
@@ -144,10 +150,9 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Oracle</Text>
                     <OracleRow oracles={oracles} />
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Market Address</Text>
-                    <Text color="white" fontWeight="bold">{marketAddress ?? '—'}</Text>
+                    <Text color="white" fontWeight="bold">{truncateAddress(marketAddress)}</Text>
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Managed by</Text>
-                    <Text color="white" fontWeight="bold">{owner ? owner : "-"}
-                    </Text>
+                    <Text color="white" fontWeight="bold">{truncateAddress(owner)}</Text>
                 </VStack>
             </Box>
         </VStack>

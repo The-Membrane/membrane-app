@@ -502,8 +502,9 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
   const asset = useAssetBySymbol(selectedCollateral.label);
 
   // Use the update collateral action
+  console.log("selectedCollateral", selectedCollateral);
   const { action: updateCollateral } = useUpdateCollateral({
-    collateralDenom: selectedCollateral.value,
+    collateralDenom: selectedCollateral.label,
     marketContract: marketContract,
     managerState: managerState,
     run: true,

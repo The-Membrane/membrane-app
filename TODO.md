@@ -1,7 +1,10 @@
 Next Steps:
-- "Not available yet" for Strategize & Lend
-- have cursor create tests for the contract
-- Test the contract
+
+- Polish style for the old tabs
+- Fix portfolio tab
+-- Move the full Home Tab to the Portfolio
+-- Points leaderboard will be a toggle, show user stats only first
+
 - Create Lend Tab & state save for lending
 
 - If liquidations error with our "False positive" parse, remove that position from the liquidation execution. This will require us to sim each liquidation separately or randomize which one gets removed to test.

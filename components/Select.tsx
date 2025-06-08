@@ -115,15 +115,16 @@ const transparentStyles: ChakraStylesConfig = {
   })
 }
 
+type OptionType = { label: string; value: string };
 type Props = {
-  options: OptionProps<any>[]
-  onChange?: (value: any) => void
-  value?: any,
-  useTransparent?: boolean
-}
+  options: OptionType[];
+  onChange?: (value: OptionType | null) => void;
+  value?: OptionType | null;
+  useTransparent?: boolean;
+};
 
 const Select = ({ options, onChange, value, useTransparent }: Props) => {
-  if (!options) return null
+  if (!options) return null;
   return (
     <ChakraSelect
       isSearchable={false}
@@ -132,9 +133,13 @@ const Select = ({ options, onChange, value, useTransparent }: Props) => {
       defaultValue={options?.[0]}
       value={value}
       options={options}
-      onChange={onChange}
+      onChange={(newValue) => {
+        if (onChange) onChange(newValue as OptionType | null);
+      }}
+      getOptionLabel={(option) => (option as OptionType).label}
+      getOptionValue={(option) => (option as OptionType).value}
     />
-  )
-}
+  );
+};
 
 export default Select

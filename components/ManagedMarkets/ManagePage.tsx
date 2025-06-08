@@ -236,7 +236,7 @@
 
 
 import { colors } from '@/config/defaults';
-import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, HStack, Input, Select, Stack, Text } from '@chakra-ui/react';
+import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, HStack, Input, Stack, Text } from '@chakra-ui/react';
 import { useEffect, useMemo } from 'react';
 import useManagerState, { UpdateOverallMarket } from './hooks/useManagerState';
 import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
@@ -253,6 +253,7 @@ import ConfirmModal from '../ConfirmModal';
 import ManagedMarketSummary from './ManagedMarketSummary';
 import UpdateSummary from './UpdateSummary';
 import useUpdateCollateral from './hooks/useUpdateCollateral';
+import Select from '../Select';
 
 export function WhitelistedAddressInput({
   value,
@@ -482,22 +483,23 @@ export type UpdateCollateralParams = {
   debt_minimum?: string;
 };
 
-interface CollateralCardProps {
-  options: Option[];
-  initialData: UpdateCollateralParams;
-  marketContract: string;
-}
-
-interface Option {
+// Rename Option to CollateralOption to avoid type conflicts
+interface CollateralOption {
   label: string;
   value: string;
+}
+
+interface CollateralCardProps {
+  options: CollateralOption[];
+  initialData: UpdateCollateralParams;
+  marketContract: string;
 }
 
 export function CollateralCard({ options, initialData, marketContract }: CollateralCardProps) {
   const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
   // console.log("options", options, options[0]);
-  const [selectedCollateral, setSelectedCollateral] = useState(options[0] || { label: '', value: '' });
+  const [selectedCollateral, setSelectedCollateral] = useState<CollateralOption>(options[0] || { label: '', value: '' });
   
   useEffect(() => {
     if (options.length > 0) {
@@ -549,14 +551,9 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
             marginTop: "3%" 
           }}><Select 
             options={options} 
-            onChange={
-              (e) => {
-                const opt = options.find(o => o.label === e.target.value);
-                if (opt) setSelectedCollateral(opt);
-              }
-            } 
-            value={selectedCollateral.label} />
-          </div>
+            onChange={(opt: CollateralOption | null) => { if (opt) setSelectedCollateral(opt); }} 
+            value={selectedCollateral}
+          /></div>
         </FormControl>
       </CardHeader>
 

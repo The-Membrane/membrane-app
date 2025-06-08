@@ -496,14 +496,14 @@ interface Option {
 export function CollateralCard({ options, initialData, marketContract }: CollateralCardProps) {
   const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
-  console.log("options", options);
-  const [selectedCollateral, setSelectedCollateral] = useState(options[0] || '');
+  console.log("options", options, options[0]);
+  const [selectedCollateral, setSelectedCollateral] = useState(options[0]);
 
   // Move hook call to top level
   const asset = useAssetBySymbol(selectedCollateral.label);
 
   // Use the update collateral action
-  console.log("selectedCollateral", selectedCollateral);
+  console.log("selectedCollateral", selectedCollateral.value);
   const { action: updateCollateral } = useUpdateCollateral({
     collateralDenom: selectedCollateral.value,
     marketContract: marketContract,

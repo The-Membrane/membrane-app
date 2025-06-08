@@ -41,7 +41,7 @@ const useUpdateMarket = ({
           contract: marketContract,
           msg: toUtf8(
             JSON.stringify({
-              update_market: managerState.updateOverallMarket,
+              update_config: managerState.updateOverallMarket,
             })
           ),
           funds: [],

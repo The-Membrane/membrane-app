@@ -39,7 +39,7 @@ const useUpdateCollateral = ({
       run,
     ],
     queryFn: async () => {
-      if (!run || !address || !managerState?.updateCollateralParams) {
+      if (!run || !address || !managerState?.updateCollateralParams || !marketParams) {
         return [];
       }
       // Clone and prepare updateCollateralParams
@@ -82,7 +82,7 @@ const useUpdateCollateral = ({
           contract: marketContract,
           msg: toUtf8(
             JSON.stringify({
-              update_config: params,
+              update_market: params,
             })
           ),
           funds: [],

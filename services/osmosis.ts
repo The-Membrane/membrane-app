@@ -31,7 +31,6 @@ import { position } from "@chakra-ui/react";
 import { getBoundedConfig } from "./earn";
 import { useBoundedConfig } from "@/hooks/useEarnQueries";
 import useAppState from "@/persisted-state/useAppState";
-import { PoolResponse } from "osmojs/osmosis/poolmanager/v1beta1/query";
 
 
 const secondsInADay = 24 * 60 * 60;

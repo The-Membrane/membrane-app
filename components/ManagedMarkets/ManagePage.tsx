@@ -496,6 +496,7 @@ interface Option {
 export function CollateralCard({ options, initialData, marketContract }: CollateralCardProps) {
   const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
+  console.log("options", options);
   const [selectedCollateral, setSelectedCollateral] = useState(options[0] || '');
 
   // Move hook call to top level
@@ -504,7 +505,7 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
   // Use the update collateral action
   console.log("selectedCollateral", selectedCollateral);
   const { action: updateCollateral } = useUpdateCollateral({
-    collateralDenom: selectedCollateral.label,
+    collateralDenom: selectedCollateral.value,
     marketContract: marketContract,
     managerState: managerState,
     run: true,
@@ -700,7 +701,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
   const assets = useAssets(chainName);
   // Fetch supported collateral denoms for this market
   const { data: collateralDenoms } = useMarketCollateralDenoms(marketAddress || '');
-  console.log("collateralDenoms", collateralDenoms);
+  // console.log("collateralDenoms", collateralDenoms);
 
   // Map denoms to asset info for options
   const collateralOptions = useMemo(() => {

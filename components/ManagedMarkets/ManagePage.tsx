@@ -711,6 +711,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
       return asset ? { label: asset.symbol, value: asset.base } : { label: denom, value: denom };
     });
   }, [assets, collateralDenoms]);
+  console.log("collateralOptions", collateralOptions);
 
 
   const defaultUpdateOverallMarket: UpdateOverallMarket = {

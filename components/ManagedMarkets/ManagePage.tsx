@@ -236,7 +236,7 @@
 
 
 import { colors } from '@/config/defaults';
-import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, HStack, Input, Stack, Text } from '@chakra-ui/react';
+import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, HStack, Input, Select, Stack, Text } from '@chakra-ui/react';
 import { useEffect, useMemo } from 'react';
 import useManagerState, { UpdateOverallMarket } from './hooks/useManagerState';
 import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
@@ -496,7 +496,7 @@ interface Option {
 export function CollateralCard({ options, initialData, marketContract }: CollateralCardProps) {
   const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
-  console.log("options", options, options[0]);
+  // console.log("options", options, options[0]);
   const [selectedCollateral, setSelectedCollateral] = useState(options[0] || { label: '', value: '' });
   
   useEffect(() => {
@@ -508,7 +508,7 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
   const asset = useAssetBySymbol(selectedCollateral.label);
 
   // Use the update collateral action
-  console.log("selectedCollateral", selectedCollateral.value);
+  // console.log("selectedCollateral", selectedCollateral.value);
   const { action: updateCollateral } = useUpdateCollateral({
     collateralDenom: selectedCollateral.value,
     marketContract: marketContract,
@@ -543,12 +543,20 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
       <CardHeader>
         <FormControl>
           <FormLabel>Collateral</FormLabel>
-          <select value={selectedCollateral.value} onChange={e => {
-            const opt = options.find(o => o.value === e.target.value);
-            if (opt) setSelectedCollateral(opt);
-          }}>
-            {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-          </select>
+          <div style={{ 
+            width: "fit-content", 
+            alignSelf: "center", 
+            marginTop: "3%" 
+          }}><Select 
+            options={options} 
+            onChange={
+              (e) => {
+                const opt = options.find(o => o.label === e.target.value);
+                if (opt) setSelectedCollateral(opt);
+              }
+            } 
+            value={selectedCollateral.label} />
+          </div>
         </FormControl>
       </CardHeader>
 

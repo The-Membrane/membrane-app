@@ -612,7 +612,7 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
           </FormControl>
 
           <FormControl>
-            <FormLabel>Rate Params (base_rate, rate_max, [rate_mulitplier, kink_starting_point_ratio])</FormLabel>
+            <FormLabel>Rate Params (base_rate, rate_max, [rate_multiplier, kink_starting_point_ratio])</FormLabel>
             <Input
               value={data.rate_params ? [data.rate_params.base_rate, data.rate_params.rate_max, data.rate_params.rate_kink?.rate_mulitplier, data.rate_params.rate_kink?.kink_starting_point_ratio].filter(Boolean).join(',') : ''}
               placeholder="e.g. 0.01,0.2,0.5,0.8"

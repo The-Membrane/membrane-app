@@ -248,6 +248,11 @@ import useAssets, { useAssetByDenom } from '@/hooks/useAssets';
 import { useRouter } from 'next/router';
 import { DEFAULT_CHAIN } from '@/config/chains';
 import { getMarketName } from '@/services/managed';
+import useUpdateMarket from './hooks/useUpdateMarket';
+import ConfirmModal from '../ConfirmModal';
+import ManagedMarketSummary from './ManagedMarketSummary';
+import UpdateSummary from './UpdateSummary';
+import useUpdateCollateral from './hooks/useUpdateCollateral';
 
 export function WhitelistedAddressInput({
   value,
@@ -315,16 +320,27 @@ export function WhitelistedAddressInput({
 interface MarketCardProps {
   title: string;
   initialData: UpdateOverallMarket;
+  marketContract: string;
   onEditCollateral: () => void;
 }
 
-export function MarketCard({ title, initialData, onEditCollateral }: MarketCardProps) {
+export function MarketCard({ title, initialData, marketContract, onEditCollateral }: MarketCardProps) {
   const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateOverallMarket>(initialData);
+  const { action: updateMarket } = useUpdateMarket({
+    marketContract: marketContract,
+    managerState: managerState,
+    run: true,
+  });
 
   const handleChange = (field: keyof UpdateOverallMarket, value: any) => {
     setData((prev) => ({ ...prev, [field]: value }));
   };
+  //on data change, update the manager state
+  useEffect(() => {
+    setManagerState({ updateOverallMarket: data });
+  }, [data]);
+
 
   const isDisabled = useMemo(() => {
     return JSON.stringify(data) === JSON.stringify(initialData);
@@ -339,11 +355,11 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
       <CardBody>
         <Stack spacing={4}>
           <FormControl>
-            <FormLabel>Manager Fee</FormLabel>
+            <FormLabel>Manager Fee (%)</FormLabel>
             <Input
               value={data.manager_fee ?? ''}
               placeholder="Enter manager fee"
-              onChange={(e) => handleChange('manager_fee', e.target.value)}
+              onChange={(e) => handleChange('manager_fee', Number(e.target.value) / 100)}
             />
           </FormControl>
 
@@ -351,7 +367,7 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
             <FormLabel>Debt Supply Cap</FormLabel>
             <Input
               value={data.debt_supply_cap ?? ''}
-              placeholder="Enter debt supply cap"
+              placeholder="Enter debt supply cap (CDT)"
               onChange={(e) => handleChange('debt_supply_cap', e.target.value)}
             />
           </FormControl>
@@ -360,7 +376,7 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
             <FormLabel>Per User Debt Cap</FormLabel>
             <Input
               value={data.per_user_debt_cap ?? ''}
-              placeholder="Enter per user debt cap"
+              placeholder="Enter per user debt cap (CDT)"
               onChange={(e) => handleChange('per_user_debt_cap', e.target.value)}
             />
           </FormControl>
@@ -384,22 +400,13 @@ export function MarketCard({ title, initialData, onEditCollateral }: MarketCardP
       </CardBody>
 
       <CardFooter justifyContent="space-between" alignItems="center">
-        <Button
-          color={colors.tabBG}
-          onClick={() => setManagerState({ updateOverallMarket: data })}
-          isDisabled={isDisabled}
+        <ConfirmModal
+            label={"Edit Market"}
+            action={updateMarket}
+            isDisabled={isDisabled}
         >
-          <a style={{ color: 'white' }}>Edit</a>
-        </Button>
-        <Text
-          as="button"
-          fontSize="sm"
-          color="white"
-          fontWeight="bold"
-          onClick={onEditCollateral}
-        >
-          Edit collateral →
-        </Text>
+            <UpdateSummary type="market" updateData={managerState.updateOverallMarket ?? {}} action={updateMarket.simulate} />
+        </ConfirmModal>
       </CardFooter>
     </Card>
   );
@@ -486,6 +493,7 @@ export type UpdateCollateralParams = {
 interface CollateralCardProps {
   options: Option[];
   initialData: UpdateCollateralParams;
+  marketContract: string;
   onEditMarket: () => void;
 }
 
@@ -494,7 +502,7 @@ interface Option {
   value: string;
 }
 
-export function CollateralCard({ options, initialData, onEditMarket }: CollateralCardProps) {
+export function CollateralCard({ options, initialData, marketContract, onEditMarket }: CollateralCardProps) {
   const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
   const [selectedCollateral, setSelectedCollateral] = useState(options[0] || '');
@@ -502,9 +510,21 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
   // Move hook call to top level
   const asset = useAssetBySymbol(selectedCollateral.label);
 
+  // Use the update collateral action
+  const { action: updateCollateral } = useUpdateCollateral({
+    marketContract: marketContract,
+    managerState: managerState,
+    run: true,
+  });
+
   const handleChange = (field: keyof UpdateCollateralParams, value: any) => {
     setData((prev) => ({ ...prev, [field]: value }));
   };
+
+  // Update manager state when data changes
+  useEffect(() => {
+    setManagerState({ updateCollateralParams: data });
+  }, [data]);
 
   const isDisabled = useMemo(() => {
     return JSON.stringify(data) === JSON.stringify(initialData);
@@ -518,7 +538,6 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
       }));
     }
   }, [asset]);
-
 
   return (
     <Card width="400px">
@@ -562,17 +581,17 @@ export function CollateralCard({ options, initialData, onEditMarket }: Collatera
               onChange={(newList) => handleChange('whitelisted_collateral_suppliers', newList)}
             />
           </FormControl>
-
         </Stack>
       </CardBody>
 
       <CardFooter justifyContent="space-between" alignItems="center">
-        <Button
-          color={colors.tabBG}
-          onClick={() => setManagerState({ updateCollateralParams: data })}
-          isDisabled={isDisabled}>
-          <a style={{ color: 'white' }}>Edit</a>
-        </Button>
+        <ConfirmModal
+          label={"Edit Collateral"}
+          action={updateCollateral}
+          isDisabled={isDisabled}
+        >
+          <UpdateSummary type="collateral" updateData={managerState.updateCollateralParams ?? { collateral_denom: '' }} action={updateCollateral.simulate} />
+        </ConfirmModal>
         <Text
           as="button"
           fontSize="sm"
@@ -635,6 +654,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
         <MarketCard
           title={marketName}
           initialData={defaultUpdateOverallMarket}
+          marketContract={marketAddress || ''}
           onEditCollateral={handleEditCollateral}
         />
       </Box>
@@ -642,6 +662,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
         <CollateralCard
           options={collateralOptions}
           initialData={{ collateral_denom: collateralOptions[0]?.value || '' }}
+          marketContract={marketAddress || ''}
           onEditMarket={handleEditMarket}
         />
       </Box>

@@ -1,5 +1,5 @@
 import { useQueries, useQuery, UseQueryOptions } from '@tanstack/react-query'
-import { getPoolLiquidity, useOsmosisClient } from '@/services/osmosis'
+import { getPoolInfo, getPoolLiquidity, useOsmosisClient } from '@/services/osmosis'
 import { TotalPoolLiquidityResponse } from 'osmojs/osmosis/poolmanager/v1beta1/query';
 import useAppState from '@/persisted-state/useAppState';
 
@@ -21,4 +21,12 @@ export const usePoolLiquidity = (poolIds: string[]) => {
             staleTime: 1000 * 60 * 5,
         })),
     });
+}
+
+export const usePoolInfo = (poolId: string) => {
+    const { data: client } = useOsmosisClient()
+    return useQuery({
+        queryKey: ['poolInfo', poolId, client],
+        queryFn: async () => getPoolInfo(poolId, client),
+    })
 }

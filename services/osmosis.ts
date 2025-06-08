@@ -31,6 +31,7 @@ import { position } from "@chakra-ui/react";
 import { getBoundedConfig } from "./earn";
 import { useBoundedConfig } from "@/hooks/useEarnQueries";
 import useAppState from "@/persisted-state/useAppState";
+import { PoolResponse } from "osmojs/osmosis/poolmanager/v1beta1/query";
 
 
 const secondsInADay = 24 * 60 * 60;
@@ -75,7 +76,7 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
     return debt_value / position_value;
 }
 
-const OsmosisClient = async (rpcUrl: string) => {
+export const OsmosisClient = async (rpcUrl: string) => {
     const { createRPCQueryClient } = osmosis.ClientFactory;
     console.log("osmosis CW client")
     const osmosisClient = await createRPCQueryClient({ rpcEndpoint: rpcUrl })
@@ -95,6 +96,13 @@ export const useOsmosisClient = () => {
     })
 };
 
+//Pool info
+export const getPoolInfo = async (poolId: string, osmosisClient: any) => {
+    const pool = await osmosisClient.osmosis.poolmanager.v1beta1.pool({
+        poolId: BigInt(poolId),
+    })
+    return pool
+}
 
 //Pool Liquidity
 export const getPoolLiquidity = async (poolId: string, osmosisClient: any) => {

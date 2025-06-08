@@ -321,10 +321,9 @@ interface MarketCardProps {
   title: string;
   initialData: UpdateOverallMarket;
   marketContract: string;
-  onEditCollateral: () => void;
 }
 
-export function MarketCard({ title, initialData, marketContract, onEditCollateral }: MarketCardProps) {
+export function MarketCard({ title, initialData, marketContract }: MarketCardProps) {
   const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateOverallMarket>(initialData);
   const { action: updateMarket } = useUpdateMarket({
@@ -369,15 +368,6 @@ export function MarketCard({ title, initialData, marketContract, onEditCollatera
               value={data.debt_supply_cap ?? ''}
               placeholder="Enter debt supply cap (CDT)"
               onChange={(e) => handleChange('debt_supply_cap', e.target.value)}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>Per User Debt Cap</FormLabel>
-            <Input
-              value={data.per_user_debt_cap ?? ''}
-              placeholder="Enter per user debt cap (CDT)"
-              onChange={(e) => handleChange('per_user_debt_cap', e.target.value)}
             />
           </FormControl>
 
@@ -488,13 +478,14 @@ export type UpdateCollateralParams = {
   borrow_cap?: any;
   max_slippage?: string;
   pool_for_oracle_and_liquidations?: any;
+  per_user_debt_cap?: string;
+  debt_minimum?: string;
 };
 
 interface CollateralCardProps {
   options: Option[];
   initialData: UpdateCollateralParams;
   marketContract: string;
-  onEditMarket: () => void;
 }
 
 interface Option {
@@ -502,7 +493,7 @@ interface Option {
   value: string;
 }
 
-export function CollateralCard({ options, initialData, marketContract, onEditMarket }: CollateralCardProps) {
+export function CollateralCard({ options, initialData, marketContract }: CollateralCardProps) {
   const { managerState, setManagerState } = useManagerState();
   const [data, setData] = useState<UpdateCollateralParams>(initialData);
   const [selectedCollateral, setSelectedCollateral] = useState(options[0] || '');
@@ -512,6 +503,7 @@ export function CollateralCard({ options, initialData, marketContract, onEditMar
 
   // Use the update collateral action
   const { action: updateCollateral } = useUpdateCollateral({
+    collateralDenom: selectedCollateral.value,
     marketContract: marketContract,
     managerState: managerState,
     run: true,
@@ -573,12 +565,90 @@ export function CollateralCard({ options, initialData, marketContract, onEditMar
             />
           </FormControl>
 
-          {/* You can add similar inputs for max_slippage, liquidation_LTV, etc. */}
           <FormControl>
             <FormLabel>Whitelisted Collateral Suppliers</FormLabel>
             <WhitelistedCollateralSupplierInput
               value={data.whitelisted_collateral_suppliers}
               onChange={(newList) => handleChange('whitelisted_collateral_suppliers', newList)}
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Per User Debt Cap</FormLabel>
+            <Input
+              value={data.per_user_debt_cap ?? ''}
+              placeholder="Enter per user debt cap (CDT)"
+              onChange={(e) => handleChange('per_user_debt_cap', e.target.value)}
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Debt Minimum</FormLabel>
+            <Input
+              value={data.debt_minimum ?? ''}
+              placeholder="Enter debt minimum (CDT)"
+              onChange={(e) => handleChange('debt_minimum', e.target.value)}
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Max Slippage</FormLabel>
+            <Input
+              value={data.max_slippage ?? ''}
+              placeholder="Enter max slippage (decimal)"
+              onChange={(e) => handleChange('max_slippage', e.target.value)}
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Liquidation LTV</FormLabel>
+            <Input
+              value={data.liquidation_LTV?.end_ltv ?? ''}
+              placeholder="Enter liquidation LTV (decimal)"
+              onChange={(e) => handleChange('liquidation_LTV', { ...data.liquidation_LTV, end_ltv: e.target.value })}
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Rate Params (base_rate, rate_max, [rate_mulitplier, kink_starting_point_ratio])</FormLabel>
+            <Input
+              value={data.rate_params ? [data.rate_params.base_rate, data.rate_params.rate_max, data.rate_params.rate_kink?.rate_mulitplier, data.rate_params.rate_kink?.kink_starting_point_ratio].filter(Boolean).join(',') : ''}
+              placeholder="e.g. 0.01,0.2,0.5,0.8"
+              onChange={(e) => {
+                const parts = e.target.value.split(',').map(s => s.trim());
+                const [base_rate, rate_max, rate_mulitplier, kink_starting_point_ratio] = parts;
+                let rate_params: any = {};
+                if (base_rate) rate_params.base_rate = base_rate;
+                if (rate_max) rate_params.rate_max = rate_max;
+                if (rate_mulitplier && kink_starting_point_ratio) {
+                  rate_params.rate_kink = { rate_mulitplier, kink_starting_point_ratio };
+                }
+                handleChange('rate_params', Object.keys(rate_params).length ? rate_params : undefined);
+              }}
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Borrow Cap (fixed_cap, cap_borrows_by_liquidity)</FormLabel>
+            <Input
+              value={data.borrow_cap ? [data.borrow_cap.fixed_cap, data.borrow_cap.cap_borrows_by_liquidity].filter(v => v !== undefined).join(',') : ''}
+              placeholder="e.g. 1000000,true"
+              onChange={(e) => {
+                const [fixed_cap, cap_borrows_by_liquidity] = e.target.value.split(',').map(s => s.trim());
+                let borrow_cap: any = {};
+                if (fixed_cap) borrow_cap.fixed_cap = fixed_cap;
+                if (cap_borrows_by_liquidity !== undefined) borrow_cap.cap_borrows_by_liquidity = cap_borrows_by_liquidity === 'true';
+                handleChange('borrow_cap', Object.keys(borrow_cap).length ? borrow_cap : undefined);
+              }}
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Pool IDs for Oracle and Liquidations (comma separated)</FormLabel>
+            <Input
+              value={data.pool_for_oracle_and_liquidations ? (Array.isArray(data.pool_for_oracle_and_liquidations) ? data.pool_for_oracle_and_liquidations.map((p: any) => p.poolId).join(',') : data.pool_for_oracle_and_liquidations) : ''}
+              placeholder="e.g. 1,2,3"
+              onChange={(e) => handleChange('pool_for_oracle_and_liquidations', e.target.value)}
             />
           </FormControl>
         </Stack>
@@ -592,7 +662,7 @@ export function CollateralCard({ options, initialData, marketContract, onEditMar
         >
           <UpdateSummary type="collateral" updateData={managerState.updateCollateralParams ?? { collateral_denom: '' }} action={updateCollateral.simulate} />
         </ConfirmModal>
-        <Text
+        {/* <Text
           as="button"
           fontSize="sm"
           color="white"
@@ -600,7 +670,7 @@ export function CollateralCard({ options, initialData, marketContract, onEditMar
           onClick={onEditMarket}
         >
           ← Edit market
-        </Text>
+        </Text> */}
       </CardFooter>
     </Card>
   );
@@ -613,14 +683,14 @@ interface ManagePageProps {
 const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
   const router = useRouter();
   const chainName = router.query.chainName as string || DEFAULT_CHAIN;
-  const handleEditCollateral = () => {
-    console.log('Swapping to edit collateral view...');
-    // You can implement the view swap here
-  };
-  const handleEditMarket = () => {
-    console.log('Swapping to edit market view...');
-    // You can implement the view swap here
-  };
+  // const handleEditCollateral = () => {
+  //   console.log('Swapping to edit collateral view...');
+  //   // You can implement the view swap here
+  // };
+  // const handleEditMarket = () => {
+  //   console.log('Swapping to edit market view...');
+  //   // You can implement the view swap here
+  // };
 
   // Get market name
   const marketName = getMarketName(marketAddress as string);
@@ -645,7 +715,6 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
     manager_fee: '',
     whitelisted_debt_suppliers: [],
     debt_supply_cap: '',
-    per_user_debt_cap: '',
   };
 
   return (
@@ -655,7 +724,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
           title={marketName}
           initialData={defaultUpdateOverallMarket}
           marketContract={marketAddress || ''}
-          onEditCollateral={handleEditCollateral}
+          // onEditCollateral={handleEditCollateral}
         />
       </Box>
       <Box p={8}>
@@ -663,7 +732,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
           options={collateralOptions}
           initialData={{ collateral_denom: collateralOptions[0]?.value || '' }}
           marketContract={marketAddress || ''}
-          onEditMarket={handleEditMarket}
+          // onEditMarket={handleEditMarket}
         />
       </Box>
     </HStack>

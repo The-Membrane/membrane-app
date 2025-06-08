@@ -26,11 +26,6 @@ const renderMarketUpdate = (data: UpdateOverallMarket) => (
         <Text>Debt Supply Cap: {data.debt_supply_cap}</Text>
       </Box>
     )}
-    {data.per_user_debt_cap !== undefined && (
-      <Box bg="gray.800" p={2} borderRadius="md">
-        <Text>Per User Debt Cap: {data.per_user_debt_cap}</Text>
-      </Box>
-    )}
     {data.whitelisted_debt_suppliers && (
       <Box bg="gray.800" p={2} borderRadius="md">
         <Text>Whitelisted Debt Suppliers:</Text>
@@ -75,6 +70,42 @@ const renderCollateralUpdate = (data: UpdateCollateralParams) => (
         </Stack>
       </Box>
     )}
+    {data.per_user_debt_cap !== undefined && (
+      <Box bg="gray.800" p={2} borderRadius="md">
+        <Text>Per User Debt Cap: {data.per_user_debt_cap}</Text>
+      </Box>
+    )}
+    {data.debt_minimum !== undefined && (
+      <Box bg="gray.800" p={2} borderRadius="md">
+        <Text>Debt Minimum: {data.debt_minimum}</Text>
+      </Box>
+    )}
+    {data.max_slippage !== undefined && (
+      <Box bg="gray.800" p={2} borderRadius="md">
+        <Text>Max Slippage: {data.max_slippage}</Text>
+      </Box>
+    )}
+    {data.liquidation_LTV !== undefined && (
+      <Box bg="gray.800" p={2} borderRadius="md">
+        <Text>Liquidation LTV: {typeof data.liquidation_LTV === 'object' ? JSON.stringify(data.liquidation_LTV) : data.liquidation_LTV}</Text>
+      </Box>
+    )}
+    {data.rate_params !== undefined && (
+      <Box bg="gray.800" p={2} borderRadius="md">
+        <Text>Rate Params: {typeof data.rate_params === 'object' ? JSON.stringify(data.rate_params) : data.rate_params}</Text>
+      </Box>
+    )}
+    {data.borrow_cap !== undefined && (
+      <Box bg="gray.800" p={2} borderRadius="md">
+        <Text>Borrow Cap: {typeof data.borrow_cap === 'object' ? JSON.stringify(data.borrow_cap) : data.borrow_cap}</Text>
+      </Box>
+    )}
+    {data.pool_for_oracle_and_liquidations !== undefined && (
+      <Box bg="gray.800" p={2} borderRadius="md">
+        <Text>Pool for Oracle and Liquidations: {typeof data.pool_for_oracle_and_liquidations === 'object' ? JSON.stringify(data.pool_for_oracle_and_liquidations) : data.pool_for_oracle_and_liquidations}</Text>
+      </Box>
+    )}
+    
     {/* Add more fields as needed */}
   </Stack>
 );

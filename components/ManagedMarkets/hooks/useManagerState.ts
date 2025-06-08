@@ -14,13 +14,23 @@ export type RateIndex = {
   last_accrued: number; // u64
 };
 
+
+export type TWAPPoolInfo = {
+  /// Pool ID
+  pool_id: number,
+  /// Base asset denom
+  base_asset_denom: string,
+  /// Quote asset denom
+  quote_asset_denom: string,
+}
+
 export type AssetOracleInfo = {
   /** Basket ID */
   basket_id: string; // Uint128 as string
   /** Pyth price feed ID */
   pyth_price_feed_id?: string; // Option<String>
   /** Osmosis pools for OSMO TWAP */
-  pools_for_osmo_twap: any[];
+  pools_for_osmo_twap: TWAPPoolInfo[];
   /** Bool to provide $1 static_price if the asset is USD-par */
   is_usd_par: boolean;
   /** LP pool info */
@@ -124,7 +134,6 @@ export type UpdateOverallMarket = {
   manager_fee?: string;
   whitelisted_debt_suppliers?: string[] | null;
   debt_supply_cap?: string | null;
-  per_user_debt_cap?: string | null;
 }
 
 export type UpdateCollateralParams = {
@@ -137,6 +146,8 @@ export type UpdateCollateralParams = {
   borrow_cap?: BorrowCap; // Option<BorrowCap>
   max_slippage?: string; // Option<Decimal>
   pool_for_oracle_and_liquidations?: AssetOracleInfo; // Option<AssetOracleInfo>
+  per_user_debt_cap?: string | null;
+  debt_minimum?: string | null;
 }
 
 export type ManagerState = {

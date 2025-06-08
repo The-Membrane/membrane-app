@@ -563,20 +563,20 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
       <CardBody>
         <Stack spacing={4}>
           <FormControl>
-            <FormLabel>Max Borrow LTV</FormLabel>
+            <FormLabel>Max Borrow LTV (as %)</FormLabel>
             <Input
-              value={data.max_borrow_LTV ?? ''}
-              placeholder="Enter max borrow LTV"
-              onChange={(e) => handleChange('max_borrow_LTV', e.target.value)}
+              value={data.max_borrow_LTV !== undefined && data.max_borrow_LTV !== '' ? String(Number(data.max_borrow_LTV) * 100) : ''}
+              placeholder="Enter max borrow LTV (as %)"
+              onChange={(e) => handleChange('max_borrow_LTV', e.target.value === '' ? '' : String(Number(e.target.value) / 100))}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Borrow Fee</FormLabel>
+            <FormLabel>Borrow Fee (as %)</FormLabel>
             <Input
-              value={data.borrow_fee ?? ''}
-              placeholder="Enter borrow fee"
-              onChange={(e) => handleChange('borrow_fee', e.target.value)}
+              value={data.borrow_fee !== undefined && data.borrow_fee !== '' ? String(Number(data.borrow_fee) * 100) : ''}
+              placeholder="Enter borrow fee (as %)"
+              onChange={(e) => handleChange('borrow_fee', e.target.value === '' ? '' : String(Number(e.target.value) / 100))}
             />
           </FormControl>
 
@@ -616,11 +616,11 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
           </FormControl>
 
           <FormControl>
-            <FormLabel>Liquidation LTV</FormLabel>
+            <FormLabel>Liquidation LTV (as %)</FormLabel>
             <Input
-              value={data.liquidation_LTV?.end_ltv ?? ''}
-              placeholder="Enter liquidation LTV (decimal)"
-              onChange={(e) => handleChange('liquidation_LTV', { ...data.liquidation_LTV, end_ltv: e.target.value })}
+              value={data.liquidation_LTV?.end_ltv !== undefined && data.liquidation_LTV?.end_ltv !== '' ? String(Number(data.liquidation_LTV.end_ltv) * 100) : ''}
+              placeholder="Enter liquidation LTV (as %)"
+              onChange={(e) => handleChange('liquidation_LTV', { ...data.liquidation_LTV, end_ltv: e.target.value === '' ? '' : String(Number(e.target.value) / 100) })}
             />
           </FormControl>
 

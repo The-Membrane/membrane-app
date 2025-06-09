@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Tabs,
@@ -37,11 +37,14 @@ import { useChainRoute } from '@/hooks/useChainRoute';
 import Divider from '@/components/Divider';
 import useManagedAction from '@/components/ManagedMarkets/hooks/useManagedMarket';
 import ConfirmModal from '@/components/ConfirmModal/ConfirmModal';
-import { useManagedMarket } from '@/hooks/useManaged';
-import { useQuery } from '@tanstack/react-query';
+import { useAllMarkets, useUserPositioninMarket, useMarketCollateralDenoms } from '@/hooks/useManaged';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { num } from '@/helpers/num';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
 import useCloseAndEditBoostsTx from './hooks/useCloseAndEditBoostsTx';
+import { getUserPositioninMarket } from '@/services/managed';
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient';
+import useAppState from '@/persisted-state/useAppState';
 
 // Mock: Replace with real data fetching
 const fetchPositions = () => {
@@ -299,36 +302,100 @@ const YieldCard = ({ yieldItem }: { yieldItem: any }) => (
 
 const Portfolio: React.FC = () => {
   const [tabIndex, setTabIndex] = useState(0);
-  const [positions, setPositions] = useState<any[]>([]);
   const [yieldData, setYieldData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Get chainName and userAddress from hooks
   const { chainName } = useChainRoute();
   const { address: userAddress } = useWallet(chainName);
+  const { appState } = useAppState();
+  const rpcUrl = appState?.rpcUrl;
 
-  // Mock stats values
-  const stats = [
-    { label: 'Your rewards', value: '$12,540.33' },
-    { label: 'Your debt', value: '$600,00.04' },
-    { label: 'Your supply', value: '$2,00,000.77' },
-    { label: 'Net asset value', value: '$1,400,000.73' },
-  ];
+  // Get all markets
+  const allMarkets = useAllMarkets();
+
+  // Get all collateral denoms for each market
+  const collateralDenomsResults = (allMarkets || []).map((market) => {
+    return useMarketCollateralDenoms(market.address);
+  });
+
+  // Memoize the queries array for useQueries
+  const queries = useMemo(() => {
+    if (!(allMarkets && userAddress && tabIndex === 0 && rpcUrl)) return [];
+    return allMarkets.flatMap((market, mIdx) => {
+      const denoms = collateralDenomsResults[mIdx]?.data || [];
+      return denoms.map((collateralDenom: string) => ({
+        queryKey: ['managed_market_user_position', market.address, collateralDenom, userAddress],
+        queryFn: async () => {
+          try {
+            const client = await getCosmWasmClient(rpcUrl);
+            const res = await getUserPositioninMarket(client, market.address, collateralDenom, userAddress);
+            console.log(res);
+            return res;
+          } catch (e) {
+            return [];
+          }
+        },
+        enabled: !!userAddress && !!market.address && !!collateralDenom && !!rpcUrl,
+        staleTime: 1000 * 60 * 2,
+      }));
+    });
+  }, [allMarkets, userAddress, tabIndex, rpcUrl, collateralDenomsResults]);
+
+  // Prepare queries for all user positions in all markets/collaterals
+  const positionQueries = useQueries({ queries });
+
+  // Aggregate all positions
+  const positions = positionQueries
+    .flatMap((q, idx) => {
+      if (q.isLoading || q.isError || !q.data) return [];
+      // q.data is an array of UserPositionResponse
+      // Find market and collateral info
+      const allMarketsArr = (allMarkets ?? []) as import('@/components/ManagedMarkets/hooks/useManagerState').MarketData[];
+      let market: import('@/components/ManagedMarkets/hooks/useManagerState').MarketData | undefined = undefined;
+      let collateralDenom: string | undefined = undefined;
+      let count = 0;
+      outer: for (let m = 0; m < allMarketsArr.length; m++) {
+        const denoms: string[] = collateralDenomsResults[m]?.data || [];
+        for (let d = 0; d < denoms.length; d++) {
+          if (count === idx) {
+            market = allMarketsArr[m];
+            collateralDenom = denoms[d];
+            break outer;
+          }
+          count++;
+        }
+      }
+      return q.data.map((pos: any) => ({
+        ...pos.position,
+        user: pos.user,
+        marketAddress: market?.address,
+        marketName: market?.name,
+        asset: collateralDenom,
+        // Add more fields as needed for PositionCard
+      }));
+    })
+    .filter((p) => p && Number(p.collateral_amount) > 0);
 
   useEffect(() => {
-    setLoading(true);
     if (tabIndex === 0) {
-      // Positions
-      const pos = fetchPositions();
-      setPositions(pos);
-      setLoading(false);
+      setLoading(positionQueries.some((q) => q.isLoading) || collateralDenomsResults.some((r) => r.isLoading));
     } else {
+      setLoading(true);
       // Yield
       const yld = fetchYield(userAddress!, chainName);
       setYieldData(yld);
       setLoading(false);
     }
-  }, [tabIndex, userAddress, chainName]);
+  }, [tabIndex, userAddress, chainName, positionQueries, collateralDenomsResults]);
+
+  // Mock stats values
+  const stats = [
+    // { label: 'Your rewards', value: '$12,540.33' },
+    { label: 'Your TVL', value: '$2,00,000.77' },
+    { label: 'Your debt', value: '$600,00.04' },
+    { label: 'Net asset value', value: '$1,400,000.73' },
+  ];
 
   return (
     <Box w="90vw" mx="auto" mt={8}>

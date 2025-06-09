@@ -1,7 +1,12 @@
+
+
+Does the Loop intent work?
+
+
 Next Steps:
 
 - Polish style for the old tabs
-- Fix portfolio tab
+- Build out portfolio tab
 -- Move the full Home Tab to the Portfolio
 -- Points leaderboard will be a toggle, show user stats only first
 

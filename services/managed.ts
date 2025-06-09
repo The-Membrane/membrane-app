@@ -15,6 +15,18 @@ import { PriceResponse } from '@/contracts/codegen/oracle/Oracle.types'
 import { useAllMarkets } from '@/hooks/useManaged'
 import { useMemo } from 'react'
 
+
+export interface UserPosition {
+    collateral_denom: string, 
+    collateral_amount: string,
+    debt_amount: string,
+    rate_index: string,
+}
+export interface UserPositionResponse {
+    user: string,
+    position: UserPosition
+}
+
 export const getManagers = async (cosmWasmClient: any) => {
     return cosmWasmClient.queryContractSmart(contracts.marketManager, {
         managers: {
@@ -95,6 +107,17 @@ export const getMarketCollateralCost = async (cosmWasmClient: any, marketContrac
     return cosmWasmClient.queryContractSmart(marketContract, {
         get_current_interest_rate: { collateral_denom }
     }) as Promise<string>
+}
+
+export const getUserPositioninMarket = async (cosmWasmClient: any, marketContract: string, collateral_denom: string, user: string) => {
+    return cosmWasmClient.queryContractSmart(marketContract, {
+        get_user_positions: { 
+            collateral_denom: collateral_denom,
+            user: user,
+            start_after: undefined,
+            limit: undefined
+         }
+    }) as Promise<UserPositionResponse[]>
 }
 
 

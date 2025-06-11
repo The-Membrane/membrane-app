@@ -47,6 +47,9 @@ import { getMarketCollateralDenoms, useMarketNames, getUserPositioninMarket } fr
 import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient';
 import useAppState from '@/persisted-state/useAppState';
 import useAssets from '@/hooks/useAssets';
+import { useMarketDebtPrice, useMarketCollateralCost } from '@/hooks/useManaged';
+import { useOraclePrice } from '@/hooks/useOracle';
+import { getMarketCollateralPrice } from '@/services/managed';
 
 // Mock: Replace with real data fetching
 const fetchPositions = () => {
@@ -234,15 +237,27 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   );
 };
 
-const PositionCard = ({ position, chainName, assets, marketName }: { position: any, chainName: string, assets: any[], marketName: string }) => {
+const PositionCard = ({ position, chainName, assets, marketName, prices, debtPrice, collateralPrice }: { position: any, chainName: string, assets: any[], marketName: string, prices: any[], debtPrice?: number, collateralPrice?: string }) => {
   const [editState, setEditState] = React.useState(position);
   const asset = useAssetByDenom(editState.asset, chainName, assets);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-//   const handleEditSave = (newState: any) => {
-//     setEditState(newState);
-//     onClose();
-//   };
+  // Get asset price from prices list
+  const assetPrice = prices?.find((p) => p.denom === position.asset)?.price || 0;
+
+  // Calculate liquidation price (if possible)
+  let liquidationPrice = '-';
+  if (debtPrice && position.debt_amount && position.collateral_amount && position.maxLTV) {
+    const debt = Number(position.debt_amount);
+    const collateral = Number(position.collateral_amount);
+    const maxLTV = Number(position.maxLTV);
+    if (collateral > 0 && maxLTV > 0) {
+      liquidationPrice = ((debt / (collateral * maxLTV)) * debtPrice).toFixed(2);
+    }
+  }
+
+  // Borrow APY from collateralCost
+  const borrowAPY = collateralPrice ? Number(collateralPrice).toFixed(2) : '0.00';
 
   return (
     <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C" width="100%">
@@ -262,19 +277,19 @@ const PositionCard = ({ position, chainName, assets, marketName }: { position: a
       <HStack w="100%" justify="space-between" align="center" mt={2}>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">${editState.debt || '0.00'}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${position.debt_amount || '0.00'}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Market Value</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">${editState.marketValue || '0.00'}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${(Number(position.collateral_amount) * Number(assetPrice)).toFixed(2)}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Borrow APY</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">{editState.borrowAPY || '0.00'}%</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">{borrowAPY}%</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Liquidation Price</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">{editState.liquidationPrice || '-'}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">{liquidationPrice}</Text>
         </VStack>
       </HStack>
       {/* Edit Modal Placeholder */}
@@ -319,6 +334,13 @@ const Portfolio: React.FC = () => {
   const { address: userAddress } = useWallet(chainName);
   const { data: cosmwasmClient } = useCosmWasmClient();
   const assets = useAssets(chainName);
+
+  // Get all prices (oracle)
+  const { data: prices = [] } = useOraclePrice();
+
+  // Get debt price (use first static market)
+  const { data: debtPriceData } = useMarketDebtPrice(STATIC_MARKETS[0].address);
+  const debtPrice = debtPriceData?.price ? Number(debtPriceData.price) : undefined;
 
   // 1. Fetch all collateral denoms for all static markets using useQueries
   const collateralDenomsQueries = useQueries({
@@ -370,6 +392,19 @@ const Portfolio: React.FC = () => {
 
   // Use the batch hook to get all market names
   const marketNames = useMarketNames(positions.map(p => p.marketAddress));
+
+  // Fetch collateral prices for all positions
+  const collateralPriceQueries = useQueries({
+    queries: positions.map((position) => ({
+      queryKey: ['collateral_price', position.marketAddress, position.asset],
+      queryFn: () => {
+        if (!cosmwasmClient || !position.marketAddress || !position.asset) return Promise.resolve(undefined);
+        return getMarketCollateralPrice(cosmwasmClient, position.marketAddress, position.asset);
+      },
+      enabled: !!cosmwasmClient && !!position.marketAddress && !!position.asset,
+      staleTime: 1000 * 60 * 5,
+    })),
+  });
 
   useEffect(() => {
     if (tabIndex === 0) {
@@ -433,6 +468,9 @@ const Portfolio: React.FC = () => {
                     chainName={chainName}
                     assets={assets || []}
                     marketName={marketNames[idx]}
+                    prices={prices}
+                    debtPrice={debtPrice}
+                    collateralPrice={collateralPriceQueries[idx]?.data?.price}
                   />
                 ))}
               </SimpleGrid>

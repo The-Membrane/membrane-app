@@ -263,9 +263,28 @@ const PositionCard = ({ position, chainName, assets, marketName, prices, debtPri
   console.log(position, collateralPrice, position.collateral_amount);
 
   return (
-    <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C" width="100%">
-      {/* Top section: logo, cluster, symbol, Edit button */}
-      <HStack w="100%" justify="space-between" align="center" mb={2}>
+    <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C" width="100%" position="relative">
+      {/* Edit button in top right corner */}
+      <Button
+        size="xs"
+        variant="ghost"
+        colorScheme="gray"
+        color="whiteAlpha.700"
+        onClick={onOpen}
+        borderRadius="full"
+        px={2}
+        fontWeight="bold"
+        position="absolute"
+        top={2}
+        right={2}
+        zIndex={2}
+        minW={"auto"}
+        h={"24px"}
+      >
+        Edit
+      </Button>
+      {/* Top section: logo, cluster, symbol */}
+      <HStack w="100%" justify="flex-start" align="center" mb={2}>
         <HStack spacing={3} align="center">
           <Image src={asset?.logo} alt={asset?.symbol} boxSize="36px" borderRadius="full" bg="#181C23" />
           <VStack align="start" spacing={0}>
@@ -273,7 +292,6 @@ const PositionCard = ({ position, chainName, assets, marketName, prices, debtPri
             <Text color="white" fontWeight="bold" fontSize="xl">{asset?.symbol || editState.asset}</Text>
           </VStack>
         </HStack>
-        <Button size="sm" variant="ghost" colorScheme="gray" color="whiteAlpha.700" onClick={onOpen} borderRadius="full" px={4} fontWeight="bold">Edit</Button>
       </HStack>
       <Divider my={2} />
       {/* Stats row: Debt, Market Value, Borrow APY, Liquidation Price */}

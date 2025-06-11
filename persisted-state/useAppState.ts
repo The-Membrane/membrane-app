@@ -23,18 +23,18 @@ const initialState: AppState = {
     rpcUrl: rpcUrl,
 }
 
-// @ts-ignore
-const store = (set) => ({
-    appState: initialState,
-    setAppState: (partialState: Partial<AppState>) =>
-        set(
-            (state: Store) => ({ appState: { ...state.appState, ...partialState } }),
-            false,
-            `@update/${Object.keys(partialState).join(',')}`,
-        ),
-    reset: () => set((state: Store) => ({ ...state, appState: initialState }), false, '@reset'),
-})
-
-const useAppState = create<Store>(persist(store, { name: 'appState' }))
+const useAppState = create<Store>()(
+    persist(
+        (set) => ({
+            appState: initialState,
+            setAppState: (partialState: Partial<AppState>) =>
+                set((state) => ({
+                    appState: { ...state.appState, ...partialState },
+                })),
+            reset: () => set(() => ({ appState: initialState })),
+        }),
+        { name: 'appState' }
+    )
+)
 
 export default useAppState

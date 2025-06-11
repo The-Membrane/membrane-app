@@ -78,9 +78,10 @@ export const useMarketCollateralDenoms = (marketContract: string) => {
     return useQuery({
         queryKey: ['managed_market_collateral_denoms', client, marketContract],
         queryFn: async () => {
-            if (!client) return
+            if (!client || !marketContract) return []
             return getMarketCollateralDenoms(client, marketContract)
         },
+        enabled: !!client && !!marketContract,
         staleTime: 1000 * 60 * 5,
     })
 }
@@ -152,6 +153,7 @@ export const useMarketCollateralCost = (marketContract: string, collateral_denom
 
 //Use UserPostion
 export const useUserPositioninMarket = (marketContract: string, collateral_denom: string, user: string) => {
+    console.log("useUserPositioninMarket", marketContract, collateral_denom, user);
     const { data: client } = useCosmWasmClient();
     return useQuery({
         queryKey: ['managed_market_user_position', client, marketContract, collateral_denom, user],

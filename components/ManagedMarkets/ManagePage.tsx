@@ -709,6 +709,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
   
   // Fetch all assets for the selected chain
   const assets = useAssets(chainName);
+  console.log("Im in Manage Page");
   // Fetch supported collateral denoms for this market
   const { data: collateralDenoms } = useMarketCollateralDenoms(marketAddress || '');
   // console.log("collateralDenoms", collateralDenoms);

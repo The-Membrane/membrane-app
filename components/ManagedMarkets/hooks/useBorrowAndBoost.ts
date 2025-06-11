@@ -114,26 +114,26 @@ const useBorrowAndBoost = ({
       };
 
       // Prepare Borrow message
-      const borrowMsg: MsgExecuteContractEncodeObject = {
-        typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
-        value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: marketContract,
-          msg: toUtf8(
-            JSON.stringify({
-              borrow: {
-                collateral_denom: collateralDenom,
-                send_to: undefined,
-                borrow_amount: {
-                  amount: borrowAmount.toString(),
-                  ltv: undefined,
-                },
-              },
-            })
-          ),
-          funds: [],
-        }),
-      };
+      // const borrowMsg: MsgExecuteContractEncodeObject = {
+      //   typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
+      //   value: MsgExecuteContract.fromPartial({
+      //     sender: address,
+      //     contract: marketContract,
+      //     msg: toUtf8(
+      //       JSON.stringify({
+      //         borrow: {
+      //           collateral_denom: collateralDenom,
+      //           send_to: undefined,
+      //           borrow_amount: {
+      //             amount: borrowAmount.toString(),
+      //             ltv: undefined,
+      //           },
+      //         },
+      //       })
+      //     ),
+      //     funds: [],
+      //   }),
+      // };
       console.log("borrowAmount", borrowAmount.toString());
 
       // Prepare EditUXBoosts message
@@ -169,7 +169,7 @@ const useBorrowAndBoost = ({
         }),
       };
 
-      return { msgs: [depositMsg, borrowMsg, editUXBoostsMsg], debtAmount: borrowAmount };
+      return { msgs: [depositMsg, editUXBoostsMsg], debtAmount: borrowAmount };
     },
     enabled: !!address && !!marketParams && !!collateralPriceData?.price && !!debtPriceData?.price && !!managedActionState.collateralAmount && !!managedActionState.multiplier && run,
   });

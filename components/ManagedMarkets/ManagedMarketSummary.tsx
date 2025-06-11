@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, HStack, Stack, Text, Badge, Image } from '@chakra-ui/react';
-import { num } from '@/helpers/num';
+import { Box, HStack, Stack, Text, Badge, Image, VStack } from '@chakra-ui/react';
+import {shiftDigits } from '@/helpers/math';
 import { ManagedActionState } from './hooks/useManagedMarket';
+import { num } from '@/helpers/num';
 
 // Types for props
 // managedActionState: { collateralAmount, multiplier, takeProfit, stopLoss }
@@ -13,67 +14,42 @@ interface ManagedMarketSummaryProps {
   borrowAndBoost: any; // TODO: type this more specifically if possible
   collateralAsset: any; // TODO: type this more specifically if possible
   debtAmount: string | undefined;
+  collateralPrice: string | undefined;
+  debtPrice: string | undefined;
 }
 
-const ManagedMarketSummary: React.FC<ManagedMarketSummaryProps> = ({ managedActionState, borrowAndBoost, collateralAsset, debtAmount }) => {
+const ManagedMarketSummary: React.FC<ManagedMarketSummaryProps> = ({ managedActionState, borrowAndBoost, collateralAsset, debtAmount, collateralPrice, debtPrice }) => {
   const { collateralAmount, multiplier, takeProfit, stopLoss } = managedActionState;
-  const msgs = borrowAndBoost?.data?.msgs || [];
+//   const msgs = borrowAndBoost?.data?.msgs || []
+  const collateralValue = num(collateralPrice).times(collateralAmount);
 
+  // Calculate post-loop debt amount
+  const postLoopDebtAmount = num(collateralValue).times(multiplier - 1).div(debtPrice || 1);
+  console.log('postLoopDebtAmount', collateralValue, collateralPrice, multiplier, postLoopDebtAmount.toString(), debtPrice);
+
+  // Placeholder values for fields not in props
+  const liquidationPrice = undefined; // TODO: pass as prop if needed
+  const ltv = undefined; // TODO: pass as prop if needed
+  const health = undefined; // TODO: pass as prop if needed
 
   return (
-    <Stack spacing={4} w="full" p={2}>
-      <Text fontWeight="bold" fontSize="lg">Summary</Text>
-      <HStack justifyContent="space-between">
-        <HStack>
-          <Image src={collateralAsset?.logo} w="24px" h="24px" />
-          <Text>{collateralAsset?.symbol}</Text>
+    <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>
+      <Text fontWeight="semibold" mb={2}>Pending Position:</Text>
+      <VStack align="stretch" spacing={2} fontSize="xs">
+        <HStack justify="space-between">
+          <Text color="whiteAlpha.700">Collateral Amount</Text>
+          <Text color="white" fontWeight="bold">{collateralAmount} {collateralAsset?.symbol}</Text>
         </HStack>
-        <Badge colorScheme="green">Deposit</Badge>
-        <Text>${num(collateralAmount).toFixed(2)}</Text>
-      </HStack>
-      <HStack justifyContent="space-between">
-        <Text>Multiplier </Text>
-        <Text>{multiplier.toFixed(2)}x</Text>
-      </HStack>
-      {takeProfit && (
-        <HStack justifyContent="space-between">
-          <Text>Take Profit @ </Text>
-          <Text>${takeProfit}</Text>
+        <HStack justify="space-between">
+          <Text color="whiteAlpha.700">Multiplier</Text>
+          <Text color="white" fontWeight="bold">{multiplier.toFixed(2)}x</Text>
         </HStack>
-      )}
-      {stopLoss && (
-        <HStack justifyContent="space-between">
-          <Text>Stop Loss @ </Text>
-          <Text>${stopLoss}</Text>
+        <HStack justify="space-between">
+          <Text color="whiteAlpha.700">Debt</Text>
+          <Text color="white" fontWeight="bold">{postLoopDebtAmount && Number(postLoopDebtAmount) > 0 ? `$${num(postLoopDebtAmount).toFixed(2)}` : '-'}</Text>
         </HStack>
-      )}
-      <Box>
-        <Text fontWeight="semibold" mb={1}>Pending Position:</Text>
-        <Stack spacing={2} fontSize="xs">
-          <Box key="collateralAmount" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
-            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Collateral Amount: {collateralAmount}</pre>
-          </Box>
-          <Box key="multiplier" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
-            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Multiplier: {multiplier.toFixed(2)}x</pre>
-          </Box>
-          {debtAmount && (
-            <Box key="debtAmount" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Debt Amount: {debtAmount}</pre>
-            </Box>
-          )}
-          {takeProfit && (
-            <Box key="takeProfit" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Take Profit: {takeProfit}</pre>
-            </Box>
-          )}
-          {stopLoss && (
-            <Box key="stopLoss" bg="gray.800" p={2} borderRadius="md" overflowX="auto">
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Stop Loss: {stopLoss}</pre>
-            </Box>
-          )}
-        </Stack>
-      </Box>
-    </Stack>
+      </VStack>
+    </Box>
   );
 };
 

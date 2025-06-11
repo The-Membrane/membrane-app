@@ -28,8 +28,8 @@ const ManagedMarketAction = ({
     //Get collateral price
     const { data: collateralPriceData } = useMarketCollateralPrice(marketAddress, collateralAsset?.base || "");
     const { data: debtPriceData } = useMarketDebtPrice(marketAddress);
-    const collateralPrice = collateralPriceData?.price || 0;
-    const debtPrice = debtPriceData?.price || 0;
+    const collateralPrice = collateralPriceData?.price || "0";
+    const debtPrice = debtPriceData?.price || "0";
     // Get asset details and balance
     // (Assume assets array is available or fetched elsewhere, or use placeholder)
     // const assetDetails = useAssetByDenom(asset.base, 'osmosis', assets)
@@ -132,8 +132,8 @@ const ManagedMarketAction = ({
     const safeDebtAmountTokens = shiftDigits(debtAmount, -6).toString() || '0';
     const safeCollateralAmount = managedActionState.collateralAmount || '0';
     const safeliquidationLTV = isNaN(liquidationLTV) ? 0 : liquidationLTV;
-    const safeCollateralPrice = collateralPrice || 0;
-    const safeDebtPrice = debtPrice || 0;
+    const safeCollateralPrice = collateralPrice || "0";
+    const safeDebtPrice = debtPrice || "0";
     const collateralValue = num(safeCollateralAmount).times(safeCollateralPrice); // USD value
     const debtValue = num(safeDebtAmountTokens).times(safeDebtPrice); // USD value
     const ltv = debtValue && collateralValue.gt(0)
@@ -429,7 +429,7 @@ const ManagedMarketAction = ({
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Debt</Text>
                                             <Text color="white" fontWeight="bold">
-                                                {debtAmount && Number(debtAmount) > 0 ? `$${num(shiftDigits(debtAmount, -6)).times(debtPrice).toFixed(2)}` : '-'}
+                                                {collateralValue && managedActionState.multiplier && debtPrice ? `$${num(collateralValue).times(managedActionState.multiplier - 1).div(debtPrice).toFixed(2)}` : '-'}
                                             </Text>
                                         </HStack>
                                         
@@ -476,9 +476,9 @@ const ManagedMarketAction = ({
                                     action={borrowAndBoost}
                                     isDisabled={!managedActionState.collateralAmount || !managedActionState.multiplier || Number(managedActionState.collateralAmount) <= 0 || managedActionState.multiplier < 1.01}
                                 >
-                                    <ManagedMarketSummary managedActionState={managedActionState} borrowAndBoost={borrowAndBoost} collateralAsset={collateralAsset} debtAmount={debtAmount} />
-                                </ConfirmModal>
-                            </VStack>
+                                    <ManagedMarketSummary managedActionState={managedActionState} borrowAndBoost={borrowAndBoost} collateralAsset={collateralAsset} debtAmount={debtAmount} collateralPrice={collateralPrice as string} debtPrice={debtPrice as string} />
+                                    </ConfirmModal>
+                                </VStack>
                         </Card>
                     </TabPanel>
                     <TabPanel px={0} py={0}>

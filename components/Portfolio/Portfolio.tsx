@@ -27,6 +27,7 @@ import {
   useDisclosure,
   Switch,
   Input,
+  Select,
 } from '@chakra-ui/react';
 import { getObjectCookie } from '@/helpers/cookies';
 import { getChainConfig, supportedChains } from '@/config/chains';
@@ -42,9 +43,10 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import { num } from '@/helpers/num';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
 import useCloseAndEditBoostsTx from './hooks/useCloseAndEditBoostsTx';
-import { getUserPositioninMarket } from '@/services/managed';
-import { getCosmWasmClient } from '@/helpers/cosmwasmClient';
+import { getMarketCollateralDenoms, useMarketNames, getUserPositioninMarket } from '@/services/managed';
+import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient';
 import useAppState from '@/persisted-state/useAppState';
+import useAssets from '@/hooks/useAssets';
 
 // Mock: Replace with real data fetching
 const fetchPositions = () => {
@@ -232,9 +234,9 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   );
 };
 
-const PositionCard = ({ position }: { position: any }) => {
+const PositionCard = ({ position, chainName, assets, marketName }: { position: any, chainName: string, assets: any[], marketName: string }) => {
   const [editState, setEditState] = React.useState(position);
-  const asset = useAssetBySymbol(editState.asset);
+  const asset = useAssetByDenom(editState.asset, chainName, assets);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
 //   const handleEditSave = (newState: any) => {
@@ -249,7 +251,7 @@ const PositionCard = ({ position }: { position: any }) => {
         <HStack spacing={3} align="center">
           <Image src={asset?.logo} alt={asset?.symbol} boxSize="36px" borderRadius="full" bg="#181C23" />
           <VStack align="start" spacing={0}>
-            <Text color="whiteAlpha.700" fontSize="sm">{editState.marketName}</Text>
+            <Text color="whiteAlpha.700" fontSize="sm">{marketName}</Text>
             <Text color="white" fontWeight="bold" fontSize="xl">{asset?.symbol || editState.asset}</Text>
           </VStack>
         </HStack>
@@ -300,6 +302,13 @@ const YieldCard = ({ yieldItem }: { yieldItem: any }) => (
   </Card>
 );
 
+// Query all static markets and all their collaterals for user positions
+const STATIC_MARKETS = [
+  { address: 'osmo1fucs2qtlwspwd3ahadqyyhxshurvku2gvxddrl0enp6j6y5dszjq96awy7', name: 'Market 1' },
+  { address: 'osmo1fftkmw6hwsw54aw9l0jfxkzzysvq23h6vqgk8cx32aedy6jxucmqpz27zj', name: 'Market 2' },
+  // Add more static markets as needed
+];
+
 const Portfolio: React.FC = () => {
   const [tabIndex, setTabIndex] = useState(0);
   const [yieldData, setYieldData] = useState<any[]>([]);
@@ -308,78 +317,66 @@ const Portfolio: React.FC = () => {
   // Get chainName and userAddress from hooks
   const { chainName } = useChainRoute();
   const { address: userAddress } = useWallet(chainName);
-  const { appState } = useAppState();
-  const rpcUrl = appState?.rpcUrl;
+  const { data: cosmwasmClient } = useCosmWasmClient();
+  const assets = useAssets(chainName);
 
-  // Get all markets
-  const allMarkets = useAllMarkets();
-
-  // Get all collateral denoms for each market
-  const collateralDenomsResults = (allMarkets || []).map((market) => {
-    return useMarketCollateralDenoms(market.address);
+  // 1. Fetch all collateral denoms for all static markets using useQueries
+  const collateralDenomsQueries = useQueries({
+    queries: STATIC_MARKETS.map((market) => ({
+      queryKey: ['collateral_denoms', market.address, cosmwasmClient],
+      queryFn: () => {
+        if (!cosmwasmClient) return Promise.resolve([]);
+        return getMarketCollateralDenoms(cosmwasmClient, market.address);
+      },
+      staleTime: 1000 * 60 * 5,
+    })),
   });
 
-  // Memoize the queries array for useQueries
-  const queries = useMemo(() => {
-    if (!(allMarkets && userAddress && tabIndex === 0 && rpcUrl)) return [];
-    return allMarkets.flatMap((market, mIdx) => {
-      const denoms = collateralDenomsResults[mIdx]?.data || [];
-      return denoms.map((collateralDenom: string) => ({
-        queryKey: ['managed_market_user_position', market.address, collateralDenom, userAddress],
-        queryFn: async () => {
-          try {
-            const client = await getCosmWasmClient(rpcUrl);
-            const res = await getUserPositioninMarket(client, market.address, collateralDenom, userAddress);
-            console.log(res);
-            return res;
-          } catch (e) {
-            return [];
-          }
-        },
-        enabled: !!userAddress && !!market.address && !!collateralDenom && !!rpcUrl,
-        staleTime: 1000 * 60 * 2,
-      }));
-    });
-  }, [allMarkets, userAddress, tabIndex, rpcUrl, collateralDenomsResults]);
+  // 2. Once all collateral denoms are loaded, build all (market, collateral) pairs
+  const allMarketCollateralPairs = STATIC_MARKETS.flatMap((market, mIdx) => {
+    const q = collateralDenomsQueries[mIdx];
+    if (!q || q.isLoading || q.isError || !Array.isArray(q.data)) return [];
+    return q.data.map((collateralDenom: string) => ({ market, collateralDenom }));
+  });
 
-  // Prepare queries for all user positions in all markets/collaterals
-  const positionQueries = useQueries({ queries });
+  // 3. Fetch all user positions for all (market, collateral) pairs using useQueries
+  const userPositionQueries = useQueries({
+    queries: allMarketCollateralPairs.map(({ market, collateralDenom }) => ({
+      queryKey: ['user_position', market.address, collateralDenom, userAddress, cosmwasmClient],
+      queryFn: () => {
+        if (!cosmwasmClient) return Promise.resolve([]);
+        return getUserPositioninMarket(cosmwasmClient, market.address, collateralDenom, userAddress || '');
+      },
+      enabled: !!userAddress,
+      staleTime: 1000 * 60 * 2,
+    })),
+  });
 
-  // Aggregate all positions
-  const positions = positionQueries
+  // 4. Aggregate all positions
+  const positions = userPositionQueries
     .flatMap((q, idx) => {
-      if (q.isLoading || q.isError || !q.data) return [];
-      // q.data is an array of UserPositionResponse
-      // Find market and collateral info
-      const allMarketsArr = (allMarkets ?? []) as import('@/components/ManagedMarkets/hooks/useManagerState').MarketData[];
-      let market: import('@/components/ManagedMarkets/hooks/useManagerState').MarketData | undefined = undefined;
-      let collateralDenom: string | undefined = undefined;
-      let count = 0;
-      outer: for (let m = 0; m < allMarketsArr.length; m++) {
-        const denoms: string[] = collateralDenomsResults[m]?.data || [];
-        for (let d = 0; d < denoms.length; d++) {
-          if (count === idx) {
-            market = allMarketsArr[m];
-            collateralDenom = denoms[d];
-            break outer;
-          }
-          count++;
-        }
-      }
-      return q.data.map((pos: any) => ({
-        ...pos.position,
-        user: pos.user,
-        marketAddress: market?.address,
-        marketName: market?.name,
-        asset: collateralDenom,
-        // Add more fields as needed for PositionCard
-      }));
-    })
-    .filter((p) => p && Number(p.collateral_amount) > 0);
+      if (q.isLoading || q.isError || !Array.isArray(q.data)) return [];
+      const { market, collateralDenom } = allMarketCollateralPairs[idx];
+      return q.data
+        .map((pos: any) => ({
+          ...pos.position,
+          user: pos.user,
+          marketAddress: market.address,
+          marketName: market.name,
+          asset: collateralDenom,
+        }))
+        .filter((p: any) => p && Number(p.collateral_amount) > 0);
+    });
+
+  // Use the batch hook to get all market names
+  const marketNames = useMarketNames(positions.map(p => p.marketAddress));
 
   useEffect(() => {
     if (tabIndex === 0) {
-      setLoading(positionQueries.some((q) => q.isLoading) || collateralDenomsResults.some((r) => r.isLoading));
+      setLoading(
+        collateralDenomsQueries.some((q) => q.isLoading) ||
+        userPositionQueries.some((q) => q.isLoading)
+      );
     } else {
       setLoading(true);
       // Yield
@@ -387,11 +384,10 @@ const Portfolio: React.FC = () => {
       setYieldData(yld);
       setLoading(false);
     }
-  }, [tabIndex, userAddress, chainName, positionQueries, collateralDenomsResults]);
+  }, [tabIndex, userAddress, chainName, collateralDenomsQueries, userPositionQueries]);
 
   // Mock stats values
   const stats = [
-    // { label: 'Your rewards', value: '$12,540.33' },
     { label: 'Your TVL', value: '$2,00,000.77' },
     { label: 'Your debt', value: '$600,00.04' },
     { label: 'Net asset value', value: '$1,400,000.73' },
@@ -431,7 +427,13 @@ const Portfolio: React.FC = () => {
             ) : (
               <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4} mt={4}>
                 {positions.map((position, idx) => (
-                  <PositionCard key={idx} position={position} />
+                  <PositionCard
+                    key={idx}
+                    position={position}
+                    chainName={chainName}
+                    assets={assets || []}
+                    marketName={marketNames[idx]}
+                  />
                 ))}
               </SimpleGrid>
             )}

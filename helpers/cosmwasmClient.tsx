@@ -5,11 +5,12 @@ import useAppState from '@/persisted-state/useAppState';
 
 export const useCosmWasmClient = () => {
   const { appState } = useAppState()
+  const RPCUrl = appState?.rpcUrl || rpcUrl
 
   return useQuery({
-    queryKey: ['cosmwasm_client'],
+    queryKey: ['cosmwasm_client', RPCUrl],
     queryFn: async () => {
-      return getCosmWasmClient(appState.rpcUrl)
+      return getCosmWasmClient(RPCUrl)
     },
     // enabled: true,
     // You might want to add staleTime to prevent unnecessary refetches

@@ -13,22 +13,24 @@ import ManagePage from './ManagePage';
 import { getMarketName } from '@/services/managed';
 import useWallet from '@/hooks/useWallet';
 
-const ManagedMarketPage: React.FC = () => {
-    const { address } = useWallet();
-    const router = useRouter();
-    const { marketAddress, action } = router.query;
-    //Get chain name from route
-    const chainName = router.query.chainName as string;
 
-    // Wait for router to be ready
+
+    // Helper to format price
+    export const formatPrice = (value: string | number | undefined) => {
+        if (value === undefined || value === null || value === '—') return '—';
+        return Formatter.currency(Number(value), 4);
+    };
+
+const ManagedMarketPage: React.FC = () => {
+    const router = useRouter();
+    // Wait for router to be ready BEFORE any hooks
     if (!router.isReady) {
         return <Spinner size="xl" />;
     }
-
-    // If action is manage, show ManagePage
-    if (action === 'manage') {
-        return <ManagePage marketAddress={marketAddress as string} />;
-    }
+    const { address } = useWallet();
+    const { marketAddress, action } = router.query;
+    //Get chain name from route
+    const chainName = router.query.chainName as string;
 
     // Extract collateral symbol and action type from action param (if array)
     let collateralSymbol = '';
@@ -71,12 +73,6 @@ const ManagedMarketPage: React.FC = () => {
     const formatPercent = (value: string | number | undefined) => {
         if (value === undefined || value === null || value === '—') return '—';
         return Formatter.percent(Number(value) * 100, 2); // expects 0.05 for 5%
-    };
-
-    // Helper to format price
-    const formatPrice = (value: string | number | undefined) => {
-        if (value === undefined || value === null || value === '—') return '—';
-        return Formatter.currency(Number(value), 4);
     };
 
     // Derive info card values
@@ -170,6 +166,11 @@ const ManagedMarketPage: React.FC = () => {
         symbol,
         marketName,
     };
+
+    // Only after all hooks, do conditional rendering:
+    if (action === 'manage') {
+        return <ManagePage marketAddress={marketAddress as string} />;
+    }
 
     return (
         <HStack align="flex-start" justify="center" spacing={8} w="100%" px={8} py={8}>

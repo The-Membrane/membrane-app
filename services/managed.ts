@@ -1,4 +1,3 @@
-
 import contracts from '@/config/contracts.json'
 import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { EarnQueryClient } from '@/contracts/codegen/earn/Earn.client'
@@ -84,6 +83,21 @@ export const getMarketName = (marketAddress: string) => {
 
     return marketName
 }
+
+// Batch hook to get market names for an array of addresses
+export const useMarketNames = (marketAddresses: string[]) => {
+    const allMarkets = useAllMarkets();
+    return useMemo(() => {
+        return marketAddresses.map(address => {
+            if (allMarkets && address) {
+                const found = allMarkets.find((m: any) => m.address === address);
+                if (found) return found.name;
+            }
+            return 'Unnamed Market';
+        });
+    }, [allMarkets, marketAddresses]);
+}
+
 export const getMarketCollateralDenoms = async (cosmWasmClient: any, marketContract: string) => {
     return cosmWasmClient.queryContractSmart(marketContract, {
         get_collateral_assets: {}
@@ -110,6 +124,7 @@ export const getMarketCollateralCost = async (cosmWasmClient: any, marketContrac
 }
 
 export const getUserPositioninMarket = async (cosmWasmClient: any, marketContract: string, collateral_denom: string, user: string) => {
+    
     return cosmWasmClient.queryContractSmart(marketContract, {
         get_user_positions: { 
             collateral_denom: collateral_denom,

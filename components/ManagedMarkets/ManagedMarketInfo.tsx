@@ -120,9 +120,9 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
             {/* Top line */}
             <Box bg="#181C23" borderRadius="lg" p={5} border="5px solid" borderColor="gray.800">
                 <HStack justify="space-between" w="100%">
-                    <InfoRow label="TVL" value={tvl} horizontal={false} />
+                    <InfoRow label="TVL" value={`$${tvl}`} horizontal={false} />
                     <Divider orientation="vertical" h="32px" borderColor="#232A3E" />
-                    <InfoRow label="Supplied Debt" value={suppliedDebt} horizontal={false} />
+                    <InfoRow label="Supplied Debt" value={`${suppliedDebt} CDT`} horizontal={false} />
                     <Divider orientation="vertical" h="32px" borderColor="#232A3E" />
                     <InfoRow label="Max Multiplier" value={maxMultiplier} horizontal={false} />
                 </HStack>

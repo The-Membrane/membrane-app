@@ -50,6 +50,7 @@ import useAssets from '@/hooks/useAssets';
 import { useMarketDebtPrice, useMarketCollateralCost } from '@/hooks/useManaged';
 import { useOraclePrice } from '@/hooks/useOracle';
 import { getMarketCollateralPrice } from '@/services/managed';
+import { shiftDigits } from '@/helpers/math';
 
 // Mock: Replace with real data fetching
 const fetchPositions = () => {
@@ -259,6 +260,8 @@ const PositionCard = ({ position, chainName, assets, marketName, prices, debtPri
   // Borrow APY from collateralCost
   const borrowAPY = collateralPrice ? Number(collateralPrice).toFixed(2) : '0.00';
 
+  console.log(position, collateralPrice, position.collateral_amount);
+
   return (
     <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C" width="100%">
       {/* Top section: logo, cluster, symbol, Edit button */}
@@ -281,7 +284,7 @@ const PositionCard = ({ position, chainName, assets, marketName, prices, debtPri
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Market Value</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">${(Number(position.collateral_amount) * Number(assetPrice)).toFixed(2)}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${(shiftDigits(position.collateral_amount, -6).times(assetPrice)).toFixed(2)}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Borrow APY</Text>

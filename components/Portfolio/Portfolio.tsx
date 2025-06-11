@@ -28,6 +28,8 @@ import {
   Switch,
   Input,
   Select,
+  RadioGroup,
+  Radio,
 } from '@chakra-ui/react';
 import { getObjectCookie } from '@/helpers/cookies';
 import { getChainConfig, supportedChains } from '@/config/chains';
@@ -96,7 +98,6 @@ const fetchYield = (userAddress: string, chainName: string) => {
 const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDenom, maxLTV, debt, collateral, price }: { assetSymbol: string, position: any, marketAddress: string, collateralDenom: string, maxLTV: number, debt: number, collateral: number, price: number }) => {
   const asset = useAssetBySymbol(assetSymbol);
   const { setManagedActionState, managedActionState } = useManagedAction();
-  const [closeAll, setCloseAll] = React.useState(false);
 
   // Max multiplier
   const maxMultiplier = 1 / (1 - maxLTV);
@@ -108,15 +109,10 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const userBalance = Number(useBalanceByAsset(asset));
 
   // Handlers
-  const handleToggle = (v: boolean) => setManagedActionState({ deposit: !v });
   const handleCollateral = (v: string) => setManagedActionState({ collateralAmount: v });
   const handleTP = (v: string) => setManagedActionState({ takeProfit: v });
   const handleSL = (v: string) => setManagedActionState({ stopLoss: v });
   const handleMultiplier = (v: number) => setManagedActionState({ multiplier: v });
-  const handleCloseAll = (checked: boolean) => {
-    setCloseAll(checked);
-    setManagedActionState({ closePercent: checked ? 100 : undefined });
-  };
   const handleClosePercent = (v: number) => setManagedActionState({ closePercent: v });
 
   // Build tx action
@@ -127,17 +123,11 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
     run: true,
   });
 
+  // Determine close type for radio
+  const closeType = managedActionState.closePercent === 100 ? 'full' : 'partial';
+
   return (
     <VStack spacing={6} align="stretch" w="100%">
-      <HStack justify="space-between" align="center">
-        <Text color="whiteAlpha.800" fontWeight="medium">
-          Collateral Action
-        </Text>
-        <Switch
-          onChange={e => handleToggle(e.target.checked)}
-          colorScheme="teal"
-        />
-      </HStack>
       <Box w="100%" bg="#11161e" borderRadius="lg" p={4}>
         <HStack justify="space-between" align="flex-start" w="100%">
           <VStack align="flex-start" spacing={1} flex={1}>
@@ -200,7 +190,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
         <Text color="whiteAlpha.700" fontSize="sm">Multiplier</Text>
         <Input
           variant="filled"
-          defaultValue={position.multiplier || 1}
+          value={managedActionState.multiplier || ''}
           onChange={e => handleMultiplier(Number(e.target.value))}
           type="number"
           min={1}
@@ -209,29 +199,41 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
           color="white"
           bg="#232A3E"
           _placeholder={{ color: 'whiteAlpha.400' }}
+          placeholder={position.multiplier || 1}
         />
       </VStack>
-      {/* Close position toggle and input */}
-      <HStack w="100%" spacing={4} align="center">
+      {/* Close Position Section with RadioGroup */}
+      <VStack align="start" spacing={1} w="100%">
         <Text color="whiteAlpha.700" fontSize="sm">Close Position</Text>
-        <Switch isChecked={closeAll} onChange={e => handleCloseAll(e.target.checked)} colorScheme="red" />
-        {!closeAll && (
-          <Input
-            variant="filled"
-            value={managedActionState.closePercent || ''}
-            onChange={e => handleClosePercent(Number(e.target.value))}
-            type="number"
-            min={0}
-            max={100}
-            step={1}
-            color="white"
-            bg="#232A3E"
-            w="80px"
-            _placeholder={{ color: 'whiteAlpha.400' }}
-            placeholder="%"
-          />
-        )}
-      </HStack>
+        <RadioGroup
+          value={closeType}
+          onChange={val => {
+            if (val === 'full') setManagedActionState({ closePercent: 100 });
+            else setManagedActionState({ closePercent: '' });
+          }}
+        >
+          <HStack>
+            <Radio value="full">Full Close</Radio>
+            <Radio value="partial">Partial Close</Radio>
+            {closeType === 'partial' && (
+              <Input
+                variant="filled"
+                value={managedActionState.closePercent || ''}
+                onChange={e => handleClosePercent(Number(e.target.value))}
+                type="number"
+                min={1}
+                max={99}
+                step={1}
+                color="white"
+                bg="#232A3E"
+                w="80px"
+                _placeholder={{ color: 'whiteAlpha.400' }}
+                placeholder="%"
+              />
+            )}
+          </HStack>
+        </RadioGroup>
+      </VStack>
       {/* ConfirmModal wired to tx action */}
       <ConfirmModal label="Confirm" action={action} isDisabled={false} />
     </VStack>

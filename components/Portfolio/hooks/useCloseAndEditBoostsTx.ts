@@ -102,7 +102,7 @@ const useCloseAndEditBoostsTx = ({
         }
 
         //Deposit or withdraw msg
-        if (managedActionState.deposit && managedActionState.collateralAmount != 0) {
+        if (managedActionState.collateralAmount != 0) {
             // Prepare Deposit message
             const depositMsg: MsgExecuteContractEncodeObject = {
                 typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
@@ -125,27 +125,29 @@ const useCloseAndEditBoostsTx = ({
                 }),
             };
             msgs.push(depositMsg); 
-        } else if (managedActionState.withdraw && managedActionState.collateralAmount != 0) {
-            // Prepare Withdraw message
-            const withdrawMsg: MsgExecuteContractEncodeObject = {
-                typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
-                value: MsgExecuteContract.fromPartial({
-                sender: address,
-                contract: marketContract,
-                msg: toUtf8(
-                    JSON.stringify({
-                    withdraw_collateral: {
-                        collateral_denom: collateralDenom,
-                        send_to: undefined,
-                        withdraw_amount: managedActionState.collateralAmount,
-                    }})
-                ),
-                    funds: [],
-                }),
-            };
-            msgs.push(withdrawMsg); 
+        } 
+        
+        // else if (managedActionState.withdraw && managedActionState.collateralAmount != 0) {
+        //     // Prepare Withdraw message
+        //     const withdrawMsg: MsgExecuteContractEncodeObject = {
+        //         typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
+        //         value: MsgExecuteContract.fromPartial({
+        //         sender: address,
+        //         contract: marketContract,
+        //         msg: toUtf8(
+        //             JSON.stringify({
+        //             withdraw_collateral: {
+        //                 collateral_denom: collateralDenom,
+        //                 send_to: undefined,
+        //                 withdraw_amount: managedActionState.collateralAmount,
+        //             }})
+        //         ),
+        //             funds: [],
+        //         }),
+        //     };
+        //     msgs.push(withdrawMsg); 
             
-        }
+        // }
     }
       return { msgs };
     },

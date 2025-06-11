@@ -11,7 +11,7 @@ import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
 import { useChainRoute } from './useChainRoute'
 import React from 'react'
-import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getUserPositioninMarket } from '@/services/managed'
+import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getUserPositioninMarket, getUserUXBoostsinMarket } from '@/services/managed'
 
 export const useManagers = () => {
     const { data: client } = useCosmWasmClient()
@@ -158,5 +158,14 @@ export const useUserPositioninMarket = (marketContract: string, collateral_denom
     return useQuery({
         queryKey: ['managed_market_user_position', client, marketContract, collateral_denom, user],
         queryFn: async () => getUserPositioninMarket(client, marketContract, collateral_denom, user),
+    })
+}
+
+//Use UserUXBoosts
+export const useUserUXBoosts = (marketContract: string, collateral_denom: string, user: string) => {
+    const { data: client } = useCosmWasmClient();
+    return useQuery({
+        queryKey: ['managed_market_user_ux_boosts', client, marketContract, collateral_denom, user],
+        queryFn: async () => getUserUXBoostsinMarket(client, marketContract, collateral_denom, user),
     })
 }

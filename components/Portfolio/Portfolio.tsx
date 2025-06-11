@@ -31,7 +31,7 @@ import {
   RadioGroup,
   Radio,
 } from '@chakra-ui/react';
-import { getObjectCookie } from '@/helpers/cookies';
+import { getObjectCookie, setObjectCookie } from '@/helpers/cookies';
 import { getChainConfig, supportedChains } from '@/config/chains';
 import { useBalanceByAsset } from '@/hooks/useBalance';
 import { useAssetByDenom, useAssetBySymbol } from '@/hooks/useAssets';
@@ -53,6 +53,8 @@ import { useMarketDebtPrice, useMarketCollateralCost } from '@/hooks/useManaged'
 import { useOraclePrice } from '@/hooks/useOracle';
 import { getMarketCollateralPrice } from '@/services/managed';
 import { shiftDigits } from '@/helpers/math';
+import { useUserUXBoosts } from '@/hooks/useManaged';
+import BigNumber from 'bignumber.js';
 
 // Mock: Replace with real data fetching
 const fetchPositions = () => {
@@ -98,6 +100,9 @@ const fetchYield = (userAddress: string, chainName: string) => {
 const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDenom, maxLTV, debt, collateral, price }: { assetSymbol: string, position: any, marketAddress: string, collateralDenom: string, maxLTV: number, debt: number, collateral: number, price: number }) => {
   const asset = useAssetBySymbol(assetSymbol);
   const { setManagedActionState, managedActionState } = useManagedAction();
+  const { chainName } = useChainRoute();
+  const { address: userAddress } = useWallet(chainName);
+  const { data: uxBoosts } = useUserUXBoosts(marketAddress, collateralDenom, userAddress ?? '');
 
   // Max multiplier
   const maxMultiplier = 1 / (1 - maxLTV);
@@ -114,6 +119,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const handleSL = (v: string) => setManagedActionState({ stopLoss: v });
   const handleMultiplier = (v: number) => setManagedActionState({ multiplier: v });
   const handleClosePercent = (v: number) => setManagedActionState({ closePercent: v });
+  const handleMax = () => setManagedActionState({ collateralAmount: userBalance.toString() });
 
   // Build tx action
   const { action } = useCloseAndEditBoostsTx({
@@ -125,6 +131,17 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
 
   // Determine close type for radio
   const closeType = managedActionState.closePercent === 100 ? 'full' : 'partial';
+
+  // Multiplier placeholder logic
+  let multiplierPlaceholder = "1";
+  if (uxBoosts && uxBoosts.loop_ltv) {
+    try {
+      const loopLtv = Number(uxBoosts.loop_ltv);
+      if (!isNaN(loopLtv) && loopLtv !== 0 && loopLtv !== 1) {
+        multiplierPlaceholder = (1 / (1 - loopLtv)).toFixed(2);
+      }
+    } catch {}
+  }
 
   return (
     <VStack spacing={6} align="stretch" w="100%">
@@ -155,6 +172,16 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
               <Image src={asset?.logo} alt={asset?.symbol} boxSize="24px" />
               <Text color="white" fontWeight="bold">{asset?.symbol}</Text>
             </HStack>
+              <Text
+                color="teal.300"
+                fontSize="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                _hover={{ textDecoration: 'underline' }}
+                onClick={handleMax}
+              >
+                Max
+              </Text>
           </VStack>
         </HStack>
       </Box>
@@ -199,7 +226,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
           color="white"
           bg="#232A3E"
           _placeholder={{ color: 'whiteAlpha.400' }}
-          placeholder={position.multiplier || 1}
+          placeholder={multiplierPlaceholder}
         />
       </VStack>
       {/* Close Position Section with RadioGroup */}
@@ -209,12 +236,12 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
           value={closeType}
           onChange={val => {
             if (val === 'full') setManagedActionState({ closePercent: 100 });
-            else setManagedActionState({ closePercent: '' });
+            else setManagedActionState({ closePercent: undefined });
           }}
         >
           <HStack>
-            <Radio value="full">Full Close</Radio>
             <Radio value="partial">Partial Close</Radio>
+            <Radio value="full">Full Close</Radio>
             {closeType === 'partial' && (
               <Input
                 variant="filled"
@@ -285,7 +312,7 @@ const PositionCard = ({ position, chainName, assets, marketName, prices, debtPri
           px={2}
           fontWeight="bold"
           width="20%"
-          pt={8}
+          pt={2}
           minW={"auto"}
           h={"24px"}
         >
@@ -293,15 +320,15 @@ const PositionCard = ({ position, chainName, assets, marketName, prices, debtPri
         </Button>
       </HStack>
       <Divider my={2} />
-      {/* Stats row: Debt, Market Value, Borrow APY, Liquidation Price */}
+      {/* Stats row: Market Value, Debt, Borrow APY, Liquidation Price */}
       <HStack w="100%" justify="space-between" align="center" mt={2}>
-        <VStack flex={1} align="start" spacing={0}>
-          <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">${position.debt_amount || '0.00'}</Text>
-        </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Market Value</Text>
           <Text color="white" fontWeight="bold" fontSize="lg">${(shiftDigits(position.collateral_amount, -6).times(assetPrice)).toFixed(2)}</Text>
+        </VStack>
+        <VStack flex={1} align="start" spacing={0}>
+          <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${position.debt_amount || '0.00'}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Borrow APY</Text>
@@ -348,12 +375,22 @@ const Portfolio: React.FC = () => {
   const [tabIndex, setTabIndex] = useState(0);
   const [yieldData, setYieldData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialMarkets, setInitialMarkets] = useState<string[]>([]);
+  const [displayedMarkets, setDisplayedMarkets] = useState<string[]>([]);
 
   // Get chainName and userAddress from hooks
   const { chainName } = useChainRoute();
   const { address: userAddress } = useWallet(chainName);
   const { data: cosmwasmClient } = useCosmWasmClient();
   const assets = useAssets(chainName);
+  const { appState } = useAppState();
+
+  // On mount, read userMarkets cookie for fast initial UI
+  useEffect(() => {
+    const cachedMarkets = getObjectCookie('userMarkets') || [];
+    setInitialMarkets(cachedMarkets);
+    setDisplayedMarkets(cachedMarkets);
+  }, []);
 
   // Get all prices (oracle)
   const { data: prices = [] } = useOraclePrice();
@@ -410,8 +447,24 @@ const Portfolio: React.FC = () => {
         .filter((p: any) => p && Number(p.collateral_amount) > 0);
     });
 
+  // After full query, update displayedMarkets and cookie if needed
+  useEffect(() => {
+    if (positions.length > 0) {
+      const newMarkets = positions.map(p => p.marketAddress);
+      setDisplayedMarkets(newMarkets);
+      if (appState.setCookie) {
+        setObjectCookie('userMarkets', newMarkets, 30); // 30 days
+      }
+    }
+  }, [positions, appState.setCookie]);
+
   // Use the batch hook to get all market names
   const marketNames = useMarketNames(positions.map(p => p.marketAddress));
+
+  // Filter positions to only those in displayedMarkets (for initial render)
+  const filteredPositions = displayedMarkets.length > 0
+    ? positions.filter(p => displayedMarkets.includes(p.marketAddress))
+    : positions;
 
   // Fetch collateral prices for all positions
   const collateralPriceQueries = useQueries({
@@ -440,13 +493,25 @@ const Portfolio: React.FC = () => {
       setLoading(false);
     }
   }, [tabIndex, userAddress, chainName, collateralDenomsQueries, userPositionQueries]);
+ // Compute global stats from filteredPositions
+  const tvl = filteredPositions.reduce((acc, p) => {
+    const assetPrice = prices?.find((pr) => pr.denom === p.asset)?.price || 0;
+    return acc.plus(num(shiftDigits(p.collateral_amount, -6)).times(assetPrice));
+  }, new BigNumber(0));
+  const totalDebt = filteredPositions.reduce((acc, p) => acc.plus(num(p.debt_amount)), new BigNumber(0));
+  const netAssetValue = tvl.minus(totalDebt);
 
-  // Mock stats values
   const stats = [
-    { label: 'Your TVL', value: '$2,00,000.77' },
-    { label: 'Your debt', value: '$600,00.04' },
-    { label: 'Net asset value', value: '$1,400,000.73' },
+    { label: 'Your TVL', value: `$${tvl.toFixed(2)}` },
+    { label: 'Your debt', value: `$${totalDebt.toFixed(2)}` },
+    { label: 'Net asset value', value: `$${netAssetValue.toFixed(2)}` },
   ];
+  // Mock stats values
+  // const stats = [
+  //   { label: 'Your TVL', value: '$2,00,000.77' },
+  //   { label: 'Your debt', value: '$600,00.04' },
+  //   { label: 'Net asset value', value: '$1,400,000.73' },
+  // ];
 
   return (
     <Box w="90vw" mx="auto" mt={8}>
@@ -462,7 +527,13 @@ const Portfolio: React.FC = () => {
         <HStack spacing={10}>
           {stats.map((stat, idx) => (
             <Stat key={idx}>
-              <StatLabel color="whiteAlpha.700" fontSize="md">{stat.label}</StatLabel>
+              <StatLabel
+                color="whiteAlpha.700"
+                fontSize="md"
+                {...(stat.label === 'Net asset value' ? { minWidth: '130px', display: 'inline-block' } : {})}
+              >
+                {stat.label}
+              </StatLabel>
               <StatNumber color="white" fontWeight="bold" fontSize="xl">{stat.value}</StatNumber>
             </Stat>
           ))}
@@ -475,13 +546,13 @@ const Portfolio: React.FC = () => {
         </TabList>
         <TabPanels>
           <TabPanel px={0}>
-            {loading ? (
+            {loading && filteredPositions.length === 0 ? (
               <Spinner color="white" />
-            ) : positions.length === 0 ? (
+            ) : filteredPositions.length === 0 ? (
               <Text color="whiteAlpha.700" mt={8}>No positions found.</Text>
             ) : (
               <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4} mt={4}>
-                {positions.map((position, idx) => (
+                {filteredPositions.map((position, idx) => (
                   <PositionCard
                     key={idx}
                     position={position}

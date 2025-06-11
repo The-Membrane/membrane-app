@@ -26,6 +26,14 @@ export interface UserPositionResponse {
     position: UserPosition
 }
 
+export interface UXBoosts {
+    collateral_value_fee_to_executor: string, 
+    loop_ltv: any,
+    take_profit_params: any,
+    stop_loss_params: any,
+    collateral_bought_from_loops: any[]
+}
+
 export const getManagers = async (cosmWasmClient: any) => {
     return cosmWasmClient.queryContractSmart(contracts.marketManager, {
         managers: {
@@ -134,5 +142,18 @@ export const getUserPositioninMarket = async (cosmWasmClient: any, marketContrac
          }
     }) as Promise<UserPositionResponse[]>
 }
+
+
+export const getUserUXBoostsinMarket = async (cosmWasmClient: any, marketContract: string, collateral_denom: string, user: string) => {
+    
+    return cosmWasmClient.queryContractSmart(marketContract, {
+        get_user_ux_boosts: { 
+            collateral_denom: collateral_denom,
+            user: user
+         }
+    }) as Promise<UXBoosts>
+}
+
+
 
 

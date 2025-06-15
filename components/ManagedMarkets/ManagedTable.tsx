@@ -34,6 +34,7 @@ import {
     Portal,
     Icon,
     Spinner,
+    Image,
 } from '@chakra-ui/react';
 import { ChevronDownIcon, CloseIcon, SearchIcon, TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons';
 import ConnectButton from '../WallectConnect/ConnectButton';
@@ -184,6 +185,7 @@ const ManagedTable = () => {
             return {
                 market,
                 assetSymbol: asset?.symbol ?? denom,
+                assetLogo: asset?.logo ?? '',
                 tvl, // numeric for sorting
                 tvlDisplay, // formatted for display
                 vaultName: market.name,
@@ -381,6 +383,7 @@ const ManagedTable = () => {
 interface MarketRowProps {
     market: any;
     assetSymbol: string;
+    assetLogo: string;
     tvl: number;
     tvlDisplay: string;
     vaultName: string;
@@ -389,7 +392,7 @@ interface MarketRowProps {
     onClick: () => void;
 }
 
-function MarketRow({ assetSymbol, tvlDisplay, vaultName, multiplier, cost, onClick }: MarketRowProps) {
+function MarketRow({ assetSymbol, assetLogo, tvlDisplay, vaultName, multiplier, cost, onClick }: MarketRowProps) {
     function formatMultiplier(val: number | string): string {
         let n = typeof val === 'number' ? val : parseFloat(val as string);
         if (isNaN(n)) return '0x';
@@ -402,7 +405,12 @@ function MarketRow({ assetSymbol, tvlDisplay, vaultName, multiplier, cost, onCli
     }
     return (
         <Tr onClick={onClick} _hover={{ bg: '#2D3748', cursor: 'pointer' }}>
-            <Td color="white" fontWeight="medium" fontSize="13px">{assetSymbol}</Td>
+            <Td color="white" fontWeight="medium" fontSize="13px">
+                <HStack spacing={2}>
+                    {assetLogo && <Image src={assetLogo} alt={assetSymbol} boxSize="20px" borderRadius="full" bg="#181C23" />}
+                    <span>{assetSymbol}</span>
+                </HStack>
+            </Td>
             <Td color="whiteAlpha.900" fontSize="13px">{tvlDisplay}</Td>
             <Td color="whiteAlpha.900" fontSize="13px">{vaultName}</Td>
             <Td color="whiteAlpha.900" fontSize="13px">{formatMultiplier(multiplier)}</Td>

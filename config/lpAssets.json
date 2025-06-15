@@ -57,5 +57,14 @@
     "decimal": 6,
     "isLP": false,
     "logo": "/images/om.svg"
+  },
+  {
+    "description": "CULT - Less Brainwashing, More Utility",
+    "base": "factory/osmo1qdvwftqd8ml6t9w6dmj97m03ck5ghqqmd8y7cm/cult",
+    "symbol": "CULT",
+    "decimal": 6,
+    "isLP": false,
+    "logo": "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/cult.png"
   }
+
 ]

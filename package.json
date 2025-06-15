@@ -16,7 +16,7 @@
     "@chain-registry/utils": "^1.51.1",
     "@chakra-ui/anatomy": "^2.3.4",
     "@chakra-ui/icons": "^2.2.4",
-    "@chakra-ui/react": "^2.10.3",
+    "@chakra-ui/react": "2.10.3",
     "@cosmjs/amino": "^0.32.4",
     "@cosmjs/cosmwasm-stargate": "^0.32.4",
     "@cosmjs/encoding": "^0.32.4",

@@ -92,6 +92,7 @@ export const getAssetBySymbol = (symbol: string, chainID: string = DEFAULT_CHAIN
 
 export const getAssetByDenom = (denom: string, chainID: string = DEFAULT_CHAIN) => {
   const assets = getAssets(chainID)
+  console.log(chainID, "assets", assets);
   return assets?.find((asset) => asset.base === denom)
 }
 

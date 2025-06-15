@@ -1,6 +1,7 @@
+- Test TP and SL
+- Launch
 
 
-Does the Loop intent work?
 
 
 Next Steps:
@@ -16,7 +17,8 @@ Next Steps:
 
 - //FIX SUPPLY CAP ERRORS FOR EXPUNGED ASSETS/MAKE A MODAL TO ALERT EXPUNGED ASSETS.
 
-
+FOR CONTRACTS:
+- Add market_manager revenue handler
 
 
 

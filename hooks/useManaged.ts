@@ -107,15 +107,24 @@ export const useAllMarkets = () => {
     const markets = useMemo(() => {
         if (!managers || !client) return null;
 
-        return Promise.all(
+        return Promise.allSettled(
             managers.map(async (manager) => {
-                const markets = await getManagedMarkets(client, manager);
-                return markets.map(market => ({
-                    ...market,
-                    manager,
-                }));
+                try {
+                    const markets = await getManagedMarkets(client, manager);
+                    return markets.map(market => ({
+                        ...market,
+                        manager,
+                    }));
+                } catch (e) {
+                    console.warn('Skipping manager due to error in getManagedMarkets:', manager, e);
+                    return [];
+                }
             })
-        ).then(results => results.flat());
+        ).then(results =>
+            results
+                .filter(r => r.status === 'fulfilled')
+                .flatMap(r => (r.status === 'fulfilled' ? r.value : []))
+        );
     }, [managers, client]);
 
     const { data: managedMarkets } = usePromise(markets);
@@ -153,7 +162,7 @@ export const useMarketCollateralCost = (marketContract: string, collateral_denom
 
 //Use UserPostion
 export const useUserPositioninMarket = (marketContract: string, collateral_denom: string, user: string) => {
-    console.log("useUserPositioninMarket", marketContract, collateral_denom, user);
+    // console.log("useUserPositioninMarket", marketContract, collateral_denom, user);
     const { data: client } = useCosmWasmClient();
     return useQuery({
         queryKey: ['managed_market_user_position', client, marketContract, collateral_denom, user],

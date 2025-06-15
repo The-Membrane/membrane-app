@@ -45,7 +45,7 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import { num } from '@/helpers/num';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
 import useCloseAndEditBoostsTx from './hooks/useCloseAndEditBoostsTx';
-import { getMarketCollateralDenoms, useMarketNames, getUserPositioninMarket } from '@/services/managed';
+import { getMarketCollateralDenoms, useMarketNames, getUserPositioninMarket, getManagedMarket } from '@/services/managed';
 import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient';
 import useAppState from '@/persisted-state/useAppState';
 import useAssets from '@/hooks/useAssets';
@@ -55,28 +55,29 @@ import { getMarketCollateralPrice } from '@/services/managed';
 import { shiftDigits } from '@/helpers/math';
 import { useUserUXBoosts } from '@/hooks/useManaged';
 import BigNumber from 'bignumber.js';
+import ManagedMarketSummary from '@/components/ManagedMarkets/ManagedMarketSummary';
 
 // Mock: Replace with real data fetching
-const fetchPositions = () => {
-  // Try to get from cookies
-  const positions = getObjectCookie('positions') || [];
-  // If not found, fallback to empty or query all markets (to be implemented)
-  // Add a mock position for demonstration
-  if (positions.length === 0) {
-    return [
-      {
-        marketAddress: '0x123',
-        marketName: 'Unnamed Market',
-        asset: 'OSMO',
-        debt: '98.52',
-        marketValue: '500.00',
-        borrowAPY: '0.73',
-        liquidationPrice: '+50.00',
-      },
-    ];
-  }
-  return positions;
-};
+// const fetchPositions = () => {
+//   // Try to get from cookies
+//   const positions = getObjectCookie('positions') || [];
+//   // If not found, fallback to empty or query all markets (to be implemented)
+//   // Add a mock position for demonstration
+//   if (positions.length === 0) {
+//     return [
+//       {
+//         marketAddress: '0x123',
+//         marketName: 'Unnamed Market',
+//         asset: 'OSMO',
+//         debt: '98.52',
+//         marketValue: '500.00',
+//         borrowAPY: '0.73',
+//         liquidationPrice: '+50.00',
+//       },
+//     ];
+//   }
+//   return positions;
+// };
 
 // Mock: Replace with real data fetching
 const fetchYield = (userAddress: string, chainName: string) => {
@@ -97,21 +98,30 @@ const fetchYield = (userAddress: string, chainName: string) => {
   ];
 };
 
-const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDenom, maxLTV, debt, collateral, price }: { assetSymbol: string, position: any, marketAddress: string, collateralDenom: string, maxLTV: number, debt: number, collateral: number, price: number }) => {
+const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDenom, maxLTV, collateralPrice, currentLTV, initialLiquidationPrice }: { assetSymbol: string, position: any, marketAddress: string, collateralDenom: string, maxLTV: number, collateralPrice: number, currentLTV: number, initialLiquidationPrice: string }) => {
   const asset = useAssetBySymbol(assetSymbol);
   const { setManagedActionState, managedActionState } = useManagedAction();
   const { chainName } = useChainRoute();
   const { address: userAddress } = useWallet(chainName);
   const { data: uxBoosts } = useUserUXBoosts(marketAddress, collateralDenom, userAddress ?? '');
-
+  const [spread, setSpread] = useState(0.01);
   // Max multiplier
   const maxMultiplier = 1 / (1 - maxLTV);
 
-  // Max withdraw logic
-  const maxWithdraw = Math.max(0, collateral - (debt / (maxLTV * price)));
-
   // User balance for deposit
   const userBalance = Number(useBalanceByAsset(asset));
+
+  // Calculate dynamic liquidation price
+  const inputCollateral = Number(managedActionState.collateralAmount) || 0;
+  const decimals = asset?.decimal || 6;
+  const baseCollateral = Number(position.collateral_amount) / Math.pow(10, decimals);
+  const totalCollateral = baseCollateral + inputCollateral;
+  const debt = Number(position.debt_amount) / 1e6; // assuming 6 decimals for debt
+  const debtPrice = Number(position.debtPrice) || 1; // fallback to 1 if not available
+  let dynamicLiquidationPrice = '-';
+  if (totalCollateral > 0 && maxLTV > 0) {
+    dynamicLiquidationPrice = ((debt / (totalCollateral * maxLTV)) * debtPrice).toFixed(4);
+  }
 
   // Handlers
   const handleCollateral = (v: string) => setManagedActionState({ collateralAmount: v });
@@ -126,11 +136,24 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
     marketContract: marketAddress,
     collateralDenom,
     managedActionState,
-    run: true,
+    collateralPrice: collateralPrice.toString(),
+    currentLTV: currentLTV.toString(),
+    maxSpread: spread.toString(),
+    run: !!(managedActionState.closePercent || managedActionState.collateralAmount || managedActionState.takeProfit || managedActionState.stopLoss || managedActionState.multiplier),
   });
 
+  // console.log('action', action.simulate.error, action.simulate.errorMessage);
+  //If slippage is too lwo & it errors, increase it by 1%
+  //The slippage error contains "max spread assertion"
+  useMemo(() => {
+    if (action.simulate.error && (action.simulate.error.message.includes("max spread assertion") || action.simulate.error.message.includes("token amount calculated"))) {
+        setSpread((prev) => prev + 0.01)
+        console.log("Increasing spread to", spread + 0.01)
+    }
+}, [action.simulate.error, spread])
   // Determine close type for radio
-  const closeType = managedActionState.closePercent === 100 ? 'full' : 'partial';
+  const closeType = Number(managedActionState.closePercent) === 100 ? 'full' : 'partial';
+  // console.log('closePercent:', managedActionState.closePercent, 'closeType:', closeType);
 
   // Multiplier placeholder logic
   let multiplierPlaceholder = "1";
@@ -149,18 +172,18 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
         <HStack justify="space-between" align="flex-start" w="100%">
           <VStack align="flex-start" spacing={1} flex={1}>
             <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium">
-              Collateral amount
+              Deposit More Collateral
             </Text>
             <Input
               variant="unstyled"
               fontSize="2xl"
               fontWeight="bold"
               color="white"
-              defaultValue={position.collateralAmount || ''}
+              value={managedActionState.collateralAmount || ''}
               onChange={e => handleCollateral(e.target.value)}
               type="number"
               min={0}
-              max={maxWithdraw}
+              max={userBalance}
               placeholder="0"
               w="100%"
               _placeholder={{ color: 'whiteAlpha.400' }}
@@ -212,12 +235,19 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
           />
         </VStack>
       </HStack>
+      {/* Current Price & Liquidation Price Box */}
+      <Box w="100%" bg="#181C23" borderRadius="md" p={3} mt={2} mb={2}>
+        <VStack align="stretch" spacing={1}>
+          <Text color="whiteAlpha.700" fontSize="sm">Current Price: ${Number(collateralPrice).toFixed(4)}</Text>
+          <Text color="whiteAlpha.700" fontSize="sm">Liquidation Price: {dynamicLiquidationPrice !== '-' ? `$${dynamicLiquidationPrice}` : '-'}</Text>
+        </VStack>
+      </Box>
       {/* Multiplier input with boundaries */}
       <VStack align="start" spacing={1} w="100%">
         <Text color="whiteAlpha.700" fontSize="sm">Multiplier</Text>
         <Input
           variant="filled"
-          value={managedActionState.multiplier || ''}
+          value={managedActionState.multiplier != 1 ? managedActionState.multiplier : ''}
           onChange={e => handleMultiplier(Number(e.target.value))}
           type="number"
           min={1}
@@ -262,34 +292,73 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
         </RadioGroup>
       </VStack>
       {/* ConfirmModal wired to tx action */}
-      <ConfirmModal label="Confirm" action={action} isDisabled={false} />
+      <ConfirmModal label="Confirm" action={action} isDisabled={false} >
+        <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>
+          <Text fontWeight="semibold" mb={2}>Edit Summary:</Text>
+          <VStack align="stretch" spacing={2} fontSize="xs">
+            {managedActionState.collateralAmount && Number(managedActionState.collateralAmount) > 0 && (
+              <HStack justify="space-between">
+                <Text color="whiteAlpha.700">Deposit Collateral</Text>
+                <Text color="white" fontWeight="bold">{managedActionState.collateralAmount} {asset?.symbol}</Text>
+              </HStack>
+            )}
+            { managedActionState.multiplier && managedActionState.multiplier != 1 && (
+              <HStack justify="space-between">
+                <Text color="whiteAlpha.700">Change Multiplier to</Text>
+                <Text color="white" fontWeight="bold">{Number(managedActionState.multiplier).toFixed(2)}x</Text>
+              </HStack>
+            )}
+            {managedActionState.takeProfit && (
+              <HStack justify="space-between">
+                <Text color="whiteAlpha.700">Set Take Profit @</Text>
+                <Text color="white" fontWeight="bold">{managedActionState.takeProfit}</Text>
+              </HStack>
+            )}
+            {managedActionState.stopLoss && (
+              <HStack justify="space-between">
+                <Text color="whiteAlpha.700">Set Stop Loss @</Text>
+                <Text color="white" fontWeight="bold">{managedActionState.stopLoss}</Text>
+              </HStack>
+            )}
+            {managedActionState.closePercent && (
+              <HStack justify="space-between">
+                <Text color="whiteAlpha.700">Close Position</Text>
+                <Text color="white" fontWeight="bold">{managedActionState.closePercent}%</Text>
+              </HStack>
+            )}
+          </VStack>
+        </Box>
+      </ConfirmModal>
     </VStack>
   );
 };
 
-const PositionCard = ({ position, chainName, assets, marketName, prices, debtPrice, collateralPrice }: { position: any, chainName: string, assets: any[], marketName: string, prices: any[], debtPrice?: number, collateralPrice?: string }) => {
+const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPrice, collateralPrice }: { position: any, chainName: string, assets: any[], marketName: string, maxLTV: number, debtPrice?: number, collateralPrice?: string }) => {
   const [editState, setEditState] = React.useState(position);
   const asset = useAssetByDenom(editState.asset, chainName, assets);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Get asset price from prices list
-  const assetPrice = prices?.find((p) => p.denom === position.asset)?.price || 0;
+  const assetPrice = collateralPrice ? Number(collateralPrice) : 0;
 
   // Calculate liquidation price (if possible)
   let liquidationPrice = '-';
-  if (debtPrice && position.debt_amount && position.collateral_amount && position.maxLTV) {
+  if (debtPrice && position.debt_amount && position.collateral_amount && maxLTV) {
     const debt = Number(position.debt_amount);
     const collateral = Number(position.collateral_amount);
-    const maxLTV = Number(position.maxLTV);
     if (collateral > 0 && maxLTV > 0) {
-      liquidationPrice = ((debt / (collateral * maxLTV)) * debtPrice).toFixed(2);
+      liquidationPrice = ((debt / (collateral * maxLTV)) * debtPrice).toFixed(4);
     }
   }
+  //Calc current LTV
+  const debt = num(shiftDigits(position.debt_amount, -6));
+  const collateral = num(shiftDigits(position.collateral_amount, -(asset?.decimals || 6)));
+  const assetPriceNum = Number(collateralPrice) || 0;
+  const debtPriceNum = Number(debtPrice) || 0;
+  const currentLTV = collateral.gt(0) && assetPriceNum > 0 ? debt.times(debtPriceNum).div(collateral.times(assetPriceNum)).toNumber() : 0;
 
   // Borrow APY from collateralCost
   const borrowAPY = collateralPrice ? Number(collateralPrice).toFixed(2) : '0.00';
-
-  // console.log(position, collateralPrice, position.collateral_amount);
 
   return (
     <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C" width="100%">
@@ -328,7 +397,7 @@ const PositionCard = ({ position, chainName, assets, marketName, prices, debtPri
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">${position.debt_amount || '0.00'}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${shiftDigits(position.debt_amount, -6).toFixed(2) || '0.00'}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Borrow APY</Text>
@@ -336,7 +405,7 @@ const PositionCard = ({ position, chainName, assets, marketName, prices, debtPri
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Liquidation Price</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">{liquidationPrice}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${liquidationPrice}</Text>
         </VStack>
       </HStack>
       {/* Edit Modal Placeholder */}
@@ -346,7 +415,7 @@ const PositionCard = ({ position, chainName, assets, marketName, prices, debtPri
           <ModalHeader>Edit Position</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <MarketActionEdit assetSymbol={asset?.symbol || editState.asset} position={editState} marketAddress={editState.marketAddress} collateralDenom={editState.collateralDenom} maxLTV={editState.maxLTV} debt={editState.debt} collateral={editState.collateral} price={editState.price} />
+            <MarketActionEdit assetSymbol={asset?.symbol || editState.asset} position={editState} marketAddress={editState.marketAddress} collateralDenom={editState.asset} maxLTV={maxLTV} collateralPrice={collateralPrice ? Number(collateralPrice) : 0} currentLTV={currentLTV} initialLiquidationPrice={liquidationPrice} />
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -448,14 +517,21 @@ const Portfolio: React.FC = () => {
     });
 
   // After full query, update displayedMarkets and cookie if needed
-  useEffect(() => {
+  useMemo(() => {
     if (positions.length > 0) {
       const newMarkets = positions.map(p => p.marketAddress);
-      setDisplayedMarkets(newMarkets);
-      if (appState.setCookie) {
-        setObjectCookie('userMarkets', newMarkets, 30); // 30 days
+      // Only update if different
+      if (
+        newMarkets.length !== displayedMarkets.length ||
+        !newMarkets.every((m, i) => m === displayedMarkets[i])
+      ) {
+        setDisplayedMarkets(newMarkets);
+        if (appState.setCookie) {
+          setObjectCookie('userMarkets', newMarkets, 30); // 30 days
+        }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [positions, appState.setCookie]);
 
   // Use the batch hook to get all market names
@@ -473,6 +549,19 @@ const Portfolio: React.FC = () => {
       queryFn: () => {
         if (!cosmwasmClient || !position.marketAddress || !position.asset) return Promise.resolve(undefined);
         return getMarketCollateralPrice(cosmwasmClient, position.marketAddress, position.asset);
+      },
+      enabled: !!cosmwasmClient && !!position.marketAddress && !!position.asset,
+      staleTime: 1000 * 60 * 5,
+    })),
+  });
+
+  // Fetch maxLTV for all positions
+  const maxLTVQueries = useQueries({
+    queries: positions.map((position) => ({
+      queryKey: ['maxLTV', position.marketAddress, position.asset, cosmwasmClient],
+      queryFn: () => {
+        if (!cosmwasmClient || !position.marketAddress || !position.asset) return Promise.resolve(undefined);
+        return getManagedMarket(cosmwasmClient, position.marketAddress, position.asset);
       },
       enabled: !!cosmwasmClient && !!position.marketAddress && !!position.asset,
       staleTime: 1000 * 60 * 5,
@@ -498,7 +587,7 @@ const Portfolio: React.FC = () => {
     const assetPrice = prices?.find((pr) => pr.denom === p.asset)?.price || 0;
     return acc.plus(num(shiftDigits(p.collateral_amount, -6)).times(assetPrice));
   }, new BigNumber(0));
-  const totalDebt = filteredPositions.reduce((acc, p) => acc.plus(num(p.debt_amount)), new BigNumber(0));
+  const totalDebt = filteredPositions.reduce((acc, p) => acc.plus(num(shiftDigits(p.debt_amount, -6))), new BigNumber(0));
   const netAssetValue = tvl.minus(totalDebt);
 
   const stats = [
@@ -512,7 +601,6 @@ const Portfolio: React.FC = () => {
   //   { label: 'Your debt', value: '$600,00.04' },
   //   { label: 'Net asset value', value: '$1,400,000.73' },
   // ];
-
   return (
     <Box w="90vw" mx="auto" mt={8}>
       {/* Portfolio Title and Stats */}
@@ -526,11 +614,12 @@ const Portfolio: React.FC = () => {
         </HStack>
         <HStack spacing={10}>
           {stats.map((stat, idx) => (
-            <Stat key={idx}>
+            <Stat key={idx} width="12vw">
               <StatLabel
                 color="whiteAlpha.700"
                 fontSize="md"
-                {...(stat.label === 'Net asset value' ? { minWidth: '130px', display: 'inline-block' } : {})}
+                minWidth="fit-content"
+                display="inline-block"
               >
                 {stat.label}
               </StatLabel>
@@ -559,26 +648,20 @@ const Portfolio: React.FC = () => {
                     chainName={chainName}
                     assets={assets || []}
                     marketName={marketNames[idx]}
-                    prices={prices}
                     debtPrice={debtPrice}
                     collateralPrice={collateralPriceQueries[idx]?.data?.price}
+                    maxLTV={Number(maxLTVQueries[idx]?.data?.[0]?.collateral_params.liquidation_LTV) || 0}
                   />
                 ))}
               </SimpleGrid>
             )}
           </TabPanel>
           <TabPanel px={0}>
-            {loading ? (
-              <Spinner color="white" />
-            ) : yieldData.length === 0 ? (
-              <Text color="whiteAlpha.700" mt={8}>No yield data found.</Text>
-            ) : (
-              <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4} mt={4}>
-                {yieldData.map((yieldItem, idx) => (
-                  <YieldCard key={idx} yieldItem={yieldItem} />
-                ))}
-              </SimpleGrid>
-            )}
+            <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C">
+              <VStack align="start">
+                <Text color="whiteAlpha.700" mt={2} fontWeight="bold">Not available.</Text>
+              </VStack>
+            </Card>
           </TabPanel>
         </TabPanels>
       </Tabs>

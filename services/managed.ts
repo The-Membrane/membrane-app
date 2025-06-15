@@ -95,10 +95,12 @@ export const getMarketName = (marketAddress: string) => {
 // Batch hook to get market names for an array of addresses
 export const useMarketNames = (marketAddresses: string[]) => {
     const allMarkets = useAllMarkets();
+    console.log('allMarkets', allMarkets);
     return useMemo(() => {
         return marketAddresses.map(address => {
             if (allMarkets && address) {
                 const found = allMarkets.find((m: any) => m.address === address);
+
                 if (found) return found.name;
             }
             return 'Unnamed Market';

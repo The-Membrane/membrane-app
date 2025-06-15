@@ -11,6 +11,9 @@ interface CloseAndEditBoostsTxParams {
   marketContract: string;
   collateralDenom: string;
   managedActionState: any;
+  collateralPrice: string;
+  currentLTV: string;
+  maxSpread: string;
   run?: boolean;
 }
 
@@ -18,13 +21,17 @@ const useCloseAndEditBoostsTx = ({
   marketContract,
   collateralDenom,
   managedActionState,
+  collateralPrice,
+  currentLTV,
+  maxSpread,
   run = true,
 }: CloseAndEditBoostsTxParams) => {
+
+  // console.log('maxSpread', maxSpread);
   const { address } = useWallet();
 
   const { setManagedActionState } = useManagedAction();
 
-  
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[]
   }
@@ -35,9 +42,13 @@ const useCloseAndEditBoostsTx = ({
       marketContract || '',
       collateralDenom || '',
       JSON.stringify(managedActionState),
+      currentLTV || '',
+      collateralPrice || '',
+      maxSpread,
     ],
     queryFn: async () => {
       const msgs: any[] = [];
+      console.log('maxSpread', maxSpread);
       // ClosePosition msg
       if (managedActionState.closePercent) {
         msgs.push({
@@ -45,24 +56,33 @@ const useCloseAndEditBoostsTx = ({
           value: {
             sender: address,
             contract: marketContract,
-            msg: {
-              close_position: {
-                collateral_denom: collateralDenom,
-                position_owner: address,
-                close_percentage: (managedActionState.closePercent / 100).toString(),
-                max_spread: '0.01', // placeholder
-                send_to: address,
-              },
-            },
+            msg: toUtf8(
+              JSON.stringify({
+                close_position: {
+                  collateral_denom: collateralDenom,
+                  position_owner: address,
+                  close_percentage: (managedActionState.closePercent / 100).toString(),
+                  max_spread: maxSpread,
+                  send_to: address,
+                }
+              })
+            ),
             funds: [],
           },
         });
       } else {
-
-      
+        //Convert take profit and stop loss to LTV from a price 
+        let takeProfitLTV, stopLossLTV;
+        const tpPrice = Number(managedActionState.takeProfit);
+        const slPrice = Number(managedActionState.stopLoss);
+        if (tpPrice && currentLTV && collateralPrice) {
+          takeProfitLTV = (Number(currentLTV) * (Number(collateralPrice) / tpPrice)).toString();
+        } 
+        if (slPrice && currentLTV && collateralPrice) {
+          stopLossLTV = (Number(currentLTV) * (Number(collateralPrice) / slPrice)).toString();
+        }
         if (
             //EditUXBoosts msg
-            managedActionState.takeProfit ||
             managedActionState.takeProfit ||
             managedActionState.stopLoss ||
             (managedActionState.multiplier && managedActionState.multiplier !== 1)
@@ -79,16 +99,16 @@ const useCloseAndEditBoostsTx = ({
                     managedActionState.multiplier && managedActionState.multiplier !== 1
                         ? (1 - 1 / managedActionState.multiplier).toString()
                         : undefined,
-                    take_profit_params: managedActionState.takeProfit
+                    take_profit_params: takeProfitLTV && !isNaN(Number(takeProfitLTV))
                     ? [{
-                        ltv: managedActionState.takeProfit, // Should be converted to LTV if needed
+                        ltv: takeProfitLTV,
                         percent_to_close: '1',
                         send_to: undefined,
                         }]
                     : null,
-                    stop_loss_params: managedActionState.stopLoss
+                    stop_loss_params: stopLossLTV && !isNaN(Number(stopLossLTV))
                     ? [{
-                        ltv: managedActionState.stopLoss, // Should be converted to LTV if needed
+                        ltv: stopLossLTV,
                         percent_to_close: '1',
                         send_to: undefined,
                         }]
@@ -101,7 +121,7 @@ const useCloseAndEditBoostsTx = ({
             });
         }
 
-        //Deposit or withdraw msg
+        //Deposit msg
         if (managedActionState.collateralAmount != 0) {
             // Prepare Deposit message
             const depositMsg: MsgExecuteContractEncodeObject = {
@@ -156,10 +176,14 @@ const useCloseAndEditBoostsTx = ({
 
 
   const msgs = queryData?.msgs ?? []
+  console.log('msgs', msgs);
 
   const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
+    // queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['managed_market_user_position'] })
+    queryClient.invalidateQueries({ queryKey: ['managed_market_user_ux_boosts'] })
+    
     //setManagedActionState to 0s
     setManagedActionState({
       ...managedActionState,

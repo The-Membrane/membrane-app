@@ -49,32 +49,6 @@ import { getMarketCollateralPrice, getMarketCollateralCost } from '@/services/ma
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient';
 import { useBalanceByAsset } from '@/hooks/useBalance';
 
-// Example filter options
-const depositOptions = [
-    'USDC', 'DAI', 'WETH', 'FRAX', 'USDT', 'cbBTC'
-];
-
-// Helper to parse TVL string to number
-// function parseTvl(val: string): number {
-//     if (!val) return 0;
-//     let n = val.replace(/[$,]/g, '').toUpperCase();
-//     if (n.endsWith('M')) return parseFloat(n) * 1e6;
-//     if (n.endsWith('K')) return parseFloat(n) * 1e3;
-//     return parseFloat(n);
-// }
-
-// // Helper to parse Multiplier string to number
-// function parseMultiplier(val: string): number {
-//     if (!val) return 0;
-//     return parseFloat(val.replace('x', ''));
-// }
-
-// // Helper to parse Cost string to number
-// function parseCost(val: string): number {
-//     if (!val) return 0;
-//     return parseFloat(val.replace('%', ''));
-// }
-
 // Helper to format TVL as $X.XXK/M
 function formatTvl(val: number): string {
     if (isNaN(val)) return '$0';
@@ -114,11 +88,24 @@ const ManagedTable = () => {
         }
     };
 
+    // Dynamically get deposit options from allMarkets
+    const depositOptions = useMemo(() => {
+        if (!allMarkets) return [];
+        // Get unique asset symbols from allMarkets
+        const symbols = allMarkets.map(market => {
+            const denom = market.params?.collateral_params?.collateral_asset;
+            const asset = getAssetByDenom(denom, chainName);
+            return asset?.symbol ?? denom;
+        });
+        // Remove duplicates and falsy values
+        return Array.from(new Set(symbols.filter(Boolean)));
+    }, [allMarkets, chainName]);
+
     // Filtered options for search
     const filteredOptions = useMemo(() => {
         if (!search) return depositOptions;
         return depositOptions.filter(opt => opt.toLowerCase().includes(search.toLowerCase()));
-    }, [search]);
+    }, [search, depositOptions]);
 
     // Displayed string for selected
     const selectedDisplay = useMemo(() => {

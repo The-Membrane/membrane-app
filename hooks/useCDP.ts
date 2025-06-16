@@ -14,7 +14,7 @@ export const useBasket = () => {
   const result = useQuery({
     queryKey: ['basket', client],
     queryFn: async () => {
-      // if (router.pathname != "/" && router.pathname != "/borrow" && router.pathname != "/bid" && router.pathname != "/management" && router.pathname != "/manic") return
+      // if (router.pathname != "/" && router.pathname != "/mint" && router.pathname != "/bid" && router.pathname != "/management" && router.pathname != "/manic") return
       if (!client) return
       return getBasket(client)
     },
@@ -37,7 +37,7 @@ export const useBasketAssets = () => {
   return useQuery({
     queryKey: ['get_basket_assets', basket, interest, assets],
     queryFn: async () => {
-      // if (router.pathname != "/" && router.pathname != "/borrow") return
+      // if (router.pathname != "/" && router.pathname != "/mint") return
       if (!basket || !interest || !assets) return []
 
       console.log(" basketAssets")
@@ -55,7 +55,7 @@ export const useCollateralInterest = () => {
     queryKey: ['collateral interest', client],
     queryFn: async () => {
       if (!client) return
-      // if (router.pathname != "/" && router.pathname != "/borrow") return
+      // if (router.pathname != "/" && router.pathname != "/mint") return
       return getCollateralInterest(client)
     },
     staleTime: 1000 * 60 * 5,
@@ -70,7 +70,7 @@ export const useCreditRate = () => {
   return useQuery({
     queryKey: ['credit rate', client, router.pathname],
     queryFn: async () => {
-      if (!router.pathname.endsWith("/borrow")) return
+      if (!router.pathname.endsWith("/mint")) return
       if (!client) return
       return getCreditRate(client)
     },
@@ -87,7 +87,7 @@ export const useUserRemptionInfo = () => {
   return useQuery({
     queryKey: ['user_redemption_info', address, client, router.pathname],
     queryFn: async () => {
-      if (!router.pathname.endsWith("/borrow")) return
+      if (!router.pathname.endsWith("/mint")) return
       if (!address || !client) return
       return getUserRedemptionInfo(address, client)
     },
@@ -105,7 +105,7 @@ export const useUserPositions = () => {
     queryKey: ['positions', address, client, router.pathname],
     queryFn: async () => {
       console.log("route_running")
-      if (!router.pathname.endsWith("/borrow")) return
+      if (!router.pathname.endsWith("/mint")) return
       if (!address || !client) return
       console.log("requerying basket positions")
       return getUserPositions(address, client)
@@ -125,7 +125,7 @@ export const useUserDiscount = (address: string | undefined) => {
   return useQuery({
     queryKey: ['user', 'discount', 'cdp', address, client, router.pathname],
     queryFn: async () => {
-      if (!router.pathname.endsWith("/borrow")) return
+      if (!router.pathname.endsWith("/mint")) return
       if (!address || !client) return { user: "", discount: "0" }
       return getUserDiscount(address, client)
     },
@@ -143,7 +143,7 @@ export const useBasketPositions = () => {
   return useQuery({
     queryKey: ['all positions', client],
     queryFn: async () => {
-      // if (router.pathname != "/management" && router.pathname != "/borrow") return
+      // if (router.pathname != "/management" && router.pathname != "/mint") return
       if (!client) return
       return getBasketPositions(client)
     },

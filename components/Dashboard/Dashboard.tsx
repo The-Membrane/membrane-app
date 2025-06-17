@@ -2,7 +2,7 @@ import {
     Text, Stack, HStack, Slider, Card, SliderFilledTrack, SliderTrack, Modal,
     ModalBody, Button,
     ModalContent,
-    ModalOverlay, useDisclosure
+    ModalOverlay, useDisclosure, Box, VStack, useColorModeValue
 } from '@chakra-ui/react'
 
 import React, { useMemo, useState } from "react"
@@ -54,11 +54,15 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
         return fulfill?.simulate.isError || !fulfill?.simulate.data
     }, [fulfill?.simulate.isError, fulfill?.simulate.data])
     // if (isFulfillDisabled) console.log("isFulfillDisabled", fulfill?.simulate, fulfill?.simulate.isError, !fulfill?.simulate)
+    const cardBg = useColorModeValue('#181F2A', '#232B3E')
+    const borderColor = useColorModeValue('whiteAlpha.200', 'whiteAlpha.200')
     return (
-        <Stack>
-            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Product Management</Text>
-            <Card gap={16} width={"153%"}>
-                <Stack>
+        <VStack align="stretch" spacing={6} w="full">
+            <Text fontWeight="bold" fontSize="xl" color={colors.earnText} letterSpacing="1px">
+                Product Management
+            </Text>
+            <Box bg={cardBg} borderRadius="2xl" boxShadow="lg" p={6} border="1px solid" borderColor={borderColor}>
+                <VStack spacing={6} align="stretch">
                     <TxButton
                         maxW="100%"
                         isLoading={fulfill?.simulate.isLoading || fulfill?.tx.isPending}
@@ -79,37 +83,36 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
                     >
                         Give Range Bound Points
                     </TxButton>
-                </Stack>
-                <Slider
-                    defaultValue={percentToDistribution}
-                    isReadOnly
-                    cursor="default"
-                    min={0}
-                    max={1}
-                    value={percentToDistribution}
-                >
-                    <SliderTrack h="1.5">
-                        <SliderFilledTrack bg={'#20d6ff'} />
-                    </SliderTrack>
-                </Slider>
-                <TxButton
-                    maxW="100%"
-                    isLoading={manage?.simulate.isLoading || manage?.tx.isPending}
-                    isDisabled={isManageDisabled}
-                    onClick={() => manage?.tx.mutate()}
-                    toggleConnectLabel={false}
-                    style={{ alignSelf: "center" }}
-                >
-                    {isManageDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to LPs" : "Manage Vault"}
-                </TxButton>
-            </Card>
-        </Stack>
+                    <Slider
+                        defaultValue={percentToDistribution}
+                        isReadOnly
+                        cursor="default"
+                        min={0}
+                        max={1}
+                        value={percentToDistribution}
+                    >
+                        <SliderTrack h="1.5">
+                            <SliderFilledTrack bg={'#20d6ff'} />
+                        </SliderTrack>
+                    </Slider>
+                    <TxButton
+                        maxW="100%"
+                        isLoading={manage?.simulate.isLoading || manage?.tx.isPending}
+                        isDisabled={isManageDisabled}
+                        onClick={() => manage?.tx.mutate()}
+                        toggleConnectLabel={false}
+                        style={{ alignSelf: "center" }}
+                    >
+                        {isManageDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to LPs" : "Manage Vault"}
+                    </TxButton>
+                </VStack>
+            </Box>
+        </VStack>
     )
 })
 
-const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }) => {
+const getProjectTVL = ({ basket, prices, chainName }: { basket?: Basket; prices?: Price[]; chainName: string }) => {
     if (!basket || !prices) return { TVL: 0, positions: [] }
-    const { chainName } = useChainRoute()
     const positions = basket?.collateral_types.map((asset) => {
         //@ts-ignore
         const denom = asset.asset?.info.native_token?.denom
@@ -135,15 +138,16 @@ const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }
 const Dashboard = () => {
     const { data: basket } = useBasket()
     const { data: prices } = useOraclePrice()
+    const { chainName } = useChainRoute()
     const assetData = useMemo(() => {
-        const { TVL, positions } = getProjectTVL({ basket, prices })
+        const { TVL, positions } = getProjectTVL({ basket, prices, chainName })
         //Set TVL in each position object to the outputted TVL
         positions.forEach((position) => {
             position.totalValue = TVL
         })
         return positions
 
-    }, [basket, prices])
+    }, [basket, prices, chainName])
 
     const { isOpen, onOpen, onClose } = useDisclosure()
     const [modalHasOpened, setModalHasOpened] = useState(false)
@@ -155,21 +159,31 @@ const Dashboard = () => {
         }
     }, [modalHasOpened, onOpen])
 
-    // Memoize the entire content to prevent unnecessary re-renders
+    const cardBg = useColorModeValue('#181F2A', '#232B3E')
+    const borderColor = useColorModeValue('whiteAlpha.200', 'whiteAlpha.200')
+
     return (
-        <>
-            <Stack>
+        <Box w="full" px={{ base: 2, md: 8 }} py={{ base: 4, md: 8 }}>
+            <VStack align="stretch" spacing={8} w="full" maxW="1200px" mx="auto">
                 <StatsTitle />
                 <Divider mx="0" mb="5" />
-                <HStack alignItems={"none"}>
-                    <AssetPieChart data={assetData} />
-                    <OracleHealth />
+                <HStack alignItems="flex-start" spacing={8}>
+                    <Box bg={cardBg} borderRadius="2xl" boxShadow="lg" p={6} border="1px solid" borderColor={borderColor} w="50%">
+                        <AssetPieChart data={assetData} />
+                    </Box>
+                    <Box bg={cardBg} borderRadius="2xl" boxShadow="lg" p={6} border="1px solid" borderColor={borderColor} w="50%">
+                        <OracleHealth />
+                    </Box>
                 </HStack>
-                <HStack justifyContent={"space-between"}>
-                    <ManagementCard basket={basket} />
-                    <SupplyCaps />
+                <HStack alignItems="flex-start" spacing={8}>
+                    <Box w="50%">
+                        <ManagementCard basket={basket} />
+                    </Box>
+                    <Box bg={cardBg} borderRadius="2xl" boxShadow="lg" p={6} border="1px solid" borderColor={borderColor} w="50%">
+                        <SupplyCaps />
+                    </Box>
                 </HStack>
-            </Stack>
+            </VStack>
 
             {/* Modal */}
             <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered closeOnOverlayClick={true}>
@@ -199,8 +213,7 @@ const Dashboard = () => {
                     </ModalBody>
                 </ModalContent>
             </Modal>
-        </>
-
+        </Box>
     );
 
 };

@@ -1,9 +1,3 @@
-- Test TP and SL
-- Launch
-
-
-
-
 Next Steps:
 
 - Polish style for the old tabs

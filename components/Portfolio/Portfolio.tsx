@@ -30,6 +30,7 @@ import {
   Select,
   RadioGroup,
   Radio,
+  Flex,
 } from '@chakra-ui/react';
 import { getObjectCookie, setObjectCookie } from '@/helpers/cookies';
 import { getChainConfig, supportedChains } from '@/config/chains';
@@ -56,6 +57,10 @@ import { shiftDigits } from '@/helpers/math';
 import { useUserUXBoosts } from '@/hooks/useManaged';
 import BigNumber from 'bignumber.js';
 import ManagedMarketSummary from '@/components/ManagedMarkets/ManagedMarketSummary';
+import ClaimButton from '../Nav/ClaimButton'
+import SoloLeveling from '../Nav/PointsLevel';
+import PointsLeaderboard from '../Home/PointsLeaderboard';
+import { useLeaderboardData } from '@/hooks/usePoints';
 
 // Mock: Replace with real data fetching
 // const fetchPositions = () => {
@@ -440,6 +445,21 @@ const STATIC_MARKETS = [
   // Add more static markets as needed
 ];
 
+const CheckClaims = () => {
+  const [enabled, setEnabled] = useState(false)
+  return (
+    <Box mt={10} mb={10} display="flex" justifyContent="center">
+      {!enabled ? (
+        <Button colorScheme="blue" onClick={() => setEnabled(true)} w="20%">
+          Check for Claims
+        </Button>
+      ) : (
+        <ClaimButton enabled={enabled} setEnabled={setEnabled} />
+      )}
+    </Box>
+  )
+}
+
 const Portfolio: React.FC = () => {
   const [tabIndex, setTabIndex] = useState(0);
   const [yieldData, setYieldData] = useState<any[]>([]);
@@ -601,71 +621,98 @@ const Portfolio: React.FC = () => {
   //   { label: 'Your debt', value: '$600,00.04' },
   //   { label: 'Net asset value', value: '$1,400,000.73' },
   // ];
+  const { data: leaderboardData } = useLeaderboardData();
   return (
-    <Box w="90vw" mx="auto" mt={8}>
-      {/* Portfolio Title and Stats */}
-      <HStack align="center" justify="space-between" mb={8} w="100%">
-        <HStack spacing={4} align="center">
-          <Avatar boxSize="64px" bg="#1a2330" icon={<Box boxSize="32px" as="span" bgGradient="linear(to-br, #6fffc2, #1a2330)" borderRadius="md" />} />
-          <Box>
-            <Text fontSize="2xl" fontWeight="bold" color="white">Your Portfolio</Text>
-            <Text color="whiteAlpha.600" fontSize="md">{chainName.charAt(0).toUpperCase() + chainName.slice(1)}</Text>
+    <>
+      <Box w="90vw" mx="auto" mt={0}>
+        {/* Portfolio Title, Stats, Tabs, etc. */}
+        <CheckClaims />
+        <HStack align="center" justify="space-between" mb={8} w="100%">
+          <HStack spacing={4} align="center">
+            <Avatar boxSize="64px" bg="#1a2330" icon={<Box boxSize="32px" as="span" bgGradient="linear(to-br, #6fffc2, #1a2330)" borderRadius="md" />} />
+            <Box>
+              <Text fontSize="2xl" fontWeight="bold" color="white">Your Portfolio</Text>
+              <Text color="whiteAlpha.600" fontSize="md">{chainName.charAt(0).toUpperCase() + chainName.slice(1)}</Text>
+            </Box>
+          </HStack>
+          <HStack spacing={10}>
+            {stats.map((stat, idx) => (
+              <Stat key={idx} width="12vw">
+                <StatLabel
+                  color="whiteAlpha.700"
+                  fontSize="md"
+                  minWidth="fit-content"
+                  display="inline-block"
+                >
+                  {stat.label}
+                </StatLabel>
+                <StatNumber color="white" fontWeight="bold" fontSize="xl">{stat.value}</StatNumber>
+              </Stat>
+            ))}
+          </HStack>
+        </HStack>
+        <Tabs index={tabIndex} onChange={setTabIndex} variant="unstyled">
+          <TabList borderBottom="1px solid #232A3E">
+            <Tab fontWeight="bold" color={tabIndex === 0 ? 'white' : 'whiteAlpha.600'}>Positions</Tab>
+            <Tab fontWeight="bold" color={tabIndex === 1 ? 'white' : 'whiteAlpha.600'}>Yield</Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel px={0}>
+              {loading && filteredPositions.length === 0 ? (
+                <Box display="flex" justifyContent="center" alignItems="center" minH="200px" w="100%">
+                  <Spinner color="white" />
+                </Box>
+              ) : filteredPositions.length === 0 ? (
+                <Text color="whiteAlpha.700" mt={8} textAlign="center">No positions found.</Text>
+              ) : (
+                <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4} mt={4}>
+                  {filteredPositions.map((position, idx) => (
+                    <PositionCard
+                      key={idx}
+                      position={position}
+                      chainName={chainName}
+                      assets={assets || []}
+                      marketName={marketNames[idx]}
+                      debtPrice={debtPrice}
+                      collateralPrice={collateralPriceQueries[idx]?.data?.price}
+                      maxLTV={Number(maxLTVQueries[idx]?.data?.[0]?.collateral_params.liquidation_LTV) || 0}
+                    />
+                  ))}
+                </SimpleGrid>
+              )}
+            </TabPanel>
+            <TabPanel px={0}>
+              <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C">
+                <VStack align="start">
+                  <Text color="whiteAlpha.700" mt={2} fontWeight="bold">Not available.</Text>
+                </VStack>
+              </Card>
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+        {/* Points Card as part of the stack, full width */}
+        <Box
+          w={{ base: '100%', md: '40%' }}
+          mt={12}
+          bg="#20232C"
+          borderRadius="2xl"
+          boxShadow="-2px -2px 16px 0px rgba(0,0,0,0.4)"
+          border="2px solid #232A3E"
+          p={0}
+          overflow="hidden"
+        >
+          <Box display="flex" flexDirection="column">
+            <Box p={6} pb={2} w="100%" mx="auto">
+              <SoloLeveling />
+            </Box>
+            {/* <Divider my={0} /> */}
+            <Box flex={1} overflowY="auto" px={4} py={2}>
+              <PointsLeaderboard data={leaderboardData} />
+            </Box>
           </Box>
-        </HStack>
-        <HStack spacing={10}>
-          {stats.map((stat, idx) => (
-            <Stat key={idx} width="12vw">
-              <StatLabel
-                color="whiteAlpha.700"
-                fontSize="md"
-                minWidth="fit-content"
-                display="inline-block"
-              >
-                {stat.label}
-              </StatLabel>
-              <StatNumber color="white" fontWeight="bold" fontSize="xl">{stat.value}</StatNumber>
-            </Stat>
-          ))}
-        </HStack>
-      </HStack>
-      <Tabs index={tabIndex} onChange={setTabIndex} variant="unstyled">
-        <TabList borderBottom="1px solid #232A3E">
-          <Tab fontWeight="bold" color={tabIndex === 0 ? 'white' : 'whiteAlpha.600'}>Positions</Tab>
-          <Tab fontWeight="bold" color={tabIndex === 1 ? 'white' : 'whiteAlpha.600'}>Yield</Tab>
-        </TabList>
-        <TabPanels>
-          <TabPanel px={0}>
-            {loading && filteredPositions.length === 0 ? (
-              <Spinner color="white" />
-            ) : filteredPositions.length === 0 ? (
-              <Text color="whiteAlpha.700" mt={8}>No positions found.</Text>
-            ) : (
-              <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4} mt={4}>
-                {filteredPositions.map((position, idx) => (
-                  <PositionCard
-                    key={idx}
-                    position={position}
-                    chainName={chainName}
-                    assets={assets || []}
-                    marketName={marketNames[idx]}
-                    debtPrice={debtPrice}
-                    collateralPrice={collateralPriceQueries[idx]?.data?.price}
-                    maxLTV={Number(maxLTVQueries[idx]?.data?.[0]?.collateral_params.liquidation_LTV) || 0}
-                  />
-                ))}
-              </SimpleGrid>
-            )}
-          </TabPanel>
-          <TabPanel px={0}>
-            <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C">
-              <VStack align="start">
-                <Text color="whiteAlpha.700" mt={2} fontWeight="bold">Not available.</Text>
-              </VStack>
-            </Card>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-    </Box>
+        </Box>
+      </Box>
+    </>
   );
 };
 

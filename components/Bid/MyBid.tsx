@@ -9,6 +9,7 @@ import {
   SliderThumb,
   SliderTrack,
   Text,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { GrPowerReset } from 'react-icons/gr'
 import ConfirmModal from '../ConfirmModal'
@@ -84,6 +85,7 @@ const MyBid = () => {
   const { data } = useUserBids()
   const bids = data ?? []
   const { setBidState, bidState } = useBidState()
+  const cardBg = useColorModeValue('#181F2A', '#232B3E')
 
   const txSuccess = () => {
     setBidState({ placeBid: { cdt: 0, premium: 0 }, updateBids: [] })
@@ -100,8 +102,8 @@ const MyBid = () => {
 
   if (bids.length === 0) {
     return (
-      <Card p="8" alignItems="center" gap={5}>
-        <Text variant="title" fontSize="24px" textAlign={"center"}>
+      <Card p={8} alignItems="center" gap={8} borderRadius="2xl" boxShadow="lg" w="full" bg={cardBg}>
+        <Text variant="title" fontSize="2xl" fontWeight="bold" textAlign="center" color="white">
           My {bidState?.selectedAsset?.symbol ?? ""} Bids
         </Text>
         <Text color={colors.noState}>No active bids</Text>
@@ -109,18 +111,15 @@ const MyBid = () => {
     )
   }
   return (
-    <Card p="8" alignItems="center" gap={5}>
-      <Text variant="title" fontSize="24px" textAlign={"center"}>
+    <Card p={8} alignItems="center" gap={8} borderRadius="2xl" boxShadow="lg" w="full" bg={cardBg}>
+      <Text variant="title" fontSize="2xl" fontWeight="bold" textAlign="center" color="white">
         My {bidState?.selectedAsset?.symbol ?? ""} Bids
       </Text>
-
       {bids?.map((bid) => <MyBidItem key={bid?.id} bid={bid} />)}
-
-      <HStack w="full" mt="4">
+      <HStack w="full" mt={4} justifyContent="flex-end">
         <Button variant="ghost" leftIcon={<GrPowerReset />} onClick={onRest}>
           Reset
         </Button>
-
         <ConfirmModal label="Update Bid" action={updateBid} isDisabled={isDisabled}>
           <UpdateBidSummary />
         </ConfirmModal>

@@ -1,5 +1,5 @@
 import Governance from '@/components/Governance'
-import { HStack, Stack, Text, useBreakpointValue } from '@chakra-ui/react'
+import { Box, VStack, Heading, useBreakpointValue } from '@chakra-ui/react'
 import ManageStake from './ManageStake'
 import Delegate from '@/components/Governance/Delegate'
 import React from "react"
@@ -9,18 +9,29 @@ const Stake = React.memo(() => {
   const isMobile = useBreakpointValue({ base: true, md: false })
   
   return (
-    <Stack direction={{base: "column", md: "row"}} gap="5" w="full" alignItems="flex-start">
-      <Stack w="full" gap="5">
-        <Text variant="title">Governance</Text>
+    <Box w="full" px={{ base: 2, md: 8 }} py={{ base: 4, md: 8 }}>
+      <VStack
+        align="stretch"
+        spacing={8}
+        w="full"
+        maxW="1200px"
+        mx="auto"
+      >
+        <Heading as="h1" size="lg" color="white" fontWeight="bold" mb={2}>
+          Governance
+        </Heading>
         <ManageStake />
-        {!isMobile ? <>
-          <Delegate />
-          {/* <AuctionClaim /> */}
-        </>
-      : null}
-      </Stack>
-      <Governance />
-    </Stack>
+        {!isMobile && (
+          <Box>
+            <Delegate />
+            {/* <AuctionClaim /> */}
+          </Box>
+        )}
+        <Box>
+          <Governance />
+        </Box>
+      </VStack>
+    </Box>
   )
 })
 

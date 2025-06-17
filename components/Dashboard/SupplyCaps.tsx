@@ -194,7 +194,7 @@ export const SupplyCaps = () => {
     // // console.log("capData", capData)
 
     return (
-        <Stack width="59%">
+        <Stack width="100%">
             <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Supply Caps</Text>
             <div style={{
                 display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem",

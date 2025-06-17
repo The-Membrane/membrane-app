@@ -8,6 +8,7 @@ import useMintState from './useMintState'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 const useMint = () => {
   const { mintState, setMintState } = useMintState()
@@ -15,6 +16,7 @@ const useMint = () => {
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useUserPositions()
   const { data: basket } = useBasket()
+  const { chainName } = useChainRoute()
 
   //Use the current position id or use the basket's next position ID (for new positions)
   const positionId = useMemo(() => {
@@ -34,16 +36,23 @@ const useMint = () => {
       summary ? JSON.stringify(summary.map(s => String(s.amount))) : '0',
       mintState?.mint,
       mintState?.repay,
+      chainName
     ],
     queryFn: () => {
-      if (!address) return
+      if (!address) return []
       // console.log("MINT LOGS", basketPositions !== undefined, mintState.positionNumber <= (basketPositions?.[0].positions.length ?? 0), mintState.positionNumber, basketPositions?.[0].positions.length, positionId)
       const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, basketPositions, positionId, hasPosition: basketPositions !== undefined && mintState.positionNumber <= basketPositions[0].positions.length })
+      // console.log("depositAndWithdraw", depositAndWithdraw)
+      //logs for mint msgs
+      console.log("mintAndRepay", 
+        address,
+        positionId, mintState?.mint, mintState?.repay )
       const mintAndRepay = getMintAndRepayMsgs({
         address,
         positionId,
         mintAmount: mintState?.mint,
         repayAmount: mintState?.repay,
+        chainName
       })
       //if repaying and updating assets, repay first
       if (mintState.repay > 0) {
@@ -63,12 +72,12 @@ const useMint = () => {
     queryClient.invalidateQueries({ queryKey: ['one users points'] })
     queryClient.invalidateQueries({ queryKey: ['one users level'] })
   }
-  // console.log("mint msgs:", msgs)
+  console.log("mint msgs:", msgs)
   return useSimulateAndBroadcast({
     msgs,
     queryKey: ['mint_msg_sim', (msgs?.toString() ?? "0")],
     onSuccess,
-    enabled: false
+    enabled: !!msgs
   })
 }
 

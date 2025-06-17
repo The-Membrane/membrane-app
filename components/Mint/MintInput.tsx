@@ -102,7 +102,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
 
     const onMintMaxClick = () => {
         if (transactionType === "borrow") handleInputChange(mintMaxAmount)
-        else handleInputChange(debtAmount + 1)
+        else handleInputChange(Math.min(debtAmount + 1, Number(walletCDT)))
     }
 
 

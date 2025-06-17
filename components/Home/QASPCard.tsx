@@ -19,6 +19,7 @@ import ConfirmModal from "../ConfirmModal"
 import { QASummary } from "./QASummary"
 import { GrPowerReset } from "react-icons/gr"
 import { colors } from "@/config/defaults"
+import { useColorModeValue } from "@chakra-ui/react"
 
 const ActSlider = React.memo(() => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -111,11 +112,12 @@ const SPCard = ({ width = "33%", title = "Liquidate CDT" }: { width?: string, ti
 
   // const { bidState } = useBidState()
   const isDisabled = useMemo(() => { return compound?.simulate.isError || !compound?.simulate.data }, [compound?.simulate.isError, compound?.simulate.data])
+  const cardBg = useColorModeValue('#181F2A', '#232B3E')
 
   return (
-    <Card width={width} borderColor={""} borderWidth={3} padding={4}>
+    <Card width={width} borderRadius="2xl" boxShadow="lg" p={8} bg={cardBg}>
       <Stack>
-        <Text fontFamily="Inter" variant="title" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>{title}</Text>
+        <Text fontFamily="Inter" variant="title" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="white">{title}</Text>
         <Stack>
           <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.slider }}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
           <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.earnText }}>Estimated APR: N/A</a></Text>

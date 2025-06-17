@@ -10,6 +10,7 @@ import {
   InputLeftElement,
   Stack,
   Text,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { TxButton } from '@/components/TxButton'
 import { Deposit } from '@/contracts/codegen/stability_pool/StabilityPool.types'
@@ -162,14 +163,15 @@ const StabilityPool = ({ setActiveTabIndex }: Props) => {
     setActiveTabIndex(0)
   };
 
+  const cardBg = useColorModeValue('#181F2A', '#232B3E')
   if (deposits.length === 0) {
     return (
-      <Card p="8" alignItems="center" gap={5}>
-        <Text variant="title" fontSize="24px">
+      <Card p={8} alignItems="center" gap={8} borderRadius="2xl" boxShadow="lg" w="full" bg={cardBg}>
+        <Text variant="title" fontSize="2xl" fontWeight="bold" color="white">
           My Omni-Bids
         </Text>
         <Text color={colors.noState}>You don't have any deposits in the omni-asset pool.</Text>
-        <Button onClick={changeTab}>
+        <Button onClick={changeTab} colorScheme="blue" variant="solid">
           Bid in Omni-Pool - Set Premium to 10%
         </Button>
       </Card>
@@ -177,12 +179,11 @@ const StabilityPool = ({ setActiveTabIndex }: Props) => {
   }
 
   return (
-    <Card p="8" alignItems="center" gap={5}>
-      <Text variant="title" fontSize="24px">
+    <Card p={8} alignItems="center" gap={8} borderRadius="2xl" boxShadow="lg" w="full" bg={cardBg}>
+      <Text variant="title" fontSize="2xl" fontWeight="bold" color="white">
         My Omni-Bids
       </Text>
-
-      <Stack py="5" w="full" gap="5">
+      <Stack py={5} w="full" gap={5}>
         {deposits.map((deposit, index) => (
           <DepositAsset key={index} deposit={deposit} index={index + 1} />
         ))}

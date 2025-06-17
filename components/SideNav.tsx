@@ -22,6 +22,7 @@ import { HamburgerIcon } from "@chakra-ui/icons";
 import UniversalButtons from './Nav/UniversalButtons'
 import SoloLeveling from './Nav/PointsLevel'
 import { colors } from '@/config/defaults'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 type NavItems = {
   label: string

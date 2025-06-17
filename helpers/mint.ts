@@ -218,12 +218,14 @@ type GetMintAndRepayMsgs = {
   repayAmount?: string | number
   address: string
   positionId: string
+  chainName: string
 }
 export const getMintAndRepayMsgs = ({
   address,
   positionId,
   mintAmount = '0',
   repayAmount = '0',
+  chainName
 }: GetMintAndRepayMsgs) => {
   const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
   const msgs = []
@@ -249,7 +251,6 @@ export const getMintAndRepayMsgs = ({
       lqClaims: false,
     }))
 
-    const { chainName } = useChainRoute()
     const cdt = getAssetBySymbol('CDT', chainName)
     const microAmount = shiftDigits(repayAmount, 6).dp(0).toString()
     const funds = [coin(microAmount, cdt?.base!)]

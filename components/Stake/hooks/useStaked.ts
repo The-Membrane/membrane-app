@@ -14,7 +14,7 @@ const useStaked = (run: boolean) => {
   const { data: client } = useStakingClient()
 
   return useQuery({
-    queryKey: ['staked', address, client, run, router.pathname],
+    queryKey: ['staked', address, client, run, router.pathname, chainName],
     queryFn: async () => {
       if (router.pathname != "/stake" && !run) return
       if (!address) return null
@@ -31,7 +31,7 @@ const useStaked = (run: boolean) => {
         return acc.plus(s.amount)
       }, num(0)).toNumber()
 
-      const rewards = await getRewards(address, client)
+      const rewards = await getRewards(address, client, chainName)
       //Reward query is erroring (?)
 
       return {

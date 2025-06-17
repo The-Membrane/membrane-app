@@ -1,9 +1,8 @@
 Next Steps:
 
-- Polish style for the old tabs
 - Build out portfolio tab
 -- Move the full Home Tab to the Portfolio
--- Points leaderboard will be a toggle, show user stats only first
+--- Move the CDT yield offering to a Yield Page that will house (This, Managed Lending, NG Yields)
 
 - Create Lend Tab & state save for lending
 
@@ -13,6 +12,10 @@ Next Steps:
 
 FOR CONTRACTS:
 - Add market_manager revenue handler
+
+Tweets:
+- Personal: Intro to multiplying your position
+- Protocol: Next steps -> collateral removal & lowering rates
 
 
 

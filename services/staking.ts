@@ -73,7 +73,7 @@ const parseClaimable = (claimable: LiqAsset[]) => {
     }
   })
 }
-export const getRewards = async (address: Addr, client: any) => {
+export const getRewards = async (address: Addr, client: any, chainName: string) => {
   let rewards;
   try {
     rewards = await client.userRewards({
@@ -83,7 +83,6 @@ export const getRewards = async (address: Addr, client: any) => {
     console.error("Error fetching user rewards:", error);
     rewards = { claimables: [], accrued_interest: '0' };
   }
-  const { chainName } = useChainRoute()
   const mbrn = getAssetBySymbol('MBRN', chainName)
   const claimable = parseClaimable(rewards.claimables)
   return [

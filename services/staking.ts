@@ -62,8 +62,7 @@ export const getStaked = async (address: Addr, client: any) => {
   })
 }
 
-const parseClaimable = (claimable: LiqAsset[]) => {
-  const { chainName } = useChainRoute()
+const parseClaimable = (claimable: LiqAsset[], chainName: string) => {
   return claimable?.map((c) => {
     const denom = c.info.native_token?.denom
     const asset = getAssetByDenom(denom, chainName)
@@ -84,7 +83,7 @@ export const getRewards = async (address: Addr, client: any, chainName: string) 
     rewards = { claimables: [], accrued_interest: '0' };
   }
   const mbrn = getAssetBySymbol('MBRN', chainName)
-  const claimable = parseClaimable(rewards.claimables)
+  const claimable = parseClaimable(rewards.claimables, chainName)
   return [
     {
       amount: rewards.accrued_interest,

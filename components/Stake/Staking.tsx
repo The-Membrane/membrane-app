@@ -19,7 +19,9 @@ const Stakeing = () => {
   const mbrnBalance = useBalanceByAsset(mbrnAsset)
   const { action: stake } = useStakeing({})
   const { data } = useStaked(true)
+  console.log("staked in component", data)
   const { staked } = data || {}
+  console.log("staked in component", data, staked)
   const { stakeState, setStakeState } = useStakeState()
   console.log("STAKE", stake)
 

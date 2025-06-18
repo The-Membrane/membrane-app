@@ -21,23 +21,17 @@ const useStaked = (run: boolean) => {
 
       // Check if we use stakeState or requery
       const data = await getStaked(address, client)
-      console.log("staked data", data)
 
       const { deposit_list } = data
-      console.log("deposit_list in query", deposit_list)
       const staking = deposit_list?.filter((s) => !s.unstake_start_time)
       const unstaking = deposit_list?.filter((s) => s.unstake_start_time)
-      console.log("staking in query", staking)
-      console.log("unstaking in query", unstaking)
 
       const staked = staking?.reduce((acc, s) => {
         return acc.plus(Number(s.amount))
       }, num(0)).toNumber()
 
-      console.log("staked in query", staked)
 
       const rewards = await getRewards(address, client, chainName)
-      console.log("rewards in query", rewards)
       //Reward query is erroring (?)
       return {
         staked,

@@ -1,4 +1,5 @@
 Next Steps:
+- Check useChainRoute everywhere and make sure its not breaking queries
 
 - Build out portfolio tab
 -- Move the full Home Tab to the Portfolio

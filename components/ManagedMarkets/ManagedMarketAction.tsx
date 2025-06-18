@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Box, Text, HStack, VStack, Input, Button, Slider, SliderTrack, SliderFilledTrack, SliderThumb, SliderMark, Image, useNumberInput, Stack, Card, Tabs, TabList, Tab, TabPanels, TabPanel } from '@chakra-ui/react';
 import { useAssetByDenom, useAssetBySymbol } from '@/hooks/useAssets';
 import { useBalanceByAsset } from '@/hooks/useBalance';
@@ -61,18 +61,31 @@ const ManagedMarketAction = ({
 
     // Router for shallow routing
     const router = useRouter();
-    const { marketAddress: address, action: routeAction } = router.query;
+    const { tab: routeTab } = router.query;
+
+    // Ensure ?tab=multiply is always present if missing
+    useEffect(() => {
+        if (!routeTab) {
+            router.replace(
+                {
+                    pathname: router.pathname,
+                    query: { ...router.query, tab: 'multiply' },
+                },
+                undefined,
+                { shallow: true }
+            );
+        }
+    }, [routeTab, router]);
+
     const actionLabels = ["Multiply", "Lend", "Strategize"];
     const actionMap = ['multiply', 'lend', 'strategize'];
 
-    // Derive selected tab index from route
+    // Derive selected tab index from query param
     let selectedTab = 0;
-    if (Array.isArray(routeAction) && routeAction[1]) {
-        selectedTab = actionMap.indexOf(routeAction[1]);
-    } else if (typeof routeAction === 'string') {
-        selectedTab = actionMap.indexOf(routeAction);
+    if (typeof routeTab === 'string') {
+        const idx = actionMap.indexOf(routeTab);
+        if (idx !== -1) selectedTab = idx;
     }
-    if (selectedTab === -1) selectedTab = 0;
 
     // Snap slider to sticky points if close, else allow smooth
     const handleSliderChange = (val: number) => {
@@ -106,14 +119,17 @@ const ManagedMarketAction = ({
         setManagedActionState({ collateralAmount: e.target.value });
     };
 
-    // Handle selected action/tab: update route shallowly
+    // Handle selected action/tab: update route shallowly with query param
     const handleTabChange = (idx: number) => {
         const newAction = actionMap[idx];
-        // Build new route: /[address]/[collateralSymbol]/[newAction]
-        console.log(address, collateralSymbol, newAction);
-        if (address && collateralSymbol) {
-            router.push(`/${address}/${collateralSymbol}/${newAction}`, undefined, { shallow: true });
-        }
+        router.replace(
+            {
+                pathname: router.pathname,
+                query: { ...router.query, tab: newAction },
+            },
+            undefined,
+            { shallow: true }
+        );
     };
 
     // Add useBorrowAndBoost for Multiply action

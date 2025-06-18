@@ -150,9 +150,31 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Oracle</Text>
                     <OracleRow oracles={oracles} />
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Market Address</Text>
-                    <Text color="white" fontWeight="bold">{truncateAddress(marketAddress)}</Text>
+                    {marketAddress ? (
+                        <a
+                            href={`https://celatone.osmosis.zone/osmosis-1/contracts/${marketAddress}/overview`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: 'inherit', textDecoration: 'underline' }}
+                        >
+                            <Text as="span" color="white" fontWeight="bold">{truncateAddress(marketAddress)}</Text>
+                        </a>
+                    ) : (
+                        <Text color="white" fontWeight="bold">{truncateAddress(marketAddress)}</Text>
+                    )}
                     <Text color="whiteAlpha.800" fontWeight="bold" mt={2}>Managed by</Text>
-                    <Text color="white" fontWeight="bold">{truncateAddress(owner)}</Text>
+                    {owner ? (
+                        <a
+                            href={`https://celatone.osmosis.zone/osmosis-1/contracts/${owner}/overview`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: 'inherit', textDecoration: 'underline' }}
+                        >
+                            <Text as="span" color="white" fontWeight="bold">{truncateAddress(owner)}</Text>
+                        </a>
+                    ) : (
+                        <Text color="white" fontWeight="bold">{truncateAddress(owner)}</Text>
+                    )}
                 </VStack>
             </Box>
         </VStack>

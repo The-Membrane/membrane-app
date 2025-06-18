@@ -28,14 +28,18 @@ const ManagedMarketPage: React.FC = () => {
         return <Spinner size="xl" />;
     }
     const { address } = useWallet();
-    const { marketAddress, action } = router.query;
+    const { marketAddress, action, symbol: symbolParam } = router.query;
     //Get chain name from route
     const chainName = router.query.chainName as string;
 
-    // Extract collateral symbol and action type from action param (if array)
+    // Extract collateral symbol and action type
     let collateralSymbol = '';
     let actionType = '';
-    if (Array.isArray(action)) {
+    if (symbolParam) {
+        // If symbol is present in the route, use it
+        collateralSymbol = Array.isArray(symbolParam) ? symbolParam[0] : symbolParam;
+        actionType = typeof action === 'string' ? action : '';
+    } else if (Array.isArray(action)) {
         collateralSymbol = action[0] || '';
         actionType = action[1] || '';
     } else if (typeof action === 'string') {

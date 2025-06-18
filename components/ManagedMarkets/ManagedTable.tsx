@@ -354,7 +354,10 @@ const ManagedTable = () => {
                                     </Tr>
                                 ) : (
                                     sortedRows.map((row, idx) => (
-                                        <MarketRow key={row.market.address || idx} {...row} onClick={() => router.push(`${router.asPath}/${row.market.address}/${row.assetSymbol}/multiply`)} />
+                                        <MarketRow key={row.market.address || idx} {...row} onClick={() => router.push({
+                                            pathname: `/${chainName}/managed/${row.market.address}/${row.assetSymbol}`,
+                                            query: { tab: 'multiply' }
+                                        }, undefined, { shallow: true })} />
                                     ))
                                 )}
                             </Tbody>

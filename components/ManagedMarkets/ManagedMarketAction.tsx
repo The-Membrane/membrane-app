@@ -122,10 +122,11 @@ const ManagedMarketAction = ({
     // Handle selected action/tab: update route shallowly with query param
     const handleTabChange = (idx: number) => {
         const newAction = actionMap[idx];
+        const currentPath = router.asPath.split('?')[0];
         router.replace(
             {
-                pathname: router.pathname,
-                query: { ...router.query, tab: newAction },
+                pathname: currentPath,
+                query: { tab: newAction },
             },
             undefined,
             { shallow: true }

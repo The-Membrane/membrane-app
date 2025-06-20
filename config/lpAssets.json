@@ -65,6 +65,13 @@
     "decimal": 6,
     "isLP": false,
     "logo": "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/cult.png"
+  },
+  {
+    "description": "The native token of Namada.",
+    "base": "ibc/C7110DEC66869DAE9BE9C3C60F4B5313B16A2204AE020C3B0527DD6B322386A3",
+    "symbol": "NAM",
+    "decimal": 6,
+    "isLP": false
   }
 
 ]

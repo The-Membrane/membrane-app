@@ -65,6 +65,12 @@ export const getManagedMarket = async (cosmWasmClient: any, marketContract: stri
     }) as Promise<MarketParams[]>
 }
 
+export const getTotalBorrowed = async (cosmWasmClient: any, marketContract: string) => {
+    return cosmWasmClient.queryContractSmart(marketContract, {
+        get_total_borrowed: {}
+    }) as Promise<Uint128>
+}
+
 export const getManagedMarkets = async (cosmWasmClient: any, manager: string) => {
     return cosmWasmClient.queryContractSmart(contracts.marketManager, {
         market_params: {

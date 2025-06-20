@@ -4,7 +4,7 @@ import { HStack, Box, Spinner, Flex, Text, Image, VStack, Button } from '@chakra
 import ManagedMarketInfo from './ManagedMarketInfo';
 import ManagedMarketAction from './ManagedMarketAction';
 import { useAssetBySymbol } from '@/hooks/useAssets';
-import { useManagedConfig, useManagedMarket, useAllMarkets, useMarketCollateralPrice, useMarketCollateralCost } from '@/hooks/useManaged';
+import { useManagedConfig, useManagedMarket, useAllMarkets, useMarketCollateralPrice, useMarketCollateralCost, useTotalBorrowed } from '@/hooks/useManaged';
 import { Formatter } from '@/helpers/formatter';
 import { getAssetByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
@@ -61,6 +61,7 @@ const ManagedMarketPage: React.FC = () => {
     // Fetch market data
     const { data: config, isLoading: configLoading } = useManagedConfig(marketAddress as string);
     const { data: params, isLoading: paramsLoading } = useManagedMarket(marketAddress as string, asset?.base ?? '');
+    const { data: totalBorrowed, isLoading: totalBorrowedLoading } = useTotalBorrowed(marketAddress as string);
     const { data: priceData, isLoading: priceLoading } = useMarketCollateralPrice(marketAddress as string, asset?.base ?? '');
     const { data: costData, isLoading: costLoading } = useMarketCollateralCost(marketAddress as string, asset?.base ?? '');
     // Fetch contract's balance of the collateral denom
@@ -87,13 +88,14 @@ const ManagedMarketPage: React.FC = () => {
             !priceData?.price ||
             !contractCollateralBalance ||
             contractCollateralBalance === '0' ||
-            contractCollateralBalance === '—'
+            contractCollateralBalance === '—' ||
+            totalBorrowedLoading
         ) {
             return '—';
         }
         const tvlValue = Number(contractCollateralBalance) * Number(priceData.price);
         return formatNumber(tvlValue);
-    }, [priceLoading, priceData, contractCollateralBalance]);
+    }, [priceLoading, priceData, contractCollateralBalance, totalBorrowedLoading]);
     const suppliedDebt = !configLoading && config?.total_debt_tokens ? formatNumber(shiftDigits(config.total_debt_tokens, -6).toString()) : '—';
     let maxMultiplier = '—';
     // Debug log for params and ltv
@@ -144,11 +146,16 @@ const ManagedMarketPage: React.FC = () => {
     }
     // console.log('oracles', oracles);
     // Interest Rate Model
-    const interestRateModelProps = tab === 'debt' && params?.[0]?.rate_params ? {
+    let currentRatio: number | undefined = undefined;
+    if (totalBorrowed && config?.total_debt_tokens && !isNaN(Number(totalBorrowed)) && !isNaN(Number(config.total_debt_tokens)) && Number(config.total_debt_tokens) > 0) {
+        currentRatio = Number(totalBorrowed) / Number(config.total_debt_tokens);
+    }
+    const interestRateModelProps = params?.[0]?.rate_params ? {
         baseRate: params[0].rate_params.base_rate ?? '—',
         rateMax: params[0].rate_params.rate_max ?? '—',
-        kinkMultiplier: params[0].rate_params.rate_kink?.rate_mulitplier ?? '—',
+        kinkMultiplier: params[0].rate_params.rate_kink?.rate_mulitplier ?? '',
         kinkPoint: params[0].rate_params.rate_kink?.kink_starting_point_ratio ?? '—',
+        currentRatio,
     } : undefined;
 
     const infoProps = {

@@ -62,7 +62,8 @@ export const useVaultSummary = ({ positionNumber }: { positionNumber?: number } 
       initialTVL,
       basketAssets,
       discount: discount?.discount ?? "0"
-    })
+    }),
+    enabled: true
   })
 }
 

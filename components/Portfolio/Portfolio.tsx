@@ -61,6 +61,14 @@ import ClaimButton from '../Nav/ClaimButton'
 import SoloLeveling from '../Nav/PointsLevel';
 import PointsLeaderboard from '../Home/PointsLeaderboard';
 import { useLeaderboardData } from '@/hooks/usePoints';
+import { useUserPositions, useBasket } from '@/hooks/useCDP';
+import { useUserBoundedIntents } from '../../hooks/useEarnQueries';
+import useMintState from '../Mint/hooks/useMintState';
+import NextLink from 'next/link';
+import useVaultSummary from '../Mint/hooks/useVaultSummary';
+import { NeuroCloseModal } from '../Home/NeuroModals';
+import { denoms } from '@/config/defaults';
+import { PositionResponse } from '@/contracts/codegen/positions/Positions.types';
 
 // Mock: Replace with real data fetching
 // const fetchPositions = () => {
@@ -413,7 +421,7 @@ const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPri
           <Text color="white" fontWeight="bold" fontSize="lg">${liquidationPrice}</Text>
         </VStack>
       </HStack>
-      {/* Edit Modal Placeholder */}
+      {/* Edit Modal */}
       <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay />
         <ModalContent bg="#20232C" color="white">
@@ -423,6 +431,114 @@ const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPri
             <MarketActionEdit assetSymbol={asset?.symbol || editState.asset} position={editState} marketAddress={editState.marketAddress} collateralDenom={editState.asset} maxLTV={maxLTV} collateralPrice={collateralPrice ? Number(collateralPrice) : 0} currentLTV={currentLTV} initialLiquidationPrice={liquidationPrice} />
           </ModalBody>
         </ModalContent>
+      </Modal>
+    </Card>
+  );
+};
+
+const MintCard = ({ position, chainName, cdtMarketPrice }: { position: any, chainName: string, cdtMarketPrice: string }) => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { setMintState } = useMintState();
+
+  const { data: summary } = useVaultSummary({ positionNumber: position.positionNumber })
+  const { ltv, liqudationLTV, tvl, debtAmount } = summary || {
+    debtAmount: 0,
+    cost: 0,
+    tvl: 0,
+    ltv: 0,
+    borrowLTV: 0,
+    liquidValue: 0,
+    liqudationLTV: 0,
+  }
+
+  // console.log(`MintCard #${position.positionNumber} Summary:`, summary);
+  // console.log(`MintCard #${position.positionNumber} LTV:`, ltv);
+  // console.log(`MintCard #${position.positionNumber} Liquidation LTV:`, liqudationLTV);
+
+  const health = useMemo(() => {
+    if (ltv === 0) return 100
+    const healthValue = num(1).minus(num(ltv).dividedBy(liqudationLTV)).times(100).dp(0).toNumber()
+    // console.log(`MintCard #${position.positionNumber} Calculated Health:`, healthValue);
+    return healthValue;
+  }, [ltv, liqudationLTV, position.positionNumber]);
+
+  return (
+    <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C" width="100%">
+      {/* Top section: using a generic icon for now */}
+      <HStack w="100%" justify="space-between" align="center" mb={2}>
+        <HStack spacing={3} align="center">
+            <Image src="/images/cdt.svg" alt="CDT Logo" boxSize="36px" />
+            <VStack align="start" spacing={0}>
+                <Text color="whiteAlpha.700" fontSize="sm">CDP</Text>
+                <Text color="white" fontWeight="bold" fontSize="xl">#{position.positionNumber}</Text>
+            </VStack>
+        </HStack>
+        <HStack width="30%">
+            <Button
+            size="xs"
+            variant="ghost"
+            colorScheme="gray"
+            color="whiteAlpha.700"
+            as={NextLink}
+            href={`/${chainName}/mint`}
+            onClick={() => setMintState({ positionNumber: position.positionNumber })}
+            borderRadius="full"
+            px={2}
+            fontWeight="bold"
+            width="50%"
+            pt={2}
+            minW={"auto"}
+            h={"24px"}
+            >
+            Edit
+            </Button>
+            <Button
+            size="xs"
+            variant="ghost"
+            colorScheme="gray"
+            color="whiteAlpha.700"
+            onClick={onOpen}
+            borderRadius="full"
+            px={2}
+            fontWeight="bold"
+            width="50%"
+            pt={2}
+            minW={"auto"}
+            h={"24px"}
+            >
+            Close
+            </Button>
+        </HStack>
+      </HStack>
+      <Divider my={2} />
+      {/* Stats row: TVL, Debt, Health */}
+      <HStack w="100%" justify="space-between" align="center" mt={2}>
+        <VStack flex={1} align="start" spacing={0}>
+          <Text color="whiteAlpha.700" fontSize="sm">TVL</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${tvl.toFixed(2)}</Text>
+        </VStack>
+        <VStack flex={1} align="start" spacing={0}>
+          <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">{debtAmount.toFixed(2)} CDT</Text>
+        </VStack>
+        <VStack flex={1} align="start" spacing={0}>
+          <Text color="whiteAlpha.700" fontSize="sm">Health</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">
+            {Math.min(health, 100) === -Infinity ? "N/A" : `${Math.min(health, 100)}%`}
+          </Text>
+        </VStack>
+      </HStack>
+      {/* Edit Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered size="xl">
+        <ModalOverlay />
+        <NeuroCloseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            position={position.position}
+            debtAmount={debtAmount}
+            positionNumber={position.positionNumber}
+            cdtMarketPrice={cdtMarketPrice}
+        />
       </Modal>
     </Card>
   );
@@ -474,6 +590,37 @@ const Portfolio: React.FC = () => {
   const assets = useAssets(chainName);
   const { appState } = useAppState();
 
+  // Get CDP positions
+  const { data: basketPositions } = useUserPositions();
+  const { data: userIntents } = useUserBoundedIntents();
+  const { data: basket } = useBasket();
+
+  const neuroGuardIntents = useMemo(() => {
+    if (!userIntents?.[0]?.intent?.intents?.purchase_intents) return [];
+    return userIntents[0].intent.intents.purchase_intents
+      .filter((intent: any) => intent.position_id !== undefined);
+  }, [userIntents]);
+
+  const cdpPositions = useMemo(() => {
+    if (basketPositions && basketPositions[0] && basketPositions[0].positions) {
+      return basketPositions[0].positions
+        .map((position: any, index: number) => ({ position, positionNumber: index + 1 }))
+        .filter(({ position }: { position: any }) =>
+          neuroGuardIntents.find((intent: any) => (intent.position_id ?? 0).toString() === position.position_id) === undefined
+        );
+    }
+    return [];
+  }, [basketPositions, neuroGuardIntents]);
+
+  const cdpSummariesQueries = useQueries({
+    queries: cdpPositions.map((p: any) => ({
+      queryKey: ['vaultSummary', p.positionNumber],
+      queryFn: () => useVaultSummary({ positionNumber: p.positionNumber }),
+    })),
+  });
+
+  const cdpSummaries = useMemo(() => cdpSummariesQueries.map(q => q.data), [cdpSummariesQueries]);
+
   // On mount, read userMarkets cookie for fast initial UI
   useEffect(() => {
     const cachedMarkets = getObjectCookie('userMarkets') || [];
@@ -483,6 +630,7 @@ const Portfolio: React.FC = () => {
 
   // Get all prices (oracle)
   const { data: prices = [] } = useOraclePrice();
+  const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price?.price || "1";
 
   // Get debt price (use first static market)
   const { data: debtPriceData } = useMarketDebtPrice(STATIC_MARKETS[0].address);
@@ -602,12 +750,42 @@ const Portfolio: React.FC = () => {
       setLoading(false);
     }
   }, [tabIndex, userAddress, chainName, collateralDenomsQueries, userPositionQueries]);
- // Compute global stats from filteredPositions
+
+  // Compute global stats from filteredPositions
+  const cdpMetrics = useMemo(() => {
+    if (!cdpPositions.length || !prices.length || !assets.length || !cdtMarketPrice) {
+      return { tvl: new BigNumber(0), debt: new BigNumber(0) };
+    }
+
+    let totalTvl = new BigNumber(0);
+    let totalDebt = new BigNumber(0);
+
+    cdpPositions.forEach((cdp: any) => {
+      // Calculate Debt in USD
+      const debtAmount = num(shiftDigits(cdp.position.credit_amount, -6));
+      totalDebt = totalDebt.plus(debtAmount.times(cdtMarketPrice));
+
+      // Calculate TVL
+      cdp.position.collateral_assets.forEach((collateral: any) => {
+        const assetInfo = assets.find(a => a.base === collateral.asset.info.native_token.denom);
+        const priceInfo = prices.find(p => p.denom === collateral.asset.info.native_token.denom);
+
+        if (assetInfo && priceInfo) {
+          const collateralAmount = shiftDigits(collateral.asset.amount, -(assetInfo.decimal || 6));
+          const collateralValue = num(collateralAmount).times(priceInfo.price);
+          totalTvl = totalTvl.plus(collateralValue);
+        }
+      });
+    });
+
+    return { tvl: totalTvl, debt: totalDebt };
+  }, [cdpPositions, prices, assets, cdtMarketPrice]);
+
   const tvl = filteredPositions.reduce((acc, p) => {
     const assetPrice = prices?.find((pr) => pr.denom === p.asset)?.price || 0;
     return acc.plus(num(shiftDigits(p.collateral_amount, -6)).times(assetPrice));
-  }, new BigNumber(0));
-  const totalDebt = filteredPositions.reduce((acc, p) => acc.plus(num(shiftDigits(p.debt_amount, -6))), new BigNumber(0));
+  }, new BigNumber(0)).plus(cdpMetrics.tvl);
+  const totalDebt = filteredPositions.reduce((acc, p) => acc.plus(num(shiftDigits(p.debt_amount, -6))), new BigNumber(0)).plus(cdpMetrics.debt);
   const netAssetValue = tvl.minus(totalDebt);
 
   const stats = [
@@ -622,6 +800,7 @@ const Portfolio: React.FC = () => {
   //   { label: 'Net asset value', value: '$1,400,000.73' },
   // ];
   const { data: leaderboardData } = useLeaderboardData();
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   return (
     <>
       <Box w="90vw" mx="auto" mt={0}>
@@ -658,11 +837,11 @@ const Portfolio: React.FC = () => {
           </TabList>
           <TabPanels>
             <TabPanel px={0}>
-              {loading && filteredPositions.length === 0 ? (
+              {loading && filteredPositions.length === 0 && cdpPositions.length === 0 ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minH="200px" w="100%">
                   <Spinner color="white" />
                 </Box>
-              ) : filteredPositions.length === 0 ? (
+              ) : (filteredPositions.length === 0 && cdpPositions.length === 0) ? (
                 <Text color="whiteAlpha.700" mt={8} textAlign="center">No positions found.</Text>
               ) : (
                 <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4} mt={4}>
@@ -677,6 +856,9 @@ const Portfolio: React.FC = () => {
                       collateralPrice={collateralPriceQueries[idx]?.data?.price}
                       maxLTV={Number(maxLTVQueries[idx]?.data?.[0]?.collateral_params.liquidation_LTV) || 0}
                     />
+                  ))}
+                  {cdpPositions.map((cdp: { position: PositionResponse, positionNumber: number }) => (
+                    <MintCard key={cdp.positionNumber} position={cdp} chainName={chainName} cdtMarketPrice={cdtMarketPrice} />
                   ))}
                 </SimpleGrid>
               )}
@@ -703,11 +885,24 @@ const Portfolio: React.FC = () => {
         >
           <Box display="flex" flexDirection="column">
             <Box p={6} pb={2} w="100%" mx="auto">
+              <Text fontSize="xl" fontWeight="bold" color="white" mb={4}>
+                Your Points
+              </Text>
               <SoloLeveling />
             </Box>
             {/* <Divider my={0} /> */}
             <Box flex={1} overflowY="auto" px={4} py={2}>
-              <PointsLeaderboard data={leaderboardData} />
+            <Text
+                color="teal.300"
+                cursor="pointer"
+                onClick={() => setIsLeaderboardOpen(!isLeaderboardOpen)}
+                mb={2}
+                textAlign="center"
+                fontWeight="bold"
+              >
+                {isLeaderboardOpen ? 'Close Leaderboard' : 'Open Leaderboard'}
+              </Text>
+              {isLeaderboardOpen && <PointsLeaderboard data={leaderboardData} />}
             </Box>
           </Box>
         </Box>

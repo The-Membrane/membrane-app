@@ -86,7 +86,7 @@ const Home = () => {
       <Stack>
         <NeuroGuardCard />
       </Stack>
-      <PointsLeaderboard data={leaderboardData} />
+      {/* <PointsLeaderboard data={leaderboardData} /> */}
     </Stack>
   );
 

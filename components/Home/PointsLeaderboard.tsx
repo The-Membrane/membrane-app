@@ -10,6 +10,7 @@ import {
     Td,
     TableContainer,
     useColorModeValue,
+    Link,
 } from '@chakra-ui/react';
 import { useLeaderboardData } from '@/hooks/usePoints';
 import { colors } from '@/config/defaults';
@@ -64,7 +65,11 @@ const PointsLeaderboard: React.FC<Props> = ({ data }) => {
                         {data.map((entry) => (
                             <Tr key={entry.rank}>
                                 <Td color={entry.address === address ? colors.tabBG : undefined}>{entry.rank}</Td>
-                                <Td color={entry.address === address ? colors.tabBG : undefined}>{entry.address}</Td>
+                                <Td color={entry.address === address ? colors.tabBG : undefined}>
+                                    <Link href={`https://celatone.io/osmosis/accounts/${entry.address}`} isExternal>
+                                        {`${entry.address.substring(0, 5)}...${entry.address.substring(entry.address.length - 5)}`}
+                                    </Link>
+                                </Td>
                                 <Td isNumeric color={entry.address === address ? colors.tabBG : undefined}>{entry.points.toLocaleString()}</Td>
                                 <Td isNumeric color={entry.address === address ? colors.tabBG : undefined}>{entry.percentOfSupply}</Td>
                             </Tr>

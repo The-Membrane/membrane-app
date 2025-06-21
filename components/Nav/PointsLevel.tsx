@@ -27,6 +27,7 @@ function SoloLeveling() {
     } else if (appState.totalPoints?.find((p) => p.user === address)?.points != pointsData?.stats?.total_points && address === appState.totalPoints?.find((p) => p.user === address)?.user) {
       //Calc points earned
       let pointsEarned = parseFloat(pointsData?.stats?.total_points ?? "0") - parseFloat(appState.totalPoints?.find((p) => p.user === address)!.points ?? "0")
+      if (pointsEarned > 0) {
       //Toast to tell users they have earned points
       toaster.message({
         title: 'You Earned Points!',
@@ -34,8 +35,9 @@ function SoloLeveling() {
           <>
             You've earned <strong>{pointsEarned.toFixed(1)} Points</strong> from your recent actions.
           </>
-        )
-      });
+          )
+        });
+      }
       //Update total points
       appState.totalPoints.find((p) => p.user === address)!.points = pointsData?.stats?.total_points ?? "0"
       setAppState({ totalPoints: appState.totalPoints })

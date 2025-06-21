@@ -285,8 +285,9 @@ export const getLiqudationLTV = (
   basketAssets: BasketAsset[] = [],
   ratios?: any[],
 ) => {
+  console.log("positions", positions, "basketAssets", basketAssets, "ratios", ratios)
   const positionsWithRatio = ratios ?? getAssetRatio(false, tvl, positions);
-
+  console.log("positionsWithRatio", positionsWithRatio)
   const maxLTV = positionsWithRatio.reduce((acc, position) => {
     if (!position) return acc
     const ltv = basketAssets.find((asset) => asset?.asset?.base === position.denom || asset?.asset?.base === position.base)?.maxLTV || 0

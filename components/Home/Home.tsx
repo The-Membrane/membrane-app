@@ -84,7 +84,7 @@ const Home = () => {
       {/* <RulesModal isOpen={isOpen} onClose={onClose} /> */}
       <HomeTitle />
       <Stack>
-        <NeuroGuardCard />
+        {/* <NeuroGuardCard /> */}
       </Stack>
       {/* <PointsLeaderboard data={leaderboardData} /> */}
     </Stack>

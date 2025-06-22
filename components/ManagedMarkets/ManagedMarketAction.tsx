@@ -136,7 +136,7 @@ const ManagedMarketAction = ({
     // Add useBorrowAndBoost for Multiply action
     const { action: borrowAndBoost, debtAmount } = useBorrowAndBoost({
         marketContract: marketAddress,
-        collateralDenom: collateralAsset?.base || '',
+        asset: collateralAsset!,
         managedActionState,
         maxBorrowLTV: maxBorrowLTV,
         run: selectedTab === 0, // Only run for Multiply tab
@@ -279,7 +279,7 @@ const ManagedMarketAction = ({
                                                     Wallet
                                                 </Text>
                                                 <Text className="wallet-hover-text" color="whiteAlpha.700" fontSize="md">
-                                                    {num(maxBalance).toFixed(2)}
+                                                    {Formatter.toNearestNonZero(maxBalance)}
                                                 </Text>
                                             </VStack>
                                         </VStack>

@@ -9,10 +9,10 @@ import { DEFAULT_CHAIN } from '@/config/chains'
 import { useChainRoute } from './useChainRoute'
 
 export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
+
   const { chainName } = useChainRoute()
   const { address, chain } = useWallet(chainName)
   const addressToUse = inputedAddress || address
-  // console.log("useBalance", address, chain)
   const { getRpcClient } = useRpcClient(chain.chain_name)
 
   return useQuery<QueryAllBalancesResponse['balances'] | null>({

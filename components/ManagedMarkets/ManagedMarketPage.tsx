@@ -67,6 +67,7 @@ const ManagedMarketPage: React.FC = () => {
     // Fetch contract's balance of the collateral denom
     const contractCollateralBalance = useBalanceByAsset(asset, chainName, marketAddress as string);
 
+
     // Format numbers using Formatter.tvlShort
     const formatNumber = (value: string | number | undefined) => {
         if (value === undefined || value === null || value === '—') return '—';

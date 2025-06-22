@@ -13,6 +13,8 @@ import { start } from 'repl'
 import { PriceResponse } from '@/contracts/codegen/oracle/Oracle.types'
 import { useAllMarkets } from '@/hooks/useManaged'
 import { useMemo } from 'react'
+import type { Asset } from '@/helpers/chain'
+import type { CosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
 
 export interface UserPosition {
@@ -161,6 +163,25 @@ export const getUserUXBoostsinMarket = async (cosmWasmClient: any, marketContrac
          }
     }) as Promise<UXBoosts>
 }
+
+export const getMarketBalance = async (
+    client: CosmWasmClient,
+    asset: Asset,
+    address: string,
+): Promise<string> => {
+    if (!client || !asset || !address) {
+        console.error('Failed to get market balance', { client, asset, address });
+        return '0';
+    }
+    // Native token
+    try {
+        const balance = await client.getBalance(address, asset.base);
+        return shiftDigits(balance.amount, -(asset.decimal || 6)).toString();
+    } catch (e) {
+        console.error('Failed to get native balance', e);
+        return '0';
+    }
+};
 
 
 

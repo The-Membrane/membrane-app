@@ -46,7 +46,7 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import { num } from '@/helpers/num';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
 import useCloseAndEditBoostsTx from './hooks/useCloseAndEditBoostsTx';
-import { getMarketCollateralDenoms, useMarketNames, getUserPositioninMarket, getManagedMarket } from '@/services/managed';
+import { getMarketCollateralDenoms, useMarketNames, getUserPositioninMarket, getManagedMarket, getMarketCollateralCost } from '@/services/managed';
 import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient';
 import useAppState from '@/persisted-state/useAppState';
 import useAssets from '@/hooks/useAssets';
@@ -69,6 +69,7 @@ import useVaultSummary from '../Mint/hooks/useVaultSummary';
 import { NeuroCloseModal } from '../Home/NeuroModals';
 import { denoms } from '@/config/defaults';
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types';
+import { Formatter } from '@/helpers/formatter';
 
 // Mock: Replace with real data fetching
 // const fetchPositions = () => {
@@ -346,32 +347,29 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   );
 };
 
-const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPrice, collateralPrice }: { position: any, chainName: string, assets: any[], marketName: string, maxLTV: number, debtPrice?: number, collateralPrice?: string }) => {
+const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPrice, collateralPrice, collateralCost, cdtMarketPrice }: { position: any, chainName: string, assets: any[], marketName: string, maxLTV: number, debtPrice?: number, collateralPrice?: string, collateralCost?: string, cdtMarketPrice: string }) => {
   const [editState, setEditState] = React.useState(position);
   const asset = useAssetByDenom(editState.asset, chainName, assets);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Get asset price from prices list
-  const assetPrice = collateralPrice ? Number(collateralPrice) : 0;
+  const assetPrice = new BigNumber(collateralPrice || 0);
+
+  //Calc current LTV
+  const debt = num(shiftDigits(position.debt_amount, -6));
+  const collateral = num(shiftDigits(position.collateral_amount, -(asset?.decimal || 6)));
+  const cdtPrice = new BigNumber(cdtMarketPrice || 0);
+  
+  const currentLTV = collateral.gt(0) && assetPrice.gt(0) ? debt.times(cdtPrice).div(collateral.times(assetPrice)) : new BigNumber(0);
 
   // Calculate liquidation price (if possible)
   let liquidationPrice = '-';
-  if (debtPrice && position.debt_amount && position.collateral_amount && maxLTV) {
-    const debt = Number(position.debt_amount);
-    const collateral = Number(position.collateral_amount);
-    if (collateral > 0 && maxLTV > 0) {
-      liquidationPrice = ((debt / (collateral * maxLTV)) * debtPrice).toFixed(4);
-    }
+  if (maxLTV > 0 && currentLTV.gt(0) && assetPrice.gt(0)) {
+    liquidationPrice = Formatter.toNearestNonZero(assetPrice.times(currentLTV.div(maxLTV)).toNumber());
   }
-  //Calc current LTV
-  const debt = num(shiftDigits(position.debt_amount, -6));
-  const collateral = num(shiftDigits(position.collateral_amount, -(asset?.decimals || 6)));
-  const assetPriceNum = Number(collateralPrice) || 0;
-  const debtPriceNum = Number(debtPrice) || 0;
-  const currentLTV = collateral.gt(0) && assetPriceNum > 0 ? debt.times(debtPriceNum).div(collateral.times(assetPriceNum)).toNumber() : 0;
 
   // Borrow APY from collateralCost
-  const borrowAPY = collateralPrice ? Number(collateralPrice).toFixed(2) : '0.00';
+  const borrowAPY = collateralCost ? Number(collateralCost).toFixed(2) : '0.00';
 
   return (
     <Card p={4} mb={4} borderRadius="xl" border="2px solid #232A3E" bg="#20232C" width="100%">
@@ -406,11 +404,11 @@ const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPri
       <HStack w="100%" justify="space-between" align="center" mt={2}>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Market Value</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">${(shiftDigits(position.collateral_amount, -6).times(assetPrice)).toFixed(2)}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${(collateral.times(assetPrice)).toFixed(2)}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Debt</Text>
-          <Text color="white" fontWeight="bold" fontSize="lg">${shiftDigits(position.debt_amount, -6).toFixed(2) || '0.00'}</Text>
+          <Text color="white" fontWeight="bold" fontSize="lg">${debt.times(cdtPrice).toFixed(2) || '0.00'}</Text>
         </VStack>
         <VStack flex={1} align="start" spacing={0}>
           <Text color="whiteAlpha.700" fontSize="sm">Borrow APY</Text>
@@ -428,7 +426,7 @@ const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPri
           <ModalHeader>Edit Position</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <MarketActionEdit assetSymbol={asset?.symbol || editState.asset} position={editState} marketAddress={editState.marketAddress} collateralDenom={editState.asset} maxLTV={maxLTV} collateralPrice={collateralPrice ? Number(collateralPrice) : 0} currentLTV={currentLTV} initialLiquidationPrice={liquidationPrice} />
+            <MarketActionEdit assetSymbol={asset?.symbol || editState.asset} position={editState} marketAddress={editState.marketAddress} collateralDenom={editState.asset} maxLTV={maxLTV} collateralPrice={assetPrice.toNumber()} currentLTV={currentLTV.toNumber()} initialLiquidationPrice={liquidationPrice} />
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -554,13 +552,6 @@ const YieldCard = ({ yieldItem }: { yieldItem: any }) => (
   </Card>
 );
 
-// Query all static markets and all their collaterals for user positions
-const STATIC_MARKETS = [
-  { address: 'osmo1fucs2qtlwspwd3ahadqyyhxshurvku2gvxddrl0enp6j6y5dszjq96awy7', name: 'Market 1' },
-  { address: 'osmo1fftkmw6hwsw54aw9l0jfxkzzysvq23h6vqgk8cx32aedy6jxucmqpz27zj', name: 'Market 2' },
-  // Add more static markets as needed
-];
-
 const CheckClaims = () => {
   const [enabled, setEnabled] = useState(false)
   return (
@@ -580,8 +571,7 @@ const Portfolio: React.FC = () => {
   const [tabIndex, setTabIndex] = useState(0);
   const [yieldData, setYieldData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [initialMarkets, setInitialMarkets] = useState<string[]>([]);
-  const [displayedMarkets, setDisplayedMarkets] = useState<string[]>([]);
+  const [initialMarkets, setInitialMarkets] = useState<{ address: string; name: string }[]>([]);
 
   // Get chainName and userAddress from hooks
   const { chainName } = useChainRoute();
@@ -589,6 +579,7 @@ const Portfolio: React.FC = () => {
   const { data: cosmwasmClient } = useCosmWasmClient();
   const assets = useAssets(chainName);
   const { appState } = useAppState();
+  const allMarketsData = useAllMarkets();
 
   // Get CDP positions
   const { data: basketPositions } = useUserPositions();
@@ -624,32 +615,39 @@ const Portfolio: React.FC = () => {
   // On mount, read userMarkets cookie for fast initial UI
   useEffect(() => {
     const cachedMarkets = getObjectCookie('userMarkets') || [];
-    setInitialMarkets(cachedMarkets);
-    setDisplayedMarkets(cachedMarkets);
+    setInitialMarkets(cachedMarkets.map((address: string) => ({ address, name: 'Cached Market' })));
   }, []);
+
+  const marketsToQuery = useMemo(() => {
+    if (allMarketsData && allMarketsData.length > 0) {
+      return allMarketsData;
+    }
+    return initialMarkets;
+  }, [allMarketsData, initialMarkets]);
 
   // Get all prices (oracle)
   const { data: prices = [] } = useOraclePrice();
   const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price?.price || "1";
 
   // Get debt price (use first static market)
-  const { data: debtPriceData } = useMarketDebtPrice(STATIC_MARKETS[0].address);
+  const { data: debtPriceData } = useMarketDebtPrice(marketsToQuery[0]?.address);
   const debtPrice = debtPriceData?.price ? Number(debtPriceData.price) : undefined;
 
   // 1. Fetch all collateral denoms for all static markets using useQueries
   const collateralDenomsQueries = useQueries({
-    queries: STATIC_MARKETS.map((market) => ({
+    queries: marketsToQuery.map((market: any) => ({
       queryKey: ['collateral_denoms', market.address, cosmwasmClient],
       queryFn: () => {
-        if (!cosmwasmClient) return Promise.resolve([]);
+        if (!cosmwasmClient || !market.address) return Promise.resolve([]);
         return getMarketCollateralDenoms(cosmwasmClient, market.address);
       },
+      enabled: !!cosmwasmClient && !!market.address,
       staleTime: 1000 * 60 * 5,
     })),
   });
 
   // 2. Once all collateral denoms are loaded, build all (market, collateral) pairs
-  const allMarketCollateralPairs = STATIC_MARKETS.flatMap((market, mIdx) => {
+  const allMarketCollateralPairs = marketsToQuery.flatMap((market: any, mIdx: number) => {
     const q = collateralDenomsQueries[mIdx];
     if (!q || q.isLoading || q.isError || !Array.isArray(q.data)) return [];
     return q.data.map((collateralDenom: string) => ({ market, collateralDenom }));
@@ -657,7 +655,7 @@ const Portfolio: React.FC = () => {
 
   // 3. Fetch all user positions for all (market, collateral) pairs using useQueries
   const userPositionQueries = useQueries({
-    queries: allMarketCollateralPairs.map(({ market, collateralDenom }) => ({
+    queries: allMarketCollateralPairs.map(({ market, collateralDenom }: { market: any, collateralDenom: string }) => ({
       queryKey: ['user_position', market.address, collateralDenom, userAddress, cosmwasmClient],
       queryFn: () => {
         if (!cosmwasmClient) return Promise.resolve([]);
@@ -687,28 +685,19 @@ const Portfolio: React.FC = () => {
   // After full query, update displayedMarkets and cookie if needed
   useMemo(() => {
     if (positions.length > 0) {
-      const newMarkets = positions.map(p => p.marketAddress);
-      // Only update if different
-      if (
-        newMarkets.length !== displayedMarkets.length ||
-        !newMarkets.every((m, i) => m === displayedMarkets[i])
-      ) {
-        setDisplayedMarkets(newMarkets);
+      const newMarkets = [...new Set(positions.map((p) => p.marketAddress))];
+      const currentMarkets = getObjectCookie('userMarkets') || [];
+
+      if (JSON.stringify(newMarkets.sort()) !== JSON.stringify(currentMarkets.sort())) {
         if (appState.setCookie) {
-          setObjectCookie('userMarkets', newMarkets, 30); // 30 days
+          setObjectCookie('userMarkets', newMarkets, 30);
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [positions, appState.setCookie]);
 
   // Use the batch hook to get all market names
   const marketNames = useMarketNames(positions.map(p => p.marketAddress));
-
-  // Filter positions to only those in displayedMarkets (for initial render)
-  const filteredPositions = displayedMarkets.length > 0
-    ? positions.filter(p => displayedMarkets.includes(p.marketAddress))
-    : positions;
 
   // Fetch collateral prices for all positions
   const collateralPriceQueries = useQueries({
@@ -717,6 +706,19 @@ const Portfolio: React.FC = () => {
       queryFn: () => {
         if (!cosmwasmClient || !position.marketAddress || !position.asset) return Promise.resolve(undefined);
         return getMarketCollateralPrice(cosmwasmClient, position.marketAddress, position.asset);
+      },
+      enabled: !!cosmwasmClient && !!position.marketAddress && !!position.asset,
+      staleTime: 1000 * 60 * 5,
+    })),
+  });
+
+  // Fetch collateral costs for all positions
+  const collateralCostQueries = useQueries({
+    queries: positions.map((position) => ({
+      queryKey: ['collateral_cost', position.marketAddress, position.asset],
+      queryFn: () => {
+        if (!cosmwasmClient || !position.marketAddress || !position.asset) return Promise.resolve(undefined);
+        return getMarketCollateralCost(cosmwasmClient, position.marketAddress, position.asset);
       },
       enabled: !!cosmwasmClient && !!position.marketAddress && !!position.asset,
       staleTime: 1000 * 60 * 5,
@@ -781,11 +783,13 @@ const Portfolio: React.FC = () => {
     return { tvl: totalTvl, debt: totalDebt };
   }, [cdpPositions, prices, assets, cdtMarketPrice]);
 
-  const tvl = filteredPositions.reduce((acc, p) => {
+  const tvl = positions.reduce((acc, p: any) => {
     const assetPrice = prices?.find((pr) => pr.denom === p.asset)?.price || 0;
-    return acc.plus(num(shiftDigits(p.collateral_amount, -6)).times(assetPrice));
+    const asset = assets.find((a: any) => a.base === p.asset);
+    const decimals = asset?.decimal || 6;
+    return acc.plus(num(shiftDigits(p.collateral_amount, -decimals)).times(assetPrice));
   }, new BigNumber(0)).plus(cdpMetrics.tvl);
-  const totalDebt = filteredPositions.reduce((acc, p) => acc.plus(num(shiftDigits(p.debt_amount, -6))), new BigNumber(0)).plus(cdpMetrics.debt);
+  const totalDebt = positions.reduce((acc, p: any) => acc.plus(num(shiftDigits(p.debt_amount, -6))), new BigNumber(0)).plus(cdpMetrics.debt);
   const netAssetValue = tvl.minus(totalDebt);
 
   const stats = [
@@ -837,15 +841,15 @@ const Portfolio: React.FC = () => {
           </TabList>
           <TabPanels>
             <TabPanel px={0}>
-              {loading && filteredPositions.length === 0 && cdpPositions.length === 0 ? (
+              {loading && positions.length === 0 && cdpPositions.length === 0 ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minH="200px" w="100%">
                   <Spinner color="white" />
                 </Box>
-              ) : (filteredPositions.length === 0 && cdpPositions.length === 0) ? (
+              ) : (positions.length === 0 && cdpPositions.length === 0) ? (
                 <Text color="whiteAlpha.700" mt={8} textAlign="center">No positions found.</Text>
               ) : (
                 <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4} mt={4}>
-                  {filteredPositions.map((position, idx) => (
+                  {positions.map((position, idx) => (
                     <PositionCard
                       key={idx}
                       position={position}
@@ -854,7 +858,9 @@ const Portfolio: React.FC = () => {
                       marketName={marketNames[idx]}
                       debtPrice={debtPrice}
                       collateralPrice={collateralPriceQueries[idx]?.data?.price}
+                      collateralCost={collateralCostQueries[idx]?.data}
                       maxLTV={Number(maxLTVQueries[idx]?.data?.[0]?.collateral_params.liquidation_LTV) || 0}
+                      cdtMarketPrice={cdtMarketPrice}
                     />
                   ))}
                   {cdpPositions.map((cdp: { position: PositionResponse, positionNumber: number }) => (

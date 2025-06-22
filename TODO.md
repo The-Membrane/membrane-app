@@ -1,11 +1,7 @@
 Next Steps:
-- Check useChainRoute everywhere and make sure its not breaking queries
-
-- Build out portfolio tab
--- Move the full Home Tab to the Portfolio
---- Move the CDT yield offering to a Yield Page that will house (This, Managed Lending, NG Yields)
-
 - Create Lend Tab & state save for lending
+
+- Manage market intent & liquidation fulfillment
 
 - If liquidations error with our "False positive" parse, remove that position from the liquidation execution. This will require us to sim each liquidation separately or randomize which one gets removed to test.
 

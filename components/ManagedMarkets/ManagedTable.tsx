@@ -45,9 +45,8 @@ import { useAllMarkets } from '@/hooks/useManaged';
 import { useChainRoute } from '@/hooks/useChainRoute';
 import { num } from '@/helpers/num';
 import { useQueries } from '@tanstack/react-query';
-import { getMarketCollateralPrice, getMarketCollateralCost } from '@/services/managed';
+import { getMarketCollateralPrice, getMarketCollateralCost, getMarketBalance } from '@/services/managed';
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient';
-import { useBalanceByAsset } from '@/hooks/useBalance';
 
 // Helper to format TVL as $X.XXK/M
 function formatTvl(val: number): string {
@@ -130,7 +129,7 @@ const ManagedTable = () => {
             const denom = market.params?.collateral_params?.collateral_asset;
             return {
                 queryKey: ['managed_market_collateral_cost', client, market.address, denom],
-                queryFn: () => getMarketCollateralCost(client, market.address, denom),
+                queryFn: () => getMarketCollateralCost(client!, market.address, denom),
                 enabled: !!market && !!client,
             };
         }),
@@ -141,12 +140,9 @@ const ManagedTable = () => {
             const denom = market.params?.collateral_params?.collateral_asset;
             const asset = getAssetByDenom(denom, chainName);
             return {
-                queryKey: ['market_balance', chainName, market.address, denom],
-                queryFn: () => {
-                    // useBalanceByAsset returns a string, parseFloat for math
-                    return useBalanceByAsset(asset as Asset, chainName, market.address);
-                },
-                enabled: !!asset && !!market && !!chainName && !!market.address,
+                queryKey: ['market_balance', chainName, market.address, denom, client],
+                queryFn: () => getMarketBalance(client!, asset as Asset, market.address),
+                enabled: !!asset && !!market && !!chainName && !!market.address && !!client,
             };
         }),
     });
@@ -168,6 +164,7 @@ const ManagedTable = () => {
             // TVL calculation
             const balance = parseFloat(balanceQueries[idx]?.data ?? '0');
             const tvl = balance * price;
+            console.log('tvl', tvl, balanceQueries, price);
             const tvlDisplay = formatTvl(tvl);
             return {
                 market,

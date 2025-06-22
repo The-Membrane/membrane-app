@@ -11,25 +11,26 @@ import useManagedAction, { ManagedActionState } from './useManagedMarket';
 import { queryClient } from '@/pages/_app';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
 import { shiftDigits } from '@/helpers/math';
+import { Asset } from '@/helpers/chain';
 
 
 const useBorrowAndBoost = ({
   marketContract,
-  collateralDenom,
+  asset,
   managedActionState,
   maxBorrowLTV,
   run = true,
 }: {
   marketContract: string;
-  collateralDenom: string;
+  asset: Asset;
   managedActionState: ManagedActionState;
   maxBorrowLTV: number;
   run?: boolean;
 }) => {
   const { address } = useWallet();
-  const { data: collateralPriceData } = useMarketCollateralPrice(marketContract, collateralDenom);
+  const { data: collateralPriceData } = useMarketCollateralPrice(marketContract, asset?.base);
   const { data: debtPriceData } = useMarketDebtPrice(marketContract);
-  const { data: marketParams } = useManagedMarket(marketContract, collateralDenom);
+  const { data: marketParams } = useManagedMarket(marketContract, asset?.base);
   const { setManagedActionState } = useManagedAction();
 
   type QueryData = {
@@ -41,7 +42,7 @@ const useBorrowAndBoost = ({
       'borrowAndBoost_msgs',
       address,
       marketContract,
-      collateralDenom,
+      asset,
       managedActionState,
       collateralPriceData,
       debtPriceData,
@@ -52,6 +53,7 @@ const useBorrowAndBoost = ({
       if (
         !run ||
         !address ||
+        !asset ||
         !marketParams ||
         !collateralPriceData?.price ||
         !debtPriceData?.price ||
@@ -94,6 +96,8 @@ const useBorrowAndBoost = ({
         stopLossLTV = num(borrowAmountValue).times(currentDebtPrice).div(slPrice.times(collateralAmount)).toString();
       }
 
+      // console.log("deposit amount", shiftDigits(managedActionState.collateralAmount, asset.decimal).toFixed(0));
+
       // Prepare Deposit message
       const depositMsg: MsgExecuteContractEncodeObject = {
         typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
@@ -106,8 +110,8 @@ const useBorrowAndBoost = ({
           ),
           funds: [
             {
-              denom: collateralDenom,
-              amount: shiftDigits(managedActionState.collateralAmount, 6).toFixed(0),
+              denom: asset.base,
+              amount: shiftDigits(managedActionState.collateralAmount, asset.decimal).toFixed(0),
             },
           ],
         }),
@@ -136,6 +140,7 @@ const useBorrowAndBoost = ({
       // };
       console.log("borrowAmount", borrowAmount.toString());
 
+
       // Prepare EditUXBoosts message
       const editUXBoostsMsg: MsgExecuteContractEncodeObject = {
         typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
@@ -145,7 +150,7 @@ const useBorrowAndBoost = ({
           msg: toUtf8(
             JSON.stringify({
               edit_u_x_boosts: {
-                collateral_denom: collateralDenom,
+                collateral_denom: asset.base,
                 loop_ltv: loopLTV ? loopLTV.toString() : undefined,
                 take_profit_params: takeProfitLTV
                   ? {
@@ -169,7 +174,27 @@ const useBorrowAndBoost = ({
         }),
       };
 
-      return { msgs: [depositMsg, editUXBoostsMsg], debtAmount: borrowAmount };
+
+      // Prepare Loop Position message
+      const loopPositionMsg: MsgExecuteContractEncodeObject = {
+        typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
+        value: MsgExecuteContract.fromPartial({
+          sender: address,
+          contract: marketContract,
+          msg: toUtf8(
+            JSON.stringify({
+              loop_position: {
+                collateral_denom: asset.base,
+                position_owner: address,
+              },
+            })
+          ),
+          funds: [],
+        }),
+      };
+
+
+      return { msgs: [depositMsg, editUXBoostsMsg, loopPositionMsg], debtAmount: borrowAmount };
     },
     enabled: !!address && !!marketParams && !!collateralPriceData?.price && !!debtPriceData?.price && !!managedActionState.collateralAmount && !!managedActionState.multiplier && run,
   });

@@ -10,6 +10,14 @@ import useMembersRulesState from '../MembersRules/useRules'
 import { set } from 'react-hook-form'
 import PointsLeaderboard from './PointsLeaderboard'
 import { useLeaderboardData } from '@/hooks/usePoints'
+import AcquireCDTEntry from './AcquireCDTEntry'
+import useWallet from '@/hooks/useWallet'
+import { useAssetBySymbol } from '@/hooks/useAssets'
+import { useBalanceByAsset } from '@/hooks/useBalance'
+import { useBasket, useCollateralInterest } from '@/hooks/useCDP'
+import { simpleBoundedAPRCalc, useBoundedCDTVaultTokenUnderlying, useBoundedTVL } from '@/hooks/useEarnQueries'
+import { num } from '@/helpers/num'
+import { shiftDigits } from '@/helpers/math'
 
 // Memoize child components
 // const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
@@ -40,7 +48,7 @@ const Home = () => {
   const toaster = useToaster();
 
   // Memoize the toggle handler to prevent recreating on each render
-  const handleToggle = useCallback((event) => {
+  const handleToggle = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setAppState({ setCookie: event.target.checked });
   }, [setAppState]);
 
@@ -78,14 +86,35 @@ const Home = () => {
 
   const { data: leaderboardData } = useLeaderboardData()
 
+  const { address } = useWallet()
+  const { data: basket } = useBasket()
+  const { data: TVL } = useBoundedTVL()
+  const { data: interest } = useCollateralInterest()
+
+  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
+
+  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
+  const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
+  const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
+    num(shiftDigits(boundCDTBalance, 6)).toFixed(0)
+  )
+
+  const calculatedRBYield = useMemo(() => {
+    if (!basket || !interest || !TVL) return "0";
+    return simpleBoundedAPRCalc(shiftDigits(basket.credit_asset.amount, -6).toNumber(), interest, TVL, 0);
+  }, [basket, interest, TVL]);
+
+  const underlyingCDT = useMemo(() =>
+    shiftDigits(underlyingData, -6).toString() ?? "0"
+    , [underlyingData])
+
   // Memoize the entire content to prevent unnecessary re-renders
   return (
     <Stack>
       {/* <RulesModal isOpen={isOpen} onClose={onClose} /> */}
       <HomeTitle />
-      <Stack>
-        {/* <NeuroGuardCard /> */}
-      </Stack>
+      <AcquireCDTEntry usdcBalance={Number(usdcBalance)} RBYield={calculatedRBYield} rblpDeposit={Number(underlyingCDT)} address={address ?? ""} />
       {/* <PointsLeaderboard data={leaderboardData} /> */}
     </Stack>
   );

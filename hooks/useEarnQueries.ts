@@ -121,7 +121,7 @@ export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
     return useQuery({
         queryKey: ['useCDTVaultTokenUnderlying', vtAmount, client, router.pathname],
         queryFn: async () => {
-            if (!router.pathname.endsWith("/bid")) return
+            if (!router.pathname.endsWith("/liquidate")) return
             if (!client) return
 
             return getUnderlyingCDT(vtAmount, client)
@@ -242,7 +242,7 @@ export const useEarnCDTRealizedAPR = () => {
     return useQuery({
         queryKey: ['useCDTUSDCRealizedAPR', client, router.pathname],
         queryFn: async () => {
-            if (!router.pathname.endsWith("/bid")) return
+            if (!router.pathname.endsWith("/liquidate")) return
             if (!client) return
 
             const claimTracker = await getEarnCDTRealizedAPR(client)

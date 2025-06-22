@@ -7,7 +7,7 @@ export const useCDTDailyVolume = () => {
     return useQuery({
         queryKey: ['cdt_daily_volume', router.pathname],
         queryFn: async () => {
-            if (!router.pathname.endsWith("/management")) return
+            if (!router.pathname.endsWith("/control-room")) return
             const response = await fetch('/api/proxy'); // Calls your Next.js API route
             const data = await response.json();
             console.log("proxy log", data);

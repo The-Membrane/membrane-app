@@ -31,7 +31,7 @@ interface ManagedMarketInfoProps {
     suppliedDebt?: string | number;
     maxMultiplier?: string | number;
     price?: string | number;
-    totalSupply?: string | number;
+    availableLiquidity?: string | number;
     borrowCost?: string | number;
     totalDebt?: string | number;
     borrowAPY?: string | number;
@@ -192,7 +192,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
     suppliedDebt,
     maxMultiplier,
     price,
-    totalSupply,
+    availableLiquidity,
     borrowCost,
     totalDebt,
     borrowAPY,
@@ -226,7 +226,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                                 <Text color="whiteAlpha.800" fontWeight="bold">Statistics</Text>
                                 <Tooltip label="Key metrics for the collateral market."><span><InfoOutlineIcon color="whiteAlpha.600" boxSize={4} /></span></Tooltip>
                             </HStack>
-                            <InfoRow label="Total Supply" value={totalSupply} horizontal={true} />
+                            <InfoRow label="Available Liquidity" value={availableLiquidity + " CDT"} horizontal={true} />
                             <InfoRow label="Borrow Cost" value={borrowCost} horizontal={true} />
                         </>
                     ) : (

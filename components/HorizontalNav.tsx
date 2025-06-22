@@ -17,8 +17,8 @@ const navItems = [
     { label: 'Liquidate', href: '/liquidate' },
     { label: 'Stake', href: '/stake' },
     // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
-    { label: 'Managed Markets', href: '/managed' },
-    { label: 'Upper Management', href: '/management' },
+    { label: 'Isolated Markets', href: '/isolated' },
+    { label: 'Control Room', href: '/control-room' },
 ];
 
 const HorizontalNav = () => {

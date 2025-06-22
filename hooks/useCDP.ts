@@ -14,7 +14,7 @@ export const useBasket = () => {
   const result = useQuery({
     queryKey: ['basket', client],
     queryFn: async () => {
-      // if (router.pathname != "/" && router.pathname != "/mint" && router.pathname != "/liquidate" && router.pathname != "/management" && router.pathname != "/manic") return
+      // if (router.pathname != "/" && router.pathname != "/mint" && router.pathname != "/liquidate" && router.pathname != "/control-room" && router.pathname != "/manic") return
       if (!client) return {}
       return getBasket(client)
     },
@@ -143,7 +143,7 @@ export const useBasketPositions = () => {
   return useQuery({
     queryKey: ['all positions', client],
     queryFn: async () => {
-      // if (router.pathname != "/management" && router.pathname != "/mint") return
+      // if (router.pathname != "/control-room" && router.pathname != "/mint") return
       if (!client) return
       return getBasketPositions(client)
     },

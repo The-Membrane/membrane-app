@@ -152,7 +152,7 @@ export const useBoundedCDTVaultTokenUnderlying = (vtAmount: string) => {
     return useQuery({
         queryKey: ['useBoundedCDTVaultTokenUnderlying', vtAmount, client, router.pathname],
         queryFn: async () => {
-            if (!router.pathname.startsWith('/[') && !router.pathname.endsWith("/management")) return
+            if (!router.pathname.startsWith('/[') && !router.pathname.endsWith("/control-room")) return
             if (!client) return
 
             return getBoundedUnderlyingCDT(vtAmount, client)

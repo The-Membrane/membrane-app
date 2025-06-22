@@ -12,6 +12,7 @@ import { useBalanceByAsset } from '@/hooks/useBalance';
 import ManagePage from './ManagePage';
 import { getMarketName } from '@/services/managed';
 import useWallet from '@/hooks/useWallet';
+import { num } from '@/helpers/num';
 
 
 
@@ -112,7 +113,8 @@ const ManagedMarketPage: React.FC = () => {
         }
     } catch {}
     const price = !priceLoading && priceData?.price ? formatPrice(priceData.price) : '—';
-    const totalSupply = !paramsLoading && params?.[0]?.total_borrowed ? formatNumber(params[0].total_borrowed) : '—';
+    const availableLiquidity = num(suppliedDebt).minus(shiftDigits(totalBorrowed ?? "0", -6)).toFixed(2)
+    // !paramsLoading && params?.[0]?.total_borrowed ? formatNumber(params[0].total_borrowed) : '—';
     const borrowCost = !costLoading && costData ? formatPercent(costData) : '—';
     // These may need more specific queries:
     const totalDebt = !configLoading && config?.total_debt_tokens ? formatNumber(config.total_debt_tokens) : '—';
@@ -165,7 +167,7 @@ const ManagedMarketPage: React.FC = () => {
         suppliedDebt,
         maxMultiplier,
         price,
-        totalSupply,
+        availableLiquidity,
         borrowCost,
         totalDebt,
         borrowAPY,

@@ -3,6 +3,12 @@ import { Card, VStack, HStack, Text, Input, Button, Image } from '@chakra-ui/rea
 import useLendState from './hooks/useLendState';
 import ConfirmModal from '../ConfirmModal';
 import useLend from './hooks/useLend';
+import { useBalanceByAsset } from '@/hooks/useBalance';
+import { Formatter } from '@/helpers/formatter';
+import { denoms } from '@/config/defaults';
+import { Asset } from '@/helpers/chain';
+
+const CDT_ASSET = { base: denoms.CDT[0] as string, symbol: 'CDT', logo: '/images/cdt.svg', decimal: 6 };
 
 const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
     const { lendState, setLendState } = useLendState();
@@ -11,9 +17,15 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
         lendState: lendState,
         run: true,
     });
+    // Get CDT balance
+    const cdtBalance = useBalanceByAsset(CDT_ASSET as Asset);
 
     const handleSupplyAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setLendState({ supplyAmount: e.target.value });
+    };
+
+    const handleSetMax = () => {
+        setLendState({ supplyAmount: cdtBalance.toString() });
     };
 
     return (
@@ -33,10 +45,21 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
             <VStack spacing={6} align="stretch" w="100%" maxW="600px" mx="auto">
                 <HStack justify="space-between" align="flex-start" w="100%">
                     <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium">Supply Amount</Text>
-                    <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
-                        <Image src={"/images/cdt.svg"} alt={"cdt"} boxSize="24px" />
-                        <Text color="white" fontWeight="bold">CDT</Text>
-                    </HStack>
+                    <VStack align="flex-end" spacing={1}>
+                        <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
+                            <Image src={CDT_ASSET.logo} alt={CDT_ASSET.symbol} boxSize="24px" />
+                            <Text color="white" fontWeight="bold">{CDT_ASSET.symbol}</Text>
+                        </HStack>
+                        <Text
+                            color="whiteAlpha.700"
+                            fontSize="sm"
+                            cursor="pointer"
+                            _hover={{ textDecoration: 'underline', color: 'teal.300' }}
+                            onClick={handleSetMax}
+                        >
+                            Wallet: {Formatter.toNearestNonZero(cdtBalance)}
+                        </Text>
+                    </VStack>
                 </HStack>
                 <Input
                     variant="unstyled"

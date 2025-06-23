@@ -7,7 +7,7 @@ import { useMarketCollateralPrice, useMarketDebtPrice, useManagedMarket } from '
 import contracts from '@/config/contracts.json';
 import { num } from '@/helpers/num';
 import BigNumber from 'bignumber.js';
-import useManagedAction, { ManagedActionState } from './useManagedMarket';
+import useManagedAction, { ManagedActionState } from './useManagedMarketState';
 import { queryClient } from '@/pages/_app';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
 import { shiftDigits } from '@/helpers/math';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, HStack, Stack, Text, Badge, Image, VStack } from '@chakra-ui/react';
 import {shiftDigits } from '@/helpers/math';
-import { ManagedActionState } from './hooks/useManagedMarket';
+import { ManagedActionState } from './hooks/useManagedMarketState';
 import { num } from '@/helpers/num';
 
 // Types for props

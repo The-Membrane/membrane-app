@@ -2,6 +2,16 @@ Next Steps:
 - Create Lend Tab & state save for lending
 
 - Manage market intent & liquidation fulfillment
+- liq bot, arb bot, redemption bot, intent bot
+
+Permissionless Iso-Market Growth Aid
+- No fees (add fees later past a borrow threshold)
+- Revenue somewhere (?)
+- Sort UI by APR
+
+- Show slippage of a full collateral -> debt swap
+- Add socials and manager names. add flag if there is none of either.
+---------
 
 - If liquidations error with our "False positive" parse, remove that position from the liquidation execution. This will require us to sim each liquidation separately or randomize which one gets removed to test.
 

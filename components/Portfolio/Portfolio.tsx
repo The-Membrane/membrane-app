@@ -39,7 +39,7 @@ import { useAssetByDenom, useAssetBySymbol } from '@/hooks/useAssets';
 import useWallet from '@/hooks/useWallet';
 import { useChainRoute } from '@/hooks/useChainRoute';
 import Divider from '@/components/Divider';
-import useManagedAction from '@/components/ManagedMarkets/hooks/useManagedMarket';
+import useManagedAction from '@/components/ManagedMarkets/hooks/useManagedMarketState';
 import ConfirmModal from '@/components/ConfirmModal/ConfirmModal';
 import { useAllMarkets, useUserPositioninMarket, useMarketCollateralDenoms } from '@/hooks/useManaged';
 import { useQuery, useQueries } from '@tanstack/react-query';

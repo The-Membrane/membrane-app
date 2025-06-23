@@ -5,7 +5,7 @@ import { toUtf8 } from '@cosmjs/encoding';
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx';
 import { queryClient } from '@/pages/_app';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
-import useManagedAction from '@/components/ManagedMarkets/hooks/useManagedMarket';
+import useManagedAction from '@/components/ManagedMarkets/hooks/useManagedMarketState';
 
 interface CloseAndEditBoostsTxParams {
   marketContract: string;

@@ -6,13 +6,13 @@ import { useManagedConfig, useManagedMarket, useMarketDebtPrice, useMarketCollat
 import { useOraclePrice } from '@/hooks/useOracle';
 import { num, shiftDigits } from '@/helpers/num';
 import { colors } from '@/config/defaults';
-import useManagedAction from './hooks/useManagedMarket';
+import useManagedAction from './hooks/useManagedMarketState';
 import { useRouter } from 'next/router';
 import useBorrowAndBoost from './hooks/useBorrowAndBoost';
 import ConfirmModal from '@/components/ConfirmModal/ConfirmModal';
 import ManagedMarketSummary from '@/components/ManagedMarkets/ManagedMarketSummary';
 import { Formatter } from '@/helpers/formatter';
-
+import LendMarketAction from './LendMarketAction';
 
 // Props: action, marketAddress, collateralSymbol
 const ManagedMarketAction = ({
@@ -24,7 +24,7 @@ const ManagedMarketAction = ({
     const collateralAsset = useAssetBySymbol(collateralSymbol, 'osmosis');
     //Get market details
     const { data: market } = useManagedMarket(marketAddress, collateralAsset?.base || "");
-    const { data: config } = useManagedConfig(marketAddress);
+    // const { data: config } = useManagedConfig(marketAddress);
     //Get collateral price
     const { data: collateralPriceData } = useMarketCollateralPrice(marketAddress, collateralAsset?.base || "");
     const { data: debtPriceData } = useMarketDebtPrice(marketAddress);
@@ -498,25 +498,11 @@ const ManagedMarketAction = ({
                                 </VStack>
                         </Card>
                     </TabPanel>
+                    {/* Lend Tab */}
                     <TabPanel px={0} py={0}>
-                        <Card
-                            borderRadius="2xl"
-                            border="4px solid #232A3E"
-                            bg="#20232C"
-                            p={{ base: 4, md: 8 }}
-                            h="fit-content"
-                            w="vwvw"
-                            maxW="600px"
-                            m="0 auto"
-                            overflowY="auto"
-                            display="flex"
-                            flexDirection="column"
-                            alignItems="center"
-                        >
-                            <Text fontSize="2xl" color="white">Lend {collateralAsset?.symbol ? collateralAsset.symbol : ''}</Text>
-                            <Text fontSize="lg" color="whiteAlpha.600" mt={4}>Not available yet.</Text>
-                        </Card>
+                        <LendMarketAction marketAddress={marketAddress} />
                     </TabPanel>
+                    {/* Strategize Tab */}
                     <TabPanel px={0} py={0}>
                         <Card
                             borderRadius="2xl"

@@ -238,7 +238,7 @@
 import { colors } from '@/config/defaults';
 import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, HStack, Input, Stack, Text } from '@chakra-ui/react';
 import { useEffect, useMemo } from 'react';
-import useManagerState, { UpdateOverallMarket } from './hooks/useManagerState';
+import useManagerState, { LTVRamp, UpdateOverallMarket } from './hooks/useManagerState';
 import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
 import { useState } from 'react';
@@ -472,7 +472,7 @@ export function WhitelistedCollateralSupplierInput({
 export type UpdateCollateralParams = {
   collateral_denom: string;
   max_borrow_LTV?: string;
-  liquidation_LTV?: any;
+  liquidation_LTV?: LTVRamp;
   rate_params?: any;
   borrow_fee?: string;
   whitelisted_collateral_suppliers?: string[] | null;
@@ -617,7 +617,7 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
             <Input
               value={data.liquidation_LTV?.end_ltv !== undefined && data.liquidation_LTV?.end_ltv !== '' ? String(Number(data.liquidation_LTV.end_ltv) * 100) : ''}
               placeholder="Enter liquidation LTV (as %)"
-              onChange={(e) => handleChange('liquidation_LTV', { ...data.liquidation_LTV, end_ltv: e.target.value === '' ? '' : String(Number(e.target.value) / 100) })}
+              onChange={(e) => handleChange('liquidation_LTV', { end_time: 3, end_ltv: e.target.value === '' ? '' : String(Number(e.target.value) / 100) })}
             />
           </FormControl>
 

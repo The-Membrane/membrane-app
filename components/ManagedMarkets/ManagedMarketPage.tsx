@@ -206,15 +206,13 @@ const ManagedMarketPage: React.FC = () => {
                  <Button 
                     onClick={() => {
                         const asPath = router.asPath;
+                        // Remove query string if present
+                        const pathWithoutQuery = asPath.includes('?') ? asPath.slice(0, asPath.indexOf('?')) : asPath;
                         let newPath;
-                        if (asPath.endsWith('/manage')) {
-                            newPath = asPath;
-                        } else if (asPath.match(/\/[^/]+\/[^/]+$/)) {
-                            // Replace last two segments with 'manage'
-                            newPath = asPath.replace(/\/[^/]+\/[^/]+$/, '/manage');
+                        if (pathWithoutQuery.endsWith('/manage')) {
+                            newPath = pathWithoutQuery;
                         } else {
-                            // Append '/manage'
-                            newPath = asPath + '/manage';
+                            newPath = pathWithoutQuery + '/manage';
                         }
                         router.push(newPath);
                     }}

@@ -44,7 +44,7 @@ export const useOracleAssetInfos = (assetInfos: AssetInfo[]) => {
   return useQuery({
     queryKey: ['oracleAssetInfos', assetInfos, router.pathname, appState.rpcUrl],
     queryFn: async () => {
-      if (!router.pathname.endsWith("/control-room")) return
+      if (!router.pathname.endsWith("/control-room") && !router.pathname.endsWith("/isolated")) return []
       return getOracleAssetInfos(assetInfos, appState.rpcUrl)
     },
     refetchInterval: false,

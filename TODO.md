@@ -1,7 +1,14 @@
 Next Steps:
-- Create Lend Tab & state save for lending
+- Create Market Action
 
+Make the Control Room...
+- Mobile Friendly
+- & Contain all searcher fulfillments that can make money (Place the "Make Money" buttons on the same card)
 - Manage market intent & liquidation fulfillment
+-- Add these to the Control Room and the individual management pages
+-- Control Room button will be for all markets so a lot more logic to run
+---------------------------------
+
 - liq bot, arb bot, redemption bot, intent bot
 
 Permissionless Iso-Market Growth Aid

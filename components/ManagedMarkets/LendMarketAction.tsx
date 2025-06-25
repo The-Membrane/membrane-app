@@ -5,10 +5,8 @@ import ConfirmModal from '../ConfirmModal';
 import useLend from './hooks/useLend';
 import { useBalanceByAsset } from '@/hooks/useBalance';
 import { Formatter } from '@/helpers/formatter';
-import { denoms } from '@/config/defaults';
 import { Asset } from '@/helpers/chain';
-
-const CDT_ASSET = { base: denoms.CDT[0] as string, symbol: 'CDT', logo: '/images/cdt.svg', decimal: 6 };
+import { CDT_ASSET } from '@/config/defaults';
 
 const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
     const { lendState, setLendState } = useLendState();

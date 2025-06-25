@@ -8,7 +8,7 @@ import { osmosis } from 'osmojs';
 import { exported_supportedAssets } from "@/helpers/chain";
 import { PositionsMsgComposer } from "@/contracts/codegen/positions/Positions.message-composer";
 
-import { asset_list, assets } from '@chain-registry/osmosis';
+// import  { asset_list, assets } from '@chain-registry/osmosis';
 import BigNumber from "bignumber.js";
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";

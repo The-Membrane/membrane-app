@@ -101,13 +101,13 @@ const ManagedMarketPage: React.FC = () => {
     const suppliedDebt = !configLoading && config?.total_debt_tokens ? formatNumber(shiftDigits(config.total_debt_tokens, -6).toString()) : '—';
     let maxMultiplier = '—';
     // Debug log for params and ltv
-    console.log('params', params);
+    // console.log('params', params);
     try {
-        console.log('params params', params);
-        console.log('collateral params', params?.[0]?.collateral_params);
-        console.log('max_borrow_LTV', params?.[0]?.collateral_params?.max_borrow_LTV);
+        // console.log('params params', params);
+        // console.log('collateral params', params?.[0]?.collateral_params);
+        // console.log('max_borrow_LTV', params?.[0]?.collateral_params?.max_borrow_LTV);
         const ltv = params?.[0]?.collateral_params?.max_borrow_LTV;
-        console.log('max_borrow_LTV', ltv);
+        // console.log('max_borrow_LTV', ltv);
         if (ltv && !isNaN(Number(ltv)) && Number(ltv) > 0 && Number(ltv) < 1) {
             maxMultiplier = `${(1 / (1 - Number(ltv))).toFixed(2)}x`;
         }
@@ -159,6 +159,7 @@ const ManagedMarketPage: React.FC = () => {
         kinkMultiplier: params[0].rate_params.rate_kink?.rate_mulitplier ?? '',
         kinkPoint: params[0].rate_params.rate_kink?.kink_starting_point_ratio ?? '—',
         currentRatio,
+        showTitle: true,
     } : undefined;
 
     const infoProps = {

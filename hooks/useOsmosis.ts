@@ -7,7 +7,7 @@ export interface PoolLiquidityData {
     poolId: string;
     liquidity: TotalPoolLiquidityResponse;
 }
-
+ 
 export const usePoolLiquidity = (poolIds: string[]) => {
     const { appState } = useAppState()
     const { data: client } = useOsmosisClient()
@@ -25,6 +25,7 @@ export const usePoolLiquidity = (poolIds: string[]) => {
 
 export const usePoolInfo = (poolId: string) => {
     const { data: client } = useOsmosisClient()
+    
     return useQuery({
         queryKey: ['poolInfo', poolId, client],
         queryFn: async () => getPoolInfo(poolId, client),

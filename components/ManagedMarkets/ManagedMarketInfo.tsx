@@ -17,12 +17,13 @@ interface Oracle {
     poolId?: string | number;
 }
 
-interface InterestRateModelProps {
+export interface InterestRateModelProps {
     baseRate: number | string;
     rateMax: number | string;
     kinkMultiplier?: number | string;
     kinkPoint?: number | string;
     currentRatio?: number; // 0-1, e.g. 0.5 for 50%
+    showTitle?: boolean;
 }
 
 interface ManagedMarketInfoProps {
@@ -78,7 +79,7 @@ export const calculateCurrentInterestRate = ({
     return calculateRateAtRatio(current, base, max, kink, multiplier);
 };
 
-const getInterestRateModelPoints = (props: InterestRateModelProps) => {
+export const getInterestRateModelPoints = (props: InterestRateModelProps) => {
     const base = typeof props.baseRate === 'string' ? parseFloat(props.baseRate) : props.baseRate ?? 0;
     const max = typeof props.rateMax === 'string' ? parseFloat(props.rateMax) : props.rateMax ?? 0;
     const parsedKink = parseFloat(props.kinkPoint as string);
@@ -97,7 +98,7 @@ const getInterestRateModelPoints = (props: InterestRateModelProps) => {
 }
 
 // Placeholder for Interest Rate Model chart/component
-const InterestRateModel: React.FC<InterestRateModelProps> = (props) => {
+export const InterestRateModel: React.FC<InterestRateModelProps> = (props) => {
     const { baseRate, rateMax, kinkMultiplier, kinkPoint, currentRatio } = props;
     const { points, max, hasKink } = getInterestRateModelPoints(props);
     const currentRate = calculateCurrentInterestRate(props);
@@ -105,9 +106,10 @@ const InterestRateModel: React.FC<InterestRateModelProps> = (props) => {
 
     return (
         <Box bg="#181C23" borderRadius="lg" p={4} mt={2}>
-            <VStack mb={2} spacing={1} align="stretch">
-                <HStack spacing={1} align="center">
-                    <Text color="whiteAlpha.800" fontWeight="bold">Interest Rate Model</Text>
+            {props.showTitle && (
+                <VStack mb={2} spacing={1} align="stretch">
+                    <HStack spacing={1} align="center">
+                        <Text color="whiteAlpha.800" fontWeight="bold">Interest Rate Model</Text>
                     <Tooltip label="Shows the interest rate curve and parameters for borrowing.">
                         <span><InfoOutlineIcon color="whiteAlpha.600" boxSize={4} /></span>
                     </Tooltip>
@@ -115,7 +117,8 @@ const InterestRateModel: React.FC<InterestRateModelProps> = (props) => {
                 <Button size="xs" variant="ghost" onClick={onToggle} alignSelf="flex-start" w="30%">
                     {isOpen ? 'Hide Params' : 'See Params'}
                 </Button>
-            </VStack>
+                </VStack>
+            )}
             <Collapse in={isOpen} animateOpacity>
                 <VStack align="start" spacing={1} py={2}>
                     <Text color="whiteAlpha.700">Base Rate: <b>{baseRate !== undefined ? `${(Number(baseRate) * 100).toFixed(2)}%` : '—'}</b></Text>
@@ -149,7 +152,7 @@ const InterestRateModel: React.FC<InterestRateModelProps> = (props) => {
 };
 
 // Oracle row with arrows
-const OracleRow: React.FC<{ oracles?: Oracle[] }> = ({ oracles }) => (
+export const OracleRow: React.FC<{ oracles?: Oracle[] }> = ({ oracles }) => (
     <HStack spacing={2} mt={2} mb={2}>
         {(oracles && oracles.length > 0) ? (
             oracles.map((oracle, idx) => (

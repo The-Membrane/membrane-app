@@ -73,6 +73,13 @@
     "decimal": 6,
     "isLP": false,
     "logo":  "https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/namada/images/namada.svg"
+  },
+  {
+    "description": "The native staking and governance token of AtomOne",
+    "base": "ibc/BC26A7A805ECD6822719472BCB7842A48EF09DF206182F8F259B2593EB5D23FB",
+    "symbol": "ATONE",
+    "decimal": 6,
+    "isLP": false,
+    "logo":  "https://raw.githubusercontent.com/cosmos/chain-registry/master/atomone/images/atomone.png"
   }
-
 ]

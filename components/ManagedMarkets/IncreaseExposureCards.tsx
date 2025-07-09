@@ -191,10 +191,10 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
             <input type="radio" checked={selectedMultiplier === 'conservative'} onChange={() => mode === 'multiply' && setSelectedMultiplier('conservative')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
             <Text opacity={mode === 'de-risk' ? 0.3 : 1} color="white" fontSize={large ? "lg" : "md"}>{conservativeMultiplier.toFixed(1)}x</Text>
           </HStack>
-          <HStack as="label" spacing={2}>
+          {moderateMultiplier.toFixed(2) !== conservativeMultiplier.toFixed(2) && <HStack as="label" spacing={2}>
             <input type="radio" checked={selectedMultiplier === 'moderate'} onChange={() => mode === 'multiply' && setSelectedMultiplier('moderate')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
-            <Text opacity={mode === 'de-risk' ? 0.3 : 1} color="white" fontSize={large ? "lg" : "md"}>{moderateMultiplier.toFixed(1)}x</Text>
-          </HStack>
+            <Text opacity={mode === 'de-risk' ? 0.3 : 1} color="white" fontSize={large ? "lg" : "md"}>{moderateMultiplier.toFixed(1) === conservativeMultiplier.toFixed(1) ? moderateMultiplier.toFixed(2) : moderateMultiplier.toFixed(1)}x</Text>
+          </HStack>}
           <HStack as="label" spacing={2}>
             <input type="radio" checked={selectedMultiplier === 'max'} onChange={() => mode === 'multiply' && setSelectedMultiplier('max')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
             <Text opacity={mode === 'de-risk' ? 0.3 : 1} color="white" fontSize={large ? "lg" : "md"}>Max ({maxMultiplier.toFixed(1)}x)</Text>

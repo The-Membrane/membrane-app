@@ -152,11 +152,16 @@ const useBorrowAndBoost = ({
               edit_u_x_boosts: {
                 collateral_denom: asset.base,
                 loop_ltv: loopLTV ? loopLTV.toString() : undefined,
+                // loop_ltv: loopLTV ? { 
+                //   loop_ltv: loopLTV.toString(), 
+                //   perpetual: false 
+                // } : undefined,
                 take_profit_params: takeProfitLTV
                   ? {
                       ltv: takeProfitLTV,
                       percent_to_close: '1',
                       send_to: undefined,
+                      // perpetual: false,
                     }
                   : null,
                 stop_loss_params: stopLossLTV
@@ -164,6 +169,7 @@ const useBorrowAndBoost = ({
                       ltv: stopLossLTV,
                       percent_to_close: '1',
                       send_to: undefined,
+                      // perpetual: false,
                     }
                   : null,
                 collateral_value_fee_to_executor: feeToExecutor.toFixed(2),
@@ -220,7 +226,7 @@ const useBorrowAndBoost = ({
   return {
     action: useSimulateAndBroadcast({
       msgs,
-      queryKey: ['borrowAndBoost_msgs', (msgs?.toString() ?? "0")],
+      queryKey: ['borrowAndBoost_msg_sim', (msgs?.toString() ?? "0")],
       onSuccess: onInitialSuccess,
       enabled: !!msgs?.length,
     }),

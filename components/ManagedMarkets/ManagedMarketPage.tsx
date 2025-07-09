@@ -1,18 +1,21 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { HStack, Box, Spinner, Flex, Text, Image, VStack, Button } from '@chakra-ui/react';
+import { HStack, Box, Spinner, Flex, Text, Image, VStack, Button, Switch, FormControl, FormLabel } from '@chakra-ui/react';
 import ManagedMarketInfo from './ManagedMarketInfo';
 import ManagedMarketAction from './ManagedMarketAction';
 import { useAssetBySymbol } from '@/hooks/useAssets';
 import { useManagedConfig, useManagedMarket, useAllMarkets, useMarketCollateralPrice, useMarketCollateralCost, useTotalBorrowed } from '@/hooks/useManaged';
 import { Formatter } from '@/helpers/formatter';
-import { getAssetByDenom } from '@/helpers/chain';
+import { Asset, getAssetByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
 import { useBalanceByAsset } from '@/hooks/useBalance';
 import ManagePage from './ManagePage';
 import { getMarketName } from '@/services/managed';
 import useWallet from '@/hooks/useWallet';
 import { num } from '@/helpers/num';
+import IncreaseExposureCards from './IncreaseExposureCards';
+// @ts-ignore
+import { FastAverageColor } from 'fast-average-color';
 
 
 
@@ -67,6 +70,10 @@ const ManagedMarketPage: React.FC = () => {
     const { data: costData, isLoading: costLoading } = useMarketCollateralCost(marketAddress as string, asset?.base ?? '');
     // Fetch contract's balance of the collateral denom
     const contractCollateralBalance = useBalanceByAsset(asset, chainName, marketAddress as string);
+    // Fetch user's balance of the asset
+    const userBalance = useBalanceByAsset(asset, chainName, address);
+    // Fetch price of the asset
+    const assetPrice = priceData?.price || '0';
 
 
     // Format numbers using Formatter.tvlShort
@@ -87,7 +94,7 @@ const ManagedMarketPage: React.FC = () => {
     const tvl = useMemo(() => {
         if (
             priceLoading ||
-            !priceData?.price ||
+            !assetPrice ||
             !contractCollateralBalance ||
             contractCollateralBalance === '0' ||
             contractCollateralBalance === '—' ||
@@ -95,21 +102,25 @@ const ManagedMarketPage: React.FC = () => {
         ) {
             return '—';
         }
-        const tvlValue = Number(contractCollateralBalance) * Number(priceData.price);
+        const tvlValue = Number(contractCollateralBalance) * Number(assetPrice);
         return formatNumber(tvlValue);
-    }, [priceLoading, priceData, contractCollateralBalance, totalBorrowedLoading]);
+    }, [priceLoading, assetPrice, contractCollateralBalance, totalBorrowedLoading]);
+    
     const suppliedDebt = !configLoading && config?.total_debt_tokens ? formatNumber(shiftDigits(config.total_debt_tokens, -6).toString()) : '—';
     let maxMultiplier = '—';
+    let maxLTV = '—';
+    let maxBorrowLTV;
     // Debug log for params and ltv
     // console.log('params', params);
     try {
         // console.log('params params', params);
         // console.log('collateral params', params?.[0]?.collateral_params);
         // console.log('max_borrow_LTV', params?.[0]?.collateral_params?.max_borrow_LTV);
-        const ltv = params?.[0]?.collateral_params?.max_borrow_LTV;
+        maxBorrowLTV = params?.[0]?.collateral_params?.max_borrow_LTV;
+        maxLTV = params?.[0]?.collateral_params?.liquidation_LTV ?? '—';
         // console.log('max_borrow_LTV', ltv);
-        if (ltv && !isNaN(Number(ltv)) && Number(ltv) > 0 && Number(ltv) < 1) {
-            maxMultiplier = `${(1 / (1 - Number(ltv))).toFixed(2)}x`;
+        if (maxBorrowLTV && !isNaN(Number(maxBorrowLTV)) && Number(maxBorrowLTV) > 0 && Number(maxBorrowLTV) < 1) {
+            maxMultiplier = `${(1 / (1 - Number(maxBorrowLTV))).toFixed(2)}x`;
         }
     } catch {}
     const price = !priceLoading && priceData?.price ? formatPrice(priceData.price) : '—';
@@ -182,47 +193,97 @@ const ManagedMarketPage: React.FC = () => {
         marketName,
     };
 
+    const [advancedMode, setAdvancedMode] = useState(false);
+    const [glowColor, setGlowColor] = useState<string | undefined>(undefined);
+    useEffect(() => {
+        if (!logo) return;
+        const fac = new FastAverageColor();
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous';
+        img.src = logo;
+        img.onload = () => {
+            const color = fac.getColor(img);
+            setGlowColor(color.hex);
+        };
+        img.onerror = () => setGlowColor(undefined);
+        // Cleanup
+        return () => fac.destroy();
+    }, [logo]);
+
     // Only after all hooks, do conditional rendering:
     if (action === 'manage') {
         return <ManagePage marketAddress={marketAddress as string} />;
     }
 
     return (
-        <HStack align="flex-start" justify="center" spacing={8} w="100%" px={8} py={8}>
-            <VStack align="start" w="100%" maxW="420px" minW="320px" spacing={4}>
-                {/* Right-aligned header */}
-                <Flex w="100%" justify="flex-end" align="center" direction="column" mb={2}>
-                    {marketName && (
-                        <Text color="whiteAlpha.700" fontWeight="bold" fontSize="md" mb={1} textAlign="right">{marketName}</Text>
+        <Box position="relative" w="100%" h="100%">
+            {/* Advanced mode toggle in the absolute top left corner */}
+            <Box position="absolute" top={4} left={4} zIndex={10}>
+                <FormControl display="flex" alignItems="center">
+                    <FormLabel htmlFor="advanced-mode-toggle" mb="0" fontWeight="bold" color="white">
+                        Advanced mode
+                    </FormLabel>
+                    <Switch
+                        id="advanced-mode-toggle"
+                        colorScheme="blue"
+                        isChecked={advancedMode}
+                        onChange={() => setAdvancedMode((v) => !v)}
+                    />
+                </FormControl>
+            </Box>
+            <HStack align="flex-start" justify="center" spacing={4} w="100%" px={8} py={8}>
+                <VStack align="start" w="100%" maxW={advancedMode ? "480px" : "630px"} spacing={6}>
+                    {advancedMode ? (
+                        <>
+                            <Flex w="100%" justify="flex-end" align="center" direction="column" mb={2}>
+                                {marketName && (
+                                    <Text color="whiteAlpha.700" fontWeight="bold" fontSize="md" mb={1} textAlign="right">{marketName}</Text>
+                                )}
+                                <HStack spacing={3} justify="flex-end">
+                                    {logo && <Image src={logo} alt={symbol} boxSize="60px" />}
+                                    <Text color="white" fontWeight="bold" fontSize="3xl">{symbol}</Text>
+                                </HStack>
+                            </Flex>
+                            <ManagedMarketInfo {...infoProps} />
+                        </>
+                    ) : (
+                        <IncreaseExposureCards 
+                            logo={logo} 
+                            symbol={symbol} 
+                            large 
+                            glowColor={glowColor} 
+                            balance={userBalance} 
+                            price={assetPrice} 
+                            maxLTV={maxLTV} 
+                            maxBorrowLTV={maxBorrowLTV ? Number(maxBorrowLTV) : undefined}
+                            marketContract={marketAddress as string} 
+                            asset={asset as Asset} 
+                        />
                     )}
-                    <HStack spacing={3} justify="flex-end">
-                        {logo && <Image src={logo} alt={symbol} boxSize="40px" />}
-                        <Text color="white" fontWeight="bold" fontSize="2xl">{symbol}</Text>
-                    </HStack>
-                </Flex>
-                <ManagedMarketInfo {...infoProps} />
-                {/* If user is the owner, show a button that sends the user to the ManagePage */}
-                {config?.owner === address && 
-                 <Button 
-                    onClick={() => {
-                        const asPath = router.asPath;
-                        // Remove query string if present
-                        const pathWithoutQuery = asPath.includes('?') ? asPath.slice(0, asPath.indexOf('?')) : asPath;
-                        let newPath;
-                        if (pathWithoutQuery.endsWith('/manage')) {
-                            newPath = pathWithoutQuery;
-                        } else {
-                            newPath = pathWithoutQuery + '/manage';
-                        }
-                        router.push(newPath);
-                    }}
-                >
-                    Manage
-                </Button>
-                }
-            </VStack>
-            <ManagedMarketAction marketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />
-        </HStack>
+                    {advancedMode && config?.owner === address &&
+                        <Button
+                            onClick={() => {
+                                const asPath = router.asPath;
+                                // Remove query string if present
+                                const pathWithoutQuery = asPath.includes('?') ? asPath.slice(0, asPath.indexOf('?')) : asPath;
+                                let newPath;
+                                if (pathWithoutQuery.endsWith('/manage')) {
+                                    newPath = pathWithoutQuery;
+                                } else {
+                                    newPath = pathWithoutQuery + '/manage';
+                                }
+                                router.push(newPath);
+                            }}
+                        >
+                            Manage
+                        </Button>
+                    }
+                </VStack>
+                {advancedMode && (
+                    <ManagedMarketAction marketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />
+                )}
+            </HStack>
+        </Box>
     );
 };
 

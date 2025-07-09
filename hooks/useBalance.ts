@@ -43,29 +43,22 @@ export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: str
 }
 
 export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
-  // console.log("useBalanceByAsset1", asset, chainID, inputedAddress)
+  // Always call useWallet to keep hook order consistent
   const { data: balances } = useBalance(chainID, inputedAddress)
-  // console.log("useBalanceByAsset3", asset, chainID, inputedAddress, balances)
+  const { address } = useWallet(chainID)
 
-  let addressToUse = inputedAddress
-  if (!inputedAddress) {
-    const { address } = useWallet(chainID)
-    // console.log("useBalanceByAsset4", address)
-    addressToUse = address
-  }
+  // Decide which address to use (prop wins if provided)
+  const addressToUse = inputedAddress || address
 
   return useMemo(() => {
-
-    // console.log(" useBalanceByAsset", balances, asset, addressToUse)
     if (!balances || !asset || !addressToUse) return '0'
 
     const balance = balances.find((b: any) => b.denom === asset.base)?.amount
-    const denom = asset.base
     const decimals = asset.decimal || 6
 
-    if (!balance || !decimals || !denom) return '0'
+    if (!balance) return '0'
     return shiftDigits(balance, -decimals).toString()
-  }, [balances, asset, addressToUse])
+  }, [balances, asset?.base, asset?.decimal, addressToUse])
 }
 
 export default useBalance

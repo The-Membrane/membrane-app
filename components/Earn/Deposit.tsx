@@ -408,7 +408,7 @@ const Deposit = () => {
 
 
       {/* Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered closeOnOverlayClick={false}>
+      {/* <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered closeOnOverlayClick={false}>
         <ModalOverlay />
 
         <ModalContent
@@ -434,7 +434,7 @@ const Deposit = () => {
             </Stack>
           </ModalBody>
         </ModalContent>
-      </Modal>
+      </Modal> */}
     </>
   )
 }

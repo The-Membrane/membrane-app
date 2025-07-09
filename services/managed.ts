@@ -55,6 +55,12 @@ export const getManagedMarketContracts = async (cosmWasmClient: any, manager: st
     //returns addresses of all managed markets
 }
 
+export const getManagedMarketUnderlyingCDT = async (cosmWasmClient: any, marketContract: string, vault_token_amount: string, is_junior: boolean) => {
+    return cosmWasmClient.queryContractSmart(marketContract, {
+        get_underlying_debt_amount: { vault_token_amount, is_junior }
+    }) as Promise<string>
+}
+
 export const getManagedConfig = async (cosmWasmClient: any, marketContract: string) => {
     return cosmWasmClient.queryContractSmart(marketContract, {
         config: {}

@@ -8,4 +8,4 @@ export default function SymbolManagePage() {
   if (!router.isReady || !marketAddress) return null;
 
   return <ManagePage marketAddress={marketAddress as string} />;
-} 
+}  

@@ -11,7 +11,7 @@ import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
 import { useChainRoute } from './useChainRoute'
 import React from 'react'
-import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagers, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getTotalBorrowed, getUserPositioninMarket, getUserUXBoostsinMarket } from '@/services/managed'
+import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagedMarketUnderlyingCDT, getManagers, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getTotalBorrowed, getUserPositioninMarket, getUserUXBoostsinMarket } from '@/services/managed'
 
 export const useManagers = () => {
     const { data: client } = useCosmWasmClient()
@@ -40,6 +40,19 @@ export const useManagedMarketContracts = (manager: string) => {
         // enabled: true,
         // You might want to add staleTime to prevent unnecessary refetches
         staleTime: 1000 * 60 * 5, // 5 minutes
+    })
+}
+
+export const useManagedMarketUnderlyingCDT = (marketContract: string, vault_token_amount: string, is_junior: boolean) => {
+    const { data: client } = useCosmWasmClient()
+
+    return useQuery({
+        queryKey: ['managed_market_underlying_cdt', client, marketContract, vault_token_amount],
+        queryFn: async () => {
+            if (!client) return
+            return getManagedMarketUnderlyingCDT(client, marketContract, vault_token_amount, is_junior)
+        },
+        staleTime: 1000 * 60 * 5,
     })
 }
 
@@ -74,7 +87,7 @@ export const useManagedMarket = (marketContract: string, collateral_denom: strin
 
 export const useTotalBorrowed = (marketContract: string) => {
     const { data: client } = useCosmWasmClient()
-    
+
     return useQuery({
         queryKey: ['managed_market_total_borrowed', client, marketContract],
         queryFn: async () => getTotalBorrowed(client, marketContract),

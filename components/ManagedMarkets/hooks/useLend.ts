@@ -44,12 +44,16 @@ const useLend = ({
       if (
         !run ||
         !address ||
-        !lendState.supplyAmount
+        !lendState.supplyAmount ||
+        !lendState.withdrawAmount
       ) {
         return { msgs: [] };
       }
 
+      const msgs: MsgExecuteContractEncodeObject[] = [];
+
       // Prepare Lend CDT message
+      if (lendState.supplyAmount) {
       const lendMsg: MsgExecuteContractEncodeObject = {
         typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
         value: MsgExecuteContract.fromPartial({
@@ -57,7 +61,9 @@ const useLend = ({
           contract: marketAddress,
           msg: toUtf8(
             JSON.stringify({
-              supply_debt: {},
+              supply_debt: {
+                is_junior: false,
+              },
             })
           ),
           funds: [
@@ -68,9 +74,33 @@ const useLend = ({
           ],
         }),
       };
+      msgs.push(lendMsg);
+    }
+
+      if (lendState.withdrawAmount) {
+        const withdrawMsg: MsgExecuteContractEncodeObject = {
+          typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
+          value: MsgExecuteContract.fromPartial({
+            sender: address,
+            contract: marketAddress,
+            msg: toUtf8(
+              JSON.stringify({
+                withdraw_debt: {},
+              })
+            ),  
+            funds: [
+              {
+                denom: "factory/" + marketAddress + "/debt-suppliers",
+                amount: shiftDigits(lendState.withdrawAmount, 6).toString(),
+              },
+            ],
+          }),
+        };
+        msgs.push(withdrawMsg);
+      }
 
 
-      return { msgs: [lendMsg] };
+      return { msgs: msgs };
     },
     enabled: !!address && !!marketAddress && !!lendState.supplyAmount && run,
   });
@@ -92,7 +122,7 @@ const useLend = ({
   return {
     action: useSimulateAndBroadcast({
       msgs,
-      queryKey: ['lend_msgs', (msgs?.toString() ?? "0")],
+      queryKey: ['lend_msg_sim', (msgs?.toString() ?? "0")],
       onSuccess: onInitialSuccess,
       enabled: !!msgs?.length,
     }),

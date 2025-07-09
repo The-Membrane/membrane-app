@@ -12,7 +12,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@chain-registry/osmosis": "^1.67.149", 
+    "@chain-registry/osmosis": "^1.67.149",
     "@chain-registry/utils": "^1.51.1",
     "@chakra-ui/anatomy": "^2.3.4",
     "@chakra-ui/icons": "^2.2.4",
@@ -63,6 +63,7 @@
     "rechart": "^0.0.1",
     "recharts": "^2.13.0",
     "simplebar-react": "^3.2.6",
+    "tinycolor2": "^1.6.0",
     "use-file-picker": "^2.1.2",
     "zustand": "^4.5.5"
   },

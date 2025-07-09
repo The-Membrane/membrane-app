@@ -3,6 +3,8 @@ import { devtools } from 'zustand/middleware';
 
 export type LendState = {
     supplyAmount: string;
+    withdrawAmount: string;
+    isJunior: boolean;
 };
 
 type Store = {
@@ -13,6 +15,8 @@ type Store = {
 
 const initialState: LendState = {
     supplyAmount: '',
+    withdrawAmount: '',
+    isJunior: false,
 };
 
 const useLendState = create<Store>()(

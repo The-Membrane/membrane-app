@@ -13,11 +13,11 @@ import useAppState from '@/persisted-state/useAppState';
 const navItems = [
     { label: 'Home', href: '/' },
     { label: 'Portfolio', href: '/portfolio' },
+    // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
     { label: 'Isolated Markets', href: '/isolated' },
     { label: 'Mint', href: '/mint' },
     { label: 'Liquidate', href: '/liquidate' },
     { label: 'Stake', href: '/stake' },
-    // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
     { label: 'Control Room', href: '/control-room' },
 ];
 

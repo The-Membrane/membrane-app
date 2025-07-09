@@ -49,6 +49,7 @@
     "cosmos-kit": "^2.21.1",
     "cosmwasm": "^1.1.1",
     "dayjs": "^1.11.13",
+    "fast-average-color": "^9.5.0",
     "framer-motion": "^11.11.9",
     "ipfs-http-client": "^60.0.1",
     "lodash": "^4.17.21",

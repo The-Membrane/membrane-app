@@ -11,7 +11,7 @@ import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
 import { useChainRoute } from './useChainRoute'
 import React from 'react'
-import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagedMarketUnderlyingCDT, getManagers, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getTotalBorrowed, getUserPositioninMarket, getUserUXBoostsinMarket } from '@/services/managed'
+import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagedMarketUnderlyingCDT, getManagers, getMarketClaimTracker, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getTotalBorrowed, getUserPositioninMarket, getUserUXBoostsinMarket } from '@/services/managed'
 
 export const useManagers = () => {
     const { data: client } = useCosmWasmClient()
@@ -179,6 +179,15 @@ export const useMarketCollateralCost = (marketContract: string, collateral_denom
     return useQuery({
         queryKey: ['managed_market_collateral_cost', client, marketContract, collateral_denom],
         queryFn: async () => getMarketCollateralCost(client, marketContract, collateral_denom),
+    })
+}
+
+//Use market claim tracker
+export const useMarketClaimTracker = (marketContract: string, is_junior: boolean) => {
+    const { data: client } = useCosmWasmClient();
+    return useQuery({
+        queryKey: ['managed_market_claim_tracker', client, marketContract, is_junior],
+        queryFn: async () => getMarketClaimTracker(client, marketContract, is_junior),
     })
 }
 

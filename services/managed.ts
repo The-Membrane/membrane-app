@@ -55,6 +55,7 @@ export const getManagedMarketContracts = async (cosmWasmClient: any, manager: st
     //returns addresses of all managed markets
 }
 
+//readd is_junior
 export const getManagedMarketUnderlyingCDT = async (cosmWasmClient: any, marketContract: string, vault_token_amount: string, is_junior: boolean) => {
     return cosmWasmClient.queryContractSmart(marketContract, {
         get_underlying_debt_amount: { vault_token_amount, is_junior }
@@ -109,7 +110,7 @@ export const getMarketName = (marketAddress: string) => {
 // Batch hook to get market names for an array of addresses
 export const useMarketNames = (marketAddresses: string[]) => {
     const allMarkets = useAllMarkets();
-    console.log('allMarkets', allMarkets);
+    // console.log('allMarkets', allMarkets);
     return useMemo(() => {
         return marketAddresses.map(address => {
             if (allMarkets && address) {
@@ -145,6 +146,12 @@ export const getMarketCollateralCost = async (cosmWasmClient: any, marketContrac
     return cosmWasmClient.queryContractSmart(marketContract, {
         get_current_interest_rate: { collateral_denom }
     }) as Promise<string>
+}
+
+export const getMarketClaimTracker = async (cosmWasmClient: any, marketContract: string, is_junior: boolean) => {
+    return cosmWasmClient.queryContractSmart(marketContract, {
+        claim_tracker: { is_junior }
+    }) as Promise<ClaimTracker>
 }
 
 export const getUserPositioninMarket = async (cosmWasmClient: any, marketContract: string, collateral_denom: string, user: string) => {

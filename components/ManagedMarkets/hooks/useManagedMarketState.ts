@@ -8,7 +8,9 @@ export type ManagedActionState = {
     stopLoss: string;
     selectedAction: number;
     deposit: boolean;
+    borrowAmount?: string;
     closePercent?: number;
+    repayAmount?: string;
 };
 
 type Store = {
@@ -24,6 +26,8 @@ const initialState: ManagedActionState = {
     stopLoss: '',
     selectedAction: 0,
     deposit: false,
+    borrowAmount: '',
+    repayAmount: '',
 };
 
 const useManagedAction = create<Store>()(

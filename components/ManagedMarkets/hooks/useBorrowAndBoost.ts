@@ -151,17 +151,17 @@ const useBorrowAndBoost = ({
             JSON.stringify({
               edit_u_x_boosts: {
                 collateral_denom: asset.base,
-                loop_ltv: loopLTV ? loopLTV.toString() : undefined,
-                // loop_ltv: loopLTV ? { 
-                //   loop_ltv: loopLTV.toString(), 
-                //   perpetual: false 
-                // } : undefined,
+                // loop_ltv: loopLTV ? loopLTV.toString() : undefined,
+                loop_ltv: loopLTV ? { 
+                  loop_ltv: loopLTV.toString(), 
+                  perpetual: false 
+                } : undefined,
                 take_profit_params: takeProfitLTV
                   ? {
                       ltv: takeProfitLTV,
                       percent_to_close: '1',
                       send_to: undefined,
-                      // perpetual: false,
+                      perpetual: false,
                     }
                   : null,
                 stop_loss_params: stopLossLTV
@@ -169,7 +169,7 @@ const useBorrowAndBoost = ({
                       ltv: stopLossLTV,
                       percent_to_close: '1',
                       send_to: undefined,
-                      // perpetual: false,
+                      perpetual: false,
                     }
                   : null,
                 collateral_value_fee_to_executor: feeToExecutor.toFixed(2),
@@ -216,10 +216,10 @@ const useBorrowAndBoost = ({
     //setManagedActionState to 0s
     setManagedActionState({
       ...managedActionState,
-      collateralAmount: '0',
-      multiplier: 0,
-      takeProfit: '0',
-      stopLoss: '0',
+      collateralAmount: '',
+      multiplier: 1,
+      takeProfit: '',
+      stopLoss: '',
     })
   }
 

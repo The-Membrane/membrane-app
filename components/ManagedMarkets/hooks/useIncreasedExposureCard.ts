@@ -133,11 +133,11 @@ const useTransformExposure = ({
                 JSON.stringify({
                 edit_u_x_boosts: {
                     collateral_denom: asset.base,
-                    loop_ltv: loopLTV ? loopLTV.toString() : undefined,
-                    // loop_ltv: loopLTV ? { 
-                    // loop_ltv: loopLTV.toString(), 
-                    // perpetual: false 
-                    // } : undefined,
+                    // loop_ltv: loopLTV ? loopLTV.toString() : undefined,
+                    loop_ltv: loopLTV ? { 
+                    loop_ltv: loopLTV.toString(), 
+                    perpetual: false 
+                    } : undefined,
                     collateral_value_fee_to_executor: feeToExecutor.toFixed(2),
                 },
                 })
@@ -213,10 +213,10 @@ const useTransformExposure = ({
     //setManagedActionState to 0s
     setManagedActionState({
       ...managedActionState,
-      collateralAmount: '0',
-      multiplier: 0,
-      takeProfit: '0',
-      stopLoss: '0',
+      collateralAmount: '',
+      multiplier: 1,
+      takeProfit: '',
+      stopLoss: '',
     })
   }
 

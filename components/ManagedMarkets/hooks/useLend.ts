@@ -20,15 +20,20 @@ import { denoms } from '@/config/defaults';
 const useLend = ({
   marketAddress,
   lendState,
+  vaultTokenBalance,
+  withdrawMax,
   run = true,
 }: {
   marketAddress: string;
   lendState: LendState;
+  vaultTokenBalance: string;
+  withdrawMax: string;
   run?: boolean;
 }) => {
   const { address } = useWallet();
   const { setLendState } = useLendState();
 
+  console.log('lendState', lendState);
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[]
   }
@@ -43,9 +48,7 @@ const useLend = ({
     queryFn: () => {
       if (
         !run ||
-        !address ||
-        !lendState.supplyAmount ||
-        !lendState.withdrawAmount
+        !address
       ) {
         return { msgs: [] };
       }
@@ -62,7 +65,7 @@ const useLend = ({
           msg: toUtf8(
             JSON.stringify({
               supply_debt: {
-                is_junior: false,
+                is_junior: lendState.isJunior,
               },
             })
           ),
@@ -77,7 +80,13 @@ const useLend = ({
       msgs.push(lendMsg);
     }
 
+      //Withdraw
       if (lendState.withdrawAmount) {
+        //Get the % of tokens being withdraw
+        const withdrawPercent = new BigNumber(lendState.withdrawAmount).div(withdrawMax).toNumber();
+        //Calculate the % of vault tokens to withdraw
+        const vaultTokenWithdrawAmount = new BigNumber(vaultTokenBalance).multipliedBy(withdrawPercent).toFixed(0);
+        //Create withdraw msg
         const withdrawMsg: MsgExecuteContractEncodeObject = {
           typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
           value: MsgExecuteContract.fromPartial({
@@ -90,8 +99,8 @@ const useLend = ({
             ),  
             funds: [
               {
-                denom: "factory/" + marketAddress + "/debt-suppliers",
-                amount: shiftDigits(lendState.withdrawAmount, 6).toString(),
+                denom: lendState.isJunior ? "factory/" + marketAddress + "/junior-debt-suppliers" : "factory/" + marketAddress + "/debt-suppliers",
+                amount: vaultTokenWithdrawAmount,
               },
             ],
           }),
@@ -102,7 +111,7 @@ const useLend = ({
 
       return { msgs: msgs };
     },
-    enabled: !!address && !!marketAddress && !!lendState.supplyAmount && run,
+    enabled: !!address && !!marketAddress && run,
   });
 
 

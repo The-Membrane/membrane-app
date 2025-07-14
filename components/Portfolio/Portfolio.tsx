@@ -31,6 +31,15 @@ import {
   RadioGroup,
   Radio,
   Flex,
+  Tooltip,
+  Icon,
+  Portal,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverArrow,
 } from '@chakra-ui/react';
 import { getObjectCookie, setObjectCookie } from '@/helpers/cookies';
 import { getChainConfig, supportedChains } from '@/config/chains';
@@ -70,6 +79,7 @@ import { NeuroCloseModal } from '../Home/NeuroModals';
 import { denoms } from '@/config/defaults';
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types';
 import { Formatter } from '@/helpers/formatter';
+import { InfoIcon } from '@chakra-ui/icons';
 
 // Mock: Replace with real data fetching
 // const fetchPositions = () => {
@@ -112,21 +122,31 @@ const fetchYield = (userAddress: string, chainName: string) => {
   ];
 };
 
-const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDenom, maxLTV, collateralPrice, currentLTV, initialLiquidationPrice }: { assetSymbol: string, position: any, marketAddress: string, collateralDenom: string, maxLTV: number, collateralPrice: number, currentLTV: number, initialLiquidationPrice: string }) => {
+const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDenom, maxLTV, collateralPrice, currentLTV, initialLiquidationPrice, onClose }: { assetSymbol: string, position: any, marketAddress: string, collateralDenom: string, maxLTV: number, collateralPrice: number, currentLTV: number, initialLiquidationPrice: string, onClose: () => void }) => {
   const asset = useAssetBySymbol(assetSymbol);
   const { setManagedActionState, managedActionState } = useManagedAction();
   const { chainName } = useChainRoute();
   const { address: userAddress } = useWallet(chainName);
   const { data: uxBoosts } = useUserUXBoosts(marketAddress, collateralDenom, userAddress ?? '');
   const [spread, setSpread] = useState(0.01);
+  
+  // Middleman state variables for immediate input updates
+  const [inputCollateralAmount, setInputCollateralAmount] = useState(managedActionState.collateralAmount || '');
+  const [inputTakeProfit, setInputTakeProfit] = useState(managedActionState.takeProfit || '');
+  const [inputStopLoss, setInputStopLoss] = useState(managedActionState.stopLoss || '');
+  const [inputMultiplier, setInputMultiplier] = useState(managedActionState.multiplier || '');
+  const [inputClosePercent, setInputClosePercent] = useState(managedActionState.closePercent || '');
+  const [inputBorrowAmount, setInputBorrowAmount] = useState(managedActionState.borrowAmount || '');
+  const [inputRepayAmount, setInputRepayAmount] = useState(managedActionState.repayAmount || '');
+  
   // Max multiplier
-  const maxMultiplier = 1 / (1 - maxLTV);
+  const maxMultiplier = 1 / (1 - (maxLTV - currentLTV));
 
   // User balance for deposit
   const userBalance = Number(useBalanceByAsset(asset));
 
   // Calculate dynamic liquidation price
-  const inputCollateral = Number(managedActionState.collateralAmount) || 0;
+  const inputCollateral = Number(inputCollateralAmount) || 0;
   const decimals = asset?.decimal || 6;
   const baseCollateral = Number(position.collateral_amount) / Math.pow(10, decimals);
   const totalCollateral = baseCollateral + inputCollateral;
@@ -137,13 +157,109 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
     dynamicLiquidationPrice = ((debt / (totalCollateral * maxLTV)) * debtPrice).toFixed(4);
   }
 
-  // Handlers
-  const handleCollateral = (v: string) => setManagedActionState({ collateralAmount: v });
-  const handleTP = (v: string) => setManagedActionState({ takeProfit: v });
-  const handleSL = (v: string) => setManagedActionState({ stopLoss: v });
-  const handleMultiplier = (v: number) => setManagedActionState({ multiplier: v });
-  const handleClosePercent = (v: number) => setManagedActionState({ closePercent: v });
-  const handleMax = () => setManagedActionState({ collateralAmount: userBalance.toString() });
+  // Handlers with 600ms delay
+  const timeoutRefs = React.useRef<{ [key: string]: NodeJS.Timeout }>({});
+
+  const handleCollateral = React.useCallback((v: string) => {
+    // Update middleman state immediately
+    setInputCollateralAmount(v);
+    
+    // Update managedActionState after 600ms delay
+    if (timeoutRefs.current.collateral) {
+      clearTimeout(timeoutRefs.current.collateral);
+    }
+    timeoutRefs.current.collateral = setTimeout(() => {
+      setManagedActionState({ collateralAmount: v });
+    }, 600);
+  }, []);
+
+  const handleTP = React.useCallback((v: string) => {
+    // Update middleman state immediately
+    setInputTakeProfit(v);
+    
+    // Update managedActionState after 600ms delay
+    if (timeoutRefs.current.takeProfit) {
+      clearTimeout(timeoutRefs.current.takeProfit);
+    }
+    timeoutRefs.current.takeProfit = setTimeout(() => {
+      setManagedActionState({ takeProfit: v });
+    }, 600);
+  }, []);
+
+  const handleSL = React.useCallback((v: string) => {
+    // Update middleman state immediately
+    setInputStopLoss(v);
+    
+    // Update managedActionState after 600ms delay
+    if (timeoutRefs.current.stopLoss) {
+      clearTimeout(timeoutRefs.current.stopLoss);
+    }
+    timeoutRefs.current.stopLoss = setTimeout(() => {
+      setManagedActionState({ stopLoss: v });
+    }, 600);
+  }, []);
+
+  const handleMultiplier = React.useCallback((v: number) => {
+    // Update middleman state immediately
+    setInputMultiplier(Math.min(v, maxMultiplier).toFixed(2));
+    
+    // Update managedActionState after 600ms delay
+    if (timeoutRefs.current.multiplier) {
+      clearTimeout(timeoutRefs.current.multiplier);
+    }
+    timeoutRefs.current.multiplier = setTimeout(() => {
+      setManagedActionState({ multiplier: Math.min(v, maxMultiplier) });
+    }, 600);
+  }, [maxMultiplier]);
+
+  const handleClosePercent = React.useCallback((v: number) => {
+    // Update middleman state immediately
+    setInputClosePercent(v.toString());
+    
+    // Update managedActionState after 600ms delay
+    if (timeoutRefs.current.closePercent) {
+      clearTimeout(timeoutRefs.current.closePercent);
+    }
+    timeoutRefs.current.closePercent = setTimeout(() => {
+      setManagedActionState({ closePercent: v });
+    }, 600);
+  }, []);
+
+  const handleBorrow = React.useCallback((v: string) => {
+    setInputBorrowAmount(v);
+    if (timeoutRefs.current.borrow) {
+      clearTimeout(timeoutRefs.current.borrow);
+    }
+    timeoutRefs.current.borrow = setTimeout(() => {
+      setManagedActionState({ borrowAmount: v });
+    }, 600);
+  }, []);
+
+  const handleRepay = React.useCallback((v: string) => {
+    setInputRepayAmount(v);
+    if (timeoutRefs.current.repay) {
+      clearTimeout(timeoutRefs.current.repay);
+    }
+    timeoutRefs.current.repay = setTimeout(() => {
+      setManagedActionState({ repayAmount: v });
+    }, 600);
+  }, []);
+
+  const handleMax = () => {
+    setInputCollateralAmount(userBalance.toString());
+    setManagedActionState({ collateralAmount: userBalance.toString() });
+  };
+
+  // Sync middleman state with managedActionState
+  React.useEffect(() => {
+    setInputCollateralAmount(managedActionState.collateralAmount || '');
+    setInputTakeProfit(managedActionState.takeProfit || '');
+    setInputStopLoss(managedActionState.stopLoss || '');
+    setInputMultiplier(managedActionState.multiplier || '');
+    setInputClosePercent(managedActionState.closePercent || '');
+    setInputBorrowAmount(managedActionState.borrowAmount || '');
+    setInputRepayAmount(managedActionState.repayAmount || '');
+  }, [managedActionState]);
 
   // Build tx action
   const { action } = useCloseAndEditBoostsTx({
@@ -153,8 +269,15 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
     collateralPrice: collateralPrice.toString(),
     currentLTV: currentLTV.toString(),
     maxSpread: spread.toString(),
-    run: !!(managedActionState.closePercent || managedActionState.collateralAmount || managedActionState.takeProfit || managedActionState.stopLoss || managedActionState.multiplier),
+    decimals: asset?.decimal || 6,
+    run: !!(managedActionState.closePercent || managedActionState.collateralAmount || managedActionState.takeProfit || managedActionState.stopLoss || managedActionState.multiplier || managedActionState.borrowAmount || managedActionState.repayAmount),
   });
+
+  React.useEffect(() => {
+    if (action.tx?.isSuccess) {
+      onClose();
+    }
+  }, [action.tx.isSuccess, onClose]);
 
   // console.log('action', action.simulate.error, action.simulate.errorMessage);
   //If slippage is too lwo & it errors, increase it by 1%
@@ -179,7 +302,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
       }
     } catch {}
   }
-
+  
   return (
     <VStack spacing={6} align="stretch" w="100%">
       <Box w="100%" bg="#11161e" borderRadius="lg" p={4}>
@@ -193,7 +316,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
               fontSize="2xl"
               fontWeight="bold"
               color="white"
-              value={managedActionState.collateralAmount || ''}
+              value={inputCollateralAmount}
               onChange={e => handleCollateral(e.target.value)}
               type="number"
               min={0}
@@ -225,10 +348,24 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
       {/* TP/SL Inputs */}
       <HStack w="100%" spacing={4}>
         <VStack flex={1} align="start" spacing={1}>
-          <Text color="whiteAlpha.700" fontSize="sm">Take Profit (TP)</Text>
+          <HStack spacing={2}>
+            <Text color="whiteAlpha.700" fontSize="sm">Take Profit (TP)</Text>
+            <Popover>
+              <PopoverTrigger>
+                <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="pointer" />
+              </PopoverTrigger>
+              <PopoverContent bg="#232A3E" color="white">
+                <PopoverArrow />
+                <PopoverHeader fontWeight="bold">Take Profit</PopoverHeader>
+                <PopoverBody>
+                  Set a price target to automatically close your position when the collateral price reaches this level, locking in profits.
+                </PopoverBody>
+              </PopoverContent>
+            </Popover>
+          </HStack>
           <Input
             variant="filled"
-            defaultValue={position.takeProfit || ''}
+            value={inputTakeProfit}
             onChange={e => handleTP(e.target.value)}
             placeholder="TP Price"
             color="white"
@@ -237,10 +374,24 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
           />
         </VStack>
         <VStack flex={1} align="start" spacing={1}>
-          <Text color="whiteAlpha.700" fontSize="sm">Stop Loss (SL)</Text>
+          <HStack spacing={2}>
+            <Text color="whiteAlpha.700" fontSize="sm">Stop Loss (SL)</Text>
+            <Popover>
+              <PopoverTrigger>
+                <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="pointer" />
+              </PopoverTrigger>
+              <PopoverContent bg="#232A3E" color="white">
+                <PopoverArrow />
+                <PopoverHeader fontWeight="bold">Stop Loss</PopoverHeader>
+                <PopoverBody>
+                  Set a price target to automatically close your position when the collateral price falls to this level, limiting potential losses.
+                </PopoverBody>
+              </PopoverContent>
+            </Popover>
+          </HStack>
           <Input
             variant="filled"
-            defaultValue={position.stopLoss || ''}
+            value={inputStopLoss}
             onChange={e => handleSL(e.target.value)}
             placeholder="SL Price"
             color="white"
@@ -249,6 +400,66 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
           />
         </VStack>
       </HStack>
+
+      {/* Borrow CDT Input */}
+      <VStack align="start" spacing={1} w="100%">
+        <HStack spacing={2}>
+          <Text color="whiteAlpha.700" fontSize="sm">Borrow CDT</Text>
+          <Popover>
+            <PopoverTrigger>
+              <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="pointer" />
+            </PopoverTrigger>
+            <PopoverContent bg="#232A3E" color="white">
+              <PopoverArrow />
+              <PopoverHeader fontWeight="bold">Borrow CDT</PopoverHeader>
+              <PopoverBody>
+                Borrow additional CDT against your collateral. This increases your debt and liquidation risk.
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
+        </HStack>
+        <Input
+          variant="filled"
+          value={inputBorrowAmount}
+          onChange={e => handleBorrow(e.target.value)}
+          placeholder="0"
+          type="number"
+          min={0}
+          color="white"
+          bg="#232A3E"
+          _placeholder={{ color: 'whiteAlpha.400' }}
+        />
+      </VStack>
+
+      {/* Repay CDT Input */}
+      <VStack align="start" spacing={1} w="100%">
+        <HStack spacing={2}>
+          <Text color="whiteAlpha.700" fontSize="sm">Repay CDT</Text>
+          <Popover>
+            <PopoverTrigger>
+              <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="pointer" />
+            </PopoverTrigger>
+            <PopoverContent bg="#232A3E" color="white">
+              <PopoverArrow />
+              <PopoverHeader fontWeight="bold">Repay CDT</PopoverHeader>
+              <PopoverBody>
+                Repay your debt by sending CDT to reduce your position's debt and lower liquidation risk.
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
+        </HStack>
+        <Input
+          variant="filled"
+          value={inputRepayAmount}
+          onChange={e => handleRepay(e.target.value)}
+          placeholder="0"
+          type="number"
+          min={0}
+          color="white"
+          bg="#232A3E"
+          _placeholder={{ color: 'whiteAlpha.400' }}
+        />
+      </VStack>
       {/* Current Price & Liquidation Price Box */}
       <Box w="100%" bg="#181C23" borderRadius="md" p={3} mt={2} mb={2}>
         <VStack align="stretch" spacing={1}>
@@ -258,10 +469,24 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
       </Box>
       {/* Multiplier input with boundaries */}
       <VStack align="start" spacing={1} w="100%">
-        <Text color="whiteAlpha.700" fontSize="sm">Multiplier</Text>
+        <HStack spacing={2}>
+          <Text color="whiteAlpha.700" fontSize="sm">Change Multiplier (max {maxMultiplier.toFixed(2)}x)</Text>
+          <Popover>
+            <PopoverTrigger>
+              <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="pointer" />
+            </PopoverTrigger>
+            <PopoverContent bg="#232A3E" color="white">
+              <PopoverArrow />
+              <PopoverHeader fontWeight="bold">Change Multiplier</PopoverHeader>
+              <PopoverBody>
+                Adjust your position's leverage multiplier. Higher multipliers increase potential returns but also increase liquidation risk. The max multiplier is calculated using your available LTV space.
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
+        </HStack>
         <Input
           variant="filled"
-          value={managedActionState.multiplier != 1 ? managedActionState.multiplier : ''}
+          value={inputMultiplier}
           onChange={e => handleMultiplier(Number(e.target.value))}
           type="number"
           min={1}
@@ -275,12 +500,31 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
       </VStack>
       {/* Close Position Section with RadioGroup */}
       <VStack align="start" spacing={1} w="100%">
-        <Text color="whiteAlpha.700" fontSize="sm">Close Position</Text>
+        <HStack spacing={2}>
+          <Text color="whiteAlpha.700" fontSize="sm">Close Position</Text>
+          <Popover>
+            <PopoverTrigger>
+              <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="pointer" />
+            </PopoverTrigger>
+            <PopoverContent bg="#232A3E" color="white">
+              <PopoverArrow />
+              <PopoverHeader fontWeight="bold">Close Position</PopoverHeader>
+              <PopoverBody>
+                Close part or all of your position. Partial close reduces your exposure while keeping the position open. Full close completely exits the position & returns your collateral.
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
+        </HStack>
         <RadioGroup
           value={closeType}
           onChange={val => {
-            if (val === 'full') setManagedActionState({ closePercent: 100 });
-            else setManagedActionState({ closePercent: undefined });
+            if (val === 'full') {
+              setInputClosePercent('100');
+              setManagedActionState({ closePercent: 100 });
+            } else {
+              setInputClosePercent('');
+              setManagedActionState({ closePercent: undefined });
+            }
           }}
         >
           <HStack>
@@ -289,7 +533,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
             {closeType === 'partial' && (
               <Input
                 variant="filled"
-                value={managedActionState.closePercent || ''}
+                value={inputClosePercent}
                 onChange={e => handleClosePercent(Number(e.target.value))}
                 type="number"
                 min={1}
@@ -340,6 +584,18 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
                 <Text color="white" fontWeight="bold">{managedActionState.closePercent}%</Text>
               </HStack>
             )}
+            {managedActionState.borrowAmount && Number(managedActionState.borrowAmount) > 0 && (
+              <HStack justify="space-between">
+                <Text color="whiteAlpha.700">Borrow CDT</Text>
+                <Text color="white" fontWeight="bold">{managedActionState.borrowAmount} CDT</Text>
+              </HStack>
+            )}
+            {managedActionState.repayAmount && Number(managedActionState.repayAmount) > 0 && (
+              <HStack justify="space-between">
+                <Text color="whiteAlpha.700">Repay CDT</Text>
+                <Text color="white" fontWeight="bold">{managedActionState.repayAmount} CDT</Text>
+              </HStack>
+            )}
           </VStack>
         </Box>
       </ConfirmModal>
@@ -351,6 +607,13 @@ const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPri
   const [editState, setEditState] = React.useState(position);
   const asset = useAssetByDenom(editState.asset, chainName, assets);
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // Reset editState whenever the modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setEditState(position);
+    }
+  }, [isOpen, position]);
 
   // Get asset price from prices list
   const assetPrice = new BigNumber(collateralPrice || 0);
@@ -378,7 +641,16 @@ const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPri
         <HStack spacing={3} align="center">
           <Image src={asset?.logo} alt={asset?.symbol} boxSize="36px" borderRadius="full" bg="#181C23" />
           <VStack align="start" spacing={0}>
-            <Text color="whiteAlpha.700" fontSize="sm">{marketName}</Text>
+            <NextLink href={`/${chainName}/isolated/${editState.marketAddress}/${asset?.symbol || editState.asset}?tab=multiply`}>
+              <Text 
+                color="whiteAlpha.700" 
+                fontSize="sm" 
+                cursor="pointer"
+                _hover={{ color: 'teal.300', textDecoration: 'underline' }}
+              >
+                {marketName}
+              </Text>
+            </NextLink>
             <Text color="white" fontWeight="bold" fontSize="xl">{asset?.symbol || editState.asset}</Text>
           </VStack>
         </HStack>
@@ -421,12 +693,12 @@ const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPri
       </HStack>
       {/* Edit Modal */}
       <Modal isOpen={isOpen} onClose={onClose} isCentered>
-        <ModalOverlay />
-        <ModalContent bg="#20232C" color="white">
+        <ModalOverlay pointerEvents="none" />
+        <ModalContent bg="#20232C" color="white" pointerEvents="auto">
           <ModalHeader>Edit Position</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>
-            <MarketActionEdit assetSymbol={asset?.symbol || editState.asset} position={editState} marketAddress={editState.marketAddress} collateralDenom={editState.asset} maxLTV={maxLTV} collateralPrice={assetPrice.toNumber()} currentLTV={currentLTV.toNumber()} initialLiquidationPrice={liquidationPrice} />
+          <ModalBody zIndex={1000}>
+            <MarketActionEdit assetSymbol={asset?.symbol || editState.asset} position={editState} marketAddress={editState.marketAddress} collateralDenom={editState.asset} maxLTV={maxLTV} collateralPrice={assetPrice.toNumber()} currentLTV={currentLTV.toNumber()} initialLiquidationPrice={liquidationPrice} onClose={onClose} />
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -859,7 +1131,7 @@ const Portfolio: React.FC = () => {
                       debtPrice={debtPrice}
                       collateralPrice={collateralPriceQueries[idx]?.data?.price}
                       collateralCost={collateralCostQueries[idx]?.data}
-                      maxLTV={Number(maxLTVQueries[idx]?.data?.[0]?.collateral_params.liquidation_LTV) || 0}
+                      maxLTV={Number(maxLTVQueries[idx]?.data?.[0]?.collateral_params.max_borrow_LTV) || 0}
                       cdtMarketPrice={cdtMarketPrice}
                     />
                   ))}

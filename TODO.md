@@ -35,18 +35,20 @@ To risk tranche:
 - Make sure rate_assurance works for junior/senior
 - Debt withdrawal needs to specifiy which tranche with its denom sent
 - dynamic mint denom and config debt updates using helper functions
-- MAke sure dynamic vault token state loads are used everywhere
+- Make sure dynamic vault token state loads are used everywhere
 - Create junior denom in instantiation
 
 - (Does the rate assurance in the accrue need to run for both vault tokens?)(It might not need to run at all, only for supply and withdrawing
  debt)
 
 - Add accrue method yield distribution for tranches
-- Senior yield caps at the config field but underneath that value, only gets 80%. So if they are directed to get 6% and costs go down to 6%, tranche groups will do a 80/20 split bc juniors can't get nothing.
+- Senior yield caps at the config field but underneath that value, only gets 80%. So if they are directed to get 6% and costs go down to 6%, tranche groups will do 80 to seniors & remainder to juniors bc they can't get nothing.
 
 
 - Add bad debt distribution to junior first
 - Make sure the debt supply caps use total debt from both tranches
+
+- Make sure this worls for multi-collateral types
 
 Tweets:
 - Personal: Intro to multiplying your position

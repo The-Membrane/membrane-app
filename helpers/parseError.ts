@@ -42,7 +42,7 @@ export const parseError = (error: string) => {
     { regex: /Maximum position number/i, message: "You've reached the max position number for this wallet" },
     { regex: /big.Int: tx parse error/i, message: "Max amount per deposit for this token is 999, if this error seems wrong, just jiggle the slider." },
     { regex: /invalid Uint128/i, message: "Max amount per deposit for this token is 999, if this error seems wrong, just jiggle the slider." },
-    { regex: /rate assurance failed/i, message: "Depositor safety check failed, operational error. Refresh for the Manic vault or Manage The Membrane LP." },
+    { regex: /rate assurance failed/i, message: "Depositor safety check failed, operational error." },
     { regex: / Invalid target_LTV for debt increase/i, message: "Intent failed, are you above the minimum amount?" },
     { regex: / Invalid limit, deposit length:/i, message: "Omni-Pool is empty, deposit the minimum to unblock liquidations." },
     { regex: / Position is solvent and shouldn't be liquidated/i, message: "False positive, position is solvent." },

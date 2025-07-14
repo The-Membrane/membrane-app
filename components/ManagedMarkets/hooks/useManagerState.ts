@@ -75,9 +75,18 @@ export type ManagedConfig = {
   bad_debt: string; // Uint128 as string
   debt_supply_cap?: string; // Option<Uint128>
   debt_supply_vault_token: string;
+  /** Junior tranche vault token denom */
+  junior_debt_supply_vault_token?: string;
+  /** Junior tranche debt information */
+  junior_debt_info?: DebtInfo;
+  /** Fixed yield target for senior (core) tranche */
+  senior_debt_fixed_yield_target?: string; // Decimal as string
+  /** Total borrowed across all markets (optional in config) */
+  total_borrowed?: string; // Uint128 as string
   /** Set Whitelists to None to disable new capital */
   whitelisted_debt_suppliers?: string[]; // Option<Vec<String>>
   manager_fee: string; // Decimal as string
+  
 };
 
 export type MarketParams = {
@@ -126,7 +135,12 @@ export type LTVRamp = {
   end_time: number; // u64
 }
 
-
+export type DebtInfo = {
+  /** Total debt tokens in the tranche */
+  total_debt: string; // Uint128 as string
+  /** Bad debt inside the tranche */
+  bad_debt: string;   // Uint128 as string
+};
 
 
 export type UpdateOverallMarket = {
@@ -176,6 +190,8 @@ const store = (set) => ({
   reset: () => set((state: Store) => ({ ...state, managerState: initialState }), false, '@reset'),
 })
 
-const useManagerState = create<Store>(devtools(store, { name: 'managerState' }))
+// Suppress zustand devtools generic type mismatch in TS 5
+// @ts-expect-error - Zustand devtools mutator type mismatch
+const useManagerState = create<Store>(devtools(store as any, { name: 'managerState' }))
 
 export default useManagerState

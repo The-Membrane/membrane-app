@@ -6,6 +6,7 @@ import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx';
 import { queryClient } from '@/pages/_app';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
 import useManagedAction from '@/components/ManagedMarkets/hooks/useManagedMarketState';
+import { shiftDigits } from '@/helpers/math';
 
 interface CloseAndEditBoostsTxParams {
   marketContract: string;
@@ -14,6 +15,7 @@ interface CloseAndEditBoostsTxParams {
   collateralPrice: string;
   currentLTV: string;
   maxSpread: string;
+  decimals: number;
   run?: boolean;
 }
 
@@ -24,6 +26,7 @@ const useCloseAndEditBoostsTx = ({
   collateralPrice,
   currentLTV,
   maxSpread,
+  decimals,
   run = true,
 }: CloseAndEditBoostsTxParams) => {
 
@@ -49,6 +52,7 @@ const useCloseAndEditBoostsTx = ({
     queryFn: async () => {
       const msgs: any[] = [];
       console.log('maxSpread', maxSpread);
+      // console.log('(managedActionState.closePercent / 100).toString()', (managedActionState.closePercent / 100).toString());
       // ClosePosition msg
       if (managedActionState.closePercent) {
         msgs.push({
@@ -92,35 +96,41 @@ const useCloseAndEditBoostsTx = ({
             value: {
                 sender: address,
                 contract: marketContract,
-                msg: {
-                edit_ux_boosts: {
+                msg: 
+                  toUtf8(
+                    JSON.stringify({
+                      edit_u_x_boosts: {
                     collateral_denom: collateralDenom,
                     loop_ltv:
                     managedActionState.multiplier && managedActionState.multiplier !== 1
                         ? (1 - 1 / managedActionState.multiplier).toString()
                         : undefined,
                     take_profit_params: takeProfitLTV && !isNaN(Number(takeProfitLTV))
-                    ? [{
+                    ? {
                         ltv: takeProfitLTV,
                         percent_to_close: '1',
                         send_to: undefined,
-                        }]
-                    : null,
+                        perpetual: false,
+                        }
+                    : undefined,
                     stop_loss_params: stopLossLTV && !isNaN(Number(stopLossLTV))
-                    ? [{
+                    ? {
                         ltv: stopLossLTV,
                         percent_to_close: '1',
                         send_to: undefined,
-                        }]
-                    : null,
+                        perpetual: false,
+                        }
+                    : undefined,
                     collateral_value_fee_to_executor: undefined,
-                },
-                },
+                }}
+              )),
                 funds: [],
             },
             });
+            
         }
 
+        console.log("managedActionState.collateralAmount", shiftDigits(managedActionState.collateralAmount, decimals).toString())
         //Deposit msg
         if (managedActionState.collateralAmount != 0) {
             // Prepare Deposit message
@@ -132,14 +142,12 @@ const useCloseAndEditBoostsTx = ({
                 msg: toUtf8(
                     JSON.stringify({
                     supply_collateral: {
-                        collateral_denom: collateralDenom,
-                        send_to: undefined,
                     }})
                 ),
                 funds: [
                     {
                     denom: collateralDenom,
-                    amount: managedActionState.collateralAmount,
+                    amount: shiftDigits(managedActionState.collateralAmount, decimals).toFixed(0)
                     },
                 ],
                 }),
@@ -147,6 +155,56 @@ const useCloseAndEditBoostsTx = ({
             msgs.push(depositMsg); 
         } 
         
+        // Borrow msg
+        if (managedActionState.borrowAmount && Number(managedActionState.borrowAmount) > 0) {
+            const borrowMsg: MsgExecuteContractEncodeObject = {
+                typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
+                value: MsgExecuteContract.fromPartial({
+                    sender: address,
+                    contract: marketContract,
+                    msg: toUtf8(
+                        JSON.stringify({
+                            borrow: {
+                                collateral_denom: collateralDenom,
+                                borrow_amount: {
+                                    amount: shiftDigits(managedActionState.borrowAmount, 6).toFixed(0),
+                                    ltv: undefined,
+                                },
+                            },
+                        })
+                    ),
+                    funds: [],
+                }),
+            };
+            msgs.push(borrowMsg);
+        }
+
+        // Repay msg
+        if (managedActionState.repayAmount && Number(managedActionState.repayAmount) > 0) {
+            const repayMsg: MsgExecuteContractEncodeObject = {
+                typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
+                value: MsgExecuteContract.fromPartial({
+                    sender: address,
+                    contract: marketContract,
+                    msg: toUtf8(
+                        JSON.stringify({
+                            repay: {
+                                collateral_denom: collateralDenom,
+                                send_excess_to: address,
+                            },
+                        })
+                    ),
+                    funds: [
+                        {
+                            denom: 'ucdt',
+                            amount: shiftDigits(managedActionState.repayAmount, 6).toFixed(0)
+                        },
+                    ],
+                }),
+            };
+            msgs.push(repayMsg);
+        }
+
         // else if (managedActionState.withdraw && managedActionState.collateralAmount != 0) {
         //     // Prepare Withdraw message
         //     const withdrawMsg: MsgExecuteContractEncodeObject = {
@@ -176,21 +234,24 @@ const useCloseAndEditBoostsTx = ({
 
 
   const msgs = queryData?.msgs ?? []
-  console.log('msgs', msgs);
+  // console.log('msgs', msgs);
 
   const onInitialSuccess = () => {
     // queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
     queryClient.invalidateQueries({ queryKey: ['managed_market_user_position'] })
     queryClient.invalidateQueries({ queryKey: ['managed_market_user_ux_boosts'] })
-    
+    queryClient.invalidateQueries({ queryKey: ['user_position'] })
+
     //setManagedActionState to 0s
     setManagedActionState({
       ...managedActionState,
-      collateralAmount: '0',
-      multiplier: 0,
-      takeProfit: '0',
-      stopLoss: '0',
+      collateralAmount: '',
+      multiplier: 1,
+      takeProfit: '',
+      stopLoss: '',
+      borrowAmount: '',
+      repayAmount: '',
     })
   }
 

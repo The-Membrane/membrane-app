@@ -8,6 +8,7 @@ import { Formatter } from '@/helpers/formatter'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { useBasket, useBasketPositions } from '@/hooks/useCDP'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 export const Stats = React.memo(({ label, value }) => (
     <Stack gap="1">
@@ -23,7 +24,7 @@ export const Stats = React.memo(({ label, value }) => (
 
 // Memoize child components
 export const StatsTitle = React.memo(() => {
-
+    const { chainName } = useChainRoute()
     const { data: basket } = useBasket()
     const { data: data } = useCDTDailyVolume()
     // console.log("assetData", assetData, assetData?.volume_24h)
@@ -35,10 +36,11 @@ export const StatsTitle = React.memo(() => {
     const { data: prices } = useOraclePrice()
 
     const tvl = useMemo(() =>
-        getProjectTVL({ basket, prices })
-        , [basket, prices])
+        getProjectTVL({ basket, prices, chainName })
+        , [basket, prices, chainName])
 
     const mintedAmount = useMemo(() => {
+        if (!basket || !basket.credit_asset || !basket.credit_asset.amount) return 0
         return shiftDigits(num(basket?.credit_asset.amount).toString(), -6).dp(0).toNumber()
     }, [basket])
 

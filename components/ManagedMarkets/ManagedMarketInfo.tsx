@@ -246,7 +246,7 @@ const ManagedMarketInfo: React.FC<ManagedMarketInfoProps> = ({
                     {interestRateModelProps && <InterestRateModel {...interestRateModelProps} />}
                     <HStack mt={2} spacing={1} align="center">
                         <Text color="whiteAlpha.800" fontWeight="bold">Oracle</Text>
-                        <Tooltip label="Osmosis LP pools used as price feeds & liquidation routing."><span><InfoOutlineIcon color="whiteAlpha.600" boxSize={4} /></span></Tooltip>
+                        <Tooltip label="Osmosis LP pools used as TWAP price feeds & liquidation routing."><span><InfoOutlineIcon color="whiteAlpha.600" boxSize={4} /></span></Tooltip>
                     </HStack>
                     <OracleRow oracles={oracles} />
                     <HStack mt={2} spacing={1} align="center">

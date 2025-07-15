@@ -11,7 +11,7 @@ function LiquidateButton({ enabled, setEnabled }: { enabled: boolean, setEnabled
     const liquidateDisabledRef = useRef(liquidateDisabled);
     const enabledRef = useRef(enabled);
     const liquidateLoadingRef = useRef(liquidateLoading);
-
+ 
     useEffect(() => {
         liquidateDisabledRef.current = liquidateDisabled;
         enabledRef.current = enabled;

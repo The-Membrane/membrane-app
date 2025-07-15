@@ -496,9 +496,8 @@ export const calculateVaultSummary = ({
   }
 }
 
-export const getProjectTVL = ({ basket, prices }: { basket?: Basket; prices?: Price[] }) => {
+export const getProjectTVL = ({ basket, prices, chainName }: { basket?: Basket; prices?: Price[]; chainName: string  }) => {
   if (!basket || !prices) return 0
-  const { chainName } = useChainRoute()
   const positions = basket?.collateral_types.map((asset) => {
     //@ts-ignore
     const denom = asset.asset?.info.native_token?.denom

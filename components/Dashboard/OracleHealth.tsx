@@ -90,7 +90,7 @@ export const OracleHealth = () => {
     const { data: prices } = useOraclePrice()
     const { data: basket } = useBasket()
     const usedAssets = useMemo(() => {
-        if (!basket) return []
+        if (!basket || !basket.collateral_supply_caps) return []
         return basket.collateral_supply_caps
             .filter((cap) => Number(cap.supply_cap_ratio) > 0)
             //@ts-ignore

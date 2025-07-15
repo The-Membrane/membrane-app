@@ -25,30 +25,6 @@ Permissionless Iso-Market Growth Aid
 - //FIX SUPPLY CAP ERRORS FOR EXPUNGED ASSETS/MAKE A MODAL TO ALERT EXPUNGED ASSETS.
 
 FOR CONTRACTS:
-To risk tranche:
-- Add junior vault token state
-- Add a junior denom to config
-- Add a senior yield goal to config
-- Add a total_debt / bad_debt struct for Junior Tranche tracking
-- Add an execution choice for debt supply to be senior or junior (toggle)
-- Make sure get_total_debt_tokens can work for either or both debt pools
-- Make sure rate_assurance works for junior/senior
-- Debt withdrawal needs to specifiy which tranche with its denom sent
-- dynamic mint denom and config debt updates using helper functions
-- Make sure dynamic vault token state loads are used everywhere
-- Create junior denom in instantiation
-
-- (Does the rate assurance in the accrue need to run for both vault tokens?)(It might not need to run at all, only for supply and withdrawing
- debt)
-
-- Add accrue method yield distribution for tranches
-- Senior yield caps at the config field but underneath that value, only gets 80%. So if they are directed to get 6% and costs go down to 6%, tranche groups will do 80 to seniors & remainder to juniors bc they can't get nothing.
-
-
-- Add bad debt distribution to junior first
-- Make sure the debt supply caps use total debt from both tranches
-
-- Make sure this worls for multi-collateral types
 
 Tweets:
 - Personal: Intro to multiplying your position

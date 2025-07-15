@@ -14,6 +14,7 @@ import { Formatter } from '@/helpers/formatter'
 import { TxButton } from '../TxButton'
 import useBoundedManage from './hooks/useRangeBoundLPManage'
 import useFulfillIntents from './hooks/useFulfillIntents'
+import FulfillManagedMMButton, { CheckManagedIntents } from './FulfillManagedMMButton'
 import { StatsTitle } from '../StatsTitle'
 import { getAssetByDenom } from '@/helpers/chain'
 import { Basket } from '@/contracts/codegen/positions/Positions.types'
@@ -71,8 +72,11 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
                         toggleConnectLabel={false}
                         style={{ alignSelf: "center" }}
                     >
-                        Fulfill Intents
+                        Fulfill CDP Intents
                     </TxButton>
+
+                    {/* Managed Market intents button */}
+                    <CheckManagedIntents />
                     <TxButton
                         maxW="100%"
                         isLoading={givePoints?.simulate.isLoading || givePoints?.tx.isPending}

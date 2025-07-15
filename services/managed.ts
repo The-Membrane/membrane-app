@@ -33,6 +33,7 @@ export interface UXBoosts {
     loop_ltv: any,
     take_profit_params: any,
     stop_loss_params: any,
+    arb_price: any,
     collateral_bought_from_loops: any[]
 }
 
@@ -66,6 +67,12 @@ export const getManagedConfig = async (cosmWasmClient: any, marketContract: stri
     return cosmWasmClient.queryContractSmart(marketContract, {
         config: {}
     }) as Promise<ManagedConfig>
+}
+
+export const getManagedUXBoosts = async (cosmWasmClient: any, marketContract: string, collateral_denom: string) => {
+    return cosmWasmClient.queryContractSmart(marketContract, {
+        get_user_u_x_boosts: { collateral_denom }
+    }) as Promise<UXBoosts[]>
 }
 
 export const getManagedMarket = async (cosmWasmClient: any, marketContract: string, collateral_denom: string) => {

@@ -73,8 +73,8 @@ export const useBoundedIntents = () => {
     return useQuery({
         queryKey: ['useBoundedIntents', client, router.pathname],
         queryFn: async () => {
-            if (!router.pathname.startsWith('/[')) return
-            if (!client) return
+            if (!router.pathname.startsWith('/[')) return []
+            if (!client) return []
 
             return getBoundedIntents(client)
         },
@@ -152,8 +152,8 @@ export const useBoundedCDTVaultTokenUnderlying = (vtAmount: string) => {
     return useQuery({
         queryKey: ['useBoundedCDTVaultTokenUnderlying', vtAmount, client, router.pathname],
         queryFn: async () => {
-            if (!router.pathname.startsWith('/[') && !router.pathname.endsWith("/control-room")) return
-            if (!client) return
+            if (!router.pathname.startsWith('/[') && !router.pathname.endsWith("/control-room")) return "0"
+            if (!client) return "0"
 
             return getBoundedUnderlyingCDT(vtAmount, client)
         },

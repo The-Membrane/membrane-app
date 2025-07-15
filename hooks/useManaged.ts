@@ -11,7 +11,7 @@ import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
 import { useChainRoute } from './useChainRoute'
 import React from 'react'
-import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagedMarketUnderlyingCDT, getManagers, getMarketClaimTracker, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getTotalBorrowed, getUserPositioninMarket, getUserUXBoostsinMarket } from '@/services/managed'
+import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagedMarketUnderlyingCDT, getManagedUXBoosts, getManagers, getMarketClaimTracker, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getTotalBorrowed, getUserPositioninMarket, getUserUXBoostsinMarket } from '@/services/managed'
 
 export const useManagers = () => {
     const { data: client } = useCosmWasmClient()
@@ -69,7 +69,19 @@ export const useManagedConfig = (marketContract: string) => {
         // You might want to add staleTime to prevent unnecessary refetches
         staleTime: 1000 * 60 * 5, // 5 minutes
     })
+}
 
+export const useManagedUXBoosts = (marketContract: string, collateral_denom: string) => {
+    const { data: client } = useCosmWasmClient()
+
+    return useQuery({
+        queryKey: ['managed_market_ux_boosts', client, marketContract, collateral_denom],
+        queryFn: async () => {
+            if (!client) return
+            return getManagedUXBoosts(client, marketContract, collateral_denom)
+        },
+        staleTime: 1000 * 60 * 5,
+    })
 }
 
 export const useManagedMarket = (marketContract: string, collateral_denom: string) => {

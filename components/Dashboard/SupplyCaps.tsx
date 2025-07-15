@@ -96,6 +96,7 @@ export const SupplyCaps = () => {
     // const { data: config } = useOracleConfig()
     const { data: prices } = useOraclePrice()
     const { data: basket } = useBasket()
+    const { chainName } = useChainRoute()
     // const usedAssets = useMemo(() => {
     //     if (!basket) return []
     //     return basket.collateral_supply_caps
@@ -161,7 +162,6 @@ export const SupplyCaps = () => {
 
     //Create health object for each asset using the formula: (assetValue / poolValuesByAsset) * 100
     const capData = useMemo(() => {
-        const { chainName } = useChainRoute()
         const basketPositions = basket?.collateral_types.map((asset) => {
             //@ts-ignore
             const denom = asset.asset.info.native_token.denom

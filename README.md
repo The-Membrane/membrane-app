@@ -1,40 +1,86 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Membrane-CDT System Overview
 
-## Getting Started
+## 🪙 CDT: The Stable Token
 
-First, run the development server:
+CDT is a decentralized, floating-peg debt token designed to support scalable, collateral-backed growth.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Floating Peg**: CDT is soft-pegged to USD, enabling organic price discovery and dynamic utility. Peg can accrue change but is currently disabled.
+- **Growth-Optimized**: Minting costs are intentionally low to encourage adoption and liquidity expansion.
+- **Core Collaterals Supported**:
+  - Major assets: `BTC`, `ETH`, `TIA`, `SOL`, `ATOM`, `OSMO`, `USDC`, `USDT`
+  - Liquid Staking Tokens (LSTs) for the above assets
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## 🧪 Minting Mechanism
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+CDT minting uses an autonomous, risk-aware system with bundled collateral types and an optional collateral protected liquidation path.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+- **Collateral Bundles**: Users mint CDT by depositing any combination of approved assets to form collateral bundles.
+- **Volatility-Aware Risk Management**: Automatic collateral specific interest rate increases & supply restrictions during volatility spikes. Base parameters gradually recover as volatility gains normality.
+- **Liquidation Recovery System**:
+  - Collateral is distributed to liquidation bidders to repay debt instead of needing the liquidation executors to bring CDT.
+  - CDT within various Membrane venues can be recovered to repay debt instead of selling collateral.
+- **Peg-Aware Interest Rates**: Rates adjust dynamically based on CDT’s peg conditions
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+---
 
-## Learn More
+## 🧠 Isolated Collateral Markets
 
-To learn more about Next.js, take a look at the following resources:
+Each collateral type has its own individuallymanaged, isolated CDT debt market with programmable automation.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Intent System**:
+  - Supports strategies like **looping**, **stop-loss/take-profit**, and **arbitrage**
+- **Risk Tranching**: CDT lenders can opt into senior/junior tranches depending on risk appetite
+- **Debt Token**: All loans use CDT as the borrowed asset
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 💥 Liquidation Bids System
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+All minting liquidations flow through this unified bidding mechanism.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- **Bid Options**:
+  - **Global (Omni) Bids**: One pool, one premium, for all collateral types
+  - **Individual Bids**: Separate bids per collateral, with variedpremium options
+- **Bid Vaults**: Users can deposit capital into the Omni-Bid vault to automatically compound their bids over time
+
+---
+
+## 🧪 Market Making Vault
+
+Designed to stabilize CDT and generate yield.
+
+- **CL Pool**: CDT/USDC concentrated liquidity pool
+- **Fee**: 0.05% swap fee
+- **Revenue Streams**:
+  - CDT minting fees
+  - Swap/LP fees
+  - Ecosystem points
+
+---
+
+## 🧩 MBRN Token Utility
+
+MBRN captures system value and controls protocol direction.
+
+- **Staking Benefits**:
+  - Interest rate discounts on CDT minting
+  - Share in system revenue
+- **Revenue Distribution Options**:
+  - Buy assets via auctions
+  - Distribute to stakers
+  - Send to any address (used for the Market Making Vault)
+
+---
+
+## 🗳 Governance Framework
+
+- **MBRN Staking = Voting Power**
+- **Quadratic Voting**: Promotes decentralization
+- **Proposal Requirements**:
+  - 1,000 MBRN required to create a proposal
+- **Contract Control**:
+  - Governance owns the major protocol contracts
+- **POL Holdings**:
+  - 1% of MBRN is held as protocol-owned liquidity (POL) paired with OSMO on Osmosis

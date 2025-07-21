@@ -10,7 +10,16 @@ const CurrentPositions = () => {
   const { isOpen, onToggle } = useDisclosure();
 
   return (
-    <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="max-content" px="2" alignSelf={isMobile ? "center" : "undefined"}>
+    <Card
+      boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"}
+      minW={{ base: '100%', md: '363px' }}
+      maxW={{ base: '100%', md: '363px' }}
+      gap="12"
+      h="max-content"
+      px="2"
+      alignSelf={{ base: 'center', md: 'flex-start' }}
+      marginTop={{base: "3%", md: "0"}}
+    >
       <Stack gap="5" padding="3%" paddingTop="0">
         <Text color={stats.health < 10 ? colors.alert : undefined} variant="title" textTransform={"none"} alignSelf="center" fontSize="xl" letterSpacing="1px" display="flex">
           Health: {Math.min(Math.max(0, stats.health), 100)}%

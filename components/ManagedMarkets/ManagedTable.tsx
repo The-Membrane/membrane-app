@@ -485,13 +485,13 @@ const ManagedTable = () => {
 
     // Add loading and empty state handling
     if (!allMarkets) {
-        return <Box w="100vw" minH="100vh" display="flex" justifyContent="center" alignItems="center"><Spinner size="xl" color="white" /></Box>;
+        return <Box display="flex" justifyContent="center" alignItems="center"><Spinner size="xl" color="white" /></Box>;
     }
 
     return (
-        <Box w="100vw" minH="100vh" display="flex" flexDirection="column" alignItems="center" py={{ base: 6, md: 12 }}>
+        <Box display="flex" flexDirection="column" alignItems="center" py={{ base: 6, md: 12 }}>
             {/* Top bar with Create Market button */}
-            <Box w="100%" display="flex" justifyContent="flex-end" alignItems="center" mb={4} pr={{ base: 4, md: 16 }}>
+            <Box w="100%" display="flex" justifyContent={{ base: 'center', md: 'flex-end' }} alignItems="center" mb={4} pr={{ base: 0, md: 16 }}>
                 <Button
                     colorScheme="teal"
                     size="md"
@@ -693,7 +693,6 @@ const ManagedTable = () => {
                                             icon={<RepeatIcon />}
                                             size="xs"
                                             variant="ghost"
-                                            colorScheme="blue"
                                             onClick={handleResetIRParams}
                                             ml={1}
                                             minW={0}
@@ -812,7 +811,7 @@ const ManagedTable = () => {
                 alignItems="center"
                 boxShadow="0 0 0 4px #232A3E"
             >
-                {/* Main content box with scrollable area */}
+                {/* Main content box – no scroll here (scroll only on table area) */}
                 <Box
                     w="100%"
                     bg="#20232C"
@@ -820,12 +819,6 @@ const ManagedTable = () => {
                     p={{ base: 4, md: 8 }}
                     minH="70vh"
                     maxH="80vh"
-                    overflowY="auto"
-                    sx={{
-                        '&::-webkit-scrollbar': { width: '8px' },
-                        '&::-webkit-scrollbar-thumb': { background: '#232A3E', borderRadius: '8px' },
-                        '&::-webkit-scrollbar-track': { background: 'transparent' },
-                    }}
                     display="flex"
                     flexDirection="column"
                     alignItems="center"
@@ -857,6 +850,7 @@ const ManagedTable = () => {
                                         color="white"
                                         borderRadius="md"
                                         minW="120px"
+                                        w="50%"
                                         _hover={{ bg: '#23252B' }}
                                         onClick={onOpen}
                                     >
@@ -884,7 +878,6 @@ const ManagedTable = () => {
                                         <PopoverBody maxH="300px" overflowY="auto" px={0}>
                                             <VStack align="stretch" spacing={0}>
                                                 <Checkbox
-                                                    colorScheme="blue"
                                                     isChecked={selectedDeposits.includes('All')}
                                                     onChange={() => setSelectedDeposits(['All'])}
                                                     px={4}
@@ -895,7 +888,6 @@ const ManagedTable = () => {
                                                 {filteredOptions.map(opt => (
                                                     <Checkbox
                                                         key={opt}
-                                                        colorScheme="blue"
                                                         isChecked={selectedDeposits.includes(opt)}
                                                         onChange={() => {
                                                             let newSelected = selectedDeposits.filter(s => s !== 'All');
@@ -919,13 +911,27 @@ const ManagedTable = () => {
                             </Popover>
                         </HStack>
                     </Box>
-                    {/* Table centered and 85% width */}
-                    <Box w={{ base: '100%', md: '85%' }} mx="auto" bg="#23252B" borderRadius="lg" p={4}>
-                        <Table variant="unstyled" colorScheme="gray" fontSize="13px">
+                    {/* Scrollable table container */}
+                    <Box
+                        w={{ base: '100%', md: '85%' }}
+                        mx="auto"
+                        bg="#23252B"
+                        borderRadius="lg"
+                        p={4}
+                        flex="1"
+                        overflowY="auto"
+                        overflowX="hidden"
+                        sx={{
+                            '&::-webkit-scrollbar': { width: '8px' },
+                            '&::-webkit-scrollbar-thumb': { background: '#232A3E', borderRadius: '8px' },
+                            '&::-webkit-scrollbar-track': { background: 'transparent' },
+                        }}
+                    >
+                        <Table variant="unstyled" colorScheme="gray" fontSize="13px" sx={{ tableLayout: 'fixed', width: '100%' }}>
                             <Thead>
                                 <Tr>
-                                    <Th color="white" fontWeight="bold" fontSize="13px">Asset</Th>
-                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => handleSort('tvl')}>
+                                    <Th color="white" fontWeight="bold" fontSize={{ base: '12px', md: '13px' }}>Asset</Th>
+                                    <Th display={{ base: 'none', md: 'table-cell' }} color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => handleSort('tvl')}>
                                         <Tooltip
                                             label={selectedAction === 'lend' ? 'Total Value Supplied' : 'Total Value Locked'}
                                             placement="top"
@@ -939,12 +945,12 @@ const ManagedTable = () => {
                                             <span>{selectedAction === 'lend' ? 'TVS' : 'TVL'} {sortArrow('tvl')}</span>
                                         </Tooltip>
                                     </Th>
-                                    <Th color="white" fontWeight="bold" fontSize="13px">Vault Name</Th>
-                                    <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => handleSort('multiplier')}>
+                                    <Th display={{ base: 'none', md: 'table-cell' }} color="white" fontWeight="bold" fontSize={{ base: '12px', md: '13px' }}>Vault Name</Th>
+                                    <Th color="white" fontWeight="bold" fontSize={{ base: '12px', md: '13px' }} cursor="pointer" onClick={() => handleSort('multiplier')}>
                                         {selectedAction === 'lend' ? 'Supply APR' : 'Multiplier'} {sortArrow('multiplier')}
                                     </Th>
                                     {selectedAction === 'multiply' && (
-                                        <Th color="white" fontWeight="bold" fontSize="13px" cursor="pointer" onClick={() => handleSort('cost')}>
+                                        <Th display={{ base: 'none', md: 'table-cell' }} color="white" fontWeight="bold" fontSize={{ base: '12px', md: '13px' }} cursor="pointer" onClick={() => handleSort('cost')}>
                                             Cost {sortArrow('cost')}
                                         </Th>
                                     )}
@@ -1020,11 +1026,11 @@ function MarketRow({ assetSymbol, assetLogo, tvlDisplay, vaultName, multiplier, 
                 </HStack>
             </Td>
             {selectedAction === 'lend' ? (
-                <Td color="whiteAlpha.900" fontSize="13px">{formatTvl(debtSupplied)}</Td>
+                <Td display={{ base: 'none', md: 'table-cell' }} color="whiteAlpha.900" fontSize="13px">{formatTvl(debtSupplied)}</Td>
             ) : (
-                <Td color="whiteAlpha.900" fontSize="13px">{tvlDisplay}</Td>
+                <Td display={{ base: 'none', md: 'table-cell' }} color="whiteAlpha.900" fontSize="13px">{tvlDisplay}</Td>
             )}
-            <Td color="whiteAlpha.900" fontSize="13px">{vaultName}</Td>
+            <Td display={{ base: 'none', md: 'table-cell' }} color="whiteAlpha.900" fontSize="13px">{vaultName}</Td>
             {selectedAction === 'lend' ? (
                 <Td color="whiteAlpha.900" fontSize="13px">{formatSupplyApr(supplyApr)}</Td>
             ) : (
@@ -1032,7 +1038,7 @@ function MarketRow({ assetSymbol, assetLogo, tvlDisplay, vaultName, multiplier, 
             )}
             {/* No 5th column for lend */}
             {selectedAction === 'multiply' && (
-                <Td color="whiteAlpha.900" fontSize="13px">{formatCost(cost)}</Td>
+                <Td display={{ base: 'none', md: 'table-cell' }} color="whiteAlpha.900" fontSize="13px">{formatCost(cost)}</Td>
             )}
         </Tr>
     );

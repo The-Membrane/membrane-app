@@ -1,7 +1,7 @@
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import useWallet from '@/hooks/useWallet'
-import { Box, HStack, Spinner, Stack, Text } from '@chakra-ui/react'
+import { Box, HStack, Spinner, Stack, Text, useBreakpointValue } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import { Bar, BarChart, Cell, Rectangle, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import useBidState from './hooks/useBidState'
@@ -73,6 +73,7 @@ const RiskChart = () => {
   const { data: liqudation, isLoading } = useLiquidation(bidState?.selectedAsset)
   const { data: stabilityPoolAssets } = useStabilityAssetPool(true)
   const { data: capitalAheadAmount = 0 } = useCapitalAheadOfDeposit()
+  const isMobile = useBreakpointValue({ base: true, md: false })
 
 
   const onPremiumChange = (value: number) => {
@@ -124,7 +125,7 @@ const RiskChart = () => {
 
   return (
     <Box w="420px" h="200px">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer style={{justifySelf: "center"}} width={isMobile ? "86%" : "100%" } height="100%">
         <BarChart
           width={420}
           height={200}

@@ -110,12 +110,24 @@ const HomeHeader = React.memo(() => {
   // }, [basket])
 
   return (
-    <HStack gap={"0.5rem"} justifyContent={"center"} mb={"3%"}>
-      <Text variant="title" letterSpacing="unset" fontSize="50px" textTransform="none">
-        Passively power the stablecoin evolution on Osmosis
+    <Stack
+      direction="column"
+      gap="0.5rem"
+      justifyContent="center"
+      alignItems="center"
+      mb="3%"
+      textAlign="center"
+    >
+      <Text
+        variant="title"
+        letterSpacing="unset"
+        fontSize={{ base: '2xl', md: '50px' }}
+        textTransform="none"
+      >
+        Power the Indestructible Evolution of Money
       </Text>
-      <Image src="/images/osmo.svg" w="65px" h="90px" alignSelf={"end"} />
-    </HStack>
+      <Image src="/images/cdt.svg" w={{ base: '50px', md: '65px' }} h={{ base: '70px', md: '90px' }} alignSelf="center" />
+    </Stack>
   )
 })
 

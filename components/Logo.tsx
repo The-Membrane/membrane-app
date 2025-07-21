@@ -4,7 +4,7 @@ import React from 'react'
 const Logo = () => {
   return (
     <Box alignItems="center" display={"flex"} justifyContent={"center"}>
-      <Image src="/images/logo_with_name.svg" alt="Logo" boxSize="128px" height="28px" />
+      <Image src="/images/Logo_with_both_images.svg" alt="Logo" boxSize="180px" height="90px" />
     </Box>
   )
 }

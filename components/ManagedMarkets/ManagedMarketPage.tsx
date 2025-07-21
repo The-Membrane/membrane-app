@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { HStack, Box, Spinner, Flex, Text, Image, VStack, Button, Switch, FormControl, FormLabel } from '@chakra-ui/react';
+import { HStack, Box, Spinner, Flex, Text, Image, VStack, Button, Switch, FormControl, FormLabel, Stack } from '@chakra-ui/react';
 import ManagedMarketInfo from './ManagedMarketInfo';
 import ManagedMarketAction from './ManagedMarketAction';
 import { useAssetBySymbol } from '@/hooks/useAssets';
@@ -218,20 +218,26 @@ const ManagedMarketPage: React.FC = () => {
     return (
         <Box position="relative" w="100%" h="100%">
             {/* Advanced mode toggle in the absolute top left corner */}
-            <Box position="absolute" top={4} left={4} zIndex={10}>
-                <FormControl display="flex" alignItems="center">
+            <Box
+                position={{ base: 'static', lg: 'absolute' }}
+                top={{ lg: 4 }}
+                left={{ lg: 4 }}
+                zIndex={10}
+                alignSelf={{ base: 'center', lg: 'flex-start' }}
+                my={{ base: 4, lg: 0 }}
+            >
+                <FormControl display="flex" alignItems="center" justifyContent={{ base: 'center', lg: undefined }}>
                     <FormLabel htmlFor="advanced-mode-toggle" mb="0" fontWeight="bold" color="white">
                         Advanced mode
                     </FormLabel>
                     <Switch
                         id="advanced-mode-toggle"
-                        colorScheme="blue"
                         isChecked={advancedMode}
                         onChange={() => setAdvancedMode((v) => !v)}
                     />
                 </FormControl>
             </Box>
-            <HStack align="flex-start" justify="center" spacing={4} w="100%" px={8} py={8}>
+            <Stack direction={{ base: 'column', lg: 'row' }} align="flex-start" justify="center" spacing={{ base: 6, lg: 4 }} w="100%" px={{ base: 4, lg: 8 }} py={{ base: 6, lg: 8 }}>
                 <VStack align="start" w="100%" maxW={advancedMode ? "480px" : "630px"} spacing={6}>
                     {advancedMode ? (
                         <>
@@ -282,7 +288,7 @@ const ManagedMarketPage: React.FC = () => {
                 {advancedMode && (
                     <ManagedMarketAction marketAddress={marketAddress as string} action={actionType} collateralSymbol={collateralSymbol} />
                 )}
-            </HStack>
+            </Stack>
         </Box>
     );
 };

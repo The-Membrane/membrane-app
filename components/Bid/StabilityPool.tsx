@@ -171,7 +171,7 @@ const StabilityPool = ({ setActiveTabIndex }: Props) => {
           My Omni-Bids
         </Text>
         <Text color={colors.noState}>You don't have any deposits in the omni-asset pool.</Text>
-        <Button onClick={changeTab} colorScheme="blue" variant="solid">
+        <Button onClick={changeTab} variant="solid">
           Bid in Omni-Pool - Set Premium to 10%
         </Button>
       </Card>

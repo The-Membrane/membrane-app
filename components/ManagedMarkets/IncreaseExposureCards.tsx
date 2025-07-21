@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Box, Flex, Text, Image, Button, VStack, HStack, Input, Tooltip, Radio, RadioGroup } from '@chakra-ui/react';
+import { Box, Flex, Text, Image, Button, VStack, HStack, Input, Tooltip, Radio, RadioGroup, Stack, useBreakpointValue } from '@chakra-ui/react';
 import { InfoOutlineIcon } from '@chakra-ui/icons';
 
 // @ts-ignore
@@ -10,6 +10,8 @@ import useManagedAction from './hooks/useManagedMarketState';
 import useTransformExposure from './hooks/useIncreasedExposureCard';
 import { Asset } from '@/helpers/chain';
 import TransformExposureSummary from './TransformExposureSummary';
+
+
 
 interface AssetProps {
   logo: string;
@@ -28,7 +30,7 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
   const [mode, setMode] = useState<'multiply' | 'de-risk'>('multiply');
   const [amount, setAmount] = useState('');
   const [selectedMultiplier, setSelectedMultiplier] = useState('conservative');
-  
+  const isMobile = useBreakpointValue({ base: true, md: false });
   const { managedActionState, setManagedActionState } = useManagedAction();
   console.log('maxBorrowLTV', maxBorrowLTV);
   const maxMultiplier = 1 / (1 - (Number(maxBorrowLTV) ?? 1));
@@ -103,18 +105,18 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
   return (
     <VStack align="center" spacing={large ? 10 : 6} w="100%">
       <VStack>
-        <HStack align="center" spacing={large ? 5 : 3} mb={large ? 0 : 0} w="auto" minW="fit-content">
+        <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={large ? 5 : 3} mb={large ? 0 : 0} w="auto" minW="fit-content">
             {logo && <Image src={logo} alt={symbol} boxSize={large ? "48px" : "32px"} flexShrink={0} />}
-            <Text fontWeight="bold" fontSize={large ? "4xl" : "2xl"} color="white" whiteSpace="nowrap">Transform Exposure to {symbol}</Text>
-        </HStack>
+            <Text fontWeight="bold" fontSize={large ? "4xl" : "2xl"} color="white" textAlign={{ base: 'center', md: undefined }} whiteSpace={{ base: 'nowrap', md: 'normal' }}>{isMobile ? 'Transform Exposure' : `Transform Exposure to ${symbol}`}</Text>
+        </Stack>
         {/* Helper text under mode selection */}
-        <Text color="whiteAlpha.700" fontSize="sm" mt={1} mb={-2}>
+        <Text color="whiteAlpha.700" fontSize="sm" mt={1} mb={-2} display={{ base: 'none', md: 'block' }}>
             Select whether to <b><i>multiply</i></b> your exposure or <b><i>de-risk</i></b> by taking capital out of {symbol}.
         </Text>
       </VStack>
       {/* Mode selection */}
       <RadioGroup value={mode} onChange={v => setMode(v as 'multiply' | 'de-risk')}>
-        <HStack spacing={8} justify="start">
+        <HStack spacing={{base: 4, md: 8}} justify="start">
           <HStack>
             <Radio value="multiply" colorScheme="blue"><Text as="span" fontSize={large ? '2xl' : 'xl'} py={2}>Multiply</Text></Radio>
             <Tooltip label={`Multiply exposure to ${symbol} now at current market prices`} hasArrow>
@@ -122,7 +124,7 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
             </Tooltip>
           </HStack>
           <HStack>
-            <Radio value="de-risk" colorScheme="blue"><Text as="span" fontSize={large ? '2xl' : 'xl'} py={2}>De-risk</Text></Radio>
+            <Radio value="de-risk"><Text as="span" fontSize={large ? '2xl' : 'xl'} py={2}>De-risk</Text></Radio>
             <Tooltip label={`Reduce exposure to ${symbol} by taking capital out`} hasArrow>
               <span><InfoOutlineIcon color="whiteAlpha.600" boxSize={5} style={{ marginLeft: 8, cursor: 'pointer' }} /></span>
             </Tooltip>
@@ -130,7 +132,7 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
         </HStack>
       </RadioGroup>
       {/* Amount input */}
-      <Box w={large ? '420px' : '320px'}>
+      <Box w={{ base: '90vw', md: large ? '420px' : '320px' }}>
         <HStack justify="space-between" align="flex-start" w="100%">
           <VStack align="flex-start" spacing={1} flex={1}>
             <Input
@@ -179,13 +181,14 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
         gap={4}
         align="center"
         spacing={2}
-        w={large ? '420px' : '320px'}
+        w={{ base: '90vw', md: large ? '420px' : '320px' }}
         borderRadius="md"
+        justify={{ base: 'center', md: undefined}}
         
         cursor={mode === 'de-risk' ? 'not-allowed' : 'default'}
         transition="all 0.2s"
       >
-        <Text opacity={mode === 'de-risk' ? 0.3 : 1} fontWeight="bold" fontSize={large ? "2xl" : "lg"} color="white" mb={1}>Multiplier:</Text>
+        {!isMobile && <Text opacity={mode === 'de-risk' ? 0.3 : 1} fontWeight="bold" fontSize={large ? "2xl" : "lg"} color="white" mb={1}>Multiplier:</Text>}
         <HStack spacing={6} justify="center">
           <HStack as="label" spacing={2}>
             <input type="radio" checked={selectedMultiplier === 'conservative'} onChange={() => mode === 'multiply' && setSelectedMultiplier('conservative')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
@@ -226,7 +229,7 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
         )}
       </Text>
       {/* Send It button */}
-      <Box w={large ? '420px' : '320px'}>
+      <Box w={"98%"} maxW={"420px"}>
         <ConfirmModal
           buttonProps={{ bg: buttonColor, _hover: { bg: glowColor }, w: '100%', textShadow: '0 0 20px rgba(0, 0, 0, 1)' }}
           label={mode === 'multiply' ? "Send It" : "Take Capital Out"}

@@ -105,12 +105,18 @@ const AcquireCDTEntry = ({
 
     return (
         <>
-            <HStack justifyContent={"center"} gap="1.5rem">
+            <Stack
+                direction={{ base: 'column', md: 'row' }}
+                justifyContent="center"
+                spacing={{ base: 4, md: '1.5rem' }}
+                alignItems="stretch"
+                w="full"
+            >
                 <Card width="fit-content" alignSelf="center" borderWidth={3} padding={4} bg="rgb(90, 90, 90, 0.4)" borderColor="rgba(255, 255, 255, 0.16)">
                     <Stack gap="1.5rem">
                         <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />
 
-                        <Text width="fitcontent" justifyContent="center" variant="title" textAlign="center" fontSize="1.7rem" letterSpacing="1px" display="flex">
+                        <Text width="fit-content" justifyContent="center" variant="title" textAlign="center" fontSize="1.7rem" letterSpacing="1px">
                             Earn &nbsp;<a className="textShadow">{yieldValue}%</a>&nbsp; with CDT
                         </Text>
                         <List spacing={3} styleType="disc" padding="6" paddingTop="0">
@@ -122,7 +128,13 @@ const AcquireCDTEntry = ({
 
 
                 </Card>
-                <Card width="50%" maxW="640px" p={4} borderWidth="3px" borderColor="white">
+                <Card
+                    w={{ base: '100%', md: '50%' }}
+                    maxW={{ base: 'full', md: '640px' }}
+                    p={4}
+                    borderWidth="3px"
+                    borderColor="white"
+                >
                     <CardBody>
                         <Stack>
                             {rblpDeposit !== 0 && <Tabs position="relative" variant="unstyled" align="center" w="full" index={activeTabIndex}>
@@ -183,7 +195,6 @@ const AcquireCDTEntry = ({
                                     id="swap-to-cdt-checkbox"
                                     isChecked={swapToCDT}
                                     onChange={() => setSwapToCDT(v => !v)}
-                                    colorScheme="blue"
                                     mt={4}
                                     fontWeight={"700"}
                                 >
@@ -219,7 +230,7 @@ const AcquireCDTEntry = ({
                         </HStack>
                     </CardFooter>
                 </Card>
-            </HStack >
+            </Stack>
         </>
     )
 }

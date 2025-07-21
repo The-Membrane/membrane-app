@@ -19,29 +19,29 @@ const ManageStake = () => {
       borderRadius="2xl"
       boxShadow="lg"
     >
-      <Tabs position="relative" variant="unstyled" w="full" isFitted colorScheme="blue">
+      <Tabs position="relative" variant="unstyled" w="full" isFitted>
         <TabList mb={4}>
           <Tab
             _selected={{ color: tabActiveColor, fontWeight: 'bold' }}
             color={tabInactiveColor}
-            fontSize="lg"
-            py={2}
+            fontSize={{ base: 'md', md: 'lg' }}
+            py={{ base: 1, md: 2 }}
           >
             Manage
           </Tab>
           <Tab
             _selected={{ color: tabActiveColor, fontWeight: 'bold' }}
             color={tabInactiveColor}
-            fontSize="lg"
-            py={2}
+            fontSize={{ base: 'md', md: 'lg' }}
+            py={{ base: 1, md: 2 }}
           >
             Claim
           </Tab>
           <Tab
             _selected={{ color: tabActiveColor, fontWeight: 'bold' }}
             color={tabInactiveColor}
-            fontSize="lg"
-            py={2}
+            fontSize={{ base: 'md', md: 'lg' }}
+            py={{ base: 1, md: 2 }}
           >
             Unstaking
           </Tab>

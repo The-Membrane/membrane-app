@@ -39,6 +39,7 @@ const HorizontalNav = () => {
     return (
         <Box
             as="nav"
+            position="relative"
             w="full"
             px={{ base: 2, md: 8 }}
             py={2}
@@ -52,10 +53,9 @@ const HorizontalNav = () => {
             zIndex={100}
         >
             {/* Left: Logo, Title, Page Selector or Hamburger */}
-            <HStack spacing={6} align="center">
-                <Stack spacing={0} alignContent={"start"}>
-                    <Logo />
-                    <Text
+                {/* <Stack spacing={0} alignContent={"start"}> */}
+                    {/* <Logo /> */}
+                    {/* <Text
                         color={colors.tabBG}
                         fontSize="2xs"
                         alignSelf={"center"}
@@ -65,22 +65,21 @@ const HorizontalNav = () => {
                         textShadow={`0px 0px 8px ${colors.tabBG}`}
                     >
                         Beta
-                    </Text>
-                </Stack>
+                    </Text> */}
+                {/* </Stack> */}
 
                 {/* Desktop Nav */}
-                <HStack spacing={1} ml={4} display={{ base: 'none', md: 'flex' }}>
+                <HStack spacing={1} display={{ base: 'none', lg: 'flex' }}>
                     {navItems.map((item) => (
                         <Button
                             key={item.label}
                             as={NextLink}
                             href={`/${chainName}${item.href}`}
                             variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                            colorScheme="blue"
                             color="white"
                             fontWeight="semibold"
                             borderRadius="full"
-                            px={6}
+                            // px={{ base: 3, md: 6 }}
                             py={2}
                             bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
                             _hover={{ bg: 'whiteAlpha.300' }}
@@ -91,21 +90,24 @@ const HorizontalNav = () => {
                         </Button>
                     ))}
                 </HStack>
-                {/* Hamburger for mobile */}
-                <IconButton
-                    aria-label="Open menu"
-                    icon={<FaBars />}
-                    display={{ base: 'flex', md: 'none' }}
-                    onClick={onOpen}
-                    bg="transparent"
-                    color="white"
-                    fontSize="22px"
-                    _hover={{ bg: 'whiteAlpha.200' }}
-                />
-            </HStack>
-            <Spacer />
+            
+            {/* Hamburger for mobile */}
+            <IconButton
+                aria-label="Open menu"
+                icon={<FaBars />}
+                display={{ base: 'flex', lg: 'none' }}
+                onClick={onOpen}
+                bg="transparent"
+                color="white"
+                fontSize="22px"
+                _hover={{ bg: 'whiteAlpha.200' }}
+                mr={2}
+                w={"fit-content"}
+                justifySelf={"left"}
+            />
+            
             {/* Right: Chain Selector & Connect Wallet */}
-            <HStack spacing={4} align="center">
+            <HStack spacing={{ base: 2, md: 4 }} align="center">
                 <Menu>
                     <MenuButton
                         as={Button}
@@ -138,40 +140,59 @@ const HorizontalNav = () => {
                         ))}
                     </MenuList>
                 </Menu>
-                <WallectConnect />
+                <Box display={{ base: 'none', lg: 'block' }}>
+                    <WallectConnect />
+                </Box>
             </HStack>
             {/* Drawer for mobile nav */}
             <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs">
                 <DrawerOverlay />
                 <DrawerContent bg="#232A3E">
                     <DrawerBody p={0} pt={8}>
-                        <VStack align="stretch" spacing={1}>
-                            {navItems.map((item) => (
-                                <Button
-                                    key={item.label}
-                                    as={NextLink}
-                                    href={`/${chainName}${item.href}`}
-                                    variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                                    colorScheme="blue"
-                                    color="white"
-                                    fontWeight="semibold"
-                                    borderRadius="full"
-                                    px={6}
-                                    py={4}
-                                    bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
-                                    _hover={{ bg: 'whiteAlpha.300' }}
-                                    fontSize="13px"
-                                    maxW={"fit-content"}
-                                    justifyContent="flex-start"
-                                    onClick={onClose}
-                                >
-                                    {item.label}
-                                </Button>
-                            ))}
+                        <VStack align="stretch" spacing={1} h="full" justify="space-between">
+                            <VStack align="stretch" spacing={1}>
+                                <Box mb={4}>
+                                    <Logo />
+                                </Box>
+                                {navItems.map((item) => (
+                                    <Button
+                                        key={item.label}
+                                        as={NextLink}
+                                        href={`/${chainName}${item.href}`}
+                                        variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
+                                        color="white"
+                                        fontWeight="semibold"
+                                        borderRadius="full"
+                                        px={6}
+                                        py={4}
+                                        bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
+                                        _hover={{ bg: 'whiteAlpha.300' }}
+                                        fontSize="13px"
+                                        maxW={"fit-content"}
+                                        justifyContent="flex-start"
+                                        onClick={onClose}
+                                    >
+                                        {item.label}
+                                    </Button>
+                                ))}
+                            </VStack>
+                            <Box p={4}>
+                                <WallectConnect />
+                            </Box>
                         </VStack>
                     </DrawerBody>
                 </DrawerContent>
             </Drawer>
+            {/* Centered logo for mobile */}
+            <Box
+                position="absolute"
+                left="50%"
+                top="50%"
+                transform="translate(-50%, -50%)"
+                display={{ base: 'block', lg: 'none' }}
+            >
+                <Logo />
+            </Box>
         </Box>
     );
 };

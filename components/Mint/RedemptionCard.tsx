@@ -34,7 +34,7 @@ const RedemptionCard = () => {
         return basketPositions?.[0]?.positions?.[mintState.positionNumber - 1]?.position_id || 0
     }, [basketPositions, mintState.positionNumber])
     //Get the position we're working with
-    const position = basketPositions?.[0]?.positions?.find((pos) => pos.position_id === positionId)
+    const position = basketPositions?.[0]?.positions?.find((pos: any) => pos.position_id === positionId)
     const usdcDeposit = position?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.asset.amount ?? "0"
     // const { data: underlyingUSDC } = useDepositTokenConversionforMarsUSDC(marsUSDCDeposit) ?? "0"
     // const { data: marsUSDCyield } = useMarsUSDCSupplyAPR() ?? "0"
@@ -46,7 +46,13 @@ const RedemptionCard = () => {
 
 
     return (<>
-        <Card minW="363px" gap="12" h="max-content" px="2">
+        <Card
+          minW={{ base: '100%', md: '363px' }}
+          maxW={{ base: '100%', md: '500px' }}
+          gap="12"
+          h="max-content"
+          px="2"
+        >
             <Stack gap="5" padding="3%">
                 <Text fontSize="18px" fontWeight={"bold"}>
                     {usdcDeposit === "0"

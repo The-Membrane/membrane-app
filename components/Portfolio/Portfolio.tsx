@@ -40,6 +40,7 @@ import {
   PopoverHeader,
   PopoverBody,
   PopoverArrow,
+  Stack,
 } from '@chakra-ui/react';
 import { getObjectCookie, setObjectCookie } from '@/helpers/cookies';
 import { getChainConfig, supportedChains } from '@/config/chains';
@@ -829,7 +830,7 @@ const CheckClaims = () => {
   return (
     <Box mt={10} mb={10} display="flex" justifyContent="center">
       {!enabled ? (
-        <Button colorScheme="blue" onClick={() => setEnabled(true)} w="20%">
+        <Button  onClick={() => setEnabled(true)} w="20%" minW={"fit-content"}>
           Check for Claims
         </Button>
       ) : (
@@ -1082,17 +1083,24 @@ const Portfolio: React.FC = () => {
       <Box w="90vw" mx="auto" mt={0}>
         {/* Portfolio Title, Stats, Tabs, etc. */}
         <CheckClaims />
-        <HStack align="center" justify="space-between" mb={8} w="100%">
-          <HStack spacing={4} align="center">
+        <Stack 
+          direction={{ base: 'column', lg: 'row' }} 
+          align={{ base: 'flex-start', lg: 'center' }} 
+          justify="space-between" 
+          mb={8} 
+          w="100%"
+          spacing={{ base: 4, lg: 0 }}
+        >
+          <HStack spacing={4} align="center" minW="fit-content">
             <Avatar boxSize="64px" bg="#1a2330" icon={<Box boxSize="32px" as="span" bgGradient="linear(to-br, #6fffc2, #1a2330)" borderRadius="md" />} />
             <Box>
-              <Text fontSize="2xl" fontWeight="bold" color="white">Your Portfolio</Text>
+              <Text fontSize="2xl" fontWeight="bold" color="white" textAlign="left">Your Portfolio</Text>
               <Text color="whiteAlpha.600" fontSize="md">{chainName.charAt(0).toUpperCase() + chainName.slice(1)}</Text>
             </Box>
           </HStack>
-          <HStack spacing={10}>
+          <HStack spacing={{ base: 4, md: 10 }} minW="fit-content" flexWrap="wrap">
             {stats.map((stat, idx) => (
-              <Stat key={idx} width="12vw">
+              <Stat key={idx} minW={{ base: '120px', md: '12vw' }}>
                 <StatLabel
                   color="whiteAlpha.700"
                   fontSize="md"
@@ -1105,7 +1113,7 @@ const Portfolio: React.FC = () => {
               </Stat>
             ))}
           </HStack>
-        </HStack>
+        </Stack>
         <Tabs index={tabIndex} onChange={setTabIndex} variant="unstyled">
           <TabList borderBottom="1px solid #232A3E">
             <Tab fontWeight="bold" color={tabIndex === 0 ? 'white' : 'whiteAlpha.600'}>Positions</Tab>

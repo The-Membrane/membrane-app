@@ -14,7 +14,7 @@ export const TxButton: FC<PropsWithChildren<ConnectionButtonProps & ButtonProps>
   disabledTooltip,
   chain_name = 'osmosis',
   toggleConnectLabel = true,
-  children,
+  children, 
   fontSize = 'md',
   ...buttonProps
 }) => {

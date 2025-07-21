@@ -124,14 +124,14 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
                     <HStack width="100%%">
                         <Tabs position="relative" variant="unstyled" w="full" index={activeTabIndex}>
                             <TabList bg="white" borderRadius="28px" color="black" w="fit-content">
-                                <CustomTab onClick={() => handleTabClick("borrow")} label={transactionType === "repay" ? "Borrow" : "Borrow CDT"} />
-                                <CustomTab onClick={() => handleTabClick("repay")} label={transactionType === "borrow" ? "Repay" : "Repay CDT"} />
+                                <CustomTab onClick={() => handleTabClick("borrow")} label={"Mint"} />
+                                <CustomTab onClick={() => handleTabClick("repay")} label={"Repay"} />
                             </TabList>
 
                             <TabIndicator
                                 top="0"
                                 position="absolute"
-                                height="40px"
+                                height="45px"
                                 bg={colors.walletIcon}
                                 borderRadius="28px"
                             />

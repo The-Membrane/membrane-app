@@ -114,7 +114,7 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
   const { data: basketPositions } = useUserPositions()
 
   const totalPages = useMemo(() => {
-    if (!basketPositions) return 1
+    if (!basketPositions || basketPositions.length === 0) return 1
     return Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS)
   }, [basketPositions])
 
@@ -155,7 +155,7 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
 
   const { data: prices } = useOraclePrice()
   const positionNumber = mintState.positionNumber
-  const cdp = basketPositions?.[0].positions[positionNumber - 1] as PositionResponse
+  const cdp = basketPositions?.[0]?.positions?.[positionNumber - 1] as PositionResponse
   const cdtMarketPrice = useMemo(() => prices?.find((price) => price.denom === denoms.CDT[0])?.price || "1", [prices])
 
 
@@ -164,10 +164,18 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
 
   return (
     <>
-      <Stack width="500px">
+      <Stack width={{ base: '100%', md: '500px' }}>
         {isMobile && <HealthSlider summary={summary} />}
 
-        <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} minW="363px" gap="12" h="100%" width="100%" paddingBottom={0}>
+        <Card
+          boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"}
+          minW={{ base: '100%', md: '363px' }}
+          maxW={{ base: '100%', md: '500px' }}
+          gap="12"
+          h="100%"
+          width="100%"
+          paddingBottom={0}
+        >
           <VStack w="full" gap="5" h="full" alignItems="stretch">
             <HStack>
               <Text variant="title" fontSize="24px" alignSelf={"center"} textAlign="center" w="100%" marginLeft="7%">
@@ -213,7 +221,9 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
         closeOnOverlayClick={true}
       >
         <ModalOverlay />
-        <NeuroCloseModal isOpen={isOpen} onClose={onClose} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
+        {
+          cdp && <NeuroCloseModal isOpen={isOpen} onClose={onClose} position={cdp} debtAmount={debtAmount} positionNumber={positionNumber} cdtMarketPrice={cdtMarketPrice} />
+        }
       </Modal>
     </>
   )

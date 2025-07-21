@@ -77,8 +77,8 @@ const ManagedMarketAction = ({
         }
     }, [routeTab, router]);
 
-    const actionLabels = ["Multiply", "Lend", "Strategize"];
-    const actionMap = ['multiply', 'lend', 'strategize'];
+    const actionLabels = ["Multiply", "Lend"];//, "Strategize"];
+    const actionMap = ['multiply', 'lend'];//, 'strategize'];
 
     // Derive selected tab index from query param
     let selectedTab = 0;
@@ -172,8 +172,7 @@ const ManagedMarketAction = ({
                 index={selectedTab}
                 onChange={handleTabChange}
                 variant="unstyled"
-                // w="100%"
-                maxW="600px"
+                w="84vw"
             >
                 <TabList
                     bg="transparent"
@@ -212,7 +211,7 @@ const ManagedMarketAction = ({
                             p={{ base: 4, md: 8 }}
                             h="fit-content"
                             // maxH="98vh"
-                            w="40vw"
+                            w={{base: "100%", md: "40vw"}}
                             maxW="600px"
                             m="0 auto"
                             overflowY="auto"
@@ -287,7 +286,7 @@ const ManagedMarketAction = ({
                                 </Box>
                                 {/* Multiplier input and slider - moved here */}
                                 <Box px={2} w="100%">
-                                    <HStack mb={2} justify="flex-end">
+                                    <HStack mb={2} justify={{base: "center", md: "flex-end"}}>
                                         <Text fontWeight="bold" color="whiteAlpha.800">Multiplier:</Text>
                                         <Input
                                             value={managedActionState.multiplier.toFixed(2)}
@@ -310,7 +309,6 @@ const ManagedMarketAction = ({
                                         step={0.01}
                                         value={managedActionState.multiplier}
                                         onChange={handleSliderChange}
-                                        colorScheme="blue"
                                     >
                                         {stickyPoints.map((pt, i) => (
                                             <SliderMark key={i} value={pt} mt="2" ml="-1.5" fontSize="sm" color="whiteAlpha.700">

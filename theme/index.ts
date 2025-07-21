@@ -5,26 +5,53 @@ import { colors as configColors } from '@/config/defaults'
 import { components } from './components'
 
 const global = {
+  // Ensure border-box and prevent horizontal overflow
+  '*': {
+    boxSizing: 'border-box',
+  },
   'html, body': {
     bg: configColors.globalBG,
     // background: "radial-gradient(66.3% 66.3% at 72.54% 59.91%, rgba(17, 16, 21, 0.00) 0%, rgba(17, 16, 21, 0.00) 42%, #111015 100%)",
     color: configColors.global,
     width: '100vw',
     height: '100vh',
+    overflowX: 'hidden',
   },
-  /* Make the scrollbar track transparent */
+  // Make media responsive assets scale correctly
+  'img, video': {
+    maxWidth: '100%',
+    height: 'auto',
+  },
+  // Touch-friendly interactive elements
+  'button, input, select, textarea': {
+    minHeight: '44px',
+  },
+  // Custom scrollbar behavior
+  'html': {
+    scrollbarWidth: 'thin',
+    scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
+  },
+  'body': {
+    scrollbarWidth: 'thin',
+    scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
+  },
+  // Webkit scrollbar styles
   '::-webkit-scrollbar': {
-    width: '6px' /* Adjust the width as needed */,
-    backgroundColor: 'transparent' /* Transparent background */,
+    width: '8px',
+    height: '8px',
   },
-  /* Style the scrollbar thumb (slider) */
+  '::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
   '::-webkit-scrollbar-thumb': {
-    backgroundColor: 'whiteAlpha.300' /* color for the thumb */,
-    borderRadius: '3px' /* Rounded corners for the thumb */,
+    background: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: '4px',
   },
-  /* Style the scrollbar track on hover (optional) */
-  '::-webkit-scrollbar-track:hover': {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)' /* Semi-transparent background on hover */,
+  '::-webkit-scrollbar-thumb:hover': {
+    background: 'rgba(255, 255, 255, 0.5)',
+  },
+  '::-webkit-scrollbar-corner': {
+    background: 'transparent',
   },
 }
 
@@ -43,14 +70,14 @@ const theme = extendTheme(
     fontWeights,
     components,
     breakpoints: {
-      xxs: "320px", // Custom extra small breakpoint
-      xs: "375px", // Custom extra small breakpoint
-      sm: "425px",
-      base: "0px",
-      md: "768px",
-      lg: "992px",
-      xl: "1280px",
-      "2xl": "1536px",
+      base: "0px", // Chakra implicitly treats 0 as the starting point
+      xxs: "320px", // Extra-small phones (iPhone SE, etc.)
+      xs: "375px",  // Small phones (iPhone 8, Galaxy S8)
+      sm: "480px",  // Large phones / small tablets
+      md: "768px",  // Tablets
+      lg: "992px",  // Small laptops
+      xl: "1280px", // Desktops
+      "2xl": "1536px", // Large screens
     },
   },
   withDefaultColorScheme({ colorScheme: 'primary' }),

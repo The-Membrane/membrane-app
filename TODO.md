@@ -25,6 +25,19 @@ Permissionless Iso-Market Growth Aid
 - //FIX SUPPLY CAP ERRORS FOR EXPUNGED ASSETS/MAKE A MODAL TO ALERT EXPUNGED ASSETS.
 
 FOR CONTRACTS:
+- Add collateral assurance check similar to VT checks
+
+- Abstract debt token logic
+-- Oracle contract
+-- Swap contract
+
+- Manage Market liquidation fulfillment
+
+- Fuzzing 
+- MM Vault enforces 50/50 LP ratio on deposits (ensures revenue is efficiently incentivizing deeper liquidity)
+- Neutron migration 
+
+- Add limit order price to Loop intent
 
 Tweets:
 - Personal: Intro to multiplying your position

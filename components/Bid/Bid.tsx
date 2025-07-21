@@ -1,17 +1,17 @@
-import { Box, VStack, HStack, useBreakpointValue, Button } from '@chakra-ui/react'
+import { Box, VStack, Button, Stack } from '@chakra-ui/react'
 import BidAction from './BidAction'
 import Risk from './Risk'
 import React, { useState } from "react"
 import QASPCard from '../Home/QASPCard'
 import LiquidateButton from '../Nav/LiquidateButton'
 
-const CheckLiquidations = () => {
+export const CheckLiquidations = () => {
   const [enabled, setEnabled] = useState(false)
   return (
     <Box mt={4} w="100%">
       {!enabled ? (
         <Box display="flex" justifyContent="center">
-          <Button colorScheme="blue" onClick={() => setEnabled(true)}>
+          <Button onClick={() => setEnabled(true)}>
             Check for Liquidations
           </Button>
         </Box>
@@ -23,22 +23,27 @@ const CheckLiquidations = () => {
 }
 
 const Bid = React.memo(() => {
-  const isMobile = useBreakpointValue({ base: true, md: false })
   return (
     <Box w="full" px={{ base: 2, md: 8 }} py={{ base: 4, md: 8 }}>
       <VStack align="stretch" spacing={8} w="full" maxW="1200px" mx="auto">
-        <HStack spacing={8} alignItems="flex-start" w="full">
-          <VStack gap={8} minW="435px" w={isMobile ? '100%' : '50%'} align="stretch">
+        <Stack
+          direction={{ base: 'column', md: 'row' }}
+          spacing={8}
+          alignItems="flex-start"
+          w="full"
+        >
+          <VStack gap={8} minW={{ base: 'auto', md: '435px' }} w={{ base: '100%', md: '50%' }} align="stretch">
             <Risk />
             <BidAction />
           </VStack>
-          {!isMobile && (
-            <Box w="50%">
-              <QASPCard width="100%" title="Compounding Omni-Pool" />
-              <CheckLiquidations />
-            </Box>
-          )}
-        </HStack>
+          <Box
+            w={{ base: '100%', md: '50%' }}
+            display={{ base: 'none', md: 'block' }}
+          >
+            <QASPCard width="100%" title="Compounding Omni-Pool" />
+            <CheckLiquidations />
+          </Box>
+        </Stack>
       </VStack>
     </Box>
   )

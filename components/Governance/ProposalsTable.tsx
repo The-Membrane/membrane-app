@@ -21,14 +21,20 @@ type TopBarProps = {
 }
 
 const TopBar = ({ setFilter, setSearch, search }: TopBarProps) => (
-  <HStack w="100%" justifyContent="space-between">
+  <Stack
+    w="100%"
+    direction={{ base: 'column', md: 'row' }}
+    spacing={{ base: 4, md: 0 }}
+    justifyContent="space-between"
+    alignItems={{ base: 'flex-start', md: 'center' }}
+  >
     <FilterButtons setFilter={setFilter} isSearch={!!search} />
     <Search search={search} setSearch={setSearch} />
-  </HStack>
+  </Stack>
 )
 
 const Loading = () => (
-  <Stack w="636px">
+  <Stack w="full">
     <Skeleton w="full" h="50px" borderRadius="md" />
     <Skeleton w="full" h="50px" borderRadius="md" />
     <Skeleton w="full" h="50px" borderRadius="md" />
@@ -71,17 +77,21 @@ const EndsIn = ({ days, hours, minutes }: { days: number; hours: number; minutes
 const Proposals = ({ proposals = [] }: { proposals: ProposalResponse[] }) => {
   if (proposals?.length === 0) return null
   return (
-    <Stack>
+    <Stack w="full">
       {proposals?.map((proposal) => (
         <ProposalDetails key={proposal.proposal_id} proposal={proposal}>
           <HStack px="4" py="3" bg="#191a2d" borderRadius="lg" gap="4">
             <Badge badge={proposal?.badge} />
             <Stack gap="0" m="none" p="none" flexGrow={1} alignItems="flex-start">
-              <Text noOfLines={1}>{proposal.title}</Text>
-              <EndsIn {...proposal?.daysLeft} />
+              <Text noOfLines={1} color="whiteAlpha.900">{proposal.title}</Text>
+              {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+              {/* @ts-ignore */}
+              <EndsIn {...(proposal as any)?.daysLeft} />
             </Stack>
+            {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+            {/* @ts-ignore */}
             <Text color="primary.200" fontSize="sm">
-              {proposal?.status === 'active' ? 'Vote' : 'View'}
+              {(proposal as any)?.status === 'active' ? 'Vote' : 'View'}
             </Text>
           </HStack>
         </ProposalDetails>
@@ -106,8 +116,12 @@ const PaginationBar = ({ pagination }: PaginationProps) => {
 const ProposalsTable = () => {
   const [filters, setFilters] = useState<Filter>({ status: 'active' })
   const [search, setSearch] = useState<string>('')
-  const { data = [], isLoading } = useProposals()
-  const { paginatedData, ...pagination } = usePagination(data, 10, filters, search)
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const { data = [], isLoading } = useProposals() as any
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const { paginatedData, ...pagination } = usePagination(data as any, 10, filters, search) as any
 
   if (isLoading) {
     return <Loading />
@@ -117,7 +131,9 @@ const ProposalsTable = () => {
     <Stack w="full" gap="5">
       <TopBar setFilter={setFilters} search={search} setSearch={setSearch} />
       <NoProposals show={paginatedData.length === 0} />
-      <Proposals proposals={paginatedData} />
+      {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+      {/* @ts-ignore */}
+      <Proposals proposals={paginatedData as any} />
       <PaginationBar pagination={pagination} />
     </Stack>
   )

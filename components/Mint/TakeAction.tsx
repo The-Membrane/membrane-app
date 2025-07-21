@@ -66,7 +66,7 @@ const TakeAction = React.memo(() => {
         <TabIndicator
           top="0"
           position="absolute"
-          height="40px"
+          height="45px"
           bg={colors.walletIcon}
           borderRadius="28px"
         />

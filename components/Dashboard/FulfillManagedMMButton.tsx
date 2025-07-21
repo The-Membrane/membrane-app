@@ -13,7 +13,7 @@ export const CheckManagedIntents = () => {
       <Box mt={4} w="100%">
         {!enabled ? (
           <Box display="flex" justifyContent="center">
-            <Button colorScheme="blue" onClick={() => setEnabled(true)}>
+            <Button onClick={() => setEnabled(true)}>
               Check for Managed Market Intents
             </Button>
           </Box>

@@ -1,5 +1,5 @@
 import {
-    Text, Stack, HStack, Slider, Card, SliderFilledTrack, SliderTrack, Modal,
+    Text, Stack, Slider, Card, SliderFilledTrack, SliderTrack, Modal,
     ModalBody, Button,
     ModalContent,
     ModalOverlay, useDisclosure, Box, VStack, useColorModeValue
@@ -27,6 +27,7 @@ import { OracleHealth } from './OracleHealth'
 import useGiveRBLPPoints from './hooks/useGiveRBLPPoints'
 import { SupplyCaps } from './SupplyCaps'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import { CheckLiquidations } from '../Bid/Bid'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const [idSkips, setSkips] = useState([] as number[])
@@ -77,6 +78,7 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
 
                     {/* Managed Market intents button */}
                     <CheckManagedIntents />
+                    <CheckLiquidations />
                     <TxButton
                         maxW="100%"
                         isLoading={givePoints?.simulate.isLoading || givePoints?.tx.isPending}
@@ -171,22 +173,57 @@ const Dashboard = () => {
             <VStack align="stretch" spacing={8} w="full" maxW="1200px" mx="auto">
                 <StatsTitle />
                 <Divider mx="0" mb="5" />
-                <HStack alignItems="flex-start" spacing={8}>
-                    <Box bg={cardBg} borderRadius="2xl" boxShadow="lg" p={6} border="1px solid" borderColor={borderColor} w="50%">
+                {/* Responsive layout for charts */}
+                <Stack
+                    direction={{ base: "column", md: "row" }}
+                    alignItems="flex-start"
+                    spacing={8}
+                    w="full"
+                >
+                    <Box
+                        bg={cardBg}
+                        borderRadius="2xl"
+                        boxShadow="lg"
+                        p={6}
+                        border="1px solid"
+                        borderColor={borderColor}
+                        w={{ base: "100%", md: "50%" }}
+                    >
                         <AssetPieChart data={assetData} />
                     </Box>
-                    <Box bg={cardBg} borderRadius="2xl" boxShadow="lg" p={6} border="1px solid" borderColor={borderColor} w="50%">
+                    <Box
+                        bg={cardBg}
+                        borderRadius="2xl"
+                        boxShadow="lg"
+                        p={6}
+                        border="1px solid"
+                        borderColor={borderColor}
+                        w={{ base: "100%", md: "50%" }}
+                    >
                         <OracleHealth />
                     </Box>
-                </HStack>
-                <HStack alignItems="flex-start" spacing={8}>
-                    <Box w="50%">
+                </Stack>
+                <Stack
+                    direction={{ base: "column", md: "row" }}
+                    alignItems="flex-start"
+                    spacing={8}
+                    w="full"
+                >
+                    <Box w={{ base: "100%", md: "50%" }}>
                         <ManagementCard basket={basket} />
                     </Box>
-                    <Box bg={cardBg} borderRadius="2xl" boxShadow="lg" p={6} border="1px solid" borderColor={borderColor} w="50%">
+                    <Box
+                        bg={cardBg}
+                        borderRadius="2xl"
+                        boxShadow="lg"
+                        p={6}
+                        border="1px solid"
+                        borderColor={borderColor}
+                        w={{ base: "100%", md: "50%" }}
+                    >
                         <SupplyCaps />
                     </Box>
-                </HStack>
+                </Stack>
             </VStack>
 
             {/* Modal */}

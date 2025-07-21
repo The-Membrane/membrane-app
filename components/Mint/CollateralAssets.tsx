@@ -49,7 +49,7 @@ const CollateralAssets = () => {
     }
   }, [toggle, mintState.transactionType])
 
-  const showInitialCDPDeposit = basketPositions !== undefined && mintState.positionNumber <= basketPositions[0].positions.length
+  const showInitialCDPDeposit = basketPositions !== undefined && basketPositions.length > 0 && mintState.positionNumber <= basketPositions[0].positions.length
 
   return (
     <Stack gap={showInitialCDPDeposit ? "1.5rem" : "0.5rem"}>

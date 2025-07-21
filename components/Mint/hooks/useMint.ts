@@ -20,7 +20,7 @@ const useMint = () => {
 
   //Use the current position id or use the basket's next position ID (for new positions)
   const positionId = useMemo(() => {
-    if (basketPositions !== undefined && (mintState.positionNumber < Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS) || (basketPositions[0].positions.length === MAX_CDP_POSITIONS))) {
+    if (basketPositions !== undefined && basketPositions.length > 0 && (mintState.positionNumber < Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS) || (basketPositions[0].positions.length === MAX_CDP_POSITIONS))) {
       return basketPositions?.[0]?.positions?.[mintState.positionNumber - 1]?.position_id
     } else {
       //Use the next position ID

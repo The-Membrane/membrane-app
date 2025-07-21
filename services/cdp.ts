@@ -139,7 +139,7 @@ export const getBasketPositions = async (client: any) => {
 }
 
 export const getDebt = (basketPositions: BasketPositionsResponse[] | undefined, positionIndex: number = 0) => {
-  if (!basketPositions) return 0
+  if (!basketPositions || basketPositions.length === 0) return 0
   const debt = basketPositions?.[0]?.positions?.[positionIndex]?.credit_amount
   return shiftDigits(debt, -6).toNumber()
 }
@@ -164,8 +164,8 @@ export interface Prices {
 
 export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], positionIndex: number = 0) => {
   //This allows us to create a new position for users even if they have open positions
-  if (basketPositions && positionIndex === basketPositions[0].positions.length) return []
-  if (!basketPositions) return []
+  if (basketPositions && basketPositions.length > 0 && positionIndex === basketPositions[0].positions.length) return []
+  if (!basketPositions || basketPositions.length === 0) return []
   const positions = basketPositions?.[0]?.positions?.[positionIndex]
 
   return positions?.collateral_assets.map((asset) => {

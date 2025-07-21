@@ -284,7 +284,6 @@ const ManagedTable = () => {
                                         <PopoverBody maxH="300px" overflowY="auto" px={0}>
                                             <VStack align="stretch" spacing={0}>
                                                 <Checkbox
-                                                    colorScheme="blue"
                                                     isChecked={selectedDeposits.includes('All')}
                                                     onChange={() => handleSelect('All')}
                                                     px={4}
@@ -295,7 +294,6 @@ const ManagedTable = () => {
                                                 {filteredOptions.map(opt => (
                                                     <Checkbox
                                                         key={opt}
-                                                        colorScheme="blue"
                                                         isChecked={selectedDeposits.includes(opt)}
                                                         onChange={() => handleSelect(opt)}
                                                         px={4}

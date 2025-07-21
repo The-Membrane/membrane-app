@@ -6,11 +6,11 @@ const Filtration = () => {
       <Image
         src="/images/flitration.svg"
         alt="beaker"
-        w="660px"
-        minW="660px"
+        maxW={{ base: '100%', md: '660px' }}
+        w={{ base: '100%', md: '660px' }}
         objectFit="contain"
-        objectPosition="-150px 50px"
-        transform="scale(1.15)"
+        objectPosition="center"
+        transform={{ base: 'scale(1)', md: 'scale(1.15)' }}
       />
     </Box>
   )

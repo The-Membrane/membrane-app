@@ -10,7 +10,7 @@ type Props = {
 export const Search = ({ search, setSearch }: Props) => {
   const onChange = (e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)
   return (
-    <InputGroup w="300px">
+    <InputGroup w={{ base: '100%', md: '300px' }}>
       <Input
         type="text"
         fontSize="sm"

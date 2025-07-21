@@ -17,7 +17,13 @@ const Stake = React.memo(() => {
         maxW="1200px"
         mx="auto"
       >
-        <Heading as="h1" size="lg" color="white" fontWeight="bold" mb={2}>
+        <Heading
+          as="h1"
+          fontSize={{ base: '2xl', md: '3xl' }}
+          color="white"
+          fontWeight="bold"
+          mb={2}
+        >
           Governance
         </Heading>
         <ManageStake />

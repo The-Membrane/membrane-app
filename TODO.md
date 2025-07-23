@@ -1,15 +1,37 @@
 Next Steps:
-- Create Market Action
 
-Make the Control Room...
-- Mobile Friendly
-- & Contain all searcher fulfillments that can make money (Place the "Make Money" buttons on the same card)
-- Manage market intent & liquidation fulfillment
--- Add these to the Control Room and the individual management pages
--- Control Room button will be for all markets so a lot more logic to run
+Make the Control Room... (Make Money Room)  
+- MM liquidation fulfillment
 ---------------------------------
 
+- Make the Portfolio page easily shareable on twitter, see Nolus for inspo
+
 - liq bot, arb bot, redemption bot, intent bot
+
+- If liquidations error with our "False positive" parse, remove that position from the liquidation execution. This will require us to sim each liquidation separately or randomize which one gets removed to test.
+
+- //FIX SUPPLY CAP ERRORS FOR EXPUNGED ASSETS/MAKE A MODAL TO ALERT EXPUNGED ASSETS.
+
+FOR CONTRACTS:
+- Upgrade MM contracts & check collateral rate assurance works
+
+- Volatility List Upgrades
+-- Remove unused collateral from contract state
+-- Test Vol Index > 1 for a dynamic LTV future (will likely cap max LTV change per week)
+-- Use for individualized rates (Make sure IR and Cap shrinks aren't multiplicative)(Maybe just shift IR calcs to use the rate from vol OR cap overages, not both)
+-- Create query for vol state
+
+- Abstract debt token logic
+-- Oracle contract
+-- Swap contract
+
+- Fuzzing 
+- MM Vault enforces 50/50 LP ratio on deposits (ensures revenue is efficiently incentivizing deeper liquidity)
+- Neutron migration 
+
+- Add limit order price to Loop intent
+- Add "take initial out" strat
+
 
 Permissionless Iso-Market Growth Aid
 - No fees (add fees later past a borrow threshold)
@@ -20,28 +42,6 @@ Permissionless Iso-Market Growth Aid
 - Add socials and manager names. add flag if there is none of either.
 ---------
 
-- If liquidations error with our "False positive" parse, remove that position from the liquidation execution. This will require us to sim each liquidation separately or randomize which one gets removed to test.
-
-- //FIX SUPPLY CAP ERRORS FOR EXPUNGED ASSETS/MAKE A MODAL TO ALERT EXPUNGED ASSETS.
-
-FOR CONTRACTS:
-- Add collateral assurance check similar to VT checks
-
-- Abstract debt token logic
--- Oracle contract
--- Swap contract
-
-- Manage Market liquidation fulfillment
-
-- Fuzzing 
-- MM Vault enforces 50/50 LP ratio on deposits (ensures revenue is efficiently incentivizing deeper liquidity)
-- Neutron migration 
-
-- Add limit order price to Loop intent
-
-Tweets:
-- Personal: Intro to multiplying your position
-- Protocol: Next steps -> collateral removal & lowering rates
 
 
 

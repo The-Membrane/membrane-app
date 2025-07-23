@@ -172,7 +172,7 @@ const ManagedMarketAction = ({
                 index={selectedTab}
                 onChange={handleTabChange}
                 variant="unstyled"
-                w="84vw"
+                w="100%"
             >
                 <TabList
                     bg="transparent"
@@ -182,7 +182,8 @@ const ManagedMarketAction = ({
                     py={1}
                     paddingInlineEnd={"0"}
                     display="flex"
-                    justifyContent="space-between"
+                    justifyContent="center"
+                    gap={{base: "13%", md: "20%"}}
                 >
                     {actionLabels.map((label, idx) => (
                         <Tab

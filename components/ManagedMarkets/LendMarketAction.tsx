@@ -220,7 +220,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
     const { action: lend } = useLend({
         marketAddress: marketAddress,
         lendState: lendState,
-        vaultTokenBalance,
+        vaultTokenBalance: shiftDigits(vaultTokenBalance, 12).toString(),
         withdrawMax,
         run: true,
     });

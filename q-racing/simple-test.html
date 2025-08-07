@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Canvas Test</title>
+</head>
+
+<body>
+    <canvas id="testCanvas" width="400" height="300" style="border: 1px solid red;"></canvas>
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Test basic drawing
+        ctx.fillStyle = '#0033ff';
+        ctx.fillRect(0, 0, 100, 100);
+
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(100, 100, 50, 50);
+
+        console.log('Canvas test complete');
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Debug Test</title>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: monospace;
+        }
+
+        canvas {
+            border: 2px solid #0033ff;
+            display: block;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Debug Test</h1>
+    <canvas id="debugCanvas" width="720" height="720"></canvas>
+    <div id="info"></div>
+
+    <script type="module">
+        import { track } from './sample-track.js';
+
+        const canvas = document.getElementById('debugCanvas');
+        const ctx = canvas.getContext('2d');
+        const info = document.getElementById('info');
+
+        info.innerHTML = `
+            <p>Track size: ${track.length} x ${track[0].length}</p>
+            <p>Canvas size: ${canvas.width} x ${canvas.height}</p>
+        `;
+
+        // Test 1: Basic drawing
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(0, 0, 100, 100);
+
+        // Test 2: Draw some walls manually
+        ctx.fillStyle = '#0033ff';
+        for (let i = 0; i < 10; i++) {
+            ctx.fillRect(i * 24, 0, 24, 24);
+        }
+
+        // Test 3: Draw the actual track
+        ctx.fillStyle = '#00ff00';
+        for (let y = 0; y < track.length; y++) {
+            for (let x = 0; x < track[y].length; x++) {
+                if (track[y][x] === 'W') {
+                    ctx.fillRect(x * 24, y * 24, 24, 24);
+                }
+            }
+        }
+
+        console.log('Debug test complete');
+    </script>
+</body>
+
+</html>

@@ -13,21 +13,38 @@ Make the Control Room... (Make Money Room)
 - //FIX SUPPLY CAP ERRORS FOR EXPUNGED ASSETS/MAKE A MODAL TO ALERT EXPUNGED ASSETS.
 
 FOR CONTRACTS:
-- Upgrade MM contracts & check collateral rate assurance works
-
 - Volatility List Upgrades
 -- Remove unused collateral from contract state
 -- Test Vol Index > 1 for a dynamic LTV future (will likely cap max LTV change per week)
 -- Use for individualized rates (Make sure IR and Cap shrinks aren't multiplicative)(Maybe just shift IR calcs to use the rate from vol OR cap overages, not both)
 -- Create query for vol state
 
-- Abstract debt token logic
--- Oracle contract
--- Swap contract
+(Abstract debt token logic)
+- Oracle contract
+-- Test MM oracle contract
+- Swap contract
+-- Make 
+- tokenfactory contract
+-- Make
+- Upgrade Market Manager to add oracle and router additions on market creation (Both contracts use market address to fetch specific state for prices & swap routes)
+
+- Debt usage
+-- Test
+
+(Post-Upgrade)
+- Change optional fields to non-optional & remove osmosis_proxy from Config
+
+
+(App changes post-abstract debt changes)
+- Update market instantiation to add new contracts to params (swap, oracle, tokenfactory)
+-- And new oracle info (Collatereal & debt)
 
 - Fuzzing 
 - MM Vault enforces 50/50 LP ratio on deposits (ensures revenue is efficiently incentivizing deeper liquidity)
+- Figure out MM LP migration to lower fee tier 
+
 - Neutron migration 
+
 
 - Add limit order price to Loop intent
 - Add "take initial out" strat

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-Racing Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+        }
+
+        #canvas {
+            border: 2px solid #0033ff;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .file-input {
+            margin: 10px;
+        }
+
+        .instructions {
+            text-align: center;
+            margin: 20px 0;
+            color: #ccc;
+            font-size: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="controls">
+        <input type="file" id="logFile" class="file-input" accept=".json">
+        <div class="instructions">
+            Space: Pause/Play | ← →: Step | R: Restart
+        </div>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script src="maze.js"></script>
+    <script src="replay.js"></script>
+    <script src="sample-track.js"></script>
+    <script src="sample-log.js"></script>
+    <script>
+        'use strict';
+
+        const { startReplay } = window;
+        const { track, playByPlay } = window;
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size based on track dimensions
+        canvas.width = track[0].length * 24;
+        canvas.height = track.length * 24;
+
+        // Default palette
+        const palette = ['#ffff00', '#ff0000', '#00ffff', '#ff00ff', '#ff8000', '#00ff00', '#8000ff', '#ffffff'];
+
+        // Start replay with sample data
+        const replay = startReplay({
+            ctx,
+            track,
+            playByPlay,
+            palette,
+            fps: 60
+        });
+
+        // File input handler
+        document.getElementById('logFile').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const newLog = JSON.parse(e.target.result);
+                        replay.replaceLog(newLog);
+                        replay.restart();
+                    } catch (error) {
+                        console.error('Invalid JSON file:', error);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+    </script>
+</body>
+
+</html>

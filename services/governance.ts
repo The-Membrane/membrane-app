@@ -16,9 +16,11 @@ import { num } from '@/helpers/num'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
+import useAppState from '@/persisted-state/useAppState'
 
 export const useGovernanceClient = () => {
-  const { data: cosmWasmClient } = useCosmWasmClient()
+  const { appState } = useAppState()
+  const { data: cosmWasmClient } = useCosmWasmClient(appState.rpcUrl)
 
   return useQuery({
     queryKey: ['gov_client', cosmWasmClient],

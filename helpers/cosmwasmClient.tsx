@@ -1,16 +1,13 @@
-import { rpcUrl, stargazeRPCUrl } from '@/config/defaults'
+import { stargazeRPCUrl } from '@/config/defaults'
 import { useQuery } from "@tanstack/react-query"
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import useAppState from '@/persisted-state/useAppState';
 
-export const useCosmWasmClient = () => {
-  const { appState } = useAppState()
-  const RPCUrl = appState?.rpcUrl || rpcUrl
+export const useCosmWasmClient = (rpcUrl: string) => {
 
   return useQuery({
-    queryKey: ['cosmwasm_client', RPCUrl],
+    queryKey: ['cosmwasm_client', rpcUrl],
     queryFn: async () => {
-      return getCosmWasmClient(RPCUrl)
+      return getCosmWasmClient(rpcUrl)
     },
     // enabled: true,
     // You might want to add staleTime to prevent unnecessary refetches

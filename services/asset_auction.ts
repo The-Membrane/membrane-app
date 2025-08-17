@@ -4,10 +4,12 @@ import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { AuctionQueryClient } from '@/contracts/codegen/auction/Auction.client'
 import { FeeAuction } from '@/contracts/codegen/auction/Auction.types'
 import { useQuery } from '@tanstack/react-query'
+import useAppState from '@/persisted-state/useAppState'
 
 
 export const useAssetAuctionClient = () => {
-  const { data: cosmWasmClient } = useCosmWasmClient()
+  const { appState } = useAppState()
+  const { data: cosmWasmClient } = useCosmWasmClient(appState.rpcUrl)
 
   return useQuery({
     queryKey: ['asset_auction_client', cosmWasmClient],

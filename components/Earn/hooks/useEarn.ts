@@ -6,6 +6,7 @@ import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
+import useAppState from '@/persisted-state/useAppState'
 
 import contracts from '@/config/contracts.json'
 import { EarnMsgComposer } from '@/contracts/codegen/earn/Earn.message-composer'
@@ -24,6 +25,8 @@ const useEarn = () => {
   const usdcAsset = useAssetBySymbol('USDC')
   const earnUSDCAsset = useAssetBySymbol('earnUSDC')
   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: vaultInfo } = useVaultInfo()
 
   const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
@@ -42,7 +45,8 @@ const useEarn = () => {
       earnUSDCAsset,
       underlyingUSDC,
       earnUSDCBalance,
-      vaultInfo?.debtAmount
+      vaultInfo?.debtAmount,
+      appState.rpcUrl
     ],
     queryFn: () => {
       if (!address || !earnUSDCAsset || !usdcAsset) { console.log("earn exit early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance, vaultInfo?.debtAmount); return { msgs: [] } }

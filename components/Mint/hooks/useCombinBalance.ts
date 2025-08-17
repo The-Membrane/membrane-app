@@ -7,6 +7,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { getPositions } from '@/services/cdp'
 import { useMemo } from 'react'
 import useMintState from './useMintState'
+import useAppState from '@/persisted-state/useAppState'
 
 export type AssetWithBalance = Asset & {
   sliderValue?: number
@@ -23,10 +24,11 @@ export type AssetWithBalance = Asset & {
 }
 
 const useCombinBalance = (positionIndex: number = 0) => {
+  const { appState } = useAppState()
   const { data: prices } = useOraclePrice()
   const { data: balances } = useBalance()
   const { data: basketPositions } = useUserPositions()
-  const { data: basket } = useBasket()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: basketAssets } = useBasketAssets()
 
   return useMemo(() => {

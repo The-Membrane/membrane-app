@@ -3,9 +3,11 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { getBorrowLTV, getDebt, getLTV, getPositions, getTVL } from '@/services/cdp'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import useAppState from '@/persisted-state/useAppState'
 
 const useInitialVaultSummary = (positionIndex: number = 0) => {
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
   const { data: basketAssets } = useBasketAssets()

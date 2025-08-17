@@ -1,7 +1,7 @@
 import contracts from '@/config/contracts.json'
 import { Addr } from '@/contracts/generated/positions/Positions.types'
 import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient'
-import { StakingClient, StakingQueryClient } from '@/contracts/generated/staking/Staking.client'
+import { StakingClient, StakingQueryClient } from '@/contracts/codegen/staking/Staking.client'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { coin } from '@cosmjs/amino'
 import { LiqAsset } from '@/contracts/codegen/staking/Staking.types'
@@ -12,9 +12,11 @@ import { num } from '@/helpers/num'
 import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
 import { useQuery } from '@tanstack/react-query'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import useAppState from '@/persisted-state/useAppState'
 
 export const useStakingClient = () => {
-  const { data: cosmWasmClient } = useCosmWasmClient()
+  const { appState } = useAppState()
+  const { data: cosmWasmClient } = useCosmWasmClient(appState.rpcUrl)
 
   return useQuery({
     queryKey: ['staking_client', cosmWasmClient],

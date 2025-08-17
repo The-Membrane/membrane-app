@@ -8,6 +8,7 @@ import { BasketAsset, getAssetRatio, getDebt, getPositions, getRateCost, getTVL 
 import { shiftDigits } from '@/helpers/math'
 import { Price } from './oracle'
 import { useQuery } from '@tanstack/react-query'
+import useAppState from '@/persisted-state/useAppState'
 
 export type PurchaseIntent = {
   desired_asset: string,
@@ -31,7 +32,8 @@ export type IntentResponse = {
   }
 }
 export const useEarnClient = () => {
-  const { data: cosmWasmClient } = useCosmWasmClient()
+  const { appState } = useAppState()
+  const { data: cosmWasmClient } = useCosmWasmClient(appState.rpcUrl)
 
   return useQuery({
     queryKey: ['earn_client', cosmWasmClient],

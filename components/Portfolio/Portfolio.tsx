@@ -130,7 +130,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const { address: userAddress } = useWallet(chainName);
   const { data: uxBoosts } = useUserUXBoosts(marketAddress, collateralDenom, userAddress ?? '');
   const [spread, setSpread] = useState(0.01);
-  
+
   // Middleman state variables for immediate input updates
   const [inputCollateralAmount, setInputCollateralAmount] = useState(managedActionState.collateralAmount || '');
   const [inputTakeProfit, setInputTakeProfit] = useState(managedActionState.takeProfit || '');
@@ -139,7 +139,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const [inputClosePercent, setInputClosePercent] = useState(managedActionState.closePercent || '');
   const [inputBorrowAmount, setInputBorrowAmount] = useState(managedActionState.borrowAmount || '');
   const [inputRepayAmount, setInputRepayAmount] = useState(managedActionState.repayAmount || '');
-  
+
   // Max multiplier
   const maxMultiplier = 1 / (1 - (maxLTV - currentLTV));
 
@@ -164,7 +164,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const handleCollateral = React.useCallback((v: string) => {
     // Update middleman state immediately
     setInputCollateralAmount(v);
-    
+
     // Update managedActionState after 600ms delay
     if (timeoutRefs.current.collateral) {
       clearTimeout(timeoutRefs.current.collateral);
@@ -177,7 +177,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const handleTP = React.useCallback((v: string) => {
     // Update middleman state immediately
     setInputTakeProfit(v);
-    
+
     // Update managedActionState after 600ms delay
     if (timeoutRefs.current.takeProfit) {
       clearTimeout(timeoutRefs.current.takeProfit);
@@ -190,7 +190,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const handleSL = React.useCallback((v: string) => {
     // Update middleman state immediately
     setInputStopLoss(v);
-    
+
     // Update managedActionState after 600ms delay
     if (timeoutRefs.current.stopLoss) {
       clearTimeout(timeoutRefs.current.stopLoss);
@@ -203,7 +203,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const handleMultiplier = React.useCallback((v: number) => {
     // Update middleman state immediately
     setInputMultiplier(Math.min(v, maxMultiplier).toFixed(2));
-    
+
     // Update managedActionState after 600ms delay
     if (timeoutRefs.current.multiplier) {
       clearTimeout(timeoutRefs.current.multiplier);
@@ -216,7 +216,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const handleClosePercent = React.useCallback((v: number) => {
     // Update middleman state immediately
     setInputClosePercent(v.toString());
-    
+
     // Update managedActionState after 600ms delay
     if (timeoutRefs.current.closePercent) {
       clearTimeout(timeoutRefs.current.closePercent);
@@ -285,10 +285,10 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   //The slippage error contains "max spread assertion"
   useMemo(() => {
     if (action.simulate.error && (action.simulate.error.message.includes("max spread assertion") || action.simulate.error.message.includes("token amount calculated"))) {
-        setSpread((prev) => prev + 0.01)
-        console.log("Increasing spread to", spread + 0.01)
+      setSpread((prev) => prev + 0.01)
+      console.log("Increasing spread to", spread + 0.01)
     }
-}, [action.simulate.error, spread])
+  }, [action.simulate.error, spread])
   // Determine close type for radio
   const closeType = Number(managedActionState.closePercent) === 100 ? 'full' : 'partial';
   // console.log('closePercent:', managedActionState.closePercent, 'closeType:', closeType);
@@ -301,9 +301,9 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
       if (!isNaN(loopLtv) && loopLtv !== 0 && loopLtv !== 1) {
         multiplierPlaceholder = (1 / (1 - loopLtv)).toFixed(2);
       }
-    } catch {}
+    } catch { }
   }
-  
+
   return (
     <VStack spacing={6} align="stretch" w="100%">
       <Box w="100%" bg="#11161e" borderRadius="lg" p={4}>
@@ -333,16 +333,16 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
               <Image src={asset?.logo} alt={asset?.symbol} boxSize="24px" />
               <Text color="white" fontWeight="bold">{asset?.symbol}</Text>
             </HStack>
-              <Text
-                color="teal.300"
-                fontSize="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                _hover={{ textDecoration: 'underline' }}
-                onClick={handleMax}
-              >
-                Max
-              </Text>
+            <Text
+              color="teal.300"
+              fontSize="sm"
+              fontWeight="bold"
+              cursor="pointer"
+              _hover={{ textDecoration: 'underline' }}
+              onClick={handleMax}
+            >
+              Max
+            </Text>
           </VStack>
         </HStack>
       </Box>
@@ -561,7 +561,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
                 <Text color="white" fontWeight="bold">{managedActionState.collateralAmount} {asset?.symbol}</Text>
               </HStack>
             )}
-            { managedActionState.multiplier && managedActionState.multiplier != 1 && (
+            {managedActionState.multiplier && managedActionState.multiplier != 1 && (
               <HStack justify="space-between">
                 <Text color="whiteAlpha.700">Change Multiplier to</Text>
                 <Text color="white" fontWeight="bold">{Number(managedActionState.multiplier).toFixed(2)}x</Text>
@@ -623,7 +623,7 @@ const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPri
   const debt = num(shiftDigits(position.debt_amount, -6));
   const collateral = num(shiftDigits(position.collateral_amount, -(asset?.decimal || 6)));
   const cdtPrice = new BigNumber(cdtMarketPrice || 0);
-  
+
   const currentLTV = collateral.gt(0) && assetPrice.gt(0) ? debt.times(cdtPrice).div(collateral.times(assetPrice)) : new BigNumber(0);
 
   // Calculate liquidation price (if possible)
@@ -643,9 +643,9 @@ const PositionCard = ({ position, chainName, assets, marketName, maxLTV, debtPri
           <Image src={asset?.logo} alt={asset?.symbol} boxSize="36px" borderRadius="full" bg="#181C23" />
           <VStack align="start" spacing={0}>
             <NextLink href={`/${chainName}/isolated/${editState.marketAddress}/${asset?.symbol || editState.asset}?tab=multiply`}>
-              <Text 
-                color="whiteAlpha.700" 
-                fontSize="sm" 
+              <Text
+                color="whiteAlpha.700"
+                fontSize="sm"
                 cursor="pointer"
                 _hover={{ color: 'teal.300', textDecoration: 'underline' }}
               >
@@ -738,14 +738,14 @@ const MintCard = ({ position, chainName, cdtMarketPrice }: { position: any, chai
       {/* Top section: using a generic icon for now */}
       <HStack w="100%" justify="space-between" align="center" mb={2}>
         <HStack spacing={3} align="center">
-            <Image src="/images/cdt.svg" alt="CDT Logo" boxSize="36px" />
-            <VStack align="start" spacing={0}>
-                <Text color="whiteAlpha.700" fontSize="sm">CDP</Text>
-                <Text color="white" fontWeight="bold" fontSize="xl">#{position.positionNumber}</Text>
-            </VStack>
+          <Image src="/images/cdt.svg" alt="CDT Logo" boxSize="36px" />
+          <VStack align="start" spacing={0}>
+            <Text color="whiteAlpha.700" fontSize="sm">CDP</Text>
+            <Text color="white" fontWeight="bold" fontSize="xl">#{position.positionNumber}</Text>
+          </VStack>
         </HStack>
         <HStack width="30%">
-            <Button
+          <Button
             size="xs"
             variant="ghost"
             colorScheme="gray"
@@ -760,10 +760,10 @@ const MintCard = ({ position, chainName, cdtMarketPrice }: { position: any, chai
             pt={2}
             minW={"auto"}
             h={"24px"}
-            >
+          >
             Edit
-            </Button>
-            <Button
+          </Button>
+          <Button
             size="xs"
             variant="ghost"
             colorScheme="gray"
@@ -776,9 +776,9 @@ const MintCard = ({ position, chainName, cdtMarketPrice }: { position: any, chai
             pt={2}
             minW={"auto"}
             h={"24px"}
-            >
+          >
             Close
-            </Button>
+          </Button>
         </HStack>
       </HStack>
       <Divider my={2} />
@@ -803,12 +803,12 @@ const MintCard = ({ position, chainName, cdtMarketPrice }: { position: any, chai
       <Modal isOpen={isOpen} onClose={onClose} isCentered size="xl">
         <ModalOverlay />
         <NeuroCloseModal
-            isOpen={isOpen}
-            onClose={onClose}
-            position={position.position}
-            debtAmount={debtAmount}
-            positionNumber={position.positionNumber}
-            cdtMarketPrice={cdtMarketPrice}
+          isOpen={isOpen}
+          onClose={onClose}
+          position={position.position}
+          debtAmount={debtAmount}
+          positionNumber={position.positionNumber}
+          cdtMarketPrice={cdtMarketPrice}
         />
       </Modal>
     </Card>
@@ -830,7 +830,7 @@ const CheckClaims = () => {
   return (
     <Box mt={10} mb={10} display="flex" justifyContent="center">
       {!enabled ? (
-        <Button  onClick={() => setEnabled(true)} w="20%" minW={"fit-content"}>
+        <Button onClick={() => setEnabled(true)} w="20%" minW={"fit-content"}>
           Check for Claims
         </Button>
       ) : (
@@ -849,15 +849,15 @@ const Portfolio: React.FC = () => {
   // Get chainName and userAddress from hooks
   const { chainName } = useChainRoute();
   const { address: userAddress } = useWallet(chainName);
-  const { data: cosmwasmClient } = useCosmWasmClient();
-  const assets = useAssets(chainName);
   const { appState } = useAppState();
+  const { data: cosmwasmClient } = useCosmWasmClient(appState.rpcUrl);
+  const assets = useAssets(chainName);
   const allMarketsData = useAllMarkets();
 
   // Get CDP positions
   const { data: basketPositions } = useUserPositions();
   const { data: userIntents } = useUserBoundedIntents();
-  const { data: basket } = useBasket();
+  const { data: basket } = useBasket(appState.rpcUrl);
 
   const neuroGuardIntents = useMemo(() => {
     if (!userIntents?.[0]?.intent?.intents?.purchase_intents) return [];
@@ -1083,11 +1083,11 @@ const Portfolio: React.FC = () => {
       <Box w="90vw" mx="auto" mt={0}>
         {/* Portfolio Title, Stats, Tabs, etc. */}
         <CheckClaims />
-        <Stack 
-          direction={{ base: 'column', lg: 'row' }} 
-          align={{ base: 'flex-start', lg: 'center' }} 
-          justify="space-between" 
-          mb={8} 
+        <Stack
+          direction={{ base: 'column', lg: 'row' }}
+          align={{ base: 'flex-start', lg: 'center' }}
+          justify="space-between"
+          mb={8}
           w="100%"
           spacing={{ base: 4, lg: 0 }}
         >
@@ -1178,7 +1178,7 @@ const Portfolio: React.FC = () => {
             </Box>
             {/* <Divider my={0} /> */}
             <Box flex={1} overflowY="auto" px={4} py={2}>
-            <Text
+              <Text
                 color="teal.300"
                 cursor="pointer"
                 onClick={() => setIsLeaderboardOpen(!isLeaderboardOpen)}

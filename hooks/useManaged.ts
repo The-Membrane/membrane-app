@@ -12,9 +12,11 @@ import { num } from '@/helpers/num'
 import { useChainRoute } from './useChainRoute'
 import React from 'react'
 import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagedMarketUnderlyingCDT, getManagedUXBoosts, getManagers, getMarketClaimTracker, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getTotalBorrowed, getUserPositioninMarket, getUserUXBoostsinMarket } from '@/services/managed'
+import useAppState from '@/persisted-state/useAppState'
 
 export const useManagers = () => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
 
     return useQuery({
         queryKey: ['market_managers', client],
@@ -29,7 +31,8 @@ export const useManagers = () => {
 }
 
 export const useManagedMarketContracts = (manager: string) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
 
     return useQuery({
         queryKey: ['managed_market_contracts', client, manager],
@@ -44,7 +47,8 @@ export const useManagedMarketContracts = (manager: string) => {
 }
 
 export const useManagedMarketUnderlyingCDT = (marketContract: string, vault_token_amount: string, is_junior: boolean) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
 
     return useQuery({
         queryKey: ['managed_market_underlying_cdt', client, marketContract, vault_token_amount],
@@ -57,7 +61,8 @@ export const useManagedMarketUnderlyingCDT = (marketContract: string, vault_toke
 }
 
 export const useManagedConfig = (marketContract: string) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
 
     return useQuery({
         queryKey: ['managed_market_config', client, marketContract],
@@ -72,7 +77,8 @@ export const useManagedConfig = (marketContract: string) => {
 }
 
 export const useManagedUXBoosts = (marketContract: string, collateral_denom: string) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
 
     return useQuery({
         queryKey: ['managed_market_ux_boosts', client, marketContract, collateral_denom],
@@ -85,7 +91,8 @@ export const useManagedUXBoosts = (marketContract: string, collateral_denom: str
 }
 
 export const useManagedMarket = (marketContract: string, collateral_denom: string) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
 
     return useQuery({
         queryKey: ['managed_market_params', client, marketContract, collateral_denom],
@@ -98,7 +105,8 @@ export const useManagedMarket = (marketContract: string, collateral_denom: strin
 }
 
 export const useTotalBorrowed = (marketContract: string) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
 
     return useQuery({
         queryKey: ['managed_market_total_borrowed', client, marketContract],
@@ -107,7 +115,8 @@ export const useTotalBorrowed = (marketContract: string) => {
 }
 
 export const useMarketCollateralDenoms = (marketContract: string) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
 
     return useQuery({
         queryKey: ['managed_market_collateral_denoms', client, marketContract],
@@ -135,8 +144,9 @@ function usePromise<T>(promise: Promise<T> | null) {
 }
 
 export const useAllMarkets = () => {
+    const { appState } = useAppState()
     const { data: managers } = useManagers();
-    const { data: client } = useCosmWasmClient();
+    const { data: client } = useCosmWasmClient(appState.rpcUrl);
 
     const markets = useMemo(() => {
         if (!managers || !client) return null;
@@ -169,7 +179,8 @@ export const useAllMarkets = () => {
 
 //Use market collateral price
 export const useMarketCollateralPrice = (marketContract: string, collateral_denom: string) => {
-    const { data: client } = useCosmWasmClient();
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl);
     return useQuery({
         queryKey: ['managed_market_collateral_price', client, marketContract, collateral_denom],
         queryFn: async () => getMarketCollateralPrice(client, marketContract, collateral_denom),
@@ -178,7 +189,8 @@ export const useMarketCollateralPrice = (marketContract: string, collateral_deno
 
 //Use market debt price
 export const useMarketDebtPrice = (marketContract: string) => {
-    const { data: client } = useCosmWasmClient();
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl);
     return useQuery({
         queryKey: ['managed_market_debt_price', client, marketContract],
         queryFn: async () => getMarketDebtPrice(client, marketContract),
@@ -187,7 +199,8 @@ export const useMarketDebtPrice = (marketContract: string) => {
 
 //Use market collateral cost
 export const useMarketCollateralCost = (marketContract: string, collateral_denom: string) => {
-    const { data: client } = useCosmWasmClient();
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl);
     return useQuery({
         queryKey: ['managed_market_collateral_cost', client, marketContract, collateral_denom],
         queryFn: async () => getMarketCollateralCost(client, marketContract, collateral_denom),
@@ -196,7 +209,8 @@ export const useMarketCollateralCost = (marketContract: string, collateral_denom
 
 //Use market claim tracker
 export const useMarketClaimTracker = (marketContract: string, is_junior: boolean) => {
-    const { data: client } = useCosmWasmClient();
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl);
     return useQuery({
         queryKey: ['managed_market_claim_tracker', client, marketContract, is_junior],
         queryFn: async () => getMarketClaimTracker(client, marketContract, is_junior),
@@ -206,7 +220,8 @@ export const useMarketClaimTracker = (marketContract: string, is_junior: boolean
 //Use UserPostion
 export const useUserPositioninMarket = (marketContract: string, collateral_denom: string, user: string) => {
     // console.log("useUserPositioninMarket", marketContract, collateral_denom, user);
-    const { data: client } = useCosmWasmClient();
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl);
     return useQuery({
         queryKey: ['managed_market_user_position', client, marketContract, collateral_denom, user],
         queryFn: async () => getUserPositioninMarket(client, marketContract, collateral_denom, user),
@@ -215,7 +230,8 @@ export const useUserPositioninMarket = (marketContract: string, collateral_denom
 
 //Use UserUXBoosts
 export const useUserUXBoosts = (marketContract: string, collateral_denom: string, user: string) => {
-    const { data: client } = useCosmWasmClient();
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl);
     return useQuery({
         queryKey: ['managed_market_user_ux_boosts', client, marketContract, collateral_denom, user],
         queryFn: async () => getUserUXBoostsinMarket(client, marketContract, collateral_denom, user),

@@ -22,6 +22,7 @@ import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { getAssetByDenom } from '@/helpers/chain'
 import { deleteCookie, getCookie, setCookie } from '@/helpers/cookies'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import useAppState from '@/persisted-state/useAppState'
 
 export type UserIntentData = {
   vault_tokens: string,
@@ -84,7 +85,8 @@ function redistributeYield(data: UserIntentData, positionIdToRemove: number): Us
 
 const useNeuroClose = ({ position, onSuccess, ledger, run }: { position: PositionResponse, onSuccess: () => void, ledger: boolean, run: boolean }) => {
   const { address } = useWallet()
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const assets = useCollateralAssets()
   const { neuroState } = useNeuroState()
   const { data: userIntents } = useUserBoundedIntents()

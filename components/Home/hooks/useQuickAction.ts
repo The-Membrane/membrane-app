@@ -20,12 +20,12 @@ import useAppState from '@/persisted-state/useAppState'
 
 const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  const { appState } = useAppState();
+  const { appState } = useAppState()
 
   // const { summary = [] } = quickActionState
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
-  const { data: basket } = useBasket()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
   // const usdcAsset = useAssetBySymbol('USDC')

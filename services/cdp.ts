@@ -16,8 +16,8 @@ import { stableSymbols } from '@/config/defaults'
 import { useQuery } from '@tanstack/react-query'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
-export const useCDPClient = () => {
-  const { data: cosmWasmClient } = useCosmWasmClient()
+export const useCDPClient = (rpcUrl: string) => {
+  const { data: cosmWasmClient } = useCosmWasmClient(rpcUrl)
 
   return useQuery({
     queryKey: ['cdp_client', cosmWasmClient],
@@ -496,7 +496,7 @@ export const calculateVaultSummary = ({
   }
 }
 
-export const getProjectTVL = ({ basket, prices, chainName }: { basket?: Basket; prices?: Price[]; chainName: string  }) => {
+export const getProjectTVL = ({ basket, prices, chainName }: { basket?: Basket; prices?: Price[]; chainName: string }) => {
   if (!basket || !prices) return 0
   const positions = basket?.collateral_types.map((asset) => {
     //@ts-ignore

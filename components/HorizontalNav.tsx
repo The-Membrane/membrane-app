@@ -53,9 +53,9 @@ const HorizontalNav = () => {
             zIndex={100}
         >
             {/* Left: Logo, Title, Page Selector or Hamburger */}
-                {/* <Stack spacing={0} alignContent={"start"}> */}
-                    {/* <Logo /> */}
-                    {/* <Text
+            {/* <Stack spacing={0} alignContent={"start"}> */}
+            {/* <Logo /> */}
+            {/* <Text
                         color={colors.tabBG}
                         fontSize="2xs"
                         alignSelf={"center"}
@@ -66,36 +66,36 @@ const HorizontalNav = () => {
                     >
                         Beta
                     </Text> */}
-                {/* </Stack> */}
+            {/* </Stack> */}
 
-                {/* Desktop Nav */}
-                <HStack spacing={1} display={{ base: 'none', lg: 'flex' }}>
-                    {navItems.map((item) => (
-                        <Button
-                            key={item.label}
-                            as={NextLink}
-                            href={`/${chainName}${item.href}`}
-                            variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                            color="white"
-                            fontWeight="semibold"
-                            borderRadius="full"
-                            // px={{ base: 3, md: 6 }}
-                            py={2}
-                            bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
-                            _hover={{ bg: 'whiteAlpha.300' }}
-                            fontSize="13px"
-                            w={"fit-content"}
-                        >
-                            {item.label}
-                        </Button>
-                    ))}
-                </HStack>
-            
+            {/* Desktop Nav */}
+            <HStack spacing={1} display={{ base: 'none', lg: 'none' }}>
+                {navItems.map((item) => (
+                    <Button
+                        key={item.label}
+                        as={NextLink}
+                        href={`/${chainName}${item.href}`}
+                        variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
+                        color="white"
+                        fontWeight="semibold"
+                        borderRadius="full"
+                        // px={{ base: 3, md: 6 }}
+                        py={2}
+                        bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
+                        _hover={{ bg: 'whiteAlpha.300' }}
+                        fontSize="13px"
+                        w={"fit-content"}
+                    >
+                        {item.label}
+                    </Button>
+                ))}
+            </HStack>
+
             {/* Hamburger for mobile */}
             <IconButton
                 aria-label="Open menu"
                 icon={<FaBars />}
-                display={{ base: 'flex', lg: 'none' }}
+                display={{ base: 'flex', lg: 'flex' }}
                 onClick={onOpen}
                 bg="transparent"
                 color="white"
@@ -105,7 +105,7 @@ const HorizontalNav = () => {
                 w={"fit-content"}
                 justifySelf={"left"}
             />
-            
+
             {/* Right: Chain Selector & Connect Wallet */}
             <HStack spacing={{ base: 2, md: 4 }} align="center">
                 <Menu>
@@ -128,9 +128,9 @@ const HorizontalNav = () => {
                                 bg={chain.name === currentChain.name ? 'whiteAlpha.200' : 'transparent'}
                                 _hover={{ bg: 'whiteAlpha.300' }}
                                 color="white"
-                                isDisabled={true}
+                                isDisabled={false}
                                 opacity={0.5}
-                                cursor="not-allowed"
+                                cursor="pointer"
                             >
                                 <HStack>
                                     <Image src={chain.logo} alt={`${chain.name} Logo`} boxSize={6} />

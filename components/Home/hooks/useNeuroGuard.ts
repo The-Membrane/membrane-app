@@ -26,8 +26,8 @@ EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useNeuroGuard = ({ onSuccess, run, asset }: { onSuccess: () => void, run: boolean, asset: any }) => {
   const { address } = useWallet()
-  const { data: basket } = useBasket()
   const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { neuroState } = useNeuroState()
 
   // console.log('above neuro', asset);

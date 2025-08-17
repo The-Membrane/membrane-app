@@ -24,6 +24,13 @@ export const supportedChains: ChainConfig[] = [
         addressPrefix: 'neutron'
     },
     {
+        name: 'neutrontestnet',
+        logo: '/images/ntrn.svg',
+        chainId: 'pion-1',
+        rpcUrl: 'https://rpc-celatone.pion-1.ntrn.tech',
+        addressPrefix: 'neutron'
+    },
+    {
         name: 'cosmoshub',
         logo: '/images/atom.svg',
         chainId: 'cosmoshub-4',

@@ -1,11 +1,13 @@
 import { getAssetByDenom, getAssets } from '@/helpers/chain'
 import useAssets, { useAssetByDenom } from '@/hooks/useAssets'
 import { useBasket } from '@/hooks/useCDP'
+import useAppState from '@/persisted-state/useAppState'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { useMemo } from 'react'
 
-const useCollateralAssets = () => {
-  const { data: basket } = useBasket()
+export const useCollateralAssets = () => {
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { chainName } = useChainRoute()
   const assets = useAssets(chainName)
   // console.log("assets in collateral assets", assets)

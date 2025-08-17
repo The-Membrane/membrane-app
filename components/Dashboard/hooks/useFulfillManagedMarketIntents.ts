@@ -10,6 +10,7 @@ import { queryClient } from '@/pages/_app'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import useAppState from '@/persisted-state/useAppState'
 
 /**
  * Create a loop position execution message.
@@ -77,17 +78,18 @@ const createClosePositionMsg = (
 export const useFulfillManagedMarketIntents = (
   run = true,
 ) => {
-  const { data: client } = useCosmWasmClient()
+  const { appState } = useAppState()
+  const { data: client } = useCosmWasmClient(appState.rpcUrl)
   const markets = useAllMarkets()
   const { chainName } = useChainRoute()
   const { address } = useWallet(chainName)
 
-  
+
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[] | undefined
     status: 'pending' | 'finished' | 'error'
-}
-const { data: queryData } = useQuery<QueryData>({
+  }
+  const { data: queryData } = useQuery<QueryData>({
     queryKey: ['fulfill_managed_market_intents', client, markets, address, run],
     queryFn: async () => {
       console.log(`[Intents] Query function called - run: ${run}, client: ${!!client}, markets: ${!!markets}, address: ${!!address}`)
@@ -137,7 +139,7 @@ const { data: queryData } = useQuery<QueryData>({
           console.log(`[Intents]       Fetching UX boosts & collateral price`)
           let uxBoosts: any[] = []
           let collateralPriceResp: any = null
-          
+
           try {
             const [uxBoostsResult, collateralPriceResult] = await Promise.all([
               getManagedUXBoosts(client, marketContract, collateralDenom),
@@ -241,18 +243,18 @@ const { data: queryData } = useQuery<QueryData>({
   // console.log("msgs", msgs)
 
   const onInitialSuccess = () => {
-      queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
   }
 
   return {
-      action: useSimulateAndBroadcast({
-          msgs,
-          queryKey: ['managed_market_intents_sim', (msgs?.toString() ?? "0")],
-          onSuccess: onInitialSuccess,
-          enabled: !!msgs,
-      }),
+    action: useSimulateAndBroadcast({
       msgs,
-      status,
+      queryKey: ['managed_market_intents_sim', (msgs?.toString() ?? "0")],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs,
+    }),
+    msgs,
+    status,
   }
 }
 

@@ -33,6 +33,7 @@ import { QASummary } from '../Home/QASummary'
 import { colors } from '@/config/defaults'
 import { RedeemButton } from './RedeemButton'
 import RangeBoundLPCard from '../Home/RangeBoundLPCard'
+import useAppState from '@/persisted-state/useAppState'
 
 // const ENTRY_FEE = 0.005
 
@@ -124,7 +125,8 @@ const ActSlider = React.memo(() => {
   const usdcAsset = useAssetBySymbol('USDC')
   const usdcBalance = useBalanceByAsset(usdcAsset)
   const { data: prices } = useOraclePrice()
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
 
   const { action: earn } = useEarn()
@@ -213,7 +215,8 @@ const ActSlider = React.memo(() => {
 const Deposit = () => {
   const { earnState, setEarnState } = useEarnState()
   const { data: prices } = useOraclePrice()
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { action: loop } = useEarnLoop()
   const { action: crankAPR } = useUSDCVaultCrankAPR()
   const usdcAsset = useAssetBySymbol('USDC')

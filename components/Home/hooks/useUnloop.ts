@@ -15,11 +15,13 @@ import useMintState from '@/components/Mint/hooks/useMintState'
 import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSummary'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
+import useAppState from '@/persisted-state/useAppState'
 
 const useUnLoop = (positionIndex: number, desiredWithdrawal?: number) => {
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: prices } = useOraclePrice()
   const cdtAsset = useAssetBySymbol('CDT')
   const walletCDT = useBalanceByAsset(cdtAsset)

@@ -12,6 +12,7 @@ import { getLiquidationMsgs } from '@/helpers/mint'
 import useBidState from '@/components/Bid/hooks/useBidState'
 import useStaked from '@/components/Stake/hooks/useStaked'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import useAppState from '@/persisted-state/useAppState'
 export type Liq = {
   position_id: string
   position_fee: string
@@ -29,7 +30,8 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
 
   const { data: prices } = useOraclePrice()
   const { data: allPositions } = useBasketPositions()
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: basketAssets } = useBasketAssets()
 
   // console.log(" basketAssets", basketAssets)

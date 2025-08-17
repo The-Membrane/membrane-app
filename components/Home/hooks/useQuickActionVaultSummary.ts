@@ -4,9 +4,11 @@ import { calculateVaultSummary } from '@/services/cdp'
 import { useMemo } from 'react'
 import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSummary'
 import useQuickActionState from './useQuickActionState'
+import useAppState from '@/persisted-state/useAppState'
 
 const useQuickActionVaultSummary = () => {
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: collateralInterest } = useCollateralInterest()
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
@@ -16,12 +18,12 @@ const useQuickActionVaultSummary = () => {
 
   //Calc totalvalue
   const totalUsdValue = useMemo(() => {
-    if (!quickActionState?.levAssets || quickActionState?.levAssets.length === 0 ) return 0
-    return quickActionState?.levAssets.map((asset) => asset.sliderValue??0).reduce((a, b) => a + b, 0)??0
+    if (!quickActionState?.levAssets || quickActionState?.levAssets.length === 0) return 0
+    return quickActionState?.levAssets.map((asset) => asset.sliderValue ?? 0).reduce((a, b) => a + b, 0) ?? 0
   }, [quickActionState?.assets])
 
   return useMemo(() => {
-    if (!quickActionState?.levAssets){
+    if (!quickActionState?.levAssets) {
       return {
         debtAmount: 0,
         cost: 0,
@@ -46,7 +48,7 @@ const useQuickActionVaultSummary = () => {
       initialLTV: 0,
       debtAmount: 0,
       initialTVL: 0,
-      basketAssets: basketAssets??[],
+      basketAssets: basketAssets ?? [],
     })
   }, [
     basketPositions,

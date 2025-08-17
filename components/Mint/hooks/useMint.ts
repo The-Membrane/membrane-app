@@ -9,13 +9,15 @@ import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
 import { MAX_CDP_POSITIONS } from '@/config/defaults'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import useAppState from '@/persisted-state/useAppState'
 
 const useMint = () => {
   const { mintState, setMintState } = useMintState()
   const { summary = [] } = mintState
   const { address } = useWallet()
   const { data: basketPositions, ...basketErrors } = useUserPositions()
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { chainName } = useChainRoute()
 
   //Use the current position id or use the basket's next position ID (for new positions)
@@ -44,9 +46,9 @@ const useMint = () => {
       const depositAndWithdraw = getDepostAndWithdrawMsgs({ summary, address, basketPositions, positionId, hasPosition: basketPositions !== undefined && mintState.positionNumber <= basketPositions[0].positions.length })
       // console.log("depositAndWithdraw", depositAndWithdraw)
       //logs for mint msgs
-      console.log("mintAndRepay", 
+      console.log("mintAndRepay",
         address,
-        positionId, mintState?.mint, mintState?.repay )
+        positionId, mintState?.mint, mintState?.repay)
       const mintAndRepay = getMintAndRepayMsgs({
         address,
         positionId,

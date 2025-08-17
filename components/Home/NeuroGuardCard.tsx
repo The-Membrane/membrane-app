@@ -824,7 +824,8 @@ const NeuroGuardCard = () => {
   const { address } = useWallet()
   const { data: basketPositions } = useUserPositions()
 
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   // // console.log("basketPositions", basketPositions)
   const { data: TVL } = useBoundedTVL()
   const { data: userIntents } = useUserBoundedIntents()

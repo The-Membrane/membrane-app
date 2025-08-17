@@ -17,5 +17,8 @@
   "system_discounts": "osmo1p0hvtat69dash8f0w340n2kjdkdfq0ggyp77mr426wpnfwp3tjyqq6a8vr",
   "autoStabilityPool": "osmo1jw6r68y0uhfmqagc7uhtdddctc7wq95pncvrqnvtd47w4hx46p7se9nju5",
   "rangeboundLP": "osmo17rvvd6jc9javy3ytr0cjcypxs20ru22kkhrpwx7j3ym02znuz0vqa37ffx",
-  "marketManager": "osmo1tmqefg7v9zhtj2hlsrtn3mp8zz83x9lxtedlzesnky4c74l4g9ws29dqxr"
+  "marketManager": "osmo1tmqefg7v9zhtj2hlsrtn3mp8zz83x9lxtedlzesnky4c74l4g9ws29dqxr",
+  "car": "neutron1rfrla07l9tvhglwmjvhyrtq8xvr9960qcj2ymcw3lzjm3dgsk7mstyz5ym",
+  "trackManager": "neutron18qetv4pr30czl2uht7y9vysx67rtlcjq22620kwpq274rrxmhgwqfqedee",
+  "raceEngine": "neutron1pgjpppmfdu80wxatt9qr53quhfl59jsyz39v63cp6ul3qudk7aqq30cfkx"
 }

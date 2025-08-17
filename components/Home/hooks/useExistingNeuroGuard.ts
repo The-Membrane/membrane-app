@@ -12,6 +12,7 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { num } from '@/helpers/num'
 import useNeuroState from "./useNeuroState"
 import { useBasket } from "@/hooks/useCDP"
+import useAppState from '@/persisted-state/useAppState'
 
 
 import EventEmitter from 'events';
@@ -20,7 +21,8 @@ EventEmitter.defaultMaxListeners = 25; // Increase the limit
 
 const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: string, onSuccess: () => void, run: boolean }) => {
     const { address } = useWallet()
-    const { data: basket } = useBasket()
+    const { appState } = useAppState()
+    const { data: basket } = useBasket(appState.rpcUrl)
     const { neuroState } = useNeuroState()
 
     //Get cookie for the position_id. If cookie exists, we add the deposit to it.

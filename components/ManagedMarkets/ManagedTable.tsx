@@ -78,6 +78,7 @@ import useMarketCreation from './hooks/useMarketCreation';
 import { usePoolInfo } from '@/hooks/useOsmosis';
 import { STATIC_ORACLE_POOLS } from '@/config/defaults';
 import { useAssetBySymbol } from '@/hooks/useAssets';
+import useAppState from '@/persisted-state/useAppState';
 
 export interface MarketCreateState {
     name: string;
@@ -112,7 +113,8 @@ type TWAPPoolInfo = { pool_id: number; base_asset_denom: string; quote_asset_den
 const ManagedTable = () => {
     const allMarkets = useAllMarkets();
     const { chainName } = useChainRoute();
-    const { data: client } = useCosmWasmClient();
+    const { appState } = useAppState();
+    const { data: client } = useCosmWasmClient(appState.rpcUrl);
     const router = useRouter();
     // ...other top-level hooks as needed
 
@@ -196,45 +198,45 @@ const ManagedTable = () => {
     let allOraclePools: TWAPPoolInfo[] = [];
     let oracles: { name: string; logo: string; poolId: number }[] = [];
     if (createMarketState.osmosisPoolId && poolInfo?.pool) {
-      const inputPoolId = poolInfo?.pool?.id || poolInfo?.pool?.poolId;
-      const inputBaseDenom = poolInfo?.pool?.poolAssets?.[0]?.token?.denom || poolInfo?.pool?.token0;
-      const inputQuoteDenom = poolInfo?.pool?.poolAssets?.[1]?.token?.denom || poolInfo?.pool?.token1;
-      // Create TWAPPoolInfo for inputted pool
-      const inputPoolTwap = inputPoolId && inputBaseDenom && inputQuoteDenom
-        ? { pool_id: Number(inputPoolId), base_asset_denom: inputBaseDenom, quote_asset_denom: inputQuoteDenom }
-        : null;
-      if (inputPoolTwap) {
-        // Only include static pools where base_asset_denom matches the input pool's quote_asset_denom
-        const relevantStaticPools = STATIC_ORACLE_POOLS.filter(
-            pool => pool.base_asset_denom === inputQuoteDenom
-        );
-        allOraclePools = [inputPoolTwap, ...relevantStaticPools];
-      } else {
-        allOraclePools = [];
-      }
-      // Build oracles array for OracleRow (like ManagedMarketInfo)
-      if (allOraclePools.length > 0) {
-        allOraclePools.forEach((pool, i) => {
-          const isLast = i === allOraclePools.length - 1;
-          const baseAsset = getAssetByDenom(pool.base_asset_denom, chainName);
-          oracles.push({
-            name: baseAsset?.symbol || pool.base_asset_denom,
-            logo: baseAsset?.logo || '',
-            poolId: pool.pool_id,
-          });
-          if (isLast) {
-            const quoteAsset = getAssetByDenom(pool.quote_asset_denom, chainName);
-            oracles.push({
-              name: quoteAsset?.symbol || pool.quote_asset_denom,
-              logo: quoteAsset?.logo || '',
-              poolId: pool.pool_id,
+        const inputPoolId = poolInfo?.pool?.id || poolInfo?.pool?.poolId;
+        const inputBaseDenom = poolInfo?.pool?.poolAssets?.[0]?.token?.denom || poolInfo?.pool?.token0;
+        const inputQuoteDenom = poolInfo?.pool?.poolAssets?.[1]?.token?.denom || poolInfo?.pool?.token1;
+        // Create TWAPPoolInfo for inputted pool
+        const inputPoolTwap = inputPoolId && inputBaseDenom && inputQuoteDenom
+            ? { pool_id: Number(inputPoolId), base_asset_denom: inputBaseDenom, quote_asset_denom: inputQuoteDenom }
+            : null;
+        if (inputPoolTwap) {
+            // Only include static pools where base_asset_denom matches the input pool's quote_asset_denom
+            const relevantStaticPools = STATIC_ORACLE_POOLS.filter(
+                pool => pool.base_asset_denom === inputQuoteDenom
+            );
+            allOraclePools = [inputPoolTwap, ...relevantStaticPools];
+        } else {
+            allOraclePools = [];
+        }
+        // Build oracles array for OracleRow (like ManagedMarketInfo)
+        if (allOraclePools.length > 0) {
+            allOraclePools.forEach((pool, i) => {
+                const isLast = i === allOraclePools.length - 1;
+                const baseAsset = getAssetByDenom(pool.base_asset_denom, chainName);
+                oracles.push({
+                    name: baseAsset?.symbol || pool.base_asset_denom,
+                    logo: baseAsset?.logo || '',
+                    poolId: pool.pool_id,
+                });
+                if (isLast) {
+                    const quoteAsset = getAssetByDenom(pool.quote_asset_denom, chainName);
+                    oracles.push({
+                        name: quoteAsset?.symbol || pool.quote_asset_denom,
+                        logo: quoteAsset?.logo || '',
+                        poolId: pool.pool_id,
+                    });
+                }
             });
-          }
-        });
-      }
+        }
     } else {
-      allOraclePools = [];
-      oracles = [];
+        allOraclePools = [];
+        oracles = [];
     }
 
     const { action: createMarket } = useMarketCreation({
@@ -597,9 +599,9 @@ const ManagedTable = () => {
                                     />
                                     {/* Oracle Pools Visual */}
                                     {oracles.length > 0 && (
-                                      <Box mt={2} mb={2}>
-                                        <OracleRow oracles={oracles} />
-                                      </Box>
+                                        <Box mt={2} mb={2}>
+                                            <OracleRow oracles={oracles} />
+                                        </Box>
                                     )}
                                 </FormControl>
                                 <FormControl>

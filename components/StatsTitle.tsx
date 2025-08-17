@@ -9,8 +9,9 @@ import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { useBasket, useBasketPositions } from '@/hooks/useCDP'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import useAppState from '@/persisted-state/useAppState'
 
-export const Stats = React.memo(({ label, value }) => (
+export const Stats = React.memo(({ label, value }: { label: string; value: string }) => (
     <Stack gap="1">
         <Text variant="title" fontSize="15px" letterSpacing="unset" textTransform="none"
         >
@@ -25,7 +26,8 @@ export const Stats = React.memo(({ label, value }) => (
 // Memoize child components
 export const StatsTitle = React.memo(() => {
     const { chainName } = useChainRoute()
-    const { data: basket } = useBasket()
+    const { appState } = useAppState()
+    const { data: basket } = useBasket(appState.rpcUrl)
     const { data: data } = useCDTDailyVolume()
     // console.log("assetData", assetData, assetData?.volume_24h)
     const fixedArray = Array.isArray(data) ? data : Object.values(data ?? {});

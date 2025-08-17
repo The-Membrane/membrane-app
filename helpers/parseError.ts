@@ -1,16 +1,13 @@
-import { useBasket } from "@/hooks/useCDP"
 import { stake } from "@/services/staking"
 import { position } from "@chakra-ui/react"
 import { getAssetByDenom } from "./chain"
 import { useChainRoute } from '@/hooks/useChainRoute'
 
 //Get the collateral assets from the Basket and create regex errors for them
-const collateralSupplyCapErrors = () => {
-  const { data: basket } = useBasket()
+const collateralSupplyCapErrors = (basket: any, chainName: string) => {
   const basketAssets = basket?.collateral_types
-  const { chainName } = useChainRoute()
 
-  return basketAssets?.map((asset) => {
+  return basketAssets?.map((asset: any) => {
     //@ts-ignore
     const assetDenom = asset.asset.info.native_token.denom
     const assetSymbol = getAssetByDenom(assetDenom, chainName)?.symbol
@@ -21,7 +18,7 @@ const collateralSupplyCapErrors = () => {
   })
 }
 
-export const parseError = (error: string) => {
+export const parseError = (error: string, basket?: any, chainName?: string) => {
   var customErrors = [
     { regex: /Unexpected token '<'/i, message: 'RPC bug, please refresh.' },
     { regex: /insufficient funds/i, message: 'Insufficient funds' },
@@ -63,7 +60,10 @@ export const parseError = (error: string) => {
       message: 'Success despite error',
     },
   ]
-  customErrors = customErrors.concat(collateralSupplyCapErrors() ?? [])
+
+  if (basket && chainName) {
+    customErrors = customErrors.concat(collateralSupplyCapErrors(basket, chainName) ?? [])
+  }
 
   const errorMessage = error || ''
   // console.log("error:", errorMessage)

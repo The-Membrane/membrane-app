@@ -28,6 +28,7 @@ import useGiveRBLPPoints from './hooks/useGiveRBLPPoints'
 import { SupplyCaps } from './SupplyCaps'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { CheckLiquidations } from '../Bid/Bid'
+import useAppState from '@/persisted-state/useAppState'
 
 const ManagementCard = React.memo(({ basket }: { basket: any }) => {
     const [idSkips, setSkips] = useState([] as number[])
@@ -142,7 +143,8 @@ const getProjectTVL = ({ basket, prices, chainName }: { basket?: Basket; prices?
 }
 
 const Dashboard = () => {
-    const { data: basket } = useBasket()
+    const { appState } = useAppState()
+    const { data: basket } = useBasket(appState.rpcUrl)
     const { data: prices } = useOraclePrice()
     const { chainName } = useChainRoute()
     const assetData = useMemo(() => {

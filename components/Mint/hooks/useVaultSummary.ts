@@ -6,11 +6,13 @@ import { useQuery } from '@tanstack/react-query'
 import useMintState from './useMintState'
 import useInitialVaultSummary from './useInitialVaultSummary'
 import useWallet from '@/hooks/useWallet'
+import useAppState from '@/persisted-state/useAppState'
 
 // This hook is used to calculate the vault summary
 export const useVaultSummary = ({ positionNumber }: { positionNumber?: number } = {}) => {
   const { address } = useWallet()
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: collateralInterest } = useCollateralInterest()
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()

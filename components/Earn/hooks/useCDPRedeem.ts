@@ -17,11 +17,13 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { useOraclePrice } from '@/hooks/useOracle'
 import { useBasket } from '@/hooks/useCDP'
 import { num } from '@/helpers/num'
+import useAppState from '@/persisted-state/useAppState'
 
 const useCDPRedeem = () => {
   const { address } = useWallet()
   const { earnState, setEarnState } = useEarnState()
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: prices } = useOraclePrice()
 
 

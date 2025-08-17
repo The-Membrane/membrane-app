@@ -4,10 +4,12 @@ import { useBasket } from './useCDP'
 import { AssetInfo } from '@/contracts/codegen/oracle/Oracle.types'
 import useAppState from '@/persisted-state/useAppState'
 import { useRouter } from 'next/router'
+import { useChainRoute } from './useChainRoute'
 
 export const useOraclePrice = () => {
-  const { data: basket, dataUpdatedAt } = useBasket()
+  const { chainName } = useChainRoute()
   const { appState } = useAppState()
+  const { data: basket, dataUpdatedAt } = useBasket(appState.rpcUrl)
 
   return useQuery({
     queryKey: ['oraclePrice', dataUpdatedAt, basket, appState.rpcUrl],

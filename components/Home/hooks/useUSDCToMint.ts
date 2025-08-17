@@ -15,12 +15,14 @@ import { shiftDigits } from '@/helpers/math'
 import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { toUtf8 } from '@cosmjs/encoding'
+import useAppState from '@/persisted-state/useAppState'
 
 const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
     const { quickActionState } = useQuickActionState()
 
     const { address } = useWallet()
-    const { data: basket } = useBasket()
+    const { appState } = useAppState()
+    const { data: basket } = useBasket(appState.rpcUrl)
 
     const positionID = useMemo(() => {
         if (basket) {

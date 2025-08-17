@@ -87,7 +87,8 @@ const Home = () => {
   const { data: leaderboardData } = useLeaderboardData()
 
   const { address } = useWallet()
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: TVL } = useBoundedTVL()
   const { data: interest } = useCollateralInterest()
 

@@ -19,12 +19,14 @@ import { num } from '@/helpers/num'
 import useQuickActionState from './useQuickActionState'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { swapToCDTMsg } from '@/helpers/osmosis'
+import useAppState from '@/persisted-state/useAppState'
 
 //NOTE: This and the Redeem function in Earn/hooks/useCDPRedeem.ts both assume the only redeemed asset is marsUSDC
 const useBuyAndRedeem = () => {
     const { address } = useWallet()
     const { quickActionState } = useQuickActionState()
-    const { data: basket } = useBasket()
+    const { appState } = useAppState()
+    const { data: basket } = useBasket(appState.rpcUrl)
     const { data: prices } = useOraclePrice()
     const usdcAsset = useAssetBySymbol('USDC')
 

@@ -9,6 +9,7 @@ import { shiftDigits } from '@/helpers/math';
 import { Box, Text, Circle, Tooltip, Stack } from "@chakra-ui/react";
 import { colors } from '@/config/defaults';
 import { useChainRoute } from '@/hooks/useChainRoute';
+import useAppState from '@/persisted-state/useAppState';
 
 const HealthStatus = ({ health = 100, label = "N/A" }) => {
     // Calculate color based on health value
@@ -88,7 +89,8 @@ export const OracleHealth = () => {
     //We'll forego using the config to get the OSMO pool ID for now, and just hardcode it
     // const { data: config } = useOracleConfig()
     const { data: prices } = useOraclePrice()
-    const { data: basket } = useBasket()
+    const { appState } = useAppState()
+    const { data: basket } = useBasket(appState.rpcUrl)
     const usedAssets = useMemo(() => {
         if (!basket || !basket.collateral_supply_caps) return []
         return basket.collateral_supply_caps

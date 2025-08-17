@@ -23,6 +23,7 @@ import useRangeBoundLP from "./hooks/useRangeBoundLP"
 import { getBestCLRange } from "@/services/osmosis"
 import { colors, LPJoinDate } from "@/config/defaults"
 import YieldCounter from "./YieldCounter"
+import useAppState from "@/persisted-state/useAppState"
 
 const ActSlider = React.memo(() => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -145,7 +146,8 @@ const RangeBoundLPCard = () => {
   const { data: TVL } = useBoundedTVL()
   const { data: amountToManage } = useRBLPCDTBalance()
 
-  const { data: basket } = useBasket()
+  const { appState } = useAppState()
+  const { data: basket } = useBasket(appState.rpcUrl)
   const { data: realizedAPR } = useBoundedCDTRealizedAPR()
 
   const revenueDistributionThreshold = 50000000

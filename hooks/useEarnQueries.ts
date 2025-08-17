@@ -18,7 +18,8 @@ import { useRouter } from "next/router"
 import { useChainRoute } from "./useChainRoute"
 
 export const useBoundedConfig = () => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
     const { chainName } = useChainRoute()
 
@@ -46,7 +47,8 @@ export const useBoundedConfig = () => {
 export const useUserBoundedIntents = () => {
     const { chainName } = useChainRoute()
     const { address } = useWallet(chainName)
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
 
     const result = useQuery({
@@ -66,7 +68,8 @@ export const useUserBoundedIntents = () => {
 }
 
 export const useBoundedIntents = () => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
     const { chainName } = useChainRoute()
 
@@ -83,7 +86,8 @@ export const useBoundedIntents = () => {
 }
 
 export const useBoundedTVL = () => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
     const { chainName } = useChainRoute()
 
@@ -115,7 +119,8 @@ export const useUSDCVaultTokenUnderlying = (vtAmount: string) => {
 }
 
 export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
 
     return useQuery({
@@ -130,7 +135,8 @@ export const useCDTVaultTokenUnderlying = (vtAmount: string) => {
 }
 
 export const useDepositTokenConversionforMarsUSDC = (depositAmount: string) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
 
     return useQuery({
@@ -145,7 +151,8 @@ export const useDepositTokenConversionforMarsUSDC = (depositAmount: string) => {
 }
 
 export const useBoundedCDTVaultTokenUnderlying = (vtAmount: string) => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
     const { chainName } = useChainRoute()
 
@@ -161,7 +168,8 @@ export const useBoundedCDTVaultTokenUnderlying = (vtAmount: string) => {
 }
 
 export const useEarnUSDCEstimatedAPR = () => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
 
     return useQuery({
@@ -176,7 +184,8 @@ export const useEarnUSDCEstimatedAPR = () => {
 }
 
 export const useMarsUSDCSupplyAPR = () => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
 
     return useQuery({
@@ -236,7 +245,8 @@ export const useEarnUSDCRealizedAPR = () => {
 }
 
 export const useEarnCDTRealizedAPR = () => {
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
 
     return useQuery({
@@ -282,7 +292,8 @@ export const useEarnCDTRealizedAPR = () => {
 }
 
 export const useBoundedCDTRealizedAPR = () => {
-    const { data: cosmwasmClient } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: cosmwasmClient } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
     const { chainName } = useChainRoute()
 
@@ -445,7 +456,8 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
     // console.log("AP in interstquery", allPositions) 
     const { data: basketAssets } = useBasketAssets()
     const { setBidState } = useBidState()
-    const { data: client } = useCosmWasmClient()
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const router = useRouter()
     const { chainName } = useChainRoute()
 
@@ -493,14 +505,15 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
 
 export const useVaultInfo = () => {
     const { data: prices } = useOraclePrice()
-    const { data: basket } = useBasket()
+    const { appState } = useAppState()
+    const { data: basket } = useBasket(appState.rpcUrl)
     const { data: apr } = useEarnUSDCEstimatedAPR()
     const { getRpcClient } = useRpcClient("osmosis")
-    const { data: client } = useCDPClient()
+    const { data: client } = useCDPClient(appState.rpcUrl)
     const router = useRouter()
 
     return useQuery({
-        queryKey: ['useVaultInfo', apr, prices, basket, client, router.pathname],
+        queryKey: ['useVaultInfo', apr, prices, basket, client, router.pathname, appState.rpcUrl],
         queryFn: async () => {
             // console.log("vault info path", router.pathname)
             if (!router.pathname.endsWith("/manic")) return

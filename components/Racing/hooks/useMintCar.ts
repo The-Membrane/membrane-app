@@ -3,11 +3,10 @@ import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import useAppState from '@/persisted-state/useAppState'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { toUtf8 } from '@cosmjs/encoding'
 import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
-import { getOwnedCars } from '@/services/q-racing'
 
 export interface CarAttribute {
   trait_type: string
@@ -16,10 +15,14 @@ export interface CarAttribute {
 
 export interface CarMetadata {
   name: string
-  description?: string | null
   image_uri?: string | null
   attributes?: CarAttribute[] | null
   car_id?: string | null
+}
+
+export type TrainingPaymentOption = {
+  denom: string
+  amount: string
 }
 
 export type UseMintCarParams = {
@@ -27,52 +30,72 @@ export type UseMintCarParams = {
   tokenUri?: string | null
   extension?: CarMetadata | null
   contractAddress?: string
-  paymentOption?: { denom: string; amount: string } | null
+  paymentOption?: TrainingPaymentOption | null
 }
 
 const useMintCar = (params: UseMintCarParams) => {
   const { address } = useWallet()
   const { appState } = useAppState()
 
-  const msgs: MsgExecuteContractEncodeObject[] = useMemo(() => {
-    if (!address) return []
-    const constructedMsgs: MsgExecuteContractEncodeObject[] = []
-    const mintCarMsg = {
-      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-      value: MsgExecuteContract.fromPartial({
-        sender: address,
-        contract: params.contractAddress ?? contracts.car,
-        msg: toUtf8(JSON.stringify({
-          create_car: {
-            owner: address,
-            token_uri: null,
-            extension: params.extension ?? null,
-          }
-        })),
-        funds: params.paymentOption ? [{
-          denom: params.paymentOption.denom,
-          amount: params.paymentOption.amount
-        }] : []
-      })
-    } as MsgExecuteContractEncodeObject
-    constructedMsgs.push(mintCarMsg)
-    return constructedMsgs
-  }, [address, params.contractAddress, params.extension, params.paymentOption])
+  type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
+  const { data: queryData } = useQuery<QueryData>({
+    queryKey: [
+      'mint_car_msgs_creation',
+      address ?? null,
+      appState.rpcUrl,
+      params.extension?.name ?? null,
+      params.paymentOption?.denom ?? null,
+      params.paymentOption?.amount ?? null,
+      params.contractAddress ?? (contracts as any).car ?? null,
+    ],
+    queryFn: () => {
+      if (!address) return { msgs: [] }
 
-  const onInitialSuccess = async () => {
+      const msg = {
+        create_car: {
+          owner: address,
+          token_uri: null,
+          extension: params.extension ?? null,
+        }
+      }
+
+      const funds = params.paymentOption
+        ? [{ denom: params.paymentOption.denom, amount: params.paymentOption.amount }]
+        : []
+
+      const exec = {
+        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+        value: MsgExecuteContract.fromPartial({
+          sender: address,
+          contract: (params.contractAddress ?? (contracts as any).car) as string,
+          msg: toUtf8(JSON.stringify(msg)),
+          funds,
+        }),
+      } as MsgExecuteContractEncodeObject
+
+      return { msgs: [exec] }
+    },
+    enabled: !!address,
+  })
+
+  const msgs = queryData?.msgs ?? []
+
+  console.log('mint car msgs', msgs)
+
+  const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['neutron balances'] })
     queryClient.invalidateQueries({ queryKey: ['q-racing', 'owned_cars'] })
   }
-
-  // console.log("here to return action ")
-
+  console.log('mint car msgs', msgs)
   return {
     action: useSimulateAndBroadcast({
       msgs,
-      queryKey: ['mint_car_sim', address ?? '', appState.rpcUrl, params?.extension?.name ?? ''],
+
+      queryKey: ['mint_car_sim', msgs?.toString() ?? '0'],
+
       onSuccess: onInitialSuccess,
       enabled: !!msgs?.length,
-    })
+    }),
   }
 }
 

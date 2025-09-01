@@ -7,6 +7,7 @@ import { DEFAULT_CHAIN } from '@/config/chains'
 import router from 'next/router'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
+import { shiftDigits } from '@/helpers/math'
 
 export type PaymentOption = TrainingPaymentOption & {
     label: string
@@ -44,14 +45,14 @@ export const usePaymentSelection = (tokenId?: string) => {
             },
             {
                 denom: "ibc/B559A80D62249C8AA07A380E2A2BEA6E5CA9A6F079C912C3A9E9B494105E4F81",
-                amount: '10000000',
+                amount: '1000000',
                 label: 'Pay 1 USDC',
                 sublabel: '10% is sent to JSD yields.',
                 isAvailable: true
             },
             {
                 denom: "untrn",
-                amount: '30000000',
+                amount: '20000000',
                 label: 'Pay 20 NTRN',
                 sublabel: 'Nothing special.',
                 isAvailable: true
@@ -76,12 +77,13 @@ export const usePaymentSelection = (tokenId?: string) => {
                     const balanceAmount = BigInt(balance.amount)
                     const requiredAmount = BigInt(option.amount)
                     const asset = getAssetByDenom(option.denom, chainName)
+                    console.log("asset", asset)
 
                     option.walletBalance = balance.amount
                     option.formattedBalance = asset ?
-                        (Number(balance.amount) / Math.pow(10, asset.decimal || 6)).toLocaleString() + ' ' + asset.symbol :
-                        balance.amount + ' ' + option.denom
-
+                        shiftDigits(balance.amount, -(asset.decimal || 6)) + ' ' + asset.symbol :
+                        shiftDigits(balance.amount, -(6)) + ' ' + option.denom
+                    console.log("option", option)
                     if (balanceAmount < requiredAmount) {
                         option.isAvailable = false
                         option.unavailableReason = `Insufficient balance: ${option.formattedBalance}`

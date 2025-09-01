@@ -106,6 +106,9 @@ const App = ({ Component, pageProps }: AppProps) => {
               osmosis: {
                 rpc: [appState.rpcUrl],
               },
+              neutron: {
+                rpc: [appState.rpcUrl],
+              },
             },
           }}
         >

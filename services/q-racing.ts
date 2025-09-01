@@ -338,6 +338,35 @@ export function useValidMazeId(rpc: string = defaultRpcUrl) {
     })
 }
 
+// Byte-minter: get window status
+export async function getWindowStatus(event: ByteMinterEvent, rpc: string = defaultRpcUrl): Promise<{ is_active: boolean; seconds_until_open: number; seconds_until_close: number } | null> {
+    const addr = (contracts as any).byteMinter as string | undefined
+    if (!addr) return null
+    const client = await getCosmWasmClient(rpc)
+    try {
+        const payload = { get_window_status: { event } } as any
+        const res = (await client.queryContractSmart(addr, payload)) as any
+        return {
+            is_active: res.is_active,
+            seconds_until_open: res.seconds_until_open,
+            seconds_until_close: res.seconds_until_close
+        }
+    } catch (e) {
+        console.error('Error fetching window status', e)
+        return null
+    }
+}
+
+export function useWindowStatus(event: ByteMinterEvent, rpc: string = defaultRpcUrl) {
+    return useQuery({
+        queryKey: ['byte_minter_window_status', (contracts as any).byteMinter, event, rpc],
+        queryFn: async () => getWindowStatus(event, rpc),
+        enabled: Boolean((contracts as any).byteMinter),
+        refetchInterval: 30_000,
+        staleTime: 30_000,
+    })
+}
+
 export function formatCountdown(seconds?: number | null) {
     if (seconds == null) return '—'
     const s = Math.max(0, Math.floor(seconds))

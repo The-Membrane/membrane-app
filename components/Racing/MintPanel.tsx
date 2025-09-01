@@ -13,12 +13,7 @@ const MintPanel: React.FC = () => {
   const [name, setName] = useState('')
   const isMobile = useBreakpointValue({ base: true, md: false })
 
-  // Create mint car hook for free minting
-  const freeMintHook = useMintCar({ extension: { name } })
 
-  // Create mint car hook for paid minting (will be updated when option selected)
-  const [currentPaymentOption, setCurrentPaymentOption] = useState<any>(null)
-  const paidMintHook = useMintCar({ extension: { name }, paymentOption: currentPaymentOption })
 
   const {
     isOptionsOpen,
@@ -32,27 +27,40 @@ const MintPanel: React.FC = () => {
     quickMint
   } = usePaymentSelection()
 
-  const handleQuickMint = () => {
-    // This function is no longer used since we only open the menu
-    // All execution happens in handleOptionSelect
-  }
+  // Create actions for each payment option ahead of time
+  const paymentActions: Record<string, any> = {}
 
-  const handleOptionSelect = (option: any) => {
+  paymentOptions.forEach(option => {
+    const key = `${option.denom}-${option.amount}`
+
     if (option.denom && option.amount !== '0') {
       // Paid option
-      setCurrentPaymentOption({
-        denom: option.denom,
-        amount: option.amount
-      })
-      executePayment(option, () => paidMintHook.action.tx.mutate())
+      paymentActions[key] = useMintCar({
+        owner: address,
+        extension: {
+          name: name,
+        },
+        paymentOption: {
+          denom: option.denom,
+          amount: option.amount
+        }
+      }).action
     } else {
       // Free option
-      executePayment(option, () => freeMintHook.action.tx.mutate())
+      paymentActions[key] = useMintCar({
+        owner: address,
+        extension: {
+          name: name,
+        },
+        paymentOption: null
+      }).action
     }
-  }
+  })
+
+
 
   return (
-    <VStack align="start" spacing={4} p={{ base: 3, md: 4 }} border="2px solid #0033ff" bg="#0b0e17" borderRadius={6} w={{ base: "100%", lg: "33vw" }}>
+    <VStack align="start" spacing={4} p={{ base: 3, md: 4 }} border="2px solid #0033ff" bg="#0b0e17" borderRadius={6} w={{ base: "100%", lg: "30vw" }}>
       <Text fontFamily='"Press Start 2P", monospace' color="#fff" fontSize={{ base: '12px', sm: '14px' }}>
         Mint New Car
       </Text>
@@ -104,9 +112,13 @@ const MintPanel: React.FC = () => {
           isOpen={isOptionsOpen}
           onClose={closeOptions}
           paymentOptions={paymentOptions}
-          onSelectOption={handleOptionSelect}
+          onSelectOption={() => { }}
           isLoading={isLoading}
           lastUsedPaymentMethod={lastUsedPaymentMethod}
+          getActionForOption={(option) => {
+            const key = `${option.denom}-${option.amount}`
+            return paymentActions[key]
+          }}
         />
       </Box>
 

@@ -75,14 +75,9 @@ const useRefillEnergy = (params: UseRefillEnergyParams) => {
     return {
         action: useSimulateAndBroadcast({
             msgs,
-            queryKey: [
-                'refill_energy_sim',
-                address ?? '',
-                appState.rpcUrl,
-                params.tokenId ?? '',
-                params.paymentOption?.denom ?? '',
-                params.paymentOption?.amount ?? '',
-            ],
+
+            queryKey: ['refill_energy_sim', msgs?.toString() ?? '0'],
+
             onSuccess: onInitialSuccess,
             enabled: !!msgs?.length,
         }),

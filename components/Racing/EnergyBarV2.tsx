@@ -230,6 +230,13 @@ const EnergyBarV2: React.FC<EnergyBarV2Props> = ({ tokenId, inline }) => {
                     isLoading={isLoading}
                     lastUsedPaymentMethod={lastUsedPaymentMethod}
                     dropdownWidth="full"
+                    getActionForOption={(option) => {
+                        if (option.denom && option.amount !== '0') {
+                            return paidRefillHook.action
+                        } else {
+                            return freeRefillHook.action
+                        }
+                    }}
                 />
             </HStack>
         )
@@ -344,6 +351,13 @@ const EnergyBarV2: React.FC<EnergyBarV2Props> = ({ tokenId, inline }) => {
                 isLoading={isLoading}
                 lastUsedPaymentMethod={lastUsedPaymentMethod}
                 dropdownWidth="full"
+                getActionForOption={(option) => {
+                    if (option.denom && option.amount !== '0') {
+                        return paidRefillHook.action
+                    } else {
+                        return freeRefillHook.action
+                    }
+                }}
             />
         </HStack>
     )

@@ -25,6 +25,7 @@ import {
 } from '@chakra-ui/react'
 import { ChevronDownIcon, CloseIcon } from '@chakra-ui/icons'
 import { PaymentOption } from './hooks/usePaymentSelection'
+import ConfirmModal from '../ConfirmModal'
 
 interface PaymentOptionsSheetProps {
     isOpen: boolean
@@ -34,6 +35,7 @@ interface PaymentOptionsSheetProps {
     isLoading: boolean
     lastUsedPaymentMethod?: { denom: string; amount: string } | null
     dropdownWidth?: 'full' | 'default'
+    getActionForOption?: (option: PaymentOption) => any
 }
 
 const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
@@ -43,7 +45,8 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
     onSelectOption,
     isLoading,
     lastUsedPaymentMethod,
-    dropdownWidth = 'default'
+    dropdownWidth = 'default',
+    getActionForOption
 }) => {
     const isMobile = useBreakpointValue({ base: true, md: false })
     const dropdownRef = useRef<HTMLDivElement>(null)
@@ -77,23 +80,18 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
             option.denom === lastUsedPaymentMethod.denom &&
             option.amount === lastUsedPaymentMethod.amount
 
+        const action = getActionForOption?.(option)
+
         return (
             <Box
                 key={`${option.denom}-${option.amount}-${index}`}
-                as="button"
                 w="100%"
                 p={4}
                 bg={option.isAvailable ? '#1a1f2e' : '#0f141f'}
                 border="1px solid"
                 borderColor={option.isAvailable ? '#2a3550' : '#1a1f2e'}
                 borderRadius="lg"
-                textAlign="left"
-                cursor={option.isAvailable ? 'pointer' : 'not-allowed'}
                 opacity={option.isAvailable ? 1 : 0.5}
-                _hover={option.isAvailable ? { bg: '#2a3550' } : {}}
-                _active={option.isAvailable ? { bg: '#1d2540' } : {}}
-                onClick={() => handleOptionSelect(option)}
-                disabled={!option.isAvailable || isLoading}
                 position="relative"
             >
                 <VStack align="start" spacing={2}>
@@ -140,7 +138,27 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
                         </Text>
                     )}
 
-
+                    {/* ConfirmModal Button */}
+                    <ConfirmModal
+                        label={option.label}
+                        action={action}
+                        isDisabled={!option.isAvailable || isLoading}
+                        isLoading={isLoading}
+                        executeDirectly={true}
+                        buttonProps={{
+                            w: "100%",
+                            bg: option.isAvailable ? '#274bff' : '#1a1f2e',
+                            color: "white",
+                            _hover: option.isAvailable ? { bg: '#1a3bff' } : {},
+                            _active: option.isAvailable ? { bg: '#0f2bff' } : {},
+                            borderRadius: "md",
+                            size: "sm",
+                            fontFamily: '"Press Start 2P", monospace',
+                            fontSize: "10px",
+                            minH: "32px",
+                            cursor: option.isAvailable ? 'pointer' : 'not-allowed',
+                        }}
+                    />
                 </VStack>
             </Box>
         )

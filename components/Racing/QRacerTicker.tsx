@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { HStack, Text, Button, Flex } from '@chakra-ui/react'
-import { formatCountdown, useSecondsUntilOpen, getAllTrackTrainingStats, JsonGetTrackTrainingStatsResponse, useValidMazeId } from '@/services/q-racing'
+import { formatCountdown, useSecondsUntilOpen, getAllTrackTrainingStats, JsonGetTrackTrainingStatsResponse, useValidMazeId, useWindowStatus } from '@/services/q-racing'
 import { useRouter } from 'next/router'
 import useRacingState from './hooks/useRacingState'
 import { shiftDigits } from '@/helpers/math'
@@ -16,6 +16,9 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
 
     // Check if byte-minter has a valid maze ID
     const { data: validMazeId } = useValidMazeId(rpc)
+
+    // Check if maze window is currently active
+    const { data: windowStatus } = useWindowStatus('maze', rpc)
 
     // Generate maze hook
     const generateMaze = useGenerateMaze({
@@ -61,18 +64,19 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
 
     // When fresh values arrive, set a target time and start ticking locally
     useEffect(() => {
-        const mazeSec = maze ?? Number.POSITIVE_INFINITY
-        // PvP disabled; only consider maze countdown
-        const s = mazeSec
+        // Use window status if available, otherwise fall back to maze countdown
+        const countdownSeconds = windowStatus?.is_active
+            ? windowStatus.seconds_until_close
+            : (maze ?? Number.POSITIVE_INFINITY)
 
-        if (!isFinite(s)) {
+        if (!isFinite(countdownSeconds)) {
             endAtMsRef.current = null
             setRemaining(null)
             return
         }
 
         const now = Date.now()
-        endAtMsRef.current = now + s * 1000
+        endAtMsRef.current = now + countdownSeconds * 1000
         setRemaining(Math.max(0, Math.ceil((endAtMsRef.current - now) / 1000)))
 
         const id = setInterval(() => {
@@ -83,9 +87,9 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
         }, 1000)
 
         return () => clearInterval(id)
-    }, [maze])
+    }, [maze, windowStatus])
 
-    const label = 'Maze construction in'
+    const label = windowStatus?.is_active ? 'Maze window closes in' : 'Maze construction in'
     const countdown = formatCountdown(remaining)
     const display = `${label}: ${countdown}`
     // const display2 = `${'Training Sessions Stolen by The Singularity'}: ${racingState.singularityTrainingSessions}`
@@ -120,7 +124,7 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                 </Text>
             </Flex>
             {/* Center: Solve/Generate Maze button */}
-            {remaining === 0 ? (
+            {windowStatus?.is_active ? (
                 <Flex flex={1} justifyContent="center" align="center">
 
                     {validMazeId ? (
@@ -141,7 +145,7 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                         </Button>
                     ) : (
                         <ConfirmModal
-                            executeDirectly={true}
+                            // executeDirectly={true}
                             label="Generate Maze"
                             action={generateMaze.action}
                             isDisabled={false}

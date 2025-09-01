@@ -14,6 +14,7 @@ export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: str
   const { address, chain } = useWallet(chainName)
   const addressToUse = inputedAddress || address
   const { getRpcClient } = useRpcClient(chain.chain_name)
+  console.log('useBalance - chainName:', chainName, 'addressToUse:', addressToUse)
 
   return useQuery<QueryAllBalancesResponse['balances'] | null>({
     queryKey: [chainID + ' balances', addressToUse, chain.chain_id],

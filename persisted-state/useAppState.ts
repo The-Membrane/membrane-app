@@ -3,6 +3,11 @@ import { rpcUrl } from '@/config/defaults'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 
+export type TrainingPaymentOption = {
+    denom: string
+    amount: string
+}
+
 export type AppState = {
     setCookie?: boolean
     rpcUrl: string
@@ -10,6 +15,7 @@ export type AppState = {
         user: string
         points: string
     }[]
+    lastUsedRacingPaymentMethod?: TrainingPaymentOption | null
 }
 
 type Store = {

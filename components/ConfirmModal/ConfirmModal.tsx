@@ -1,6 +1,6 @@
 import { Action } from '@/types/tx'
 import { Button, ButtonProps, Modal, ModalOverlay, useDisclosure } from '@chakra-ui/react'
-import { PropsWithChildren } from 'react'
+import { PropsWithChildren, Ref } from 'react'
 import ConfrimDetails from './ConfrimDetails'
 import { LoadingContent } from './LoadingContent'
 import { TxDetails } from './TxDetails'
@@ -12,6 +12,10 @@ type Props = PropsWithChildren & {
   isDisabled?: boolean
   isLoading?: boolean
   buttonProps?: ButtonProps
+  buttonRef?: Ref<HTMLButtonElement>
+  onClick?: () => void
+  // When true, bypass modal and execute the transaction immediately on click
+  executeDirectly?: boolean
 }
 
 const ConfirmModal = ({
@@ -21,12 +25,15 @@ const ConfirmModal = ({
   isDisabled = false,
   isLoading = true,
   buttonProps,
+  buttonRef,
+  onClick,
+  executeDirectly = false,
 }: Props) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   const onModalOpen = () => {
     onOpen()
-    action?.simulate.refetch()
+    setTimeout(() => action?.simulate.refetch(), 0)
   }
 
   const onModalClose = () => {
@@ -36,15 +43,17 @@ const ConfirmModal = ({
   return (
     <>
       <Button
+        ref={buttonRef}
         isLoading={isLoading && (action?.simulate.isLoading || action?.tx.isPending)}
         // isDisabled={isDisabled || action?.simulate.isError || !action?.simulate.data}
         isDisabled={isDisabled}
         onClick={() => {
-          //Invalidate Basket query to get the latest positionID for new deposits...
-          // in preparation for a deposit mint combo piece
-          // if (label === 'Deposit Assets') queryClient.invalidateQueries({ queryKey: ['basket'] })
-
-          onModalOpen()
+          onClick?.()
+          if (executeDirectly) {
+            action?.tx.mutate()
+          } else {
+            onModalOpen()
+          }
         }}
         {...buttonProps}
       >

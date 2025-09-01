@@ -18,7 +18,9 @@
   "autoStabilityPool": "osmo1jw6r68y0uhfmqagc7uhtdddctc7wq95pncvrqnvtd47w4hx46p7se9nju5",
   "rangeboundLP": "osmo17rvvd6jc9javy3ytr0cjcypxs20ru22kkhrpwx7j3ym02znuz0vqa37ffx",
   "marketManager": "osmo1tmqefg7v9zhtj2hlsrtn3mp8zz83x9lxtedlzesnky4c74l4g9ws29dqxr",
-  "car": "neutron1rfrla07l9tvhglwmjvhyrtq8xvr9960qcj2ymcw3lzjm3dgsk7mstyz5ym",
-  "trackManager": "neutron18qetv4pr30czl2uht7y9vysx67rtlcjq22620kwpq274rrxmhgwqfqedee",
-  "raceEngine": "neutron1pgjpppmfdu80wxatt9qr53quhfl59jsyz39v63cp6ul3qudk7aqq30cfkx"
+  "car": "neutron1f82cswydl6hncq0dgf25p2fudjarf7s5e7n2f4tj7d6m76kugflsgjkc4p",
+  "trackManager": "neutron1x7m476lthlj7cpd9qcq995a3j97wckda05l3gm3f6tkg7830ypps6qtt35",
+  "raceEngine": "neutron13txvpsywmq7pyludfxhlflpk34lx4czm9662yqdvp54arzj3vj9scsfksh",
+  "byteMinter": "neutron1jh5myuakmvmzzmc6k7awedymsecyt34em53gzfz8pfeukf2p4j7qetmzdw",
+  "racingRevenue": "neutron1jfnyl5etp6k3zmuuq6gtezq26qqjwzua3e3xrc0gfjvf3kgdx77svjdq6e"
 }

@@ -126,6 +126,20 @@
   }
 }
 
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker 20s linear infinite;
+}
+
 .brand-blue {
   color: #20d6ff;
 }
@@ -152,3 +166,226 @@
 
 /* Medium devices (tablets, 600px to 768px) */
 @media (min-width: 601px) {}
+
+/* Race Controls Mobile Responsive Styles */
+.race-controls-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.race-controls-dropdowns {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.race-control-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.race-controls-button {
+  margin-left: auto;
+}
+
+.race-control-select {
+  min-height: 44px;
+}
+
+/* Mobile styles for race controls */
+@media (max-width: 767px) {
+  .race-controls-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .race-controls-dropdowns {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .race-control-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .race-control-item label {
+    font-size: 8px !important;
+  }
+
+  .race-control-select {
+    width: 100%;
+    min-height: 44px;
+    font-size: 12px !important;
+  }
+
+  .race-controls-button {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* GameBoy Controller Mobile Responsive Styles */
+.gameboy-controller {
+  position: relative;
+  width: 120px;
+  height: 80px;
+  background: #2a2a2a;
+  border-radius: 8px;
+  border: 3px solid #444;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.gameboy-dpad {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 2px;
+}
+
+@media (max-width: 767px) {
+  .gameboy-controller {
+    width: 90px;
+    height: 60px;
+  }
+
+  .gameboy-dpad {
+    width: 45px;
+    height: 45px;
+    gap: 1px;
+  }
+}
+
+/* Leaderboard Styles */
+.leaderboard-container {
+  font-family: "Press Start 2P", monospace;
+  font-size: 12px;
+  color: #b8c1ff;
+}
+
+.leaderboard-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 12px;
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.leaderboard-header-rank {
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.leaderboard-header-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.leaderboard-header-time {
+  width: 100px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.leaderboard-entry {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(42, 53, 80, 0.3);
+}
+
+.leaderboard-entry:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-rank {
+  width: 60px;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.leaderboard-name {
+  flex: 1;
+  min-width: 0;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  word-break: break-word;
+}
+
+.leaderboard-time {
+  width: 100px;
+  flex-shrink: 0;
+  text-align: right;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.leaderboard-empty {
+  color: #666;
+  font-size: 12px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+@media (max-width: 767px) {
+  .leaderboard-header {
+    gap: 8px;
+    font-size: 8px;
+  }
+
+  .leaderboard-header-rank {
+    width: 40px;
+  }
+
+  .leaderboard-header-name {
+    flex: 1;
+  }
+
+  .leaderboard-header-time {
+    width: 60px;
+  }
+
+  .leaderboard-entry {
+    gap: 8px;
+    padding: 6px 0;
+  }
+
+  .leaderboard-rank {
+    width: 40px;
+    font-size: 10px;
+  }
+
+  .leaderboard-name {
+    font-size: 10px;
+  }
+
+  .leaderboard-time {
+    width: 60px;
+    font-size: 10px;
+  }
+
+  .leaderboard-empty {
+    font-size: 10px;
+  }
+}

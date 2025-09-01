@@ -1,39 +1,117 @@
 import { useQuery } from '@tanstack/react-query';
-import { getQRacingTrack, getQRacingLog, Track, PlayByPlayEntry } from '../services/q-racing';
+import { getQRacingTrack, JsonRaceResult, raceResultToPlayByPlayEntries, getRecentRacesForCar, getAllRecentRaces, getOwnedCars, Track, PlayByPlayEntry, useTopTimes, JsonTopTimeEntry } from '../services/q-racing';
+import useAppState from '@/persisted-state/useAppState';
+import { useMemo } from 'react';
+import contracts from '@/config/contracts.json';
+import { getCosmWasmClient } from '@/helpers/cosmwasmClient';
 
 // Query keys – keeping them stable helpers
 const TRACK_KEY = ['q-racing', 'track'];
 const LOG_KEY = ['q-racing', 'log'];
+const RECENT_RACES_KEY = ['q-racing', 'recent-races'];
+const OWNED_CARS_KEY = ['q-racing', 'owned_cars'];
 
-export function useQRacingTrack(trackId = 'sample') {
+export function useQRacingTrack(trackId?: string, rpcUrl?: string) {
+    console.log('trackId', trackId);
     return useQuery<Track>({
-        queryKey: [...TRACK_KEY, trackId],
-        queryFn: () => getQRacingTrack(trackId),
+        queryKey: [...TRACK_KEY, trackId ?? 'no-track', rpcUrl],
+        queryFn: () => getQRacingTrack(trackId!, rpcUrl),
+        enabled: !!trackId,
         staleTime: 5 * 60 * 1000,
-    });
-}
-
-export function useQRacingLog(raceId = 'sample') {
-    return useQuery<PlayByPlayEntry[]>({
-        queryKey: [...LOG_KEY, raceId],
-        queryFn: () => getQRacingLog(raceId),
-        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
     });
 }
 
 // Convenience hook that fetches both pieces of data in parallel
-export function useQRacing(trackId = 'sample', raceId = 'sample') {
-    const trackQuery = useQRacingTrack(trackId);
-    const logQuery = useQRacingLog(raceId);
+export function useQRacing(trackId?: string, race?: JsonRaceResult, rpcUrl?: string) {
+    const trackQuery = useQRacingTrack(trackId, rpcUrl);
+    const log = useMemo(() => (race ? raceResultToPlayByPlayEntries(race) : undefined), [race?.race_id]);
 
     return {
         track: trackQuery.data,
-        log: logQuery.data,
-        isLoading: trackQuery.isLoading || logQuery.isLoading,
-        error: trackQuery.error ?? logQuery.error,
-        refetch: () => {
-            trackQuery.refetch();
-            logQuery.refetch();
-        },
+        log,
+        isLoading: trackQuery.isLoading,
+        error: trackQuery.error,
+        refetch: trackQuery.refetch,
     } as const;
-} 
+}
+
+// New hook to get recent races for a specific car
+export function useRecentRacesForCar(carId: string | null) {
+    const { appState } = useAppState();
+
+    return useQuery<JsonRaceResult[]>({
+        queryKey: [...RECENT_RACES_KEY, 'car', carId, appState.rpcUrl],
+        queryFn: () => getRecentRacesForCar(carId!, appState.rpcUrl),
+        enabled: !!carId,
+        staleTime: 5 * 60 * 1000,
+    });
+}
+
+// New hook to get all recent races
+export const useAllRecentRaces = () => {
+    const { appState } = useAppState();
+
+    return useQuery<JsonRaceResult[]>({
+        queryKey: [...RECENT_RACES_KEY, 'all', appState.rpcUrl],
+        queryFn: () => getAllRecentRaces(appState.rpcUrl),
+        staleTime: 5 * 60 * 1000,
+    });
+}
+
+// New hook to get owned cars for a wallet address
+export const useOwnedCars = (walletAddress: string | undefined) => {
+    const { appState } = useAppState();
+
+    return useQuery<Array<{ id: string; name: string | null }>>({
+        queryKey: [...OWNED_CARS_KEY, walletAddress, appState.rpcUrl],
+        queryFn: async () => {
+            if (!walletAddress) return []
+            return getOwnedCars(walletAddress, appState.rpcUrl)
+        },
+        staleTime: 5 * 60 * 1000,
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
+    });
+}
+
+export { useTopTimes };
+
+// Byte-minter config hook
+export function useByteMinterConfig(rpc?: string) {
+    const { appState } = useAppState();
+    const rpcUrl = rpc || appState.rpcUrl;
+
+    return useQuery<{ mintAmount: string | null; difficulty: number | null }>({
+        queryKey: ['byte_minter_config', (contracts as any).byteMinter, rpcUrl],
+        queryFn: async () => {
+            try {
+                const addr = (contracts as any).byteMinter as string | undefined;
+                if (!addr) return { mintAmount: null, difficulty: null };
+
+                const client = await getCosmWasmClient(rpcUrl);
+                const res = await client.queryContractSmart(addr, { get_config: {} } as any);
+
+                // Expect shape { config: { mint_amount, maze_default_difficulty, tokenfactory_denom, ... } }
+                const cfg = (res && (res as any).config) || res;
+                if (!cfg) return { mintAmount: null, difficulty: null };
+
+                const mintAmount = cfg.mint_amount?.toString?.() ?? String(cfg.mint_amount ?? '');
+                const difficulty = typeof cfg.maze_default_difficulty === 'number'
+                    ? cfg.maze_default_difficulty
+                    : Number(cfg.maze_default_difficulty);
+
+                return {
+                    mintAmount: mintAmount || null,
+                    difficulty: isNaN(difficulty) ? null : difficulty
+                };
+            } catch (e) {
+                console.error('Error fetching byte-minter config', e);
+                return { mintAmount: null, difficulty: null };
+            }
+        },
+        enabled: Boolean((contracts as any).byteMinter),
+        staleTime: 60_000, // 1 minute
+        refetchInterval: 300_000, // 5 minutes
+    });
+}

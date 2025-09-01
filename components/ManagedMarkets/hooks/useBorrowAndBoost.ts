@@ -37,6 +37,8 @@ const useBorrowAndBoost = ({
     msgs: MsgExecuteContractEncodeObject[],
     debtAmount: string,
   }
+  console.log("not borrowAndBoost_msgs", run, marketContract, address, asset, marketParams, collateralPriceData?.price, debtPriceData?.price, managedActionState.collateralAmount, managedActionState.multiplier);
+
   const { data: queryData } = useQuery<QueryData>({
     queryKey: [
       'borrowAndBoost_msgs',
@@ -106,7 +108,8 @@ const useBorrowAndBoost = ({
           contract: marketContract,
           msg: toUtf8(
             JSON.stringify({
-              supply_collateral: { }})
+              supply_collateral: {}
+            })
           ),
           funds: [
             {
@@ -152,25 +155,25 @@ const useBorrowAndBoost = ({
               edit_u_x_boosts: {
                 collateral_denom: asset.base,
                 // loop_ltv: loopLTV ? loopLTV.toString() : undefined,
-                loop_ltv: loopLTV ? { 
-                  loop_ltv: loopLTV.toString(), 
-                  perpetual: false 
+                loop_ltv: loopLTV ? {
+                  loop_ltv: loopLTV.toString(),
+                  perpetual: false
                 } : undefined,
                 take_profit_params: takeProfitLTV
                   ? {
-                      ltv: takeProfitLTV,
-                      percent_to_close: '1',
-                      send_to: undefined,
-                      perpetual: false,
-                    }
+                    ltv: takeProfitLTV,
+                    percent_to_close: '1',
+                    send_to: undefined,
+                    perpetual: false,
+                  }
                   : null,
                 stop_loss_params: stopLossLTV
                   ? {
-                      ltv: stopLossLTV,
-                      percent_to_close: '1',
-                      send_to: undefined,
-                      perpetual: false,
-                    }
+                    ltv: stopLossLTV,
+                    percent_to_close: '1',
+                    send_to: undefined,
+                    perpetual: false,
+                  }
                   : null,
                 collateral_value_fee_to_executor: feeToExecutor.toFixed(2),
               },
@@ -208,6 +211,8 @@ const useBorrowAndBoost = ({
 
 
   const msgs = queryData?.msgs ?? []
+  console.log("msgs", msgs);
+
   const debtAmount = queryData?.debtAmount ?? '0'
 
   const onInitialSuccess = () => {

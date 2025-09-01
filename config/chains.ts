@@ -20,7 +20,7 @@ export const supportedChains: ChainConfig[] = [
         name: 'neutron',
         logo: '/images/ntrn.svg',
         chainId: 'neutron-1',
-        rpcUrl: 'https://rpc.cosmos.directory/neutron',
+        rpcUrl: 'https://rpc-celatone.neutron-1.neutron.org',
         addressPrefix: 'neutron'
     },
     {

@@ -32,10 +32,10 @@ const useMarketCreation = ({
   run?: boolean;
   isWhitelistedManager?: boolean;
 }) => {
-    console.log("marketCreateState");
+  console.log("marketCreateState");
   const { address } = useWallet();
-//   console.log("poolInfo", poolInfo)
-    //  poolInfo?.pool?.poolAssets[0].token.denom, poolInfo?.pool?.poolAssets[1].token.denom);
+  //   console.log("poolInfo", poolInfo)
+  //  poolInfo?.pool?.poolAssets[0].token.denom, poolInfo?.pool?.poolAssets[1].token.denom);
 
   type QueryData = {
     msgs: MsgExecuteContractEncodeObject[]
@@ -48,7 +48,7 @@ const useMarketCreation = ({
       collateralAsset,
       poolsForOsmoTwap,
       isWhitelistedManager,
-    //   poolInfo.pool.,
+      //   poolInfo.pool.,
       run,
     ],
     queryFn: () => {
@@ -63,21 +63,21 @@ const useMarketCreation = ({
       }
       //Set rate kink if it exists
       var rate_kink = undefined;
-      if (marketCreateState.postKinkRateMultiplier || marketCreateState.kinkStartingPointRatio){
+      if (marketCreateState.postKinkRateMultiplier || marketCreateState.kinkStartingPointRatio) {
         rate_kink = {
-            rate_mulitplier: marketCreateState.postKinkRateMultiplier?.toString() ?? undefined,
-            kink_starting_point_ratio: marketCreateState.kinkStartingPointRatio ? num(marketCreateState.kinkStartingPointRatio).dividedBy(100).toString() : undefined
+          rate_mulitplier: marketCreateState.postKinkRateMultiplier?.toString() ?? undefined,
+          kink_starting_point_ratio: marketCreateState.kinkStartingPointRatio ? num(marketCreateState.kinkStartingPointRatio).dividedBy(100).toString() : undefined
         }
       }
 
       //Set funds if the user isn't whitelisted
       var funds: MsgExecuteContractEncodeObject['value']['funds'] = [];
-      if (!isWhitelistedManager){
+      if (!isWhitelistedManager) {
         funds = [
-            {
-                denom: CDT_ASSET.base,
-                amount: "25000000" //25 CDT
-            }
+          {
+            denom: CDT_ASSET.base,
+            amount: "25000000" //25 CDT
+          }
         ]
       }
 
@@ -92,37 +92,44 @@ const useMarketCreation = ({
             JSON.stringify({
               instantiate_market: {
                 params: {
-                    manager: marketCreateState.managerAddress,
-                    name: marketCreateState.name,
-                    socials: marketCreateState.socialLinks == "" ? [] : [marketCreateState.socialLinks],
-                    whitelisted_debt_suppliers: undefined,
-                    max_slippage: num(marketCreateState.maxSlippage).div(100).toString(),
-                    collateral_params: {
-                        collateral_asset: collateralAsset.base,
-                        max_borrow_LTV: num(marketCreateState.maxBorrowLTV).div(100).toString(),
-                        liquidation_LTV: num(marketCreateState.liquidationLTV).div(100).toString(),
-                    },
-                    rate_params: {
-                        base_rate: num(marketCreateState.baseRate).div(100).toString(),
-                        rate_max: num(marketCreateState.rateMax).div(100).toString(),
-                        rate_kink,
-                    },
-                    pool_for_oracle_and_liquidations: {
-                        basket_id: "0",
-                        pools_for_osmo_twap: poolsForOsmoTwap,
-                        is_usd_par: false,
-                        decimals: collateralAsset.decimal
-                    },
-                    borrow_fee: num(marketCreateState.borrowFee).div(100).toString(),
-                    whitelisted_collateral_suppliers: undefined,
-                    pause_option: true,
-                    debt_supply_cap: marketCreateState.totalDebtSupplyCap ? num(marketCreateState.totalDebtSupplyCap).times(10 ** 6).toString() : undefined,
-                    borrow_cap: {
-                        cap_borrows_by_liquidity: false
-                    },
-                    manager_fee: "0.05",
+                  manager: marketCreateState.managerAddress,
+                  name: marketCreateState.name,
+                  socials: marketCreateState.socialLinks == "" ? [] : [marketCreateState.socialLinks],
+                  whitelisted_debt_suppliers: undefined,
+                  max_slippage: num(marketCreateState.maxSlippage).div(100).toString(),
+                  collateral_params: {
+                    collateral_asset: collateralAsset.base,
+                    max_borrow_LTV: num(marketCreateState.maxBorrowLTV).div(100).toString(),
+                    liquidation_LTV: num(marketCreateState.liquidationLTV).div(100).toString(),
+                  },
+                  rate_params: {
+                    base_rate: num(marketCreateState.baseRate).div(100).toString(),
+                    rate_max: num(marketCreateState.rateMax).div(100).toString(),
+                    rate_kink,
+                  },
+                  collateral_oracle_info: {
+                    pools_for_osmo_twap: poolsForOsmoTwap,
+                    decimals: collateralAsset.decimal
+                  },
+
+                  debt_oracle_info: {
+                    pools_for_osmo_twap: poolsForOsmoTwap,
+                    decimals: collateralAsset.decimal
+                  },
+                  //todo: wrong debt token
+                  debt_token: collateralAsset.base,
+                  borrow_fee: num(marketCreateState.borrowFee).div(100).toString(),
+                  whitelisted_collateral_suppliers: undefined,
+                  pause_option: true,
+                  debt_supply_cap: marketCreateState.totalDebtSupplyCap ? num(marketCreateState.totalDebtSupplyCap).times(10 ** 6).toString() : undefined,
+                  borrow_cap: {
+                    cap_borrows_by_liquidity: false
+                  },
+                  manager_fee: "0.05",
+                  oracle_contract: "osmo1a0k36dskvskmghhkmwtkgt2qmxpkwzfnspupl09fnsezljhxxryqu2wyxe",
+                  swap_contract: "osmo1zwfha9a73a7wsug3vvn2mmvhp3x53v886eskrmsusyy2mgx8faxqw7fjjw",
                 }
-            },
+              },
             })
           ),
           funds, // Add funds if needed

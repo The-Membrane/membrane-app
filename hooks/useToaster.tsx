@@ -34,7 +34,8 @@ type ToastProps = {
   chainName?: string
   txHash?: string
   explorer?: Explorer
-  duration?: number | null
+  duration?: number | null,
+  shrinkMessage?: boolean
 }
 export interface IToaster {
   dismiss: any
@@ -109,13 +110,13 @@ const useToaster = (): IToaster => {
       position: 'top-right',
     })
   }
-  const success = ({ message, txHash, explorer }: ToastProps) => {
+  const success = ({ message, txHash, explorer, shrinkMessage }: ToastProps) => {
     console.log("success", message, txHash, explorer)
     toast({
       ...defaultSettings,
       title: 'Success',
       description: (
-        <ToastContent explorer={explorer || _explorer} message={message} txHash={txHash} />
+        !shrinkMessage && <ToastContent explorer={explorer || _explorer} message={message} txHash={txHash} shrinkMessage={shrinkMessage} />
       ),
       status: ToastTypes.Success,
       position: 'top-right',

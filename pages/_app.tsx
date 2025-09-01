@@ -18,8 +18,9 @@ import WalletModal from '@/components/WalletModal'
 import { aminoTypes, registry, rpcUrl } from '@/config/defaults'
 import { useEffect, useState } from 'react'
 import Layout from '@/components/Layout'
+import { getGasConfig } from '@/config/gas'
 
-// import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 //pnpm install @cosmos-kit/keplr-mobile@^2.4.3
 // import '@interchain-ui/react/styles'
 // import MembersRules from '@/components/MembersRules'
@@ -32,14 +33,18 @@ const signerOptions: SignerOptions = {
       gasPrice: GasPrice.fromString('0.01uosmo'),
     }
   },
-  signingCosmwasm: (chain: Chain) => {
-    switch (chain.chain_name) {
-      case 'osmosis':
-      case 'osmosistestnet5':
-        return {
-          gasPrice: GasPrice.fromString('0.01uosmo'),
-        }
+  signingCosmwasm: (chain: string | Chain) => {
+    const chainName = typeof chain === 'string' ? chain : chain.chain_name;
+    const gasConfig = getGasConfig(chainName);
+
+    if (gasConfig) {
+      return {
+        gasPrice: GasPrice.fromString(`${gasConfig.gasPrice}${gasConfig.denom}`),
+        ...(gasConfig.gasLimit && { gas: gasConfig.gasLimit }),
+      }
     }
+
+    return undefined;
   },
 }
 
@@ -109,7 +114,7 @@ const App = ({ Component, pageProps }: AppProps) => {
           </Layout>
         </ChainProvider>
       </ChakraProvider>
-      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   )
 }

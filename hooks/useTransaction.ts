@@ -12,13 +12,14 @@ type Transaction = {
   onSuccess?: () => void
   fee?: StdFee | undefined
   chain_id: string
+  shrinkMessage?: boolean
 }
 
 const mock = {
   transactionHash: '455C577EBCACEA50D9E8E9A0E621B1121E05D97974DFD9EDFFFB367B2F13BC24',
 } as DeliverTxResponse
 
-const useTransaction = ({ msgs, onSuccess, fee, chain_id }: Transaction) => {
+const useTransaction = ({ msgs, onSuccess, fee, chain_id, shrinkMessage }: Transaction) => {
   const [isApproved, setIsApproved] = useState(false)
   const toaster = useToaster()
   const { chainName } = useChainRoute()
@@ -46,11 +47,14 @@ const useTransaction = ({ msgs, onSuccess, fee, chain_id }: Transaction) => {
       toaster.success({
         message: `Transaction ${code === 0 ? 'Successful' : 'Failed'}`,
         txHash: transactionHash,
+        shrinkMessage: shrinkMessage ?? false
       })
 
       // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
 
+      console.log("Calling onSuccess callback...")
       onSuccess?.()
+      console.log("onSuccess callback completed")
     },
     onError: (error) => {
       console.log("tx error", error)

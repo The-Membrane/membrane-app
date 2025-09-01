@@ -14,6 +14,7 @@ type Props = {
   amount?: string
   onSuccess?: () => void
   chain_id?: string
+  shrinkMessage?: boolean
 }
 
 const useSimulateAndBroadcast = ({
@@ -23,6 +24,7 @@ const useSimulateAndBroadcast = ({
   onSuccess,
   chain_id = 'osmosis',
   enabled = false,
+  shrinkMessage = false,
 }: Props): SimulateAndBroadcast => {
   const simulate = useSimulate({
     msgs,
@@ -38,7 +40,8 @@ const useSimulateAndBroadcast = ({
     msgs,
     fee,
     onSuccess,
-    chain_id
+    chain_id,
+    shrinkMessage,
   })
 
   return {

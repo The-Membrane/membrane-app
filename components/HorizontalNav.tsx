@@ -14,10 +14,11 @@ const navItems = [
     { label: 'Home', href: '/' },
     { label: 'Portfolio', href: '/portfolio' },
     // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
-    { label: 'Isolated Markets', href: '/isolated' },
+    // { label: 'Isolated Markets', href: '/isolated' }, //Remove supplied CDT Trix
     { label: 'Mint', href: '/mint' },
     { label: 'Liquidate', href: '/liquidate' },
     { label: 'Stake', href: '/stake' },
+    { label: 'Q-Racing', href: '/q-racing' },
     { label: 'Control Room', href: '/control-room' },
 ];
 
@@ -128,8 +129,6 @@ const HorizontalNav = () => {
                                 bg={chain.name === currentChain.name ? 'whiteAlpha.200' : 'transparent'}
                                 _hover={{ bg: 'whiteAlpha.300' }}
                                 color="white"
-                                isDisabled={false}
-                                opacity={0.5}
                                 cursor="pointer"
                             >
                                 <HStack>

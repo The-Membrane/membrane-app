@@ -29,7 +29,7 @@ export default function Layout({ children }: LayoutProps) {
     <Box minH="100vh" bg="gray.900">
       <HorizontalNav />
       <ChainLayout>
-        <Box as="main" p={4} justifyContent="center">
+        <Box as="main" justifyContent="center">
           <RPCStatus />
           {children}
         </Box>

@@ -6,7 +6,8 @@
 
 import contracts from '@/config/contracts.json';
 import { getCosmWasmClient } from '@/helpers/cosmwasmClient';
-import { rpcUrl as defaultRpcUrl } from '@/config/defaults';
+import { rpcUrl as defaultRpcUrl, rpcUrl } from '@/config/defaults';
+import { useQuery } from '@tanstack/react-query';
 
 // ---------------------------------------------------------------------------
 // Type declarations (kept local to avoid cross-file imports until the service
@@ -80,14 +81,15 @@ interface JsonTrack {
     height: number;
     layout: JsonTrackTile[][];
     fastest_tick_time: string; // u64 -> string
+    starting_tiles: JsonTrackTile[];
 }
-
+interface JsonListTracksResponse { tracks: JsonTrack[] }
 interface JsonPosition { car_id: string; x: number; y: number }
 interface JsonAction { action: string; resulting_position: JsonPosition }
 interface JsonPlayByPlay { starting_position: JsonPosition; actions: JsonAction[] }
 interface JsonRank { car_id: string; rank: number }
 interface JsonStep { car_id: string; steps_taken: number }
-interface JsonRaceResult {
+export interface JsonRaceResult {
     race_id: string;
     track_id: string; // Uint128 -> string
     car_ids: string[];
@@ -98,6 +100,253 @@ interface JsonRaceResult {
 }
 interface JsonRaceResultResponse { result: JsonRaceResult }
 interface JsonRecentRacesResponse { races: JsonRaceResult[] }
+
+// Add new interfaces for car queries
+interface JsonTokensResponse {
+    tokens: string[]
+}
+
+interface JsonAllTokensResponse {
+    tokens: JsonTokensResponse;
+}
+
+// New: Training stats JSON mirrors (from Rust structs in race_engine.rs/types.rs)
+export interface JsonTrainingStats {
+    tally: number; // u32
+    win_rate: number; // u32 (percentage)
+    fastest: number; // u32 (ticks)
+    first_time: number; // u32 (ticks)
+}
+
+export interface JsonTrackTrainingStats {
+    solo: JsonTrainingStats;
+    pvp: JsonTrainingStats;
+}
+
+export interface JsonGetTrackTrainingStatsResponse {
+    car_id: string; // u128 -> string
+    track_id: string; // u128 -> string
+    stats: JsonTrackTrainingStats;
+}
+
+// Q-table types and queries ---------------------------------------------------
+export interface JsonQTableEntry {
+    state_hash: string | number[]; // serialized bytes; treat as opaque id
+    action_values: [number, number, number, number];
+}
+
+export interface JsonGetQResponse {
+    car_id: string;
+    q_values: JsonQTableEntry[];
+}
+
+export async function getCarQTable(carId: string, rpc: string = defaultRpcUrl): Promise<JsonGetQResponse | null> {
+    const raceEngineAddr = (contracts as any).raceEngine as string | undefined;
+    if (!raceEngineAddr) {
+        await artificialDelay();
+        return null;
+    }
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(raceEngineAddr, {
+            get_q: { car_id: carId },
+        })) as JsonGetQResponse;
+        return response ?? null;
+    } catch (error) {
+        console.error('Error fetching car Q-table:', error);
+        return null;
+    }
+}
+
+export function useCarQTable(carId?: string, rpc: string = defaultRpcUrl) {
+    return useQuery<JsonGetQResponse | null>({
+        queryKey: ['car_q_table', (contracts as any).raceEngine, carId, rpc],
+        queryFn: async () => {
+            if (!carId) return null;
+            return getCarQTable(carId, rpc);
+        },
+        enabled: Boolean(carId && (contracts as any).raceEngine),
+        staleTime: 30_000,
+    });
+}
+
+// Car metadata (traits) via CW721 nft_info ------------------------------------
+export interface JsonNFTAttribute { trait_type: string; value: string }
+export interface JsonNFTMetadata { attributes?: JsonNFTAttribute[]; name?: string | null }
+export interface JsonNftInfoResponse { token_uri?: string; extension?: JsonNFTMetadata }
+
+export async function getCarMetadata(tokenId: string, rpc: string = defaultRpcUrl): Promise<JsonNFTAttribute[] | null> {
+    const carAddr = (contracts as any).car as string | undefined;
+    if (!carAddr) {
+        await artificialDelay();
+        return null;
+    }
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(carAddr, {
+            base: {
+                nft_info: { token_id: tokenId },
+            },
+        })) as JsonNftInfoResponse;
+        // console.log('nft info res', response);
+        return response?.extension?.attributes ?? null;
+    } catch (error) {
+        console.error('Error fetching car metadata:', error);
+        return null;
+    }
+}
+
+export function useCarMetadata(tokenId?: string, rpc: string = defaultRpcUrl) {
+    return useQuery<JsonNFTAttribute[] | null>({
+        queryKey: ['car_metadata', (contracts as any).car, tokenId, rpc],
+        queryFn: async () => {
+            if (!tokenId) return null;
+            return getCarMetadata(tokenId, rpc);
+        },
+        enabled: Boolean(tokenId && (contracts as any).car),
+        staleTime: 5 * 60_000,
+    });
+}
+
+// New: Fetch car name via CW721 base.nft_info
+export async function getCarName(tokenId: string, rpc: string = defaultRpcUrl): Promise<string | null> {
+    const carAddr = (contracts as any).car as string | undefined;
+    if (!carAddr) {
+        await artificialDelay();
+        return null;
+    }
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(carAddr, {
+            base: {
+                nft_info: { token_id: tokenId },
+            },
+        })) as JsonNftInfoResponse;
+        return response?.extension?.name ?? null;
+    } catch (error) {
+        console.error('Error fetching car name:', error);
+        return null;
+    }
+}
+
+export function useCarName(tokenId?: string, rpc: string = defaultRpcUrl) {
+    return useQuery<string | null>({
+        queryKey: ['car_name', (contracts as any).car, tokenId, rpc],
+        queryFn: async () => {
+            if (!tokenId) return null;
+            return getCarName(tokenId, rpc);
+        },
+        enabled: Boolean(tokenId && (contracts as any).car),
+        staleTime: 5 * 60_000,
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Energy: CarInfo with energy fields via custom query
+
+export interface JsonCarInfoResponse {
+    owners: string[];
+    metadata?: JsonNFTMetadata | null;
+    created_at: number;
+    current_energy: number;
+    last_energy_update_nanos: number;
+    max_energy: number;
+    energy_recovery_hours: number;
+    energy_per_training: number;
+    training_payment_options: { denom: string; amount: string }[];
+}
+
+export async function getCarEnergy(tokenId: string, rpc: string = defaultRpcUrl): Promise<JsonCarInfoResponse | null> {
+    const carAddr = (contracts as any).car as string;
+    const client = await getCosmWasmClient(rpc);
+    console.log('getCarEnergy', tokenId, rpc)
+    try {
+        const response = (await client.queryContractSmart(carAddr, {
+            get_car_info: { token_id: tokenId },
+        })) as JsonCarInfoResponse;
+        return response ?? null;
+    } catch (error) {
+        console.error('Error fetching car energy:', error);
+        return null;
+    }
+}
+
+export function useCarEnergy(tokenId?: string, rpc: string = defaultRpcUrl) {
+    console.log('useCarEnergy', tokenId, rpc)
+    return useQuery<JsonCarInfoResponse | null>({
+        queryKey: ['car_energy', (contracts as any).car, tokenId, rpc],
+        queryFn: async () => {
+            if (!tokenId) return null;
+            return getCarEnergy(tokenId, rpc);
+        },
+        enabled: Boolean(tokenId && (contracts as any).car),
+        staleTime: 3600_000,
+        refetchInterval: 3600_000,
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Byte-minter: seconds until next window (maze or pvp)
+
+export type ByteMinterEvent = 'maze' | 'pvp'
+
+export async function getSecondsUntilOpen(event: ByteMinterEvent, rpc: string = defaultRpcUrl): Promise<number | null> {
+    const addr = (contracts as any).byteMinter as string | undefined
+    if (!addr) return null
+    const client = await getCosmWasmClient(rpc)
+    try {
+        const payload = { seconds_until_open: { event } } as any
+        const res = (await client.queryContractSmart(addr, payload)) as number
+        return typeof res === 'number' ? res : null
+    } catch (e) {
+        console.error('Error fetching byte-minter countdown', e)
+        return null
+    }
+}
+
+export function useSecondsUntilOpen(event: ByteMinterEvent, rpc: string = defaultRpcUrl) {
+    return useQuery<number | null>({
+        queryKey: ['byte_minter_until_open', (contracts as any).byteMinter, event, rpc],
+        queryFn: async () => getSecondsUntilOpen(event, rpc),
+        enabled: Boolean((contracts as any).byteMinter),
+        refetchInterval: 3600_000,
+        staleTime: 3600_000,
+    })
+}
+
+// Byte-minter: get valid maze ID
+export async function getValidMazeId(rpc: string = defaultRpcUrl): Promise<string | null> {
+    const addr = (contracts as any).byteMinter as string | undefined
+    if (!addr) return null
+    const client = await getCosmWasmClient(rpc)
+    try {
+        const res = (await client.queryContractSmart(addr, { valid_maze_id: {} } as any)) as any
+        return res?.track_id?.toString() ?? null
+    } catch (e) {
+        console.error('Error fetching valid maze ID', e)
+        return null
+    }
+}
+
+export function useValidMazeId(rpc: string = defaultRpcUrl) {
+    return useQuery<string | null>({
+        queryKey: ['byte_minter_valid_maze_id', (contracts as any).byteMinter, rpc],
+        queryFn: async () => getValidMazeId(rpc),
+        enabled: Boolean((contracts as any).byteMinter),
+        refetchInterval: 30_000,
+        staleTime: 30_000,
+    })
+}
+
+export function formatCountdown(seconds?: number | null) {
+    if (seconds == null) return '—'
+    const s = Math.max(0, Math.floor(seconds))
+    const h = Math.floor(s / 3600)
+    const m = Math.floor((s % 3600) / 60)
+    const r = s % 60
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    return `${pad(h)}:${pad(m)}:${pad(r)}`
+}
 
 function toLegendTile(tile: JsonTrackTile): TrackTile {
     const p = tile.properties;
@@ -113,7 +362,7 @@ function jsonTrackToLegendGrid(track: JsonTrack): Track {
     return track.layout.map((row) => row.map((t) => toLegendTile(t)));
 }
 
-function raceResultToPlayByPlayEntries(result: JsonRaceResult): PlayByPlayEntry[] {
+export function raceResultToPlayByPlayEntries(result: JsonRaceResult): PlayByPlayEntry[] {
     // Build per-car sequences of positions from starting_position + actions
     const carIds = Object.keys(result.play_by_play);
     if (carIds.length === 0) return [];
@@ -152,45 +401,267 @@ function raceResultToPlayByPlayEntries(result: JsonRaceResult): PlayByPlayEntry[
 
 // ---------------------------------------------------------------------------
 
-export async function getQRacingTrack(trackId = 'sample', rpcUrl: string = defaultRpcUrl): Promise<Track> {
+export async function getQRacingTrack(trackId: string, rpcUrl: string = defaultRpcUrl): Promise<Track> {
     // Fallback to mock if track id is clearly a placeholder or contracts not configured
-    const trackManagerAddr = (contracts as any).trackManager as string | undefined;
     const isNumericId = /^\d+$/.test(trackId);
-    if (!trackManagerAddr || !isNumericId) {
+    if (!isNumericId) {
         return mockTrack;
     }
 
     const client = await getCosmWasmClient(rpcUrl);
+    console.log('HERE');
     // Rust expects { get_track: { track_id: Uint128-string } }
-    const response = (await client.queryContractSmart(trackManagerAddr, {
+    const response = (await client.queryContractSmart(contracts.trackManager, {
         get_track: { track_id: trackId },
     })) as JsonTrack;
+    console.log('response', response);
 
     return jsonTrackToLegendGrid(response);
 }
 
-export async function getQRacingLog(raceId = 'sample', rpcUrl: string = defaultRpcUrl): Promise<PlayByPlayEntry[]> {
+// List tracks from track manager
+export async function listTracks(rpc: string = defaultRpcUrl): Promise<JsonTrack[]> {
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(contracts.trackManager, {
+            list_tracks: {
+                limit: 200,
+            },
+        })) as JsonListTracksResponse;
+        console.log('response tracks', response.tracks);
+        return response.tracks ?? [];
+    } catch (error) {
+        console.error('Error listing tracks:', error);
+        return [];
+    }
+}
+
+export function useListTracks(rpc: string = defaultRpcUrl) {
+    console.log('useListTracks hook called with rpc:', rpc)
+    return useQuery({
+        queryKey: ['list_tracks', contracts.trackManager, rpc],
+        queryFn: async () => {
+            console.log('useListTracks queryFn executing...')
+            const result = await listTracks(rpc)
+            console.log('useListTracks queryFn completed with result:', result?.length)
+            return result
+        },
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+        staleTime: 0, // Always consider data stale to allow refetching
+    });
+}
+
+
+// New function to get recent races for a specific car
+export async function getRecentRacesForCar(carId: string, rpcUrl: string = defaultRpcUrl): Promise<JsonRaceResult[]> {
     const raceEngineAddr = (contracts as any).raceEngine as string | undefined;
-    const looksLikeId = raceId && raceId !== 'sample';
-    if (!raceEngineAddr || !looksLikeId) {
+    if (!raceEngineAddr) {
         await artificialDelay();
-        return mockLog;
+        return [];
     }
 
     const client = await getCosmWasmClient(rpcUrl);
 
-    // list_recent_races -> RecentRacesResponse
-    const recent = (await client.queryContractSmart(raceEngineAddr, {
-        list_recent_races: { limit: 100 },
-    })) as JsonRecentRacesResponse;
+    try {
+        console.log('getRecentRacesForCar: Fetching races for carId:', carId, 'with limit: 100');
+        const response = (await client.queryContractSmart(raceEngineAddr, {
+            list_recent_races: {
+                car_id: carId,
+                limit: 100
+            },
+        })) as JsonRecentRacesResponse;
 
-    const found = recent.races.find((r) => r.race_id === raceId);
-    if (!found) {
-        // As a fallback, return mock
-        return mockLog;
+        console.log('getRecentRacesForCar: Received', response.races?.length || 0, 'races');
+        if (response.races && response.races.length > 0) {
+            console.log('getRecentRacesForCar: First race ID:', response.races[0].race_id);
+            console.log('getRecentRacesForCar: Last race ID:', response.races[response.races.length - 1].race_id);
+        }
+
+        return response.races;
+    } catch (error) {
+        console.error('Error fetching recent races for car:', error);
+        return [];
+    }
+}
+
+// New function to get all recent races
+export async function getAllRecentRaces(rpcUrl: string = defaultRpcUrl, carId?: string, trackId?: string): Promise<JsonRaceResult[]> {
+    const client = await getCosmWasmClient(rpcUrl);
+
+    try {
+        const response = (await client.queryContractSmart(contracts.raceEngine, {
+            list_recent_races: {
+                car_id: carId ? carId : undefined,
+                track_id: trackId ? trackId : undefined,
+                limit: 100
+            },
+        })) as JsonRecentRacesResponse;
+
+        return response.races;
+    } catch (error) {
+        console.error('Error fetching all recent races:', error);
+        return [];
+    }
+}
+
+// New function to get owned cars for a wallet address
+export async function getOwnedCars(walletAddress: string, rpcUrl: string = defaultRpcUrl): Promise<Array<{ id: string; name: string | null }>> {
+
+
+    const client = await getCosmWasmClient(rpcUrl);
+
+    try {
+        // Query all tokens owned by the wallet address
+        const response = (await client.queryContractSmart(contracts.car, {
+            base: {
+                tokens: {
+                    owner: walletAddress,
+                    limit: 100
+                },
+            },
+        })) as JsonTokensResponse;
+
+        const tokens = response.tokens ?? [];
+        console.log('getOwnedCars tokens', walletAddress, rpcUrl, tokens?.length)
+        const results = await Promise.all(
+            tokens.map(async (token) => {
+                try {
+                    const info = (await client.queryContractSmart(contracts.car, {
+                        base: { nft_info: { token_id: token } },
+                    })) as JsonNftInfoResponse;
+                    const name = info?.extension?.name ?? null;
+                    return { id: token, name };
+                } catch (e) {
+                    return { id: token, name: null };
+                }
+            })
+        );
+
+        return results;
+    } catch (error) {
+        console.error('Error fetching owned cars:', error);
+        return [];
+    }
+}
+
+// ---------------------------------------------------------------------------
+// New: GetTrackTrainingStats (car + track scoped)
+
+export async function getTrackTrainingStats(
+    carId: string,
+    trackId: string,
+    rpc: string = defaultRpcUrl,
+): Promise<JsonGetTrackTrainingStatsResponse | null> {
+    const raceEngineAddr = (contracts as any).raceEngine as string | undefined;
+    if (!raceEngineAddr) {
+        await artificialDelay();
+        return null;
     }
 
-    return raceResultToPlayByPlayEntries(found);
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(raceEngineAddr, {
+            get_track_training_stats: {
+                car_id: carId,
+                track_id: trackId,
+                limit: 1,
+            },
+        })) as JsonGetTrackTrainingStatsResponse[];
+
+        return response?.[0] ?? null;
+    } catch (error) {
+        console.error('Error fetching track training stats:', error);
+        return null;
+    }
+}
+
+// New: Get all training stats for a car across all tracks
+export async function getAllTrackTrainingStats(
+    carId: string,
+    rpc: string = defaultRpcUrl,
+): Promise<JsonGetTrackTrainingStatsResponse[]> {
+    const raceEngineAddr = (contracts as any).raceEngine as string | undefined;
+    if (!raceEngineAddr) {
+        await artificialDelay();
+        return [];
+    }
+
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(raceEngineAddr, {
+            get_track_training_stats: {
+                car_id: carId,
+                track_id: null, // null means all tracks
+                limit: 100, // reasonable limit for all tracks
+            },
+        })) as JsonGetTrackTrainingStatsResponse[];
+
+        return response ?? [];
+    } catch (error) {
+        console.error('Error fetching all track training stats:', error);
+        return [];
+    }
+}
+
+export function useTrackTrainingStats(
+    carId?: string,
+    trackId?: string,
+    rpc: string = defaultRpcUrl,
+) {
+    const raceEngineAddr = (contracts as any).raceEngine as string | undefined;
+    return useQuery({
+        queryKey: ['track_training_stats', raceEngineAddr, carId, trackId, rpc],
+        queryFn: async () => {
+            if (!carId || !trackId) return null;
+            return getTrackTrainingStats(carId, trackId, rpc);
+        },
+        enabled: Boolean(raceEngineAddr && carId && trackId),
+        staleTime: 5_000, // 5 seconds - reasonable balance between freshness and performance
+        refetchOnMount: false, // Don't refetch on every mount
+        refetchOnWindowFocus: false, // Don't refetch on every focus
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Top times per track
+
+export interface JsonTopTimeEntry { car_id: string; time: number }
+export interface JsonTopTimes { entries: JsonTopTimeEntry[] }
+
+export async function getTopTimes(trackId: string, rpc: string = defaultRpcUrl): Promise<JsonTopTimeEntry[]> {
+    const raceEngineAddr = (contracts as any).raceEngine as string | undefined;
+    if (!raceEngineAddr) {
+        await artificialDelay();
+        return [];
+    }
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(raceEngineAddr, {
+            get_top_times: { track_id: trackId },
+        })) as JsonTopTimes;
+        const entries = response?.entries ?? [];
+        return entries.slice().sort((a, b) => a.time - b.time);
+    } catch (error) {
+        console.error('Error fetching top times:', error);
+        return [];
+    }
+}
+
+export function useTopTimes(trackId?: string, rpc: string = defaultRpcUrl) {
+    const raceEngineAddr = (contracts as any).raceEngine as string | undefined;
+    return useQuery<JsonTopTimeEntry[]>({
+        queryKey: ['top_times', raceEngineAddr, trackId, rpc],
+        queryFn: async () => {
+            if (!trackId) return [];
+            return getTopTimes(trackId, rpc);
+        },
+        enabled: Boolean(raceEngineAddr && trackId),
+        staleTime: 5_000, // 5 seconds - reasonable balance between freshness and performance
+        refetchOnMount: false, // Don't refetch on every mount
+        refetchOnWindowFocus: false, // Don't refetch on every focus
+    });
 }
 
 // Helper – simulates network latency

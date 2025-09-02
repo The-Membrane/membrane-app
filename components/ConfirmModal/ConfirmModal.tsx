@@ -53,9 +53,8 @@ const ConfirmModal = ({
             if (!action?.simulate.data || action?.simulate.isLoading) {
               onModalOpen()
             } else {
-              onModalClose()
+              action?.tx.mutate()
             }
-            action?.tx.mutate()
           } else {
             onModalOpen()
           }

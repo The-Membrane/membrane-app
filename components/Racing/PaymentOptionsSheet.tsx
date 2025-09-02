@@ -54,6 +54,10 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
     // Click outside handler for desktop dropdown
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
+            // If a modal is open (e.g., ConfirmModal), do not close the sheet
+            // Chakra UI modals render with role="dialog"
+            const hasOpenModal = Boolean(document.querySelector('[role="dialog"]'))
+            if (hasOpenModal) return
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 onClose()
             }
@@ -233,7 +237,7 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
                     border="1px solid #2a3550"
                     borderRadius="md"
                     p={2}
-                    zIndex={9999}
+                    zIndex={1000}
                     w={dropdownWidth === 'full' ? "100%" : "100%"}
                     minW={dropdownWidth === 'full' ? "100%" : "280px"}
                     boxShadow="0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"

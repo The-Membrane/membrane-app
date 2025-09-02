@@ -1009,7 +1009,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     color: isMazeMode ? '#8b5cf6' : '#00ffea',
                     letterSpacing: 1
                 }}>
-                    {isMazeMode ? 'MAZE MINT MODE' : 'RACE MODE'}
+                    {isMazeMode ? 'MAZE RUNNERS' : 'TRAIN 2 FAME'}
                 </div>
                 {/* Test confetti button */}
                 {TEST_CONFETTI && (

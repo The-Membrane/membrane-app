@@ -89,7 +89,7 @@ const QRacer: React.FC = () => {
             color="#00ffea"
             textAlign={{ base: 'center', md: 'left' }}
           >
-            Q-RACER
+            MAZE RUNNERS
           </Text>
           <Box flex="1" mx={{ base: 0, md: 4 }} order={{ base: 2, md: 1 }}>
             <QRacerTicker rpc={appState.rpcUrl} />

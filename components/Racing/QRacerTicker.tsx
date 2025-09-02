@@ -89,7 +89,7 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
         return () => clearInterval(id)
     }, [maze, windowStatus])
 
-    const label = windowStatus?.is_active ? 'Maze window closes in' : 'Maze construction in'
+    const label = windowStatus?.is_active ? 'Maze window closes in' : 'Construct the Maze'
     const countdown = formatCountdown(remaining)
     const display = `${label}: ${countdown}`
     // const display2 = `${'Training Sessions Stolen by The Singularity'}: ${racingState.singularityTrainingSessions}`
@@ -145,7 +145,7 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                         </Button>
                     ) : (
                         <ConfirmModal
-                            // executeDirectly={true}
+                            executeDirectly={true}
                             label="Generate Maze"
                             action={generateMaze.action}
                             isDisabled={false}

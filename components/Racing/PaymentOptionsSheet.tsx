@@ -144,7 +144,7 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
                         action={action}
                         isDisabled={!option.isAvailable || isLoading}
                         isLoading={isLoading}
-                        executeDirectly={true}
+                        // executeDirectly={true}
                         buttonProps={{
                             w: "100%",
                             bg: option.isAvailable ? '#274bff' : '#1a1f2e',

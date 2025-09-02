@@ -37,11 +37,7 @@ const Home = () => {
 
   console.log("Home")
 
-  const { appState, setAppState } = useAppState(); useMemo(() => {
-    if (appState.rpcUrl !== 'https://osmosis-rpc.polkachu.com/') {
-      setAppState({ rpcUrl: 'https://osmosis-rpc.polkachu.com/' });
-    }
-  }, [appState.rpcUrl, setAppState]);
+  const { appState, setAppState } = useAppState();
   const { rulesState } = useMembersRulesState()
 
   const [hasShownToast, setHasShownToast] = useState(false);
@@ -102,8 +98,9 @@ const Home = () => {
   )
 
   const calculatedRBYield = useMemo(() => {
-    if (!basket || !interest || !TVL) return "0";
-    return simpleBoundedAPRCalc(shiftDigits(basket.credit_asset.amount, -6).toNumber(), interest, TVL, 0);
+    const amount = basket?.credit_asset?.amount
+    if (!amount || !interest || !TVL) return "0";
+    return simpleBoundedAPRCalc(shiftDigits(amount, -6).toNumber(), interest, TVL, 0);
   }, [basket, interest, TVL]);
 
   const underlyingCDT = useMemo(() =>

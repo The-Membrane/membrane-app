@@ -9,8 +9,7 @@ type Props = ButtonProps & {
 }
 
 const ConnectButton = ({ chain_name = 'osmosis', ...props }: Props) => {
-  const { chainName } = useChainRoute()
-  const { connect } = useWallet(chainName)
+  const { connect } = useWallet()
 
   return (
     <Button

@@ -29,7 +29,8 @@ interface Props {
     trackId?: string;
 }
 
-const RaceViewer: React.FC<Props> = ({ trackId }) => {
+//track id 3 is the Tiny Straight Track
+const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
     console.log('RaceViewer', trackId);
     const router = useRouter();
     const { racingState, setRacingState } = useRacingState();
@@ -988,7 +989,7 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
         // Advanced training parameters - only enabled when advanced section is expanded
         advanced: showAdvancedParams,
         explorationRate: showAdvancedParams ? explorationRate : 0.3,
-        enableDecay: showAdvancedParams ? enableDecay : true
+        enableDecay: true
     });
 
     return (
@@ -1207,7 +1208,7 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
                             label={isMazeMode ? "Traverse" : "Run Race"}
                             action={runRace.action}
                             isDisabled={!selectedTrackId || !selectedCarId || racingState.energy < 10 || filteredTracks.length === 0}
-                            isLoading={runRace.action.simulate.isPending}
+                            isLoading={runRace.action.simulate.isPending || runRace.action.tx.isPending}
                             buttonProps={{
                                 colorScheme: 'blue',
                                 bg: '#274bff',
@@ -1396,13 +1397,13 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
                                         </div>
 
                                         {/* Decay Checkbox */}
-                                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '10px', color: '#b8c1ff' }}>
+                                        {/* <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '10px', color: '#b8c1ff' }}>
                                             <input
                                                 type="checkbox"
                                                 checked={enableDecay}
                                                 onChange={(e) => setEnableDecay(e.target.checked)}
                                             /> Enable Exploration Decay
-                                        </label>
+                                        </label> */}
                                     </div>
                                 </div>
                             )}

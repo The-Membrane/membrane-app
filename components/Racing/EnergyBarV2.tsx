@@ -51,6 +51,15 @@ const EnergyBarV2: React.FC<EnergyBarV2Props> = ({ tokenId, inline }) => {
     const { racingState, setRacingState } = useRacingState()
     const isMobile = useBreakpointValue({ base: true, md: false })
     const lightningIconSize = useBreakpointValue({ base: 16, sm: 20, md: 30 })
+    const style = useMemo(() => {
+        if (!data) {
+            return {
+                opacity: 0.5,
+                cursor: 'not-allowed'
+            }
+        }
+        return undefined
+    }, [data])
 
     // Create refill energy hook for free refills
     const freeRefillHook = useRefillEnergy({ tokenId, paymentOption: null })
@@ -137,6 +146,7 @@ const EnergyBarV2: React.FC<EnergyBarV2Props> = ({ tokenId, inline }) => {
                 borderRadius="md"
                 maxW={{ base: '100vw', md: 'auto' }}
                 overflow="visible"
+                style={style}
             >
                 <LightningIcon size={lightningIconSize} />
                 <VStack align="start" spacing={0} minW={{ base: '140px', md: '180px' }} maxW={{ base: '60vw', md: 'auto' }}>
@@ -258,6 +268,7 @@ const EnergyBarV2: React.FC<EnergyBarV2Props> = ({ tokenId, inline }) => {
             overflow="hidden"
             justify={{ base: 'center', sm: 'flex-start' }}
             align={{ base: 'center', sm: 'flex-start' }}
+            style={style}
         >
             <LightningIcon size={lightningIconSize} />
             <VStack align={{ base: 'center', sm: 'start' }} spacing={0} minW={{ base: '140px', sm: '180px' }} maxW={{ base: '60vw', sm: 'auto' }}>

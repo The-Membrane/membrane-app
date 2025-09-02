@@ -13,7 +13,8 @@ export default function ChainLayout({ children }: ChainLayoutProps) {
 
     useEffect(() => {
         if (!isValidChain) {
-            router.replace(`/${supportedChains[0].name}${router.asPath}`)
+            const pathWithoutLeadingChain = router.asPath.replace(/^\/[^/]+/, '')
+            router.replace(`/${supportedChains[0].name}${pathWithoutLeadingChain}`)
         }
     }, [chainName, isValidChain, router])
 

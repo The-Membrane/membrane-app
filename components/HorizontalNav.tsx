@@ -18,7 +18,7 @@ const navItems = [
     { label: 'Mint', href: '/mint' },
     { label: 'Liquidate', href: '/liquidate' },
     { label: 'Stake', href: '/stake' },
-    { label: 'Q-Racing', href: '/q-racing' },
+    { label: 'Maze Runners', href: '/maze-runners' },
     { label: 'Control Room', href: '/control-room' },
 ];
 

@@ -50,6 +50,9 @@ const ConfirmModal = ({
         onClick={() => {
           onClick?.()
           if (executeDirectly) {
+            if (!action?.simulate.data || action?.simulate.isLoading) {
+              onModalOpen()
+            }
             action?.tx.mutate()
           } else {
             onModalOpen()

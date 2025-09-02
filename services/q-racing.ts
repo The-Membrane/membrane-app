@@ -320,8 +320,9 @@ export async function getValidMazeId(rpc: string = defaultRpcUrl): Promise<strin
     if (!addr) return null
     const client = await getCosmWasmClient(rpc)
     try {
-        const res = (await client.queryContractSmart(addr, { valid_maze_id: {} } as any)) as any
-        return res?.track_id?.toString() ?? null
+        const res = (await client.queryContractSmart(addr, { valid_maze_i_d: {} } as any)) as any
+        console.log('getValidMazeId res', res)
+        return res?.toString() ?? null
     } catch (e) {
         console.error('Error fetching valid maze ID', e)
         return null

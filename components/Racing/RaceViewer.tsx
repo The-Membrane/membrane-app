@@ -258,6 +258,10 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
     }, [showConfetti]);
 
     const hasPreview = useMemo(() => {
+        return Boolean(track);
+    }, [track]);
+
+    const hasRaceData = useMemo(() => {
         return Boolean(selectedRace && selectedRace.race_id !== 'sample' && track && log);
     }, [selectedRace, track, log]);
 
@@ -406,7 +410,7 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
     useEffect(() => { playingRef.current = playing; }, [playing]);
 
     useEffect(() => {
-        if (!track || !log) return;
+        if (!track) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -457,6 +461,8 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
                     console.error(`Invalid initial position for car ${id}:`, initialPos);
                 }
             });
+        } else if (!log) {
+            console.log('No log data available - showing track without cars');
         } else {
             console.error('Invalid log data:', log);
         }
@@ -464,6 +470,9 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
         let raf = 0;
 
         const updateCars = () => {
+            // If no log data, don't update cars
+            if (!log) return;
+
             const entry = log[tickRef.current];
             if (!entry || !entry.positions) {
                 console.warn(`Invalid log entry at tick ${tickRef.current}:`, entry);
@@ -768,11 +777,11 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
             const currentSpeed = speed;
             const tickInterval = 1000 / currentSpeed;
 
-            if (playingRef.current && now - last >= tickInterval) {
-                if (log && tickRef.current < log.length - 1) {
+            if (playingRef.current && log && now - last >= tickInterval) {
+                if (tickRef.current < log.length - 1) {
                     tickRef.current += 1;
                     updateCars();
-                } else if (log && tickRef.current >= log.length - 1) {
+                } else if (tickRef.current >= log.length - 1) {
                     // Race is finished, stop playing
                     setPlaying(false);
                     playingRef.current = false;
@@ -784,8 +793,8 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
             drawMaze(ctx, track, tilePx, now, playing && !isRaceCompleted);
             drawCars();
 
-            // Only continue animation if we have valid data and haven't reached the end
-            if (log && track && tickRef.current < log.length) {
+            // Continue animation if we have track data
+            if (track) {
                 raf = requestAnimationFrame(renderFrame);
             }
         };
@@ -800,7 +809,11 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
             drawCars();
             raf = requestAnimationFrame(renderFrame);
         } else {
-            console.error('No valid log data to start animation');
+            // Draw track without race data
+            const startNow = performance.now();
+            drawMaze(ctx, track, tilePx, startNow, false); // No animation when no race data
+            drawCars(); // This will draw empty cars map
+            raf = requestAnimationFrame(renderFrame);
         }
 
         // controls
@@ -967,7 +980,7 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
         onSuccess: showLatestRace,
         // Advanced training parameters - only enabled when advanced section is expanded
         advanced: showAdvancedParams,
-        explorationRate: showAdvancedParams ? explorationRate : 0.05,
+        explorationRate: showAdvancedParams ? explorationRate : 0.3,
         enableDecay: showAdvancedParams ? enableDecay : true
     });
 
@@ -1230,7 +1243,7 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
             {/* Info Section - Collapsible, Starts Collapsed */}
             <div style={{ background: '#0a0f1e', borderBottom: '1px solid #2a3550' }}>
                 {/* Race Controls Section */}
-                <div style={{ opacity: hasPreview ? 1 : 0.5 }}>
+                <div style={{ opacity: hasRaceData ? 1 : 0.5 }}>
                     <div
                         onClick={() => setShowControls(!showControls)}
                         style={{
@@ -1420,7 +1433,7 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
             })()}
 
             {/* Game Boy Controller Icon */}
-            {hasPreview && (
+            {hasRaceData && (
                 <>
                     <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8, background: '#0a0f1e' }}>
                         <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff" pt="0.5%">
@@ -1528,7 +1541,9 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
                     <canvas ref={canvasRef} style={{ position: 'relative', border: '0', width: scaledW, height: scaledH }} />
                     <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 3px, transparent 4px)', pointerEvents: 'none' }} />
                 </div> :
-                    <Text opacity={0.5} color="white" fontFamily="Press Start 2P" fontSize="12px">Run a race to see the playback</Text>
+                    <Text opacity={0.5} color="white" fontFamily="Press Start 2P" fontSize="12px">
+                        {selectedTrackId ? 'Select a car and run a race to see the playback' : 'Select a track to view'}
+                    </Text>
                 }
             </div>
 

@@ -10,11 +10,11 @@ export const GAS_CONFIG = {
         gasLimit: undefined, // Let wallet estimate
         denom: 'uosmo'
     },
-    neutron: {
-        gasPrice: 0.05, // untrn per gas unit (5x higher than default)
-        gasLimit: '10000000', // 10M gas units
-        denom: 'untrn'
-    },
+    // neutron: {
+    //     gasPrice: 0.05, // untrn per gas unit (5x higher than default)
+    //     gasLimit: '10000000', // 10M gas units
+    //     denom: 'untrn'
+    // },
     neutrontestnet: {
         gasPrice: 0.05, // untrn per gas unit (5x higher than default)
         gasLimit: '10000000', // 10M gas units

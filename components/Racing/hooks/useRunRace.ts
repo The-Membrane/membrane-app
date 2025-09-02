@@ -53,14 +53,12 @@ const useRunRace = (params: UseRunRaceParams) => {
                     car_ids: carIdsNums,
                     train: params.train ?? false,
                     pvp: params.pvp ?? false,
-                    ...(params.train && params.advanced ? {
-                        training_config: {
-                            training_mode: true,
-                            epsilon: params.explorationRate?.toString() ?? "0.0",
-                            temperature: "0.0",
-                            enable_epsilon_decay: params.enableDecay ?? true,
-                        }
-                    } : {})
+                    training_config: {
+                        training_mode: params.train ?? false,
+                        epsilon: params.explorationRate?.toString() ?? "0.3",
+                        temperature: "0.0",
+                        enable_epsilon_decay: params.enableDecay ?? true,
+                    }
                 },
             }
 

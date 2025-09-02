@@ -22,36 +22,50 @@ const useGenerateMaze = (params: UseGenerateMazeParams) => {
     type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
     const { data: queryData } = useQuery<QueryData>({
         queryKey: [
-            'generate_maze_msgs_creation',
+            'generate_maze_and_start_window_msgs_creation',
             address,
             appState.rpcUrl,
         ],
         queryFn: () => {
             if (!address) return { msgs: [] }
 
-            const msg = {
+            const generateMazeMsg = {
                 generate_maze: {
                     name: `maze_${Date.now()}`
                 },
             }
 
-            const exec = {
+            const startNewWindowMsg = {
+                start_new_windows: {},
+            }
+
+            const generateMazeExec = {
                 typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
                 value: MsgExecuteContract.fromPartial({
                     sender: address,
                     contract: (contracts as any).byteMinter,
-                    msg: toUtf8(JSON.stringify(msg)),
+                    msg: toUtf8(JSON.stringify(generateMazeMsg)),
                     funds: [],
                 }),
             } as MsgExecuteContractEncodeObject
 
-            return { msgs: [exec] }
+            const startNewWindowExec = {
+                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+                value: MsgExecuteContract.fromPartial({
+                    sender: address,
+                    contract: (contracts as any).byteMinter,
+                    msg: toUtf8(JSON.stringify(startNewWindowMsg)),
+                    funds: [],
+                }),
+            } as MsgExecuteContractEncodeObject
+
+            return { msgs: [generateMazeExec, startNewWindowExec] }
         },
         enabled: !!address,
     })
 
     const msgs = queryData?.msgs ?? []
-    // console.log("generate maze msgs", msgs)
+    // console.log("generate maze and start window msgs", msgs)
 
     const onInitialSuccess = () => {
         // Invalidate byte-minter queries to refresh maze state
@@ -100,7 +114,7 @@ const useGenerateMaze = (params: UseGenerateMazeParams) => {
     return {
         action: useSimulateAndBroadcast({
             msgs,
-            queryKey: ['generate_maze_sim', msgs?.toString() ?? '0'],
+            queryKey: ['generate_maze_and_start_window_sim', msgs?.toString() ?? '0'],
             onSuccess: onInitialSuccess,
             enabled: !!msgs?.length,
             shrinkMessage: true,

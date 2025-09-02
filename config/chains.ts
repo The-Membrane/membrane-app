@@ -39,7 +39,7 @@ export const supportedChains: ChainConfig[] = [
     }
 ];
 
-export const DEFAULT_CHAIN = supportedChains[0].name;
+export const DEFAULT_CHAIN = supportedChains[1].name;
 
 export const getChainConfig = (chainName: string): ChainConfig => {
     return supportedChains.find(chain => chain.name === chainName) || supportedChains[0];

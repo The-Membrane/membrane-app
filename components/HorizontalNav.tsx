@@ -1,5 +1,5 @@
 import { Box, Button, HStack, Image, Stack, Text, Spacer, IconButton, Drawer, DrawerOverlay, DrawerContent, DrawerBody, useDisclosure, VStack, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FaUserCircle, FaBars, FaChevronDown } from 'react-icons/fa';
 import WallectConnect from './WallectConnect';
 import NextLink from 'next/link';
@@ -27,7 +27,14 @@ const HorizontalNav = () => {
     const router = useRouter();
     const { chainName } = useChainRoute();
     const currentChain = getChainConfig(chainName);
-    const { setAppState } = useAppState();
+    const { appState, setAppState } = useAppState();
+
+    // Sync RPC URL with current chain from route when component renders
+    useEffect(() => {
+        if (currentChain.rpcUrl !== appState.rpcUrl) {
+            setAppState({ rpcUrl: currentChain.rpcUrl });
+        }
+    }, [chainName, currentChain.rpcUrl, appState.rpcUrl, setAppState]);
 
     const handleChainChange = (newChain: string) => {
         const currentPath = router.asPath;

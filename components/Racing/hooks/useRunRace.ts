@@ -59,6 +59,20 @@ const useRunRace = (params: UseRunRaceParams) => {
                         temperature: "0.0",
                         enable_epsilon_decay: params.enableDecay ?? true,
                     }
+                    // ,
+                    // reward_config: {
+                    //     distance: 100,
+                    //     stuck: -50,
+                    //     wall: -50,
+                    //     no_move: -50,
+                    //     explore: 100,
+                    //     rank: {
+                    //         first: 1000,
+                    //         second: 500,
+                    //         third: 250,
+                    //         other: 0
+                    //     }
+                    // }
                 },
             }
 
@@ -68,7 +82,8 @@ const useRunRace = (params: UseRunRaceParams) => {
                     train: params.train,
                     explorationRate: params.explorationRate,
                     enableDecay: params.enableDecay,
-                    finalConfig: msg.simulate_race.training_config
+                    finalConfig: msg.simulate_race.training_config,
+                    rewardConfig: msg.simulate_race.reward_config
                 });
             }
 

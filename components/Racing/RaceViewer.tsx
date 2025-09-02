@@ -115,17 +115,21 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
     const [enableDecay, setEnableDecay] = useState<boolean>(true);
 
     // Sync racing state with local state
-    useEffect(() => {
+    useMemo(() => {
         if (racingState.selectedTrackId && racingState.selectedTrackId !== selectedTrackId) {
             setSelectedTrackId(racingState.selectedTrackId);
             updateRouteQuery({ trackId: racingState.selectedTrackId });
+            setRacingState({ ...racingState, selectedTrackId: undefined });
         }
         if (racingState.showTraining !== undefined && racingState.showTraining !== showTraining) {
             setShowTraining(racingState.showTraining);
+            setRacingState({ ...racingState, showTraining: undefined });
         }
         if (racingState.showPvp !== undefined && racingState.showPvp !== showPvp) {
             setShowPvp(racingState.showPvp);
+            setRacingState({ ...racingState, showPvp: undefined });
         }
+
     }, [racingState.selectedTrackId, racingState.showTraining, racingState.showPvp, selectedTrackId, showTraining, showPvp]);
 
     // Get recent races for selected car
@@ -138,15 +142,18 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
     const { data: maze } = useSecondsUntilOpen('maze', appState.rpcUrl);
     const { data: validMazeId } = useValidMazeId(appState.rpcUrl);
 
-    // Check if we're in maze mode (maze event window + maze track selected, or forced for testing)
-    const isMazeMode = FORCE_MAZE_MODE || (maze && maze <= 0 && selectedTrackId && validMazeId === selectedTrackId);
+    // Check if we're in maze mode: valid maze track selected AND in showcase mode
+    const isMazeMode = !showTraining && selectedTrackId && validMazeId === selectedTrackId;
 
-    // Auto-switch to showcase mode when in maze mode
-    useEffect(() => {
-        if (isMazeMode && showTraining) {
-            setShowTraining(false);
-        }
-    }, [isMazeMode, showTraining]);
+    console.log('RaceViewer: Maze mode check', {
+        FORCE_MAZE_MODE,
+        selectedTrackId,
+        validMazeId,
+        maze,
+        isMazeMode
+    });
+
+
 
 
 
@@ -1101,10 +1108,23 @@ const RaceViewer: React.FC<Props> = ({ trackId }) => {
                                 value={showTraining ? 'training' : 'showcase'}
                                 onChange={(e) => {
                                     const mode = e.target.value;
-                                    setShowTraining(mode === 'training');
+                                    const newShowTraining = mode === 'training';
+
+                                    console.log('RaceViewer: Mode dropdown onChange triggered', {
+                                        mode,
+                                        currentShowTraining: showTraining,
+                                        willSetTo: newShowTraining
+                                    });
+
+                                    // Only update if the value is actually changing
+                                    if (newShowTraining !== showTraining) {
+                                        setShowTraining(newShowTraining);
+                                    } else {
+                                        console.log('RaceViewer: Mode dropdown onChange ignored - no change needed');
+                                    }
 
                                     // Auto-select first available track when switching to showcase mode
-                                    if (mode === 'showcase' && availableTracks && availableTracks.length > 0) {
+                                    if (newShowTraining !== showTraining && mode === 'showcase' && availableTracks && availableTracks.length > 0) {
                                         const pvpTracks = availableTracks.filter((t: any) => (t?.starting_tiles?.length ?? 0) > 1);
                                         if (pvpTracks.length > 0) {
                                             const firstPvpTrack = pvpTracks[0];

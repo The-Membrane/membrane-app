@@ -28,12 +28,18 @@ const initialState: RacingState = {
 // @ts-ignore
 const store = (set) => ({
     racingState: initialState,
-    setRacingState: (partialState: Partial<RacingState>) =>
+    setRacingState: (partialState: Partial<RacingState>) => {
+        console.log('useRacingState: setRacingState called with', partialState);
         set(
-            (state: Store) => ({ racingState: { ...state.racingState, ...partialState } }),
+            (state: Store) => {
+                const newState = { racingState: { ...state.racingState, ...partialState } };
+                console.log('useRacingState: updating state from', state.racingState, 'to', newState.racingState);
+                return newState;
+            },
             false,
             `@update/${Object.keys(partialState).join(',')}`,
-        ),
+        );
+    },
     initializeSingularityTrainingSessions: (count: number) =>
         set(
             (state: Store) => ({

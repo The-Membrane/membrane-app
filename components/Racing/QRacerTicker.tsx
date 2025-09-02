@@ -146,7 +146,7 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                     ) : (
                         <ConfirmModal
                             executeDirectly={true}
-                            label="Generate Maze"
+                            label="Construct Maze"
                             action={generateMaze.action}
                             isDisabled={false}
                             isLoading={generateMaze.action.simulate.isPending}
@@ -161,7 +161,25 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                         />
                     )}
 
-                </Flex>) : null}
+                </Flex>) : null
+                //     (
+                //     <ConfirmModal
+                //         executeDirectly={true}
+                //         label="Construct Maze"
+                //         action={startWindow.action}
+                //         isDisabled={false}
+                //         isLoading={startWindow.action.simulate.isPending}
+                //         buttonProps={{
+                //             size: { base: "xs", md: "sm" },
+                //             fontSize: { base: "8px", sm: "10px", md: "12px" },
+                //             minH: { base: "32px", md: "auto" },
+                //             colorScheme: 'blue',
+                //             bg: '#274bff',
+                //             _hover: { bg: '#1f3bd9' },
+                //         }}
+                //     />
+                // )
+            }
             {/* Right-aligned: _ BYTE | Difficulty _ */}
             <Flex flex={1} justifyContent="flex-end" align="center">
                 <Text

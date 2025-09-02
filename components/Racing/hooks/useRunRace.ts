@@ -82,8 +82,7 @@ const useRunRace = (params: UseRunRaceParams) => {
                     train: params.train,
                     explorationRate: params.explorationRate,
                     enableDecay: params.enableDecay,
-                    finalConfig: msg.simulate_race.training_config,
-                    rewardConfig: msg.simulate_race.reward_config
+                    finalConfig: msg.simulate_race.training_config
                 });
             }
 

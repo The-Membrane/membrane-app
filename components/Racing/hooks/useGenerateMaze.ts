@@ -31,7 +31,7 @@ const useGenerateMaze = (params: UseGenerateMazeParams) => {
 
             const generateMazeMsg = {
                 generate_maze: {
-                    name: `maze_${Date.now()}`
+                    name: `Maze on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${['st', 'nd', 'rd'][new Date().getDate() % 10 - 1] || 'th'} @ ${new Date().getHours().toString().padStart(2, '0')}${new Date().getMinutes().toString().padStart(2, '0')}`
                 },
             }
 

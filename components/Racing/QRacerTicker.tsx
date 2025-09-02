@@ -7,6 +7,7 @@ import { shiftDigits } from '@/helpers/math'
 import useGenerateMaze from './hooks/useGenerateMaze'
 import ConfirmModal from '@/components/ConfirmModal'
 import { useByteMinterConfig } from '@/hooks/useQRacing'
+import useStartWindow from './hooks/useStartWindow'
 
 const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
     const { data: maze } = useSecondsUntilOpen('maze', rpc)
@@ -22,6 +23,15 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
 
     // Generate maze hook
     const generateMaze = useGenerateMaze({
+        onSuccess: () => {
+            // Refresh the valid maze ID query after generation
+            // The query will automatically refetch
+        },
+        setRacingState,
+        validMazeId
+    })
+
+    const startWindow = useStartWindow({
         onSuccess: () => {
             // Refresh the valid maze ID query after generation
             // The query will automatically refetch
@@ -161,25 +171,23 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                         />
                     )}
 
-                </Flex>) : null
-                //     (
-                //     <ConfirmModal
-                //         executeDirectly={true}
-                //         label="Construct Maze"
-                //         action={startWindow.action}
-                //         isDisabled={false}
-                //         isLoading={startWindow.action.simulate.isPending}
-                //         buttonProps={{
-                //             size: { base: "xs", md: "sm" },
-                //             fontSize: { base: "8px", sm: "10px", md: "12px" },
-                //             minH: { base: "32px", md: "auto" },
-                //             colorScheme: 'blue',
-                //             bg: '#274bff',
-                //             _hover: { bg: '#1f3bd9' },
-                //         }}
-                //     />
-                // )
-            }
+                </Flex>) : (
+                <ConfirmModal
+                    executeDirectly={true}
+                    label="Construct Maze"
+                    action={startWindow.action}
+                    isDisabled={false}
+                    isLoading={startWindow.action.simulate.isPending}
+                    buttonProps={{
+                        size: { base: "xs", md: "sm" },
+                        fontSize: { base: "8px", sm: "10px", md: "12px" },
+                        minH: { base: "32px", md: "auto" },
+                        colorScheme: 'blue',
+                        bg: '#274bff',
+                        _hover: { bg: '#1f3bd9' },
+                    }}
+                />
+            )}
             {/* Right-aligned: _ BYTE | Difficulty _ */}
             <Flex flex={1} justifyContent="flex-end" align="center">
                 <Text

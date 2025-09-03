@@ -72,7 +72,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
         // Load images for different car types
         const carImages = [
             { id: '0', src: '/images/evil-retro-car.png' }, // Car ID 0 gets evil car
-            { id: 'default', src: '/images/pixel-retro-car.png' } // All other cars get default
+            { id: 'default', src: '/images/retro-car.png' } // All other cars get default
         ]
 
         let loadedCount = 0
@@ -559,7 +559,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
             if (targetCarId && targetPlayByPlay && targetPlayByPlay.actions) {
                 // Log the available actions for debugging - disabled to prevent spam
                 // if (targetCarId === leaderDisplay) {
-                //     console.log(`Available actions for ${targetCarId}:`, targetPlayByPlay.actions.map(a => ({ action: a.action, pos: a.resulting_position })));
+                //     console.log(`Available actions for ${targetCarId}:`, targetPlayByPlay.actions.map(a => ({ action_value: a.action_value, pos: a.resulting_position })));
                 // }
 
                 // The tick index corresponds to the action index (tick 0 = starting position, tick 1 = first action, etc.)
@@ -567,38 +567,30 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
 
                 if (actionIndex >= 0 && actionIndex < targetPlayByPlay.actions.length) {
                     const action = targetPlayByPlay.actions[actionIndex];
-                    if (action && action.action) {
-                        // Map the action string to our display format
+                    if (action && action.action_value !== undefined) {
+                        // Map the action_value (i8) to our display format
                         let displayAction = 'Idle';
-                        switch (action.action.toLowerCase()) {
-                            case 'up':
-                            case 'north':
-                            case '0':
+                        switch (action.action_value) {
+                            case 0:
                                 displayAction = 'Up';
                                 break;
-                            case 'down':
-                            case 'south':
-                            case '1':
+                            case 1:
                                 displayAction = 'Down';
                                 break;
-                            case 'left':
-                            case 'west':
-                            case '2':
+                            case 2:
                                 displayAction = 'Left';
                                 break;
-                            case 'right':
-                            case 'east':
-                            case '3':
+                            case 3:
                                 displayAction = 'Right';
                                 break;
                             default:
-                                // If action is not a recognized word, default to Idle
+                                // If action_value is not recognized, default to Idle
                                 displayAction = 'Idle';
                         }
 
                         // Debug logging for action changes - disabled to prevent spam
                         // if (displayAction !== lastActionDisplay) {
-                        //     console.log(`Action changed from ${displayAction} to ${displayAction} at tick ${tickRef.current}, target car: ${targetCarId}, action: ${action.action}, pos: (${action.resulting_position.x}, ${action.resulting_position.y})`);
+                        //     console.log(`Action changed from ${displayAction} to ${displayAction} at tick ${tickRef.current}, target car: ${targetCarId}, action_value: ${action.action_value}, pos: (${action.resulting_position.x}, ${action.resulting_position.y})`);
                         // }
 
                         setLastActionDisplay(displayAction);
@@ -612,31 +604,23 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                 } else {
                     // Beyond the last action, keep the last known action
                     const lastAction = targetPlayByPlay.actions[targetPlayByPlay.actions.length - 1];
-                    if (lastAction && lastAction.action) {
+                    if (lastAction && lastAction.action_value !== undefined) {
                         let displayAction = 'Idle';
-                        switch (lastAction.action.toLowerCase()) {
-                            case 'up':
-                            case 'north':
-                            case '0':
+                        switch (lastAction.action_value) {
+                            case 0:
                                 displayAction = 'Up';
                                 break;
-                            case 'down':
-                            case 'south':
-                            case '1':
+                            case 1:
                                 displayAction = 'Down';
                                 break;
-                            case 'left':
-                            case 'west':
-                            case '2':
+                            case 2:
                                 displayAction = 'Left';
                                 break;
-                            case 'right':
-                            case 'east':
-                            case '3':
+                            case 3:
                                 displayAction = 'Right';
                                 break;
                             default:
-                                // If action is not a recognized word, default to Idle
+                                // If action_value is not recognized, default to Idle
                                 displayAction = 'Idle';
                         }
 

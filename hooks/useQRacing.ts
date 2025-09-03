@@ -69,9 +69,11 @@ export const useOwnedCars = (walletAddress: string | undefined) => {
             if (!walletAddress) return []
             return getOwnedCars(walletAddress, appState.rpcUrl)
         },
-        staleTime: 5 * 60 * 1000,
+        staleTime: 30 * 1000, // Reduced to 30 seconds for faster updates
         refetchOnMount: true,
         refetchOnWindowFocus: true,
+        refetchInterval: 10 * 1000, // Refetch every 10 seconds to catch new mints
+        refetchIntervalInBackground: false, // Only refetch when window is focused
     });
 }
 

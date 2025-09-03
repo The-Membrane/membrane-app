@@ -31,6 +31,7 @@ export type UseMintCarParams = {
   extension?: CarMetadata | null
   contractAddress?: string
   paymentOption?: TrainingPaymentOption | null
+  onSuccess?: () => void
 }
 
 const useMintCar = (params: UseMintCarParams) => {
@@ -85,6 +86,8 @@ const useMintCar = (params: UseMintCarParams) => {
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['neutron balances'] })
     queryClient.invalidateQueries({ queryKey: ['q-racing', 'owned_cars'] })
+    // Call the custom onSuccess callback if provided
+    params.onSuccess?.()
   }
   console.log('mint car msgs', msgs)
   return {

@@ -13,6 +13,12 @@ import { useOwnedCars } from '@/hooks/useQRacing'
 import useAppState from '@/persisted-state/useAppState'
 import { } from '@/components/ConfirmModal'
 import { } from '@/components/Racing/hooks/useRefillEnergy'
+import {
+  PreMintGuidance,
+  TutorialOverlay,
+  TutorialButton,
+  useTutorial
+} from '@/components/Racing/Guidance'
 
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -46,6 +52,8 @@ const QRacer: React.FC = () => {
   const router = useRouter()
   const { address } = useWallet()
   const { data: ownedCars } = useOwnedCars(address)
+  const { appState, setAppState } = useAppState()
+
   const activeTab = useMemo<TabKey>(() => {
     const q = (router.query?.tab as string) || 'race'
     return (['car', 'race', 'create'] as string[]).includes(q) ? (q as TabKey) : 'race'
@@ -56,9 +64,44 @@ const QRacer: React.FC = () => {
     router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false })
   }
 
+  // Tutorial system
+  const {
+    isTutorialOpen,
+    currentStep,
+    shouldShowPreMintGuidance,
+    shouldShowTutorial,
+    startTutorial,
+    nextStep,
+    previousStep,
+    closeTutorial,
+    skipTutorial,
+    steps,
+  } = useTutorial(setTab)
+
   const trackId = (router.query?.trackId as string) || undefined
   const raceId = (router.query?.raceId as string) || undefined
   const carId = (router.query?.carId as string) || undefined
+
+  // Check if user has minted their first car - more robust detection
+  useEffect(() => {
+    if (ownedCars && ownedCars.length > 0 && !appState.hasMintedFirstCar) {
+      console.log('First car detected! Starting tutorial...')
+      setAppState({ hasMintedFirstCar: true })
+    }
+  }, [ownedCars, appState.hasMintedFirstCar, setAppState])
+
+  // Auto-start tutorial after first car mint - with delay to ensure state is updated
+  useEffect(() => {
+    if (appState.hasMintedFirstCar && shouldShowTutorial && !isTutorialOpen) {
+      // Small delay to ensure the state has been properly updated
+      const timer = setTimeout(() => {
+        console.log('Starting tutorial after car mint...')
+        startTutorial()
+      }, 500)
+
+      return () => clearTimeout(timer)
+    }
+  }, [appState.hasMintedFirstCar, shouldShowTutorial, isTutorialOpen, startTutorial])
 
   useEffect(() => {
     if (!router.isReady) return
@@ -69,8 +112,6 @@ const QRacer: React.FC = () => {
     return () => { }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, activeTab])
-
-  const { appState } = useAppState()
 
 
 
@@ -142,11 +183,43 @@ const QRacer: React.FC = () => {
       </Flex>
 
       <Box px={6} py={2} borderTop="2px solid #0033ff" bg="#0a0f1e">
-        <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">
-          Insert coin to continue…
-        </Text>
+        <Flex justify="space-between" align="center">
+          <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">
+            Insert coin to continue…
+          </Text>
+          <HStack spacing={2}>
+            <Button
+              onClick={() => setAppState({ hasSeenPreMintGuidance: false })}
+              variant="ghost"
+              size="sm"
+              color="#b8c1ff"
+              _hover={{ color: '#00ffea' }}
+              fontFamily='"Press Start 2P", monospace'
+              fontSize="10px"
+              px={2}
+            >
+              TEST PRE-MINT
+            </Button>
+            <TutorialButton onClick={startTutorial} />
+          </HStack>
+        </Flex>
       </Box>
 
+      {/* Guidance System */}
+      <PreMintGuidance
+        isOpen={shouldShowPreMintGuidance}
+        onClose={() => setAppState({ hasSeenPreMintGuidance: true })}
+      />
+
+      <TutorialOverlay
+        isOpen={isTutorialOpen}
+        onClose={closeTutorial}
+        steps={steps}
+        currentStep={currentStep}
+        onNext={nextStep}
+        onPrevious={previousStep}
+        onSkip={skipTutorial}
+      />
 
     </Flex>
   )

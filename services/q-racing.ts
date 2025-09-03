@@ -694,6 +694,52 @@ export function useTopTimes(trackId?: string, rpc: string = defaultRpcUrl) {
     });
 }
 
+// Extended top time entry with training session count
+export interface JsonTopTimeEntryWithSessions extends JsonTopTimeEntry {
+    sessions: number;
+}
+
+// Hook to get top times with training session counts
+export function useTopTimesWithSessions(trackId?: string, rpc: string = defaultRpcUrl) {
+    const raceEngineAddr = (contracts as any).raceEngine as string | undefined;
+
+    return useQuery<JsonTopTimeEntryWithSessions[]>({
+        queryKey: ['top_times_with_sessions', raceEngineAddr, trackId, rpc],
+        queryFn: async () => {
+            if (!trackId) return [];
+
+            // First get the top times
+            const topTimes = await getTopTimes(trackId, rpc);
+
+            // Then fetch training stats for each car
+            const topTimesWithSessions: JsonTopTimeEntryWithSessions[] = await Promise.all(
+                topTimes.map(async (entry) => {
+                    try {
+                        const trainingStats = await getTrackTrainingStats(entry.car_id, trackId, rpc);
+                        const sessions = trainingStats?.stats?.solo?.tally ?? 0;
+                        return {
+                            ...entry,
+                            sessions
+                        };
+                    } catch (error) {
+                        console.error(`Error fetching training stats for car ${entry.car_id}:`, error);
+                        return {
+                            ...entry,
+                            sessions: 0
+                        };
+                    }
+                })
+            );
+
+            return topTimesWithSessions;
+        },
+        enabled: Boolean(raceEngineAddr && trackId),
+        staleTime: 5_000, // 5 seconds - reasonable balance between freshness and performance
+        refetchOnMount: false, // Don't refetch on every mount
+        refetchOnWindowFocus: false, // Don't refetch on every focus
+    });
+}
+
 // Helper – simulates network latency
 async function artificialDelay(ms = 300): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

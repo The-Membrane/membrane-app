@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRecentRacesForCar, useOwnedCars, useQRacing, useTopTimes, useByteMinterConfig } from '../../hooks/useQRacing';
-import { Track, PlayByPlayEntry, JsonRaceResult, useTrackTrainingStats, useListTracks, useCarName, useValidMazeId, useSecondsUntilOpen } from '../../services/q-racing';
+import { Track, PlayByPlayEntry, JsonRaceResult, useTrackTrainingStats, useListTracks, useCarName, useValidMazeId, useSecondsUntilOpen, useTopTimesWithSessions } from '../../services/q-racing';
 import useWallet from '../../hooks/useWallet';
 import { useRouter } from 'next/router';
 import useAppState from '@/persisted-state/useAppState';
@@ -172,6 +172,8 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
     const { data: availableTracks } = useListTracks(appState.rpcUrl);
     // Get top times for the selected track
     const { data: topTimes, refetch: refetchTopTimes } = useTopTimes(selectedTrackId || undefined, appState.rpcUrl);
+    // Get top times with training session counts
+    const { data: topTimesWithSessions, refetch: refetchTopTimesWithSessions } = useTopTimesWithSessions(selectedTrackId || undefined, appState.rpcUrl);
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const leaderboardRef = useRef<HTMLDivElement | null>(null);
@@ -972,6 +974,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     console.log("Manually refetching training stats and top times");
                     refetchTrainingStats();
                     refetchTopTimes();
+                    refetchTopTimesWithSessions();
                 }, 1000); // Additional delay to ensure blockchain state is updated
             }
         }, 500); // 500ms delay to allow queries to refresh
@@ -1580,9 +1583,10 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                             <div className="leaderboard-header-rank">Rank</div>
                             <div className="leaderboard-header-name">Car Name</div>
                             <div className="leaderboard-header-time">Time (ticks)</div>
+                            <div className="leaderboard-header-sessions">Sessions</div>
                         </div>
                         {/* Entries */}
-                        {(topTimes ?? []).map((t, idx) => {
+                        {(topTimesWithSessions ?? []).map((t, idx) => {
                             const isOwned = ownedCars?.some(car => car.id === t.car_id) || false;
                             return (
                                 <div key={`${t.car_id}-${idx}`} className="leaderboard-entry">
@@ -1591,10 +1595,11 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                                         <CarNameDisplay carId={t.car_id} isOwned={isOwned} />
                                     </div>
                                     <div className="leaderboard-time">{t.time}</div>
+                                    <div className="leaderboard-sessions">{t.sessions}</div>
                                 </div>
                             );
                         })}
-                        {(!topTimes || topTimes.length === 0) && (
+                        {(!topTimesWithSessions || topTimesWithSessions.length === 0) && (
                             <div className="leaderboard-empty">No times yet.</div>
                         )}
                     </div>

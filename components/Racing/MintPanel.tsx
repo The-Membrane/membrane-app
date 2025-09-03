@@ -6,12 +6,14 @@ import { useMintCar } from '@/components/Racing/hooks'
 import { usePaymentSelection } from './hooks/usePaymentSelection'
 import PaymentOptionsSheet from './PaymentOptionsSheet'
 import ConfirmModal from '../ConfirmModal'
+import { useTutorial } from './Guidance'
 
 const MintPanel: React.FC = () => {
   const { address } = useWallet()
   const [inputName, setInputName] = useState('')
   const [name, setName] = useState('')
   const isMobile = useBreakpointValue({ base: true, md: false })
+  const { triggerTutorialAfterMint } = useTutorial()
 
 
 
@@ -43,7 +45,8 @@ const MintPanel: React.FC = () => {
         paymentOption: {
           denom: option.denom,
           amount: option.amount
-        }
+        },
+        onSuccess: triggerTutorialAfterMint
       }).action
     } else {
       // Free option
@@ -52,7 +55,8 @@ const MintPanel: React.FC = () => {
         extension: {
           name: name,
         },
-        paymentOption: null
+        paymentOption: null,
+        onSuccess: triggerTutorialAfterMint
       }).action
     }
   })

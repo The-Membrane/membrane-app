@@ -16,6 +16,11 @@ export type AppState = {
         points: string
     }[]
     lastUsedRacingPaymentMethod?: TrainingPaymentOption | null
+    // Guidance system state
+    hasSeenPreMintGuidance?: boolean
+    hasCompletedTutorial?: boolean
+    tutorialStep?: number
+    hasMintedFirstCar?: boolean
 }
 
 type Store = {
@@ -27,6 +32,10 @@ type Store = {
 const initialState: AppState = {
     totalPoints: [],
     rpcUrl: rpcUrl,
+    hasSeenPreMintGuidance: false,
+    hasCompletedTutorial: false,
+    tutorialStep: 0,
+    hasMintedFirstCar: false,
 }
 
 const useAppState = create<Store>()(

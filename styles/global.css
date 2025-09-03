@@ -303,6 +303,12 @@
   text-align: right;
 }
 
+.leaderboard-header-sessions {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
 .leaderboard-entry {
   display: flex;
   gap: 16px;
@@ -341,6 +347,15 @@
   font-weight: bold;
 }
 
+.leaderboard-sessions {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: right;
+  color: #b8c1ff;
+  font-size: 12px;
+  font-weight: bold;
+}
+
 .leaderboard-empty {
   color: #666;
   font-size: 12px;
@@ -366,6 +381,10 @@
     width: 60px;
   }
 
+  .leaderboard-header-sessions {
+    width: 50px;
+  }
+
   .leaderboard-entry {
     gap: 8px;
     padding: 6px 0;
@@ -382,6 +401,11 @@
 
   .leaderboard-time {
     width: 60px;
+    font-size: 10px;
+  }
+
+  .leaderboard-sessions {
+    width: 50px;
     font-size: 10px;
   }
 

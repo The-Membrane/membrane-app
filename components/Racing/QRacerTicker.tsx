@@ -7,7 +7,6 @@ import { shiftDigits } from '@/helpers/math'
 import useGenerateMaze from './hooks/useGenerateMaze'
 import ConfirmModal from '@/components/ConfirmModal'
 import { useByteMinterConfig } from '@/hooks/useQRacing'
-import useStartWindow from './hooks/useStartWindow'
 
 const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
     const { data: maze } = useSecondsUntilOpen('maze', rpc)
@@ -23,15 +22,6 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
 
     // Generate maze hook
     const generateMaze = useGenerateMaze({
-        onSuccess: () => {
-            // Refresh the valid maze ID query after generation
-            // The query will automatically refetch
-        },
-        setRacingState,
-        validMazeId
-    })
-
-    const startWindow = useStartWindow({
         onSuccess: () => {
             // Refresh the valid maze ID query after generation
             // The query will automatically refetch
@@ -156,7 +146,7 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                     ) : (
                         <ConfirmModal
                             executeDirectly={true}
-                            label="Construct Maze"
+                            label="Construct Maze (gen then start)"
                             action={generateMaze.action}
                             isDisabled={false}
                             isLoading={generateMaze.action.simulate.isPending}
@@ -175,16 +165,18 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                 <ConfirmModal
                     executeDirectly={true}
                     label="Construct Maze"
-                    action={startWindow.action}
+                    action={generateMaze.action}
                     isDisabled={false}
-                    isLoading={startWindow.action.simulate.isPending}
+                    isLoading={generateMaze.action.simulate.isPending}
                     buttonProps={{
                         size: { base: "xs", md: "sm" },
                         fontSize: { base: "8px", sm: "10px", md: "12px" },
                         minH: { base: "32px", md: "auto" },
+                        alignSelf: 'center',
                         colorScheme: 'blue',
                         bg: '#274bff',
                         _hover: { bg: '#1f3bd9' },
+                        maxWidth: { base: undefined, md: "20%" },
                     }}
                 />
             )}

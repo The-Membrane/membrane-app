@@ -68,9 +68,30 @@ const useGenerateMaze = (params: UseGenerateMazeParams) => {
     // console.log("generate maze and start window msgs", msgs)
 
     const onInitialSuccess = () => {
-        // Invalidate byte-minter queries to refresh maze state
+        // Invalidate all byte-minter related queries to refresh QRacerTicker data
         queryClient.invalidateQueries({
             queryKey: ['byte_minter'],
+            refetchType: 'active'
+        })
+
+        // Invalidate specific queries used by QRacerTicker
+        queryClient.invalidateQueries({
+            queryKey: ['byte_minter_until_open'],
+            refetchType: 'active'
+        })
+
+        queryClient.invalidateQueries({
+            queryKey: ['byte_minter_valid_maze_id'],
+            refetchType: 'active'
+        })
+
+        queryClient.invalidateQueries({
+            queryKey: ['byte_minter_window_status'],
+            refetchType: 'active'
+        })
+
+        queryClient.invalidateQueries({
+            queryKey: ['byte_minter_config'],
             refetchType: 'active'
         })
 

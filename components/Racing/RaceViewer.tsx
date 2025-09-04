@@ -1252,8 +1252,8 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                         Current Run: {tickDisplay}/{Math.max(0, (log?.length ?? 0) - 1)} ticks | Fastest Possible: {(() => {
                             if (availableTracks && selectedTrackId) {
                                 const selectedTrack = availableTracks.find((t: any) => t.id === selectedTrackId);
-                                if (selectedTrack?.starting_tiles && selectedTrack.starting_tiles.length > 0) {
-                                    return Math.min(...selectedTrack.starting_tiles.map((tile: any) => tile.progress_towards_finish));
+                                if (selectedTrack?.fastest_tick_time) {
+                                    return selectedTrack.fastest_tick_time;
                                 }
                             }
                             return 'N/A';
@@ -1459,27 +1459,11 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                 <>
                     <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8, background: '#0a0f1e' }}>
                         <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff" pt="0.5%">
-                            Action: {tickDisplay}/{Math.max(0, (log?.length ?? 0) - 1)} | Total ticks: {(() => {
-                                // Show total steps taken for the selected car (fallbacks to winner/first/log length)
-                                if (!selectedRace || !Array.isArray(selectedRace.steps_taken) || selectedRace.steps_taken.length === 0) {
-                                    return Math.max(0, (log?.length ?? 0) - 1);
-                                }
-                                if (selectedCarId) {
-                                    const m = selectedRace.steps_taken.find(s => s.car_id === selectedCarId);
-                                    if (m && typeof m.steps_taken === 'number') return m.steps_taken;
-                                }
-                                if (Array.isArray(selectedRace.winner_ids) && selectedRace.winner_ids.length > 0) {
-                                    const w = selectedRace.steps_taken.find(s => s.car_id === selectedRace.winner_ids[0]);
-                                    if (w && typeof w.steps_taken === 'number') return w.steps_taken;
-                                }
-                                const f = selectedRace.steps_taken[0];
-                                if (f && typeof f.steps_taken === 'number') return f.steps_taken;
-                                return Math.max(0, (log?.length ?? 0) - 1);
-                            })()} | Fastest Possible: {(() => {
+                            Action: {tickDisplay}/{Math.max(0, (log?.length ?? 0) - 1)} | Fastest Possible: {(() => {
                                 if (availableTracks && selectedTrackId) {
                                     const selectedTrack = availableTracks.find((t: any) => t.id === selectedTrackId);
-                                    if (selectedTrack?.starting_tiles && selectedTrack.starting_tiles.length > 0) {
-                                        return Math.min(...selectedTrack.starting_tiles.map((tile: any) => tile.progress_towards_finish));
+                                    if (selectedTrack?.fastest_tick_time) {
+                                        return selectedTrack.fastest_tick_time;
                                     }
                                 }
                                 return 'N/A';

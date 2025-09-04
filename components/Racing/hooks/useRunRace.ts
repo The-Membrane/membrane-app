@@ -20,6 +20,7 @@ export type UseRunRaceParams = {
     onSuccess?: () => void
     explorationRate?: number
     enableDecay?: boolean
+    maxRaceTicks?: number
 }
 
 const useRunRace = (params: UseRunRaceParams) => {
@@ -40,6 +41,7 @@ const useRunRace = (params: UseRunRaceParams) => {
             params.advanced ?? false,
             params.explorationRate ?? 0.0,
             params.enableDecay ?? false,
+            params.maxRaceTicks ?? null,
         ],
         queryFn: () => {
             if (!address) return { msgs: [] }
@@ -58,7 +60,8 @@ const useRunRace = (params: UseRunRaceParams) => {
                         epsilon: params.explorationRate?.toString() ?? "0.3",
                         temperature: "0.0",
                         enable_epsilon_decay: params.enableDecay ?? true,
-                    }
+                    },
+                    max_race_ticks: params.maxRaceTicks ?? undefined,
                     // ,
                     // reward_config: {
                     //     distance: 100,
@@ -109,6 +112,7 @@ const useRunRace = (params: UseRunRaceParams) => {
                             car_ids: carIdsNums,
                             train: false,
                             pvp: params.pvp ?? false,
+                            max_race_ticks: params.maxRaceTicks ?? undefined,
                         },
                     })),
                 }),

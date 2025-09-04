@@ -5,7 +5,7 @@ import useWallet from './useWallet'
 import { StdFee } from '@cosmjs/stargate'
 import { useQuery } from '@tanstack/react-query'
 import { useChainRoute } from './useChainRoute'
-import { getGasConfig, calculateGasFee } from '@/config/gas'
+import { getGasConfig, calculateGasFeeWithBuffer } from '@/config/gas'
 
 type Simulate = {
   msgs: MsgExecuteContractEncodeObject[] | undefined | null
@@ -18,7 +18,7 @@ type Simulate = {
 const useSimulate = ({ msgs, amount, enabled = false, queryKey = [], chain_id }: Simulate) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const { chainName } = useChainRoute()
-  const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet(chainName)
+  const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet()
 
   // clear error message when amount is changed
   useEffect(() => {
@@ -42,25 +42,29 @@ const useSimulate = ({ msgs, amount, enabled = false, queryKey = [], chain_id }:
       const gasConfig = getGasConfig(chainName)
       let finalFee = estimatedFee
 
-      if (gasConfig && gasConfig.gasLimit) {
-        // Override gas parameters for chains with explicit gas configuration
+      if (gasConfig) {
+        // Use simulated fee with buffer instead of overriding with gas config
+        const simulatedGas = estimatedFee.gas
+        const bufferedGas = Math.ceil(parseInt(simulatedGas) * (gasConfig.gasBuffer || 1.0))
+
         finalFee = {
           ...estimatedFee,
-          gas: gasConfig.gasLimit,
+          gas: bufferedGas.toString(),
           amount: [
             {
               denom: gasConfig.denom,
-              amount: calculateGasFee(chainName, gasConfig.gasLimit),
+              amount: calculateGasFeeWithBuffer(chainName, bufferedGas.toString()),
             }
           ]
         }
 
-        console.log(`🚀 Gas override for ${chainName}:`, {
+        console.log(`🚀 Gas buffer applied for ${chainName}:`, {
           originalGas: estimatedFee.gas,
-          newGas: gasConfig.gasLimit,
+          bufferedGas: bufferedGas.toString(),
           originalAmount: estimatedFee.amount,
           newAmount: finalFee.amount,
-          gasPrice: `${gasConfig.gasPrice} ${gasConfig.denom}/gas`
+          gasPrice: `${gasConfig.gasPrice} ${gasConfig.denom}/gas`,
+          bufferMultiplier: gasConfig.gasBuffer
         })
       }
 

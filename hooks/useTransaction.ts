@@ -22,9 +22,8 @@ const mock = {
 const useTransaction = ({ msgs, onSuccess, fee, chain_id, shrinkMessage }: Transaction) => {
   const [isApproved, setIsApproved] = useState(false)
   const toaster = useToaster()
-  const { chainName } = useChainRoute()
 
-  const { isWalletConnected, address, sign, broadcast } = useWallet(chainName)
+  const { isWalletConnected, address, sign, broadcast } = useWallet()
 
   const tx = useMutation<DeliverTxResponse, Error>({
     mutationFn: async () => {

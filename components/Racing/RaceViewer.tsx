@@ -450,10 +450,22 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
         window.addEventListener('resize', updateScale);
 
         // --- animation state --------------------------------------------------
-        const cars = new Map<string, { x: number; y: number; color: string; flash: number; lastValidRenderX?: number; lastValidRenderY?: number; hit_wall?: boolean }>();
+        const cars = new Map<string, {
+            x: number;
+            y: number;
+            color: string;
+            flash: number;
+            lastValidRenderX?: number;
+            lastValidRenderY?: number;
+            hit_wall?: boolean;
+            path: Array<{ x: number, y: number }>; // Track the car's path
+        }>();
 
         // Validate log data before initializing cars
         if (log && log.length > 0 && log[0].positions) {
+            // Clear existing cars to reset paths
+            cars.clear();
+
             Object.keys(log[0].positions).forEach((id, i) => {
                 const initialPos = log[0].positions[id];
                 if (Array.isArray(initialPos) && initialPos.length === 2 &&
@@ -464,7 +476,8 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                         color: PALETTE[i % PALETTE.length],
                         flash: 0,
                         lastValidRenderX: undefined,
-                        lastValidRenderY: undefined
+                        lastValidRenderY: undefined,
+                        path: [{ x: initialPos[0], y: initialPos[1] }] // Initialize with starting position
                     });
                     console.log(`Initialized car ${id} at position (${initialPos[0]}, ${initialPos[1]})`);
                 } else {
@@ -511,6 +524,13 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     // Store the raw log position
                     car.x = x;
                     car.y = y;
+
+                    // Add current position to path if it's different from the last position
+                    const lastPathPoint = car.path[car.path.length - 1];
+                    if (!lastPathPoint || lastPathPoint.x !== x || lastPathPoint.y !== y) {
+                        car.path.push({ x, y });
+                    }
+
                     console.log(`Updated car ${id} to position (${x}, ${y}) at tick ${tickRef.current}`);
 
                     // Check if car is at finish line for flash effect
@@ -622,6 +642,55 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     }
                 }
             }
+        };
+
+        const drawCarPaths = () => {
+            // Validate canvas context
+            if (!ctx || !ctx.canvas) {
+                console.error('Invalid canvas context in drawCarPaths');
+                return;
+            }
+
+            cars.forEach((c, id) => {
+                // Draw the car's path as a red line following track tiles
+                if (c.path && c.path.length > 1) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 2;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+
+                    // Start at the first position
+                    const firstPoint = c.path[0];
+                    const startX = firstPoint.x * tilePx + tilePx / 2;
+                    const startY = firstPoint.y * tilePx + tilePx / 2;
+                    ctx.moveTo(startX, startY);
+
+                    // Draw path following track tiles (horizontal/vertical lines only)
+                    for (let i = 1; i < c.path.length; i++) {
+                        const prevPoint = c.path[i - 1];
+                        const currentPoint = c.path[i];
+
+                        // Calculate center positions
+                        const prevX = prevPoint.x * tilePx + tilePx / 2;
+                        const prevY = prevPoint.y * tilePx + tilePx / 2;
+                        const currentX = currentPoint.x * tilePx + tilePx / 2;
+                        const currentY = currentPoint.y * tilePx + tilePx / 2;
+
+                        // Draw horizontal line first (if x changed)
+                        if (prevPoint.x !== currentPoint.x) {
+                            ctx.lineTo(currentX, prevY);
+                        }
+
+                        // Then draw vertical line (if y changed)
+                        if (prevPoint.y !== currentPoint.y) {
+                            ctx.lineTo(currentX, currentY);
+                        }
+                    }
+
+                    ctx.stroke();
+                }
+            });
         };
 
         const drawCars = () => {
@@ -818,6 +887,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
             // Check if race is completed (at the last tick)
             const isRaceCompleted = log && tickRef.current >= log.length - 1;
             drawMaze(ctx, track, tilePx, now, playing && !isRaceCompleted);
+            drawCarPaths(); // Draw the car paths before drawing the cars
             drawCars();
 
             // Continue animation if we have track data
@@ -833,12 +903,14 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
             // Check if race is completed initially
             const isRaceCompleted = tickRef.current >= log.length - 1;
             drawMaze(ctx, track, tilePx, startNow, playing && !isRaceCompleted);
+            drawCarPaths(); // Draw the car paths before drawing the cars
             drawCars();
             raf = requestAnimationFrame(renderFrame);
         } else {
             // Draw track without race data
             const startNow = performance.now();
             drawMaze(ctx, track, tilePx, startNow, false); // No animation when no race data
+            drawCarPaths(); // Draw the car paths before drawing the cars
             drawCars(); // This will draw empty cars map
             raf = requestAnimationFrame(renderFrame);
         }
@@ -863,6 +935,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     updateCars();
                     // Reset to beginning, so race is not completed
                     drawMaze(ctx, track, tilePx, performance.now(), true);
+                    drawCarPaths(); // Draw the car paths before drawing the cars
                     drawCars();
                     break;
                 case 'KeyN':

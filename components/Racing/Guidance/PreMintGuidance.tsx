@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
     Modal,
     ModalOverlay,
@@ -12,6 +12,8 @@ import {
     ListItem,
     Box,
     useBreakpointValue,
+    Checkbox,
+    HStack,
 } from '@chakra-ui/react'
 import useAppState from '@/persisted-state/useAppState'
 
@@ -23,9 +25,13 @@ interface PreMintGuidanceProps {
 const PreMintGuidance: React.FC<PreMintGuidanceProps> = ({ isOpen, onClose }) => {
     const { setAppState } = useAppState()
     const isMobile = useBreakpointValue({ base: true, md: false })
+    const [allowCookies, setAllowCookies] = useState(true)
 
     const handleContinue = () => {
-        setAppState({ hasSeenPreMintGuidance: true })
+        setAppState({
+            hasSeenPreMintGuidance: true,
+            setCookie: allowCookies
+        })
         onClose()
     }
 
@@ -80,6 +86,19 @@ const PreMintGuidance: React.FC<PreMintGuidanceProps> = ({ isOpen, onClose }) =>
                         <Text fontSize="sm" color="#b8c1ff" textAlign="center" fontStyle="italic">
                             Ready to join the race?
                         </Text>
+
+                        <HStack justify="center" spacing={2} mb={4}>
+                            <Checkbox
+                                isChecked={allowCookies}
+                                onChange={(e) => setAllowCookies(e.target.checked)}
+                                colorScheme="blue"
+                                size="sm"
+                            >
+                                <Text fontSize="xs" color="#b8c1ff">
+                                    Allow cookies for a personalized experience
+                                </Text>
+                            </Checkbox>
+                        </HStack>
 
                         <Button
                             onClick={handleContinue}

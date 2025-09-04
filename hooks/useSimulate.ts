@@ -7,6 +7,40 @@ import { useQuery } from '@tanstack/react-query'
 import { useChainRoute } from './useChainRoute'
 import { getGasConfig } from '@/config/gas'
 
+// Configuration for retry behavior
+const SIMULATION_CONFIG = {
+  maxRetries: 3,
+  baseDelay: 1000, // 1 second
+  maxDelay: 10000, // 10 seconds
+  staleTime: 15000, // 15 seconds
+  gcTime: 60000, // 1 minute
+  fallbackGas: '1000000',
+  fallbackAmount: '2500',
+} as const
+
+// Helper function to categorize errors for better debugging
+const categorizeError = (errorMessage: string): string => {
+  const message = errorMessage.toLowerCase()
+
+  if (message.includes('network') || message.includes('timeout') || message.includes('connection')) {
+    return 'NETWORK'
+  }
+  if (message.includes('insufficient funds') || message.includes('user denied') || message.includes('request rejected')) {
+    return 'USER'
+  }
+  if (message.includes('unauthorized') || message.includes('car not found') || message.includes('track not found')) {
+    return 'CONTRACT'
+  }
+  if (message.includes('simulation') || message.includes('gas') || message.includes('fee')) {
+    return 'SIMULATION'
+  }
+  if (message.includes('rpc') || message.includes('endpoint')) {
+    return 'RPC'
+  }
+
+  return 'UNKNOWN'
+}
+
 type Simulate = {
   msgs: MsgExecuteContractEncodeObject[] | undefined | null
   amount: string | undefined
@@ -58,9 +92,29 @@ const useSimulate = ({ msgs, amount, enabled = false, queryKey = [], chain_id }:
         const signingClient = await getSigningStargateClient()
         setErrorMessage(null)
 
-        // Get the estimated fee from the wallet
-        const estimatedFee = await estimateFee(msgs)
-        console.log('[useSimulate] estimatedFee', estimatedFee)
+        // Get the estimated fee from the wallet with fallback
+        let estimatedFee: StdFee
+        try {
+          estimatedFee = await estimateFee(msgs)
+          console.log('[useSimulate] estimatedFee from wallet', estimatedFee)
+        } catch (feeError) {
+          console.warn('[useSimulate] Wallet fee estimation failed, using fallback:', feeError)
+
+          // Fallback fee estimation
+          const gasConfig = getGasConfig(chainName)
+          const fallbackGas = SIMULATION_CONFIG.fallbackGas
+          const fallbackDenom = gasConfig?.denom || 'uosmo'
+          const fallbackAmount = SIMULATION_CONFIG.fallbackAmount
+
+          estimatedFee = {
+            gas: fallbackGas,
+            amount: [{
+              denom: fallbackDenom,
+              amount: fallbackAmount,
+            }],
+          }
+          console.log('[useSimulate] Using fallback fee:', estimatedFee)
+        }
 
         // Determine buffer behavior
         const gasConfig = getGasConfig(chainName)
@@ -103,15 +157,68 @@ const useSimulate = ({ msgs, amount, enabled = false, queryKey = [], chain_id }:
 
         return Promise.all([finalFee, simResult])
       } catch (err: any) {
-        const msg = parseError(err?.message || String(err)) || 'Simulation failed'
-        console.error('[useSimulate] error', err)
+        const errorMessage = err?.message || String(err)
+        const msg = parseError(errorMessage) || 'Simulation failed'
+
+        // Categorize the error for better debugging
+        const errorCategory = categorizeError(errorMessage)
+        console.error(`[useSimulate] ${errorCategory} error:`, {
+          error: err,
+          message: errorMessage,
+          category: errorCategory,
+          chainName,
+          address: address?.substring(0, 10) + '...',
+          msgsCount: msgs?.length || 0
+        })
+
         setErrorMessage(msg)
         throw err
       }
     },
     enabled: enabled && (msgs?.length || 0) > 0 && isWalletConnected,
-    retry: false,
-    staleTime: 30000, // data considered "fresh" for 30 seconds
+    retry: (failureCount, error) => {
+      // Don't retry if it's a user error (insufficient funds, etc.)
+      const errorMessage = error?.message || String(error)
+      const isUserError = [
+        'insufficient funds',
+        'user denied',
+        'request rejected',
+        'unauthorized',
+        'car not found',
+        'track not found',
+        'invalid car count',
+        'invalid action',
+        'invalid track',
+        'invalid race config',
+        'simulation error',
+        'q-learning error'
+      ].some(userError => errorMessage.toLowerCase().includes(userError))
+
+      if (isUserError) {
+        console.log('[useSimulate] Not retrying user error:', errorMessage)
+        return false
+      }
+
+      // Retry up to maxRetries times for network/technical errors
+      if (failureCount < SIMULATION_CONFIG.maxRetries) {
+        console.log(`[useSimulate] Retrying simulation (attempt ${failureCount + 1}/${SIMULATION_CONFIG.maxRetries})`)
+        return true
+      }
+
+      console.log('[useSimulate] Max retries reached, giving up')
+      return false
+    },
+    retryDelay: (attemptIndex) => {
+      // Exponential backoff with configurable base and max delay
+      const delay = Math.min(
+        SIMULATION_CONFIG.baseDelay * Math.pow(2, attemptIndex),
+        SIMULATION_CONFIG.maxDelay
+      )
+      console.log(`[useSimulate] Retry delay: ${delay}ms`)
+      return delay
+    },
+    staleTime: SIMULATION_CONFIG.staleTime,
+    gcTime: SIMULATION_CONFIG.gcTime,
   })
 
   return {

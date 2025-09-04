@@ -691,7 +691,49 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     }
 
                     try {
-                        ctx.drawImage(img, drawX, drawY, size, size);
+                        // Check if car should be flipped based on current action
+                        // Get the current action for this specific car
+                        let currentAction = 'Idle';
+                        if (selectedRace?.play_by_play && selectedRace.play_by_play[id]) {
+                            const playByPlay = selectedRace.play_by_play[id];
+                            if (playByPlay.actions) {
+                                const actionIndex = tickRef.current - 1; // -1 because tick 0 is starting position
+                                if (actionIndex >= 0 && actionIndex < playByPlay.actions.length) {
+                                    const action = playByPlay.actions[actionIndex];
+                                    if (action && (action as any).action_value !== undefined) {
+                                        switch ((action as any).action_value) {
+                                            case 0: currentAction = 'Up'; break;
+                                            case 1: currentAction = 'Down'; break;
+                                            case 2: currentAction = 'Left'; break;
+                                            case 3: currentAction = 'Right'; break;
+                                            default: currentAction = 'Idle';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        const shouldFlip = currentAction === 'Left';
+                        console.log(`Car ${id} should flip: ${shouldFlip}, currentAction: ${currentAction}`);
+                        if (shouldFlip) {
+                            // Save the current canvas state
+                            ctx.save();
+
+                            // Move to the center of the car image
+                            ctx.translate(renderPx, renderPy);
+
+                            // Flip horizontally by scaling x by -1
+                            ctx.scale(-1, 1);
+
+                            // Draw the image at the flipped position
+                            ctx.drawImage(img, -size / 2, -size / 2, size, size);
+
+                            // Restore the canvas state
+                            ctx.restore();
+                        } else {
+                            // Draw normally without flipping
+                            ctx.drawImage(img, drawX, drawY, size, size);
+                        }
 
                         // Add red border if car is using fallback position
                         if (isUsingFallback) {

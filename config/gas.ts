@@ -15,7 +15,7 @@ export const GAS_CONFIG = {
     neutron: {
         gasPrice: 0.05, // untrn per gas unit (5x higher than default)
         denom: 'untrn',
-        gasBuffer: 1.2 // Add 20% extra gas to simulated fee
+        gasBuffer: 1.1 // Add 20% extra gas to simulated fee
     },
     neutrontestnet: {
         gasPrice: 0.05, // untrn per gas unit (5x higher than default)

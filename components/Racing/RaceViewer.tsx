@@ -567,10 +567,10 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
 
                 if (actionIndex >= 0 && actionIndex < targetPlayByPlay.actions.length) {
                     const action = targetPlayByPlay.actions[actionIndex];
-                    if (action && action.action_value !== undefined) {
+                    if (action && (action as any).action_value !== undefined) {
                         // Map the action_value (i8) to our display format
                         let displayAction = 'Idle';
-                        switch (action.action_value) {
+                        switch ((action as any).action_value) {
                             case 0:
                                 displayAction = 'Up';
                                 break;
@@ -587,12 +587,6 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                                 // If action_value is not recognized, default to Idle
                                 displayAction = 'Idle';
                         }
-
-                        // Debug logging for action changes - disabled to prevent spam
-                        // if (displayAction !== lastActionDisplay) {
-                        //     console.log(`Action changed from ${displayAction} to ${displayAction} at tick ${tickRef.current}, target car: ${targetCarId}, action_value: ${action.action_value}, pos: (${action.resulting_position.x}, ${action.resulting_position.y})`);
-                        // }
-
                         setLastActionDisplay(displayAction);
                     }
                 } else if (tickRef.current === 0) {
@@ -604,9 +598,9 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                 } else {
                     // Beyond the last action, keep the last known action
                     const lastAction = targetPlayByPlay.actions[targetPlayByPlay.actions.length - 1];
-                    if (lastAction && lastAction.action_value !== undefined) {
+                    if (lastAction && (lastAction as any).action_value !== undefined) {
                         let displayAction = 'Idle';
-                        switch (lastAction.action_value) {
+                        switch ((lastAction as any).action_value) {
                             case 0:
                                 displayAction = 'Up';
                                 break;
@@ -620,12 +614,9 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                                 displayAction = 'Right';
                                 break;
                             default:
-                                // If action_value is not recognized, default to Idle
                                 displayAction = 'Idle';
                         }
-
                         if (displayAction !== lastActionDisplay) {
-                            // console.log(`Beyond last action, keeping: ${displayAction}`); // Disabled to prevent spam
                             setLastActionDisplay(displayAction);
                         }
                     }
@@ -966,6 +957,29 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
 
     const scaledW = dims.rawW * dims.scale;
     const scaledH = dims.rawH * dims.scale;
+
+    // Compute total ticks from race result steps_taken for the selected car (fallbacks apply)
+    const totalTicks = useMemo(() => {
+        // Prefer steps_taken from selectedRace if available
+        const fallbackFromLog = Math.max(0, (log?.length ?? 0) - 1);
+        if (!selectedRace || !Array.isArray(selectedRace.steps_taken) || selectedRace.steps_taken.length === 0) {
+            return fallbackFromLog;
+        }
+        // Try selected car first
+        if (selectedCarId) {
+            const match = selectedRace.steps_taken.find((s) => s.car_id === selectedCarId);
+            if (match && typeof match.steps_taken === 'number') return match.steps_taken;
+        }
+        // Then try winner
+        if (Array.isArray(selectedRace.winner_ids) && selectedRace.winner_ids.length > 0) {
+            const win = selectedRace.steps_taken.find((s) => s.car_id === selectedRace.winner_ids[0]);
+            if (win && typeof win.steps_taken === 'number') return win.steps_taken;
+        }
+        // Fallback to first entry in steps_taken
+        const first = selectedRace.steps_taken[0];
+        if (first && typeof first.steps_taken === 'number') return first.steps_taken;
+        return fallbackFromLog;
+    }, [selectedRace, selectedCarId, log]);
 
     const runRace = useRunRace({
         trackId: selectedTrackId,
@@ -1445,7 +1459,23 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                 <>
                     <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8, background: '#0a0f1e' }}>
                         <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff" pt="0.5%">
-                            Action: {tickDisplay}/{Math.max(0, (log?.length ?? 0) - 1)} | Fastest Possible: {(() => {
+                            Action: {tickDisplay}/{Math.max(0, (log?.length ?? 0) - 1)} | Total ticks: {(() => {
+                                // Show total steps taken for the selected car (fallbacks to winner/first/log length)
+                                if (!selectedRace || !Array.isArray(selectedRace.steps_taken) || selectedRace.steps_taken.length === 0) {
+                                    return Math.max(0, (log?.length ?? 0) - 1);
+                                }
+                                if (selectedCarId) {
+                                    const m = selectedRace.steps_taken.find(s => s.car_id === selectedCarId);
+                                    if (m && typeof m.steps_taken === 'number') return m.steps_taken;
+                                }
+                                if (Array.isArray(selectedRace.winner_ids) && selectedRace.winner_ids.length > 0) {
+                                    const w = selectedRace.steps_taken.find(s => s.car_id === selectedRace.winner_ids[0]);
+                                    if (w && typeof w.steps_taken === 'number') return w.steps_taken;
+                                }
+                                const f = selectedRace.steps_taken[0];
+                                if (f && typeof f.steps_taken === 'number') return f.steps_taken;
+                                return Math.max(0, (log?.length ?? 0) - 1);
+                            })()} | Fastest Possible: {(() => {
                                 if (availableTracks && selectedTrackId) {
                                     const selectedTrack = availableTracks.find((t: any) => t.id === selectedTrackId);
                                     if (selectedTrack?.starting_tiles && selectedTrack.starting_tiles.length > 0) {

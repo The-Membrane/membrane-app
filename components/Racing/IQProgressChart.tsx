@@ -16,6 +16,7 @@ interface ChartDataPoint {
     percentage: number
     statesSeen: number
     wallCollisions: number
+    confidence: number
 }
 
 const IQProgressChart: React.FC<IQProgressChartProps> = ({
@@ -32,7 +33,8 @@ const IQProgressChart: React.FC<IQProgressChartProps> = ({
                 entry: index + 1,
                 percentage: Math.max(0, Math.min(100, percentage)),
                 statesSeen: entry.states_seen,
-                wallCollisions: entry.wall_collisions
+                wallCollisions: entry.wall_collisions,
+                confidence: entry.avg_confidence
             }
         })
     }, [entries])
@@ -85,6 +87,7 @@ const IQProgressChart: React.FC<IQProgressChartProps> = ({
                 >
                     <Text color="#00ffea">Entry {data.entry}</Text>
                     <Text color="#b8c1ff">IQ: {data.percentage.toFixed(1)}%</Text>
+                    <Text color="#ff6b6b">Confidence: {((data.confidence / 127) * 100).toFixed(1)}%</Text>
                     <Text color="#b8c1ff">States: {data.statesSeen}</Text>
                     <Text color="#b8c1ff">Walls: {data.wallCollisions}</Text>
                 </Box>
@@ -104,6 +107,20 @@ const IQProgressChart: React.FC<IQProgressChartProps> = ({
                 >
                     IQ Progress
                 </Text>
+                <HStack spacing={4} fontSize="8px">
+                    <HStack spacing={1}>
+                        <Box w="12px" h="2px" bg="#00ffea" />
+                        <Text color="#b8c1ff">IQ %</Text>
+                    </HStack>
+                    <HStack spacing={1}>
+                        <Box w="3px" h="3px" bg="#00ffea" borderRadius="50%" opacity={0.6} />
+                        <Text color="#b8c1ff">Low confidence</Text>
+                    </HStack>
+                    <HStack spacing={1}>
+                        <Box w="8px" h="8px" bg="#00ffea" borderRadius="50%" opacity={1} />
+                        <Text color="#b8c1ff">High confidence</Text>
+                    </HStack>
+                </HStack>
                 <HStack spacing={2}>
                     <Text
                         fontFamily='"Press Start 2P", monospace'
@@ -179,8 +196,26 @@ const IQProgressChart: React.FC<IQProgressChartProps> = ({
                                 dataKey="percentage"
                                 stroke="#00ffea"
                                 strokeWidth={2}
-                                dot={{ fill: '#00ffea', strokeWidth: 2, r: 3 }}
-                                activeDot={{ r: 5, fill: '#00ffea', stroke: '#b8c1ff', strokeWidth: 2 }}
+                                dot={(props: any) => {
+                                    const { payload } = props
+                                    const confidence = payload?.confidence || 0
+                                    // Convert 0-127 range to 0-100 for calculations
+                                    const confidencePercent = (confidence / 127) * 100
+                                    const radius = Math.max(3, Math.min(8, 3 + (confidencePercent / 20))) // 3-8px based on confidence
+                                    const opacity = Math.max(0.6, Math.min(1, 0.6 + (confidencePercent / 40))) // 0.6-1 opacity based on confidence
+                                    return (
+                                        <circle
+                                            cx={props.cx}
+                                            cy={props.cy}
+                                            r={radius}
+                                            fill="#00ffea"
+                                            stroke="#b8c1ff"
+                                            strokeWidth={2}
+                                            opacity={opacity}
+                                        />
+                                    )
+                                }}
+                                activeDot={{ r: 6, fill: '#00ffea', stroke: '#b8c1ff', strokeWidth: 2 }}
                             />
                         </LineChart>
                     </ResponsiveContainer>

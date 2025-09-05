@@ -33,8 +33,7 @@ interface Props {
 }
 
 //track id 3 is the Tiny Straight Track
-const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
-    console.log('RaceViewer', trackId);
+const RaceViewer: React.FC<Props> = () => {
     const router = useRouter();
     const { racingState, setRacingState } = useRacingState();
     const { appState } = useAppState();
@@ -89,7 +88,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                 setCarImagesLoaded(prev => new Set([...prev, id]))
                 loadedCount++
                 if (loadedCount === totalImages) {
-                    console.log('All car images loaded successfully')
+                    // All car images loaded successfully
                 }
             }
             img.onerror = () => {
@@ -102,7 +101,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     setCarImagesLoaded(prev => new Set([...prev, id]))
                     loadedCount++
                     if (loadedCount === totalImages) {
-                        console.log('All car images loaded successfully (with fallbacks)')
+                        // All car images loaded successfully (with fallbacks)
                     }
                 }
             }
@@ -111,7 +110,8 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
 
     const [selectedCarId, setSelectedCarId] = useState<string>('');
     const [selectedRace, setSelectedRace] = useState<JsonRaceResult | null>(null);
-    const [selectedTrackId, setSelectedTrackId] = useState<string | undefined>(trackId);
+    ////REMOVE TRACK ID AND ONLY USE SELECTED ID
+    const [selectedTrackId, setSelectedTrackId] = useState<string | undefined>("3");
     const [showTraining, setShowTraining] = useState<boolean>(true);
     const [showPvp, setShowPvp] = useState<boolean>(false);
     const [showAdvancedParams, setShowAdvancedParams] = useState<boolean>(false);
@@ -150,25 +150,11 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
     // Check if we're in maze mode: valid maze track selected AND in showcase mode
     const isMazeMode = !showTraining && selectedTrackId && validMazeId === selectedTrackId;
 
-    console.log('RaceViewer: Maze mode check', {
-        FORCE_MAZE_MODE,
-        selectedTrackId,
-        validMazeId,
-        maze,
-        isMazeMode
-    });
 
 
 
 
 
-    // Debug logging for race selection
-    useEffect(() => {
-        console.log('RaceViewer: selectedRace changed:', selectedRace?.race_id);
-        console.log('RaceViewer: selectedTrackId changed:', selectedTrackId);
-        console.log('RaceViewer: track loaded:', track ? `${track.length}x${track[0]?.length || 0} grid` : 'null');
-        console.log('RaceViewer: log loaded:', log?.length, 'entries');
-    }, [selectedRace, selectedTrackId, track, log]);
 
     // Fetch training stats for selected car + track
     const { data: trackTrainingStats, refetch: refetchTrainingStats } = useTrackTrainingStats(selectedCarId || undefined, selectedTrackId || undefined, appState.rpcUrl);
@@ -293,34 +279,11 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
     // Always select the most recent race (last in the list)
     useEffect(() => {
         if (carRecentRaces && carRecentRaces.length > 0) {
-            console.log('RaceViewer: carRecentRaces length:', carRecentRaces.length);
-            console.log('RaceViewer: All race IDs:', carRecentRaces.map(r => r.race_id));
-            console.log('RaceViewer: All race track IDs:', carRecentRaces.map(r => r.track_id));
-            console.log('RaceViewer: Race IDs as numbers:', carRecentRaces.map(r => ({ race_id: r.race_id, as_number: Number(r.race_id) })));
-
             // The contract stores races in insertion order (newest at the end)
             // So the last race in the array should be the most recent
             const mostRecentRace = carRecentRaces[carRecentRaces.length - 1];
 
-            // Log the race IDs to verify ordering
-            console.log('RaceViewer: Original array order (newest should be last):', carRecentRaces.map(r => r.race_id));
-            console.log('RaceViewer: Last race in array (should be newest):', mostRecentRace.race_id);
-
-            // Double-check: if race IDs are numeric, verify the last one has the highest ID
-            if (carRecentRaces.length > 1) {
-                const lastRaceId = Number(mostRecentRace.race_id);
-                const secondLastRaceId = Number(carRecentRaces[carRecentRaces.length - 2].race_id);
-                console.log('RaceViewer: Last race ID:', lastRaceId, 'Second last race ID:', secondLastRaceId);
-
-                if (lastRaceId < secondLastRaceId) {
-                    console.warn('RaceViewer: WARNING! Last race in array has lower ID than second last. Array order may be wrong.');
-                }
-            }
-
-            console.log('RaceViewer: Selected most recent race:', mostRecentRace.race_id, 'with steps:', mostRecentRace.steps_taken, 'track:', mostRecentRace.track_id);
-
             // Always auto-select the latest race
-            console.log('RaceViewer: Auto-selecting race:', mostRecentRace.race_id);
             setSelectedRace(mostRecentRace);
             setSelectedTrackId(mostRecentRace.track_id);
         } else {
@@ -475,7 +438,6 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
             const currentRaceId = selectedRace?.race_id;
 
             if (!hasExistingCars || (currentRaceId && currentRaceId !== lastRaceIdRef.current)) {
-                console.log(`Reinitializing cars for new race: ${currentRaceId} (was: ${lastRaceIdRef.current})`);
                 cars.clear();
                 lastRaceIdRef.current = currentRaceId;
 
@@ -492,18 +454,11 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                             path: [{ x: initialPos[0], y: initialPos[1] }], // Initialize with starting position
                             hasReachedFinish: false
                         });
-                        console.log(`Initialized car ${id} at position (${initialPos[0]}, ${initialPos[1]}) with initial path:`, [{ x: initialPos[0], y: initialPos[1] }]);
                     } else {
                         console.error(`Invalid initial position for car ${id}:`, initialPos);
                     }
                 });
-            } else {
-                console.log(`Keeping existing cars for race ${currentRaceId}, not reinitializing. Cars count: ${cars.size}`);
             }
-        } else if (!log) {
-            console.log('No log data available - showing track without cars');
-        } else {
-            console.error('Invalid log data:', log);
         }
 
         let raf = 0;
@@ -518,9 +473,6 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                 return;
             }
 
-            // Debug: Log the current tick and available positions (disabled for performance)
-            // console.log(`Tick ${tickRef.current}: Updating cars with positions:`, entry.positions);
-            // console.log(`Cars map before update:`, Array.from(cars.entries()));
 
             // Update car positions directly from the race log
             Object.entries(entry.positions).forEach(([id, position]) => {
@@ -535,10 +487,6 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     return;
                 }
 
-                // Debug logging for position updates
-                if (id === selectedCarId && tickRef.current % 10 === 0) {
-                    console.log(`Car ${id} position at tick ${tickRef.current}: (${x}, ${y})`);
-                }
 
                 const car = cars.get(id);
                 if (car) {
@@ -555,33 +503,21 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                         // Only add to path if we haven't reached the finish line yet
                         if (!isAtFinish && !car.hasReachedFinish) {
                             car.path.push({ x, y });
-                            // Debug logging for path building
-                            if (id === selectedCarId && car.path.length % 5 === 0) {
-                                console.log(`Car ${id} path point ${car.path.length - 1}: (${x}, ${y}) at tick ${tickRef.current}`);
-                            }
                         } else if (isAtFinish && !car.hasReachedFinish) {
                             // Add the finish line position and mark as reached
                             car.path.push({ x, y });
                             car.hasReachedFinish = true;
-                            console.log(`Car ${id} reached finish line at (${x}, ${y}) with ${car.path.length} total path points`);
                         }
                         // Don't add any more points after reaching the finish line
                     }
 
-                    // console.log(`Updated car ${id} to position (${x}, ${y}) at tick ${tickRef.current}`); // Disabled for performance
 
 
-                    // Log position updates for debugging - disabled to prevent spam
-                    // if (id === leaderDisplay) {
-                    //     console.log(`Updated car ${id} to position (${x}, ${y}) at tick ${tickRef.current}`);
-                    // }
                 } else {
                     console.warn(`Car ${id} not found in cars map at tick ${tickRef.current}. Available cars:`, Array.from(cars.keys()));
                 }
             });
 
-            // Debug: Log the cars map after update (disabled for performance)
-            // console.log(`Cars map after update:`, Array.from(cars.entries()));
 
             // Determine leader for display
             let leaderId: string | null = null;
@@ -1111,7 +1047,6 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
 
                 // Manually refetch training stats and top times to ensure fresh data
                 setTimeout(() => {
-                    console.log("Manually refetching training stats and top times");
                     refetchTrainingStats();
                     refetchTopTimes();
                     refetchTopTimesWithSessions();

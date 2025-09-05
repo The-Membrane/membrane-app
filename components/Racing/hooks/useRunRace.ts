@@ -79,15 +79,6 @@ const useRunRace = (params: UseRunRaceParams) => {
                 },
             }
 
-            // Debug logging for training config
-            if (params.train) {
-                console.log('Training config being sent:', {
-                    train: params.train,
-                    explorationRate: params.explorationRate,
-                    enableDecay: params.enableDecay,
-                    finalConfig: msg.simulate_race.training_config
-                });
-            }
 
             const exec = {
                 typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -122,7 +113,6 @@ const useRunRace = (params: UseRunRaceParams) => {
             const raceCount = params.numberOfRaces ?? 1
             const msgs = Array.from({ length: raceCount }, () => ({ ...exec }))
 
-            console.log(`Creating ${raceCount} race message(s) for batch execution`)
 
             return { msgs }
         },
@@ -179,7 +169,6 @@ const useRunRace = (params: UseRunRaceParams) => {
         }
 
         // Invalidate track-specific queries
-        console.log("invalidating track-specific queries", params.trackId)
         if (params.trackId) {
             // Invalidate top_times for this track
             queryClient.invalidateQueries({
@@ -190,7 +179,6 @@ const useRunRace = (params: UseRunRaceParams) => {
 
         // Increment training sessions count for The Singularity when PvP races complete
         if (params.pvp) {
-            console.log("PvP race completed - incrementing training sessions for The Singularity (car_id 0)")
             incrementSingularityTrainingSessions()
         }
 

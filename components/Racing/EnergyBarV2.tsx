@@ -101,7 +101,7 @@ const EnergyBarV2: React.FC<EnergyBarV2Props> = ({ tokenId, inline }) => {
         if (missing === 0 || data.energy_recovery_hours === 0) return 0
         const fullMs = data.energy_recovery_hours * 60 * 60 * 1000
         return Math.ceil((missing / data.max_energy) * fullMs)
-    }, [data])
+    }, [data, racingState.energy])
 
     // Long press handler for mobile
     const longPressRef = useLongPress({

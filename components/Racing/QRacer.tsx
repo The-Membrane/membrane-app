@@ -78,8 +78,8 @@ const QRacer: React.FC = () => {
     steps,
   } = useTutorial(setTab)
 
-  const trackId = (router.query?.trackId as string) || undefined
-  const raceId = (router.query?.raceId as string) || undefined
+  // const trackId = (router.query?.trackId as string) || undefined
+  // const raceId = (router.query?.raceId as string) || undefined
   const carId = (router.query?.carId as string) || undefined
 
   // Check if user has minted their first car - more robust detection
@@ -171,7 +171,7 @@ const QRacer: React.FC = () => {
         )}
         {activeTab === 'race' && (
           <Box flex="1" border="2px solid #0033ff" p={2} bg="#070b15">
-            <RaceViewer trackId={trackId} />
+            <RaceViewer />
           </Box>
         )}
         {activeTab === 'create' && (

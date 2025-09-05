@@ -26,6 +26,8 @@ const START = 'red';
 const STUCK = '#555555';
 const BOOST = '#ffdd00';
 
+const MAX_RACE_TICKS = 32;
+
 interface Props {
     trackId?: string;
 }
@@ -115,6 +117,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
     const [showAdvancedParams, setShowAdvancedParams] = useState<boolean>(false);
     const [explorationRate, setExplorationRate] = useState<number>(0.1);
     const [enableDecay, setEnableDecay] = useState<boolean>(true);
+    const [numberOfRaces, setNumberOfRaces] = useState<number>(1);
 
     // Sync racing state with local state
     useMemo(() => {
@@ -189,6 +192,17 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
     const [showSimPanel, setShowSimPanel] = useState(false);
     const [showControls, setShowControls] = useState(false);
     const [showLegend, setShowLegend] = useState(false);
+    const lastRaceIdRef = useRef<string | undefined>(undefined);
+    const carsRef = useRef<Map<string, {
+        x: number;
+        y: number;
+        color: string;
+        lastValidRenderX?: number;
+        lastValidRenderY?: number;
+        hit_wall?: boolean;
+        path: Array<{ x: number, y: number }>; // Track the car's path
+        hasReachedFinish?: boolean; // Track if car has reached finish line
+    }>>(new Map());
 
     // Confetti state
     const [showConfetti, setShowConfetti] = useState(false);
@@ -451,40 +465,41 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
         window.addEventListener('resize', updateScale);
 
         // --- animation state --------------------------------------------------
-        const cars = new Map<string, {
-            x: number;
-            y: number;
-            color: string;
-            flash: number;
-            lastValidRenderX?: number;
-            lastValidRenderY?: number;
-            hit_wall?: boolean;
-            path: Array<{ x: number, y: number }>; // Track the car's path
-        }>();
+        const cars = carsRef.current;
 
         // Validate log data before initializing cars
         if (log && log.length > 0 && log[0].positions) {
-            // Clear existing cars to reset paths
-            cars.clear();
+            // Only clear and reinitialize cars if we don't have any cars yet
+            // or if this is a completely new race (different race ID)
+            const hasExistingCars = cars.size > 0;
+            const currentRaceId = selectedRace?.race_id;
 
-            Object.keys(log[0].positions).forEach((id, i) => {
-                const initialPos = log[0].positions[id];
-                if (Array.isArray(initialPos) && initialPos.length === 2 &&
-                    typeof initialPos[0] === 'number' && typeof initialPos[1] === 'number') {
-                    cars.set(id, {
-                        x: initialPos[0],
-                        y: initialPos[1],
-                        color: PALETTE[i % PALETTE.length],
-                        flash: 0,
-                        lastValidRenderX: undefined,
-                        lastValidRenderY: undefined,
-                        path: [{ x: initialPos[0], y: initialPos[1] }] // Initialize with starting position
-                    });
-                    console.log(`Initialized car ${id} at position (${initialPos[0]}, ${initialPos[1]})`);
-                } else {
-                    console.error(`Invalid initial position for car ${id}:`, initialPos);
-                }
-            });
+            if (!hasExistingCars || (currentRaceId && currentRaceId !== lastRaceIdRef.current)) {
+                console.log(`Reinitializing cars for new race: ${currentRaceId} (was: ${lastRaceIdRef.current})`);
+                cars.clear();
+                lastRaceIdRef.current = currentRaceId;
+
+                Object.keys(log[0].positions).forEach((id, i) => {
+                    const initialPos = log[0].positions[id];
+                    if (Array.isArray(initialPos) && initialPos.length === 2 &&
+                        typeof initialPos[0] === 'number' && typeof initialPos[1] === 'number') {
+                        cars.set(id, {
+                            x: initialPos[0],
+                            y: initialPos[1],
+                            color: PALETTE[i % PALETTE.length],
+                            lastValidRenderX: undefined,
+                            lastValidRenderY: undefined,
+                            path: [{ x: initialPos[0], y: initialPos[1] }], // Initialize with starting position
+                            hasReachedFinish: false
+                        });
+                        console.log(`Initialized car ${id} at position (${initialPos[0]}, ${initialPos[1]}) with initial path:`, [{ x: initialPos[0], y: initialPos[1] }]);
+                    } else {
+                        console.error(`Invalid initial position for car ${id}:`, initialPos);
+                    }
+                });
+            } else {
+                console.log(`Keeping existing cars for race ${currentRaceId}, not reinitializing. Cars count: ${cars.size}`);
+            }
         } else if (!log) {
             console.log('No log data available - showing track without cars');
         } else {
@@ -520,6 +535,11 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     return;
                 }
 
+                // Debug logging for position updates
+                if (id === selectedCarId && tickRef.current % 10 === 0) {
+                    console.log(`Car ${id} position at tick ${tickRef.current}: (${x}, ${y})`);
+                }
+
                 const car = cars.get(id);
                 if (car) {
                     // Store the raw log position
@@ -527,17 +547,29 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     car.y = y;
 
                     // Add current position to path if it's different from the last position
+                    // and if the car hasn't already reached the finish line
                     const lastPathPoint = car.path[car.path.length - 1];
+                    const isAtFinish = track[y] && track[y][x] === 'F';
+
                     if (!lastPathPoint || lastPathPoint.x !== x || lastPathPoint.y !== y) {
-                        car.path.push({ x, y });
+                        // Only add to path if we haven't reached the finish line yet
+                        if (!isAtFinish && !car.hasReachedFinish) {
+                            car.path.push({ x, y });
+                            // Debug logging for path building
+                            if (id === selectedCarId && car.path.length % 5 === 0) {
+                                console.log(`Car ${id} path point ${car.path.length - 1}: (${x}, ${y}) at tick ${tickRef.current}`);
+                            }
+                        } else if (isAtFinish && !car.hasReachedFinish) {
+                            // Add the finish line position and mark as reached
+                            car.path.push({ x, y });
+                            car.hasReachedFinish = true;
+                            console.log(`Car ${id} reached finish line at (${x}, ${y}) with ${car.path.length} total path points`);
+                        }
+                        // Don't add any more points after reaching the finish line
                     }
 
                     // console.log(`Updated car ${id} to position (${x}, ${y}) at tick ${tickRef.current}`); // Disabled for performance
 
-                    // Check if car is at finish line for flash effect
-                    if (track[y] && track[y][x] === 'F' && car.flash === 0) {
-                        car.flash = 18;
-                    }
 
                     // Log position updates for debugging - disabled to prevent spam
                     // if (id === leaderDisplay) {
@@ -655,6 +687,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
             cars.forEach((c, id) => {
                 // Draw the car's path as a red line following track tiles
                 if (c.path && c.path.length > 1) {
+
                     ctx.beginPath();
                     ctx.strokeStyle = '#ff0000';
                     ctx.lineWidth = 2;
@@ -663,6 +696,14 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
 
                     // Start at the first position
                     const firstPoint = c.path[0];
+
+                    // Validate first point coordinates
+                    if (typeof firstPoint.x !== 'number' || typeof firstPoint.y !== 'number' ||
+                        isNaN(firstPoint.x) || isNaN(firstPoint.y)) {
+                        console.warn(`Invalid first path point for car ${id}:`, firstPoint);
+                        return;
+                    }
+
                     const startX = firstPoint.x * tilePx + tilePx / 2;
                     const startY = firstPoint.y * tilePx + tilePx / 2;
                     ctx.moveTo(startX, startY);
@@ -672,21 +713,37 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                         const prevPoint = c.path[i - 1];
                         const currentPoint = c.path[i];
 
+                        // Validate coordinates before drawing
+                        if (typeof prevPoint.x !== 'number' || typeof prevPoint.y !== 'number' ||
+                            typeof currentPoint.x !== 'number' || typeof currentPoint.y !== 'number' ||
+                            isNaN(prevPoint.x) || isNaN(prevPoint.y) ||
+                            isNaN(currentPoint.x) || isNaN(currentPoint.y)) {
+                            console.warn(`Invalid path coordinates for car ${id} at index ${i}:`, { prevPoint, currentPoint });
+                            continue; // Skip this segment but continue with the rest
+                        }
+
+                        // Additional validation: check if coordinates are within reasonable bounds
+                        const maxX = track[0] ? track[0].length : 0;
+                        const maxY = track.length;
+
+                        if (prevPoint.x < 0 || prevPoint.x >= maxX || prevPoint.y < 0 || prevPoint.y >= maxY ||
+                            currentPoint.x < 0 || currentPoint.x >= maxX || currentPoint.y < 0 || currentPoint.y >= maxY) {
+                            console.warn(`Path coordinates out of bounds for car ${id} at index ${i}:`, {
+                                prevPoint,
+                                currentPoint,
+                                bounds: { maxX, maxY }
+                            });
+                            continue; // Skip this segment
+                        }
+
                         // Calculate center positions
                         const prevX = prevPoint.x * tilePx + tilePx / 2;
                         const prevY = prevPoint.y * tilePx + tilePx / 2;
                         const currentX = currentPoint.x * tilePx + tilePx / 2;
                         const currentY = currentPoint.y * tilePx + tilePx / 2;
 
-                        // Draw horizontal line first (if x changed)
-                        if (prevPoint.x !== currentPoint.x) {
-                            ctx.lineTo(currentX, prevY);
-                        }
-
-                        // Then draw vertical line (if y changed)
-                        if (prevPoint.y !== currentPoint.y) {
-                            ctx.lineTo(currentX, currentY);
-                        }
+                        // Draw direct line from previous point to current point
+                        ctx.lineTo(currentX, currentY);
                     }
 
                     ctx.stroke();
@@ -752,13 +809,6 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     const drawX = renderPx - size / 2;
                     const drawY = renderPy - size / 2;
 
-                    // optional flash effect: brief yellow glow behind sprite
-                    if (c.flash-- > 0) {
-                        ctx.beginPath();
-                        ctx.arc(renderPx, renderPy, size * 0.55, 0, Math.PI * 2);
-                        ctx.fillStyle = '#ffff00';
-                        ctx.fill();
-                    }
 
                     try {
                         // Check if car should be flipped based on current action
@@ -824,7 +874,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                         // Fallback to circle if image drawing fails
                         ctx.beginPath();
                         ctx.arc(renderPx, renderPy, tilePx / 3, 0, Math.PI * 2);
-                        ctx.fillStyle = c.flash-- > 0 ? '#ffff00' : c.color;
+                        ctx.fillStyle = c.color;
                         ctx.fill();
 
                         // Add red border if car is using fallback position (for fallback rendering too)
@@ -845,7 +895,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                     // fallback to simple circle until image loads
                     ctx.beginPath();
                     ctx.arc(renderPx, renderPy, tilePx / 3, 0, Math.PI * 2);
-                    ctx.fillStyle = c.flash-- > 0 ? '#ffff00' : c.color;
+                    ctx.fillStyle = c.color;
                     ctx.fill();
 
                     // Add red border if car hit a wall (collision) - for main circle rendering
@@ -1105,7 +1155,8 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
         // Advanced training parameters - only enabled when advanced section is expanded
         advanced: showAdvancedParams,
         explorationRate: showAdvancedParams ? explorationRate : 0.3,
-        enableDecay: true
+        enableDecay: true,
+        numberOfRaces: numberOfRaces
     });
 
     return (
@@ -1317,11 +1368,11 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                         )}
                     </div>
 
-                    {/* Right: Run Race Button */}
-                    <div className="race-controls-button">
+                    {/* Right: Run Race Button with Race Count Controls */}
+                    <div className="race-controls-button" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <ConfirmModal
                             executeDirectly={true}
-                            label={isMazeMode ? "Traverse" : "Run Race"}
+                            label={isMazeMode ? `Traverse (${numberOfRaces})` : `Run Race (${numberOfRaces})`}
                             action={runRace.action}
                             isDisabled={!selectedTrackId || !selectedCarId || racingState.energy < 10 || filteredTracks.length === 0}
                             isLoading={runRace.action.simulate.isPending || runRace.action.tx.isPending}
@@ -1338,6 +1389,99 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                                 w: { base: '100%', md: 'auto' }
                             }}
                         />
+
+                        {/* Race Count Controls */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '44px', justifyContent: 'stretch' }}>
+                            <button
+                                onClick={() => setNumberOfRaces(prev => Math.min(prev + 1, MAX_RACE_TICKS))}
+                                disabled={numberOfRaces >= MAX_RACE_TICKS}
+                                style={{
+                                    width: '32px',
+                                    flex: '1',
+                                    background: numberOfRaces >= MAX_RACE_TICKS ? '#333' : '#274bff',
+                                    color: '#fff',
+                                    border: '1px solid #0033ff',
+                                    borderRadius: '4px 4px 0 0',
+                                    cursor: numberOfRaces >= MAX_RACE_TICKS ? 'not-allowed' : 'pointer',
+                                    fontFamily: '"Press Start 2P", monospace',
+                                    fontSize: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: numberOfRaces >= MAX_RACE_TICKS ? 0.5 : 1,
+                                    transition: 'all 0.2s ease',
+                                    minHeight: 0
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (numberOfRaces < MAX_RACE_TICKS) {
+                                        e.currentTarget.style.background = '#1f3bd9';
+                                        e.currentTarget.style.transform = 'scale(1.05)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (numberOfRaces < MAX_RACE_TICKS) {
+                                        e.currentTarget.style.background = '#274bff';
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                    }
+                                }}
+                            >
+                                ▲
+                            </button>
+
+                            <div style={{
+                                width: '32px',
+                                flex: '1',
+                                background: '#0a0f1e',
+                                color: '#00ffea',
+                                border: '1px solid #0033ff',
+                                borderRadius: '0',
+                                fontFamily: '"Press Start 2P", monospace',
+                                fontSize: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 'bold',
+                                minHeight: 0
+                            }}>
+                                {numberOfRaces}
+                            </div>
+
+                            <button
+                                onClick={() => setNumberOfRaces(prev => Math.max(prev - 1, 1))}
+                                disabled={numberOfRaces <= 1}
+                                style={{
+                                    width: '32px',
+                                    flex: '1',
+                                    background: numberOfRaces <= 1 ? '#333' : '#274bff',
+                                    color: '#fff',
+                                    border: '1px solid #0033ff',
+                                    borderRadius: '0 0 4px 4px',
+                                    cursor: numberOfRaces <= 1 ? 'not-allowed' : 'pointer',
+                                    fontFamily: '"Press Start 2P", monospace',
+                                    fontSize: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: numberOfRaces <= 1 ? 0.5 : 1,
+                                    transition: 'all 0.2s ease',
+                                    minHeight: 0
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (numberOfRaces > 1) {
+                                        e.currentTarget.style.background = '#1f3bd9';
+                                        e.currentTarget.style.transform = 'scale(1.05)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (numberOfRaces > 1) {
+                                        e.currentTarget.style.background = '#274bff';
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                    }
+                                }}
+                            >
+                                ▼
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

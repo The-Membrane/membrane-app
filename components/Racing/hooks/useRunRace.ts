@@ -20,7 +20,7 @@ export type UseRunRaceParams = {
     onSuccess?: () => void
     explorationRate?: number
     enableDecay?: boolean
-    maxRaceTicks?: number
+    numberOfRaces?: number
 }
 
 const useRunRace = (params: UseRunRaceParams) => {
@@ -41,7 +41,7 @@ const useRunRace = (params: UseRunRaceParams) => {
             params.advanced ?? false,
             params.explorationRate ?? 0.0,
             params.enableDecay ?? false,
-            params.maxRaceTicks ?? null,
+            params.numberOfRaces ?? null,
         ],
         queryFn: () => {
             if (!address) return { msgs: [] }
@@ -61,7 +61,7 @@ const useRunRace = (params: UseRunRaceParams) => {
                         temperature: "0.0",
                         enable_epsilon_decay: params.enableDecay ?? true,
                     } : undefined,
-                    max_race_ticks: params.maxRaceTicks ?? undefined,
+                    max_race_ticks: undefined, // This is different from numberOfRaces - it limits ticks per race, not number of races
                     // ,
                     // reward_config: {
                     //     distance: 100,
@@ -118,7 +118,13 @@ const useRunRace = (params: UseRunRaceParams) => {
             //     }),
             // } as MsgExecuteContractEncodeObject
 
-            return { msgs: [exec] }
+            // Create multiple race messages based on numberOfRaces
+            const raceCount = params.numberOfRaces ?? 1
+            const msgs = Array.from({ length: raceCount }, () => ({ ...exec }))
+
+            console.log(`Creating ${raceCount} race message(s) for batch execution`)
+
+            return { msgs }
         },
         enabled: !!address,
     })
@@ -126,7 +132,8 @@ const useRunRace = (params: UseRunRaceParams) => {
     const msgs = queryData?.msgs ?? []
 
     const onInitialSuccess = () => {
-        setRacingState({ energy: racingState.energy - ENERGY_CONSUMED_PER_TRAINING_SESSION, energyColor: '#ff0000' })
+        const totalEnergyConsumed = ENERGY_CONSUMED_PER_TRAINING_SESSION * (params.numberOfRaces ?? 1)
+        setRacingState({ energy: racingState.energy - totalEnergyConsumed, energyColor: '#ff0000' })
 
         setTimeout(() => {
             setRacingState({ energyColor: '#7cffa0' })

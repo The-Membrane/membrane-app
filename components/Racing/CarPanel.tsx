@@ -4,11 +4,12 @@ import { useRouter } from 'next/router'
 import useWallet from '@/hooks/useWallet'
 import useAppState from '@/persisted-state/useAppState'
 import { useOwnedCars } from '@/hooks/useQRacing'
-import { useCarMetadata, useCarQTable } from '@/services/q-racing'
+import { useCarMetadata, useCarQTable, useCarBrainProgress } from '@/services/q-racing'
 import { Button } from '@chakra-ui/react'
 import useChangeName from './hooks/useChangeName'
 import { CheckIcon, Pencil } from 'lucide-react'
 import { CloseIcon } from '@chakra-ui/icons'
+import IQProgressChart from './IQProgressChart'
 
 const QTableView = ({ qValues }: { qValues: { state_hash: any; action_values: [number, number, number, number] }[] }) => {
     // Simple grid: each row shows state id (short) and the 4 action values
@@ -109,6 +110,7 @@ const CarPanel: React.FC = () => {
 
     const { data: traits } = useCarMetadata(carId || undefined, appState.rpcUrl)
     const { data: q } = useCarQTable(carId || undefined, appState.rpcUrl)
+    const { data: brainProgress } = useCarBrainProgress(carId || undefined, appState.rpcUrl)
 
     const qValues = useMemo(() => q?.q_values ?? [], [q])
 
@@ -237,12 +239,25 @@ const CarPanel: React.FC = () => {
 
                 </Flex>
 
-                <Box p={3} border="2px solid #0033ff" bg="#0b0e17" borderRadius={6}>
-                    <Text mb={2} fontFamily='"Press Start 2P", monospace' fontSize={{ base: '10px', sm: '12px' }} color="#00ffea">Q-Table</Text>
-                    {qValues && qValues.length > 0 ? (
-                        <QTableView qValues={qValues as any} />
+                <Box p={3} border="2px solid #0033ff" bg="#0b0e17" borderRadius={6} h="400px">
+                    {brainProgress ? (
+                        <IQProgressChart
+                            entries={brainProgress.brain_progress.entries}
+                            currentStatesSeen={brainProgress.brain_progress.total_states_seen}
+                            currentWallCollisions={brainProgress.brain_progress.total_wall_collisions}
+                            carId={carId}
+                        />
                     ) : (
-                        <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#666">No Q-values</Text>
+                        <Flex
+                            align="center"
+                            justify="center"
+                            h="100%"
+                            fontFamily='"Press Start 2P", monospace'
+                            fontSize="10px"
+                            color="#666"
+                        >
+                            No brain data
+                        </Flex>
                     )}
                 </Box>
                 {/* <CarVisual tokenId={carId || undefined} /> */}

@@ -55,12 +55,12 @@ const useRunRace = (params: UseRunRaceParams) => {
                     car_ids: carIdsNums,
                     train: params.train ?? false,
                     pvp: params.pvp ?? false,
-                    training_config: {
+                    training_config: params.train ? {
                         training_mode: params.train ?? false,
-                        epsilon: params.explorationRate?.toString() ?? "0.3",
+                        epsilon: params.explorationRate?.toString() ?? "0.6",
                         temperature: "0.0",
                         enable_epsilon_decay: params.enableDecay ?? true,
-                    },
+                    } : undefined,
                     max_race_ticks: params.maxRaceTicks ?? undefined,
                     // ,
                     // reward_config: {
@@ -101,22 +101,22 @@ const useRunRace = (params: UseRunRaceParams) => {
 
             //Add a secondary run that will use no randomness to track the car's new best time.
             //NOT USING THIS NOW BC RACES ARE EXPENSIVE.
-            const exec2 = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: contracts.raceEngine,
-                    msg: toUtf8(JSON.stringify({
-                        simulate_race: {
-                            track_id: params.trackId,
-                            car_ids: carIdsNums,
-                            train: false,
-                            pvp: params.pvp ?? false,
-                            max_race_ticks: params.maxRaceTicks ?? undefined,
-                        },
-                    })),
-                }),
-            } as MsgExecuteContractEncodeObject
+            // const exec2 = {
+            //     typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+            //     value: MsgExecuteContract.fromPartial({
+            //         sender: address,
+            //         contract: contracts.raceEngine,
+            //         msg: toUtf8(JSON.stringify({
+            //             simulate_race: {
+            //                 track_id: params.trackId,
+            //                 car_ids: carIdsNums,
+            //                 train: false,
+            //                 pvp: params.pvp ?? false,
+            //                 max_race_ticks: params.maxRaceTicks ?? undefined,
+            //             },
+            //         })),
+            //     }),
+            // } as MsgExecuteContractEncodeObject
 
             return { msgs: [exec] }
         },
@@ -154,6 +154,15 @@ const useRunRace = (params: UseRunRaceParams) => {
                     queryKey: ['car_q_table', contracts.raceEngine, carId],
                     refetchType: 'active' // Force refetch of active queries
                 })
+
+                // Invalidate brain progress for each car after training races
+                if (params.train) {
+                    queryClient.invalidateQueries({
+                        queryKey: ['car_brain_progress', contracts.raceEngine, carId],
+                        refetchType: 'active' // Force refetch of active queries
+                    })
+                }
+
                 // queryClient.invalidateQueries({ queryKey: ['car_metadata', contracts.car, carId] })
                 // queryClient.invalidateQueries({ queryKey: ['car_energy', contracts.car, carId] })
 

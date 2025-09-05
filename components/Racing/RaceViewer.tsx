@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRecentRacesForCar, useOwnedCars, useQRacing, useTopTimes, useByteMinterConfig } from '../../hooks/useQRacing';
 import { Track, PlayByPlayEntry, JsonRaceResult, useTrackTrainingStats, useListTracks, useCarName, useValidMazeId, useSecondsUntilOpen, useTopTimesWithSessions } from '../../services/q-racing';
+import TrackIQMetric from './TrackIQMetric';
 import useWallet from '../../hooks/useWallet';
 import { useRouter } from 'next/router';
 import useAppState from '@/persisted-state/useAppState';
@@ -502,9 +503,9 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                 return;
             }
 
-            // Debug: Log the current tick and available positions
-            console.log(`Tick ${tickRef.current}: Updating cars with positions:`, entry.positions);
-            console.log(`Cars map before update:`, Array.from(cars.entries()));
+            // Debug: Log the current tick and available positions (disabled for performance)
+            // console.log(`Tick ${tickRef.current}: Updating cars with positions:`, entry.positions);
+            // console.log(`Cars map before update:`, Array.from(cars.entries()));
 
             // Update car positions directly from the race log
             Object.entries(entry.positions).forEach(([id, position]) => {
@@ -531,7 +532,7 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                         car.path.push({ x, y });
                     }
 
-                    console.log(`Updated car ${id} to position (${x}, ${y}) at tick ${tickRef.current}`);
+                    // console.log(`Updated car ${id} to position (${x}, ${y}) at tick ${tickRef.current}`); // Disabled for performance
 
                     // Check if car is at finish line for flash effect
                     if (track[y] && track[y][x] === 'F' && car.flash === 0) {
@@ -547,8 +548,8 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                 }
             });
 
-            // Debug: Log the cars map after update
-            console.log(`Cars map after update:`, Array.from(cars.entries()));
+            // Debug: Log the cars map after update (disabled for performance)
+            // console.log(`Cars map after update:`, Array.from(cars.entries()));
 
             // Determine leader for display
             let leaderId: string | null = null;
@@ -783,7 +784,6 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                         }
 
                         const shouldFlip = currentAction === 'Left';
-                        console.log(`Car ${id} should flip: ${shouldFlip}, currentAction: ${currentAction}`);
                         if (shouldFlip) {
                             // Save the current canvas state
                             ctx.save();
@@ -1361,6 +1361,11 @@ const RaceViewer: React.FC<Props> = ({ trackId = '3' }) => {
                             return `+${improvement}% (${trainingStats.tally} sessions)`;
                         })()}
                     </div>
+
+                    {/* Track IQ Metric */}
+                    {track && selectedCarId && (
+                        <TrackIQMetric track={track} carId={selectedCarId} />
+                    )}
 
                     {/* Current Run Stats */}
                     <div style={{ color: '#b8c1ff' }}>

@@ -149,7 +149,7 @@ export async function getCarQTable(carId: string, rpc: string = defaultRpcUrl): 
     const client = await getCosmWasmClient(rpc);
     try {
         const response = (await client.queryContractSmart(raceEngineAddr, {
-            get_q: { car_id: carId },
+            get_integer_q: { car_id: carId },
         })) as JsonGetQResponse;
         return response ?? null;
     } catch (error) {
@@ -737,6 +737,56 @@ export function useTopTimesWithSessions(trackId?: string, rpc: string = defaultR
         staleTime: 5_000, // 5 seconds - reasonable balance between freshness and performance
         refetchOnMount: false, // Don't refetch on every mount
         refetchOnWindowFocus: false, // Don't refetch on every focus
+    });
+}
+
+// Brain Progress types and queries ---------------------------------------------------
+export interface JsonBrainProgressEntry {
+    timestamp: string; // Timestamp as string
+    states_seen: number; // u16
+    avg_confidence: number; // u8
+    wall_collisions: number; // u16
+}
+
+export interface JsonBrainProgress {
+    entries: JsonBrainProgressEntry[];
+    total_states_seen: number; // u16
+    current_avg_confidence: number; // u8
+    total_wall_collisions: number; // u32
+}
+
+export interface JsonBrainProgressResponse {
+    car_id: string;
+    brain_progress: JsonBrainProgress;
+}
+
+export async function getCarBrainProgress(carId: string, rpc: string = defaultRpcUrl): Promise<JsonBrainProgressResponse | null> {
+    const raceEngineAddr = (contracts as any).raceEngine as string | undefined;
+    if (!raceEngineAddr) {
+        await artificialDelay();
+        return null;
+    }
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(raceEngineAddr, {
+            get_brain_progress: { car_id: carId },
+        })) as JsonBrainProgressResponse;
+        return response ?? null;
+    } catch (error) {
+        console.error('Error fetching car brain progress:', error);
+        return null;
+    }
+}
+
+export function useCarBrainProgress(carId?: string, rpc: string = defaultRpcUrl) {
+    return useQuery<JsonBrainProgressResponse | null>({
+        queryKey: ['car_brain_progress', (contracts as any).raceEngine, carId, rpc],
+        queryFn: async () => {
+            if (!carId) return null;
+            return getCarBrainProgress(carId, rpc);
+        },
+        enabled: Boolean(carId && (contracts as any).raceEngine),
+        staleTime: 30_000,
     });
 }
 

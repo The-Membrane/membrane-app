@@ -90,12 +90,18 @@ const useMintCar = (params: UseMintCarParams) => {
     params.onSuccess?.()
   }
   console.log('mint car msgs', msgs)
+  // Build stable signature from relevant inputs so sim reruns when contents change
+  const simulationSignature = [
+    params.extension?.name ?? '',
+    params.paymentOption?.denom ?? '',
+    params.paymentOption?.amount ?? '',
+    (params.contractAddress ?? (contracts as any).car ?? '').toString(),
+  ].join('|')
+
   return {
     action: useSimulateAndBroadcast({
       msgs,
-
-      queryKey: ['mint_car_sim', msgs?.toString() ?? '0'],
-
+      queryKey: ['mint_car_sim', simulationSignature],
       onSuccess: onInitialSuccess,
       enabled: !!msgs?.length,
     }),

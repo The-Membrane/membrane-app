@@ -72,12 +72,18 @@ const useRefillEnergy = (params: UseRefillEnergyParams) => {
         queryClient.invalidateQueries({ queryKey: ['neutron balances'] })
     }
     console.log('energy msgs', msgs)
+    // Stable signature based on tokenId, payment, and contract
+    const simulationSignature = [
+        params.tokenId ?? '',
+        params.paymentOption?.denom ?? '',
+        params.paymentOption?.amount ?? '',
+        (params.contractAddress ?? (contracts as any).car ?? '').toString(),
+    ].join('|')
+
     return {
         action: useSimulateAndBroadcast({
             msgs,
-
-            queryKey: ['refill_energy_sim', msgs?.toString() ?? '0'],
-
+            queryKey: ['refill_energy_sim', simulationSignature],
             onSuccess: onInitialSuccess,
             enabled: !!msgs?.length,
         }),

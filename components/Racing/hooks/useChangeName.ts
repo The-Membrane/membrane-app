@@ -66,7 +66,8 @@ const useChangeName = (params: UseChangeNameParams) => {
     return {
         action: useSimulateAndBroadcast({
             msgs,
-            queryKey: ['change_car_name_sim', msgs?.toString() ?? '0'],
+            // Stable signature based on token and new name
+            queryKey: ['change_car_name_sim', [params.tokenId ?? '', params.newName ?? ''].join('|')],
             onSuccess: onInitialSuccess,
             enabled: !!msgs?.length,
         }),

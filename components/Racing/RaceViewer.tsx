@@ -118,6 +118,8 @@ const RaceViewer: React.FC<Props> = () => {
     const [explorationRate, setExplorationRate] = useState<number>(0.1);
     const [enableDecay, setEnableDecay] = useState<boolean>(true);
     const [numberOfRaces, setNumberOfRaces] = useState<number>(1);
+    const [maxRaceTicks, setMaxRaceTicks] = useState<number>(100); // 0 = unlimited
+    const [maxRaceTicksInput, setMaxRaceTicksInput] = useState<string>('100');
 
     // Sync racing state with local state
     useMemo(() => {
@@ -917,6 +919,14 @@ const RaceViewer: React.FC<Props> = () => {
                     // Replay the race from the beginning
                     tickRef.current = 0;
                     setTickDisplay(0);
+                    // Clear drawn paths and reset finish flags before replay
+                    carsRef.current.forEach((car) => {
+                        car.path = [];
+                        car.hasReachedFinish = false;
+                        car.lastValidRenderX = undefined;
+                        car.lastValidRenderY = undefined;
+                        car.hit_wall = false as any;
+                    });
                     setPlaying(true);
                     updateCars();
                     // Reset to beginning, so race is not completed
@@ -1091,7 +1101,8 @@ const RaceViewer: React.FC<Props> = () => {
         advanced: showAdvancedParams,
         explorationRate: showAdvancedParams ? explorationRate : 0.3,
         enableDecay: true,
-        numberOfRaces: numberOfRaces
+        numberOfRaces: numberOfRaces,
+        maxRaceTicks: showAdvancedParams && maxRaceTicks > 0 ? maxRaceTicks : undefined
     });
 
     return (
@@ -1594,6 +1605,51 @@ const RaceViewer: React.FC<Props> = () => {
                                                     borderRadius: '3px'
                                                 }}
                                             />
+                                        </div>
+
+                                        {/* Max Ticks Input */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <label style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: '#b8c1ff', minWidth: '120px' }}>
+                                                Max Ticks:
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step={1}
+                                                value={maxRaceTicksInput}
+                                                onChange={(e) => {
+                                                    let raw = e.target.value
+                                                    if (raw === '') {
+                                                        setMaxRaceTicksInput('')
+                                                        return
+                                                    }
+                                                    raw = raw.replace(/[^0-9]/g, '')
+                                                    raw = raw.replace(/^0+(?=\d)/, '')
+                                                    if (raw === '') raw = '0'
+                                                    setMaxRaceTicksInput(raw)
+                                                    const num = parseInt(raw, 10)
+                                                    if (Number.isFinite(num) && num >= 0) setMaxRaceTicks(num)
+                                                }}
+                                                onBlur={() => {
+                                                    if (maxRaceTicksInput === '') {
+                                                        setMaxRaceTicksInput('100')
+                                                        setMaxRaceTicks(100)
+                                                    }
+                                                }}
+                                                placeholder="0 = default"
+                                                style={{
+                                                    width: '120px',
+                                                    background: '#0a0f1e',
+                                                    color: '#fff',
+                                                    border: '2px solid #0033ff',
+                                                    fontFamily: '"Press Start 2P", monospace',
+                                                    fontSize: 10,
+                                                    padding: '6px 8px',
+                                                    boxShadow: '0 0 8px #0033ff inset',
+                                                    borderRadius: '3px'
+                                                }}
+                                            />
+                                            {/* removed trailing label */}
                                         </div>
 
                                         {/* Decay Checkbox */}

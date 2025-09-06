@@ -21,6 +21,7 @@ export type UseRunRaceParams = {
     explorationRate?: number
     enableDecay?: boolean
     numberOfRaces?: number
+    maxRaceTicks?: number
 }
 
 const useRunRace = (params: UseRunRaceParams) => {
@@ -42,6 +43,7 @@ const useRunRace = (params: UseRunRaceParams) => {
             params.explorationRate ?? 0.0,
             params.enableDecay ?? false,
             params.numberOfRaces ?? null,
+            params.maxRaceTicks ?? null,
         ],
         queryFn: () => {
             if (!address) return { msgs: [] }
@@ -61,21 +63,25 @@ const useRunRace = (params: UseRunRaceParams) => {
                         temperature: "0.0",
                         enable_epsilon_decay: params.enableDecay ?? true,
                     } : undefined,
-                    max_race_ticks: undefined, // This is different from numberOfRaces - it limits ticks per race, not number of races
-                    // ,
-                    // reward_config: {
-                    //     distance: 100,
-                    //     stuck: -50,
-                    //     wall: -50,
-                    //     no_move: -50,
-                    //     explore: 100,
-                    //     rank: {
-                    //         first: 1000,
-                    //         second: 500,
-                    //         third: 250,
-                    //         other: 0
-                    //     }
-                    // }
+                    max_race_ticks: params.maxRaceTicks ?? undefined, // This is different from numberOfRaces - it limits ticks per race, not number of races
+
+                    reward_config: {
+                        distance: 3,
+                        stuck: -3,
+                        wall: -30,
+                        no_move: -30,
+                        explore: 0,
+                        going_backward: {
+                            penalty: -4,
+                            include_progress_towards_finish: true
+                        },
+                        rank: {
+                            first: 50,
+                            second: 0,
+                            third: 0,
+                            other: 0
+                        }
+                    }
                 },
             }
 
@@ -194,10 +200,23 @@ const useRunRace = (params: UseRunRaceParams) => {
         }
     }
 
+    // Build a stable signature so simulation reruns when message CONTENT changes (not just count)
+    const simulationSignature = [
+        params.trackId ?? 'none',
+        (params.carIds ?? []).join(','),
+        String(params.train ?? false),
+        String(params.pvp ?? false),
+        String(params.advanced ?? false),
+        String(params.explorationRate ?? 0),
+        String(params.enableDecay ?? false),
+        String(params.numberOfRaces ?? 1),
+        String(params.maxRaceTicks ?? 'undef'),
+    ].join('|')
+
     return {
         action: useSimulateAndBroadcast({
             msgs,
-            queryKey: ['run_race_sim', msgs?.toString() ?? '0'],
+            queryKey: ['run_race_sim', simulationSignature],
             onSuccess: onInitialSuccess,
             enabled: !!msgs?.length,
             shrinkMessage: true,

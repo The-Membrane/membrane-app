@@ -132,10 +132,16 @@ const useGenerateMaze = (params: UseGenerateMazeParams) => {
         }
     }
 
+    // Stable simulation signature (no params, but include address and rpc for safety)
+    const simulationSignature = [
+        address ?? 'none',
+        appState.rpcUrl ?? 'rpc'
+    ].join('|')
+
     return {
         action: useSimulateAndBroadcast({
             msgs,
-            queryKey: ['generate_maze_and_start_window_sim', msgs?.toString() ?? '0'],
+            queryKey: ['generate_maze_and_start_window_sim', simulationSignature],
             onSuccess: onInitialSuccess,
             enabled: !!msgs?.length,
             shrinkMessage: true,

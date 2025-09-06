@@ -118,9 +118,19 @@ const useAddTrack = (params: UseAddTrackParams) => {
 
   console.log("here to return action ")
 
+  // Stable signature: name, width, height and a hash-like summary of layout size
+  const layoutDims = `${params.layout?.length ?? 0}x${params.layout?.[0]?.length ?? 0}`
+  const simulationSignature = [
+    params.name ?? '',
+    String(params.width ?? ''),
+    String(params.height ?? ''),
+    layoutDims,
+    appState.rpcUrl ?? '',
+  ].join('|')
+
   const action = useSimulateAndBroadcast({
     msgs,
-    queryKey: ['add_track_sim', (msgs?.toString() ?? "0")],
+    queryKey: ['add_track_sim', simulationSignature],
     onSuccess: onInitialSuccess,
     enabled: !!msgs?.length,
   })

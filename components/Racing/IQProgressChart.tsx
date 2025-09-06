@@ -196,26 +196,8 @@ const IQProgressChart: React.FC<IQProgressChartProps> = ({
                                 dataKey="percentage"
                                 stroke="#00ffea"
                                 strokeWidth={2}
-                                dot={(props: any) => {
-                                    const { payload } = props
-                                    const confidence = payload?.confidence || 0
-                                    // Convert 0-127 range to 0-100 for calculations
-                                    const confidencePercent = (confidence / 127) * 100
-                                    const radius = Math.max(3, Math.min(8, 3 + (confidencePercent / 20))) // 3-8px based on confidence
-                                    const opacity = Math.max(0.6, Math.min(1, 0.6 + (confidencePercent / 40))) // 0.6-1 opacity based on confidence
-                                    return (
-                                        <circle
-                                            cx={props.cx}
-                                            cy={props.cy}
-                                            r={radius}
-                                            fill="#00ffea"
-                                            stroke="#b8c1ff"
-                                            strokeWidth={2}
-                                            opacity={opacity}
-                                        />
-                                    )
-                                }}
-                                activeDot={{ r: 6, fill: '#00ffea', stroke: '#b8c1ff', strokeWidth: 2 }}
+                                dot={false}
+                                activeDot={false}
                             />
                         </LineChart>
                     </ResponsiveContainer>

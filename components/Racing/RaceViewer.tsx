@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import useAppState from '@/persisted-state/useAppState';
 import useRunRace from '@/components/Racing/hooks/useRunRace';
 import ConfirmModal from '@/components/ConfirmModal';
-import { Text } from '@chakra-ui/react';
+import { Text, Tooltip } from '@chakra-ui/react';
 import useRacingState from './hooks/useRacingState';
 
 // Testing toggle - set to true to force maze mode
@@ -1316,25 +1316,29 @@ const RaceViewer: React.FC<Props> = () => {
 
                     {/* Right: Run Race Button with Race Count Controls */}
                     <div className="race-controls-button" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <ConfirmModal
-                            executeDirectly={true}
-                            label={isMazeMode ? `Traverse (${numberOfRaces})` : `Run Race (${numberOfRaces})`}
-                            action={runRace.action}
-                            isDisabled={!selectedTrackId || !selectedCarId || racingState.energy < 10 || filteredTracks.length === 0}
-                            isLoading={runRace.action.simulate.isPending || runRace.action.tx.isPending}
-                            buttonProps={{
-                                colorScheme: 'blue',
-                                bg: '#274bff',
-                                _hover: { bg: '#1f3bd9' },
-                                fontFamily: '"Press Start 2P", monospace',
-                                fontSize: { base: '12px', md: '14px' },
-                                padding: { base: '12px 16px', md: '12px 24px' },
-                                fontWeight: 'bold',
-                                boxShadow: '0 0 12px #0033ff',
-                                minH: { base: '44px', md: 'auto' },
-                                w: { base: '100%', md: 'auto' }
-                            }}
-                        />
+                        <Tooltip label={showTraining && racingState.energy < 10 ? 'Not enough energy for training. Switch to Showcase or gain energy.' : ''} isDisabled={!(showTraining && racingState.energy < 10)} hasArrow placement="top" openDelay={200}>
+                            <span>
+                                <ConfirmModal
+                                    executeDirectly={true}
+                                    label={isMazeMode ? `Traverse (${numberOfRaces})` : `Run Race (${numberOfRaces})`}
+                                    action={runRace.action}
+                                    isDisabled={!selectedTrackId || !selectedCarId || (showTraining && racingState.energy < 10) || filteredTracks.length === 0}
+                                    isLoading={runRace.action.simulate.isPending || runRace.action.tx.isPending}
+                                    buttonProps={{
+                                        colorScheme: 'blue',
+                                        bg: '#274bff',
+                                        _hover: { bg: '#1f3bd9' },
+                                        fontFamily: '"Press Start 2P", monospace',
+                                        fontSize: { base: '12px', md: '14px' },
+                                        padding: { base: '12px 16px', md: '12px 24px' },
+                                        fontWeight: 'bold',
+                                        boxShadow: '0 0 12px #0033ff',
+                                        minH: { base: '44px', md: 'auto' },
+                                        w: { base: '100%', md: 'auto' }
+                                    }}
+                                />
+                            </span>
+                        </Tooltip>
 
                         {/* Race Count Controls */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '44px', justifyContent: 'stretch' }}>

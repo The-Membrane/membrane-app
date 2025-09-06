@@ -9,6 +9,23 @@ type RacingState = {
     selectedTrackId?: string
     showTraining?: boolean
     showPvp?: boolean
+    rewardConfig?: {
+        distance: number
+        stuck: number
+        wall: number
+        no_move: number
+        explore: number
+        going_backward: {
+            penalty: number
+            include_progress_towards_finish: boolean
+        }
+        rank: {
+            first: number
+            second: number
+            third: number
+            other: number
+        }
+    }
 }
 
 type Store = {
@@ -23,6 +40,23 @@ const initialState: RacingState = {
     energy: 100,
     energyColor: '#7cffa0',
     singularityTrainingSessions: 0,
+    rewardConfig: {
+        distance: 3,
+        stuck: -3,
+        wall: -30,
+        no_move: -30,
+        explore: 0,
+        going_backward: {
+            penalty: -4,
+            include_progress_towards_finish: true,
+        },
+        rank: {
+            first: 50,
+            second: 0,
+            third: 0,
+            other: 0,
+        },
+    },
 }
 
 // @ts-ignore

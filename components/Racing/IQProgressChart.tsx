@@ -49,6 +49,7 @@ const IQProgressChart: React.FC<IQProgressChartProps> = ({
     }, [entries])
 
     const currentStatesSeenCount = useMemo(() => {
+        console.log('entries', entries.length)
         if (entries.length > 0) {
             return entries[entries.length - 1].states_seen
         }
@@ -112,14 +113,14 @@ const IQProgressChart: React.FC<IQProgressChartProps> = ({
                         <Box w="12px" h="2px" bg="#00ffea" />
                         <Text color="#b8c1ff">IQ %</Text>
                     </HStack>
-                    <HStack spacing={1}>
+                    {/* <HStack spacing={1}>
                         <Box w="3px" h="3px" bg="#00ffea" borderRadius="50%" opacity={0.6} />
                         <Text color="#b8c1ff">Low confidence</Text>
                     </HStack>
                     <HStack spacing={1}>
                         <Box w="8px" h="8px" bg="#00ffea" borderRadius="50%" opacity={1} />
                         <Text color="#b8c1ff">High confidence</Text>
-                    </HStack>
+                    </HStack> */}
                 </HStack>
                 <HStack spacing={2}>
                     <Text

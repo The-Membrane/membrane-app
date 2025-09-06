@@ -44,12 +44,33 @@ const useRunRace = (params: UseRunRaceParams) => {
             params.enableDecay ?? false,
             params.numberOfRaces ?? null,
             params.maxRaceTicks ?? null,
+            racingState.rewardConfig ?? null,
         ],
         queryFn: () => {
             if (!address) return { msgs: [] }
             if (!params.trackId || !params.carIds || params.carIds.length === 0) return { msgs: [] }
 
+
             const carIdsNums = params.carIds.map((id) => id)
+
+            const rewardCfg = racingState.rewardConfig ?? {
+                distance: 3,
+                stuck: -3,
+                wall: -40,
+                no_move: -30,
+                explore: 0,
+                going_backward: {
+                    penalty: -4,
+                    include_progress_towards_finish: true
+                },
+                rank: {
+                    first: 50,
+                    second: 0,
+                    third: 0,
+                    other: 0
+                }
+            }
+            console.log('rewardCfg', rewardCfg)
 
             const msg = {
                 simulate_race: {
@@ -64,24 +85,7 @@ const useRunRace = (params: UseRunRaceParams) => {
                         enable_epsilon_decay: params.enableDecay ?? true,
                     } : undefined,
                     max_race_ticks: params.maxRaceTicks ?? undefined, // This is different from numberOfRaces - it limits ticks per race, not number of races
-
-                    reward_config: {
-                        distance: 3,
-                        stuck: -3,
-                        wall: -30,
-                        no_move: -30,
-                        explore: 0,
-                        going_backward: {
-                            penalty: -4,
-                            include_progress_towards_finish: true
-                        },
-                        rank: {
-                            first: 50,
-                            second: 0,
-                            third: 0,
-                            other: 0
-                        }
-                    }
+                    reward_config: rewardCfg
                 },
             }
 
@@ -128,12 +132,14 @@ const useRunRace = (params: UseRunRaceParams) => {
     const msgs = queryData?.msgs ?? []
 
     const onInitialSuccess = () => {
-        const totalEnergyConsumed = ENERGY_CONSUMED_PER_TRAINING_SESSION * (params.numberOfRaces ?? 1)
-        setRacingState({ energy: racingState.energy - totalEnergyConsumed, energyColor: '#ff0000' })
+        if (params.train) {
+            const totalEnergyConsumed = ENERGY_CONSUMED_PER_TRAINING_SESSION * (params.numberOfRaces ?? 1)
+            setRacingState({ energy: racingState.energy - totalEnergyConsumed, energyColor: '#ff0000' })
 
-        setTimeout(() => {
-            setRacingState({ energyColor: '#7cffa0' })
-        }, 1000)
+            setTimeout(() => {
+                setRacingState({ energyColor: '#7cffa0' })
+            }, 1000)
+        }
 
         // ============================================================================
         // OPTIMIZED INVALIDATION STRATEGY: Prevent duplicate refetches and over-querying

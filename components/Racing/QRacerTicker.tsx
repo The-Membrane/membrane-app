@@ -7,12 +7,19 @@ import { shiftDigits } from '@/helpers/math'
 import useGenerateMaze from './hooks/useGenerateMaze'
 import ConfirmModal from '@/components/ConfirmModal'
 import { useByteMinterConfig } from '@/hooks/useQRacing'
+import useRacingCampaign from '@/persisted-state/useRacingCampaign'
+import DialogueBox from '@/components/Racing/DialogueBox'
 
 const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
     const { data: maze } = useSecondsUntilOpen('maze', rpc)
     // PvP countdown disabled (tabled until v2)
     // const { data: pvp } = useSecondsUntilOpen('pvp', rpc)
     const { racingState, initializeSingularityTrainingSessions, setRacingState } = useRacingState()
+    const { progress } = useRacingCampaign()
+
+    // Ref for maze button to attach dialogue
+    const mazeButtonRef = useRef<HTMLButtonElement>(null)
+    const [showMazeDialogue, setShowMazeDialogue] = useState(false)
 
     // Check if byte-minter has a valid maze ID
     const { data: validMazeId } = useValidMazeId(rpc)
@@ -97,6 +104,13 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
     // Byte-minter config: mint amount and default difficulty
     const { data: byteMinterConfig } = useByteMinterConfig(rpc)
 
+    // Show maze dialogue when campaign is completed
+    useEffect(() => {
+        if (progress.isCompleted && !showMazeDialogue) {
+            setShowMazeDialogue(true)
+        }
+    }, [progress.isCompleted, showMazeDialogue])
+
     return (
         <Flex
             direction={{ base: 'column', md: 'row' }}
@@ -129,9 +143,16 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
 
                     {validMazeId ? (
                         <Button
+                            ref={mazeButtonRef}
                             size={{ base: "xs", md: "sm" }}
                             fontSize={{ base: "8px", sm: "10px", md: "12px" }}
                             minH={{ base: "32px", md: "auto" }}
+                            bg={progress.isCompleted ? '#00ffea' : undefined}
+                            color={progress.isCompleted ? '#000' : undefined}
+                            _hover={progress.isCompleted ? { bg: '#00e6d1' } : undefined}
+                            border={progress.isCompleted ? '2px solid #00ffea' : undefined}
+                            boxShadow={progress.isCompleted ? '0 0 20px rgba(0, 255, 234, 0.5)' : undefined}
+                            animation={progress.isCompleted ? 'pulse 2s infinite' : undefined}
                             onClick={() => {
                                 // Set the maze track as selected and switch to showcase mode
                                 setRacingState({
@@ -139,6 +160,8 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                                     showTraining: false,
                                     showPvp: false
                                 })
+                                // Hide dialogue when button is clicked
+                                setShowMazeDialogue(false)
                             }}
                         >
                             Solve
@@ -199,6 +222,17 @@ const QRacerTicker: React.FC<{ rpc?: string }> = ({ rpc }) => {
                     })()}
                 </Text>
             </Flex>
+
+            {/* Maze Dialogue */}
+            <DialogueBox
+                isVisible={showMazeDialogue}
+                message="Don't be shy"
+                targetRef={mazeButtonRef}
+                position="top"
+                offset={{ x: 0, y: -10 }}
+                onClose={() => setShowMazeDialogue(false)}
+                autoCloseDelay={8000}
+            />
         </Flex>
     )
 }

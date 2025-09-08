@@ -136,6 +136,20 @@
   }
 }
 
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 20px rgba(0, 255, 234, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(0, 255, 234, 0.8);
+  }
+
+  100% {
+    box-shadow: 0 0 20px rgba(0, 255, 234, 0.5);
+  }
+}
+
 .animate-ticker {
   animation: ticker 20s linear infinite;
 }

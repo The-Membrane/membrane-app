@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRecentRacesForCar, useOwnedCars, useQRacing, useTopTimes, useByteMinterConfig } from '../../hooks/useQRacing';
-import { Track, PlayByPlayEntry, JsonRaceResult, useTrackTrainingStats, useListTracks, useCarName, useValidMazeId, useSecondsUntilOpen, useTopTimesWithSessions } from '../../services/q-racing';
+import { Track, PlayByPlayEntry, JsonRaceResult, useTrackTrainingStats, useListTracks, useCarName, useValidMazeId, useSecondsUntilOpen, useTopTimesWithSessions, useCarQTable } from '../../services/q-racing';
 import TrackIQMetric from './TrackIQMetric';
 import useWallet from '../../hooks/useWallet';
 import { useRouter } from 'next/router';
@@ -9,6 +9,10 @@ import useRunRace from '@/components/Racing/hooks/useRunRace';
 import ConfirmModal from '@/components/ConfirmModal';
 import { Text, Tooltip } from '@chakra-ui/react';
 import useRacingState from './hooks/useRacingState';
+import useRacingCampaign, { CampaignStepModal } from '@/persisted-state/useRacingCampaign';
+import campaignConfig from '@/components/Racing/campaignConfig';
+import CampaignModal from '@/components/Racing/CampaignModal';
+import DialogueBox from '@/components/Racing/DialogueBox';
 
 // Testing toggle - set to true to force maze mode
 const FORCE_MAZE_MODE = false;
@@ -39,6 +43,7 @@ const RaceViewer: React.FC<Props> = () => {
     const { appState } = useAppState();
     const { address } = useWallet();
     const { data: ownedCars, isLoading: isLoadingCars, error: carsError } = useOwnedCars(address);
+    const { config, progress, setConfig, startCampaign, endCampaign, nextTrack, incrementRaceCount, incrementRaceCountForTrack, setShowcaseMode, applyUnlocks, setAutoStartEnabled, markCampaignCompleted } = useRacingCampaign();
 
     // Component to display car name with fallback to ID
     const CarNameDisplay: React.FC<{ carId: string; isOwned: boolean }> = ({ carId, isOwned }) => {
@@ -121,6 +126,43 @@ const RaceViewer: React.FC<Props> = () => {
     const [maxRaceTicks, setMaxRaceTicks] = useState<number>(100); // 0 = unlimited
     const [maxRaceTicksInput, setMaxRaceTicksInput] = useState<string>('100');
 
+    // Campaign modal state
+    const [modalQueue, setModalQueue] = useState<CampaignStepModal[]>([]);
+    const [activeModal, setActiveModal] = useState<CampaignStepModal | null>(null);
+
+    // Showcase dialogue state
+    const [showShowcaseDialogue, setShowShowcaseDialogue] = useState(false);
+
+    // Track last processed race to prevent duplicate processing
+    const lastProcessedRaceRef = useRef<string | null>(null);
+
+    // Initialize campaign config once
+    useEffect(() => {
+        if (!config) setConfig(campaignConfig);
+    }, [config, setConfig]);
+
+    const isCampaign = !!progress.active;
+
+    // Sync selected track with campaign when active
+    useEffect(() => {
+        if (isCampaign && progress.currentTrackId && progress.currentTrackId !== selectedTrackId) {
+            setSelectedTrackId(progress.currentTrackId);
+            updateRouteQuery({ trackId: progress.currentTrackId });
+            // Reset last processed race when track changes
+            lastProcessedRaceRef.current = null;
+        }
+    }, [isCampaign, progress.currentTrackId, selectedTrackId]);
+
+    const handleExitCampaign = () => {
+        console.log('[RaceViewer] handleExitCampaign: disabling auto-start and ending campaign', { before: progress })
+        // endCampaign now handles both active: false and autoStartEnabled: false
+        endCampaign();
+        setShowTraining(true);
+        setModalQueue([]);
+        setActiveModal(null);
+        console.log('[RaceViewer] handleExitCampaign: after', { after: progress })
+    };
+
     // Sync racing state with local state
     useMemo(() => {
         if (racingState.selectedTrackId && racingState.selectedTrackId !== selectedTrackId) {
@@ -166,6 +208,57 @@ const RaceViewer: React.FC<Props> = () => {
     const { data: topTimes, refetch: refetchTopTimes } = useTopTimes(selectedTrackId || undefined, appState.rpcUrl);
     // Get top times with training session counts
     const { data: topTimesWithSessions, refetch: refetchTopTimesWithSessions } = useTopTimesWithSessions(selectedTrackId || undefined, appState.rpcUrl);
+
+    // IQ tracking for mode switching
+    const { data: qTableData } = useCarQTable(selectedCarId, appState.rpcUrl);
+    const trackIqPercent = useMemo(() => {
+        if (!track || !qTableData) return 0;
+        const DIRS = [[0, -1], [0, 1], [-1, 0], [1, 0]] as const;
+        const TileFlag = { Wall: 0, Sticky: 1, Boost: 2, Finish: 3, Normal: 4 } as const;
+        const getFlag = (x: number, y: number): number => {
+            if (y < 0 || x < 0 || y >= track.length || x >= track[0].length) return TileFlag.Wall;
+            const t = track[y][x];
+            if (t === 'W') return TileFlag.Wall; if (t === 'K') return TileFlag.Sticky; if (t === 'B') return TileFlag.Boost; if (t === 'F') return TileFlag.Finish; return TileFlag.Normal;
+        };
+        const states = new Set<number>();
+        let finishes = 0; for (let y = 0; y < track.length; y++) { for (let x = 0; x < track[y].length; x++) { if (track[y][x] === 'F') finishes++; } }
+        for (let y = 0; y < track.length; y++) {
+            for (let x = 0; x < track[y].length; x++) {
+                const tile = track[y][x];
+                if (tile === 'W') continue;
+                if (tile === 'F' && finishes <= 1) continue;
+                let key = 0;
+                for (let i = 0; i < DIRS.length; i++) {
+                    const dx = (DIRS[i] as any)[0]; const dy = (DIRS[i] as any)[1];
+                    const flag = getFlag(x + dx, y + dy);
+                    key |= (flag << (i * 4));
+                }
+                states.add(key);
+            }
+        }
+        const total = states.size || 1;
+        const qMap = new Map<number, any>();
+        qTableData.q_values.forEach((q: any) => {
+            let sh: number;
+            if (typeof q.state_hash === 'string') sh = parseInt(q.state_hash);
+            else if (Array.isArray(q.state_hash)) sh = q.state_hash.reduce((a: number, b: number, i: number) => a + (b << (i * 8)), 0);
+            else sh = q.state_hash;
+            qMap.set(sh, q.action_values);
+        });
+        let seen = 0, wallPref = 0;
+        states.forEach((h) => {
+            const v = qMap.get(h);
+            if (v) {
+                seen++;
+                const maxQ = Math.max(...v); const idx = v.indexOf(maxQ);
+                const up = (h & 0xF), down = ((h >> 4) & 0xF), left = ((h >> 8) & 0xF), right = ((h >> 12) & 0xF);
+                const tiles = [up, down, left, right];
+                if (tiles[idx] === TileFlag.Wall) wallPref++;
+            }
+        });
+        const effective = Math.max(0, seen - wallPref);
+        return Math.max(0, Math.min(100, (effective / total) * 100));
+    }, [track, qTableData]);
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const leaderboardRef = useRef<HTMLDivElement | null>(null);
@@ -1065,6 +1158,137 @@ const RaceViewer: React.FC<Props> = () => {
         }, 500); // 500ms delay to allow queries to refresh
     };
 
+    // Campaign-aware success callback for useRunRace
+    const handleRaceSuccess = () => {
+        console.log('[RaceViewer] Race success callback triggered', { isCampaign, selectedTrackId });
+
+        // Always show the latest race
+        showLatestRace();
+
+        // Handle campaign-specific logic only if in campaign mode
+        if (isCampaign && selectedTrackId) {
+            console.log('[RaceViewer] Processing campaign race success', { trackId: selectedTrackId });
+
+            // Increment race count for this specific track
+            incrementRaceCountForTrack(selectedTrackId);
+
+            // Get current track config
+            const curr = config?.tracks?.[progress.currentIndex];
+            if (!curr) return;
+
+            // Get current race count for this track
+            const currentRaceCount = progress.racesPerTrack[selectedTrackId] || 0;
+            console.log('[RaceViewer] Current race count for track', { trackId: selectedTrackId, count: currentRaceCount });
+
+            // Apply race count-based unlocks
+            if (curr.unlocksOnRace) {
+                if (Array.isArray(curr.unlocksOnRace)) {
+                    curr.unlocksOnRace.forEach(raceUnlock => {
+                        console.log('[RaceViewer] Checking unlock', {
+                            requiredRaceCount: raceUnlock.raceCount,
+                            currentRaceCount,
+                            matches: raceUnlock.raceCount === currentRaceCount
+                        });
+                        if (raceUnlock.raceCount === currentRaceCount) {
+                            console.log('[RaceViewer] Applying race unlock', { raceCount: currentRaceCount, unlocks: raceUnlock.unlocks });
+                            applyUnlocks(raceUnlock.unlocks);
+                        }
+                    });
+                } else {
+                    // Legacy format - apply after every race
+                    console.log('[RaceViewer] Applying legacy race unlock', curr.unlocksOnRace);
+                    applyUnlocks(curr.unlocksOnRace);
+                }
+            }
+
+            // Queue modals based on race count
+            const queue: CampaignStepModal[] = [];
+            if (curr.afterEachRaceModals && curr.afterEachRaceModals.length) {
+                curr.afterEachRaceModals.forEach(modal => {
+                    if (modal.raceCount !== undefined) {
+                        if (modal.raceCount === currentRaceCount) {
+                            queue.push(modal);
+                        }
+                    } else {
+                        // If no raceCount specified, show after every race (backward compatibility)
+                        queue.push(modal);
+                    }
+                });
+            }
+
+            // Switch to showcase if IQ target met
+            const target = curr.iqTargetPercent ?? 100;
+            if (showTraining && trackIqPercent >= target) {
+                setShowTraining(false);
+                setShowcaseMode(true);
+                setShowShowcaseDialogue(true);
+            }
+
+            // If in showcase now, detect completion (winner) - this will be handled when the race result is processed
+            // The completion logic will be in the useEffect that processes selectedRace
+
+            if (queue.length) {
+                setModalQueue(queue);
+                setActiveModal(queue[0]);
+                if (queue[0].showConfetti) triggerConfetti();
+            }
+        }
+    };
+
+    // Handle campaign completion detection (when race is won in showcase mode)
+    useEffect(() => {
+        if (!isCampaign || !selectedRace || !selectedTrackId || showTraining) return;
+        const curr = config?.tracks?.[progress.currentIndex];
+        if (!curr) return;
+
+        // Check if car won in showcase mode
+        const carWon = Array.isArray(selectedRace.winner_ids) && selectedCarId && selectedRace.winner_ids.includes(selectedCarId);
+        if (carWon) {
+            console.log('[RaceViewer] Car won in showcase mode - handling completion', { trackId: selectedTrackId });
+
+            // Apply completion unlocks
+            if (curr.unlocksOnCompletion) {
+                console.log('[RaceViewer] Applying completion unlocks', curr.unlocksOnCompletion);
+                applyUnlocks(curr.unlocksOnCompletion);
+            }
+
+            // Queue completion modals
+            if (curr.onCompletionModals && curr.onCompletionModals.length && curr.onCompletionModals[0].title !== '' && curr.onCompletionModals[0].body !== '') {
+                console.log('[RaceViewer] Queueing completion modals', curr.onCompletionModals);
+                setModalQueue(curr.onCompletionModals);
+                setActiveModal(curr.onCompletionModals[0]);
+                if (curr.onCompletionModals[0].showConfetti) triggerConfetti();
+            }
+
+            // Check if this is the last track in the campaign
+            const isLastTrack = config && progress.currentIndex === config.tracks.length - 1;
+            if (isLastTrack) {
+                console.log('[RaceViewer] Last track completed, marking campaign as completed');
+                markCampaignCompleted();
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isCampaign, selectedRace, showTraining]);
+
+    const advanceModal = () => {
+        if (!modalQueue.length) { setActiveModal(null); return; }
+        const nextIdx = modalQueue.findIndex(m => m.id === activeModal?.id) + 1;
+        if (nextIdx < modalQueue.length) {
+            const m = modalQueue[nextIdx];
+            setActiveModal(m);
+            if (m.showConfetti) triggerConfetti();
+        } else {
+            const last = activeModal;
+            setActiveModal(null);
+            setModalQueue([]);
+            if (last?.navigateTo?.trackId) {
+                nextTrack();
+                setSelectedTrackId(last.navigateTo.trackId);
+                updateRouteQuery({ trackId: last.navigateTo.trackId });
+            }
+        }
+    };
+
     const scaledW = dims.rawW * dims.scale;
     const scaledH = dims.rawH * dims.scale;
 
@@ -1096,7 +1320,7 @@ const RaceViewer: React.FC<Props> = () => {
         carIds: selectedCarId ? [selectedCarId] : [],
         train: showTraining,
         pvp: showPvp,
-        onSuccess: showLatestRace,
+        onSuccess: handleRaceSuccess,
         // Advanced training parameters - only enabled when advanced section is expanded
         advanced: showAdvancedParams,
         explorationRate: showAdvancedParams ? explorationRate : 0.3,
@@ -1115,15 +1339,32 @@ const RaceViewer: React.FC<Props> = () => {
             )}
 
             {/* Race Mode Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderBottom: '2px solid #0033ff', background: '#0a0f1e' }}>
-                <div style={{
-                    fontFamily: '"Press Start 2P", monospace',
-                    fontSize: 16,
-                    color: isMazeMode ? '#8b5cf6' : '#00ffea',
-                    letterSpacing: 1
-                }}>
-                    {isMazeMode ? 'MAZE RUNNERS' : 'TRAIN 2 FAME'}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderBottom: '2px solid #0033ff', background: '#0a0f1e', position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {isCampaign && (
+                        <button onClick={handleExitCampaign} style={{ background: 'transparent', color: '#00ffea', border: 'none', cursor: 'pointer', fontFamily: '"Press Start 2P", monospace', fontSize: 14 }}>←</button>
+                    )}
+                    <div style={{
+                        fontFamily: '"Press Start 2P", monospace',
+                        fontSize: 16,
+                        color: isMazeMode ? '#8b5cf6' : '#00ffea',
+                        letterSpacing: 1
+                    }}
+                        onClick={isCampaign ? handleExitCampaign : undefined}
+                    >
+                        {isMazeMode ? 'MAZE RUNNERS' : isCampaign ? 'EXIT TRIALS' : 'SELF-DRIVEN'}
+                    </div>
                 </div>
+                {!isCampaign && (
+                    <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+                        <button
+                            onClick={() => startCampaign(campaignConfig)}
+                            style={{ padding: '8px 16px', background: '#274bff', color: '#fff', border: '2px solid #0033ff', borderRadius: 4, cursor: 'pointer', fontFamily: '"Press Start 2P", monospace', fontSize: 10, boxShadow: '0 0 8px #0033ff', marginBottom: '8px' }}
+                        >
+                            Enter the Trials
+                        </button>
+                    </div>
+                )}
                 {/* Test confetti button */}
                 {TEST_CONFETTI && (
                     <button
@@ -1189,83 +1430,87 @@ const RaceViewer: React.FC<Props> = () => {
                         </div>
 
                         {/* Track Selector */}
-                        <div className="race-control-item">
-                            <label style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: '#b8c1ff' }}>TRACK:</label>
-                            <select
-                                value={selectedTrackId || ''}
-                                onChange={(e) => setSelectedTrackId(e.target.value || undefined)}
-                                className="race-control-select"
-                                style={{
-                                    background: '#0a0f1e',
-                                    color: '#fff',
-                                    border: '2px solid #0033ff',
-                                    fontFamily: '"Press Start 2P", monospace',
-                                    fontSize: 10,
-                                    padding: '6px 8px',
-                                    boxShadow: '0 0 8px #0033ff inset',
-                                    minWidth: '150px',
-                                    minHeight: '44px'
-                                }}>
-                                <option value="">Select Track</option>
-                                {filteredTracks?.map((t: any) => (
-                                    <option key={t.id} value={t.id} style={{ background: '#0a0f1e', color: '#fff' }}>
-                                        {t.name || `Track ${t.id}`}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        {!isCampaign && (
+                            <div className="race-control-item">
+                                <label style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: '#b8c1ff' }}>TRACK:</label>
+                                <select
+                                    value={selectedTrackId || ''}
+                                    onChange={(e) => setSelectedTrackId(e.target.value || undefined)}
+                                    className="race-control-select"
+                                    style={{
+                                        background: '#0a0f1e',
+                                        color: '#fff',
+                                        border: '2px solid #0033ff',
+                                        fontFamily: '"Press Start 2P", monospace',
+                                        fontSize: 10,
+                                        padding: '6px 8px',
+                                        boxShadow: '0 0 8px #0033ff inset',
+                                        minWidth: '150px',
+                                        minHeight: '44px'
+                                    }}>
+                                    <option value="">Select Track</option>
+                                    {filteredTracks?.map((t: any) => (
+                                        <option key={t.id} value={t.id} style={{ background: '#0a0f1e', color: '#fff' }}>
+                                            {t.name || `Track ${t.id}`}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         {/* Mode Dropdown - Training or Showcase */}
-                        <div className="race-control-item">
-                            <label style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: '#b8c1ff' }}>MODE:</label>
-                            <select
-                                value={showTraining ? 'training' : 'showcase'}
-                                onChange={(e) => {
-                                    const mode = e.target.value;
-                                    const newShowTraining = mode === 'training';
+                        {!isCampaign && (
+                            <div className="race-control-item">
+                                <label style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: '#b8c1ff' }}>MODE:</label>
+                                <select
+                                    value={showTraining ? 'training' : 'showcase'}
+                                    onChange={(e) => {
+                                        const mode = e.target.value;
+                                        const newShowTraining = mode === 'training';
 
-                                    console.log('RaceViewer: Mode dropdown onChange triggered', {
-                                        mode,
-                                        currentShowTraining: showTraining,
-                                        willSetTo: newShowTraining
-                                    });
+                                        console.log('RaceViewer: Mode dropdown onChange triggered', {
+                                            mode,
+                                            currentShowTraining: showTraining,
+                                            willSetTo: newShowTraining
+                                        });
 
-                                    // Only update if the value is actually changing
-                                    if (newShowTraining !== showTraining) {
-                                        setShowTraining(newShowTraining);
-                                    } else {
-                                        console.log('RaceViewer: Mode dropdown onChange ignored - no change needed');
-                                    }
+                                        // Only update if the value is actually changing
+                                        if (newShowTraining !== showTraining) {
+                                            setShowTraining(newShowTraining);
+                                        } else {
+                                            console.log('RaceViewer: Mode dropdown onChange ignored - no change needed');
+                                        }
 
-                                    // Auto-select first available track when switching to showcase mode
-                                    if (newShowTraining !== showTraining && mode === 'showcase' && availableTracks && availableTracks.length > 0) {
-                                        const pvpTracks = availableTracks.filter((t: any) => (t?.starting_tiles?.length ?? 0) > 1);
-                                        if (pvpTracks.length > 0) {
-                                            const firstPvpTrack = pvpTracks[0];
-                                            if (firstPvpTrack && firstPvpTrack.id != null) {
-                                                const tid = String(firstPvpTrack.id);
-                                                setSelectedTrackId(tid);
-                                                updateRouteQuery({ trackId: tid });
+                                        // Auto-select first available track when switching to showcase mode
+                                        if (newShowTraining !== showTraining && mode === 'showcase' && availableTracks && availableTracks.length > 0) {
+                                            const pvpTracks = availableTracks.filter((t: any) => (t?.starting_tiles?.length ?? 0) > 1);
+                                            if (pvpTracks.length > 0) {
+                                                const firstPvpTrack = pvpTracks[0];
+                                                if (firstPvpTrack && firstPvpTrack.id != null) {
+                                                    const tid = String(firstPvpTrack.id);
+                                                    setSelectedTrackId(tid);
+                                                    updateRouteQuery({ trackId: tid });
+                                                }
                                             }
                                         }
-                                    }
-                                }}
-                                className="race-control-select"
-                                style={{
-                                    background: '#0a0f1e',
-                                    color: '#fff',
-                                    border: '2px solid #0033ff',
-                                    fontFamily: '"Press Start 2P", monospace',
-                                    fontSize: 10,
-                                    padding: '6px 8px',
-                                    boxShadow: '0 0 8px #0033ff inset',
-                                    minWidth: '120px',
-                                    minHeight: '44px'
-                                }}>
-                                <option value="training">Training</option>
-                                <option value="showcase">Showcase</option>
-                            </select>
-                        </div>
+                                    }}
+                                    className="race-control-select"
+                                    style={{
+                                        background: '#0a0f1e',
+                                        color: '#fff',
+                                        border: '2px solid #0033ff',
+                                        fontFamily: '"Press Start 2P", monospace',
+                                        fontSize: 10,
+                                        padding: '6px 8px',
+                                        boxShadow: '0 0 8px #0033ff inset',
+                                        minWidth: '120px',
+                                        minHeight: '44px'
+                                    }}>
+                                    <option value="training">Training</option>
+                                    <option value="showcase">Showcase</option>
+                                </select>
+                            </div>
+                        )}
 
                         {/* PvP Toggle - Temporarily disabled for v1 (table PvP until v2) */}
                         {false && (
@@ -1320,7 +1565,7 @@ const RaceViewer: React.FC<Props> = () => {
                             <span>
                                 <ConfirmModal
                                     executeDirectly={true}
-                                    label={isMazeMode ? `Traverse (${numberOfRaces})` : `Run Race (${numberOfRaces})`}
+                                    label={isCampaign ? (progress.hasStartedTrial ? 'Continue Trial' : 'Begin Trial') : (isMazeMode ? `Traverse (${numberOfRaces})` : `Run Race (${numberOfRaces})`)}
                                     action={runRace.action}
                                     isDisabled={!selectedTrackId || !selectedCarId || (showTraining && racingState.energy < 10) || filteredTracks.length === 0}
                                     isLoading={runRace.action.simulate.isPending || runRace.action.tx.isPending}
@@ -1341,97 +1586,99 @@ const RaceViewer: React.FC<Props> = () => {
                         </Tooltip>
 
                         {/* Race Count Controls */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '44px', justifyContent: 'stretch' }}>
-                            <button
-                                onClick={() => setNumberOfRaces(prev => Math.min(prev + 1, MAX_RACE_TICKS))}
-                                disabled={numberOfRaces >= MAX_RACE_TICKS}
-                                style={{
+                        {(!isCampaign || progress.unlocks.showRaceCountControl) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '44px', justifyContent: 'stretch' }}>
+                                <button
+                                    onClick={() => setNumberOfRaces(prev => Math.min(prev + 1, MAX_RACE_TICKS))}
+                                    disabled={numberOfRaces >= MAX_RACE_TICKS}
+                                    style={{
+                                        width: '32px',
+                                        flex: '1',
+                                        background: numberOfRaces >= MAX_RACE_TICKS ? '#333' : '#274bff',
+                                        color: '#fff',
+                                        border: '1px solid #0033ff',
+                                        borderRadius: '4px 4px 0 0',
+                                        cursor: numberOfRaces >= MAX_RACE_TICKS ? 'not-allowed' : 'pointer',
+                                        fontFamily: '"Press Start 2P", monospace',
+                                        fontSize: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        opacity: numberOfRaces >= MAX_RACE_TICKS ? 0.5 : 1,
+                                        transition: 'all 0.2s ease',
+                                        minHeight: 0
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (numberOfRaces < MAX_RACE_TICKS) {
+                                            e.currentTarget.style.background = '#1f3bd9';
+                                            e.currentTarget.style.transform = 'scale(1.05)';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (numberOfRaces < MAX_RACE_TICKS) {
+                                            e.currentTarget.style.background = '#274bff';
+                                            e.currentTarget.style.transform = 'scale(1)';
+                                        }
+                                    }}
+                                >
+                                    ▲
+                                </button>
+
+                                <div style={{
                                     width: '32px',
                                     flex: '1',
-                                    background: numberOfRaces >= MAX_RACE_TICKS ? '#333' : '#274bff',
-                                    color: '#fff',
+                                    background: '#0a0f1e',
+                                    color: '#00ffea',
                                     border: '1px solid #0033ff',
-                                    borderRadius: '4px 4px 0 0',
-                                    cursor: numberOfRaces >= MAX_RACE_TICKS ? 'not-allowed' : 'pointer',
+                                    borderRadius: '0',
                                     fontFamily: '"Press Start 2P", monospace',
                                     fontSize: '8px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    opacity: numberOfRaces >= MAX_RACE_TICKS ? 0.5 : 1,
-                                    transition: 'all 0.2s ease',
+                                    fontWeight: 'bold',
                                     minHeight: 0
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (numberOfRaces < MAX_RACE_TICKS) {
-                                        e.currentTarget.style.background = '#1f3bd9';
-                                        e.currentTarget.style.transform = 'scale(1.05)';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (numberOfRaces < MAX_RACE_TICKS) {
-                                        e.currentTarget.style.background = '#274bff';
-                                        e.currentTarget.style.transform = 'scale(1)';
-                                    }
-                                }}
-                            >
-                                ▲
-                            </button>
+                                }}>
+                                    {numberOfRaces}
+                                </div>
 
-                            <div style={{
-                                width: '32px',
-                                flex: '1',
-                                background: '#0a0f1e',
-                                color: '#00ffea',
-                                border: '1px solid #0033ff',
-                                borderRadius: '0',
-                                fontFamily: '"Press Start 2P", monospace',
-                                fontSize: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 'bold',
-                                minHeight: 0
-                            }}>
-                                {numberOfRaces}
+                                <button
+                                    onClick={() => setNumberOfRaces(prev => Math.max(prev - 1, 1))}
+                                    disabled={numberOfRaces <= 1}
+                                    style={{
+                                        width: '32px',
+                                        flex: '1',
+                                        background: numberOfRaces <= 1 ? '#333' : '#274bff',
+                                        color: '#fff',
+                                        border: '1px solid #0033ff',
+                                        borderRadius: '0 0 4px 4px',
+                                        cursor: numberOfRaces <= 1 ? 'not-allowed' : 'pointer',
+                                        fontFamily: '"Press Start 2P", monospace',
+                                        fontSize: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        opacity: numberOfRaces <= 1 ? 0.5 : 1,
+                                        transition: 'all 0.2s ease',
+                                        minHeight: 0
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (numberOfRaces > 1) {
+                                            e.currentTarget.style.background = '#1f3bd9';
+                                            e.currentTarget.style.transform = 'scale(1.05)';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (numberOfRaces > 1) {
+                                            e.currentTarget.style.background = '#274bff';
+                                            e.currentTarget.style.transform = 'scale(1)';
+                                        }
+                                    }}
+                                >
+                                    ▼
+                                </button>
                             </div>
-
-                            <button
-                                onClick={() => setNumberOfRaces(prev => Math.max(prev - 1, 1))}
-                                disabled={numberOfRaces <= 1}
-                                style={{
-                                    width: '32px',
-                                    flex: '1',
-                                    background: numberOfRaces <= 1 ? '#333' : '#274bff',
-                                    color: '#fff',
-                                    border: '1px solid #0033ff',
-                                    borderRadius: '0 0 4px 4px',
-                                    cursor: numberOfRaces <= 1 ? 'not-allowed' : 'pointer',
-                                    fontFamily: '"Press Start 2P", monospace',
-                                    fontSize: '8px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    opacity: numberOfRaces <= 1 ? 0.5 : 1,
-                                    transition: 'all 0.2s ease',
-                                    minHeight: 0
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (numberOfRaces > 1) {
-                                        e.currentTarget.style.background = '#1f3bd9';
-                                        e.currentTarget.style.transform = 'scale(1.05)';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (numberOfRaces > 1) {
-                                        e.currentTarget.style.background = '#274bff';
-                                        e.currentTarget.style.transform = 'scale(1)';
-                                    }
-                                }}
-                            >
-                                ▼
-                            </button>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1479,197 +1726,201 @@ const RaceViewer: React.FC<Props> = () => {
             {/* Info Section - Collapsible, Starts Collapsed */}
             <div style={{ background: '#0a0f1e', borderBottom: '1px solid #2a3550' }}>
                 {/* Race Controls Section */}
-                <div style={{ opacity: hasRaceData ? 1 : 0.5 }}>
-                    <div
-                        onClick={() => setShowControls(!showControls)}
-                        style={{
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            color: '#00ffea',
-                            fontFamily: '"Press Start 2P", monospace',
-                            fontSize: 12,
-                            padding: '16px 16px 12px 16px',
-                            userSelect: 'none',
-                            transition: 'color 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#00ffff'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#00ffea'}
-                    >
-                        <span style={{ fontSize: 14, transition: 'transform 0.2s ease', transform: showControls ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▼</span>
-                        <span>RACE CONTROLS</span>
-                    </div>
-                    {showControls && (
-                        <div style={{ padding: '0 16px 16px 16px' }}>
-                            <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: '"Press Start 2P", monospace', fontSize: 12 }}>
-                                <button
-                                    onClick={togglePlay}
-                                    style={{ padding: '10px 18px', background: playing ? '#ff2d2d' : '#274bff', color: '#fff', border: '2px solid #0033ff', cursor: 'pointer', boxShadow: '0 0 8px #0033ff', letterSpacing: 1 }}>
-                                    {playing ? 'PAUSE' : 'START'}
-                                </button>
-                                <button
-                                    onClick={replay}
-                                    style={{ padding: '10px 18px', background: '#274bff', color: '#fff', border: '2px solid #0033ff', cursor: 'pointer', boxShadow: '0 0 8px #0033ff', letterSpacing: 1 }}>
-                                    REPLAY
-                                </button>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    Speed:
-                                    <select
-                                        value={speed}
-                                        onChange={e => setSpeed(parseFloat(e.target.value))}
-                                        style={{ background: '#0a0f1e', color: '#fff', border: '2px solid #0033ff', fontFamily: 'inherit', fontSize: 12, padding: '6px 8px', boxShadow: '0 0 8px #0033ff inset' }}>
-                                        {[0.25, 0.5, 1, 2, 4].map((s: number) => (
-                                            <option key={s} value={s} style={{ background: '#0a0f1e', color: '#fff' }}>{s}x</option>
-                                        ))}
-                                    </select>
-                                </label>
-                            </div>
+                {(!isCampaign || progress.unlocks.showRaceControls) && (
+                    <div style={{ opacity: hasRaceData ? 1 : 0.5 }}>
+                        <div
+                            onClick={() => setShowControls(!showControls)}
+                            style={{
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                color: '#00ffea',
+                                fontFamily: '"Press Start 2P", monospace',
+                                fontSize: 12,
+                                padding: '16px 16px 12px 16px',
+                                userSelect: 'none',
+                                transition: 'color 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = '#00ffff'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = '#00ffea'}
+                        >
+                            <span style={{ fontSize: 14, transition: 'transform 0.2s ease', transform: showControls ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▼</span>
+                            <span>RACE CONTROLS</span>
                         </div>
-                    )}
-                </div>
+                        {showControls && (
+                            <div style={{ padding: '0 16px 16px 16px' }}>
+                                <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: '"Press Start 2P", monospace', fontSize: 12 }}>
+                                    <button
+                                        onClick={togglePlay}
+                                        style={{ padding: '10px 18px', background: playing ? '#ff2d2d' : '#274bff', color: '#fff', border: '2px solid #0033ff', cursor: 'pointer', boxShadow: '0 0 8px #0033ff', letterSpacing: 1 }}>
+                                        {playing ? 'PAUSE' : 'START'}
+                                    </button>
+                                    <button
+                                        onClick={replay}
+                                        style={{ padding: '10px 18px', background: '#274bff', color: '#fff', border: '2px solid #0033ff', cursor: 'pointer', boxShadow: '0 0 8px #0033ff', letterSpacing: 1 }}>
+                                        REPLAY
+                                    </button>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        Speed:
+                                        <select
+                                            value={speed}
+                                            onChange={e => setSpeed(parseFloat(e.target.value))}
+                                            style={{ background: '#0a0f1e', color: '#fff', border: '2px solid #0033ff', fontFamily: 'inherit', fontSize: 12, padding: '6px 8px', boxShadow: '0 0 8px #0033ff inset' }}>
+                                            {[0.25, 0.5, 1, 2, 4].map((s: number) => (
+                                                <option key={s} value={s} style={{ background: '#0a0f1e', color: '#fff' }}>{s}x</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Tile Legend Section */}
-                <div style={{ opacity: hasPreview ? 1 : 0.5 }}>
-                    <div
-                        onClick={() => setShowLegend(!showLegend)}
-                        style={{
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            color: '#00ffea',
-                            fontFamily: '"Press Start 2P", monospace',
-                            fontSize: 12,
-                            padding: '16px 16px 12px 16px',
-                            userSelect: 'none',
-                            transition: 'color 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#00ffff'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#00ffea'}
-                    >
-                        <span style={{ fontSize: 14, transition: 'transform 0.2s ease', transform: showLegend ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▼</span>
-                        <span>TILE LEGEND</span>
-                    </div>
-                    {showLegend && (
-                        <div style={{ padding: '0 16px 16px 16px' }}>
-                            <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: WALL, display: 'inline-block', border: '1px solid #2a3550' }} /> Wall</span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: START, display: 'inline-block', border: '1px solid #2a3550' }} /> Start</span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: FINISH, display: 'inline-block', border: '1px solid #2a3550' }} /> Finish</span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: STUCK, display: 'inline-block', border: '1px solid #2a3550' }} /> Sticky</span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: BOOST, display: 'inline-block', border: '1px solid #2a3550' }} /> Boost</span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: 'transparent', display: 'inline-block', border: '2px solid #ff0000' }} /> Collision</span>
-                            </div>
+                {(!isCampaign || progress.unlocks.showTileLegend) && (
+                    <div style={{ opacity: hasPreview ? 1 : 0.5 }}>
+                        <div
+                            onClick={() => setShowLegend(!showLegend)}
+                            style={{
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                color: '#00ffea',
+                                fontFamily: '"Press Start 2P", monospace',
+                                fontSize: 12,
+                                padding: '16px 16px 12px 16px',
+                                userSelect: 'none',
+                                transition: 'color 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = '#00ffff'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = '#00ffea'}
+                        >
+                            <span style={{ fontSize: 14, transition: 'transform 0.2s ease', transform: showLegend ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▼</span>
+                            <span>TILE LEGEND</span>
                         </div>
-                    )}
-                    {/* Advanced Training Parameters - Collapsible, only visible when Training mode is selected */}
-                    {showTraining && (
-                        <div style={{ background: '#0a0f1e', borderBottom: '1px solid #2a3550' }}>
-                            <div
-                                onClick={() => setShowAdvancedParams(!showAdvancedParams)}
-                                style={{
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    color: '#00ffea',
-                                    fontFamily: '"Press Start 2P", monospace',
-                                    fontSize: 12,
-                                    padding: '16px 16px 12px 16px',
-                                    userSelect: 'none',
-                                    transition: 'color 0.2s ease'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.color = '#00ffff'}
-                                onMouseLeave={(e) => e.currentTarget.style.color = '#00ffea'}
-                            >
-                                <span style={{ fontSize: 14, transition: 'transform 0.2s ease', transform: showAdvancedParams ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▼</span>
-                                <span>ADVANCED TRAINING PARAMETERS</span>
+                        {showLegend && (
+                            <div style={{ padding: '0 16px 16px 16px' }}>
+                                <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: WALL, display: 'inline-block', border: '1px solid #2a3550' }} /> Wall</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: START, display: 'inline-block', border: '1px solid #2a3550' }} /> Start</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: FINISH, display: 'inline-block', border: '1px solid #2a3550' }} /> Finish</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: STUCK, display: 'inline-block', border: '1px solid #2a3550' }} /> Sticky</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: BOOST, display: 'inline-block', border: '1px solid #2a3550' }} /> Boost</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={{ width: 12, height: 12, background: 'transparent', display: 'inline-block', border: '2px solid #ff0000' }} /> Collision</span>
+                                </div>
                             </div>
-                            {showAdvancedParams && (
-                                <div style={{ padding: '0 16px 16px 16px' }}>
-                                    <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
-                                        {/* Exploration Rate Slider */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <label style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: '#b8c1ff', minWidth: '120px' }}>
-                                                Exploration Rate: {Math.round(explorationRate * 100)}%
-                                            </label>
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="1"
-                                                step="0.05"
-                                                value={explorationRate}
-                                                onChange={(e) => setExplorationRate(parseFloat(e.target.value))}
-                                                style={{
-                                                    width: '120px',
-                                                    height: '6px',
-                                                    background: '#0033ff',
-                                                    outline: 'none',
-                                                    borderRadius: '3px'
-                                                }}
-                                            />
-                                        </div>
+                        )}
+                        {/* Advanced Training Parameters - Collapsible, only visible when Training mode is selected */}
+                        {(showTraining && (!isCampaign || progress.unlocks.showAdvancedParams)) && (
+                            <div style={{ background: '#0a0f1e', borderBottom: '1px solid #2a3550' }}>
+                                <div
+                                    onClick={() => setShowAdvancedParams(!showAdvancedParams)}
+                                    style={{
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        color: '#00ffea',
+                                        fontFamily: '"Press Start 2P", monospace',
+                                        fontSize: 12,
+                                        padding: '16px 16px 12px 16px',
+                                        userSelect: 'none',
+                                        transition: 'color 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.color = '#00ffff'}
+                                    onMouseLeave={(e) => e.currentTarget.style.color = '#00ffea'}
+                                >
+                                    <span style={{ fontSize: 14, transition: 'transform 0.2s ease', transform: showAdvancedParams ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▼</span>
+                                    <span>ADVANCED TRAINING PARAMETERS</span>
+                                </div>
+                                {showAdvancedParams && (
+                                    <div style={{ padding: '0 16px 16px 16px' }}>
+                                        <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+                                            {/* Exploration Rate Slider */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <label style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: '#b8c1ff', minWidth: '120px' }}>
+                                                    Exploration Rate: {Math.round(explorationRate * 100)}%
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.05"
+                                                    value={explorationRate}
+                                                    onChange={(e) => setExplorationRate(parseFloat(e.target.value))}
+                                                    style={{
+                                                        width: '120px',
+                                                        height: '6px',
+                                                        background: '#0033ff',
+                                                        outline: 'none',
+                                                        borderRadius: '3px'
+                                                    }}
+                                                />
+                                            </div>
 
-                                        {/* Max Ticks Input */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <label style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: '#b8c1ff', minWidth: '120px' }}>
-                                                Max Ticks:
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min={0}
-                                                step={1}
-                                                value={maxRaceTicksInput}
-                                                onChange={(e) => {
-                                                    let raw = e.target.value
-                                                    if (raw === '') {
-                                                        setMaxRaceTicksInput('')
-                                                        return
-                                                    }
-                                                    raw = raw.replace(/[^0-9]/g, '')
-                                                    raw = raw.replace(/^0+(?=\d)/, '')
-                                                    if (raw === '') raw = '0'
-                                                    setMaxRaceTicksInput(raw)
-                                                    const num = parseInt(raw, 10)
-                                                    if (Number.isFinite(num) && num >= 0) setMaxRaceTicks(num)
-                                                }}
-                                                onBlur={() => {
-                                                    if (maxRaceTicksInput === '') {
-                                                        setMaxRaceTicksInput('100')
-                                                        setMaxRaceTicks(100)
-                                                    }
-                                                }}
-                                                placeholder="0 = default"
-                                                style={{
-                                                    width: '120px',
-                                                    background: '#0a0f1e',
-                                                    color: '#fff',
-                                                    border: '2px solid #0033ff',
-                                                    fontFamily: '"Press Start 2P", monospace',
-                                                    fontSize: 10,
-                                                    padding: '6px 8px',
-                                                    boxShadow: '0 0 8px #0033ff inset',
-                                                    borderRadius: '3px'
-                                                }}
-                                            />
-                                            {/* removed trailing label */}
-                                        </div>
+                                            {/* Max Ticks Input */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <label style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 10, color: '#b8c1ff', minWidth: '120px' }}>
+                                                    Max Ticks:
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    step={1}
+                                                    value={maxRaceTicksInput}
+                                                    onChange={(e) => {
+                                                        let raw = e.target.value
+                                                        if (raw === '') {
+                                                            setMaxRaceTicksInput('')
+                                                            return
+                                                        }
+                                                        raw = raw.replace(/[^0-9]/g, '')
+                                                        raw = raw.replace(/^0+(?=\d)/, '')
+                                                        if (raw === '') raw = '0'
+                                                        setMaxRaceTicksInput(raw)
+                                                        const num = parseInt(raw, 10)
+                                                        if (Number.isFinite(num) && num >= 0) setMaxRaceTicks(num)
+                                                    }}
+                                                    onBlur={() => {
+                                                        if (maxRaceTicksInput === '') {
+                                                            setMaxRaceTicksInput('100')
+                                                            setMaxRaceTicks(100)
+                                                        }
+                                                    }}
+                                                    placeholder="0 = default"
+                                                    style={{
+                                                        width: '120px',
+                                                        background: '#0a0f1e',
+                                                        color: '#fff',
+                                                        border: '2px solid #0033ff',
+                                                        fontFamily: '"Press Start 2P", monospace',
+                                                        fontSize: 10,
+                                                        padding: '6px 8px',
+                                                        boxShadow: '0 0 8px #0033ff inset',
+                                                        borderRadius: '3px'
+                                                    }}
+                                                />
+                                                {/* removed trailing label */}
+                                            </div>
 
-                                        {/* Decay Checkbox */}
-                                        {/* <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '10px', color: '#b8c1ff' }}>
+                                            {/* Decay Checkbox */}
+                                            {/* <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '10px', color: '#b8c1ff' }}>
                                             <input
                                                 type="checkbox"
                                                 checked={enableDecay}
                                                 onChange={(e) => setEnableDecay(e.target.checked)}
                                             /> Enable Exploration Decay
                                         </label> */}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
 
@@ -1886,6 +2137,28 @@ const RaceViewer: React.FC<Props> = () => {
                     />
                 </div>
             )}
+
+            {/* Campaign Modal */}
+            {activeModal && (
+                <CampaignModal
+                    isOpen={!!activeModal}
+                    title={activeModal.title}
+                    body={activeModal.body}
+                    onClose={() => setActiveModal(null)}
+                    onContinue={advanceModal}
+                    continueLabel="Continue"
+                />
+            )}
+
+            {/* Showcase Dialogue */}
+            <DialogueBox
+                isVisible={showShowcaseDialogue}
+                message="Complete the race on Showcase to move forward"
+                position="top"
+                offset={{ x: 0, y: -20 }}
+                onClose={() => setShowShowcaseDialogue(false)}
+                autoCloseDelay={5000}
+            />
         </div>
     );
 };

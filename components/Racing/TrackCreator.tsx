@@ -272,6 +272,7 @@ const TrackCreator: React.FC = () => {
             w={{ base: '100%', lg: 'auto' }}
           >
             <ConfirmModal
+              executeDirectly={true}
               label="Add Track"
               action={addTrackTx.action}
               isDisabled={!name || name.length === 0}

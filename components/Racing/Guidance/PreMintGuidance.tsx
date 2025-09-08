@@ -55,15 +55,28 @@ const PreMintGuidance: React.FC<PreMintGuidanceProps> = ({ isOpen, onClose }) =>
                             textAlign="center"
                             mb={4}
                         >
-                            WELCOME TO MAZE RUNNERS
+                            Welcome to THE INFINITE MAZE
                         </Text>
 
                         <Text fontSize="md" color="#b8c1ff" textAlign="center">
-                            Before you mint your first Runner, here's what you need to know:
+                            Within these walls, you will find walls and walls and walls...and walls.
                         </Text>
 
-                        <Box border="1px solid #0033ff" p={4} bg="#070b15">
-                            <UnorderedList spacing={3} color="#e6e6e6">
+                        <Text fontSize="md" color="#b8c1ff" textAlign="center">
+                            Luckily, you have an AI to help you navigate, but its up to you to train them well or they'll have no issue running you headfirst into...more walls.
+                        </Text>
+
+                        <Text fontSize="md" color="#b8c1ff" textAlign="center">
+                            Build tracks & train your Runner to complete daily mazes & earn $BYTE. In preparation for The Singularity's arrival you need to boost your IQ, will you be ready?
+                        </Text>
+
+
+                        <Text fontSize="md" color="#b8c1ff" textAlign="center">
+                            And never forget, every game starts with movement.
+                        </Text>
+
+                        {/* <Box border="1px solid #0033ff" p={4} bg="#070b15">
+                            <UnorderedList spacing={3} color="#e6e6e6"> 
 
                                 <ListItem fontSize="sm">
                                     <Text as="span" color="#00ffea" fontWeight="bold">Maze Runner:</Text> Your Runner is an NFT with an onchain brain that controls its actions.
@@ -81,10 +94,10 @@ const PreMintGuidance: React.FC<PreMintGuidanceProps> = ({ isOpen, onClose }) =>
                                     <Text as="span" color="#00ffea" fontWeight="bold">Training:</Text> Your Runner gets faster the more efficiently you train.
                                 </ListItem>
                             </UnorderedList>
-                        </Box>
+                        </Box> */}
 
                         <Text fontSize="sm" color="#b8c1ff" textAlign="center" fontStyle="italic">
-                            Ready to join the race?
+                            Ready to join the force?
                         </Text>
 
                         <HStack justify="center" spacing={2} mb={4}>

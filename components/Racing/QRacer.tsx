@@ -19,6 +19,8 @@ import {
   TutorialButton,
   useTutorial
 } from '@/components/Racing/Guidance'
+import useRacingCampaign from '@/persisted-state/useRacingCampaign'
+import campaignConfig from '@/components/Racing/campaignConfig'
 
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -53,6 +55,7 @@ const QRacer: React.FC = () => {
   const { address } = useWallet()
   const { data: ownedCars } = useOwnedCars(address)
   const { appState, setAppState } = useAppState()
+  const { progress, startCampaign, endCampaign } = useRacingCampaign()
 
   const activeTab = useMemo<TabKey>(() => {
     const q = (router.query?.tab as string) || 'race'
@@ -92,16 +95,21 @@ const QRacer: React.FC = () => {
 
   // Auto-start tutorial after first car mint - with delay to ensure state is updated
   useEffect(() => {
-    if (appState.hasMintedFirstCar && shouldShowTutorial && !isTutorialOpen) {
-      // Small delay to ensure the state has been properly updated
+    console.log('[QRacer] auto-start check', { hasMintedFirstCar: appState.hasMintedFirstCar, autoStartEnabled: progress.autoStartEnabled, active: progress.active, tab: router.query?.tab })
+    if (appState.hasMintedFirstCar && progress.autoStartEnabled && !progress.active) {
+      // New post-mint flow: go straight to Race and start campaign
       const timer = setTimeout(() => {
-        console.log('Starting tutorial after car mint...')
-        startTutorial()
-      }, 500)
-
+        const shouldSwitchTab = router.query?.tab !== 'race'
+        console.log('[QRacer] attempting auto-start', { shouldSwitchTab })
+        if (shouldSwitchTab) {
+          router.replace({ pathname: router.pathname, query: { ...router.query, tab: 'race' } }, undefined, { shallow: true, scroll: false })
+        }
+        console.log('[QRacer] starting campaign via auto-start')
+        startCampaign(campaignConfig)
+      }, 400)
       return () => clearTimeout(timer)
     }
-  }, [appState.hasMintedFirstCar, shouldShowTutorial, isTutorialOpen, startTutorial])
+  }, [appState.hasMintedFirstCar, progress.autoStartEnabled, progress.active, router.query?.tab, startCampaign])
 
   useEffect(() => {
     if (!router.isReady) return
@@ -199,6 +207,18 @@ const QRacer: React.FC = () => {
               px={2}
             >
               TEST PRE-MINT
+            </Button>
+            <Button
+              onClick={() => progress.active ? endCampaign() : startCampaign(campaignConfig)}
+              variant="ghost"
+              size="sm"
+              color="#b8c1ff"
+              _hover={{ color: '#00ffea' }}
+              fontFamily='"Press Start 2P", monospace'
+              fontSize="10px"
+              px={2}
+            >
+              {progress.active ? 'Restart Trials' : 'Start Trials'}
             </Button>
             <TutorialButton onClick={startTutorial} />
           </HStack>

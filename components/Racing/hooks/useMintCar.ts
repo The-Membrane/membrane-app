@@ -28,7 +28,7 @@ export type TrainingPaymentOption = {
 export type UseMintCarParams = {
   owner?: string
   tokenUri?: string | null
-  extension?: CarMetadata | null
+  name?: string | null
   contractAddress?: string
   paymentOption?: TrainingPaymentOption | null
   onSuccess?: () => void
@@ -44,7 +44,7 @@ const useMintCar = (params: UseMintCarParams) => {
       'mint_car_msgs_creation',
       address ?? null,
       appState.rpcUrl,
-      params.extension?.name ?? null,
+      params.name ?? null,
       params.paymentOption?.denom ?? null,
       params.paymentOption?.amount ?? null,
       params.contractAddress ?? (contracts as any).car ?? null,
@@ -56,7 +56,7 @@ const useMintCar = (params: UseMintCarParams) => {
         create_car: {
           owner: address,
           token_uri: null,
-          extension: params.extension ?? null,
+          name: params.name,
         }
       }
 
@@ -92,7 +92,7 @@ const useMintCar = (params: UseMintCarParams) => {
   console.log('mint car msgs', msgs)
   // Build stable signature from relevant inputs so sim reruns when contents change
   const simulationSignature = [
-    params.extension?.name ?? '',
+    params.name ?? '',
     params.paymentOption?.denom ?? '',
     params.paymentOption?.amount ?? '',
     (params.contractAddress ?? (contracts as any).car ?? '').toString(),

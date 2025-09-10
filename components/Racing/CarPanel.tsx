@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Box, HStack, Select, Text, VStack, Flex, Input, Switch, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Tooltip } from '@chakra-ui/react'
+import { Box, HStack, Select, Text, VStack, Flex, Input, Switch, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Tooltip, Collapse } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import useWallet from '@/hooks/useWallet'
 import useAppState from '@/persisted-state/useAppState'
@@ -7,7 +7,7 @@ import { useOwnedCars } from '@/hooks/useQRacing'
 import { useCarMetadata, useCarQTable, useCarBrainProgress } from '@/services/q-racing'
 import { Button } from '@chakra-ui/react'
 import useChangeName from './hooks/useChangeName'
-import { CheckIcon, Pencil } from 'lucide-react'
+import { CheckIcon, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
 import { CloseIcon, InfoIcon } from '@chakra-ui/icons'
 import IQProgressChart from './IQProgressChart'
 import useRacingState from './hooks/useRacingState'
@@ -294,6 +294,7 @@ const CarPanel: React.FC = () => {
 
 const RewardConfigPanel: React.FC = () => {
     const { racingState, setRacingState } = useRacingState()
+    const [isExpanded, setIsExpanded] = useState(false)
     const cfg = racingState.rewardConfig || {
         distance: 3,
         stuck: -3,
@@ -357,48 +358,61 @@ const RewardConfigPanel: React.FC = () => {
 
     return (
         <Box p={3} border="2px solid #0033ff" bg="#0b0e17" borderRadius={6}>
-            <Text mb={2} fontFamily='"Press Start 2P", monospace' fontSize={{ base: '10px', sm: '12px' }} color="#00ffea">Reward Config</Text>
-            <VStack align="stretch" spacing={3}>
-                {sliderInput('Distance', cfg.distance, 0, 100, (n) => setCfg({ ...cfg, distance: n }), 'Per-tick reward for moving closer to finish. Higher values (10-50) help learn efficient paths. Balance with other penalties.')}
-                {sliderNegativeInput('Stuck Penalty', cfg.stuck, (n) => setCfg({ ...cfg, stuck: n }), 'Penalty when entering sticky/trap tiles. Too high will discourage forward movement through sticky tiles.')}
-                {sliderNegativeInput('Wall Penalty', cfg.wall, (n) => setCfg({ ...cfg, wall: n }), 'Penalty on wall collisions. Keep strong (e.g., -40 to -80) so the agent learns to avoid walls early.')}
-                {sliderNegativeInput('No Move Penalty', cfg.no_move, (n) => setCfg({ ...cfg, no_move: n }), 'Penalty for staying in the same tile. Helps prevent dithering/loops.')}
-                {/* {sliderInput('Explore', cfg.explore, 0, 100, (n) => setCfg({ ...cfg, explore: n }), 'Bonus for exploring new states/actions. Useful early training (0–10); reduce later to exploit learned paths.')} */}
-                {sliderNegativeInput('Going Backward Penalty', cfg.going_backward.penalty, (n) => setCfg({ ...cfg, going_backward: { ...cfg.going_backward, penalty: n } }), 'Penalty for moving away from finish. Too high will discourage necessary repositioning ex: maze dead ends.')}
-                <HStack justify="space-between">
-                    <HStack spacing={2}>
-                        <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">Include Progress Toward Finish</Text>
-                        <Tooltip label={'If on, backward moves are penalized more closer to the finish.'} hasArrow placement="top" openDelay={200}>
-                            <span>
-                                <InfoIcon boxSize={3} color="#b8c1ff" />
-                            </span>
-                        </Tooltip>
+            <HStack justify="space-between" mb={2}>
+                <Text fontFamily='"Press Start 2P", monospace' fontSize={{ base: '10px', sm: '12px' }} color="#00ffea">Reward Config</Text>
+                <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    p={1}
+                    minW={0}
+                >
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </Button>
+            </HStack>
+            <Collapse in={isExpanded}>
+                <VStack align="stretch" spacing={3}>
+                    {sliderInput('Distance', cfg.distance, 0, 100, (n) => setCfg({ ...cfg, distance: n }), 'Per-tick reward for moving closer to finish. Higher values (10-50) help learn efficient paths. Balance with other penalties.')}
+                    {sliderNegativeInput('Stuck Penalty', cfg.stuck, (n) => setCfg({ ...cfg, stuck: n }), 'Penalty when entering sticky/trap tiles. Too high will discourage forward movement through sticky tiles.')}
+                    {sliderNegativeInput('Wall Penalty', cfg.wall, (n) => setCfg({ ...cfg, wall: n }), 'Penalty on wall collisions. Keep strong (e.g., -40 to -80) so the agent learns to avoid walls early.')}
+                    {sliderNegativeInput('No Move Penalty', cfg.no_move, (n) => setCfg({ ...cfg, no_move: n }), 'Penalty for staying in the same tile. Helps prevent dithering/loops.')}
+                    {/* {sliderInput('Explore', cfg.explore, 0, 100, (n) => setCfg({ ...cfg, explore: n }), 'Bonus for exploring new states/actions. Useful early training (0–10); reduce later to exploit learned paths.')} */}
+                    {sliderNegativeInput('Going Backward Penalty', cfg.going_backward.penalty, (n) => setCfg({ ...cfg, going_backward: { ...cfg.going_backward, penalty: n } }), 'Penalty for moving away from finish. Too high will discourage necessary repositioning ex: maze dead ends.')}
+                    <HStack justify="space-between">
+                        <HStack spacing={2}>
+                            <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">Include Progress Toward Finish</Text>
+                            <Tooltip label={'If on, backward moves are penalized more closer to the finish.'} hasArrow placement="top" openDelay={200}>
+                                <span>
+                                    <InfoIcon boxSize={3} color="#b8c1ff" />
+                                </span>
+                            </Tooltip>
+                        </HStack>
+                        <Switch
+                            size="sm"
+                            isChecked={cfg.going_backward.include_progress_towards_finish}
+                            onChange={(e) => setCfg({ ...cfg, going_backward: { ...cfg.going_backward, include_progress_towards_finish: e.target.checked } })}
+                        />
                     </HStack>
-                    <Switch
-                        size="sm"
-                        isChecked={cfg.going_backward.include_progress_towards_finish}
-                        onChange={(e) => setCfg({ ...cfg, going_backward: { ...cfg.going_backward, include_progress_towards_finish: e.target.checked } })}
-                    />
-                </HStack>
 
-                <Text pt={2} fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#00ffea">Rank Rewards</Text>
-                {sliderInput('First', cfg.rank.first, 0, 100, (n) => setCfg({ ...cfg, rank: { ...cfg.rank, first: n } }), 'Terminal reward for winning. Drives goal completion; 30–100 typical depending on track length.')}
-                {/* {sliderInput('Second', cfg.rank.second, 0, 100, (n) => setCfg({ ...cfg, rank: { ...cfg.rank, second: n } }), 'Smaller terminal reward for 2nd place. Set low or 0 to focus the agent on winning.')}
-                {sliderInput('Third', cfg.rank.third, 0, 100, (n) => setCfg({ ...cfg, rank: { ...cfg.rank, third: n } }), 'Reward for 3rd. Consider low values (0–10) to reduce complacency and encourage improvement.')}
-                {sliderInput('Other', cfg.rank.other, 0, 100, (n) => setCfg({ ...cfg, rank: { ...cfg.rank, other: n } }), 'Reward for finishing outside top 3. Use 0 to discourage settling; small values if you want stability.')} */}
+                    <Text pt={2} fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#00ffea">Rank Rewards</Text>
+                    {sliderInput('First', cfg.rank.first, 0, 100, (n) => setCfg({ ...cfg, rank: { ...cfg.rank, first: n } }), 'Terminal reward for winning. Drives goal completion; 30–100 typical depending on track length.')}
+                    {/* {sliderInput('Second', cfg.rank.second, 0, 100, (n) => setCfg({ ...cfg, rank: { ...cfg.rank, second: n } }), 'Smaller terminal reward for 2nd place. Set low or 0 to focus the agent on winning.')}
+                    {sliderInput('Third', cfg.rank.third, 0, 100, (n) => setCfg({ ...cfg, rank: { ...cfg.rank, third: n } }), 'Reward for 3rd. Consider low values (0–10) to reduce complacency and encourage improvement.')}
+                    {sliderInput('Other', cfg.rank.other, 0, 100, (n) => setCfg({ ...cfg, rank: { ...cfg.rank, other: n } }), 'Reward for finishing outside top 3. Use 0 to discourage settling; small values if you want stability.')} */}
 
-                <HStack pt={2} justify="flex-end">
-                    <Button size="sm" variant="outline" onClick={() => setCfg({
-                        distance: 3,
-                        stuck: -3,
-                        wall: -40,
-                        no_move: -30,
-                        explore: 0,
-                        going_backward: { penalty: -4, include_progress_towards_finish: true },
-                        rank: { first: 50, second: 0, third: 0, other: 0 },
-                    })}>Reset Defaults</Button>
-                </HStack>
-            </VStack>
+                    <HStack pt={2} justify="flex-end">
+                        <Button size="sm" variant="outline" onClick={() => setCfg({
+                            distance: 3,
+                            stuck: -3,
+                            wall: -40,
+                            no_move: -30,
+                            explore: 0,
+                            going_backward: { penalty: -4, include_progress_towards_finish: true },
+                            rank: { first: 50, second: 0, third: 0, other: 0 },
+                        })}>Reset Defaults</Button>
+                    </HStack>
+                </VStack>
+            </Collapse>
         </Box>
     )
 }

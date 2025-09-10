@@ -166,7 +166,7 @@ export function useCarQTable(carId?: string, rpc: string = defaultRpcUrl) {
             return getCarQTable(carId, rpc);
         },
         enabled: Boolean(carId && (contracts as any).raceEngine),
-        staleTime: 30_000,
+        staleTime: 1_800_000, // 30 minutes
     });
 }
 
@@ -184,9 +184,7 @@ export async function getCarMetadata(tokenId: string, rpc: string = defaultRpcUr
     const client = await getCosmWasmClient(rpc);
     try {
         const response = (await client.queryContractSmart(carAddr, {
-            base: {
-                nft_info: { token_id: tokenId },
-            },
+            nft_info: { token_id: tokenId },
         })) as JsonNftInfoResponse;
         // console.log('nft info res', response);
         return response?.extension?.attributes ?? null;
@@ -204,7 +202,7 @@ export function useCarMetadata(tokenId?: string, rpc: string = defaultRpcUrl) {
             return getCarMetadata(tokenId, rpc);
         },
         enabled: Boolean(tokenId && (contracts as any).car),
-        staleTime: 5 * 60_000,
+        staleTime: 1_800_000, // 30 minutes
     });
 }
 
@@ -218,9 +216,7 @@ export async function getCarName(tokenId: string, rpc: string = defaultRpcUrl): 
     const client = await getCosmWasmClient(rpc);
     try {
         const response = (await client.queryContractSmart(carAddr, {
-            base: {
-                nft_info: { token_id: tokenId },
-            },
+            nft_info: { token_id: tokenId },
         })) as JsonNftInfoResponse;
         return response?.extension?.name ?? null;
     } catch (error) {
@@ -237,7 +233,7 @@ export function useCarName(tokenId?: string, rpc: string = defaultRpcUrl) {
             return getCarName(tokenId, rpc);
         },
         enabled: Boolean(tokenId && (contracts as any).car),
-        staleTime: 5 * 60_000,
+        staleTime: 1_800_000, // 30 minutes
     });
 }
 
@@ -280,8 +276,8 @@ export function useCarEnergy(tokenId?: string, rpc: string = defaultRpcUrl) {
             return getCarEnergy(tokenId, rpc);
         },
         enabled: Boolean(tokenId && (contracts as any).car),
-        staleTime: 3600_000,
-        refetchInterval: 3600_000,
+        staleTime: 1_800_000, // 30 minutes
+        // No refetchInterval - rely on manual invalidation
     });
 }
 
@@ -309,8 +305,8 @@ export function useSecondsUntilOpen(event: ByteMinterEvent, rpc: string = defaul
         queryKey: ['byte_minter_until_open', (contracts as any).byteMinter, event, rpc],
         queryFn: async () => getSecondsUntilOpen(event, rpc),
         enabled: Boolean((contracts as any).byteMinter),
-        refetchInterval: 3600_000,
-        staleTime: 3600_000,
+        staleTime: 1_800_000, // 30 minutes
+        // No refetchInterval - rely on manual invalidation
     })
 }
 
@@ -334,8 +330,8 @@ export function useValidMazeId(rpc: string = defaultRpcUrl) {
         queryKey: ['byte_minter_valid_maze_id', (contracts as any).byteMinter, rpc],
         queryFn: async () => getValidMazeId(rpc),
         enabled: Boolean((contracts as any).byteMinter),
-        refetchInterval: 30_000,
-        staleTime: 30_000,
+        staleTime: 1_800_000, // 30 minutes
+        // No refetchInterval - rely on manual invalidation
     })
 }
 
@@ -363,8 +359,8 @@ export function useWindowStatus(event: ByteMinterEvent, rpc: string = defaultRpc
         queryKey: ['byte_minter_window_status', (contracts as any).byteMinter, event, rpc],
         queryFn: async () => getWindowStatus(event, rpc),
         enabled: Boolean((contracts as any).byteMinter),
-        refetchInterval: 30_000,
-        staleTime: 30_000,
+        staleTime: 1_800_000, // 30 minutes
+        // No refetchInterval - rely on manual invalidation
     })
 }
 
@@ -467,19 +463,19 @@ export async function listTracks(rpc: string = defaultRpcUrl): Promise<JsonTrack
 }
 
 export function useListTracks(rpc: string = defaultRpcUrl) {
-    console.log('useListTracks hook called with rpc:', rpc)
+    // console.log('useListTracks hook called with rpc:', rpc)
     return useQuery({
         queryKey: ['list_tracks', contracts.trackManager, rpc],
         queryFn: async () => {
-            console.log('useListTracks queryFn executing...')
+            // console.log('useListTracks queryFn executing...')
             const result = await listTracks(rpc)
-            console.log('useListTracks queryFn completed with result:', result?.length)
+            // console.log('useListTracks queryFn completed with result:', result?.length)
             return result
         },
         refetchOnMount: true,
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
-        staleTime: 0, // Always consider data stale to allow refetching
+        staleTime: 1_800_000, // 30 minutes - can still be invalidated and refetched manually
     });
 }
 
@@ -545,12 +541,10 @@ export async function getOwnedCars(walletAddress: string, rpcUrl: string = defau
     try {
         // Query all tokens owned by the wallet address
         const response = (await client.queryContractSmart(contracts.car, {
-            base: {
-                tokens: {
-                    owner: walletAddress,
-                    limit: 100
-                },
-            },
+            tokens: {
+                owner: walletAddress,
+                limit: 100
+            }
         })) as JsonTokensResponse;
 
         const tokens = response.tokens ?? [];
@@ -559,7 +553,7 @@ export async function getOwnedCars(walletAddress: string, rpcUrl: string = defau
             tokens.map(async (token) => {
                 try {
                     const info = (await client.queryContractSmart(contracts.car, {
-                        base: { nft_info: { token_id: token } },
+                        nft_info: { token_id: token }
                     })) as JsonNftInfoResponse;
                     const name = info?.extension?.name ?? null;
                     return { id: token, name };
@@ -648,7 +642,7 @@ export function useTrackTrainingStats(
             return getTrackTrainingStats(carId, trackId, rpc);
         },
         enabled: Boolean(raceEngineAddr && carId && trackId),
-        staleTime: 5_000, // 5 seconds - reasonable balance between freshness and performance
+        staleTime: 1_800_000, // 30 minutes
         refetchOnMount: false, // Don't refetch on every mount
         refetchOnWindowFocus: false, // Don't refetch on every focus
     });
@@ -688,7 +682,7 @@ export function useTopTimes(trackId?: string, rpc: string = defaultRpcUrl) {
             return getTopTimes(trackId, rpc);
         },
         enabled: Boolean(raceEngineAddr && trackId),
-        staleTime: 5_000, // 5 seconds - reasonable balance between freshness and performance
+        staleTime: 1_800_000, // 30 minutes
         refetchOnMount: false, // Don't refetch on every mount
         refetchOnWindowFocus: false, // Don't refetch on every focus
     });
@@ -734,7 +728,7 @@ export function useTopTimesWithSessions(trackId?: string, rpc: string = defaultR
             return topTimesWithSessions;
         },
         enabled: Boolean(raceEngineAddr && trackId),
-        staleTime: 5_000, // 5 seconds - reasonable balance between freshness and performance
+        staleTime: 1_800_000, // 30 minutes
         refetchOnMount: false, // Don't refetch on every mount
         refetchOnWindowFocus: false, // Don't refetch on every focus
     });
@@ -786,7 +780,7 @@ export function useCarBrainProgress(carId?: string, rpc: string = defaultRpcUrl)
             return getCarBrainProgress(carId, rpc);
         },
         enabled: Boolean(carId && (contracts as any).raceEngine),
-        staleTime: 30_000,
+        staleTime: 1_800_000, // 30 minutes
     });
 }
 

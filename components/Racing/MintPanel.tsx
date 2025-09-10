@@ -39,9 +39,7 @@ const MintPanel: React.FC = () => {
       // Paid option
       paymentActions[key] = useMintCar({
         owner: address,
-        extension: {
-          name: name,
-        },
+        name: name,
         paymentOption: {
           denom: option.denom,
           amount: option.amount
@@ -52,9 +50,7 @@ const MintPanel: React.FC = () => {
       // Free option
       paymentActions[key] = useMintCar({
         owner: address,
-        extension: {
-          name: name,
-        },
+        name: name,
         paymentOption: null,
         onSuccess: triggerTutorialAfterMint
       }).action

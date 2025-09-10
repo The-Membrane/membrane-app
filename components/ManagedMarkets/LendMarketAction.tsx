@@ -56,7 +56,7 @@ const computeTrancheAPRs = (
     } else {
         // Below target: split 80/20 based on token proportions
         const totalInterest = expectedYield.multipliedBy(totalTokens); // total interest amount
-        
+
         if (seniorTokens.isGreaterThan(0)) {
             // Allocate 80% of total interest to core tranche
             const coreInterest = totalInterest.multipliedBy(0.8);
@@ -64,7 +64,7 @@ const computeTrancheAPRs = (
         } else {
             coreAPR = bn(0);
         }
-        
+
         if (juniorTokens.isGreaterThan(0)) {
             // Allocate 20% of total interest to growth tranche
             const growthInterest = totalInterest.multipliedBy(0.2);
@@ -84,10 +84,10 @@ const computeTrancheAPRs = (
     if (juniorTokens.isZero() && seniorTokens.isGreaterThan(0)) {
         const juniorAt2Percent = seniorTokens.multipliedBy(0.02);
         const totalAt2Percent = seniorTokens.plus(juniorAt2Percent);
-        
+
         // Calculate growth APR for 2% scenario
         let growthAPR2Percent: BigNumber;
-        
+
         if (expectedYield.isGreaterThan(seniorTarget) && seniorTokens.isGreaterThan(0)) {
             const totalInterest = expectedYield.multipliedBy(totalAt2Percent);
             const allocatedCoreInterest = seniorTarget.multipliedBy(seniorTokens);
@@ -98,7 +98,7 @@ const computeTrancheAPRs = (
             const growthInterest = totalInterest.multipliedBy(0.2);
             growthAPR2Percent = growthInterest.dividedBy(juniorAt2Percent);
         }
-        
+
         result.growth = `up to ${growthAPR2Percent.multipliedBy(100).dp(1).toFixed(1)}`;
     }
 
@@ -112,7 +112,7 @@ const computeTrancheAPRs = (
         // Calculate APRs for 2% scenario
         let coreAPR2Percent: BigNumber;
         let growthAPR2Percent: BigNumber;
-        
+
         if (expectedYield.isGreaterThan(seniorTarget) && seniorTokens.isGreaterThan(0)) {
             coreAPR2Percent = seniorTarget;
             const totalInterest = expectedYield.multipliedBy(totalAt2Percent);
@@ -130,7 +130,7 @@ const computeTrancheAPRs = (
         // Calculate APRs for 5% scenario
         let coreAPR5Percent: BigNumber;
         let growthAPR5Percent: BigNumber;
-        
+
         if (expectedYield.isGreaterThan(seniorTarget) && seniorTokens.isGreaterThan(0)) {
             coreAPR5Percent = seniorTarget;
             const totalInterest = expectedYield.multipliedBy(totalAt5Percent);
@@ -190,22 +190,22 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
 
 
     // Dynamic vault token denom based on tranche selection
-    const vaultTokenDenom = lendState.isJunior 
+    const vaultTokenDenom = lendState.isJunior
         ? `factory/${marketAddress}/junior-debt-suppliers`
         : `factory/${marketAddress}/debt-suppliers`;
-    
+
     const vaultTokenAsset = {
-            base: vaultTokenDenom,
-            symbol: lendState.isJunior ? 'jvCDT' : 'vCDT',
-            logo: '/images/cdt.svg',
-            decimal: 12,
-            isLP: false,
-            name: lendState.isJunior ? 'Junior Vault CDT' : 'Vault CDT',
-            display: lendState.isJunior ? 'Junior Vault CDT' : 'Vault CDT',
-            denom_units: [],
-            coingecko_id: '',
-            description: '',
-        } as Asset
+        base: vaultTokenDenom,
+        symbol: lendState.isJunior ? 'jvCDT' : 'vCDT',
+        logo: '/images/cdt.svg',
+        decimal: 12,
+        isLP: false,
+        name: lendState.isJunior ? 'Junior Vault CDT' : 'Vault CDT',
+        display: lendState.isJunior ? 'Junior Vault CDT' : 'Vault CDT',
+        denom_units: [],
+        coingecko_id: '',
+        description: '',
+    } as Asset
     const vaultTokenBalance = useBalanceByAsset(vaultTokenAsset);
     console.log("vaultTokenBalance", vaultTokenBalance)
     const { data: underlyingCDTData } = useManagedMarketUnderlyingCDT(marketAddress, shiftDigits(vaultTokenBalance, 12).toString(), lendState.isJunior);
@@ -260,7 +260,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
                                                         <Text color="white" fontSize="sm" fontWeight="medium">Core</Text>
                                                         {coreAPR && <Text color="teal.200" fontSize="xs">{coreAPR}%</Text>}
                                                     </HStack>
-                                                    <Tooltip 
+                                                    <Tooltip
                                                         label="Core: Stable returns with lower risk exposure. Protected from initial losses but limited upside capture."
                                                         placement="top"
                                                         hasArrow
@@ -272,7 +272,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
                                             </VStack>
                                         </HStack>
                                     </HStack>
-                                    
+
                                     <HStack justify="space-between" align="flex-start" p={2} borderRadius="md" _hover={{ bg: "whiteAlpha.50" }}>
                                         <HStack spacing={2} flex={1}>
                                             <Radio value="growth" colorScheme="teal" />
@@ -282,7 +282,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
                                                         <Text color="white" fontSize="sm" fontWeight="medium">Growth</Text>
                                                         {growthAPR && <Text color="teal.200" fontSize="xs">{growthAPR}%</Text>}
                                                     </HStack>
-                                                    <Tooltip 
+                                                    <Tooltip
                                                         label="Growth: Higher potential returns but increased risk exposure. First to absorb losses but first to capture upside."
                                                         placement="top"
                                                         hasArrow
@@ -317,7 +317,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
                                 </Text>
                             </VStack>
                         </HStack>
-                        
+
                         <Input
                             variant="unstyled"
                             fontSize="3xl"
@@ -369,7 +369,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
                                                         <Text color="white" fontSize="sm" fontWeight="medium">Core Balance</Text>
                                                         {coreAPR && <Text color="teal.200" fontSize="xs">{coreAPR}%</Text>}
                                                     </HStack>
-                                                    <Tooltip 
+                                                    <Tooltip
                                                         label="Core Balance: Withdraw from your core position (lower risk/stable returns)"
                                                         placement="top"
                                                         hasArrow
@@ -381,7 +381,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
                                             </VStack>
                                         </HStack>
                                     </HStack>
-                                    
+
                                     <HStack justify="space-between" align="flex-start" p={2} borderRadius="md" _hover={{ bg: "whiteAlpha.50" }}>
                                         <HStack spacing={2} flex={1}>
                                             <Radio value="growth" colorScheme="teal" />
@@ -391,7 +391,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
                                                         <Text color="white" fontSize="sm" fontWeight="medium">Growth Balance</Text>
                                                         {growthAPR && <Text color="teal.200" fontSize="xs">{growthAPR}%</Text>}
                                                     </HStack>
-                                                    <Tooltip 
+                                                    <Tooltip
                                                         label="Growth Balance: Withdraw from your growth position (higher risk/reward)"
                                                         placement="top"
                                                         hasArrow
@@ -409,7 +409,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
 
                         {/* Withdraw Tab */}
                         <HStack justify="space-between" align="flex-start" w="100%" mb={4}>
-                            <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium"  alignSelf="center">Withdraw Amount</Text>
+                            <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium" alignSelf="center">Withdraw Amount</Text>
                             <VStack align="flex-end" spacing={1}>
                                 <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
                                     <Image src={CDT_ASSET.logo} alt={CDT_ASSET.symbol} boxSize="24px" />

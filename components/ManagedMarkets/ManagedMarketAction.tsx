@@ -183,7 +183,7 @@ const ManagedMarketAction = ({
                     paddingInlineEnd={"0"}
                     display="flex"
                     justifyContent="center"
-                    gap={{base: "13%", md: "20%"}}
+                    gap={{ base: "13%", md: "20%" }}
                 >
                     {actionLabels.map((label, idx) => (
                         <Tab
@@ -212,7 +212,7 @@ const ManagedMarketAction = ({
                             p={{ base: 4, md: 8 }}
                             h="fit-content"
                             // maxH="98vh"
-                            w={{base: "100%", md: "40vw"}}
+                            w={{ base: "100%", md: "40vw" }}
                             maxW="600px"
                             m="0 auto"
                             overflowY="auto"
@@ -265,7 +265,7 @@ const ManagedMarketAction = ({
                                                 <Image src={collateralAsset?.logo} alt={collateralAsset?.symbol} boxSize="24px" />
                                                 <Text color="white" fontWeight="bold">{collateralAsset?.symbol}</Text>
                                             </HStack>
-                                            <VStack 
+                                            <VStack
                                                 cursor="pointer"
                                                 onClick={() => setManagedActionState({ collateralAmount: maxBalance.toString() })}
                                                 sx={{
@@ -287,7 +287,7 @@ const ManagedMarketAction = ({
                                 </Box>
                                 {/* Multiplier input and slider - moved here */}
                                 <Box px={2} w="100%">
-                                    <HStack mb={2} justify={{base: "center", md: "flex-end"}}>
+                                    <HStack mb={2} justify={{ base: "center", md: "flex-end" }}>
                                         <Text fontWeight="bold" color="whiteAlpha.800">Multiplier:</Text>
                                         <Input
                                             value={managedActionState.multiplier.toFixed(2)}
@@ -448,7 +448,7 @@ const ManagedMarketAction = ({
                                                 {collateralValue && managedActionState.multiplier && debtPrice ? `$${num(collateralValue).times(managedActionState.multiplier - 1).div(debtPrice).toFixed(2)}` : '-'}
                                             </Text>
                                         </HStack>
-                                        
+
                                         <HStack justify="space-between">
                                             <Text color="whiteAlpha.700">Current Price</Text>
                                             <Text color="white" fontWeight="bold">{collateralPrice ? `$${Formatter.priceDynamicDecimals(num(collateralPrice).toNumber(), 6)}` : '-'}</Text>
@@ -493,8 +493,8 @@ const ManagedMarketAction = ({
                                     isDisabled={!managedActionState.collateralAmount || !managedActionState.multiplier || Number(managedActionState.collateralAmount) <= 0 || managedActionState.multiplier < 1.01}
                                 >
                                     <ManagedMarketSummary managedActionState={managedActionState} borrowAndBoost={borrowAndBoost} collateralAsset={collateralAsset} debtAmount={debtAmount} collateralPrice={collateralPrice as string} debtPrice={debtPrice as string} />
-                                    </ConfirmModal>
-                                </VStack>
+                                </ConfirmModal>
+                            </VStack>
                         </Card>
                     </TabPanel>
                     {/* Lend Tab */}

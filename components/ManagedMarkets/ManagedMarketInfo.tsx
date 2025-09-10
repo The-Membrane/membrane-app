@@ -57,7 +57,7 @@ const calculateRateAtRatio = (ratio: number, base: number, max: number, kink: nu
     if (rate > max) {
         rate = max;
     }
-    
+
     return isNaN(rate) ? 0 : rate;
 };
 
@@ -110,13 +110,13 @@ export const InterestRateModel: React.FC<InterestRateModelProps> = (props) => {
                 <VStack mb={2} spacing={1} align="stretch">
                     <HStack spacing={1} align="center">
                         <Text color="whiteAlpha.800" fontWeight="bold">Interest Rate Model</Text>
-                    <Tooltip label="Shows the interest rate curve and parameters for borrowing.">
-                        <span><InfoOutlineIcon color="whiteAlpha.600" boxSize={4} /></span>
-                    </Tooltip>
-                </HStack>
-                <Button size="xs" variant="ghost" onClick={onToggle} alignSelf="flex-start" w="30%">
-                    {isOpen ? 'Hide Params' : 'See Params'}
-                </Button>
+                        <Tooltip label="Shows the interest rate curve and parameters for borrowing.">
+                            <span><InfoOutlineIcon color="whiteAlpha.600" boxSize={4} /></span>
+                        </Tooltip>
+                    </HStack>
+                    <Button size="xs" variant="ghost" onClick={onToggle} alignSelf="flex-start" w="30%">
+                        {isOpen ? 'Hide Params' : 'See Params'}
+                    </Button>
                 </VStack>
             )}
             <Collapse in={isOpen} animateOpacity>

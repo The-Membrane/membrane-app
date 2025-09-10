@@ -17,7 +17,7 @@ export function useQRacingTrack(trackId?: string, rpcUrl?: string) {
         queryKey: [...TRACK_KEY, trackId ?? 'no-track', rpcUrl],
         queryFn: () => getQRacingTrack(trackId!, rpcUrl),
         enabled: !!trackId,
-        staleTime: 5 * 60 * 1000,
+        staleTime: 30 * 60 * 1000, // 30 minutes
         refetchOnWindowFocus: false,
     });
 }
@@ -44,7 +44,7 @@ export function useRecentRacesForCar(carId: string | null) {
         queryKey: [...RECENT_RACES_KEY, 'car', carId, appState.rpcUrl],
         queryFn: () => getRecentRacesForCar(carId!, appState.rpcUrl),
         enabled: !!carId,
-        staleTime: 5 * 60 * 1000,
+        staleTime: 30 * 60 * 1000, // 30 minutes
     });
 }
 
@@ -55,7 +55,7 @@ export const useAllRecentRaces = () => {
     return useQuery<JsonRaceResult[]>({
         queryKey: [...RECENT_RACES_KEY, 'all', appState.rpcUrl],
         queryFn: () => getAllRecentRaces(appState.rpcUrl),
-        staleTime: 5 * 60 * 1000,
+        staleTime: 30 * 60 * 1000, // 30 minutes
     });
 }
 
@@ -69,11 +69,10 @@ export const useOwnedCars = (walletAddress: string | undefined) => {
             if (!walletAddress) return []
             return getOwnedCars(walletAddress, appState.rpcUrl)
         },
-        staleTime: 30 * 1000, // Reduced to 30 seconds for faster updates
-        refetchOnMount: true,
-        refetchOnWindowFocus: true,
-        refetchInterval: 10 * 1000, // Refetch every 10 seconds to catch new mints
-        refetchIntervalInBackground: false, // Only refetch when window is focused
+        staleTime: 30 * 60 * 1000, // 30 minutes
+        // refetchOnMount: true,
+        // refetchOnWindowFocus: true,
+        // No refetchInterval - rely on manual invalidation for new mints
     });
 }
 
@@ -113,7 +112,7 @@ export function useByteMinterConfig(rpc?: string) {
             }
         },
         enabled: Boolean((contracts as any).byteMinter),
-        staleTime: 60_000, // 1 minute
-        refetchInterval: 300_000, // 5 minutes
+        staleTime: 30 * 60 * 1000, // 30 minutes
+        refetchInterval: 30 * 60 * 1000, // 30 minutes
     });
 }

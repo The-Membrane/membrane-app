@@ -528,9 +528,14 @@ const RockPaperScissors: React.FC = () => {
                     </div>
 
                     {/* Current Score */}
-                    <Text fontFamily='"Press Start 2P", monospace' fontSize="24px" color="#e6e6e6">
-                        Score: {score.win}-{score.loss}-{score.draw}
-                    </Text>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Text fontFamily='"Press Start 2P", monospace' fontSize="12px" color="#b8c1ff">
+                            Win - Loss - Draw
+                        </Text>
+                        <Text fontFamily='"Press Start 2P", monospace' fontSize="24px" color="#e6e6e6">
+                            {score.win}-{score.loss}-{score.draw}
+                        </Text>
+                    </div>
                 </div>
             </div>
 

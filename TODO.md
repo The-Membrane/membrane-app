@@ -1,7 +1,6 @@
 Next Steps:
 
 Make the Control Room... (Make Money Room)  
-- MM liquidation fulfillment
 ---------------------------------
 
 - Make the Portfolio page easily shareable on twitter, see Nolus for inspo
@@ -20,13 +19,6 @@ FOR CONTRACTS:
 -- Create query for vol state
 
 
-(Post-Upgrade)
-- Change optional fields to non-optional & remove osmosis_proxy from Config
-
-
-(App changes post-abstract debt changes)
-- Update market instantiation to add new contracts to params (swap, oracle, tokenfactory)
--- And new oracle info (Collatereal & debt)
 
 - Fuzzing 
 - MM Vault enforces 50/50 LP ratio on deposits (ensures revenue is efficiently incentivizing deeper liquidity)
@@ -39,14 +31,6 @@ FOR CONTRACTS:
 - Add "take initial out" strat
 
 
-Permissionless Iso-Market Growth Aid
-- No fees (add fees later past a borrow threshold)
-- Revenue somewhere (?)
-- Sort UI by APR
-
-- Show slippage of a full collateral -> debt swap
-- Add socials and manager names. add flag if there is none of either.
----------
 
 
 

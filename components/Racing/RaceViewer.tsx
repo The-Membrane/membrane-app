@@ -68,11 +68,11 @@ const RaceViewer: React.FC<Props> = () => {
         if (updates.trackId !== undefined) {
             if (updates.trackId) nextQuery.trackId = updates.trackId; else delete nextQuery.trackId;
         }
-        
+
         // Ensure we have a valid pathname with chain parameter
         const currentPath = router.asPath;
         const pathWithoutQuery = currentPath.split('?')[0];
-        
+
         // If the path doesn't start with a chain parameter, we need to add it
         const pathSegments = pathWithoutQuery.split('/').filter(Boolean);
         if (pathSegments.length === 0 || !pathSegments[0]) {

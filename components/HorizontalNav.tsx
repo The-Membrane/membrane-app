@@ -78,7 +78,7 @@ const HorizontalNav = () => {
 
             {/* Desktop Nav */}
             <HStack spacing={1} display={{ base: 'none', lg: 'none' }}>
-                {navItems.map((item) => (
+                {chainName && navItems.map((item) => (
                     <Button
                         key={item.label}
                         as={NextLink}
@@ -160,7 +160,7 @@ const HorizontalNav = () => {
                                 <Box mb={4}>
                                     <Logo />
                                 </Box>
-                                {navItems.map((item) => (
+                                {chainName && navItems.map((item) => (
                                     <Button
                                         key={item.label}
                                         as={NextLink}

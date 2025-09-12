@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getQRacingTrack, JsonRaceResult, raceResultToPlayByPlayEntries, getRecentRacesForCar, getAllRecentRaces, getOwnedCars, Track, PlayByPlayEntry, useTopTimes, JsonTopTimeEntry } from '../services/q-racing';
+import { getQRacingTrack, JsonRaceResult, raceResultToPlayByPlayEntries, getRecentRacesForCar, getAllRecentRaces, getOwnedCars, Track, PlayByPlayEntry, useTopTimes, JsonTopTimeEntry, getRpsTickHistory, getRpsQ, getRpsHistory, getRpsConfig, JsonGetRpsTickHistoryResponse, JsonGetRpsQResponse, JsonGetRpsHistoryResponse, JsonGetRpsConfigResponse } from '../services/q-racing';
 import useAppState from '@/persisted-state/useAppState';
 import { useMemo } from 'react';
 import contracts from '@/config/contracts.json';
@@ -77,6 +77,59 @@ export const useOwnedCars = (walletAddress: string | undefined) => {
 }
 
 export { useTopTimes };
+
+// ---------------------------
+// RPS Engine Hooks
+// ---------------------------
+
+export function useRpsTickHistory(carId?: string) {
+    const { appState } = useAppState();
+    return useQuery<JsonGetRpsTickHistoryResponse | null>({
+        queryKey: ['rps_tick_history', (contracts as any).rpsEngine, carId, appState.rpcUrl],
+        queryFn: async () => {
+            if (!carId) return null;
+            return getRpsTickHistory(carId, appState.rpcUrl);
+        },
+        enabled: Boolean(carId && (contracts as any).rpsEngine),
+        staleTime: 1_800_000,
+    });
+}
+
+export function useRpsQ(carId?: string, stateId?: number) {
+    const { appState } = useAppState();
+    return useQuery<JsonGetRpsQResponse | null>({
+        queryKey: ['rps_q', (contracts as any).rpsEngine, carId, stateId, appState.rpcUrl],
+        queryFn: async () => {
+            if (!carId) return null;
+            return getRpsQ(carId, stateId, appState.rpcUrl);
+        },
+        enabled: Boolean(carId && (contracts as any).rpsEngine),
+        staleTime: 1_800_000,
+    });
+}
+
+export function useRpsHistory(carId?: string) {
+    const { appState } = useAppState();
+    return useQuery<JsonGetRpsHistoryResponse | null>({
+        queryKey: ['rps_history', (contracts as any).rpsEngine, carId, appState.rpcUrl],
+        queryFn: async () => {
+            if (!carId) return null;
+            return getRpsHistory(carId, appState.rpcUrl);
+        },
+        enabled: Boolean(carId && (contracts as any).rpsEngine),
+        staleTime: 1_800_000,
+    });
+}
+
+export function useRpsConfig() {
+    const { appState } = useAppState();
+    return useQuery<JsonGetRpsConfigResponse | null>({
+        queryKey: ['rps_config', (contracts as any).rpsEngine, appState.rpcUrl],
+        queryFn: async () => getRpsConfig(appState.rpcUrl),
+        enabled: Boolean((contracts as any).rpsEngine),
+        staleTime: 1_800_000,
+    });
+}
 
 // Byte-minter config hook
 export function useByteMinterConfig(rpc?: string) {

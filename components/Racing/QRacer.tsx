@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Box, Button, Flex, HStack, Text, VStack, Spacer } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import RaceViewer from '@/components/Racing/RaceViewer'
+import RockPaperScissors from '@/components/Racing/RockPaperScissors'
 import TrackCreator from '@/components/Racing/TrackCreator'
 import MintPanel from '@/components/Racing/MintPanel'
 import TraitList from '@/components/Racing/TraitList'
@@ -45,6 +46,7 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
 const tabs = [
   { key: 'car', label: 'Car' },
   { key: 'race', label: 'Race' },
+  { key: 'pvp', label: 'PvP' },
   { key: 'create', label: 'Create Track' },
 ] as const
 
@@ -59,7 +61,7 @@ const QRacer: React.FC = () => {
 
   const activeTab = useMemo<TabKey>(() => {
     const q = (router.query?.tab as string) || 'race'
-    return (['car', 'race', 'create'] as string[]).includes(q) ? (q as TabKey) : 'race'
+    return (['car', 'race', 'pvp', 'create'] as string[]).includes(q) ? (q as TabKey) : 'race'
   }, [router.query?.tab])
 
   const setTab = (key: TabKey) => {
@@ -180,6 +182,11 @@ const QRacer: React.FC = () => {
         {activeTab === 'race' && (
           <Box flex="1" border="2px solid #0033ff" p={2} bg="#070b15">
             <RaceViewer />
+          </Box>
+        )}
+        {activeTab === 'pvp' && (
+          <Box flex="1" border="2px solid #0033ff" p={2} bg="#070b15">
+            <RockPaperScissors />
           </Box>
         )}
         {activeTab === 'create' && (

@@ -5,11 +5,13 @@ import useWallet from '@/hooks/useWallet'
 import useAppState from '@/persisted-state/useAppState'
 import { useOwnedCars } from '@/hooks/useQRacing'
 import { useCarMetadata, useCarQTable, useCarBrainProgress } from '@/services/q-racing'
+import { useRpsHistory } from '@/hooks/useQRacing'
 import { Button } from '@chakra-ui/react'
 import useChangeName from './hooks/useChangeName'
 import { CheckIcon, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
 import { CloseIcon, InfoIcon } from '@chakra-ui/icons'
 import IQProgressChart from './IQProgressChart'
+import RpsWinRateChart from './RpsWinRateChart'
 import useRacingState from './hooks/useRacingState'
 
 // const QTableView = ({ qValues }: { qValues: { state_hash: any; action_values: [number, number, number, number] }[] }) => {
@@ -112,6 +114,7 @@ const CarPanel: React.FC = () => {
     const { data: traits } = useCarMetadata(carId || undefined, appState.rpcUrl)
     const { data: q } = useCarQTable(carId || undefined, appState.rpcUrl)
     const { data: brainProgress } = useCarBrainProgress(carId || undefined, appState.rpcUrl)
+    const { data: rpsHistory } = useRpsHistory(carId || undefined)
 
     const qValues = useMemo(() => q?.q_values ?? [], [q])
 
@@ -285,6 +288,27 @@ const CarPanel: React.FC = () => {
                             )
                         }) || <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#666">No traits</Text>}
                     </VStack>
+                </Box>
+
+                {/* RPS Win Rate Chart */}
+                <Box p={3} border="2px solid #0033ff" bg="#0b0e17" borderRadius={6} h="400px">
+                    {rpsHistory?.history && rpsHistory.history.length > 0 ? (
+                        <RpsWinRateChart
+                            matchHistory={rpsHistory.history}
+                            carId={carId}
+                        />
+                    ) : (
+                        <Flex
+                            align="center"
+                            justify="center"
+                            h="100%"
+                            fontFamily='"Press Start 2P", monospace'
+                            fontSize="10px"
+                            color="#666"
+                        >
+                            No RPS data
+                        </Flex>
+                    )}
                 </Box>
 
             </VStack>

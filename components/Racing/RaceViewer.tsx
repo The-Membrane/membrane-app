@@ -68,7 +68,20 @@ const RaceViewer: React.FC<Props> = () => {
         if (updates.trackId !== undefined) {
             if (updates.trackId) nextQuery.trackId = updates.trackId; else delete nextQuery.trackId;
         }
-        router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
+        
+        // Ensure we have a valid pathname with chain parameter
+        const currentPath = router.asPath;
+        const pathWithoutQuery = currentPath.split('?')[0];
+        
+        // If the path doesn't start with a chain parameter, we need to add it
+        const pathSegments = pathWithoutQuery.split('/').filter(Boolean);
+        if (pathSegments.length === 0 || !pathSegments[0]) {
+            // No path segments, this shouldn't happen but fallback to current pathname
+            router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
+        } else {
+            // Use the current path structure
+            router.replace({ pathname: pathWithoutQuery, query: nextQuery }, undefined, { shallow: true, scroll: false });
+        }
     };
 
     // Load car sprite images
@@ -491,6 +504,36 @@ const RaceViewer: React.FC<Props> = () => {
 
     // keep ref in sync with state so animation loop reads latest value
     useEffect(() => { playingRef.current = playing; }, [playing]);
+
+    // Reset canvas and race state when track changes
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Clear the canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Reset race state
+        setPlaying(false);
+        playingRef.current = false;
+        tickRef.current = 0;
+        setTickDisplay(0);
+
+        // Clear car paths and reset car state
+        carsRef.current.forEach((car) => {
+            car.path = [];
+            car.hasReachedFinish = false;
+            car.lastValidRenderX = undefined;
+            car.lastValidRenderY = undefined;
+            car.hit_wall = false as any;
+        });
+
+        // Clear selected race when track changes
+        setSelectedRace(null);
+    }, [selectedTrackId]);
 
     useEffect(() => {
         if (!track) return;

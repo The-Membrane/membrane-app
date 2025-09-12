@@ -237,6 +237,43 @@ export function useCarName(tokenId?: string, rpc: string = defaultRpcUrl) {
     });
 }
 
+// List all cars with names (searchable opponent list)
+export async function getAllCars(rpc: string = defaultRpcUrl): Promise<Array<{ id: string; name: string | null }>> {
+    const carAddr = (contracts as any).car as string | undefined;
+    if (!carAddr) return [];
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const res = (await client.queryContractSmart(carAddr, {
+            all_tokens: { limit: 200 },
+        })) as JsonTokensResponse | JsonAllTokensResponse;
+        const tokens: string[] = (res as any)?.tokens?.tokens ?? (res as any)?.tokens ?? [];
+        const results = await Promise.all(
+            tokens.map(async (token) => {
+                try {
+                    const info = (await client.queryContractSmart(carAddr, { nft_info: { token_id: token } })) as JsonNftInfoResponse;
+                    const name = info?.extension?.name ?? null;
+                    return { id: token, name };
+                } catch (_) {
+                    return { id: token, name: null };
+                }
+            })
+        );
+        return results;
+    } catch (e) {
+        console.error('Error fetching all cars', e);
+        return [];
+    }
+}
+
+export function useAllCars(rpc: string = defaultRpcUrl) {
+    return useQuery<Array<{ id: string; name: string | null }>>({
+        queryKey: ['all_cars', (contracts as any).car, rpc],
+        queryFn: async () => getAllCars(rpc),
+        enabled: Boolean((contracts as any).car),
+        staleTime: 1_800_000,
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Energy: CarInfo with energy fields via custom query
 
@@ -787,4 +824,135 @@ export function useCarBrainProgress(carId?: string, rpc: string = defaultRpcUrl)
 // Helper – simulates network latency
 async function artificialDelay(ms = 300): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
-} 
+}
+
+// ---------------------------------------------------------------------------
+// RPS Engine – Queries and helpers
+
+// Types mirrored from membrane-core rps_engine.rs and types.rs
+export interface JsonRpsTickRecord {
+    my_action: number; // u8: 0=Rock, 1=Paper, 2=Scissors
+    opp_action: number; // u8
+    outcome: number; // u8: 0=lose, 1=draw, 2=win
+}
+
+export interface JsonGetRpsTickHistoryResponse {
+    car_id: string; // u128 -> string
+    ticks: JsonRpsTickRecord[];
+}
+
+export interface JsonGetRpsQResponseEntry {
+    state_id: number; // u8
+    action_values: [number, number, number]; // i8 triple
+}
+
+export interface JsonGetRpsQResponse {
+    car_id: string; // u128 -> string
+    q_values: JsonGetRpsQResponseEntry[];
+}
+
+export interface JsonGetRpsHistoryResponse {
+    car_id: string; // u128 -> string
+    history: number[]; // Vec<u8>
+}
+
+export interface JsonGetRpsConfigResponse {
+    admin: string;
+    car_contract: string;
+    max_ticks: number;
+    match_history_limit: number;
+    tick_history_limit: number;
+}
+
+export function rpsActionToLabel(action: number | undefined | null): 'Rock' | 'Paper' | 'Scissors' | 'Unknown' {
+    switch (action) {
+        case 0: return 'Rock';
+        case 1: return 'Paper';
+        case 2: return 'Scissors';
+        default: return 'Unknown';
+    }
+}
+
+export function rpsActionToEmoji(action: number | undefined | null): string {
+    switch (action) {
+        case 0: return '✊';
+        case 1: return '✋';
+        case 2: return '✌️';
+        default: return '❓';
+    }
+}
+
+export async function getRpsTickHistory(carId: string, rpc: string = defaultRpcUrl): Promise<JsonGetRpsTickHistoryResponse | null> {
+    const rpsEngineAddr = (contracts as any).rpsEngine as string;
+    // if (!rpsEngineAddr) {
+    //     await artificialDelay();
+    //     return null;
+    // }
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(rpsEngineAddr, {
+            get_tick_history: { car_id: carId },
+        })) as JsonGetRpsTickHistoryResponse;
+        console.log('getRpsTickHistory', response)
+        return response ?? null;
+    } catch (error) {
+        console.error('Error fetching RPS tick history:', error);
+        return null;
+    }
+}
+
+export async function getRpsQ(carId: string, stateId?: number, rpc: string = defaultRpcUrl): Promise<JsonGetRpsQResponse | null> {
+    const rpsEngineAddr = (contracts as any).rpsEngine as string | undefined;
+    if (!rpsEngineAddr) {
+        await artificialDelay();
+        return null;
+    }
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(rpsEngineAddr, {
+            get_q: { car_id: carId, state_id: stateId ?? null },
+        })) as JsonGetRpsQResponse;
+        return response ?? null;
+    } catch (error) {
+        console.error('Error fetching RPS Q:', error);
+        return null;
+    }
+}
+
+export async function getRpsHistory(carId: string, rpc: string = defaultRpcUrl): Promise<JsonGetRpsHistoryResponse | null> {
+    const rpsEngineAddr = (contracts as any).rpsEngine as string | undefined;
+    if (!rpsEngineAddr) {
+        await artificialDelay();
+        return null;
+    }
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(rpsEngineAddr, {
+            get_history: { car_id: carId },
+        })) as JsonGetRpsHistoryResponse;
+        return response ?? null;
+    } catch (error) {
+        console.error('Error fetching RPS history:', error);
+        return null;
+    }
+}
+
+export async function getRpsConfig(rpc: string = defaultRpcUrl): Promise<JsonGetRpsConfigResponse | null> {
+    const rpsEngineAddr = (contracts as any).rpsEngine as string | undefined;
+    if (!rpsEngineAddr) {
+        await artificialDelay();
+        return null;
+    }
+    const client = await getCosmWasmClient(rpc);
+    try {
+        const response = (await client.queryContractSmart(rpsEngineAddr, {
+            get_config: {},
+        })) as { config?: JsonGetRpsConfigResponse } | JsonGetRpsConfigResponse;
+        // Some contracts wrap as { config: {...} }
+        const cfg = (response as any)?.config ?? response;
+        return (cfg as JsonGetRpsConfigResponse) ?? null;
+    } catch (error) {
+        console.error('Error fetching RPS config:', error);
+        return null;
+    }
+}

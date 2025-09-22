@@ -93,16 +93,51 @@ const CarPanel: React.FC = () => {
     const { appState } = useAppState()
     const { data: cars } = useOwnedCars(address)
     const [carId, setCarId] = useState<string>('')
+    const [isTraitsExpanded, setIsTraitsExpanded] = useState(false)
     const router = useRouter()
 
     const updateRouteCarId = (id?: string) => {
+        console.log('🔧 CarPanel updateRouteCarId called with:', id);
+        console.log('🔧 CarPanel router state:', {
+            asPath: router.asPath,
+            pathname: router.pathname,
+            query: router.query,
+            isReady: router.isReady
+        });
+
         const nextQuery: Record<string, any> = { ...router.query }
+
+        // Log current chain parameter (don't override)
+        console.log('🔧 CarPanel current chain parameter:', nextQuery.chain);
+
         if (id) {
             nextQuery.carId = id
+            console.log('🔧 CarPanel updated carId:', id);
         } else {
             delete nextQuery.carId
+            console.log('🔧 CarPanel removed carId');
         }
-        router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false })
+
+        console.log('🔧 CarPanel final routing data:', {
+            pathname: router.pathname,
+            nextQuery,
+            hasChain: !!nextQuery.chain
+        });
+
+        if (!nextQuery.chain) {
+            console.error('❌ CarPanel CRITICAL: Missing chain parameter!', {
+                pathname: router.pathname,
+                nextQuery
+            });
+            return;
+        }
+
+        try {
+            router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
+            console.log('✅ CarPanel route update successful');
+        } catch (error) {
+            console.error('❌ CarPanel route update failed:', error);
+        }
     }
 
     const [isEditing, setIsEditing] = useState(false)
@@ -271,23 +306,36 @@ const CarPanel: React.FC = () => {
 
             <VStack align="stretch" spacing={4} minW={{ base: '100%', lg: '420px' }} w={{ base: '100%', lg: 'auto' }}>
                 <Box p={3} border="2px solid #0033ff" bg="#0b0e17" borderRadius={6}>
-                    <Text mb={2} fontFamily='"Press Start 2P", monospace' fontSize={{ base: '10px', sm: '12px' }} color="#00ffea">Traits</Text>
-                    <VStack align="stretch" spacing={1}>
-                        {traits?.map((t, i) => {
-                            const showSwatch = isColorTrait(t.trait_type)
-                            const hex = showSwatch ? extractColorHex(t.value) : null
-                            return (
-                                <HStack key={`${t.trait_type}-${i}`} justify="space-between">
-                                    <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">{t.trait_type}</Text>
-                                    {showSwatch && hex ? (
-                                        <Box w="14px" h="14px" borderRadius={2} border="1px solid #2a3550" style={{ background: hex }} />
-                                    ) : (
-                                        <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#00ffea">{t.value}</Text>
-                                    )}
-                                </HStack>
-                            )
-                        }) || <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#666">No traits</Text>}
-                    </VStack>
+                    <HStack justify="space-between" mb={2}>
+                        <Text fontFamily='"Press Start 2P", monospace' fontSize={{ base: '10px', sm: '12px' }} color="#00ffea">Traits</Text>
+                        <Button
+                            size="xs"
+                            variant="ghost"
+                            onClick={() => setIsTraitsExpanded(!isTraitsExpanded)}
+                            p={1}
+                            minW={0}
+                        >
+                            {isTraitsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </Button>
+                    </HStack>
+                    <Collapse in={isTraitsExpanded}>
+                        <VStack align="stretch" spacing={1}>
+                            {traits?.map((t, i) => {
+                                const showSwatch = isColorTrait(t.trait_type)
+                                const hex = showSwatch ? extractColorHex(t.value) : null
+                                return (
+                                    <HStack key={`${t.trait_type}-${i}`} justify="space-between">
+                                        <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">{t.trait_type}</Text>
+                                        {showSwatch && hex ? (
+                                            <Box w="14px" h="14px" borderRadius={2} border="1px solid #2a3550" style={{ background: hex }} />
+                                        ) : (
+                                            <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#00ffea">{t.value}</Text>
+                                        )}
+                                    </HStack>
+                                )
+                            }) || <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#666">No traits</Text>}
+                        </VStack>
+                    </Collapse>
                 </Box>
 
                 {/* RPS Win Rate Chart */}

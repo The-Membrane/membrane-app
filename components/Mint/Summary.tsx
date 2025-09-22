@@ -4,6 +4,7 @@ import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { AssetWithBalance } from './hooks/useCombinBalance'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 type SummaryItemProps = Partial<AssetWithBalance> & {
   label: string
@@ -61,6 +62,7 @@ const SummaryItem = ({
 
 export const Summary = () => {
   const { mintState } = useMintState()
+  const { chainName } = useChainRoute()
   const { data } = useVaultSummary()
   const { debtAmount } = data || {
     debtAmount: 0,
@@ -72,7 +74,7 @@ export const Summary = () => {
     liqudationLTV: 0,
   }
   const { summary } = mintState
-  const cdt = useAssetBySymbol('CDT')
+  const cdt = useAssetBySymbol('CDT', chainName)
   // console.log("Mint Summary", mintState.repay ?? 0, debtAmount)
 
   if (!mintState.isTakeAction) return null

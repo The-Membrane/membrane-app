@@ -7,9 +7,10 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { useUserPositions, useUserRemptionInfo } from '@/hooks/useCDP'
 import useMintState from './hooks/useMintState'
 import { shiftDigits } from '@/helpers/math'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 const RedemptionCard = () => {
-
+    const { chainName } = useChainRoute()
     const { data: userRedemptionInfo } = useUserRemptionInfo()
     console.log("userRedemptionInfo", userRedemptionInfo)
     const userPremium = userRedemptionInfo?.premium_infos[0]?.premium ?? 0
@@ -21,7 +22,7 @@ const RedemptionCard = () => {
         parseFloat(prices?.find((price) => price.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.price ?? "0"),
         [prices])
 
-    const usdcAssetInfo = useAssetBySymbol('USDC')
+    const usdcAssetInfo = useAssetBySymbol('USDC', chainName)
     const usdcBalance = useBalanceByAsset(usdcAssetInfo) ?? "1"
     const usdcAsset = { ...usdcAssetInfo, balance: usdcBalance, price: usdcPrice }
     const isDepositDisabled = usdcBalance === "0"
@@ -47,11 +48,11 @@ const RedemptionCard = () => {
 
     return (<>
         <Card
-          minW={{ base: '100%', md: '363px' }}
-          maxW={{ base: '100%', md: '500px' }}
-          gap="12"
-          h="max-content"
-          px="2"
+            minW={{ base: '100%', md: '363px' }}
+            maxW={{ base: '100%', md: '500px' }}
+            gap="12"
+            h="max-content"
+            px="2"
         >
             <Stack gap="5" padding="3%">
                 <Text fontSize="18px" fontWeight={"bold"}>

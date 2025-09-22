@@ -7,6 +7,7 @@ import useMintState from './useMintState'
 import useInitialVaultSummary from './useInitialVaultSummary'
 import useWallet from '@/hooks/useWallet'
 import useAppState from '@/persisted-state/useAppState'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 // This hook is used to calculate the vault summary
 export const useVaultSummary = ({ positionNumber }: { positionNumber?: number } = {}) => {
@@ -22,6 +23,10 @@ export const useVaultSummary = ({ positionNumber }: { positionNumber?: number } 
   const positionNum = positionNumber ?? mintState.positionNumber
   const { data: vaultSummary } = useInitialVaultSummary(positionNum - 1)
 
+  const { chainName } = useChainRoute()
+  console.log("vault sum chainName", chainName)
+
+
   const {
     initialBorrowLTV = 0,
     initialLTV = 0,
@@ -30,7 +35,7 @@ export const useVaultSummary = ({ positionNumber }: { positionNumber?: number } 
     debtAmount = 0
   } = vaultSummary ?? {}
 
-  // console.log("mint summary", mintState.summary)
+  console.log("mint summary", mintState.summary)
 
   return useQuery({
     queryKey: [
@@ -45,7 +50,8 @@ export const useVaultSummary = ({ positionNumber }: { positionNumber?: number } 
       mintState.repay,
       positionNum,
       mintState.newDebtAmount,
-      discount
+      discount,
+      chainName
     ],
     queryFn: () => calculateVaultSummary({
       basket,
@@ -63,7 +69,8 @@ export const useVaultSummary = ({ positionNumber }: { positionNumber?: number } 
       debtAmount,
       initialTVL,
       basketAssets,
-      discount: discount?.discount ?? "0"
+      discount: discount?.discount ?? "0",
+      chainName
     }),
     enabled: true
   })

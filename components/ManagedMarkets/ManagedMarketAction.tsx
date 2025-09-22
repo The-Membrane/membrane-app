@@ -13,6 +13,7 @@ import ConfirmModal from '@/components/ConfirmModal/ConfirmModal';
 import ManagedMarketSummary from '@/components/ManagedMarkets/ManagedMarketSummary';
 import { Formatter } from '@/helpers/formatter';
 import LendMarketAction from './LendMarketAction';
+import { useChainRoute } from '@/hooks/useChainRoute';
 
 // Props: action, marketAddress, collateralSymbol
 const ManagedMarketAction = ({
@@ -20,8 +21,9 @@ const ManagedMarketAction = ({
     marketAddress = "Loading...",
     collateralSymbol = "Loading...",
 }) => {
+    const { chainName } = useChainRoute();
     //Get collateral asset from symbol
-    const collateralAsset = useAssetBySymbol(collateralSymbol, 'osmosis');
+    const collateralAsset = useAssetBySymbol(collateralSymbol, chainName);
     //Get market details
     const { data: market } = useManagedMarket(marketAddress, collateralAsset?.base || "");
     // const { data: config } = useManagedConfig(marketAddress);

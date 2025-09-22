@@ -24,12 +24,14 @@ import { getBestCLRange } from "@/services/osmosis"
 import { colors, LPJoinDate } from "@/config/defaults"
 import YieldCounter from "./YieldCounter"
 import useAppState from "@/persisted-state/useAppState"
+import { useChainRoute } from "@/hooks/useChainRoute"
 
 const ActSlider = React.memo(() => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
+  const { chainName } = useChainRoute()
+  const boundCDTAsset = useAssetBySymbol('range-bound-CDT', chainName)
   const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
-  const cdtAsset = useAssetBySymbol('CDT')
+  const cdtAsset = useAssetBySymbol('CDT', chainName)
   const cdtBalance = useBalanceByAsset(cdtAsset)
   const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
     num(shiftDigits(boundCDTBalance, 6)).toFixed(0)

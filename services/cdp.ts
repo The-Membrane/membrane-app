@@ -162,7 +162,7 @@ export interface Prices {
   [key: string]: number
 }
 
-export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], positionIndex: number = 0) => {
+export const getPositions = (basketPositions?: BasketPositionsResponse[], prices?: Price[], positionIndex: number = 0, chainName?: string) => {
   //This allows us to create a new position for users even if they have open positions
   if (basketPositions && basketPositions.length > 0 && positionIndex === basketPositions[0].positions.length) return []
   if (!basketPositions || basketPositions.length === 0) return []
@@ -171,8 +171,11 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
   return positions?.collateral_assets.map((asset) => {
     //@ts-ignore
     const denom = asset.asset.info.native_token.denom
-    const assetInfo = getAssetByDenom(denom)
+    console.log("denom", denom)
+    const assetInfo = getAssetByDenom(denom, chainName)
+    console.log("assetInfo", assetInfo)
     const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal ?? 6)).toNumber()
+    console.log("amount", amount, asset.asset.amount, assetInfo?.decimal)
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
     const usdValue = num(amount).times(assetPrice).toNumber()
@@ -338,9 +341,10 @@ type VaultSummary = {
   debtAmount: number
   basketAssets: BasketAsset[]
   discount: string
+  chainName?: string
 }
 
-export const updatedSummary = (summary: any, basketPositions: any, prices: any, positionIndex: number = 0) => {
+export const updatedSummary = (summary: any, basketPositions: any, prices: any, positionIndex: number = 0, chainName?: string) => {
 
   //If no initial position, return a summary using the summary from the mint state
   if (!basketPositions) {
@@ -360,7 +364,7 @@ export const updatedSummary = (summary: any, basketPositions: any, prices: any, 
     })
   }
 
-  var positions = getPositions(basketPositions, prices, positionIndex)
+  var positions = getPositions(basketPositions, prices, positionIndex, chainName)
 
   //Adds assets in the summary that aren't already in positions
   const newPositions = summary.filter((position: any) => {
@@ -408,6 +412,7 @@ export const calculateVaultSummary = ({
   debtAmount,
   basketAssets,
   discount,
+  chainName,
 }: VaultSummary) => {
   if (!basket || !collateralInterest || (!basketPositions && summary.length === 0) || !prices) {
     {
@@ -428,7 +433,7 @@ export const calculateVaultSummary = ({
     }
   }
 
-  const positions = updatedSummary(summary, basketPositions, prices, positionIndex)
+  const positions = updatedSummary(summary, basketPositions, prices, positionIndex, chainName)
   if (!positions) {
     // console.log("returning 0 debt 2")
     return {
@@ -521,7 +526,8 @@ export const getRiskyPositions = (
   basketPositions: BasketPositionsResponse[],
   prices: Price[],
   basket: Basket,
-  basketAssets: BasketAsset[]
+  basketAssets: BasketAsset[],
+  chainName?: string
 ) => {
 
 
@@ -539,7 +545,7 @@ export const getRiskyPositions = (
     basketPosition.positions.forEach((position, posIndex) => {
       totalPositions++;
       console.log("position", position.position_id);
-      const positions = getPositions([basketPosition], prices, posIndex);
+      const positions = getPositions([basketPosition], prices, posIndex, chainName);
 
 
       // Create a list of the position's assets and sort alphabetically

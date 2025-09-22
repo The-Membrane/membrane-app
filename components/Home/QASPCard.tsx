@@ -18,14 +18,16 @@ import React from "react"
 import ConfirmModal from "../ConfirmModal"
 import { QASummary } from "./QASummary"
 import { GrPowerReset } from "react-icons/gr"
+import { useChainRoute } from "@/hooks/useChainRoute"
 import { colors } from "@/config/defaults"
 import { useColorModeValue } from "@chakra-ui/react"
 
 const ActSlider = React.memo(() => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
-  const earnCDTAsset = useAssetBySymbol('earnCDT')
+  const { chainName } = useChainRoute()
+  const earnCDTAsset = useAssetBySymbol('earnCDT', chainName)
   const earnCDTBalance = useBalanceByAsset(earnCDTAsset) ?? "1"
-  const cdtAsset = useAssetBySymbol('CDT')
+  const cdtAsset = useAssetBySymbol('CDT', chainName)
   const cdtBalance = useBalanceByAsset(cdtAsset)
 
   //Set withdraw slider max to the total USDC deposit, not the looped VT deposit

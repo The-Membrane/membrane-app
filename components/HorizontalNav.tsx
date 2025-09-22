@@ -183,6 +183,15 @@ const HorizontalNav = () => {
                                 ))}
                             </VStack>
                             <Box p={4}>
+                                <Text
+                                    color="blue.300"
+                                    fontStyle="italic"
+                                    fontSize="sm"
+                                    textAlign="center"
+                                    mb={4}
+                                >
+                                    "DeFy the World Together"
+                                </Text>
                                 <WallectConnect />
                             </Box>
                         </VStack>

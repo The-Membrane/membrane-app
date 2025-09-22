@@ -14,7 +14,7 @@ const useAssets = (chainID: string = DEFAULT_CHAIN) => {
   return assets as Asset[]
 }
 
-export const useAssetBySymbol = (symbol: string, chainID: string = 'osmosis') => {
+export const useAssetBySymbol = (symbol: string, chainID: string = DEFAULT_CHAIN) => {
   const assets = useAssets(chainID)
 
   return useMemo(() => {
@@ -23,7 +23,7 @@ export const useAssetBySymbol = (symbol: string, chainID: string = 'osmosis') =>
   }, [assets, symbol])
 }
 
-export const useAssetByDenom = (denom: string, chainID: string = 'osmosis', assets: any[]) => {
+export const useAssetByDenom = (denom: string, chainID: string = DEFAULT_CHAIN, assets: any[]) => {
   return useMemo(() => {
     if (!assets || !denom) return null
     return assets.find((asset) => asset.base === denom)

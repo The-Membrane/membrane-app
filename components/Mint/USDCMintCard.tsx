@@ -9,12 +9,13 @@ import { ChangeEvent, useCallback, useRef, useState } from "react"
 import { num } from "@/helpers/num"
 import { TxButton } from "../TxButton"
 import { parseError } from "@/helpers/parseError"
+import { useChainRoute } from "@/hooks/useChainRoute"
 
 export const USDCMintCard = () => {
-
+    const { chainName } = useChainRoute()
     const { data: prices } = useOraclePrice()
     const usdcPrice = prices?.find((price) => price.denom === denoms.USDC[0])?.price ?? "1"
-    const usdcAsset = useAssetBySymbol('USDC')
+    const usdcAsset = useAssetBySymbol('USDC', chainName)
     const usdcBalance = Number(useBalanceByAsset(usdcAsset)) ?? 0
 
 

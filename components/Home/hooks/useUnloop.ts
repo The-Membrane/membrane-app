@@ -16,14 +16,16 @@ import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSumma
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import useAppState from '@/persisted-state/useAppState'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 const useUnLoop = (positionIndex: number, desiredWithdrawal?: number) => {
   const { address } = useWallet()
+  const { chainName } = useChainRoute()
   const { data: basketPositions } = useUserPositions()
   const { appState } = useAppState()
   const { data: basket } = useBasket(appState.rpcUrl)
   const { data: prices } = useOraclePrice()
-  const cdtAsset = useAssetBySymbol('CDT')
+  const cdtAsset = useAssetBySymbol('CDT', chainName)
   const walletCDT = useBalanceByAsset(cdtAsset)
 
   const { mintState } = useMintState()

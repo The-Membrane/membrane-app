@@ -10,6 +10,7 @@ import { ChangeEvent, useMemo, useState } from 'react'
 import { num } from '@/helpers/num'
 import { delayTime } from '@/config/defaults'
 import { useQueue } from '@/hooks/useLiquidations'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 const PlaceBid = () => {
   const { bidState, setBidState } = useBidState()
@@ -20,7 +21,8 @@ const PlaceBid = () => {
 
   const bid = useBid({ txSuccess })
   const { data: queue } = useQueue(bidState?.selectedAsset)
-  const cdt = useAssetBySymbol('CDT')
+  const { chainName } = useChainRoute()
+  const cdt = useAssetBySymbol('CDT', chainName)
   const cdtBalance = useBalanceByAsset(cdt)
   const [inputAmount, setInputAmount] = useState(0);
   const [premiuminputAmount, setPremiumInputAmount] = useState(0);

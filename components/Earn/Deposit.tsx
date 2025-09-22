@@ -23,6 +23,7 @@ import { getUnderlyingUSDC } from '@/services/earn'
 import { useUSDCVaultTokenUnderlying, useEarnUSDCEstimatedAPR, useVaultInfo, useEarnUSDCRealizedAPR } from '../../hooks/useEarnQueries'
 import useEarnExit from './hooks/useEarn'
 import Divider from '../Divider'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import useEarnLoop from './hooks/useEarnLoop'
 import useCDPRedeem from './hooks/useCDPRedeem'
 import useUSDCVaultCrankAPR from './hooks/useUSDCVaultCrankAPR'
@@ -119,10 +120,11 @@ import useAppState from '@/persisted-state/useAppState'
 
 const ActSlider = React.memo(() => {
   const { earnState, setEarnState } = useEarnState()
+  const { chainName } = useChainRoute()
   const { data: vaultInfo } = useVaultInfo()
-  const earnUSDCAsset = useAssetBySymbol('earnUSDC')
+  const earnUSDCAsset = useAssetBySymbol('earnUSDC', chainName)
   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
-  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcAsset = useAssetBySymbol('USDC', chainName)
   const usdcBalance = useBalanceByAsset(usdcAsset)
   const { data: prices } = useOraclePrice()
   const { appState } = useAppState()
@@ -214,15 +216,16 @@ const ActSlider = React.memo(() => {
 
 const Deposit = () => {
   const { earnState, setEarnState } = useEarnState()
+  const { chainName } = useChainRoute()
   const { data: prices } = useOraclePrice()
   const { appState } = useAppState()
   const { data: basket } = useBasket(appState.rpcUrl)
   const { action: loop } = useEarnLoop()
   const { action: crankAPR } = useUSDCVaultCrankAPR()
-  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcAsset = useAssetBySymbol('USDC', chainName)
   const usdcPrice = parseFloat(prices?.find((price) => price.denom === usdcAsset?.base)?.price ?? "0")
 
-  const earnUSDCAsset = useAssetBySymbol('earnUSDC')
+  const earnUSDCAsset = useAssetBySymbol('earnUSDC', chainName)
   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
   const { data: underlyingUSDC } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
   console.log("underlyingUSDC", usdcPrice, underlyingUSDC)

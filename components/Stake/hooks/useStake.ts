@@ -16,7 +16,7 @@ type UseStake = {}
 const useStakeing = ({ }: UseStake) => {
   const { chainName } = useChainRoute()
   const { address } = useWallet(chainName)
-  const mbrnAsset = useAssetBySymbol('MBRN')
+  const mbrnAsset = useAssetBySymbol('MBRN', chainName)
   const { stakeState } = useStakeState()
   const { amount, txType } = stakeState
 

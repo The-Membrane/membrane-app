@@ -124,9 +124,9 @@ const fetchYield = (userAddress: string, chainName: string) => {
 };
 
 const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDenom, maxLTV, collateralPrice, currentLTV, initialLiquidationPrice, onClose }: { assetSymbol: string, position: any, marketAddress: string, collateralDenom: string, maxLTV: number, collateralPrice: number, currentLTV: number, initialLiquidationPrice: string, onClose: () => void }) => {
-  const asset = useAssetBySymbol(assetSymbol);
-  const { setManagedActionState, managedActionState } = useManagedAction();
   const { chainName } = useChainRoute();
+  const asset = useAssetBySymbol(assetSymbol, chainName);
+  const { setManagedActionState, managedActionState } = useManagedAction();
   const { address: userAddress } = useWallet(chainName);
   const { data: uxBoosts } = useUserUXBoosts(marketAddress, collateralDenom, userAddress ?? '');
   const [spread, setSpread] = useState(0.01);

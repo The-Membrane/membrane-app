@@ -12,10 +12,12 @@ import useStakeing from './hooks/useStake'
 import useStakeState from './hooks/useStakeState'
 import useStaked from './hooks/useStaked'
 import { colors } from '@/config/defaults'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 const Stakeing = () => {
   const [stakeAmount, setStakeAmount] = useState(0)
-  const mbrnAsset = useAssetBySymbol('MBRN')
+  const { chainName } = useChainRoute()
+  const mbrnAsset = useAssetBySymbol('MBRN', chainName)
   const mbrnBalance = useBalanceByAsset(mbrnAsset)
   const { action: stake } = useStakeing({})
   const { data } = useStaked(true)

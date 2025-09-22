@@ -17,6 +17,7 @@ import { loopMax } from '@/config/defaults'
 import { AssetWithBalance } from '@/components/Mint/hooks/useCombinBalance'
 import { setCookie } from '@/helpers/cookies'
 import useAppState from '@/persisted-state/useAppState'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
   const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -24,10 +25,11 @@ const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
 
   // const { summary = [] } = quickActionState
   const { address } = useWallet()
+  const { chainName } = useChainRoute()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket(appState.rpcUrl)
   const { data: prices } = useOraclePrice()
-  const cdtAsset = useAssetBySymbol('CDT')
+  const cdtAsset = useAssetBySymbol('CDT', chainName)
   // const usdcAsset = useAssetBySymbol('USDC')
 
 

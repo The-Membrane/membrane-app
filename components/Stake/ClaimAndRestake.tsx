@@ -6,6 +6,7 @@ import { useMemo } from 'react'
 import useStakingClaim from './hooks/useStakingClaim'
 import useStaked from './hooks/useStaked'
 import { useAssetBySymbol } from '@/hooks/useAssets'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 type Props = {}
 
@@ -27,13 +28,14 @@ const RestakeButton = (reward: any) => {
 }
 
 export const ClaimAndRestake = (props: Props) => {
+  const { chainName } = useChainRoute()
   const { data } = useStaked(true)
   const { rewards = [] } = data || {}
   const { action: claim } = useStakingClaim(false)
   console.log("CLAIM", claim)
 
-  const CDT = useAssetBySymbol('CDT')
-  const MBRN = useAssetBySymbol('MBRN')
+  const CDT = useAssetBySymbol('CDT', chainName)
+  const MBRN = useAssetBySymbol('MBRN', chainName)
 
   //MBRN claims
   const mbrnClaims = useMemo(() => {

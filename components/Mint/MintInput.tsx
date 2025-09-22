@@ -7,6 +7,7 @@ import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { CustomTab } from './AssetWithInput'
 import { colors } from '@/config/defaults'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 export type MintInputProps = {
     label?: string
@@ -14,6 +15,7 @@ export type MintInputProps = {
 
 export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
     const { setMintState, mintState } = useMintState()
+    const { chainName } = useChainRoute()
     const { data } = useVaultSummary()
     const [sumData, setSumData] = useState(data)
     const [mintInputValue, setMintInputValue] = useState<number>(0)
@@ -39,7 +41,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
         setMintInputValue(0)
     }, [mintState.reset])
 
-    const CDT = useAssetBySymbol('CDT')
+    const CDT = useAssetBySymbol('CDT', chainName)
     const walletCDT = useBalanceByAsset(CDT)
 
     const mintMaxAmount = useMemo(() => {

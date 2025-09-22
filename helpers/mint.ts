@@ -26,6 +26,8 @@ export const getSummary = (assets: AssetWithBalance[]) => {
     .filter((asset) => num(asset.amount).dp(5).abs().isGreaterThan(0))
     .sort((a) => (num(a.amount).isNegative() ? 1 : -1))
 
+  // console.log("summary", summary)
+
   const totalUsdValue = summary?.reduce((acc, asset) => {
     return acc + num(asset.amountValue).toNumber()
   }, 0)

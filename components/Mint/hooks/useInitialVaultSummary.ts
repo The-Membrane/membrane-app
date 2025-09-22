@@ -4,6 +4,7 @@ import { getBorrowLTV, getDebt, getLTV, getPositions, getTVL } from '@/services/
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import useAppState from '@/persisted-state/useAppState'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 const useInitialVaultSummary = (positionIndex: number = 0) => {
   const { appState } = useAppState()
@@ -11,6 +12,7 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
   const { data: basketPositions } = useUserPositions()
   const { data: prices } = useOraclePrice()
   const { data: basketAssets } = useBasketAssets()
+  const { chainName } = useChainRoute()
 
 
   return useQuery({
@@ -18,11 +20,12 @@ const useInitialVaultSummary = (positionIndex: number = 0) => {
       basketPositions,
       basket,
       prices,
-      positionIndex
+      positionIndex,
+      chainName
     ],
     queryFn: async () => {
       //High score 76 refreshes
-      const calc_initialPositions = getPositions(basketPositions, prices, positionIndex)
+      const calc_initialPositions = getPositions(basketPositions, prices, positionIndex, chainName)
       if (!calc_initialPositions) {
         console.log("about to return 0 debt:", basketPositions, positionIndex)
         return {

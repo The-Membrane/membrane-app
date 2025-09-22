@@ -18,6 +18,7 @@ import { isGreaterThanZero, num } from '@/helpers/num'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import useCountdown from '@/hooks/useCountdown'
 import { ChangeEvent, useState } from 'react'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import useWithdrawStabilityPool from './hooks/useWithdrawStabilityPool'
 import useBidState from './hooks/useBidState'
 import dayjs from 'dayjs'
@@ -98,7 +99,8 @@ const Action = ({ deposit, amount }: { deposit: Deposit; amount: string }) => {
 const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) => {
   const amount = shiftDigits(deposit.amount, -6).toString()
   const { isEnded, timeString } = useCountdown(deposit.unstake_time ? (deposit.unstake_time + 86400) : undefined)//86400s is the SP's unstake period)
-  const cdt = useAssetBySymbol('CDT')
+  const { chainName } = useChainRoute()
+  const cdt = useAssetBySymbol('CDT', chainName)
   const [inputAmount, setInputAmount] = useState('')
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {

@@ -18,6 +18,7 @@ import { useBasket, useCollateralInterest } from '@/hooks/useCDP'
 import { simpleBoundedAPRCalc, useBoundedCDTVaultTokenUnderlying, useBoundedTVL } from '@/hooks/useEarnQueries'
 import { num } from '@/helpers/num'
 import { shiftDigits } from '@/helpers/math'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 // Memoize child components
 // const MemoizedRangeBoundVisual = React.memo(RangeBoundVisual)
@@ -83,15 +84,16 @@ const Home = () => {
   const { data: leaderboardData } = useLeaderboardData()
 
   const { address } = useWallet()
+  const { chainName } = useChainRoute()
   // const { appState } = useAppState()
   const { data: basket } = useBasket(appState.rpcUrl)
   const { data: TVL } = useBoundedTVL()
   const { data: interest } = useCollateralInterest()
 
-  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcAsset = useAssetBySymbol('USDC', chainName)
   const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
 
-  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
+  const boundCDTAsset = useAssetBySymbol('range-bound-CDT', chainName)
   const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
   const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
     num(shiftDigits(boundCDTBalance, 6)).toFixed(0)

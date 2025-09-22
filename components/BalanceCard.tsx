@@ -7,6 +7,7 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { colors } from '@/config/defaults'
 import { GrPowerReset } from 'react-icons/gr'
 import { queryClient } from '@/pages/_app'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 export const Stats = ({ label, value }) => (
   <Stack gap="1">
@@ -38,9 +39,10 @@ export function useTemporaryDisable(durationMs: number = 3000) {
 }
 
 export const BalanceCard = () => {
-  const cdt = useAssetBySymbol('CDT')
+  const { chainName } = useChainRoute()
+  const cdt = useAssetBySymbol('CDT', chainName)
   const cdtBalance = useBalanceByAsset(cdt)
-  const mbrn = useAssetBySymbol('MBRN')
+  const mbrn = useAssetBySymbol('MBRN', chainName)
   const mbrnBalance = useBalanceByAsset(mbrn)
 
 

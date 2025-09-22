@@ -16,7 +16,7 @@ type UseUnstake = {
 const useUnstake = ({ amount }: UseUnstake) => {
   const { chainName } = useChainRoute()
   const { address } = useWallet(chainName)
-  const mbrnAsset = useAssetBySymbol('MBRN')
+  const mbrnAsset = useAssetBySymbol('MBRN', chainName)
 
   const { data: unstakeMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[] | null>({
     queryKey: ['msg', address, mbrnAsset?.base, contracts.staking, amount],

@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react'
 import { ExplorerLink } from './ExplorerLink'
 import { LineItem } from './LineItem'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import contracts from '@/config/contracts.json'
 import { queryClient } from '@/pages/_app'
 
@@ -22,7 +23,8 @@ type Props = {
 }
 
 export const TxDetails = ({ action, onClose }: Props) => {
-  const osmo = useAssetBySymbol('OSMO')
+  const { chainName } = useChainRoute()
+  const osmo = useAssetBySymbol('OSMO', chainName)
 
   if (!action?.tx?.isSuccess) return null
 

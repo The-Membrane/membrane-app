@@ -184,7 +184,7 @@ const ManagedTable = () => {
     //Ensure token0 is the collateral asset
     const token0 = poolInfo?.pool?.poolAssets?.[0]?.token?.denom || poolInfo?.pool?.token0;
     const token1 = poolInfo?.pool?.poolAssets?.[1]?.token?.denom || poolInfo?.pool?.token1;
-    const collateralAsset = useAssetBySymbol(createMarketState.collateralAsset);
+    const collateralAsset = useAssetBySymbol(createMarketState.collateralAsset, chainName);
     React.useEffect(() => {
         if (token0 !== collateralAsset?.base) {
             console.log('token0', token0, 'collateralAsset', collateralAsset?.base);

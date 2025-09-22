@@ -18,12 +18,14 @@ import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
+import { useChainRoute } from '@/hooks/useChainRoute';
 
 const useEarn = () => {
   const { address } = useWallet()
+  const { chainName } = useChainRoute()
   const { earnState, setEarnState } = useEarnState()
-  const usdcAsset = useAssetBySymbol('USDC')
-  const earnUSDCAsset = useAssetBySymbol('earnUSDC')
+  const usdcAsset = useAssetBySymbol('USDC', chainName)
+  const earnUSDCAsset = useAssetBySymbol('earnUSDC', chainName)
   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
   const { appState } = useAppState()
   const { data: basket } = useBasket(appState.rpcUrl)

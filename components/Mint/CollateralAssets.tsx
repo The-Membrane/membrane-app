@@ -31,6 +31,7 @@ const CollateralAssets = () => {
 
   useEffect(() => {
     const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance, mintState.transactionType)
+    // console.log("assetsWithValuesGreaterThanZero", assetsWithValuesGreaterThanZero)
     setMintState({ assets: assetsWithValuesGreaterThanZero })
   }, [combinBalance])
 

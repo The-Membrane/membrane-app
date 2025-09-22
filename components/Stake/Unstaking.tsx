@@ -64,10 +64,10 @@ const ClaimButton = ({ unstakeStartDate, action }: { unstakeStartDate: number, a
 }
 
 const Unstaking = (props: Props) => {
-  const mbrn = useAssetBySymbol('MBRN')
+  const { chainName } = useChainRoute()
+  const mbrn = useAssetBySymbol('MBRN', chainName)
   const { data } = useStaked(true)
   const { unstaking } = useMemo(() => data || { unstaking: [] }, [data])
-  const { chainName } = useChainRoute()
   const { address } = useWallet(chainName)
   const { action: claim } = useClaimUnstake({ address: address, sim: true, run: true })
   const cardBg = useColorModeValue('#181F2A', '#232B3E')

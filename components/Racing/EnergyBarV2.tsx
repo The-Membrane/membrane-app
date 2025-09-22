@@ -49,6 +49,7 @@ const formatDuration = (ms: number) => {
 const EnergyBarV2: React.FC<EnergyBarV2Props> = ({ tokenId, inline }) => {
     const { appState } = useAppState()
     const { data } = useCarEnergy(tokenId, appState.rpcUrl)
+
     const { racingState, setRacingState } = useRacingState()
     const isMobile = useBreakpointValue({ base: true, md: false })
     const lightningIconSize = useBreakpointValue({ base: 16, sm: 20, md: 30 })

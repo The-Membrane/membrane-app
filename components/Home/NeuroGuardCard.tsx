@@ -32,6 +32,7 @@ import { getBestCLRange } from "@/services/osmosis"
 import { FAQModal } from "./HomeTitle"
 import useSwapToCDT from "./hooks/useUSDCSwapToCDT"
 import { parseError } from "@/helpers/parseError"
+import { useChainRoute } from "@/hooks/useChainRoute"
 import { TxButton } from "../TxButton"
 import { CustomTab } from "../Mint/AssetWithInput"
 import { set } from "react-hook-form"
@@ -839,14 +840,15 @@ const NeuroGuardCard = () => {
   const { data: interest } = useCollateralInterest()
   const { data: basketAssets } = useBasketAssets()
   const { action: polishIntents } = useNeuroIntentPolish()
+  const { chainName } = useChainRoute()
 
-  const cdtAsset = useAssetBySymbol('CDT')
+  const cdtAsset = useAssetBySymbol('CDT', chainName)
   // const cdtBalance = useBalanceByAsset(cdtAsset) ?? "0"
-  const usdcAsset = useAssetBySymbol('USDC')
+  const usdcAsset = useAssetBySymbol('USDC', chainName)
   const usdcBalance = useBalanceByAsset(usdcAsset) ?? "0"
   const toaster = useToaster();
 
-  const boundCDTAsset = useAssetBySymbol('range-bound-CDT')
+  const boundCDTAsset = useAssetBySymbol('range-bound-CDT', chainName)
   const boundCDTBalance = useBalanceByAsset(boundCDTAsset) ?? "1"
   const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(
     num(shiftDigits(boundCDTBalance, 6)).toFixed(0)

@@ -81,8 +81,10 @@ export const usePaymentSelection = (tokenId?: string) => {
 
                     option.walletBalance = balance.amount
                     option.formattedBalance = asset ?
-                        shiftDigits(balance.amount, -(asset.decimal || 6)) + ' ' + asset.symbol :
-                        shiftDigits(balance.amount, -(6)) + ' ' + option.denom
+                        shiftDigits(balance.amount, -(asset.decimal || 6)) + ' ' + asset.symbol
+                        : option.denom === "factory/neutron1r5qx58l3xx2y8gzjtkqjndjgx69mktmapl45vns0pa73z0zpn7fqgltnll/TAB"
+                            ? shiftDigits(balance.amount, -(6)) + ' TAB'
+                            : shiftDigits(balance.amount, -(6)) + ' ' + option.denom
                     console.log("option", option)
                     if (balanceAmount < requiredAmount) {
                         option.isAvailable = false
@@ -93,8 +95,11 @@ export const usePaymentSelection = (tokenId?: string) => {
                     const asset = getAssetByDenom(option.denom, chainName)
                     option.walletBalance = '0'
                     option.formattedBalance = asset ?
-                        '0 ' + asset.symbol :
-                        '0 ' + option.denom
+                        '0 ' + asset.symbol
+                        : option.denom === "factory/neutron1r5qx58l3xx2y8gzjtkqjndjgx69mktmapl45vns0pa73z0zpn7fqgltnll/TAB"
+                            ? '0 TAB'
+                            :
+                            '0 ' + option.denom
                     option.isAvailable = false
                     option.unavailableReason = 'No balance found'
                 }
@@ -104,8 +109,10 @@ export const usePaymentSelection = (tokenId?: string) => {
                 const asset = getAssetByDenom(option.denom, chainName)
                 option.walletBalance = '0'
                 option.formattedBalance = asset ?
-                    '0 ' + asset.symbol :
-                    '0 ' + option.denom
+                    '0 ' + asset.symbol
+                    : option.denom === "factory/neutron1r5qx58l3xx2y8gzjtkqjndjgx69mktmapl45vns0pa73z0zpn7fqgltnll/TAB"
+                        ? '0 TAB'
+                        : '0 ' + option.denom
                 option.isAvailable = false
                 option.unavailableReason = 'Balance data not available'
             })

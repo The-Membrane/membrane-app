@@ -230,29 +230,31 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
                 <Box
                     position="absolute"
                     top="100%"
-                    left={dropdownWidth === 'full' ? "0" : "0"}
-                    right="0"
+                    left="50%"
+                    transform="translateX(-50%)"
                     mt={5}
                     bg="#0b0e17"
                     border="1px solid #2a3550"
                     borderRadius="md"
-                    p={2}
+                    p={3}
                     zIndex={1000}
-                    w={dropdownWidth === 'full' ? "100%" : "100%"}
-                    minW={dropdownWidth === 'full' ? "100%" : "280px"}
+                    w="fit-content"
+                    minW="fit-content"
                     boxShadow="0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
                     ref={dropdownRef}
                 >
-                    <VStack spacing={3} align="stretch">
+                    <HStack spacing={3} align="stretch" justify="center">
                         {paymentOptions.map((option, index) => (
                             <React.Fragment key={index}>
-                                {renderOption(option, index)}
+                                <Box minW="200px" flex="0 0 auto">
+                                    {renderOption(option, index)}
+                                </Box>
                                 {index < paymentOptions.length - 1 && (
-                                    <Divider borderColor="#1d2333" />
+                                    <Divider borderColor="#1d2333" orientation="vertical" />
                                 )}
                             </React.Fragment>
                         ))}
-                    </VStack>
+                    </HStack>
                 </Box>
             )}
         </>

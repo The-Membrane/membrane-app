@@ -8,6 +8,7 @@ import { getPositions } from '@/services/cdp'
 import { useMemo } from 'react'
 import useMintState from './useMintState'
 import useAppState from '@/persisted-state/useAppState'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 export type AssetWithBalance = Asset & {
   sliderValue?: number
@@ -30,9 +31,10 @@ const useCombinBalance = (positionIndex: number = 0) => {
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket(appState.rpcUrl)
   const { data: basketAssets } = useBasketAssets()
+  const { chainName } = useChainRoute()
 
   return useMemo(() => {
-    const positions = getPositions(basketPositions, prices, positionIndex)
+    const positions = getPositions(basketPositions, prices, positionIndex, chainName)
     if (!positions) return []
 
     return basketAssets?.map((asset, index) => {
@@ -46,6 +48,7 @@ const useCombinBalance = (positionIndex: number = 0) => {
       const combinBalance = num(balanceInMicro || 0)
         .plus(position?.amount || 0)
         .toNumber()
+      console.log("combinBalance", combinBalance, balanceInMicro, position?.amount)
       const price = prices?.find((p) => p.denom === asset.asset.base)?.price || 0
       const walletsdValue = num(balanceInMicro).times(price).toNumber()
       const depositUsdValue = num(position?.usdValue || 0).toNumber()
@@ -73,7 +76,7 @@ const useCombinBalance = (positionIndex: number = 0) => {
         price,
       }
     }) as AssetWithBalance[]
-  }, [balances, basketPositions, basket, prices, positionIndex, basketAssets])
+  }, [balances, basketPositions, basket, prices, positionIndex, basketAssets, chainName])
 }
 
 export default useCombinBalance

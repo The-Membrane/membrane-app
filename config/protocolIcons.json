@@ -1,0 +1,9 @@
+{
+    "astroport": "/images/protocols/astroport.svg",
+    "mars": "/images/protocols/mars.svg",
+    "levana": "/images/protocols/levana.svg",
+    "nolus": "/images/protocols/default.svg",
+    "apollo": "/images/protocols/default.svg",
+    "membrane": "/images/protocols/default.svg",
+    "default": "/images/protocols/default.svg"
+}

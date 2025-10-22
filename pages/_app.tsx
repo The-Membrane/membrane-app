@@ -90,13 +90,14 @@ const App = ({ Component, pageProps }: AppProps) => {
           assetLists={assets}
           wallets={[
             ...keplrWallets?.slice(0, 1),
-            ...keplrMobile?.slice(0, 1),
             ...cosmostationWallets?.slice(0, 1),
             ...ledgerWallets?.slice(0, 1),
             ...leapWallets?.slice(0, 1),
-            ...leapMobile?.slice(0, 1),
             ...stationWallets?.slice(0, 1),
             ...tailwindWallets?.slice(0, 1),
+            // Mobile wallets disabled to prevent walletconnectOptions errors
+            // ...keplrMobile?.slice(0, 1),
+            // ...leapMobile?.slice(0, 1),
           ]}
           walletModal={WalletModal}
           signerOptions={signerOptions}

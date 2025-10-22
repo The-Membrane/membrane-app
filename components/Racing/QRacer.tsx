@@ -7,7 +7,6 @@ import TrackCreator from '@/components/Racing/TrackCreator'
 import MintPanel from '@/components/Racing/MintPanel'
 import TraitList from '@/components/Racing/TraitList'
 import CarPanel from '@/components/Racing/CarPanel'
-import EnergyBarV2 from '@/components/Racing/EnergyBarV2'
 import QRacerTicker from '@/components/Racing/QRacerTicker'
 import TournamentBracket from '@/components/Racing/TournamentBracket'
 import useWallet from '@/hooks/useWallet'
@@ -211,9 +210,6 @@ const QRacer: React.FC = () => {
           </Text>
           <Box flex="1" mx={{ base: 0, md: 4 }} order={{ base: 2, md: 1 }}>
             <QRacerTicker rpc={appState.rpcUrl} />
-          </Box>
-          <Box order={{ base: 1, md: 2 }}>
-            <EnergyBarV2 tokenId={carId} inline />
           </Box>
         </Flex>
       </Box>

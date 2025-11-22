@@ -7,9 +7,9 @@ const NeutronHome = dynamic(() => import('@/components/NeutronHome').then(m => m
 
 const IndexPage = () => {
     const { chainName } = useChainRoute()
-    if (chainName === 'neutron') {
-        return <NeutronHome />
-    }
+    // if (chainName === 'neutron') {
+    //     return <NeutronHome />
+    // }
     return <Home />
 }
 

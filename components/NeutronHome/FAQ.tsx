@@ -1,22 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Box, VStack, Text, HStack, Collapse, Icon } from '@chakra-ui/react';
 import { ChevronDownIcon } from '@chakra-ui/icons';
 
 const FAQ: React.FC = () => {
     // FAQ state for collapsible functionality
     const [openFaqItems, setOpenFaqItems] = useState<Set<number>>(new Set());
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const toggleFaqItem = (index: number) => {
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+
         setOpenFaqItems(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(index)) {
-                newSet.delete(index);
-            } else {
-                newSet.add(index);
+            const newSet = new Set<number>();
+
+            // If clicking on the same item that's open, close it
+            if (prev.has(index)) {
+                return newSet;
             }
-            return newSet;
+
+            // If there's an item currently open, close it first
+            if (prev.size > 0) {
+                // Start closing animation immediately
+                setOpenFaqItems(new Set<number>());
+
+                // After closing animation completes, open the new item
+                timeoutRef.current = setTimeout(() => {
+                    setOpenFaqItems(new Set([index]));
+                }, 200); // Match the Collapse transition duration
+
+                return prev; // Return current state for immediate close
+            } else {
+                // No item is open, open the clicked item immediately
+                newSet.add(index);
+                return newSet;
+            }
         });
     };
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
 
     return (
         <Box id="faq-section" w="100%" maxW="700px" mt={6} mb={16}>
@@ -51,8 +82,8 @@ const FAQ: React.FC = () => {
                             <Box p={4} pt={0}>
                                 <Text color="whiteAlpha.700" fontSize="sm" lineHeight="1.6">
                                     Mycelium is a yield-boosting protocol that allows you to leverage your yield-bearing collateral
-                                    to compound your returns exponentially faster. By borrowing against your assets at optimal LTV ratios,
-                                    you can deploy additional capital into high-yield venues while maintaining your original position.
+                                    to compound your returns exponentially faster. By borrowing against your assets and deploying through Mycelium,
+                                    your debt becomes automatically retractable to protect you from liquidations, converting debt risk into boosted yield earning potential.
                                 </Text>
                             </Box>
                         </Collapse>
@@ -82,9 +113,16 @@ const FAQ: React.FC = () => {
                         <Collapse in={openFaqItems.has(1)}>
                             <Box p={4} pt={0}>
                                 <Text color="whiteAlpha.700" fontSize="sm" lineHeight="1.6">
-                                    The main risks include liquidation if your collateral value drops below the minimum health factor,
-                                    smart contract risks, and market volatility. We recommend starting with conservative LTV ratios
-                                    and monitoring your positions regularly.
+                                    The main risk is liquidation, which is your collateral value dropping below the minimum health factor. In normal situations for Mycelium, liquidation risk is non-existent. But in the event that Mycelium's retraction fails to cover the debt, your collateral will be liquidated instead of simply retriving the deployed CDT.
+                                    <br />
+                                    <br />
+                                    The debt retrieval can fail if the transmuter that is used to convert from CDT {'<>'} USDC is low on CDT due to withdrawals.
+                                    <br />
+                                    <br />
+                                    For safety, we recommend starting with LTVs below 100% of the max in order to protect you from being scalped by ping-ponged liquidations. In the event of a ping-pong, even if Mycelium retracts and repays for you, your position still owes the liquidation executor a small fee.
+                                    <br />
+                                    <br />
+                                    Additionally, the usual smart contract risks and market volatility.
                                 </Text>
                             </Box>
                         </Collapse>

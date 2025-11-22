@@ -51,8 +51,7 @@ const HorizontalNav = () => {
             w="full"
             px={{ base: 2, md: 8 }}
             py={2}
-            bgGradient="linear(to-r, #232A3E 60%, #2B3A67 100%)"
-            boxShadow="md"
+            bg="transparent"
             borderRadius="0 0 2xl 2xl"
             display="flex"
             alignItems="center"

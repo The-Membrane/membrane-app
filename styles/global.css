@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Neon Tubes';
+  src: url('/fonts/NeonTubes2.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 .chakra-card && .css-6d76p {
   --card-shadow: 0 0 25px rgba(90, 90, 90, 0.5) !important;
 }
@@ -49,36 +57,36 @@
 }
 
 .neonSign {
-  font: 400 4vh monospace;
-  color: #20d6ff;
+  font: 400 4vh 'Neon Tubes', monospace;
+  color: #20d6ff5a;
   text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 10px 3px #000;
 }
 
 .neonSignon {
-  font: 400 4vh monospace;
-  color: #fee;
-  text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 1em #20d6ff, 0 0 0.5em #20d6ff, 0 0 0.1em #20d6ff, 0 10px 3px #000;
+  font: 200 4vh 'Neon Tubes', monospace;
+  color: rgba(207, 205, 205, 0.613);
+  text-shadow: 0 0 20px, 0 0 0.2px, 0 0 1em #20d6ff, 0 0 0.5em #20d6ff, 0 0 0.1em #20d6ff, 0 0 3px #000;
 }
 
 .neonSign b span {
   display: inline-block;
-  font-size: clamp(38px, 4vh, 4vh);
+  font-size: clamp(75px, 4vh, 4vh);
 }
 
 .neonSignon b span {
   display: inline-block;
-  font-size: clamp(38px, 4vh, 4vh);
+  font-size: clamp(75px, 4vh, 4vh);
   animation: blink linear infinite 5s;
 }
 
 .neonSign b a {
   display: inline-block;
-  font-size: clamp(38px, 4vh, 4vh);
+  font-size: clamp(75px, 4vh, 4vh);
 }
 
 .neonSignon b a {
   display: inline-block;
-  font-size: clamp(38px, 4vh, 4vh);
+  font-size: clamp(75px, 4vh, 4vh);
 }
 
 .neonSignon b span:nth-of-type(2) {
@@ -147,6 +155,119 @@
 
   100% {
     box-shadow: 0 0 20px rgba(0, 255, 234, 0.5);
+  }
+}
+
+@keyframes ping {
+
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+@keyframes hexScroll {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(60px);
+  }
+}
+
+@keyframes portalSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes portalPulse {
+
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes morphFade {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes morphFadeReverse {
+  0% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes dittoFadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes neonScanGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px #3BE5E5, 0 0 20px #3BE5E5, 0 0 30px #3BE5E5;
+    opacity: 0.8;
+  }
+
+  50% {
+    box-shadow: 0 0 20px #3BE5E5, 0 0 40px #3BE5E5, 0 0 60px #3BE5E5;
+    opacity: 1;
   }
 }
 

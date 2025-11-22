@@ -21,6 +21,7 @@ export type AppState = {
     hasCompletedTutorial?: boolean
     tutorialStep?: number
     hasMintedFirstCar?: boolean
+    username?: string
 }
 
 type Store = {

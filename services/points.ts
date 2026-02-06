@@ -48,3 +48,23 @@ export const getAllConversionRates = async (rpcUrl: string) => {
     }
   }) as Promise<UserConversionRateState[]>;
 }
+
+export const getPointsMultipliers = async (rpcUrl: string) => {
+  const cosmWasmClient = await getCosmWasmClient(rpcUrl)
+  return cosmWasmClient.queryContractSmart(contracts.points, {
+    points_multipliers: {}
+  }) as Promise<{
+    points_multipliers: {
+      interest_rate: string;
+      vault_yields: Array<{
+        vault_address: string;
+        multiplier: string;
+      }>;
+      liquidation_execution: string;
+      liquidation_claims: string;
+      governance_votes: string;
+      transmuter_swap_fees: string;
+      disco_revenue: string;
+    };
+  }>;
+}

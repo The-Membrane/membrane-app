@@ -238,7 +238,7 @@ const useCloseAndEditBoostsTx = ({
 
   const onInitialSuccess = () => {
     // queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
     queryClient.invalidateQueries({ queryKey: ['managed_market_user_position'] })
     queryClient.invalidateQueries({ queryKey: ['managed_market_user_ux_boosts'] })
     queryClient.invalidateQueries({ queryKey: ['user_position'] })

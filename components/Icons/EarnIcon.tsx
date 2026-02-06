@@ -7,11 +7,13 @@ type Props = {
 }
 
 const EarnIcon = ({ color = 'white', width = '25', height = 'auto' }: Props) => {
+  // Calculate height from width based on viewBox aspect ratio (31:33)
+  const svgHeight = height === 'auto' ? String(Math.round(parseFloat(width) * 33 / 31)) : height
   return (
     <svg 
     style={{margin:"8px"}}    
     width={width}
-    height={height}
+    height={svgHeight}
     viewBox="0 0 31 33" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g >
         <path   

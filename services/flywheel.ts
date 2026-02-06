@@ -42,6 +42,9 @@ export const getDiscoTotalInsurance = async (
     }
 }
 
+// Set to true to use mock data instead of querying contract
+const USE_MOCK_DATA_TRANSMUTER = true // Change to false when contract is ready
+
 /**
  * Get Transmuter TVL (total deposit value)
  */
@@ -49,6 +52,12 @@ export const getTransmuterTVL = async (
     client: CosmWasmClient | null,
     contractAddr?: string
 ): Promise<string> => {
+    // Use mock data if enabled
+    if (USE_MOCK_DATA_TRANSMUTER) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return "12500000" // 12.5 USDC (6 decimals)
+    }
+
     if (!client) return "0"
 
     const transmuterContract = contractAddr || (contracts as any).transmuter

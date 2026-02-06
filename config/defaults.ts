@@ -43,6 +43,9 @@ export const loopMax = 5;
 
 export const INPUT_DELAY = 300;
 
+// Points system configuration
+export const pointsPerMBRN = 1; // Points per MBRN conversion rate (mirrors points_system contract)
+
 ////Specifics for Osmosis services//////
 export const SWAP_SLIPPAGE = 1.5; //1.5% slippage
 export const USDC_CL_RATIO = 0.115; //11.5% CL

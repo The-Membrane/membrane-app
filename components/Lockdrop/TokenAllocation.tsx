@@ -17,11 +17,14 @@ import {
   Td,
   Text,
   Tr,
+  VStack,
 } from '@chakra-ui/react'
 import useAllocation from './hooks/useAllocation'
 import useClaimFees from './hooks/useClaimFees'
 import useWithdrawUnlocked from './hooks/useWithdrawUnlocked'
 import { colors } from '@/config/defaults'
+import { useMBRNTokenInfo } from '@/hooks/useNeutronProxy'
+import { useMemo } from 'react'
 
 type Props = {}
 
@@ -59,6 +62,19 @@ const TokenAllocation = (props: Props) => {
   const allocationAmount = shiftDigits(Number(allocation?.amount || 0), -6).toString()
   const unlockedAmount = unlocked === '0' ? 0 : shiftDigits(Number(unlocked || 0), -6).toString()
 
+  // Query MBRN total supply for percentage calculation
+  // TODO: Get neutron-proxy contract address and MBRN denom from config
+  const { data: mbrnTokenInfo } = useMBRNTokenInfo(undefined, mbrnAsset?.base)
+  
+  // Calculate percentage of total supply
+  const allocationPercentage = useMemo(() => {
+    if (!mbrnTokenInfo?.current_supply || !allocation?.amount) return null
+    const totalSupply = parseFloat(mbrnTokenInfo.current_supply)
+    const allocationValue = parseFloat(allocation.amount)
+    if (totalSupply === 0) return null
+    return (allocationValue / totalSupply) * 100
+  }, [mbrnTokenInfo, allocation])
+
   if (num(allocation?.amount).isZero()) return null
 
   return (
@@ -74,7 +90,14 @@ const TokenAllocation = (props: Props) => {
 
         <HStack gap="5" w="full" justifyContent="space-between">
           <Text>Allocated</Text>
-          <Text color="primary.200">{allocationAmount}</Text>
+          <VStack align="flex-end" spacing={0}>
+            <Text color="primary.200">{allocationAmount} MBRN</Text>
+            {allocationPercentage !== null && (
+              <Text fontSize="xs" color="gray.400">
+                {allocationPercentage.toFixed(4)}% of Membrane Revenue
+              </Text>
+            )}
+          </VStack>
         </HStack>
 
         <HStack gap="5" w="full" justifyContent="space-between">

@@ -12,6 +12,7 @@ interface SpeechBubbleProps {
     }
     maxW?: string
     minW?: string
+    onDismiss?: () => void
 }
 
 export const SpeechBubble: React.FC<SpeechBubbleProps> = ({
@@ -20,6 +21,7 @@ export const SpeechBubble: React.FC<SpeechBubbleProps> = ({
     position = { bottom: 'calc(35% + 96px + 16px)', left: '69%' },
     maxW = '300px',
     minW = '200px',
+    onDismiss,
 }) => {
     if (!isVisible) return null
 
@@ -44,6 +46,8 @@ export const SpeechBubble: React.FC<SpeechBubbleProps> = ({
             zIndex={1}
             opacity={isVisible ? 1 : 0}
             transition="opacity 0.3s ease-in-out"
+            cursor={onDismiss ? "pointer" : "default"}
+            onClick={onDismiss}
             _after={{
                 content: '""',
                 position: 'absolute',

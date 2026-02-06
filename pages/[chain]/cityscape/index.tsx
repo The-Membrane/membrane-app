@@ -1,38 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 
-// Extend the Window interface to include our debug API
-declare global {
-  interface Window {
-    MEMBRANE_CITY?: {
-      version: string;
-      CONFIG: typeof CONFIG;
-      canvas: HTMLCanvasElement | null;
-      nodes: () => ReadonlyArray<NodeData>;
-      edges: () => ReadonlyArray<EdgeData>;
-      degreeOf: (id: number) => number;
-      focus: (id: number | null) => void;
-      togglePause: () => boolean;
-      regenerate: () => void;
-    };
-  }
-}
-
-// -----------------------------
-// Config (tweak without code)
-// -----------------------------
-const CONFIG = {
-  nodes: 24,
-  grid: { cols: 6, rows: 4, jitter: 32 },
-  roadGap: 120,
-  building: { minH: 24, maxH: 90, minW: 24, maxW: 56 },
-  edgesPerNode: [2, 4] as [number, number],
-  particlesPerEdge: [6, 18] as [number, number],
-  packetSpeedBase: 40,
-  canvasPadding: 80,
-};
-
-// Types
+// Types (must be defined before use in Window interface)
 interface NodeData {
   id: number;
   x: number;
@@ -62,7 +31,39 @@ interface EdgeData {
   particles: Particle[];
 }
 
+// -----------------------------
+// Config (tweak without code)
+// -----------------------------
+const CONFIG = {
+  nodes: 24,
+  grid: { cols: 6, rows: 4, jitter: 32 },
+  roadGap: 120,
+  building: { minH: 24, maxH: 90, minW: 24, maxW: 56 },
+  edgesPerNode: [2, 4] as [number, number],
+  particlesPerEdge: [6, 18] as [number, number],
+  packetSpeedBase: 40,
+  canvasPadding: 80,
+} as const;
+
+// Extend the Window interface to include our debug API
+declare global {
+  interface Window {
+    MEMBRANE_CITY?: {
+      version: string;
+      CONFIG: typeof CONFIG;
+      canvas: HTMLCanvasElement | null;
+      nodes: () => ReadonlyArray<NodeData>;
+      edges: () => ReadonlyArray<EdgeData>;
+      degreeOf: (id: number) => number;
+      focus: (id: number | null) => void;
+      togglePause: () => boolean;
+      regenerate: () => void;
+    };
+  }
+}
+
 export default function CityscapePage() {
+  const [isMounted, setIsMounted] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const hudRef = useRef<HTMLDivElement | null>(null);
@@ -73,6 +74,11 @@ export default function CityscapePage() {
   const glowRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
     const canvas = canvasRef.current;
     const tipEl = tipRef.current;
     const speedEl = speedRef.current as HTMLInputElement | null;
@@ -663,7 +669,20 @@ export default function CityscapePage() {
       cancelAnimationFrame(rafId);
       if (window.MEMBRANE_CITY) delete window.MEMBRANE_CITY;
     };
-  }, []);
+  }, [isMounted]);
+
+  if (!isMounted) {
+    return (
+      <>
+        <Head>
+          <title>Membrane Network City — Canvas</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <meta charSet="utf-8" />
+        </Head>
+        <div style={{ minHeight: '100vh', background: '#0a0f14' }} />
+      </>
+    );
+  }
 
   return (
     <>

@@ -33,7 +33,7 @@ function ClaimButton({ enabled, setEnabled }: { enabled: boolean, setEnabled: an
     }, [claimsDisabled, enabled]);
 
     return (
-        <Stack gap="1">
+        <Stack gap="1" alignSelf="flex-start">
             <ConfirmModal
                 label={'Claim'}
                 action={claim}

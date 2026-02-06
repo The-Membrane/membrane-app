@@ -2,13 +2,16 @@ import React from 'react'
 
 type Props = {
   color?: string
+  width?: string
 }
 
-const WalletIcon = ({ color = 'white' }: Props) => {
+const WalletIcon = ({ color = 'white', width = '40' }: Props) => {
+  // Calculate height from width based on viewBox aspect ratio (30:29)
+  const svgHeight = String(Math.round(parseFloat(width) * 29 / 30))
   return (
     <svg
-      width="40"
-      height="auto"
+      width={width}
+      height={svgHeight}
       viewBox="0 0 30 29"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

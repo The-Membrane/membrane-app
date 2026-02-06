@@ -11,7 +11,7 @@ import {
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { BidIcon, EarnIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon, DashboardIcon } from './Icons'
+import { BidIcon, EarnIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon, DashboardIcon, AboutIcon } from './Icons'
 import Logo from './Logo'
 import WallectConnect from './WallectConnect'
 import { BalanceCard } from './BalanceCard'
@@ -41,6 +41,7 @@ const navItems: NavItems[] = [
   { label: 'Manic', href: '/manic', ItemIcon: EarnIcon },
   // { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
   // { label: 'Lockdrop', href: '/lockdrop', ItemIcon: ClaimIcon },
+  { label: 'About', href: '/about', ItemIcon: AboutIcon },
 ]
 
 const mobileNavItems: NavItems[] = [
@@ -51,6 +52,7 @@ const mobileNavItems: NavItems[] = [
   { label: 'Stake', href: '/stake', ItemIcon: StakeIcon },
   { label: 'Manic', href: '/manic', ItemIcon: EarnIcon },
   // { label: 'NFT Auction', href: '/nft', ItemIcon: NFTAuctionIcon },
+  { label: 'About', href: '/about', ItemIcon: AboutIcon },
 ]
 
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {
@@ -174,7 +176,9 @@ function SideNav() {
           <MemoizedSoloLeveling />
           <Box h="3" />
           {memoizedNavItems}
-          <WallectConnect />
+          <Box alignSelf="center">
+            <WallectConnect />
+          </Box>
         </Stack>
 
         <Button

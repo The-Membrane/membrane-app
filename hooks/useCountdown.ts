@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 
 export const useCountdown = (timestamp: number | null | undefined) => {
   const [isEnded, setIsEnded] = useState(false)
-  const [timeString, setTimeString] = useState('00:00:00')
+  const [timeString, setTimeString] = useState('0d 0h 0m')
 
   useEffect(() => {
     if (!timestamp) return
@@ -14,18 +14,14 @@ export const useCountdown = (timestamp: number | null | undefined) => {
 
       if (remainingTime <= 0) {
         setIsEnded(true)
-        setTimeString('00:00:00')
+        setTimeString('0d 0h 0m')
         clearInterval(intervalId)
       } else {
-        const hours = Math.floor(remainingTime / 3600)
+        const days = Math.floor(remainingTime / 86400)
+        const hours = Math.floor((remainingTime % 86400) / 3600)
         const minutes = Math.floor((remainingTime % 3600) / 60)
-        const seconds = remainingTime % 60
 
-        const formattedHours = String(hours).padStart(2, '0')
-        const formattedMinutes = String(minutes).padStart(2, '0')
-        const formattedSeconds = String(seconds).padStart(2, '0')
-
-        setTimeString(`${formattedHours}:${formattedMinutes}:${formattedSeconds}`)
+        setTimeString(`${days}d ${hours}h ${minutes}m`)
       }
     }, 1000)
 

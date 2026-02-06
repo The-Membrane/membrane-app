@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
-import { getUserRedemptionInfo, getUserPositions, getBasketPositions, getCollateralInterest, getCreditRate, getUserDiscount, getBasket, getBasketAssets, useCDPClient } from '@/services/cdp'
+import { getUserRedemptionInfo, getUserPositions, getBasketPositions, getCollateralInterest, getCreditRate, getUserDiscount, getBasket, getRates, getBasketAssets, useCDPClient } from '@/services/cdp'
 import { useRouter } from 'next/router'
 import useAppState from '@/persisted-state/useAppState'
 import useAssets from '@/hooks/useAssets'
@@ -22,6 +22,21 @@ export const useBasket = (rpcUrl: string) => {
     // enabled: true,
     // You might want to add staleTime to prevent unnecessary refetches
     staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+
+  return result
+}
+
+export const useRates = (rpcUrl: string) => {
+  const { data: client } = useCDPClient(rpcUrl)
+
+  const result = useQuery({
+    queryKey: ['rates', client, rpcUrl],
+    queryFn: async () => {
+      if (!client) return {}
+      return getRates(client)
+    },
+    staleTime: 1000 * 60 * 5,
   })
 
   return result

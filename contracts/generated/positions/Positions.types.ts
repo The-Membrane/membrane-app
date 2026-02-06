@@ -34,6 +34,7 @@ export interface CAsset {
   max_borrow_LTV: Decimal;
   pool_info?: PoolInfo | null;
   rate_index: Decimal;
+  force_redemptions?: boolean | null;
 }
 export interface Asset {
   amount: Uint128;
@@ -49,24 +50,46 @@ export interface LPAssetInfo {
   ratio: Decimal;
 }
 export interface Basket {
-  base_interest_rate: Decimal;
   basket_id: Uint128;
   collateral_supply_caps: SupplyCap[];
   collateral_types: CAsset[];
-  cpc_margin_of_error: Decimal;
   credit_asset: Asset;
-  credit_last_accrued: number;
   credit_price: PriceResponse;
   current_position_id: Uint128;
   frozen: boolean;
-  lastest_collateral_rates: Rate[];
   liq_queue?: Addr | null;
   multi_asset_supply_caps: MultiAssetSupplyCap[];
-  negative_rates: boolean;
   oracle_set: boolean;
   pending_revenue: Uint128;
-  rates_last_accrued: number;
   rev_to_stakers: boolean;
+}
+export interface FixedRateCap {
+  cap: Decimal;
+  amount: Uint128;
+  multiplier: Decimal;
+}
+export interface FixedRateCaps {
+  one_month: FixedRateCap;
+  three_month: FixedRateCap;
+  six_month: FixedRateCap;
+}
+export interface AdaptiveCurveIRMConfig {
+  curve_steepness: Decimal;
+  target_utilization: Decimal;
+  adjustment_speed: Decimal;
+  min_rate_at_target: Decimal;
+  max_rate_at_target: Decimal;
+}
+export interface Rates {
+  rate_at_target: Decimal[];
+  peg_rate_at_target: Decimal[];
+  lastest_collateral_rates: Rate[];
+  base_interest_rate: Decimal;
+  fixed_rate_caps: FixedRateCaps;
+  rates_last_accrued: number;
+  credit_last_accrued: number;
+  cpc_margin_of_error: Decimal;
+  negative_rates: boolean;
 }
 export interface SupplyCap {
   asset_info: AssetInfo;
@@ -114,6 +137,7 @@ export interface Config {
   rate_slope_multiplier: Decimal;
   stability_pool?: Addr | null;
   staking_contract?: Addr | null;
+  irm_config: AdaptiveCurveIRMConfig;
 }
 export interface DebtCap {
   cap: Uint128;
@@ -289,6 +313,8 @@ export type QueryMsg = {
   get_credit_rate: {};
 } | {
   get_collateral_interest: {};
+} | {
+  get_rates: {};
 };
 export interface UserInfo {
   position_id: Uint128;

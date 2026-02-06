@@ -1,8 +1,10 @@
-import Earn from '@/components/Earn/Earn'
+// import Earn from '@/components/Earn/Earn'
+import ManicLooping from '@/components/Manic/ManicLooping'
 import React from 'react'
 
-const EarnPage = () => {
-  return <Earn />
+const ManicPage = () => {
+  // return <Earn />
+  return <ManicLooping />
 }
 
-export default EarnPage
+export default ManicPage

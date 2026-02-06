@@ -4,7 +4,7 @@ import { truncate } from '@/helpers/truncate'
 import useWallet from '@/hooks/useWallet'
 import { Button, HStack, Icon, Stack, Text } from '@chakra-ui/react'
 import { useMemo, useState } from 'react'
-import { RxExit } from 'react-icons/rx'
+import { FaSignOutAlt } from 'react-icons/fa'
 import ConnectButton from './ConnectButton'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
@@ -35,7 +35,7 @@ const WalletConnect = () => {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => disconnect()}
-        leftIcon={<Icon as={RxExit} boxSize={5} color={isHovered ? colors.walletIcon : 'white'} />}
+        leftIcon={<Icon as={FaSignOutAlt} boxSize={5} color={isHovered ? colors.walletIcon : 'white'} />}
         color={isHovered ? colors.tabBG : 'white'}
         py="6"
         pl="2"

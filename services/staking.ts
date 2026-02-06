@@ -1,3 +1,15 @@
+/**
+ * TODO: EMISSIONS VOTING INTEGRATION
+ * When a user has active votes in the emissions_voting contract, they cannot unstake
+ * or reduce lock durations. The frontend should:
+ * 1. Query HasAnyVotes before unstake/lock reduction
+ * 2. If user has votes, sandwich the operation with RemoveVote calls before and Vote calls after
+ * 3. Flow: RemoveVote (all graphs) -> Unstake/Reduce Lock -> Re-Vote (same values)
+ * 
+ * This allows users to perform operations without manually removing votes.
+ * The emissions_voting contract address can be queried from staking config.
+ */
+
 import contracts from '@/config/contracts.json'
 import { Addr } from '@/contracts/generated/positions/Positions.types'
 import { getCosmWasmClient, useCosmWasmClient } from '@/helpers/cosmwasmClient'

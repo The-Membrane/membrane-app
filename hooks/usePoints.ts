@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getAllConversionRates, getAllUserPoints, getUserConversionRates } from '@/services/points'
+import { getAllConversionRates, getAllUserPoints, getUserConversionRates, getPointsMultipliers } from '@/services/points'
 import useWallet from './useWallet'
 import useAppState from '@/persisted-state/useAppState'
 import { useChainRoute } from './useChainRoute'
@@ -58,12 +58,12 @@ export const useUserPoints = () => {
     queryKey: ['one users points', address, points],
     queryFn: async () => {
       // console.log("in points", address)
-      if (!points) return
+      if (!points || !address) return null
       // console.log("under points", address, points)
       // console.log("under points", address, points[0])
       // console.log("under points", address, points[0].user)
       // console.log("under points", address, Array.from(points).find((point) => point.user === address))
-      return points.find((point) => point.user === address)
+      return points.find((point) => point.user === address) || null
     },
   })
 }
@@ -79,8 +79,9 @@ export const useUserRank = () => {
   return useQuery({
     queryKey: ['user_points_rank', address, points],
     queryFn: async () => {
-      if (!points) return
-      return points.findIndex((point) => point.user === address) + 1
+      if (!points || !address) return null
+      const rank = points.findIndex((point) => point.user === address) + 1
+      return rank > 0 ? rank : null
     },
   })
 }
@@ -92,10 +93,10 @@ export const useSoloLevel = () => {
   return useQuery({
     queryKey: ['one users level', points],
     queryFn: async () => {
-      if (!points) return
+      if (!points) return null
 
       //1 Level every 9 points + 1 per level, so Level 1 = 9 points, Level 2 = 19 points, etc.
-      const total_points = parseFloat(points.stats.total_points)
+      const total_points = parseFloat(points.stats?.total_points || '0')
       //Set level
       var level = 1
       //Set level checkpoints every 10 so we can speed the logic up
@@ -149,5 +150,17 @@ export const useLeaderboardData = () => {
         percentOfSupply: totalSupply === 0 ? '0.000%' : `${((entry.points / totalSupply) * 100).toFixed(3)}%`,
       }));
     },
+  })
+}
+
+export const usePointsMultipliers = () => {
+  const { appState } = useAppState()
+
+  return useQuery({
+    queryKey: ['points_multipliers', appState.rpcUrl],
+    queryFn: async () => {
+      return getPointsMultipliers(appState.rpcUrl)
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }

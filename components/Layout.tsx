@@ -3,11 +3,16 @@ import HorizontalNav from './HorizontalNav'
 import ChainLayout from './ChainLayout'
 import { RulesModal } from './MembersRules/RulesModal'
 import useMembersRulesState from './MembersRules/useRules'
-import { useMemo, useEffect } from 'react'
+import { useEffect } from 'react'
 import RPCStatus from './RPCStatus'
 import { useRouter } from 'next/router'
-import { DittoHologram } from './DittoHologram'
+import dynamic from 'next/dynamic'
 import useAppState from '@/persisted-state/useAppState'
+
+// Lazy load DittoHologram since it's conditionally rendered and contains heavy dependencies
+const DittoHologram = dynamic(() => import('./DittoHologram').then(m => ({ default: m.DittoHologram })), {
+  ssr: false,
+})
 
 interface LayoutProps {
   children: React.ReactNode
@@ -53,11 +58,7 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     // Apply using requestAnimationFrame to ensure it runs after Chakra styles
-    const rafId = requestAnimationFrame(() => {
-      applyStyle()
-      // Also apply again after a frame to be sure
-      requestAnimationFrame(applyStyle)
-    })
+    const rafId = requestAnimationFrame(applyStyle)
 
     return () => {
       cancelAnimationFrame(rafId)
@@ -81,13 +82,17 @@ export default function Layout({ children }: LayoutProps) {
     <Box minH="100vh" bg={isHomePage ? "#0A0A0A" : "gray.900"}>
       <HorizontalNav />
       <ChainLayout>
-        <Box as="main" justifyContent="center">
+        <Box
+          as="main"
+          justifyContent="center"
+          pb={{ base: "200px", md: "180px", lg: "180px" }}
+        >
           <RPCStatus />
           {children}
         </Box>
       </ChainLayout>
       {/* <RulesModal isOpen={isOpen} onClose={onClose} /> */}
-      <DittoHologram stayShown={!!username.trim()} />
+      <DittoHologram stayShown={true} />
     </Box>
   )
 }

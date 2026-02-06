@@ -7,10 +7,12 @@ type Props = {
 }
 
 const DashboardIcon = ({ color = 'white', width = '30', height = 'auto' }: Props) => {
+    // Calculate height from width based on viewBox aspect ratio (24:25)
+    const svgHeight = height === 'auto' ? String(Math.round(parseFloat(width) * 25 / 24)) : height
     return (
         <svg
-            width={0}
-            height={0}
+            width={width}
+            height={svgHeight}
             viewBox="0 0 24 25"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"

@@ -13,13 +13,15 @@ type Transaction = {
   fee?: StdFee | undefined
   chain_id: string
   shrinkMessage?: boolean
+  // When true, suppress the toaster notification (Ditto will show acknowledgement)
+  suppressToaster?: boolean
 }
 
 const mock = {
   transactionHash: '455C577EBCACEA50D9E8E9A0E621B1121E05D97974DFD9EDFFFB367B2F13BC24',
 } as DeliverTxResponse
 
-const useTransaction = ({ msgs, onSuccess, fee, chain_id, shrinkMessage }: Transaction) => {
+const useTransaction = ({ msgs, onSuccess, fee, chain_id, shrinkMessage, suppressToaster = false }: Transaction) => {
   const [isApproved, setIsApproved] = useState(false)
   const toaster = useToaster()
 
@@ -43,11 +45,15 @@ const useTransaction = ({ msgs, onSuccess, fee, chain_id, shrinkMessage }: Trans
     onSuccess: (res: DeliverTxResponse) => {
       console.log("tx success", res)
       const { transactionHash, code } = res
+      
+      // Only show toaster if not suppressed (Ditto will handle acknowledgement)
+      if (!suppressToaster) {
       toaster.success({
         message: `Transaction ${code === 0 ? 'Successful' : 'Failed'}`,
         txHash: transactionHash,
         shrinkMessage: shrinkMessage ?? false
       })
+      }
 
       // queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
 
@@ -58,6 +64,7 @@ const useTransaction = ({ msgs, onSuccess, fee, chain_id, shrinkMessage }: Trans
     onError: (error) => {
       console.log("tx error", error)
       const parsedError = parseError(error?.message ?? "")
+      // Always show error toaster
       toaster.error({
         message: parsedError || 'Transaction Failed',
       })

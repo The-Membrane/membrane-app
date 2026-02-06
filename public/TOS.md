@@ -1,5 +1,5 @@
 # TERMS OF SERVICE (LEGAL TRANSLATION VERSION)
-**Last Updated:** [Insert Date]
+**Last Updated:** 11/22/2025
 
 ## 1. Eligibility & Sovereign Use
 By accessing or using this Service, you represent and warrant that:
@@ -92,7 +92,3 @@ Continued use after changes constitutes acceptance of the modified Terms.
 If you do not agree, you must discontinue use immediately.
 
 ---
-
-## 11. Governing Law
-These Terms are governed by the laws of **[Insert Jurisdiction]** without regard to conflict-of-law principles.
-

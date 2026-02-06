@@ -7,10 +7,12 @@ type Props = {
 }
 
 const BidIcon = ({ color = 'white', width = '40', height = 'auto' }: Props) => {
+  // Calculate height from width based on viewBox aspect ratio (31:32)
+  const svgHeight = height === 'auto' ? String(Math.round(parseFloat(width) * 32 / 31)) : height
   return (
     <svg
       width={width}
-      height={height}
+      height={svgHeight}
       viewBox="0 0 31 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

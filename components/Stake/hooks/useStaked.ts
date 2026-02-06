@@ -12,7 +12,6 @@ const useStaked = (run: boolean) => {
   const router = useRouter()
   const { data: client } = useStakingClient()
 
-  console.log("in staked")
   return useQuery({
     queryKey: ['staked', address, client, run, router.pathname, chainName],
     queryFn: async () => {

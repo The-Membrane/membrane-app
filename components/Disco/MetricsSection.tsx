@@ -1,201 +1,285 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Box, VStack, Text, Grid, GridItem } from '@chakra-ui/react'
 import {
     LineChart,
     Line,
-    AreaChart,
-    Area,
-    BarChart,
-    Bar,
-    PieChart,
-    Pie,
-    Cell,
     XAxis,
     YAxis,
-    CartesianGrid,
     Tooltip as RechartsTooltip,
-    Legend,
     ResponsiveContainer,
 } from 'recharts'
-import { useDiscoUserMetrics } from '@/hooks/useDiscoData'
 import { useDailyTVL } from '@/hooks/useDiscoData'
-import { getDiscoTotalInsurance } from '@/services/flywheel'
-import { useQuery } from '@tanstack/react-query'
-import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
-import useAppState from '@/persisted-state/useAppState'
 import { shiftDigits } from '@/helpers/math'
+import { mockDailyTVL } from './mockData'
+import { LTVHistoryChart } from './LTVHistoryChart'
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d']
+interface IndividualLTVData {
+    ltv: number
+    borrowLTV?: number
+    tvl: number
+    apr?: string | null
+    slotData?: any
+}
 
-export const MetricsSection = React.memo(() => {
-    const { appState } = useAppState()
-    const { data: client } = useCosmWasmClient(appState.rpcUrl)
-    const { deposits, pendingClaims, lifetimeRevenue, dailyTVL } = useDiscoUserMetrics(undefined)
-    const { data: totalInsurance } = useQuery({
-        queryKey: ['disco', 'total_insurance', appState.rpcUrl],
-        queryFn: () => getDiscoTotalInsurance(client || null),
-        enabled: !!client,
-        staleTime: 1000 * 60 * 5,
-    })
+interface MetricsSectionProps {
+    globalTotalDeposits: number
+    globalTotalInsurance: number
+    selectedLTVData?: IndividualLTVData | null
+    ltvChartAsset?: string
+    ltvChartAssetSymbol?: string
+    ltvChartQueue?: any
+}
 
-    // Prepare data for charts
-    const totalDeposits = deposits?.reduce((sum: number, d: any) => {
-        const value = shiftDigits(d.vault_tokens || '0', -6)
-        return sum + parseFloat(typeof value === 'object' ? value.toString() : String(value))
-    }, 0) || 0
+export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDeposits, globalTotalInsurance, selectedLTVData, ltvChartAsset, ltvChartAssetSymbol, ltvChartQueue }) => {
+    const { data: dailyTVL } = useDailyTVL()
 
-    const pendingClaimsTotal = pendingClaims?.reduce((sum: number, claim: any) => {
-        const value = shiftDigits(claim.pending_amount || '0', -6)
-        return sum + parseFloat(typeof value === 'object' ? value.toString() : String(value))
-    }, 0) || 0
+    // Use mock data if real data is not available
+    const useMockData = !dailyTVL || !dailyTVL.entries || dailyTVL.entries.length === 0
+    const dailyTVLToUse = useMockData ? mockDailyTVL.entries : (dailyTVL?.entries || [])
 
-    const lifetimeRevenueTotal = lifetimeRevenue?.reduce((sum: number, entry: any) => {
-        const value = shiftDigits(entry.total_revenue || '0', -6)
-        return sum + parseFloat(typeof value === 'object' ? value.toString() : String(value))
-    }, 0) || 0
-
-    // Daily TVL chart data
-    const tvlChartData = dailyTVL?.map((entry: any) => {
+    // Daily TVL chart data (already global)
+    const tvlChartData = dailyTVLToUse.map((entry: any) => {
         const value = shiftDigits(entry.tvl || '0', -6)
         return {
             date: new Date(entry.timestamp * 1000).toLocaleDateString(),
+            timestamp: entry.timestamp,
             tvl: parseFloat(typeof value === 'object' ? value.toString() : String(value)),
         }
-    }) || []
+    })
 
-    // Deposit distribution by LTV
-    const depositDistribution = deposits?.reduce((acc: any, deposit: any) => {
-        const ltv = deposit.ltv || deposit.max_ltv || '0'
-        const ltvNum = typeof ltv === 'object' ? parseFloat(ltv.toString()) : parseFloat(String(ltv))
-        const key = `${Math.floor(ltvNum / 10) * 10}-${Math.floor(ltvNum / 10) * 10 + 10}`
-        if (!acc[key]) {
-            acc[key] = 0
+    // Calculate section-specific metrics based on selectedLTVData
+    const sectionMetrics = useMemo(() => {
+        if (!selectedLTVData) {
+            return {
+                totalDeposits: 0,
+                pendingClaims: 0,
+                lifetimeRevenue: 0,
+                totalInsurance: 0,
+            }
         }
-        const value = shiftDigits(deposit.vault_tokens || '0', -6)
-        acc[key] += parseFloat(typeof value === 'object' ? value.toString() : String(value))
-        return acc
-    }, {})
 
-    const depositDistributionData = Object.entries(depositDistribution || {}).map(([name, value]) => ({
-        name,
-        value,
-    }))
+        // Section-specific deposits (convert from base units to MBRN)
+        const sectionDeposits = parseFloat(shiftDigits(selectedLTVData.tvl.toString(), -6).toString())
 
-    // Lock status breakdown
-    const lockedCount = deposits?.filter((d: any) =>
-        d.locked && d.locked.locked_until > Math.floor(Date.now() / 1000)
-    ).length || 0
-    const unlockedCount = (deposits?.length || 0) - lockedCount
+        // Section-specific pending claims (placeholder - would need actual section-specific query)
+        const sectionPendingClaims = 0 // TODO: Query section-specific pending claims
 
-    const lockStatusData = [
-        { name: 'Locked', value: lockedCount },
-        { name: 'Unlocked', value: unlockedCount },
-    ]
+        // Section-specific lifetime revenue (placeholder - would need actual section-specific query)
+        const sectionLifetimeRevenue = 0 // TODO: Query section-specific lifetime revenue
+
+        // Section-specific insurance (proportional to deposits or placeholder)
+        const sectionInsurance = sectionDeposits > 0 && globalTotalDeposits > 0
+            ? (sectionDeposits / globalTotalDeposits) * globalTotalInsurance
+            : 0
+
+        return {
+            totalDeposits: sectionDeposits,
+            pendingClaims: sectionPendingClaims,
+            lifetimeRevenue: sectionLifetimeRevenue,
+            totalInsurance: sectionInsurance,
+        }
+    }, [selectedLTVData, globalTotalDeposits, globalTotalInsurance])
+
+    // Color constants
+    const PRIMARY_PURPLE = 'rgb(166, 146, 255)'
+    const DARK_BG = '#0A0A0A'
 
     return (
         <Box w="100%" maxW="1400px" mx="auto" p={8}>
-            <Text
-                variant="title"
-                fontSize="2xl"
-                fontWeight="bold"
-                mb={6}
-            >
-                Disco Metrics
-            </Text>
+            <Grid templateColumns={'1fr'} gap={6}>
 
-            <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }} gap={6}>
-                {/* Total Deposits */}
-                <GridItem>
-                    <Box bg="whiteAlpha.50" p={4} borderRadius="md" border="1px solid" borderColor="whiteAlpha.200">
-                        <Text fontSize="lg" fontWeight="bold" mb={4}>Total Deposits</Text>
-                        <Text fontSize="3xl" fontWeight="bold">{totalDeposits.toLocaleString()} MBRN</Text>
-                    </Box>
-                </GridItem>
+                {/* LTV History Chart */}
+                {ltvChartAsset && (
+                    <GridItem>
+                        <LTVHistoryChart
+                            asset={ltvChartAsset}
+                            assetSymbol={ltvChartAssetSymbol}
+                            ltvQueue={ltvChartQueue}
+                        />
+                    </GridItem>
+                )}
 
-                {/* Pending Claims */}
-                <GridItem>
-                    <Box bg="whiteAlpha.50" p={4} borderRadius="md" border="1px solid" borderColor="whiteAlpha.200">
-                        <Text fontSize="lg" fontWeight="bold" mb={4}>Pending Claims</Text>
-                        <Text fontSize="3xl" fontWeight="bold">{pendingClaimsTotal.toLocaleString()} CDT</Text>
-                    </Box>
-                </GridItem>
+                {/* Extended Section Metrics */}
+                <Box mt={8} mb={16}>
+                    <Text
+                        fontSize="2xl"
+                        fontWeight="bold"
+                        color={PRIMARY_PURPLE}
+                        fontFamily="mono"
+                        letterSpacing="2px"
+                        textTransform="uppercase"
+                        mb={6}
+                        justifySelf="center"
+                    >
+                        Extended Section Metrics
+                    </Text>
 
-                {/* Lifetime Revenue */}
-                <GridItem>
-                    <Box bg="whiteAlpha.50" p={4} borderRadius="md" border="1px solid" borderColor="whiteAlpha.200">
-                        <Text fontSize="lg" fontWeight="bold" mb={4}>Lifetime Revenue</Text>
-                        <Text fontSize="3xl" fontWeight="bold">{lifetimeRevenueTotal.toLocaleString()} CDT</Text>
-                    </Box>
-                </GridItem>
+                    <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }}
+                        justifySelf="center"
+                        gap={6}
+                        w="100%"
+                    >
+                        {/* Total Deposits */}
+                        {/* <GridItem>
+                        <Box
+                            bg="rgba(10, 10, 10, 0.8)"
+                            p={4}
+                            borderRadius="md"
+                            border="2px solid"
+                            borderColor={PRIMARY_PURPLE}
+                            position="relative"
+                            boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
+                        >
+                            <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px" mb={2}>
+                                Total Deposits
+                            </Text>
+                            <Text fontSize="3xl" fontWeight="bold" color={PRIMARY_PURPLE} fontFamily="mono" textShadow={`0 0 10px ${PRIMARY_PURPLE}`}>
+                                {sectionMetrics.totalDeposits.toLocaleString(undefined, { maximumFractionDigits: 2 })} MBRN
+                            </Text>
+                        </Box>
+                    </GridItem> */}
 
-                {/* Total Insurance */}
+                        {/* Pending Claims */}
+                        <GridItem>
+                            <Box
+                                bg="rgba(10, 10, 10, 0.8)"
+                                p={4}
+                                borderRadius="md"
+                                border="2px solid"
+                                borderColor={PRIMARY_PURPLE}
+                                position="relative"
+                                boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
+                            >
+                                <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px" mb={2}>
+                                    Pending Claims
+                                </Text>
+                                <Text fontSize="3xl" fontWeight="bold" color={PRIMARY_PURPLE} fontFamily="mono" textShadow={`0 0 10px ${PRIMARY_PURPLE}`}>
+                                    {sectionMetrics.pendingClaims.toLocaleString()} CDT
+                                </Text>
+                            </Box>
+                        </GridItem>
+
+                        {/* Lifetime Revenue */}
+                        <GridItem>
+                            <Box
+                                bg="rgba(10, 10, 10, 0.8)"
+                                p={4}
+                                borderRadius="md"
+                                border="2px solid"
+                                borderColor={PRIMARY_PURPLE}
+                                position="relative"
+                                boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
+                            >
+                                <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px" mb={2}>
+                                    Lifetime Revenue
+                                </Text>
+                                <Text fontSize="3xl" fontWeight="bold" color={PRIMARY_PURPLE} fontFamily="mono" textShadow={`0 0 10px ${PRIMARY_PURPLE}`}>
+                                    {sectionMetrics.lifetimeRevenue.toLocaleString(undefined, { maximumFractionDigits: 2 })} CDT
+                                </Text>
+                            </Box>
+                        </GridItem>
+
+                        {/* Total Insurance */}
+                        <GridItem>
+                            <Box
+                                bg="rgba(10, 10, 10, 0.8)"
+                                p={4}
+                                borderRadius="md"
+                                border="2px solid"
+                                borderColor={PRIMARY_PURPLE}
+                                position="relative"
+                                boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
+                            >
+                                <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px" mb={2}>
+                                    Total Insurance
+                                </Text>
+                                <Text fontSize="3xl" fontWeight="bold" color={PRIMARY_PURPLE} fontFamily="mono" textShadow={`0 0 10px ${PRIMARY_PURPLE}`}>
+                                    {sectionMetrics.totalInsurance.toLocaleString(undefined, { maximumFractionDigits: 2 })} CDT
+                                </Text>
+                            </Box>
+                        </GridItem>
+                    </Grid>
+                </Box>
+                {/* Daily TVL History Chart - Global */}
                 <GridItem>
-                    <Box bg="whiteAlpha.50" p={4} borderRadius="md" border="1px solid" borderColor="whiteAlpha.200">
-                        <Text fontSize="lg" fontWeight="bold" mb={4}>Total Insurance</Text>
-                        <Text fontSize="3xl" fontWeight="bold">
-                            {totalInsurance ? parseFloat(shiftDigits(totalInsurance, -6)).toLocaleString() : '0'} CDT
+                    <Box
+                        bg="rgba(10, 10, 10, 0.8)"
+                        p={4}
+                        borderRadius="md"
+                        border="2px solid"
+                        borderColor={PRIMARY_PURPLE}
+                        position="relative"
+                        boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
+                    >
+                        <Text
+                            fontSize="2xl"
+                            fontWeight="bold"
+                            color={PRIMARY_PURPLE}
+                            fontFamily="mono"
+                            letterSpacing="2px"
+                            textTransform="uppercase"
+                            mb={2}
+                        >
+                            Global Disco Metrics
                         </Text>
-                    </Box>
-                </GridItem>
-
-                {/* Daily TVL History Chart */}
-                <GridItem colSpan={{ base: 1, md: 2 }}>
-                    <Box bg="whiteAlpha.50" p={4} borderRadius="md" border="1px solid" borderColor="whiteAlpha.200">
-                        <Text fontSize="lg" fontWeight="bold" mb={4}>Daily TVL History</Text>
+                        <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px" mb={4}>
+                            Daily TVL History
+                        </Text>
                         <ResponsiveContainer width="100%" height={200}>
                             <LineChart data={tvlChartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="whiteAlpha.200" />
-                                <XAxis dataKey="date" stroke="whiteAlpha.600" />
-                                <YAxis stroke="whiteAlpha.600" />
-                                <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none' }} />
-                                <Line type="monotone" dataKey="tvl" stroke="#3182ce" strokeWidth={2} />
+                                <XAxis
+                                    dataKey="date"
+                                    stroke={PRIMARY_PURPLE}
+                                    strokeOpacity={0.6}
+                                    tick={{ fill: PRIMARY_PURPLE, fontFamily: 'mono', fontSize: '10px' }}
+                                    interval="preserveStartEnd"
+                                    tickFormatter={(value, index) => {
+                                        // Show only weekly dates (every 7 days)
+                                        if (tvlChartData.length === 0) return value
+                                        const entry = tvlChartData[index]
+                                        if (!entry || !entry.timestamp) return value
+
+                                        // Get the first entry's timestamp as reference
+                                        const firstTimestamp = tvlChartData[0]?.timestamp || 0
+                                        const daysSinceStart = Math.floor((entry.timestamp - firstTimestamp) / 86400)
+
+                                        // Show date if it's a multiple of 7 days, or if it's the first/last entry
+                                        if (daysSinceStart % 7 === 0 || index === 0 || index === tvlChartData.length - 1) {
+                                            return value
+                                        }
+                                        return ''
+                                    }}
+                                />
+                                <YAxis
+                                    stroke={PRIMARY_PURPLE}
+                                    strokeOpacity={0.6}
+                                    tick={{ fill: PRIMARY_PURPLE, fontFamily: 'mono', fontSize: '10px' }}
+                                    label={{ value: 'MBRN', angle: -90, position: 'insideLeft', fill: PRIMARY_PURPLE, fontFamily: 'mono', fontSize: '12px', fontWeight: '700' }}
+                                />
+                                <RechartsTooltip
+                                    contentStyle={{
+                                        backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                                        border: `2px solid ${PRIMARY_PURPLE}`,
+                                        borderRadius: '4px',
+                                        color: PRIMARY_PURPLE,
+                                        fontFamily: 'mono',
+                                    }}
+                                    formatter={(value: any) => {
+                                        const formattedValue = typeof value === 'number'
+                                            ? value.toFixed(2)
+                                            : parseFloat(value || '0').toFixed(2)
+                                        return [`${formattedValue} MBRN`, 'TVL']
+                                    }}
+                                    labelFormatter={(label) => label}
+                                />
+                                <Line type="monotone" dataKey="tvl" stroke={PRIMARY_PURPLE} strokeWidth={2} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>
                     </Box>
                 </GridItem>
 
-                {/* Deposit Distribution by LTV */}
-                <GridItem>
-                    <Box bg="whiteAlpha.50" p={4} borderRadius="md" border="1px solid" borderColor="whiteAlpha.200">
-                        <Text fontSize="lg" fontWeight="bold" mb={4}>Deposit Distribution by LTV</Text>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <PieChart>
-                                <Pie
-                                    data={depositDistributionData}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    label={({ name, percent }) => `${name}%: ${(percent * 100).toFixed(0)}%`}
-                                    outerRadius={80}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                >
-                                    {depositDistributionData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <RechartsTooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </Box>
-                </GridItem>
-
-                {/* Lock Status Breakdown */}
-                <GridItem>
-                    <Box bg="whiteAlpha.50" p={4} borderRadius="md" border="1px solid" borderColor="whiteAlpha.200">
-                        <Text fontSize="lg" fontWeight="bold" mb={4}>Lock Status Breakdown</Text>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={lockStatusData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="whiteAlpha.200" />
-                                <XAxis dataKey="name" stroke="whiteAlpha.600" />
-                                <YAxis stroke="whiteAlpha.600" />
-                                <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none' }} />
-                                <Bar dataKey="value" fill="#3182ce" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </Box>
-                </GridItem>
             </Grid>
+
         </Box>
     )
 })

@@ -271,6 +271,40 @@
   }
 }
 
+@keyframes scannerGlow {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px #3BE5E5) drop-shadow(0 0 20px #6943FF);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 20px #3BE5E5) drop-shadow(0 0 30px #6943FF) drop-shadow(0 0 40px #A692FF);
+  }
+}
+
+@keyframes discoSpin {
+  0% {
+    transform: rotateY(0deg);
+  }
+
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes discoSparkle {
+
+  0%,
+  100% {
+    filter: brightness(1) contrast(1) drop-shadow(0 0 4px rgba(166, 146, 255, 0.2));
+  }
+
+  50% {
+    filter: brightness(1.2) contrast(1.15) drop-shadow(0 0 10px rgba(166, 146, 255, 0.4)) drop-shadow(0 0 15px rgba(59, 229, 229, 0.25));
+  }
+}
+
 .animate-ticker {
   animation: ticker 20s linear infinite;
 }
@@ -547,4 +581,10 @@
   .leaderboard-empty {
     font-size: 10px;
   }
+}
+
+/* Recharts Legend Styles */
+.recharts-legend-item-text {
+  font-weight: 700 !important;
+  font-size: 17px !important;
 }

@@ -11,15 +11,21 @@ import { useChainRoute } from '@/hooks/useChainRoute';
 import useAppState from '@/persisted-state/useAppState';
 
 const navItems = [
+    { label: 'About', href: '/about' },
     { label: 'Home', href: '/' },
     { label: 'Portfolio', href: '/portfolio' },
+    { label: 'Transmuter', href: '/transmuter' },
+    { label: 'Manic', href: '/manic' },
+    { label: 'Disco', href: '/disco' },
+    { label: 'Maze Runners', href: '/maze-runners' },
+    { label: 'Bridge', href: '/bridge' },
+
     // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
     // { label: 'Isolated Markets', href: '/isolated' }, //Remove supplied CDT Trix
-    { label: 'Mint', href: '/mint' },
-    { label: 'Liquidate', href: '/liquidate' },
-    { label: 'Stake', href: '/stake' },
-    { label: 'Maze Runners', href: '/maze-runners' },
-    { label: 'Control Room', href: '/control-room' },
+    // { label: 'Mint', href: '/mint' },
+    // { label: 'Liquidate', href: '/liquidate' },
+    // { label: 'Stake', href: '/stake' },
+    // { label: 'Control Room', href: '/control-room' },
 ];
 
 const HorizontalNav = () => {
@@ -44,6 +50,11 @@ const HorizontalNav = () => {
         router.push(newPath);
     };
 
+    // Filter out Home page from nav if user has completed contract signing
+    const filteredNavItems = appState.setCookie 
+        ? navItems.filter(item => item.label !== 'Home')
+        : navItems;
+
     return (
         <Box
             as="nav"
@@ -58,6 +69,7 @@ const HorizontalNav = () => {
             justifyContent="space-between"
             minH="64px"
             zIndex={100}
+            backdropFilter="blur(0px)"
         >
             {/* Left: Logo, Title, Page Selector or Hamburger */}
             {/* <Stack spacing={0} alignContent={"start"}> */}
@@ -77,7 +89,7 @@ const HorizontalNav = () => {
 
             {/* Desktop Nav */}
             <HStack spacing={1} display={{ base: 'none', lg: 'none' }}>
-                {chainName && navItems.map((item) => (
+                {chainName && filteredNavItems.map((item) => (
                     <Button
                         key={item.label}
                         as={NextLink}
@@ -159,7 +171,7 @@ const HorizontalNav = () => {
                                 <Box mb={4}>
                                     <Logo />
                                 </Box>
-                                {chainName && navItems.map((item) => (
+                                {chainName && filteredNavItems.map((item) => (
                                     <Button
                                         key={item.label}
                                         as={NextLink}
@@ -191,7 +203,9 @@ const HorizontalNav = () => {
                                 >
                                     "DeFy the World Together"
                                 </Text>
-                                <WallectConnect />
+                                <Box display="flex" justifyContent="center">
+                                    <WallectConnect />
+                                </Box>
                             </Box>
                         </VStack>
                     </DrawerBody>

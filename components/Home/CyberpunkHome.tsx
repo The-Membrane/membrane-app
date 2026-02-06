@@ -4,52 +4,75 @@ import { useRouter } from 'next/router'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { UserCircle, ArrowUp, ArrowLeft, Lock, Unlock, Wifi } from 'lucide-react'
 import useAppState from '@/persisted-state/useAppState'
+import { SpeechBubble } from '@/components/SpeechBubble'
 
-type View = 'storefront' | 'lobby' | 'about' | 'levels'
+type View = 'storefront' | 'about' | 'levels'
 
-interface Level {
+export interface Level {
     id: number
     name: string
+    subtitle?: string
     description: string
     status: 'unlocked' | 'locked'
     color: string
+    route?: string
 }
 
-const levels: Level[] = [
+export const levels: Level[] = [
+
     {
         id: 1,
-        name: 'GROUND FLOOR',
-        description: 'Main dance floor with holographic DJs',
+        name: 'TRANSMUTER',
+        subtitle: 'CDT <> USDC Exchange',
+        description: 'Earn MBRN by providing USDC to fuel the transmutation of CDT to USDC.',
         status: 'unlocked',
-        color: '#3BE5E5'
+        color: '#3BE5E5',
+        route: 'transmuter'
     },
     {
         id: 2,
-        name: 'LEVEL AZURE',
-        description: 'Ambient lounge with neural relaxation pods',
+        name: 'MANIC',
+        subtitle: 'Boosted stablecoin yield',
+        description: 'Loop USDC supplied on Mars Protocol to boost your stablecoin yield by 10x.',
         status: 'unlocked',
-        color: '#6943FF'
+        color: '#6943FF',
+        route: 'manic'
     },
     {
         id: 3,
-        name: 'LEVEL VIOLET',
-        description: 'VIP section with exclusive experiences',
+        name: 'LTV DISCO',
+        subtitle: 'Revenue-fueled System Backstop',
+        description: 'Deposit MBRN to earn protocol revenue in exchange for backstopping the system.',
         status: 'unlocked',
-        color: '#A692FF'
-    },
-    {
-        id: 4,
-        name: 'THE NEXUS',
-        description: 'Direct neural interface experimental zone',
-        status: 'locked',
-        color: '#8A8A8A'
+        color: '#A692FF',
+        route: 'disco'
     },
     {
         id: 5,
-        name: 'LEVEL OMEGA',
-        description: 'Top secret - Requires special clearance',
-        status: 'locked',
-        color: '#8A8A8A'
+        name: 'MAZE RUNNERS',
+        subtitle: 'On-chain AI Racing Game',
+        description: 'Train your own AI to traverse mazes, earn $BYTE and reign supreme as the world\'s #1.',
+        status: 'unlocked',
+        color: '#6943FF',
+        route: 'maze-runners'
+    },
+    {
+        id: 6,
+        name: 'STAKE',
+        subtitle: 'Staking Protocol',
+        description: 'Stake MBRN to earn protocol rewards.',
+        status: 'unlocked',
+        color: '#A692FF',
+        route: 'stake'
+    },
+    {
+        id: 7,
+        name: 'BRIDGE',
+        subtitle: 'Osmosis -> Neutron MBRN Bridge',
+        description: 'Bridge MBRN & transmute MBRN from Osmosis to use on Neutron.',
+        status: 'unlocked',
+        color: '#3BE5E5',
+        route: 'bridge'
     }
 ]
 
@@ -82,7 +105,7 @@ const ImageWithFallback = ({ src, alt, ...props }: any) => {
 }
 
 // Storefront Component
-const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
+const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) => {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
     const circleRef = React.useRef<HTMLDivElement>(null)
     const { setAppState } = useAppState()
@@ -102,13 +125,15 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
     const scannerRef = React.useRef<HTMLDivElement>(null)
     const scanAnimationRef = React.useRef<number | null>(null)
 
-    // Load TOS content
+    // Load TOS content only when modal opens
     useEffect(() => {
-        fetch('/TOS.md')
-            .then(res => res.text())
-            .then(text => setTosContent(text))
-            .catch(err => console.error('Failed to load TOS:', err))
-    }, [])
+        if (isTOSOpen && !tosContent) {
+            fetch('/TOS.md')
+                .then(res => res.text())
+                .then(text => setTosContent(text))
+                .catch(err => console.error('Failed to load TOS:', err))
+        }
+    }, [isTOSOpen, tosContent])
 
     React.useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -291,108 +316,41 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                     <rect width="100%" height="100%" fill="url(#hexagonPattern)" />
                 </Box>
             </Box>
-            {/* Neon Sign */}
-            <VStack mt={16} mb={16} spacing={4} position="relative" zIndex={2}>
-                {scanComplete && <Text
-                    className="neonSignon"
-                    letterSpacing="wider"
-                    textAlign="center"
-                >
-                    <b>
-                        <span>T</span>
-                        <span>H</span>
-                        <span>E</span>
-                        <span style={{ marginRight: '0.2em', width: '0.2em' }}> </span>
-                        <a>M</a>
-                        <span>E</span>
-                        <span>M</span>
-                        <a>B</a>
-                        <a>R</a>
-                        <span>A</span>
-                        <a>N</a>
-                        <span>E</span>
-                    </b>
-                </Text>}
-                {/* Divider */}
-                {/* <Box
-                    h="4px"
-                    mt={"14px"}
-                    w="100%"
-                    bgGradient="linear(to-r, transparent, #3BE5E5, transparent)"
-                    opacity={0.6}
-                /> */}
-            </VStack>
 
-            {/* Username Input Section */}
-            {scanComplete && (
-                <VStack spacing={4} position="relative" zIndex={2} mb={24}>
-
-                    <Text
-                        fontSize={{ base: "xs", md: "sm" }}
-                        color="#8A8A8A"
-                        fontStyle="italic"
-                        textAlign="end"
-                    >
-                        Your name is your ticket within. Choose wisely.
-                    </Text>
-                    <FormControl>
-                        <Input
-                            // placeholder="Enter username to step within"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            bg="#0A0A0A"
-                            border="2px solid"
-                            borderColor="#3BE5E550"
-                            color="#F5F5F5"
-                            borderRadius="md"
-                            px={4}
-                            py={3}
-                            _hover={{
-                                borderColor: '#3BE5E5',
-                            }}
-                            _focus={{
-                                borderColor: '#3BE5E5',
-                                boxShadow: '0 0 10px #3BE5E5',
-                                outline: 'none',
-                            }}
-                            _placeholder={{
-                                color: '#8A8A8A',
-                                letterSpacing: 'widest',
-                                fontSize: 'sm',
-                                textAlign: 'center',
-                            }}
-                            textAlign="start"
-                            maxW="300px"
-                            w="100%"
-                        />
-                    </FormControl>
-                </VStack>
-            )}
-
-            {/* Rules Section - Above scanner */}
+            {/* Rules Section - At the top */}
             {!scanComplete && (
-                <VStack spacing={4} position="relative" zIndex={2} mb={8} maxW="800px" w="100%" px={4} mt={16}>
+                <VStack spacing={4} position="relative" zIndex={2} mb={8} maxW="800px" w="100%" px={4} mt={8}>
                     <Box
                         bg="#0A0A0A"
                         border="2px solid"
                         borderColor="#6943FF50"
                         borderRadius="md"
-                        p={6}
-                        w="100%"
+                        py={24}
+                        px={6}
+                        w="fit-content"
+                        mx="auto"
                     >
-                        <VStack spacing={4} align="stretch">
+                        <VStack spacing={8} align="stretch">
                             {/* Neon Sign */}
-                            <VStack spacing={4} position="relative" zIndex={2} mb={20}>
-                                <Text
+                            <VStack spacing={4} position="relative" zIndex={2} mb={{ base: 12, md: 24 }}>
+                                <Box
                                     className="neonSignon"
                                     letterSpacing="wider"
                                     textAlign="center"
+                                    display="flex"
+                                    flexDirection={{ base: "column" }}
+                                    justifyContent="center"
+                                    alignItems="center"
+                                    gap={{ base: 0, md: "0.2em" }}
+                                    as="div"
                                 >
-                                    <b>
+                                    <b style={{ display: "flex" }}>
                                         <span>T</span>
                                         <span>H</span>
                                         <span>E</span>
                                         <span style={{ marginRight: '0.2em', width: '0.2em' }}> </span>
+                                    </b>
+                                    <b style={{ display: "flex" }}>
                                         <a>M</a>
                                         <span>E</span>
                                         <span>M</span>
@@ -402,11 +360,11 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                                         <a>N</a>
                                         <span>E</span>
                                     </b>
-                                </Text>
+                                </Box>
                             </VStack>
 
                             {/* TOS Text */}
-                            <VStack spacing={1} px={4} align="stretch">
+                            <VStack spacing={1} align="stretch" position="relative" zIndex={2}>
                                 <Text
                                     fontSize={{ base: "sm", md: "md" }}
                                     color="#F5F5F5"
@@ -416,7 +374,7 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                                     letterSpacing="0.08em"
                                     textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
                                 >
-                                    I enter as a sovereign soul, claim my own risks, sever forbidden jurisdictions.
+                                    I approach as a sovereign soul, claiming my own risks and severing foreign ties.
                                 </Text>
                                 <Text
                                     fontSize={{ base: "sm", md: "md" }}
@@ -427,7 +385,7 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                                     letterSpacing="0.08em"
                                     textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
                                 >
-                                    I accept that every action I take becomes an immutable echo.
+                                    I accept that every action I take becomes an immutable ripple through time.
                                 </Text>
                                 <Text
                                     fontSize={{ base: "sm", md: "md" }}
@@ -449,7 +407,7 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                                     letterSpacing="0.08em"
                                     textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
                                 >
-                                    My steps are my signature.
+                                    My steps are my fingerprint.
                                 </Text>
                                 <Text
                                     fontSize={{ base: "sm", md: "md" }}
@@ -460,7 +418,18 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                                     letterSpacing="0.08em"
                                     textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
                                 >
-                                    Once inside, there is no going back.
+                                    Once inside, there is no return.
+                                </Text>
+                                <Text
+                                    fontSize={{ base: "sm", md: "md" }}
+                                    color="#F5F5F5"
+                                    textAlign="left"
+                                    lineHeight="1.8"
+                                    fontFamily="mono"
+                                    letterSpacing="0.08em"
+                                    textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
+                                >
+                                    Within, we are the Membrane.
                                 </Text>
                             </VStack>
 
@@ -518,14 +487,21 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                                 justifyContent="center"
                             // mt={4}
                             >
-                                <Image
-                                    src="/images/cursor-scanner.svg"
-                                    alt="Scanner"
-                                    w="75px"
-                                    h="75px"
-                                    objectFit="contain"
-                                    pointerEvents="none"
-                                />
+                                <Box
+                                    position="relative"
+                                    css={{
+                                        animation: 'scannerGlow 2s ease-in-out infinite',
+                                    }}
+                                >
+                                    <Image
+                                        src="/images/cursor-scanner.svg"
+                                        alt="Scanner"
+                                        w="75px"
+                                        h="75px"
+                                        objectFit="contain"
+                                        pointerEvents="none"
+                                    />
+                                </Box>
                                 {/* 40px activation area in the center */}
                                 <Box
                                     ref={scannerRef}
@@ -542,6 +518,84 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                             </Box>
                         </VStack>
                     </Box>
+                </VStack>
+            )}
+
+            {/* Neon Sign - Shown after scan complete */}
+            {scanComplete && (
+                <VStack mt={8} mb={16} spacing={4} position="relative" zIndex={2}>
+                    <Box
+                        className="neonSignon"
+                        letterSpacing="wider"
+                        textAlign="center"
+                        display="flex"
+                        flexDirection={{ base: "column", md: "row" }}
+                        justifyContent="center"
+                        alignItems="center"
+                        gap={{ base: 0, md: "0.2em" }}
+                        as="div"
+                    >
+                        <b style={{ display: "flex" }}>
+                            <span>T</span>
+                            <span>H</span>
+                            <span>E</span>
+                        </b>
+                        <b style={{ display: "flex" }}>
+                            <a>M</a>
+                            <span>E</span>
+                            <span>M</span>
+                            <a>B</a>
+                            <a>R</a>
+                            <span>A</span>
+                            <a>N</a>
+                            <span>E</span>
+                        </b>
+                    </Box>
+                </VStack>
+            )}
+
+            {/* Username Input Section */}
+            {scanComplete && (
+                <VStack spacing={4} position="relative" zIndex={2} mb={24}>
+                    <Text
+                        fontSize={{ base: "xs", md: "sm" }}
+                        color="#8A8A8A"
+                        fontStyle="italic"
+                        textAlign="end"
+                    >
+                        Your name is your sigil. Choose wisely.
+                    </Text>
+                    <FormControl>
+                        <Input
+                            // placeholder="Enter username to step within"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            bg="#0A0A0A"
+                            border="2px solid"
+                            borderColor="#3BE5E550"
+                            color="#F5F5F5"
+                            borderRadius="md"
+                            px={4}
+                            py={3}
+                            _hover={{
+                                borderColor: '#3BE5E5',
+                            }}
+                            _focus={{
+                                borderColor: '#3BE5E5',
+                                boxShadow: '0 0 10px #3BE5E5',
+                                outline: 'none',
+                            }}
+                            _placeholder={{
+                                color: '#8A8A8A',
+                                letterSpacing: 'widest',
+                                fontSize: 'sm',
+                                textAlign: 'center',
+                            }}
+                            textAlign="start"
+                            maxW="300px"
+                            w="100%"
+                        />
+                    </FormControl>
                 </VStack>
             )}
 
@@ -574,7 +628,7 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                 style={{
                     transformOrigin: 'center center',
                 }}
-                onClick={scanComplete && username.trim() ? onEnter : undefined}
+                onClick={scanComplete && username.trim() ? () => onEnter(username.trim()) : undefined}
                 cursor={scanComplete && username.trim() ? 'pointer' : 'default'}
                 role="group"
             >
@@ -669,7 +723,7 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
                             points="128,0 240,64 240,192 128,256 12,192 12,64"
                             fill="none"
                             stroke="url(#hexBorderGradient)"
-                            strokeWidth="4"
+                            strokeWidth="8"
                         />
                     </Box>
                 </Box>
@@ -862,309 +916,381 @@ const StorefrontView = ({ onEnter }: { onEnter: () => void }) => {
 }
 
 // Lobby Component
-const LobbyView = ({
-    onBack,
-    onReceptionist,
-    onElevator
-}: {
-    onBack: () => void
-    onReceptionist: () => void
-    onElevator: () => void
-}) => {
-    return (
-        <Box
-            position="relative"
-            minH="100vh"
-            bg="#0A0A0A"
-            overflow="hidden"
-        >
-            {/* Background */}
-            <Box position="absolute" inset={0}>
-                <ImageWithFallback
-                    src="https://images.unsplash.com/photo-1698614083129-15e976a503fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZW9uJTIwY2x1YiUyMGludGVyaW9yJTIwcHVycGxlfGVufDF8fHx8MTc2Mjg5NjYwNHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                    alt="Neon lobby"
-                    w="100%"
-                    h="100%"
-                    objectFit="cover"
-                    opacity={0.3}
-                />
-                <Box
-                    position="absolute"
-                    inset={0}
-                    bgGradient="linear(to-t, #0A0A0A, #0A0A0A60, transparent)"
-                />
-            </Box>
+// const LobbyView = ({
+//     onBack,
+//     onReceptionist,
+//     onElevator
+// }: {
+//     onBack: () => void
+//     onReceptionist: () => void
+//     onElevator: () => void
+// }) => {
+//     const { appState, setAppState } = useAppState()
+//     const { chainName } = useChainRoute()
+//     const username = appState.setCookie && appState.username ? appState.username : ''
+//     const [showWelcomeMessage, setShowWelcomeMessage] = useState(false)
+//     const [isFadingOut, setIsFadingOut] = useState(false)
 
-            {/* Content */}
-            <Box
-                position="relative"
-                zIndex={10}
-                minH="100vh"
-                display="flex"
-                flexDirection="column"
-                alignItems="center"
-                justifyContent="center"
-                px={4}
-            >
-                {/* Header */}
-                <VStack mb={16} spacing={2}>
-                    <Text
-                        fontSize={{ base: '2xl', md: '4xl', lg: '6xl' }}
-                        fontFamily="mono"
-                        color="#A692FF"
-                        textShadow="0 0 20px #6943FF, 0 0 30px #6943FF"
-                        letterSpacing="wider"
-                        textAlign="center"
-                    >
-                        WELCOME TO THE LOBBY
-                    </Text>
-                    <Text color="#8A8A8A" letterSpacing="widest" fontSize="sm">
-                        CHOOSE YOUR DESTINATION
-                    </Text>
-                </VStack>
+//     // Show welcome message on entry and fade out after 7 seconds (only once)
+//     useEffect(() => {
+//         if (username && !appState.hasSeenWelcomeMessage) {
+//             setShowWelcomeMessage(true)
+//             setIsFadingOut(false)
+//             setAppState({ hasSeenWelcomeMessage: true })
 
-                {/* Main Choices */}
-                <HStack
-                    spacing={12}
-                    maxW="4xl"
-                    w="100%"
-                    flexDirection={{ base: 'column', md: 'row' }}
-                    mb={16}
-                >
-                    {/* Receptionist - About */}
-                    <Box
-                        as="button"
-                        onClick={onReceptionist}
-                        position="relative"
-                        h="320px"
-                        w="100%"
-                        bgGradient="linear(to-br, #6943FF20, #0A0A0A)"
-                        border="2px solid"
-                        borderColor="#6943FF"
-                        borderRadius="md"
-                        overflow="hidden"
-                        transition="all 0.3s"
-                        cursor="pointer"
-                        _hover={{
-                            borderColor: '#A692FF',
-                            boxShadow: '0 0 40px #6943FF',
-                            transform: 'scale(1.05)',
-                        }}
-                        role="group"
-                    >
-                        <VStack
-                            position="absolute"
-                            top={8}
-                            left="50%"
-                            transform="translateX(-50%)"
-                            spacing={4}
-                        >
-                            <Box position="relative">
-                                <Icon
-                                    as={UserCircle}
-                                    w={20}
-                                    h={20}
-                                    color="#6943FF"
-                                    filter="drop-shadow(0 0 10px #6943FF)"
-                                    transition="color 0.3s"
-                                    _groupHover={{
-                                        color: '#A692FF',
-                                    }}
-                                />
-                                <Box
-                                    position="absolute"
-                                    top="-16px"
-                                    left="-16px"
-                                    right="-16px"
-                                    bottom="-16px"
-                                    border="2px solid"
-                                    borderColor="#3BE5E5"
-                                    borderRadius="full"
-                                    opacity={0.3}
-                                    css={{
-                                        animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
-                                    }}
-                                />
-                            </Box>
-                        </VStack>
+//             let hideTimer: NodeJS.Timeout | null = null
 
-                        <VStack
-                            position="absolute"
-                            bottom={12}
-                            left={0}
-                            right={0}
-                            spacing={2}
-                            px={6}
-                        >
-                            <Text color="#F5F5F5" fontSize="2xl" letterSpacing="wider">
-                                RECEPTIONIST
-                            </Text>
-                            <Text color="#8A8A8A" fontSize="sm">
-                                Learn about The Membrane
-                            </Text>
-                            <Box mt={4} h="4px" w="96px" mx="auto" bgGradient="linear(to-r, transparent, #3BE5E5, transparent)" />
-                        </VStack>
+//             const fadeOutTimer = setTimeout(() => {
+//                 setIsFadingOut(true)
+//                 // Hide completely after fade animation completes
+//                 hideTimer = setTimeout(() => {
+//                     setShowWelcomeMessage(false)
+//                 }, 300) // Match transition duration
+//             }, 7000) // 7 seconds
 
-                        {/* Corner Accents */}
-                        <Box
-                            position="absolute"
-                            top={0}
-                            right={0}
-                            w="64px"
-                            h="64px"
-                            borderTop="4px solid"
-                            borderRight="4px solid"
-                            borderColor="#3BE5E5"
-                            opacity={0.5}
-                        />
-                        <Box
-                            position="absolute"
-                            bottom={0}
-                            left={0}
-                            w="64px"
-                            h="64px"
-                            borderBottom="4px solid"
-                            borderLeft="4px solid"
-                            borderColor="#3BE5E5"
-                            opacity={0.5}
-                        />
-                    </Box>
+//             return () => {
+//                 clearTimeout(fadeOutTimer)
+//                 if (hideTimer) {
+//                     clearTimeout(hideTimer)
+//                 }
+//             }
+//         }
+//     }, [username, appState.hasSeenWelcomeMessage, setAppState])
 
-                    {/* Elevator - Levels */}
-                    <Box
-                        as="button"
-                        onClick={onElevator}
-                        position="relative"
-                        h="320px"
-                        w="100%"
-                        bgGradient="linear(to-br, #3BE5E520, #0A0A0A)"
-                        border="2px solid"
-                        borderColor="#3BE5E5"
-                        borderRadius="md"
-                        overflow="hidden"
-                        transition="all 0.3s"
-                        cursor="pointer"
-                        _hover={{
-                            borderColor: '#A692FF',
-                            boxShadow: '0 0 40px #3BE5E5',
-                            transform: 'scale(1.05)',
-                        }}
-                        role="group"
-                    >
-                        <VStack
-                            position="absolute"
-                            top={8}
-                            left="50%"
-                            transform="translateX(-50%)"
-                            spacing={4}
-                        >
-                            <Box
-                                w="96px"
-                                h="128px"
-                                border="4px solid"
-                                borderColor="#3BE5E5"
-                                borderRadius="md"
-                                bg="#0A0A0A80"
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                            >
-                                <Icon
-                                    as={ArrowUp}
-                                    w={12}
-                                    h={12}
-                                    color="#3BE5E5"
-                                    filter="drop-shadow(0 0 10px #3BE5E5)"
-                                    transition="color 0.3s"
-                                    animation="bounce 1s infinite"
-                                    _groupHover={{
-                                        color: '#A692FF',
-                                    }}
-                                />
-                            </Box>
-                        </VStack>
+//     return (
+//         <Box
+//             position="relative"
+//             minH="100vh"
+//             bg="#0A0A0A"
+//             overflow="hidden"
+//             display="flex"
+//             flexDirection="column"
+//             alignItems="center"
+//             px={4}
+//         >
+//             {/* Hexagonal Background Grid */}
+//             <Box
+//                 position="fixed"
+//                 inset={0}
+//                 opacity={0.5}
+//                 zIndex={0}
+//             >
+//                 <Box
+//                     as="svg"
+//                     w="100%"
+//                     h="100%"
+//                 >
+//                     <defs>
+//                         <pattern id="hexagonPatternLobby" x="0" y="0" width="103.92" height="60" patternUnits="userSpaceOnUse">
+//                             {/* Left hexagon */}
+//                             <polygon
+//                                 points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
+//                                 fill="none"
+//                                 stroke="#6943FF"
+//                                 strokeWidth="1"
+//                             />
+//                             {/* Right hexagon (offset down) */}
+//                             <polygon
+//                                 points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
+//                                 fill="none"
+//                                 stroke="#6943FF"
+//                                 strokeWidth="1"
+//                             />
+//                             {/* Top-right continuation for seamless tiling */}
+//                             <polygon
+//                                 points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
+//                                 fill="none"
+//                                 stroke="#6943FF"
+//                                 strokeWidth="1"
+//                             />
+//                         </pattern>
+//                     </defs>
+//                     <rect width="100%" height="100%" fill="url(#hexagonPatternLobby)" />
+//                 </Box>
+//             </Box>
 
-                        <VStack
-                            position="absolute"
-                            bottom={12}
-                            left={0}
-                            right={0}
-                            spacing={2}
-                            px={6}
-                        >
-                            <Text color="#F5F5F5" fontSize="2xl" letterSpacing="wider">
-                                ELEVATOR
-                            </Text>
-                            <Text color="#8A8A8A" fontSize="sm">
-                                Explore the levels
-                            </Text>
-                            <Box mt={4} h="4px" w="96px" mx="auto" bgGradient="linear(to-r, transparent, #6943FF, transparent)" />
-                        </VStack>
+//             {/* Ditto Speech Bubble - only show on neutron */}
+//             {chainName === 'neutron' && username && showWelcomeMessage && (
+//                 <Box
+//                     position="fixed"
+//                     bottom={0}
+//                     left={0}
+//                     zIndex={11}
+//                     p={4}
+//                     pointerEvents="none"
+//                     opacity={isFadingOut ? 0 : 1}
+//                     transition="opacity 0.3s ease-in-out"
+//                 >
+//                     <Box position="relative" w="128px" h="128px">
+//                         <SpeechBubble
+//                             message={`Welcome within, ${username}!`}
+//                             isVisible={true}
+//                             position={{
+//                                 bottom: 'calc(35% + 96px + 16px)',
+//                                 left: '69%',
+//                             }}
+//                         />
+//                     </Box>
+//                 </Box>
+//             )}
 
-                        {/* Corner Accents */}
-                        <Box
-                            position="absolute"
-                            top={0}
-                            right={0}
-                            w="64px"
-                            h="64px"
-                            borderTop="4px solid"
-                            borderRight="4px solid"
-                            borderColor="#6943FF"
-                            opacity={0.5}
-                        />
-                        <Box
-                            position="absolute"
-                            bottom={0}
-                            left={0}
-                            w="64px"
-                            h="64px"
-                            borderBottom="4px solid"
-                            borderLeft="4px solid"
-                            borderColor="#6943FF"
-                            opacity={0.5}
-                        />
-                    </Box>
-                </HStack>
+//             {/* Content */}
+//             <Box
+//                 position="relative"
+//                 zIndex={2}
+//                 minH="100vh"
+//                 display="flex"
+//                 flexDirection="column"
+//                 alignItems="center"
+//                 justifyContent="center"
+//                 w="100%"
+//             >
+//                 {/* Header */}
+//                 <VStack mb={16} spacing={2}>
+//                     <Text
+//                         fontSize={{ base: '2xl', md: '4xl', lg: '6xl' }}
+//                         fontFamily="mono"
+//                         color="#A692FF"
+//                         textShadow="0 0 20px #6943FF, 0 0 30px #6943FF"
+//                         letterSpacing="wider"
+//                         textAlign="center"
+//                     >
+//                         WELCOME TO THE MEMBRANE
+//                     </Text>
+//                     <Text color="#8A8A8A" letterSpacing="widest" fontSize="sm">
+//                         CHOOSE YOUR DESTINATION
+//                     </Text>
+//                 </VStack>
 
-                {/* Back Button */}
-                <Button
-                    onClick={onBack}
-                    px={8}
-                    py={3}
-                    border="1px solid"
-                    borderColor="#8A8A8A"
-                    color="#8A8A8A"
-                    bg="transparent"
-                    _hover={{
-                        borderColor: '#F5F5F5',
-                        color: '#F5F5F5',
-                    }}
-                    transition="colors 0.3s"
-                    letterSpacing="wider"
-                    fontSize="sm"
-                >
-                    EXIT
-                </Button>
+//                 {/* Main Choices */}
+//                 <HStack
+//                     spacing={12}
+//                     maxW="4xl"
+//                     w="100%"
+//                     flexDirection={{ base: 'column', md: 'row' }}
+//                     mb={16}
+//                 >
+//                     {/* Receptionist - About */}
+//                     <Box
+//                         as="button"
+//                         onClick={onReceptionist}
+//                         position="relative"
+//                         h="320px"
+//                         w="100%"
+//                         bgGradient="linear(to-br, #6943FF20, #0A0A0A)"
+//                         border="2px solid"
+//                         borderColor="#6943FF"
+//                         borderRadius="md"
+//                         overflow="hidden"
+//                         transition="all 0.3s"
+//                         cursor="pointer"
+//                         _hover={{
+//                             borderColor: '#A692FF',
+//                             boxShadow: '0 0 40px #6943FF',
+//                             transform: 'scale(1.05)',
+//                         }}
+//                         role="group"
+//                     >
+//                         <VStack
+//                             position="absolute"
+//                             top={8}
+//                             left="50%"
+//                             transform="translateX(-50%)"
+//                             spacing={4}
+//                         >
+//                             <Box position="relative">
+//                                 <Icon
+//                                     as={UserCircle}
+//                                     w={20}
+//                                     h={20}
+//                                     color="#6943FF"
+//                                     filter="drop-shadow(0 0 10px #6943FF)"
+//                                     transition="color 0.3s"
+//                                     _groupHover={{
+//                                         color: '#A692FF',
+//                                     }}
+//                                 />
+//                                 <Box
+//                                     position="absolute"
+//                                     top="-16px"
+//                                     left="-16px"
+//                                     right="-16px"
+//                                     bottom="-16px"
+//                                     border="2px solid"
+//                                     borderColor="#3BE5E5"
+//                                     borderRadius="full"
+//                                     opacity={0.3}
+//                                     css={{
+//                                         animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+//                                     }}
+//                                 />
+//                             </Box>
+//                         </VStack>
 
-                {/* Ambient Grid */}
-                <Box
-                    position="absolute"
-                    inset={0}
-                    pointerEvents="none"
-                    opacity={0.1}
-                    style={{
-                        backgroundImage: `
-                            linear-gradient(#6943FF 1px, transparent 1px),
-                            linear-gradient(90deg, #6943FF 1px, transparent 1px)
-                        `,
-                        backgroundSize: '50px 50px',
-                    }}
-                />
-            </Box>
-        </Box>
-    )
-}
+//                         <VStack
+//                             position="absolute"
+//                             bottom={12}
+//                             left={0}
+//                             right={0}
+//                             spacing={2}
+//                             px={6}
+//                         >
+//                             <Text color="#F5F5F5" fontSize="2xl" letterSpacing="wider">
+//                                 RECEPTIONIST
+//                             </Text>
+//                             <Text color="#8A8A8A" fontSize="sm">
+//                                 Learn about The Membrane
+//                             </Text>
+//                             <Box mt={4} h="4px" w="96px" mx="auto" bgGradient="linear(to-r, transparent, #3BE5E5, transparent)" />
+//                         </VStack>
+
+//                         {/* Corner Accents */}
+//                         <Box
+//                             position="absolute"
+//                             top={0}
+//                             right={0}
+//                             w="64px"
+//                             h="64px"
+//                             borderTop="4px solid"
+//                             borderRight="4px solid"
+//                             borderColor="#3BE5E5"
+//                             opacity={0.5}
+//                         />
+//                         <Box
+//                             position="absolute"
+//                             bottom={0}
+//                             left={0}
+//                             w="64px"
+//                             h="64px"
+//                             borderBottom="4px solid"
+//                             borderLeft="4px solid"
+//                             borderColor="#3BE5E5"
+//                             opacity={0.5}
+//                         />
+//                     </Box>
+
+//                     {/* Elevator - Levels */}
+//                     <Box
+//                         as="button"
+//                         onClick={onElevator}
+//                         position="relative"
+//                         h="320px"
+//                         w="100%"
+//                         bgGradient="linear(to-br, #3BE5E520, #0A0A0A)"
+//                         border="2px solid"
+//                         borderColor="#3BE5E5"
+//                         borderRadius="md"
+//                         overflow="hidden"
+//                         transition="all 0.3s"
+//                         cursor="pointer"
+//                         _hover={{
+//                             borderColor: '#A692FF',
+//                             boxShadow: '0 0 40px #3BE5E5',
+//                             transform: 'scale(1.05)',
+//                         }}
+//                         role="group"
+//                     >
+//                         <VStack
+//                             position="absolute"
+//                             top={8}
+//                             left="50%"
+//                             transform="translateX(-50%)"
+//                             spacing={4}
+//                         >
+//                             <Box
+//                                 w="96px"
+//                                 h="128px"
+//                                 border="4px solid"
+//                                 borderColor="#3BE5E5"
+//                                 borderRadius="md"
+//                                 bg="#0A0A0A80"
+//                                 display="flex"
+//                                 alignItems="center"
+//                                 justifyContent="center"
+//                             >
+//                                 <Icon
+//                                     as={ArrowUp}
+//                                     w={12}
+//                                     h={12}
+//                                     color="#3BE5E5"
+//                                     filter="drop-shadow(0 0 10px #3BE5E5)"
+//                                     transition="color 0.3s"
+//                                     animation="bounce 1s infinite"
+//                                     _groupHover={{
+//                                         color: '#A692FF',
+//                                     }}
+//                                 />
+//                             </Box>
+//                         </VStack>
+
+//                         <VStack
+//                             position="absolute"
+//                             bottom={12}
+//                             left={0}
+//                             right={0}
+//                             spacing={2}
+//                             px={6}
+//                         >
+//                             <Text color="#F5F5F5" fontSize="2xl" letterSpacing="wider">
+//                                 ELEVATOR
+//                             </Text>
+//                             <Text color="#8A8A8A" fontSize="sm">
+//                                 Explore the levels
+//                             </Text>
+//                             <Box mt={4} h="4px" w="96px" mx="auto" bgGradient="linear(to-r, transparent, #6943FF, transparent)" />
+//                         </VStack>
+
+//                         {/* Corner Accents */}
+//                         <Box
+//                             position="absolute"
+//                             top={0}
+//                             right={0}
+//                             w="64px"
+//                             h="64px"
+//                             borderTop="4px solid"
+//                             borderRight="4px solid"
+//                             borderColor="#6943FF"
+//                             opacity={0.5}
+//                         />
+//                         <Box
+//                             position="absolute"
+//                             bottom={0}
+//                             left={0}
+//                             w="64px"
+//                             h="64px"
+//                             borderBottom="4px solid"
+//                             borderLeft="4px solid"
+//                             borderColor="#6943FF"
+//                             opacity={0.5}
+//                         />
+//                     </Box>
+//                 </HStack>
+
+//                 {/* Back Button */}
+//                 <Button
+//                     onClick={onBack}
+//                     px={8}
+//                     py={3}
+//                     border="1px solid"
+//                     borderColor="#8A8A8A"
+//                     color="#8A8A8A"
+//                     bg="transparent"
+//                     _hover={{
+//                         borderColor: '#F5F5F5',
+//                         color: '#F5F5F5',
+//                     }}
+//                     transition="colors 0.3s"
+//                     letterSpacing="wider"
+//                     fontSize="sm"
+//                     width="20%"
+//                 >
+//                     EXIT
+//                 </Button>
+
+//             </Box>
+//         </Box>
+//     )
+// }
 
 // About Component
 const AboutView = ({
@@ -1180,25 +1306,55 @@ const AboutView = ({
             minH="100vh"
             bg="#0A0A0A"
             overflow="hidden"
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
             px={4}
             py={12}
         >
-            {/* Animated Background Grid */}
+            {/* Hexagonal Background Grid */}
             <Box
-                position="absolute"
+                position="fixed"
                 inset={0}
-                opacity={0.1}
-                style={{
-                    backgroundImage: `
-                        linear-gradient(#6943FF 1px, transparent 1px),
-                        linear-gradient(90deg, #6943FF 1px, transparent 1px)
-                    `,
-                    backgroundSize: '40px 40px',
-                }}
-            />
+                opacity={0.5}
+                zIndex={0}
+            >
+                <Box
+                    as="svg"
+                    w="100%"
+                    h="100%"
+                >
+                    <defs>
+                        <pattern id="hexagonPatternAbout" x="0" y="0" width="103.92" height="60" patternUnits="userSpaceOnUse">
+                            {/* Left hexagon */}
+                            <polygon
+                                points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
+                                fill="none"
+                                stroke="#6943FF"
+                                strokeWidth="1"
+                            />
+                            {/* Right hexagon (offset down) */}
+                            <polygon
+                                points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
+                                fill="none"
+                                stroke="#6943FF"
+                                strokeWidth="1"
+                            />
+                            {/* Top-right continuation for seamless tiling */}
+                            <polygon
+                                points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
+                                fill="none"
+                                stroke="#6943FF"
+                                strokeWidth="1"
+                            />
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#hexagonPatternAbout)" />
+                </Box>
+            </Box>
 
             {/* Content */}
-            <Box position="relative" zIndex={10} maxW="3xl" mx="auto">
+            <Box position="relative" zIndex={2} maxW="3xl" mx="auto" w="100%">
                 {/* Header */}
                 <VStack mb={12} spacing={6}>
                     <Box
@@ -1407,11 +1563,17 @@ const LevelsView = ({
     onBack: () => void
     onAbout: () => void
 }) => {
+    const router = useRouter()
+    const { chainName } = useChainRoute()
     const [selectedLevel, setSelectedLevel] = useState<number | null>(null)
     const [currentFloor, setCurrentFloor] = useState(0)
 
     const handleLevelClick = (level: Level) => {
         if (level.status === 'unlocked') {
+            if (level.route) {
+                router.push(`/${chainName}/${level.route}`)
+                return
+            }
             setSelectedLevel(level.id)
             setCurrentFloor(level.id)
         }
@@ -1423,28 +1585,55 @@ const LevelsView = ({
             minH="100vh"
             bg="#0A0A0A"
             overflow="hidden"
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
             px={4}
             py={8}
         >
-            {/* Background */}
-            <Box position="absolute" inset={0}>
-                <ImageWithFallback
-                    src="https://images.unsplash.com/photo-1694951558444-03b27ca33665?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmdXR1cmlzdGljJTIwZWxldmF0b3J8ZW58MXx8fHwxNzYyODk2NjA1fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                    alt="Elevator"
+            {/* Hexagonal Background Grid */}
+            <Box
+                position="fixed"
+                inset={0}
+                opacity={0.5}
+                zIndex={0}
+            >
+                <Box
+                    as="svg"
                     w="100%"
                     h="100%"
-                    objectFit="cover"
-                    opacity={0.2}
-                />
-                <Box
-                    position="absolute"
-                    inset={0}
-                    bgGradient="linear(to-b, #0A0A0A80, transparent, #0A0A0A)"
-                />
+                >
+                    <defs>
+                        <pattern id="hexagonPatternLevels" x="0" y="0" width="103.92" height="60" patternUnits="userSpaceOnUse">
+                            {/* Left hexagon */}
+                            <polygon
+                                points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
+                                fill="none"
+                                stroke="#6943FF"
+                                strokeWidth="1"
+                            />
+                            {/* Right hexagon (offset down) */}
+                            <polygon
+                                points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
+                                fill="none"
+                                stroke="#6943FF"
+                                strokeWidth="1"
+                            />
+                            {/* Top-right continuation for seamless tiling */}
+                            <polygon
+                                points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
+                                fill="none"
+                                stroke="#6943FF"
+                                strokeWidth="1"
+                            />
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#hexagonPatternLevels)" />
+                </Box>
             </Box>
 
             {/* Content */}
-            <Box position="relative" zIndex={10} minH="100vh" display="flex" flexDirection="column" px={4} py={8}>
+            <Box position="relative" zIndex={2} minH="100vh" display="flex" flexDirection="column" w="100%" px={4} py={8}>
                 {/* Header */}
                 <VStack mb={8} spacing={4}>
                     <Text
@@ -1489,9 +1678,9 @@ const LevelsView = ({
                                 <Text color="#F5F5F5" fontSize="xl" letterSpacing="wider">
                                     CONTROL PANEL
                                 </Text>
-                                <Text color="#3BE5E5" fontSize="2xl" fontFamily="mono">
+                                {/* <Text color="#3BE5E5" fontSize="2xl" fontFamily="mono">
                                     {currentFloor}
-                                </Text>
+                                </Text> */}
                             </HStack>
 
                             {/* Level Buttons */}
@@ -1589,14 +1778,14 @@ const LevelsView = ({
                                     spacing={6}
                                     textAlign="center"
                                 >
-                                    <Text
+                                    {/* <Text
                                         fontSize="8xl"
                                         fontFamily="mono"
                                         color={levels[selectedLevel - 1].color}
                                         textShadow={`0 0 30px ${levels[selectedLevel - 1].color}`}
                                     >
                                         {selectedLevel}
-                                    </Text>
+                                    </Text> */}
                                     <Text
                                         fontSize="3xl"
                                         letterSpacing="wider"
@@ -1610,46 +1799,50 @@ const LevelsView = ({
 
                                     {/* Level Visualization */}
                                     <VStack spacing={2} w="100%" maxW="xs">
-                                        {[...Array(5)].reverse().map((_, i) => (
-                                            <Box
-                                                key={i}
-                                                h="48px"
-                                                mb={2}
-                                                border="2px solid"
-                                                borderRadius="md"
-                                                transition="all 0.3s"
-                                                bg={
-                                                    5 - i === selectedLevel
-                                                        ? 'linear-gradient(to right, #6943FF, #A692FF)'
-                                                        : '#0A0A0A'
-                                                }
-                                                borderColor={
-                                                    5 - i === selectedLevel
-                                                        ? '#3BE5E5'
-                                                        : '#6943FF30'
-                                                }
-                                                boxShadow={
-                                                    5 - i === selectedLevel
-                                                        ? '0 0 20px #6943FF'
-                                                        : 'none'
-                                                }
-                                            >
-                                                <HStack justify="space-between" h="100%" px={4}>
-                                                    <Text color="#8A8A8A" fontSize="sm">
-                                                        {levels[4 - i].name}
-                                                    </Text>
-                                                    {5 - i === selectedLevel && (
-                                                        <Box
-                                                            w="8px"
-                                                            h="8px"
-                                                            bg="#3BE5E5"
-                                                            borderRadius="full"
-                                                            animation="pulse 2s infinite"
-                                                        />
-                                                    )}
-                                                </HStack>
-                                            </Box>
-                                        ))}
+                                        {[...Array(levels.length)].reverse().map((_, i) => {
+                                            const levelIndex = levels.length - 1 - i
+                                            const level = levels[levelIndex]
+                                            return (
+                                                <Box
+                                                    key={i}
+                                                    h="48px"
+                                                    mb={2}
+                                                    border="2px solid"
+                                                    borderRadius="md"
+                                                    transition="all 0.3s"
+                                                    bg={
+                                                        level.id === selectedLevel
+                                                            ? 'linear-gradient(to right, #6943FF, #A692FF)'
+                                                            : '#0A0A0A'
+                                                    }
+                                                    borderColor={
+                                                        level.id === selectedLevel
+                                                            ? '#3BE5E5'
+                                                            : '#6943FF30'
+                                                    }
+                                                    boxShadow={
+                                                        level.id === selectedLevel
+                                                            ? '0 0 20px #6943FF'
+                                                            : 'none'
+                                                    }
+                                                >
+                                                    <HStack justify="space-between" h="100%" px={4}>
+                                                        <Text color="#8A8A8A" fontSize="sm">
+                                                            {level.name}
+                                                        </Text>
+                                                        {level.id === selectedLevel && (
+                                                            <Box
+                                                                w="8px"
+                                                                h="8px"
+                                                                bg="#3BE5E5"
+                                                                borderRadius="full"
+                                                                animation="pulse 2s infinite"
+                                                            />
+                                                        )}
+                                                    </HStack>
+                                                </Box>
+                                            )
+                                        })}
                                     </VStack>
                                 </VStack>
                             </Box>
@@ -1692,7 +1885,7 @@ const LevelsView = ({
                         letterSpacing="wider"
                         leftIcon={<Icon as={ArrowLeft} w={5} h={5} />}
                     >
-                        LOBBY
+                        BACK
                     </Button>
                     <Button
                         onClick={onAbout}
@@ -1733,9 +1926,24 @@ export const CyberpunkHome = React.memo(() => {
         }
     }, [router.query.view])
 
-    const handleEnter = () => {
-        setCurrentView('lobby')
-        router.push(`/${chainName}?view=lobby`, undefined, { shallow: true })
+    const { appState, setAppState } = useAppState()
+
+    const handleEnter = (username: string) => {
+        setAppState({ username })
+        setCurrentView('levels')
+        
+        // Check if user has an intended route to redirect to
+        if (appState.intendedRoute) {
+            const intendedRoute = appState.intendedRoute
+            // Clear the intended route
+            setAppState({ intendedRoute: undefined })
+            // Redirect to intended route after a brief delay
+            setTimeout(() => {
+                router.push(intendedRoute)
+            }, 500)
+        } else {
+            router.push(`/${chainName}/levels`)
+        }
     }
 
     const handleBack = () => {
@@ -1753,38 +1961,24 @@ export const CyberpunkHome = React.memo(() => {
         router.push(`/${chainName}?view=levels`, undefined, { shallow: true })
     }
 
-    const handleBackToLobby = () => {
-        setCurrentView('lobby')
-        router.push(`/${chainName}?view=lobby`, undefined, { shallow: true })
-    }
-
     const handleAbout = () => {
-        setCurrentView('about')
-        router.push(`/${chainName}?view=about`, undefined, { shallow: true })
+        router.push(`/${chainName}/about`)
     }
 
     return (
         <Box>
             {currentView === 'storefront' && <StorefrontView onEnter={handleEnter} />}
-            {currentView === 'lobby' && (
-                <LobbyView
-                    onBack={handleBack}
-                    onReceptionist={handleReceptionist}
-                    onElevator={handleElevator}
-                />
-            )}
             {currentView === 'about' && (
                 <AboutView
                     onBack={() => {
-                        setCurrentView('lobby')
-                        router.push(`/${chainName}?view=lobby`, undefined, { shallow: true })
+                        router.push(`/${chainName}/levels`)
                     }}
                     onElevator={handleElevator}
                 />
             )}
             {currentView === 'levels' && (
                 <LevelsView
-                    onBack={handleBackToLobby}
+                    onBack={handleBack}
                     onAbout={handleAbout}
                 />
             )}

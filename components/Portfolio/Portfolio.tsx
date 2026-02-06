@@ -71,6 +71,7 @@ import ClaimButton from '../Nav/ClaimButton'
 import SoloLeveling from '../Nav/PointsLevel';
 import PointsLeaderboard from '../Home/PointsLeaderboard';
 import { useLeaderboardData } from '@/hooks/usePoints';
+import { PointsProgressCard } from '../Points/PointsProgressCard';
 import { useUserPositions, useBasket } from '@/hooks/useCDP';
 import { useUserBoundedIntents } from '../../hooks/useEarnQueries';
 import useMintState from '../Mint/hooks/useMintState';
@@ -127,7 +128,7 @@ const MarketActionEdit = ({ assetSymbol, position, marketAddress, collateralDeno
   const { chainName } = useChainRoute();
   const asset = useAssetBySymbol(assetSymbol, chainName);
   const { setManagedActionState, managedActionState } = useManagedAction();
-  const { address: userAddress } = useWallet(chainName);
+  const { address: userAddress } = useWallet();
   const { data: uxBoosts } = useUserUXBoosts(marketAddress, collateralDenom, userAddress ?? '');
   const [spread, setSpread] = useState(0.01);
 
@@ -848,7 +849,7 @@ const Portfolio: React.FC = () => {
 
   // Get chainName and userAddress from hooks
   const { chainName } = useChainRoute();
-  const { address: userAddress } = useWallet(chainName);
+  const { address: userAddress } = useWallet();
   const { appState } = useAppState();
   const { data: cosmwasmClient } = useCosmWasmClient(appState.rpcUrl);
   const assets = useAssets(chainName);
@@ -1114,6 +1115,7 @@ const Portfolio: React.FC = () => {
             ))}
           </HStack>
         </Stack>
+
         <Tabs index={tabIndex} onChange={setTabIndex} variant="unstyled">
           <TabList borderBottom="1px solid #232A3E">
             <Tab fontWeight="bold" color={tabIndex === 0 ? 'white' : 'whiteAlpha.600'}>Positions</Tab>
@@ -1158,10 +1160,11 @@ const Portfolio: React.FC = () => {
             </TabPanel>
           </TabPanels>
         </Tabs>
+
         {/* Points Card as part of the stack, full width */}
         <Box
           w={{ base: '100%', md: '40%' }}
-          mt={12}
+          mt={8}
           bg="#20232C"
           borderRadius="2xl"
           boxShadow="-2px -2px 16px 0px rgba(0,0,0,0.4)"

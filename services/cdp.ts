@@ -41,6 +41,10 @@ export const getBasket = async (client: any) => {
   return client.getBasket()
 }
 
+export const getRates = async (client: any) => {
+  return client.getRates()
+}
+
 export const getUserRedemptionInfo = async (address: string, cosmWasmClient: any) => {
 
   const response =
@@ -53,6 +57,23 @@ export const getUserRedemptionInfo = async (address: string, cosmWasmClient: any
 
   return response
 
+}
+
+export interface HistoricalOraclePricesResponse {
+  prices: Array<{
+    price: string
+    timestamp: number
+  }>
+}
+
+export const getHistoricalOraclePrices = async (asset: string, cosmWasmClient: any): Promise<HistoricalOraclePricesResponse> => {
+  const response = await cosmWasmClient.queryContractSmart(contracts.cdp, {
+    get_historical_oracle_prices: {
+      asset
+    }
+  }) as Promise<HistoricalOraclePricesResponse>
+
+  return response
 }
 
 const getAssetInterestRate = (

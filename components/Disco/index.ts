@@ -6,4 +6,8 @@ export { PortfolioSection } from './PortfolioSection'
 export { MetricsSection } from './MetricsSection'
 export { DepositCard } from './DepositCard'
 export { FunnelAnimation } from './FunnelAnimation'
+export { HexGraphic } from './HexGraphic'
+export { MetricsCard } from './MetricsCard'
+export { EpochRevenueCard } from './EpochRevenueCard'
+export type { LTVSegment } from './HexGraphic'
 

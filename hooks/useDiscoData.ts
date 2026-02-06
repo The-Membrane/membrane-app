@@ -1,3 +1,4 @@
+import React from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import useAppState from '@/persisted-state/useAppState'
@@ -9,6 +10,7 @@ import {
     getUserLifetimeRevenue,
     getPendingClaims,
     getDailyTVL,
+    getDailyLTV,
     getRevenueEvents,
     getAssets,
     getTotalInsurance
@@ -24,7 +26,7 @@ export const useDiscoAssets = () => {
     return useQuery({
         queryKey: ['disco', 'assets', appState.rpcUrl],
         queryFn: () => getAssets(client || null),
-        enabled: !!client,
+        enabled: true, // Always enabled for mock data
         staleTime: 1000 * 60 * 5, // 5 minutes
     })
 }
@@ -54,7 +56,7 @@ export const useUserDiscoDeposits = (user: string | undefined, asset: string) =>
     return useQuery({
         queryKey: ['disco', 'user_deposits', user, asset, appState.rpcUrl],
         queryFn: () => getUserDeposits(client || null, user || '', asset),
-        enabled: !!client && !!user && !!asset,
+        enabled: !!user && !!asset, // Enable even without client for mock data
         staleTime: 1000 * 60 * 2, // 2 minutes
     })
 }
@@ -67,11 +69,16 @@ export const useAllUserDiscoDeposits = (user: string | undefined) => {
     const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const { data: assets } = useDiscoAssets()
 
+    // For mock data, ensure we have at least one asset to query
+    const assetsToQuery = assets?.assets && assets.assets.length > 0
+        ? assets.assets
+        : ['ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4'] // Default USDC denom for mock
+
     return useQueries({
-        queries: (assets?.assets || []).map((asset: string) => ({
+        queries: assetsToQuery.map((asset: string) => ({
             queryKey: ['disco', 'user_deposits', user, asset, appState.rpcUrl],
             queryFn: () => getUserDeposits(client || null, user || '', asset),
-            enabled: !!client && !!user && !!asset,
+            enabled: !!user && !!asset, // Enable even without client for mock data
             staleTime: 1000 * 60 * 2,
         }))
     })
@@ -102,7 +109,7 @@ export const useUserLifetimeRevenue = (user: string | undefined, asset: string) 
     return useQuery({
         queryKey: ['disco', 'lifetime_revenue', user, asset, appState.rpcUrl],
         queryFn: () => getUserLifetimeRevenue(client || null, user || '', asset),
-        enabled: !!client && !!user && !!asset,
+        enabled: !!user && !!asset, // Enable even without client for mock data
         staleTime: 1000 * 60 * 5,
     })
 }
@@ -138,6 +145,21 @@ export const useDailyTVL = () => {
 }
 
 /**
+ * Get daily LTV history for an asset
+ */
+export const useDailyLTV = (asset: string) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'daily_ltv', asset, appState.rpcUrl],
+        queryFn: () => getDailyLTV(client || null, asset),
+        enabled: !!client && !!asset,
+        staleTime: 1000 * 60 * 5,
+    })
+}
+
+/**
  * Get revenue events for a specific group
  */
 export const useRevenueEvents = (asset: string, ltv: string, maxBorrowLtv: string) => {
@@ -167,18 +189,25 @@ export const useDiscoUserMetrics = (user: string | undefined) => {
         staleTime: 1000 * 60 * 5,
     })
 
+
     // Get all user deposits
     const allDepositsQueries = useAllUserDiscoDeposits(user)
     const deposits = allDepositsQueries
         .map(q => q.data?.deposits || [])
         .flat()
 
+
+    // For mock data, ensure we have at least one asset to query
+    const assetsToQuery = assets?.assets && assets.assets.length > 0
+        ? assets.assets
+        : ['ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4'] // Default USDC denom for mock
+
     // Get pending claims for all assets using useQueries
     const pendingClaimsQueries = useQueries({
-        queries: (assets?.assets || []).map((asset: string) => ({
+        queries: assetsToQuery.map((asset: string) => ({
             queryKey: ['disco', 'pending_claims', user, asset, appState.rpcUrl],
             queryFn: () => getPendingClaims(client || null, user || '', asset),
-            enabled: !!client && !!user && !!asset,
+            enabled: !!user && !!asset, // Enable for mock data even without client
             staleTime: 1000 * 60 * 1,
         }))
     })
@@ -188,10 +217,10 @@ export const useDiscoUserMetrics = (user: string | undefined) => {
 
     // Get lifetime revenue for all assets using useQueries
     const lifetimeRevenueQueries = useQueries({
-        queries: (assets?.assets || []).map((asset: string) => ({
+        queries: assetsToQuery.map((asset: string) => ({
             queryKey: ['disco', 'lifetime_revenue', user, asset, appState.rpcUrl],
             queryFn: () => getUserLifetimeRevenue(client || null, user || '', asset),
-            enabled: !!client && !!user && !!asset,
+            enabled: !!user && !!asset, // Enable even without client for mock data
             staleTime: 1000 * 60 * 5,
         }))
     })

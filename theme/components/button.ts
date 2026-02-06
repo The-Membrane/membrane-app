@@ -10,13 +10,21 @@ export const Button: ComponentStyleConfig = {
     w: 'full',
     cursor: 'pointer',
   },
+  defaultProps: {
+    colorScheme: 'purple',
+    variant: 'solid',
+  },
   variants: {
     solid: {
       color: 'white',
+      bg: 'purple.500',
       borderColor: colors.link,
       border: 'none',
       // boxShadow: '0px 0px 16px 0px rgba(0, 163, 249, 0.32)',
       fontSize: 'md',
+      _hover: {
+        bg: 'purple.400',
+      },
     },
     link: {
       bg: 'transparent',

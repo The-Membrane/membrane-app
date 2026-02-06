@@ -22,6 +22,12 @@ export type AppState = {
     tutorialStep?: number
     hasMintedFirstCar?: boolean
     username?: string
+    hasSeenWelcomeMessage?: boolean
+    // Page-specific tutorial completion
+    hasCompletedDiscoTutorial?: boolean
+    // Route guard - store intended route for redirect after auth
+    intendedRoute?: string
+    [key: string]: any // Allow dynamic tutorial completion keys
 }
 
 type Store = {

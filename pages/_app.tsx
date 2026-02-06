@@ -16,7 +16,7 @@ import { wallets as tailwindWallets } from '@cosmos-kit/tailwind'
 import { Chain } from '@chain-registry/types'
 import WalletModal from '@/components/WalletModal'
 import { aminoTypes, registry, rpcUrl } from '@/config/defaults'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Layout from '@/components/Layout'
 import { getGasConfig } from '@/config/gas'
 
@@ -64,22 +64,38 @@ export const queryClient = new QueryClient({
 import '../styles/global.css';
 import { GasPrice } from '@cosmjs/stargate'
 import useAppState from '@/persisted-state/useAppState'
+import Head from 'next/head'
+import { usePageTitle } from '@/hooks/usePageTitle'
+import { DEFAULT_CHAIN, getChainConfig } from '@/config/chains'
+import { usePerformanceMetrics } from '@/hooks/usePerformanceMetrics'
+
 const App = ({ Component, pageProps }: AppProps) => {
+  const pageTitle = usePageTitle()
+  
+  // Measure performance metrics
+  usePerformanceMetrics(true)
 
   const { appState, setAppState } = useAppState()
-  if (appState?.rpcUrl === undefined) {
-    setAppState({ rpcUrl: rpcUrl });
-  }
-  const [isLoaded, setIsLoaded] = useState(false)
-
+  // Default to neutron chain RPC if not already set or if it's still the default osmosis RPC
   useEffect(() => {
-    setIsLoaded(true)
-  }, [])
-
-  if (!isLoaded) return null
+    if (typeof window === 'undefined') return
+    const defaultChainConfig = getChainConfig(DEFAULT_CHAIN)
+    const currentRpcUrl = appState?.rpcUrl
+    // Only update if we need to (undefined or still using default osmosis RPC)
+    if (currentRpcUrl === undefined || currentRpcUrl === rpcUrl) {
+      // Only set if the new value is different to prevent infinite loops
+      if (currentRpcUrl !== defaultChainConfig.rpcUrl) {
+        setAppState({ rpcUrl: defaultChainConfig.rpcUrl });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appState?.rpcUrl])
 
   return (
     <QueryClientProvider client={queryClient}>
+      <Head>
+        <title>{pageTitle}</title>
+      </Head>
       <ChakraProvider resetCSS theme={theme}>
         <ChainProvider
           sessionOptions={{
@@ -118,7 +134,7 @@ const App = ({ Component, pageProps }: AppProps) => {
           </Layout>
         </ChainProvider>
       </ChakraProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   )
 }

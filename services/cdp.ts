@@ -652,3 +652,33 @@ export const getRiskyPositions = (
   console.log("totalPositions", totalPositions);
   return { liquidatibleCDPs };
 };
+
+// --- Volatility Window ---
+
+export interface VolatilityWindowResponse {
+  in_volatile_window: boolean[]
+}
+
+// Set to true to use mock data instead of querying contract
+export const USE_MOCK_VOLATILITY = true // Change to false when contract is ready
+
+export const getVolatilityWindow = async (
+  assets: string[],
+  cosmWasmClient: any
+): Promise<VolatilityWindowResponse | null> => {
+  if (USE_MOCK_VOLATILITY) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+    // Mock: first asset is volatile, rest are not
+    return {
+      in_volatile_window: assets.map((_, i) => i === 0)
+    }
+  }
+
+  try {
+    return await cosmWasmClient.queryContractSmart(contracts.cdp, {
+      check_volatility_window: { assets }
+    })
+  } catch {
+    return null
+  }
+}

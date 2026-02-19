@@ -1,13 +1,15 @@
 import { num } from '@/helpers/num'
 import { shiftDigits } from '@/helpers/math'
-import { Box, Button, HStack, Image, Progress, Stack, Text, Table, Thead, Tbody, Tr, Th, Td, Tooltip, Collapse, Icon } from '@chakra-ui/react'
+import { Box, Button, HStack, Image, Stack, Text, Table, Thead, Tbody, Tr, Th, Td, Tooltip, Collapse, Icon } from '@chakra-ui/react'
 import { useBasket, useBasketAssets, useRates } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import useAppState from '@/persisted-state/useAppState'
 import { useMemo, useState } from 'react'
 import { CollateralRowData, getSymbolFromDenom, getLogoFromSymbol } from './types'
 import { getMockCollateralData, USE_MOCK_COLLATERAL_DATA } from './mockCollateralData'
-import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons'
+import { ChevronDownIcon, ChevronUpIcon, InfoIcon } from '@chakra-ui/icons'
+import { Card } from '@/components/ui/Card'
+import { ProgressBar } from '@/components/ui/ProgressBar'
 
 interface AvailableCollateralProps {
   onDeposit?: (denom: string) => void
@@ -22,6 +24,19 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
 
   // Track expanded rows
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+
+  // Format large numbers with K/M suffix
+  const formatLargeNumber = (value: number): string => {
+    if (value >= 1000000) {
+      const millions = value / 1000000
+      return `$${millions.toFixed(millions >= 10 ? 1 : 2)}M`
+    } else if (value >= 1000) {
+      const thousands = value / 1000
+      return `$${thousands.toFixed(thousands >= 10 ? 0 : 1)}K`
+    } else {
+      return `$${value.toFixed(0)}`
+    }
+  }
 
   // Mock data for testing supply caps
   const mockData = USE_MOCK_COLLATERAL_DATA ? getMockCollateralData() : null
@@ -103,31 +118,19 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
 
   if (collateralRows.length === 0) {
     return (
-      <Box
-        bg="rgba(10, 10, 10, 0.8)"
-        borderRadius="lg"
-        p={4}
-        border="1px solid"
-        borderColor="whiteAlpha.200"
-      >
+      <Card p={4}>
         <Text fontSize="lg" fontWeight="bold" mb={4} color="white">
           Available Collateral
         </Text>
         <Text color="whiteAlpha.600" textAlign="center" py={8}>
           Loading available collateral...
         </Text>
-      </Box>
+      </Card>
     )
   }
 
   return (
-    <Box
-      bg="rgba(10, 10, 10, 0.8)"
-      borderRadius="lg"
-      p={4}
-      border="1px solid"
-      borderColor="whiteAlpha.200"
-    >
+    <Card p={4}>
       <Text fontSize="lg" fontWeight="bold" mb={4} color="white">
         Available Collateral
       </Text>
@@ -139,9 +142,18 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
               Asset
             </Th>
             <Th color="whiteAlpha.600" fontSize="xs" fontWeight="normal" textTransform="uppercase" px={2}>
-              Deposits / Cap
+              <HStack spacing={1}>
+                <Text>Deposits / Cap</Text>
+                <Tooltip
+                  label="Current deposits vs maximum allowed."
+                  placement="top"
+                  hasArrow
+                >
+                  <InfoIcon w={3} h={3} color="whiteAlpha.500" cursor="help" />
+                </Tooltip>
+              </HStack>
             </Th>
-            <Th px={2} width="100px"></Th>
+            <Th px={2} width="120px"></Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -156,25 +168,32 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
 
             const isSupplyCapReached = row.isSupplyCapReached || false
 
+            // Calculate actual dollar values
+            // Current deposits are already in row.depositAmount (properly shifted)
+            const currentUsdValue = row.depositUsdValue
+
+            // Calculate max allowed supply using the formula:
+            // At cap: current_supply / (current_supply + debt_total) = supply_cap_ratio
+            // So max_supply = (supply_cap_ratio * debt_total) / (1 - supply_cap_ratio)
+            const debtTotalAmount = row.supplyCap?.debt_total
+              ? shiftDigits(row.supplyCap.debt_total, -6).toNumber()
+              : 0
+
+            const maxSupplyAllowed = supplyCapRatio > 0 && supplyCapRatio < 1
+              ? (supplyCapRatio * debtTotalAmount) / (1 - supplyCapRatio)
+              : row.depositAmount
+
+            const maxCapUsdValue = num(maxSupplyAllowed).times(row.price).toNumber()
+
             return (
               <>
                 <Tr
                   key={row.denom}
                   _hover={{ bg: 'whiteAlpha.50' }}
-                  opacity={isSupplyCapReached ? 0.6 : 1}
-                  borderBottom="1px solid"
-                  borderColor="whiteAlpha.100"
-                  cursor="pointer"
-                  onClick={() => toggleRow(row.denom)}
+                  opacity={isSupplyCapReached ? 0.7 : 1}
                 >
                   <Td px={2} py={3}>
                     <HStack spacing={2}>
-                      <Icon
-                        as={isExpanded ? ChevronUpIcon : ChevronDownIcon}
-                        color="whiteAlpha.600"
-                        w={4}
-                        h={4}
-                      />
                       <Image
                         src={row.logo}
                         alt={row.symbol}
@@ -185,7 +204,7 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
                         opacity={isSupplyCapReached ? 0.5 : 1}
                       />
                       <Stack spacing={0}>
-                        <HStack spacing={1}>
+                        <HStack spacing={2}>
                           <Text
                             color="white"
                             fontWeight="medium"
@@ -206,86 +225,95 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
                     </HStack>
                   </Td>
                   <Td px={2} py={3}>
-                    <Stack spacing={1}>
-                      <HStack justifyContent="space-between">
-                        <Text
-                          color={isSupplyCapReached ? 'red.400' : 'whiteAlpha.700'}
-                          fontSize="xs"
-                          fontWeight={isSupplyCapReached ? 'bold' : 'normal'}
-                        >
-                          {supplyCapRatio > 0
-                            ? `${num(row.currentRatio || 0).times(100).toFixed(1)}% / ${num(supplyCapRatio).times(100).toFixed(0)}%`
-                            : `$${num(row.depositUsdValue).toFixed(0)}`
-                          }
-                        </Text>
-                      </HStack>
-                      <Progress
-                        value={supplyUsagePercent}
-                        size="xs"
-                        colorScheme={
-                          isSupplyCapReached ? 'red' :
-                          supplyUsagePercent > 80 ? 'orange' :
-                          supplyUsagePercent > 60 ? 'yellow' :
-                          'cyan'
-                        }
-                        bg="whiteAlpha.200"
-                        borderRadius="full"
+                    {supplyCapRatio > 0 ? (
+                      <ProgressBar
+                        value={currentUsdValue}
+                        maxValue={maxCapUsdValue}
+                        formatValue={formatLargeNumber}
+                        size="sm"
                       />
-                    </Stack>
-                  </Td>
-                  <Td px={2} py={3} onClick={(e) => e.stopPropagation()}>
-                    <Tooltip
-                      label="Supply cap reached - deposits to positions with debt are disabled"
-                      isDisabled={!isSupplyCapReached}
-                      placement="top"
-                    >
-                      <Button
-                        size="xs"
-                        colorScheme={isSupplyCapReached ? 'red' : 'cyan'}
-                        variant={isSupplyCapReached ? 'outline' : 'solid'}
-                        onClick={() => onDeposit?.(row.denom)}
-                        isDisabled={isSupplyCapReached}
-                        cursor={isSupplyCapReached ? 'not-allowed' : 'pointer'}
+                    ) : (
+                      <Text
+                        color="white"
+                        fontSize="sm"
+                        fontWeight="medium"
                       >
-                        {isSupplyCapReached ? 'Cap Reached' : 'Deposit'}
-                      </Button>
-                    </Tooltip>
+                        {formatLargeNumber(row.depositUsdValue)}
+                      </Text>
+                    )}
+                  </Td>
+                  <Td px={2} py={3}>
+                    <HStack spacing={2} justify="flex-end">
+                      <Tooltip
+                        label="Supply cap reached - deposits to positions with debt are disabled"
+                        isDisabled={!isSupplyCapReached}
+                        placement="top"
+                        hasArrow
+                      >
+                        <Button
+                          size="xs"
+                          colorScheme="purple"
+                          variant="outline"
+                          onClick={() => onDeposit?.(row.denom)}
+                          isDisabled={isSupplyCapReached}
+                          cursor={isSupplyCapReached ? 'not-allowed' : 'pointer'}
+                          borderColor={isSupplyCapReached ? 'rgba(215, 80, 80, 0.3)' : 'purple.400'}
+                          color={isSupplyCapReached ? 'whiteAlpha.400' : 'purple.300'}
+                          _hover={!isSupplyCapReached ? {
+                            bg: 'purple.500',
+                            color: 'white',
+                            borderColor: 'purple.500'
+                          } : undefined}
+                        >
+                          {isSupplyCapReached ? 'Full' : 'Deposit'}
+                        </Button>
+                      </Tooltip>
+                      <Icon
+                        as={isExpanded ? ChevronUpIcon : ChevronDownIcon}
+                        color="whiteAlpha.600"
+                        w={5}
+                        h={5}
+                        cursor="pointer"
+                        onClick={() => toggleRow(row.denom)}
+                        _hover={{ color: 'whiteAlpha.800' }}
+                      />
+                    </HStack>
                   </Td>
                 </Tr>
                 {/* Expanded row content */}
                 <Tr key={`${row.denom}-expanded`}>
-                  <Td colSpan={3} p={0} borderBottom="1px solid" borderColor="whiteAlpha.100">
+                  <Td colSpan={3} p={0}>
                     <Collapse in={isExpanded} animateOpacity>
                       <Box
-                        p={4}
+                        p={3}
                         bg="rgba(0, 0, 0, 0.3)"
                         borderLeft="2px solid"
                         borderColor="cyan.500"
                       >
-                        <Stack spacing={4}>
+                        <Stack spacing={3}>
                           {/* Stats Grid */}
-                          <HStack spacing={8} justify="space-around">
-                            <Stack spacing={1} align="center">
+                          <HStack spacing={6} justify="space-around">
+                            <Stack spacing={0} align="center">
                               <Text color="whiteAlpha.600" fontSize="xs">
                                 Max LTV
                               </Text>
-                              <Text color="white" fontSize="lg" fontWeight="bold">
+                              <Text color="white" fontSize="sm" fontWeight="bold">
                                 {num(row.maxLTV || 0).times(100).toFixed(2)}%
                               </Text>
                             </Stack>
-                            <Stack spacing={1} align="center">
+                            <Stack spacing={0} align="center">
                               <Text color="whiteAlpha.600" fontSize="xs">
                                 Liquidation LTV
                               </Text>
-                              <Text color="white" fontSize="lg" fontWeight="bold">
+                              <Text color="white" fontSize="sm" fontWeight="bold">
                                 {num(row.maxBorrowLTV || 0).times(100).toFixed(2)}%
                               </Text>
                             </Stack>
-                            <Stack spacing={1} align="center">
+                            <Stack spacing={0} align="center">
                               <Text color="whiteAlpha.600" fontSize="xs">
                                 Oracle Price
                               </Text>
-                              <Text color="white" fontSize="lg" fontWeight="bold">
+                              <Text color="white" fontSize="sm" fontWeight="bold">
                                 ${row.price.toFixed(2)}
                               </Text>
                             </Stack>
@@ -293,7 +321,7 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
 
                           {/* Chart placeholder */}
                           <Box
-                            h="200px"
+                            h="120px"
                             bg="rgba(0, 0, 0, 0.2)"
                             borderRadius="md"
                             display="flex"
@@ -302,7 +330,7 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
                             border="1px solid"
                             borderColor="whiteAlpha.200"
                           >
-                            <Text color="whiteAlpha.500" fontSize="sm">
+                            <Text color="whiteAlpha.500" fontSize="xs">
                               Historical LTV Chart (Coming Soon)
                             </Text>
                           </Box>
@@ -316,7 +344,7 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
           })}
         </Tbody>
       </Table>
-    </Box>
+    </Card>
   )
 }
 

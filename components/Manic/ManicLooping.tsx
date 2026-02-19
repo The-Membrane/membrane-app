@@ -15,6 +15,7 @@ import { InfoIcon } from '@chakra-ui/icons'
 import { useManicData, useMarketConditions, useDeploymentProfitData } from '@/hooks/useManic'
 import { useFlywheelMetrics } from '@/hooks/useFlywheelMetrics'
 import { shiftDigits } from '@/helpers/math'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import useFulfillIntent from './hooks/useFulfillIntent'
 import { useLoopAnimationState } from './hooks/useLoopAnimationState'
 import { MarketConditionsChart } from './MarketConditionsChart'
@@ -289,8 +290,8 @@ const ManicLooping: React.FC = () => {
                 <HStack w="100%" justify="space-between" align="flex-start" spacing={6}>
                     <Box flex={1}>
                         <Text
-                            fontSize="3xl"
-                            fontWeight="bold"
+                            fontSize={TYPOGRAPHY.h1}
+                            fontWeight={TYPOGRAPHY.bold}
                             color="white"
                             fontFamily="mono"
                             textTransform="uppercase"

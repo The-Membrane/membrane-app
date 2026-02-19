@@ -1,7 +1,8 @@
 import React from 'react'
-import { Box, VStack, Text } from '@chakra-ui/react'
+import { Box, VStack } from '@chakra-ui/react'
 import ChainLayout from '@/components/ChainLayout'
 import { BoostSection } from '@/components/DittoSpeechBox/sections/BoostSection'
+import { PageTitle } from '@/components/ui/PageTitle'
 
 export default function BoostPage() {
     return (
@@ -15,24 +16,11 @@ export default function BoostPage() {
             >
                 <VStack spacing={8} maxW="1400px" mx="auto">
                     <Box w="100%">
-                        <Text
-                            fontSize="3xl"
-                            fontWeight="bold"
-                            color="white"
-                            fontFamily="mono"
-                            textTransform="uppercase"
-                            letterSpacing="wide"
-                            mb={2}
-                        >
-                            BOOSTS
-                        </Text>
-                        <Text
-                            fontSize="sm"
-                            color="gray.400"
-                            fontFamily="mono"
-                        >
-                            Detailed view of your boost sources and deposit management
-                        </Text>
+                        <PageTitle
+                            title="BOOSTS"
+                            subtitle="Detailed view of your boost sources and deposit management"
+                            variant="cyberpunk"
+                        />
                     </Box>
                     <Box
                         w="100%"

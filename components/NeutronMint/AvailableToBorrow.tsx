@@ -1,6 +1,6 @@
 import { num } from '@/helpers/num'
 import { Box, Button, HStack, Image, Text, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react'
-import { useBasket, useCreditRate } from '@/hooks/useCDP'
+import { useBasket, useCreditRate, useRates } from '@/hooks/useCDP'
 import useAppState from '@/persisted-state/useAppState'
 import { useMemo, useState } from 'react'
 import { BorrowRowData } from './types'
@@ -8,6 +8,8 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { BorrowModal } from './BorrowModal'
 import { useOraclePrice } from '@/hooks/useOracle'
+import { Card } from '@/components/ui/Card'
+import { ResponsiveTableContainer, MobileCard, MobileCardDataItem } from '@/components/ui/ResponsiveTable'
 
 interface AvailableToBorrowProps {
   onBorrow?: (denom: string) => void
@@ -19,6 +21,7 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
   const { chainName } = useChainRoute()
   const { data: basket } = useBasket(appState.rpcUrl)
   const { data: creditRate } = useCreditRate()
+  const { data: rates } = useRates(appState.rpcUrl)
   const { data: prices } = useOraclePrice()
 
   // Modal state
@@ -60,18 +63,28 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
       liquidityUsdValue: -1,
     })
 
-    // USDC row - this would need Mars integration or similar
+    // USDC row - uses peg_rate_at_target from Rates query
+    const pegRate = rates?.peg_rate_at_target?.length
+      ? rates.peg_rate_at_target.reduce(
+          (acc: number, r: string) => acc + num(r).times(100).toNumber(),
+          0
+        ) / rates.peg_rate_at_target.length
+      : 0
+
+    // USDC is enabled when peg rates are configured (cap is non-zero)
+    const usdcEnabled = pegRate > 0
+
     rows.push({
       symbol: 'USDC',
       logo: usdcAsset?.logo || '/images/usdc.svg',
       denom: usdcAsset?.base || '',
-      borrowApy: 0, // Would need Mars integration
-      liquidityAvailable: 0,
-      liquidityUsdValue: 0,
+      borrowApy: pegRate,
+      liquidityAvailable: usdcEnabled ? -1 : 0, // Protocol-Issued when enabled
+      liquidityUsdValue: usdcEnabled ? -1 : 0,
     })
 
     return rows
-  }, [basket, creditRate, cdtAsset, usdcAsset])
+  }, [basket, creditRate, rates, cdtAsset, usdcAsset])
 
   // Handle borrow click
   const handleBorrowClick = (row: BorrowRowData) => {
@@ -94,87 +107,157 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
     onBorrow?.(row.denom)
   }
 
+  // Render mobile card data
+  const renderMobileCard = (row: BorrowRowData) => {
+    const cardData: MobileCardDataItem[] = [
+      {
+        label: 'Asset',
+        value: (
+          <HStack spacing={2} justify="flex-end">
+            <Image
+              src={row.logo}
+              alt={row.symbol}
+              w="20px"
+              h="20px"
+              borderRadius="full"
+              fallbackSrc="/images/default-token.svg"
+            />
+            <Text fontWeight="medium">{row.symbol}</Text>
+          </HStack>
+        ),
+      },
+      {
+        label: 'Borrow APY',
+        value: (
+          <Text color={row.borrowApy > 0 ? 'red.400' : 'whiteAlpha.700'}>
+            {row.borrowApy > 0 ? `${row.borrowApy.toFixed(2)}%` : '-'}
+          </Text>
+        ),
+      },
+      {
+        label: 'Available',
+        value: row.liquidityAvailable < 0 ? (
+          <Text color="cyan.400">Protocol-Issued</Text>
+        ) : row.liquidityAvailable > 0 ? (
+          `$${num(row.liquidityUsdValue).toFixed(0)}`
+        ) : (
+          'Coming Soon'
+        ),
+      },
+      {
+        label: 'Action',
+        value: (
+          <Button
+            size="xs"
+            variant="outline"
+            colorScheme="purple"
+            onClick={() => handleBorrowClick(row)}
+            isDisabled={row.liquidityAvailable === 0}
+            color="purple.300"
+            borderColor="purple.400"
+            _hover={{ bg: 'purple.500', color: 'white', borderColor: 'purple.500' }}
+          >
+            + Borrow
+          </Button>
+        ),
+      },
+    ]
+
+    return (
+      <MobileCard
+        key={row.denom || row.symbol}
+        data={cardData}
+      />
+    )
+  }
+
   return (
     <>
-      <Box
-        bg="rgba(10, 10, 10, 0.8)"
-        borderRadius="lg"
-        p={4}
-        border="1px solid"
-        borderColor="whiteAlpha.200"
-      >
+      <Card p={4}>
         <Text fontSize="lg" fontWeight="bold" mb={4} color="white">
           Available to Borrow
         </Text>
 
-        <Table variant="unstyled" size="sm">
-          <Thead>
-            <Tr>
-              <Th color="whiteAlpha.600" fontSize="xs" fontWeight="normal" textTransform="uppercase" px={2}>
-                Asset
-              </Th>
-              <Th color="whiteAlpha.600" fontSize="xs" fontWeight="normal" textTransform="uppercase" px={2} isNumeric>
-                Borrow APY
-              </Th>
-              <Th color="whiteAlpha.600" fontSize="xs" fontWeight="normal" textTransform="uppercase" px={2} isNumeric>
-                Available
-              </Th>
-              <Th px={2} width="100px"></Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {borrowRows.map((row) => (
-              <Tr key={row.denom || row.symbol} _hover={{ bg: 'whiteAlpha.50' }}>
-                <Td px={2} py={3}>
-                  <HStack spacing={2}>
-                    <Image
-                      src={row.logo}
-                      alt={row.symbol}
-                      w="24px"
-                      h="24px"
-                      borderRadius="full"
-                      fallbackSrc="/images/default-token.svg"
-                    />
-                    <Text color="white" fontWeight="medium" fontSize="sm">
-                      {row.symbol}
-                    </Text>
-                  </HStack>
-                </Td>
-                <Td px={2} py={3} isNumeric>
-                  <Text
-                    color={row.borrowApy > 0 ? 'red.400' : 'whiteAlpha.700'}
-                    fontSize="sm"
-                  >
-                    {row.borrowApy > 0 ? `${row.borrowApy.toFixed(2)}%` : '-'}
-                  </Text>
-                </Td>
-                <Td px={2} py={3} isNumeric>
-                  <Text color="whiteAlpha.700" fontSize="sm">
-                    {row.liquidityAvailable < 0 ? (
-                      <Text as="span" color="cyan.400">Protocol-Issued</Text>
-                    ) : row.liquidityAvailable > 0 ? (
-                      `$${num(row.liquidityUsdValue).toFixed(0)}`
-                    ) : (
-                      'Coming Soon'
-                    )}
-                  </Text>
-                </Td>
-                <Td px={2} py={3}>
-                  <Button
-                    size="xs"
-                    colorScheme={row.symbol === 'CDT' ? 'cyan' : 'gray'}
-                    variant="solid"
-                    onClick={() => handleBorrowClick(row)}
-                    isDisabled={row.symbol !== 'CDT'} // Only CDT borrowing available for now
-                  >
-                    + Borrow
-                  </Button>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </Box>
+        <ResponsiveTableContainer
+          desktopTable={
+            <Table variant="unstyled" size="sm">
+              <Thead>
+                <Tr>
+                  <Th color="whiteAlpha.600" fontSize="xs" fontWeight="normal" textTransform="uppercase" px={2}>
+                    Asset
+                  </Th>
+                  <Th color="whiteAlpha.600" fontSize="xs" fontWeight="normal" textTransform="uppercase" px={2} isNumeric>
+                    Borrow APY
+                  </Th>
+                  <Th color="whiteAlpha.600" fontSize="xs" fontWeight="normal" textTransform="uppercase" px={2} isNumeric>
+                    Available
+                  </Th>
+                  <Th px={2} width="100px"></Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {borrowRows.map((row) => (
+                  <Tr key={row.denom || row.symbol} _hover={{ bg: 'whiteAlpha.50' }}>
+                    <Td px={2} py={3}>
+                      <HStack spacing={2}>
+                        <Image
+                          src={row.logo}
+                          alt={row.symbol}
+                          w="24px"
+                          h="24px"
+                          borderRadius="full"
+                          fallbackSrc="/images/default-token.svg"
+                        />
+                        <Text color="white" fontWeight="medium" fontSize="sm">
+                          {row.symbol}
+                        </Text>
+                      </HStack>
+                    </Td>
+                    <Td px={2} py={3} isNumeric>
+                      <Text
+                        color={row.borrowApy > 0 ? 'red.400' : 'whiteAlpha.700'}
+                        fontSize="sm"
+                      >
+                        {row.borrowApy > 0 ? `${row.borrowApy.toFixed(2)}%` : '-'}
+                      </Text>
+                    </Td>
+                    <Td px={2} py={3} isNumeric>
+                      <Text color="whiteAlpha.700" fontSize="sm">
+                        {row.liquidityAvailable < 0 ? (
+                          <Text as="span" color="cyan.400">Protocol-Issued</Text>
+                        ) : row.liquidityAvailable > 0 ? (
+                          `$${num(row.liquidityUsdValue).toFixed(0)}`
+                        ) : (
+                          'Coming Soon'
+                        )}
+                      </Text>
+                    </Td>
+                    <Td px={2} py={3}>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        colorScheme="purple"
+                        onClick={() => handleBorrowClick(row)}
+                        isDisabled={row.liquidityAvailable === 0}
+                        color="purple.300"
+                        borderColor="purple.400"
+                        _hover={{ bg: 'purple.500', color: 'white', borderColor: 'purple.500' }}
+                      >
+                        + Borrow
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          }
+          mobileCards={
+            <>
+              {borrowRows.map(renderMobileCard)}
+            </>
+          }
+        />
+      </Card>
 
       {/* Borrow Modal */}
       {selectedAsset && (

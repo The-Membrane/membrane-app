@@ -9,6 +9,7 @@ import {
     Button,
     IconButton
 } from '@chakra-ui/react'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
@@ -104,8 +105,8 @@ export const DepositCard: React.FC<DepositCardProps> = ({
                 <VStack spacing={6} align="stretch">
                     {/* Header */}
                     <Text
-                        fontSize="2xl"
-                        fontWeight="bold"
+                        fontSize={TYPOGRAPHY.h3}
+                        fontWeight={TYPOGRAPHY.bold}
                         bgGradient="linear(to-r, cyan.400, blue.500)"
                         bgClip="text"
                         fontFamily="mono"
@@ -282,8 +283,8 @@ export const WithdrawCard: React.FC<WithdrawCardProps> = ({
                 <VStack spacing={6} align="stretch">
                     {/* Header */}
                     <Text
-                        fontSize="2xl"
-                        fontWeight="bold"
+                        fontSize={TYPOGRAPHY.h3}
+                        fontWeight={TYPOGRAPHY.bold}
                         bgGradient="linear(to-r, cyan.400, blue.500)"
                         bgClip="text"
                         fontFamily="mono"

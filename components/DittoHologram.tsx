@@ -5,7 +5,6 @@ import { DittoPanel } from './DittoSpeechBox/DittoPanel'
 import { usePageActions } from './DittoSpeechBox/hooks/usePageActions'
 import { ActionIndicator } from './DittoSpeechBox/ActionIndicator'
 import { getThemeForRoute, getFallbackImage, DittoTheme } from '@/config/dittoThemes'
-import { useProtocolUpdates } from './DittoSpeechBox/hooks/useProtocolUpdates'
 import { SpeechBubble } from '@/components/SpeechBubble'
 import useAppState from '@/persisted-state/useAppState'
 import useDittoSpeechBoxState from './DittoSpeechBox/hooks/useDittoSpeechBoxState'
@@ -17,7 +16,6 @@ interface DittoHologramProps {
 export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }) => {
     const router = useRouter()
     const { hasAvailableActions, actionTooltip, availableActions } = usePageActions()
-    const { hasUnread, unreadCount } = useProtocolUpdates()
     const { appState } = useAppState()
     const { dittoSpeechBoxState, setDittoSpeechBoxState } = useDittoSpeechBoxState()
     const [isHovered, setIsHovered] = useState(false)
@@ -83,9 +81,9 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
         setIsPanelOpen(true)
     }
 
-    // Show badge when there are notifications or actions
-    const showBadge = hasUnread || hasAvailableActions
-    const badgeCount = unreadCount + availableActions.length
+    // Show badge when there are actions available
+    const showBadge = hasAvailableActions
+    const badgeCount = availableActions.length
 
     return (
         <Box
@@ -167,8 +165,6 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                             tooltip={actionTooltip}
                             count={badgeCount}
                             onClick={handleActionIndicatorClick}
-                            hasNotifications={hasUnread}
-                            notificationCount={unreadCount}
                         />
                     </Box>
                 )}

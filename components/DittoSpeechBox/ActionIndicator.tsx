@@ -1,8 +1,7 @@
 import React from 'react'
-import { Box, Text, Tooltip, Icon } from '@chakra-ui/react'
+import { Box, Text, Tooltip } from '@chakra-ui/react'
 import { keyframes } from '@emotion/react'
 import { motion } from 'framer-motion'
-import { Bell } from 'lucide-react'
 
 const MotionBox = motion(Box)
 
@@ -34,28 +33,21 @@ interface ActionIndicatorProps {
     tooltip?: string | null
     count?: number
     onClick?: () => void
-    hasNotifications?: boolean
-    notificationCount?: number
 }
 
 /**
  * Visual indicator shown on Ditto when actions are available on the current page.
- * Shows a pulsing exclamation mark or bell icon with a glow effect and optional tooltip.
+ * Shows a pulsing exclamation mark with a glow effect and optional tooltip.
  */
 export const ActionIndicator: React.FC<ActionIndicatorProps> = ({
     hasActions,
     tooltip,
     count,
     onClick,
-    hasNotifications = false,
-    notificationCount = 0,
 }) => {
-    if (!hasActions && !hasNotifications) return null
+    if (!hasActions) return null
 
-    // Determine icon and tooltip
-    const displayIcon = hasNotifications ? (
-        <Icon as={Bell} w="12px" h="12px" color="white" />
-    ) : (
+    const displayIcon = (
         <Text
             fontSize="14px"
             fontWeight="black"
@@ -67,9 +59,7 @@ export const ActionIndicator: React.FC<ActionIndicatorProps> = ({
         </Text>
     )
 
-    const displayTooltip = hasNotifications
-        ? `${notificationCount} unread notification${notificationCount > 1 ? 's' : ''}`
-        : (tooltip || 'Actions available')
+    const displayTooltip = tooltip || 'Actions available'
 
     return (
         <Tooltip

@@ -131,3 +131,4 @@ export const CompactBoostSimulator: React.FC<CompactBoostSimulatorProps> = ({
 
 
 
+

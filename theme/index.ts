@@ -3,8 +3,35 @@ import { fonts, fontSizes, fontWeights } from './fonts'
 import { colors } from './colors'
 import { colors as configColors } from '@/config/defaults'
 import { components } from './components'
+import { KEYFRAMES } from '@/config/transitions'
 
 const global = {
+  // Keyframes for animations
+  '@keyframes shimmer': {
+    '0%': { backgroundPosition: '-200% 0' },
+    '100%': { backgroundPosition: '200% 0' },
+  },
+  '@keyframes spin': {
+    from: { transform: 'rotate(0deg)' },
+    to: { transform: 'rotate(360deg)' },
+  },
+  '@keyframes pulse': {
+    '0%, 100%': { opacity: 1 },
+    '50%': { opacity: 0.5 },
+  },
+  '@keyframes slideInRight': {
+    from: { transform: 'translateX(100%)', opacity: 0 },
+    to: { transform: 'translateX(0)', opacity: 1 },
+  },
+  '@keyframes fadeIn': {
+    from: { opacity: 0 },
+    to: { opacity: 1 },
+  },
+  '@keyframes scaleIn': {
+    from: { transform: 'scale(0.9)', opacity: 0 },
+    to: { transform: 'scale(1)', opacity: 1 },
+  },
+
   // Ensure border-box and prevent horizontal overflow
   '*': {
     boxSizing: 'border-box',

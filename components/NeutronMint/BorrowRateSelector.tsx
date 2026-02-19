@@ -9,8 +9,9 @@ import {
     Text,
     Icon,
     VStack,
+    Tooltip,
 } from '@chakra-ui/react'
-import { ChevronDownIcon } from '@chakra-ui/icons'
+import { ChevronDownIcon, InfoOutlineIcon } from '@chakra-ui/icons'
 import { BorrowRate } from './hooks/useBorrowModal'
 import { Formatter } from '@/helpers/formatter'
 
@@ -112,9 +113,24 @@ export const BorrowRateSelector: React.FC<BorrowRateSelectorProps> = ({
             <HStack spacing={4} align="flex-start">
                 {/* Borrow APR Dropdown */}
                 <VStack align="flex-start" spacing={0}>
-                    <Text color="whiteAlpha.600" fontSize="xs">
-                        Borrow Rate APY
-                    </Text>
+                    <HStack spacing={1}>
+                        <Text color="whiteAlpha.600" fontSize="xs">
+                            Borrow Rate APY
+                        </Text>
+                        <Tooltip
+                            label="Fixed rates are calculated based on your position's collateral composition. The displayed rate is an estimate — your actual fixed rate = collateral weighted rate × multiplier."
+                            placement="top"
+                            hasArrow
+                            bg="gray.800"
+                            color="white"
+                            fontSize="xs"
+                            maxW="260px"
+                        >
+                            <span>
+                                <Icon as={InfoOutlineIcon} color="whiteAlpha.400" boxSize={3} cursor="help" />
+                            </span>
+                        </Tooltip>
+                    </HStack>
                     <Menu>
                         <MenuButton
                             as={Box}

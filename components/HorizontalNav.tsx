@@ -62,14 +62,15 @@ const HorizontalNav = () => {
             w="full"
             px={{ base: 2, md: 8 }}
             py={2}
-            bg="transparent"
+            bgGradient="linear(to-r, #232A3E 60%, #2B3A67 100%)"
+            boxShadow="md"
             borderRadius="0 0 2xl 2xl"
             display="flex"
             alignItems="center"
             justifyContent="space-between"
             minH="64px"
+            mb={4}
             zIndex={100}
-            backdropFilter="blur(0px)"
         >
             {/* Left: Logo, Title, Page Selector or Hamburger */}
             {/* <Stack spacing={0} alignContent={"start"}> */}
@@ -88,7 +89,7 @@ const HorizontalNav = () => {
             {/* </Stack> */}
 
             {/* Desktop Nav */}
-            <HStack spacing={1} display={{ base: 'none', lg: 'none' }}>
+            <HStack spacing={1} display={{ base: 'none', lg: 'flex' }}>
                 {chainName && filteredNavItems.map((item) => (
                     <Button
                         key={item.label}
@@ -98,7 +99,8 @@ const HorizontalNav = () => {
                         color="white"
                         fontWeight="semibold"
                         borderRadius="full"
-                        // px={{ base: 3, md: 6 }}
+                        border="none"
+                        px={4}
                         py={2}
                         bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
                         _hover={{ bg: 'whiteAlpha.300' }}
@@ -114,9 +116,10 @@ const HorizontalNav = () => {
             <IconButton
                 aria-label="Open menu"
                 icon={<FaBars />}
-                display={{ base: 'flex', lg: 'flex' }}
+                display={{ base: 'flex', lg: 'none' }}
                 onClick={onOpen}
                 bg="transparent"
+                border="none"
                 color="white"
                 fontSize="22px"
                 _hover={{ bg: 'whiteAlpha.200' }}
@@ -134,6 +137,7 @@ const HorizontalNav = () => {
                         rightIcon={<FaChevronDown />}
                         leftIcon={<Image src={currentChain.logo} alt={`${currentChain.name} Logo`} boxSize={6} />}
                         variant="ghost"
+                        border="none"
                         color="white"
                         _hover={{ bg: 'whiteAlpha.200' }}
                         px={2}
@@ -180,6 +184,7 @@ const HorizontalNav = () => {
                                         color="white"
                                         fontWeight="semibold"
                                         borderRadius="full"
+                                        border="none"
                                         px={6}
                                         py={4}
                                         bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}

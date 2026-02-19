@@ -1,5 +1,6 @@
 import { num } from '@/helpers/num'
-import { Box, Button, HStack, Image, Stack, Text, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react'
+import { Button, HStack, Image, Stack, Text, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react'
+import { Card } from '@/components/ui/Card'
 import { useBasket, useUserPositions, useBasketAssets, useRates } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getPositions } from '@/services/cdp'
@@ -78,31 +79,19 @@ export const CollateralizedBundle = ({
 
   if (collateralRows.length === 0) {
     return (
-      <Box
-        bg="rgba(10, 10, 10, 0.8)"
-        borderRadius="lg"
-        p={4}
-        border="1px solid"
-        borderColor="whiteAlpha.200"
-      >
+      <Card p={4}>
         <Text fontSize="lg" fontWeight="bold" mb={4} color="white">
           Collateralized Bundle
         </Text>
         <Text color="whiteAlpha.600" textAlign="center" py={8}>
           No collateral deposited. Deposit assets to get started.
         </Text>
-      </Box>
+      </Card>
     )
   }
 
   return (
-    <Box
-      bg="rgba(10, 10, 10, 0.8)"
-      borderRadius="lg"
-      p={4}
-      border="1px solid"
-      borderColor="whiteAlpha.200"
-    >
+    <Card p={4}>
       <HStack justifyContent="space-between" mb={4}>
         <Text fontSize="lg" fontWeight="bold" color="white">
           Collateralized Bundle
@@ -182,7 +171,7 @@ export const CollateralizedBundle = ({
           ))}
         </Tbody>
       </Table>
-    </Box>
+    </Card>
   )
 }
 

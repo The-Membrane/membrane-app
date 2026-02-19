@@ -46,6 +46,32 @@ export interface BorrowRowData {
   liquidityUsdValue: number
 }
 
+// Rate segment types matching the Rust RateSegment struct
+export interface FixedRateEnd {
+  endTime: number      // Block time in seconds
+  rollover: boolean    // Recalculate on expiry vs convert to variable
+  durationMonths: number // 1, 3, or 6
+}
+
+export interface FixedRate {
+  rate: number         // Fixed interest rate (as decimal, e.g. 0.05 = 5%)
+  end: FixedRateEnd
+}
+
+export interface RateSegment {
+  amount: number       // Debt amount in this segment (human-readable)
+  fixedRate?: FixedRate // undefined = variable rate
+}
+
+// Debt row for the DebtCard table
+export interface DebtRowData {
+  type: 'Variable' | 'Fixed 1-Month' | 'Fixed 3-Month' | 'Fixed 6-Month'
+  rate: number         // APR percentage (e.g. 4.2)
+  amount: number       // Debt amount (human-readable USD)
+  endTime?: number     // For fixed: when it expires (epoch seconds)
+  rollover?: boolean   // For fixed: whether it auto-rolls
+}
+
 // Time range options for chart
 export type TimeRange = 7 | 30 | 90 | 180
 

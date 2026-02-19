@@ -4,6 +4,7 @@ import { LockIcon } from '@chakra-ui/icons'
 import { formatLockDuration, sortDepositsByLTVPair } from './utils'
 import { shiftDigits } from '@/helpers/math'
 import { FunnelAnimation } from './FunnelAnimation'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS } from '@/config/transitions'
 
 interface DepositCardProps {
     deposit: any
@@ -63,11 +64,18 @@ export const DepositCard = React.memo(({ deposit, asset, onClick }: DepositCardP
                 border="1px solid"
                 borderColor="whiteAlpha.200"
                 borderRadius="md"
+                cursor="pointer"
+                // Enhanced hover with lift and border highlight
+                transition={TRANSITIONS.transformAndShadow}
                 _hover={{
+                    ...HOVER_EFFECTS.liftSubtle,
                     borderColor: "whiteAlpha.400",
                     bg: "whiteAlpha.100",
                 }}
-                transition="all 0.2s"
+                _active={{
+                    ...ACTIVE_EFFECTS.pressDown,
+                    bg: "whiteAlpha.150",
+                }}
                 position="relative"
             >
                 <HStack justify="space-between" align="start">

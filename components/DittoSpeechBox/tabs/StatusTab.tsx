@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { VStack, Box, Text, HStack, Divider } from '@chakra-ui/react'
 import { DollarSign, TrendingUp, Clock, Gift, Lock, Music, Zap, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/router'
@@ -6,9 +6,11 @@ import { StatusCard, ShortcutCard } from '../StatusCard'
 import { useProtocolUpdates } from '../hooks/useProtocolUpdates'
 import { useDiscoUserMetrics } from '@/hooks/useDiscoData'
 import { useLockdropClaimsReady } from '../hooks/useLockdropNotifications'
+import { useVolatileWindowAlert } from '../hooks/useVolatileWindowAlert'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
 import { shiftDigits } from '@/helpers/math'
+import { RepayModal } from '@/components/NeutronMint/RepayModal'
 import dayjs from 'dayjs'
 import duration from 'dayjs/plugin/duration'
 
@@ -51,6 +53,8 @@ export const StatusTab: React.FC = () => {
     const { idleGains, categorizedUpdates } = useProtocolUpdates()
     const { claimsReady, claimableAmount } = useLockdropClaimsReady()
     const { pendingClaims } = useDiscoUserMetrics(address || undefined)
+    const { showAlert: showVolatileAlert, volatileAssets, pointsAvailable } = useVolatileWindowAlert()
+    const [isRepayModalOpen, setIsRepayModalOpen] = useState(false)
 
     // Calculate pending CDT from Disco
     const pendingCDT = useMemo(() => {
@@ -153,6 +157,24 @@ export const StatusTab: React.FC = () => {
                 </Box>
             )}
 
+            {/* Opportunities - Volatile Window Points */}
+            {showVolatileAlert && (
+                <Box>
+                    <Text fontSize="xs" color="#F5F5F580" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                        Opportunities
+                    </Text>
+                    <StatusCard
+                        icon={Zap}
+                        iconColor="yellow.400"
+                        title="Repay debt for MBRN"
+                        subtitle="Management during volatility gets rewarded, repay any amount for +5 MBRN"
+                        subtitleHighlight="+5 MBRN"
+                        highlightColor="purple.400"
+                        onClick={() => setIsRepayModalOpen(true)}
+                    />
+                </Box>
+            )}
+
             {/* Protocol Updates */}
             {recentUpdates.length > 0 && (
                 <Box>
@@ -206,7 +228,7 @@ export const StatusTab: React.FC = () => {
             </Box>
 
             {/* Empty state */}
-            {!hasIdleGains && !hasPendingCDT && !hasLockdropClaims && recentUpdates.length === 0 && (
+            {!hasIdleGains && !hasPendingCDT && !hasLockdropClaims && !showVolatileAlert && recentUpdates.length === 0 && (
                 <Box textAlign="center" py={6}>
                     <Text fontSize="sm" color="#F5F5F580">
                         No new updates
@@ -216,11 +238,18 @@ export const StatusTab: React.FC = () => {
                     </Text>
                 </Box>
             )}
+
+            {/* Repay Modal */}
+            <RepayModal
+                isOpen={isRepayModalOpen}
+                onClose={() => setIsRepayModalOpen(false)}
+            />
         </VStack>
     )
 }
 
 export default StatusTab
+
 
 
 

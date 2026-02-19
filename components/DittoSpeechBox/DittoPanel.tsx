@@ -1,11 +1,10 @@
 import React, { useState } from 'react'
-import { Box, HStack, VStack, Text, IconButton, Icon, Tabs, TabList, Tab, TabPanels, TabPanel } from '@chakra-ui/react'
+import { Box, HStack, Text, IconButton, Icon, Tabs, TabList, Tab, TabPanels, TabPanel } from '@chakra-ui/react'
 import { CloseIcon } from '@chakra-ui/icons'
-import { Bell, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StatusTab } from './tabs/StatusTab'
 import { LearnTab } from './tabs/LearnTab'
-import { useProtocolUpdates } from './hooks/useProtocolUpdates'
 
 const MotionBox = motion(Box)
 
@@ -18,13 +17,12 @@ interface DittoPanelProps {
  * DittoPanel - The main refactored Ditto UI
  * 
  * Features:
- * - Clean header with title, notification bell, and close button
+ * - Clean header with title and close button
  * - Two tabs: Status (updates + actions) and Learn (FAQs)
  * - Card-based layout matching the reference design
  */
 export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) => {
     const [activeTab, setActiveTab] = useState(0)
-    const { hasUnread, unreadCount } = useProtocolUpdates()
 
     if (!isVisible) return null
 
@@ -46,61 +44,25 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                 display="flex"
                 flexDirection="column"
             >
-                {/* Header */}
-                <HStack
-                    justify="space-between"
-                    align="center"
-                    px={4}
-                    py={3}
-                    borderBottom="1px solid"
-                    borderColor="#6943FF20"
-                    bg="#1A1D26"
-                >
-                    <Text
-                        fontSize="lg"
-                        fontWeight="bold"
-                        color="#F5F5F5"
-                        fontFamily="mono"
-                    >
-                        Ditto
-                    </Text>
-                    <HStack spacing={1}>
-                        {/* Notification Bell */}
-                        <Box position="relative">
-                            <IconButton
-                                aria-label="Notifications"
-                                icon={<Icon as={Bell} w={4} h={4} />}
-                                size="sm"
-                                variant="ghost"
-                                color="#F5F5F5"
-                                _hover={{ bg: '#6943FF20' }}
-                                onClick={() => setActiveTab(0)} // Go to Status tab
-                            />
-                            {hasUnread && (
-                                <Box
-                                    position="absolute"
-                                    top="0"
-                                    right="0"
-                                    w="8px"
-                                    h="8px"
-                                    bg="red.500"
-                                    borderRadius="full"
-                                    border="2px solid #1A1D26"
-                                />
-                            )}
-                        </Box>
-                        {/* Close Button */}
-                        <IconButton
-                            aria-label="Close"
-                            icon={<CloseIcon w={3} h={3} />}
-                            size="sm"
-                            variant="ghost"
-                            color="#F5F5F5"
-                            _hover={{ bg: '#6943FF20' }}
-                            onClick={onClose}
-                        />
-                    </HStack>
-                </HStack>
+                {/* Close button */}
+                <Box position="relative">
+                    <IconButton
+                        aria-label="Close"
+                        icon={<CloseIcon w={2} h={2} />}
+                        size="xs"
+                        variant="ghost"
+                        color="#F5F5F580"
+                        position="absolute"
+                        top={1}
+                        right={1}
+                        w="15%"
+                        minW="unset"
+                        h="24px"
+                        zIndex={1}
+                        _hover={{ bg: '#6943FF20', color: '#F5F5F5' }}
+                        onClick={onClose}
+                    />
+                </Box>
 
                 {/* Tabs */}
                 <Tabs
@@ -170,6 +132,7 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
 }
 
 export default DittoPanel
+
 
 
 

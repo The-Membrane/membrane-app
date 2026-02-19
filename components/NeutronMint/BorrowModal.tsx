@@ -16,6 +16,7 @@ import {
     Grid,
     GridItem,
 } from '@chakra-ui/react'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import { num } from '@/helpers/num'
 import { useBorrowModal, type BorrowRate } from './hooks/useBorrowModal'
 import { useBorrowRates } from './hooks/useBorrowRates'
@@ -364,7 +365,7 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
                 <ModalHeader>
                     <HStack spacing={3}>
                         <Image src={asset.logo} alt={asset.symbol} w="32px" h="32px" borderRadius="full" />
-                        <Text color="white" fontSize="xl" fontWeight="bold">
+                        <Text color="white" fontSize={TYPOGRAPHY.h3} fontWeight={TYPOGRAPHY.bold}>
                             Borrow {asset.symbol}
                         </Text>
                     </HStack>

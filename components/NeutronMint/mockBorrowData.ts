@@ -1,5 +1,6 @@
 import { BasketPositionsResponse, PositionResponse } from '@/contracts/generated/positions/Positions.types'
 import { Price } from '@/services/oracle'
+import { DebtRowData } from './types'
 
 /**
  * Mock data for testing the Borrow Modal
@@ -113,12 +114,47 @@ export const mockVaultSummary = {
     newDebtAmount: 200, // New debt amount (same as current for now)
 }
 
+// Mock rate segments (CDT debt broken down by rate type)
+// Total: 200 CDT = 120 Variable + 50 Fixed 3-Month + 30 Fixed 6-Month
+export const mockRateSegments: DebtRowData[] = [
+    {
+        type: 'Variable',
+        rate: 4.2,
+        amount: 120,
+    },
+    {
+        type: 'Fixed 3-Month',
+        rate: 6.3,
+        amount: 50,
+        endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 47, // ~47 days from now
+        rollover: true,
+    },
+    {
+        type: 'Fixed 6-Month',
+        rate: 8.4,
+        amount: 30,
+        endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 132, // ~132 days from now
+        rollover: false,
+    },
+]
+
+// Mock peg rate segments (USDC debt via transmuter)
+export const mockPegRateSegments: DebtRowData[] = [
+    {
+        type: 'Variable',
+        rate: 3.1,
+        amount: 0, // No USDC debt for now
+    },
+]
+
 // Helper to get mock data
 export const getMockBorrowData = () => {
     return {
         basketPositions: mockBasketPositions,
         prices: mockPrices,
         vaultSummary: mockVaultSummary,
+        rateSegments: mockRateSegments,
+        pegRateSegments: mockPegRateSegments,
     }
 }
 

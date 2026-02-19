@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Box, HStack, VStack, Text, Button, ButtonGroup } from '@chakra-ui/react'
+import { Box, HStack, VStack, Text, Button, ButtonGroup, useBreakpointValue } from '@chakra-ui/react'
 import {
   LineChart,
   Line,
@@ -19,13 +19,12 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import useAppState from '@/persisted-state/useAppState'
 import { num } from '@/helpers/num'
 import usePriceHistory, { getAlignedTimestamps, getPriceAtTimestamp } from './hooks/usePriceHistory'
-import { ChartDataPoint, TimeRange, ASSET_COLORS, getSymbolFromDenom, MOCK_CHART_DENOMS } from './types'
+import { ChartDataPoint, TimeRange, getSymbolFromDenom, MOCK_CHART_DENOMS } from './types'
+import { CHART_THEME, ASSET_COLORS, REFERENCE_STYLES, createCustomLegend } from '@/config/chartTheme'
 
 // Color constants
-const CYAN = 'rgb(34, 211, 238)'
+const CYAN = ASSET_COLORS[0] // Use first color from theme
 const LIQUIDATION_RED = 'rgba(239, 68, 68, 0.3)'
-const LIQUIDATION_LINE = '#ef4444'
-const GRID_COLOR = 'rgba(111, 255, 194, 0.1)'
 
 // Mock asset config for demo when no position exists
 // Target split: NTRN 40%, BTC 40%, USDC 20%
@@ -35,6 +34,7 @@ const MOCK_ASSET_CONFIG = [
   { denom: 'ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4', symbol: 'USDC', weight: 0.2 },
 ]
 const MOCK_TOTAL_VALUE = 10000 // $10,000 total portfolio value for mock
+const MOCK_LIQUIDATION_VALUE = 8000 // Mock liquidation threshold (80% LTV of $10k)
 
 interface PositionPerformanceChartProps {
   positionIndex?: number
@@ -51,6 +51,9 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
   const { data: prices } = useOraclePrice()
   const { data: basketPositions } = useUserPositions()
   const { data: basket } = useBasket(appState.rpcUrl)
+
+  // Responsive chart height
+  const chartHeight = useBreakpointValue({ base: 200, md: 250, lg: 300 }) ?? 250
 
   // Get user's current positions
   const positions = useMemo(() => {
@@ -175,9 +178,10 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
       })
     })
 
-    // Include liquidation value in min/max calculation
-    if (liquidationValue > 0) {
-      if (liquidationValue < minVal) minVal = liquidationValue
+    // Include liquidation value in min/max calculation (real or mock)
+    const effectiveLiquidation = liquidationValue > 0 ? liquidationValue : (!hasPosition ? MOCK_LIQUIDATION_VALUE : 0)
+    if (effectiveLiquidation > 0) {
+      if (effectiveLiquidation < minVal) minVal = effectiveLiquidation
     }
 
     return {
@@ -204,7 +208,7 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
   return (
     <Box
       w="100%"
-      p={4}
+      p={6}
       bg="rgba(10, 10, 10, 0.8)"
       borderRadius="lg"
       border="1px solid"
@@ -246,33 +250,24 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
             <Text color="whiteAlpha.600">No price history available</Text>
           </Box>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+              <CartesianGrid {...CHART_THEME.grid} />
 
               <XAxis
+                {...CHART_THEME.xAxis}
                 dataKey="date"
-                stroke="#F5F5F5"
-                strokeOpacity={0.6}
-                tick={{ fill: '#F5F5F5', fontSize: 10 }}
-                interval="preserveStartEnd"
+                domain={yDomain}
               />
 
               <YAxis
-                stroke="#F5F5F5"
-                strokeOpacity={0.6}
-                tick={{ fill: '#F5F5F5', fontSize: 10 }}
+                {...CHART_THEME.yAxis}
                 domain={yDomain}
                 tickFormatter={(value) => `$${num(value).toFixed(0)}`}
               />
 
               <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: 'rgba(10, 10, 10, 0.95)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '8px',
-                  color: '#F5F5F5',
-                }}
+                {...CHART_THEME.tooltip}
                 formatter={(value: number, name: string) => {
                   const displayName = name === 'actual'
                     ? 'Bundled Value'
@@ -283,52 +278,52 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
               />
 
               <Legend
-                wrapperStyle={{ color: '#F5F5F5', fontSize: 12 }}
-                iconType="line"
-                formatter={(value) => {
+                content={createCustomLegend((value) => {
                   if (value === 'actual') return 'Bundled Value'
                   return value.replace('hypo_', '100% ')
-                }}
+                })}
               />
 
               {/* Liquidation Zone - red area from liquidation value to bottom */}
-              {liquidationValue > 0 && hasPosition && (
-                <>
-                  <ReferenceArea
-                    y1={liquidationValue}
-                    y2={yDomain[0]}
-                    fill={LIQUIDATION_RED}
-                    fillOpacity={0.5}
-                  />
-                  <ReferenceLine
-                    y={liquidationValue}
-                    stroke={LIQUIDATION_LINE}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    label={{
-                      value: 'Liquidation',
-                      position: 'right',
-                      fill: LIQUIDATION_LINE,
-                      fontSize: 10,
-                    }}
-                  />
-                </>
-              )}
+              {(() => {
+                const effectiveLiq = liquidationValue > 0 ? liquidationValue : (!hasPosition ? MOCK_LIQUIDATION_VALUE : 0)
+                if (effectiveLiq <= 0) return null
+                return (
+                  <>
+                    <ReferenceArea
+                      y1={effectiveLiq}
+                      y2={yDomain[0]}
+                      fill="rgba(239, 68, 68, 0.3)"
+                      fillOpacity={1}
+                    />
+                    <ReferenceLine
+                      y={effectiveLiq}
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      label={{
+                        value: 'Liquidation',
+                        fill: '#ef4444',
+                        fontSize: 10,
+                        position: 'right' as const,
+                      }}
+                    />
+                  </>
+                )
+              })()}
 
               {/* Actual position value - solid cyan line */}
               <Line
+                {...CHART_THEME.line}
                 type="monotone"
                 dataKey="actual"
                 name="actual"
                 stroke={CYAN}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 5 }}
               />
 
               {/* Hypothetical lines - dashed, one per asset */}
               {assets.map((asset, index) => (
                 <Line
+                  {...CHART_THEME.line}
                   key={asset.denom}
                   type="monotone"
                   dataKey={`hypo_${asset.symbol}`}
@@ -336,7 +331,6 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
                   stroke={ASSET_COLORS[index % ASSET_COLORS.length]}
                   strokeWidth={1.5}
                   strokeDasharray="5 5"
-                  dot={false}
                   activeDot={{ r: 4 }}
                 />
               ))}

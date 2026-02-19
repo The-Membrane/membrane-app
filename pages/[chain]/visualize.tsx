@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Box, Flex, VStack, HStack, Text, Button, useColorModeValue } from '@chakra-ui/react'
+import { Box, Flex, HStack, useColorModeValue } from '@chakra-ui/react'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import useAppState from '@/persisted-state/useAppState'
@@ -8,6 +8,7 @@ import { MarketDetailPanel } from '@/components/Visualize/MarketDetailPanel'
 import { GlobalTimeline } from '@/components/Visualize/GlobalTimeline'
 import { VisualizationControls } from '@/components/Visualize/VisualizationControls'
 import { useVisualizationData } from '@/hooks/useVisualizationData'
+import { PageTitle } from '@/components/ui/PageTitle'
 import type { MarketNode, FlowEdge, SystemEvent, TimelineData } from '@/types/visualization'
 
 const VisualizePage = () => {
@@ -94,20 +95,14 @@ const VisualizePage = () => {
                     bg="rgba(10, 10, 15, 0.8)"
                 >
                     <HStack justify="space-between" align="center">
-                        <VStack align="start" spacing={1}>
-                            <Text
-                                fontSize="2xl"
-                                fontWeight="bold"
-                                bgGradient="linear(to-r, purple.400, blue.400, magenta.400)"
-                                bgClip="text"
-                                fontFamily="mono"
-                            >
-                                MEMBRANE VISUALIZATION
-                            </Text>
-                            <Text fontSize="sm" color="purple.300" fontFamily="mono">
-                                Cyberpunk Mycelium Network
-                            </Text>
-                        </VStack>
+                        <PageTitle
+                            title="MEMBRANE VISUALIZATION"
+                            subtitle="Cyberpunk Mycelium Network"
+                            variant="cyberpunk"
+                            gradient="linear(to-r, purple.400, blue.400, magenta.400)"
+                            subtitleColor="purple.300"
+                            mb={0}
+                        />
                         <VisualizationControls
                             timeRange={timeRange}
                             onTimeRangeChange={setTimeRange}

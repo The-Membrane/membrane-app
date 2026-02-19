@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useMemo, useState, memo } from 'react'
 import { Box, VStack, HStack, Text, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Button } from '@chakra-ui/react'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import { useTransmuterLockdrop, calculatePoints, useCurrentLockdrop } from '@/hooks/useTransmuterLockdrop'
 import useDebounce from '@/hooks/useDebounce'
 import { LockdropProgressBar } from './LockdropProgressBar'
@@ -688,8 +689,8 @@ export const TransmuterLockdropVisualizer: React.FC = () => {
         >
             {/* Page Title */}
             <Text
-                fontSize="4xl"
-                fontWeight="bold"
+                fontSize={TYPOGRAPHY.h1}
+                fontWeight={TYPOGRAPHY.bold}
                 bgGradient="linear(to-r, purple.400, cyan.400)"
                 bgClip="text"
                 fontFamily="mono"

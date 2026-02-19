@@ -8,6 +8,7 @@ import {
     Container,
     useBreakpointValue,
 } from '@chakra-ui/react'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import { BoostBreakdown } from '@/components/Manic/BoostBreakdown'
 import { RevenuePerSecond } from './RevenuePerSecond'
 import { RevenueChart } from './RevenueChart'
@@ -147,8 +148,8 @@ export const PortPage: React.FC = () => {
                 <HStack justify="space-between" align="center">
                     <Box>
                         <Text
-                            fontSize="3xl"
-                            fontWeight="bold"
+                            fontSize={TYPOGRAPHY.h1}
+                            fontWeight={TYPOGRAPHY.bold}
                             color="white"
                             fontFamily="mono"
                             textTransform="uppercase"

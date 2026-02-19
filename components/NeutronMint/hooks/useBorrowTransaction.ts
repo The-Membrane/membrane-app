@@ -64,9 +64,7 @@ export const useBorrowTransaction = ({
       // Convert borrow amount to micro units (assuming 6 decimals for CDT/USDC)
       const microAmount = shiftDigits(borrowAmount, 6).toFixed(0)
 
-      // Build borrow message
-      // Note: Fixed rates may need additional parameters in the future
-      // For now, all rates use the same borrow structure
+      // Build increase_debt message
       const borrowMsg: MsgExecuteContractEncodeObject = {
         typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
         value: MsgExecuteContract.fromPartial({
@@ -74,13 +72,12 @@ export const useBorrowTransaction = ({
           contract: marketContract,
           msg: toUtf8(
             JSON.stringify({
-              borrow: {
-                collateral_denom: asset.denom, // For CDT, this might be the collateral denom
-                send_to: receiveToWallet ? address : undefined,
-                borrow_amount: {
-                  amount: microAmount,
-                  ltv: undefined,
-                },
+              increase_debt: {
+                position_id: String(positionIndex + 1),
+                amount: microAmount,
+                mint_to_addr: receiveToWallet ? address : undefined,
+                // USDC borrows mint CDT then swap via transmuter (peg_debt)
+                peg_debt: asset.symbol === 'USDC' ? true : undefined,
               },
             })
           ),
@@ -110,6 +107,7 @@ export const useBorrowTransaction = ({
     onSuccess: handleSuccess,
   })
 }
+
 
 
 

@@ -53,7 +53,8 @@ import useManagedAction from '@/components/ManagedMarkets/hooks/useManagedMarket
 import ConfirmModal from '@/components/ConfirmModal/ConfirmModal';
 import { useAllMarkets, useUserPositioninMarket, useMarketCollateralDenoms } from '@/hooks/useManaged';
 import { useQuery, useQueries } from '@tanstack/react-query';
-import { num } from '@/helpers/num';
+import { num } from '@/helpers/num'
+import { TYPOGRAPHY } from '@/helpers/typography';
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast';
 import useCloseAndEditBoostsTx from './hooks/useCloseAndEditBoostsTx';
 import { getMarketCollateralDenoms, useMarketNames, getUserPositioninMarket, getManagedMarket, getMarketCollateralCost } from '@/services/managed';
@@ -1095,7 +1096,7 @@ const Portfolio: React.FC = () => {
           <HStack spacing={4} align="center" minW="fit-content">
             <Avatar boxSize="64px" bg="#1a2330" icon={<Box boxSize="32px" as="span" bgGradient="linear(to-br, #6fffc2, #1a2330)" borderRadius="md" />} />
             <Box>
-              <Text fontSize="2xl" fontWeight="bold" color="white" textAlign="left">Your Portfolio</Text>
+              <Text fontSize={TYPOGRAPHY.h1} fontWeight={TYPOGRAPHY.bold} color="white" textAlign="left">Your Portfolio</Text>
               <Text color="whiteAlpha.600" fontSize="md">{chainName.charAt(0).toUpperCase() + chainName.slice(1)}</Text>
             </Box>
           </HStack>

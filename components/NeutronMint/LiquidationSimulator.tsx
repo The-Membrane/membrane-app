@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { Box, VStack, HStack, Text, Table, Thead, Tbody, Tr, Th, Td, Image, Collapse } from '@chakra-ui/react'
+import { Card } from '@/components/ui/Card'
 import { num } from '@/helpers/num'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { useCapitalRecallAmount, CapitalRecallResult } from './hooks/useCapitalRecall'
@@ -145,6 +146,7 @@ export const LiquidationSimulator: React.FC<LiquidationSimulatorProps> = ({
   position,
   userAddress,
 }) => {
+  const [filterOpen, setFilterOpen] = useState(false)
   const [capitalRecallOpen, setCapitalRecallOpen] = useState(false)
   const [liqQueueOpen, setLiqQueueOpen] = useState(false)
   const [marketSaleOpen, setMarketSaleOpen] = useState(false)
@@ -277,31 +279,19 @@ export const LiquidationSimulator: React.FC<LiquidationSimulatorProps> = ({
 
   if (!hasData) {
     return (
-      <Box
-        bg="rgba(10, 10, 10, 0.8)"
-        borderRadius="lg"
-        p={4}
-        border="1px solid"
-        borderColor="whiteAlpha.200"
-      >
+      <Card p={4}>
         <Text fontSize="lg" fontWeight="bold" mb={4} color="white">
           Liquidation Simulator
         </Text>
         <Text color="whiteAlpha.600" textAlign="center" py={8}>
           No position data available
         </Text>
-      </Box>
+      </Card>
     )
   }
 
   return (
-    <Box
-      bg="rgba(10, 10, 10, 0.8)"
-      borderRadius="lg"
-      p={4}
-      border="1px solid"
-      borderColor="whiteAlpha.200"
-    >
+    <Card p={4}>
       <VStack spacing={4} align="stretch">
         {/* Title */}
         <Text fontSize="lg" fontWeight="bold" color="white">
@@ -329,11 +319,44 @@ export const LiquidationSimulator: React.FC<LiquidationSimulatorProps> = ({
         </HStack>
 
         {/* Liquidation Filter Section */}
-        <VStack spacing={4} align="stretch" mt={4}>
-          <Text color="white" fontSize="sm" fontWeight="semibold">
+        <VStack spacing={0} align="stretch" mt={4}>
+          {/* Centered chevron toggle */}
+          <Box
+            as="button"
+            onClick={() => setFilterOpen(!filterOpen)}
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            justifyContent="center"
+            py={2}
+            cursor="pointer"
+            color="whiteAlpha.500"
+            _hover={{ color: 'white' }}
+            transition="color 0.2s"
+          >
+            <Box
+              as="svg"
+              width="20px"
+              height="20px"
+              viewBox="0 0 16 16"
+              fill="none"
+              transform={filterOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
+              transition="transform 0.2s"
+            >
+              <path
+                d="M4 6L8 10L12 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Box>
+          </Box>
+
+          <Collapse in={filterOpen} animateOpacity>
+          <Text color="white" fontSize="sm" fontWeight="semibold" mb={2}>
             Liquidation Filter
           </Text>
-
           <Table variant="unstyled" size="sm">
             <Thead>
               <Tr>
@@ -662,6 +685,7 @@ export const LiquidationSimulator: React.FC<LiquidationSimulatorProps> = ({
               })}
             </Tbody>
           </Table>
+          </Collapse>
         </VStack>
 
         {/* Subtitle */}
@@ -669,7 +693,7 @@ export const LiquidationSimulator: React.FC<LiquidationSimulatorProps> = ({
           Protocol doesn't profit from liquidations
         </Text>
       </VStack>
-    </Box>
+    </Card>
   )
 }
 

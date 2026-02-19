@@ -1,10 +1,12 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Box, Grid, GridItem, VStack } from '@chakra-ui/react'
 import { CollateralizedBundle } from './CollateralizedBundle'
 import { AvailableCollateral } from './AvailableCollateral'
 import { AvailableToBorrow } from './AvailableToBorrow'
 import { PositionPerformanceChart } from './PositionPerformanceChart'
 import { LiquidationSimulator } from './LiquidationSimulator'
+import { DebtCard } from './DebtCard'
+import { RepayModal } from './RepayModal'
 import useVaultSummary from '../Mint/hooks/useVaultSummary'
 import useMintState from '../Mint/hooks/useMintState'
 import { useUserPositions } from '@/hooks/useCDP'
@@ -14,6 +16,10 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import { num } from '@/helpers/num'
 import useWallet from '@/hooks/useWallet'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
+import { getMockBorrowData } from './mockBorrowData'
+
+// Set to true to use mock data for testing (position with debt)
+const USE_MOCK_DATA = process.env.NODE_ENV === 'development' && true
 
 // Hexagon background component
 const HexagonBackground = () => (
@@ -79,36 +85,42 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
   const { data: basketPositions } = useUserPositions()
   const { address: userAddress } = useWallet()
 
+  // Mock data override for development testing
+  const mockData = USE_MOCK_DATA ? getMockBorrowData() : null
+  const finalVaultSummary = mockData?.vaultSummary || vaultSummary
+  const finalBasketPositions = mockData?.basketPositions || basketPositions
+  const finalPrices = mockData?.prices || prices
+
   // Get position for Capital Recall calculation
   const position = useMemo<PositionResponse | undefined>(() => {
-    if (!basketPositions || basketPositions.length === 0) return undefined
-    return basketPositions[0]?.positions?.[positionIndex] as PositionResponse | undefined
-  }, [basketPositions, positionIndex])
+    if (!finalBasketPositions || finalBasketPositions.length === 0) return undefined
+    return finalBasketPositions[0]?.positions?.[positionIndex] as PositionResponse | undefined
+  }, [finalBasketPositions, positionIndex])
 
   // Get liquidation value from vault summary
-  const liquidationValue = vaultSummary?.liquidValue || 0
+  const liquidationValue = finalVaultSummary?.liquidValue || 0
 
   // Calculate collateral value from positions
   const collateralValue = useMemo(() => {
-    if (!basketPositions || basketPositions.length === 0 || !prices) {
+    if (!finalBasketPositions || finalBasketPositions.length === 0 || !finalPrices) {
       return 0
     }
-    const positions = getPositions(basketPositions, prices, positionIndex, chainName) || []
+    const positions = getPositions(finalBasketPositions, finalPrices, positionIndex, chainName) || []
     return positions.reduce((sum, p) => sum + (p?.usdValue || 0), 0)
-  }, [basketPositions, prices, positionIndex, chainName])
+  }, [finalBasketPositions, finalPrices, positionIndex, chainName])
 
   // Get LTV values from vault summary
-  const liquidationLTV = vaultSummary?.liqudationLTV || 0
-  const borrowLTV = vaultSummary?.borrowLTV || 0
+  const liquidationLTV = finalVaultSummary?.liqudationLTV || 0
+  const borrowLTV = finalVaultSummary?.borrowLTV || 0
 
   // Check if user has a position with collateral
   const hasPosition = useMemo(() => {
-    if (!basketPositions || basketPositions.length === 0 || !prices) {
+    if (!finalBasketPositions || finalBasketPositions.length === 0 || !finalPrices) {
       return false
     }
-    const positions = getPositions(basketPositions, prices, positionIndex, chainName) || []
+    const positions = getPositions(finalBasketPositions, finalPrices, positionIndex, chainName) || []
     return positions.length > 0 && positions.some(p => p && num(p.amount).isGreaterThan(0))
-  }, [basketPositions, prices, positionIndex, chainName])
+  }, [finalBasketPositions, finalPrices, positionIndex, chainName])
 
   // Default handlers if not provided
   const handleDeposit = useCallback((denom: string) => {
@@ -138,6 +150,15 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
       console.log('Borrow requested for:', denom)
     }
   }, [onBorrow, setMintState])
+
+  // Repay modal state
+  const [isRepayModalOpen, setIsRepayModalOpen] = useState(false)
+  const [repayInitialAsset, setRepayInitialAsset] = useState<string | undefined>()
+
+  const handleRepay = useCallback((asset: string) => {
+    setRepayInitialAsset(asset)
+    setIsRepayModalOpen(true)
+  }, [])
 
   return (
     <Box position="relative" minH="100vh">
@@ -177,9 +198,19 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
               </VStack>
             </GridItem>
 
-            {/* Right Column: Available to Borrow + Liquidation Simulator */}
+            {/* Right Column: Debt + Available to Borrow + Liquidation Simulator */}
             <GridItem>
               <VStack spacing={6} align="stretch">
+                {hasPosition && (
+                  <DebtCard
+                    rateSegments={mockData?.rateSegments || []}
+                    pegRateSegments={mockData?.pegRateSegments || []}
+                    onRepay={handleRepay}
+                    currentLtv={finalVaultSummary?.ltv || 0}
+                    maxBorrowLtv={borrowLTV}
+                    positionIndex={positionIndex}
+                  />
+                )}
                 <AvailableToBorrow
                   onBorrow={handleBorrow}
                   positionIndex={positionIndex}
@@ -197,6 +228,14 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
           </Grid>
         </VStack>
       </Box>
+
+      {/* Repay Modal */}
+      <RepayModal
+        isOpen={isRepayModalOpen}
+        onClose={() => setIsRepayModalOpen(false)}
+        positionIndex={positionIndex}
+        initialAsset={repayInitialAsset}
+      />
     </Box>
   )
 }

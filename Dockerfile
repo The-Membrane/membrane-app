@@ -8,7 +8,8 @@ WORKDIR /app
 # Cache and Install dependencies
 COPY package.json .
 COPY pnpm-lock.yaml .
-RUN npm i
+# --prod=false: NODE_ENV=production would otherwise skip devDeps needed by `next build`
+RUN pnpm i --frozen-lockfile --prod=false
 
 # Copy app files
 COPY . .

@@ -16,7 +16,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
     "test:e2e:chrome": "playwright test --project='Desktop Chrome'",
-    "test:e2e:mobile": "playwright test --project='iPhone 14'"
+    "test:e2e:mobile": "playwright test --project='iPhone 14'",
+    "sync-abis": "tsx ./scripts/sync-abis.ts"
   },
   "dependencies": {
     "@chain-registry/utils": "^1.51.285",
@@ -31,9 +32,7 @@
     "@cosmos-kit/core": "^2.18.0",
     "@cosmos-kit/cosmostation": "^2.17.0",
     "@cosmos-kit/keplr": "^2.17.0",
-    "@cosmos-kit/keplr-mobile": "^2.17.0",
     "@cosmos-kit/leap": "^2.17.0",
-    "@cosmos-kit/leap-mobile": "^2.16.0",
     "@cosmos-kit/ledger": "^2.16.0",
     "@cosmos-kit/react": "^2.24.0",
     "@cosmos-kit/station": "^2.15.0",
@@ -41,10 +40,8 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@leapwallet/elements": "^1.10.1",
-    "@million/lint": "1.0.0-rc.1",
     "@osmonauts/math": "^1.18.0",
-    "@react-three/drei": "^9.122.0",
-    "@react-three/fiber": "^8.18.0",
+    "@skip-go/widget": "^3.14.23",
     "@tanstack/react-query": "^5.90.16",
     "bignumber.js": "^9.3.1",
     "chain-registry": "^1.69.453",
@@ -64,9 +61,10 @@
     "react-hook-form": "^7.70.0",
     "react-icons": "^5.5.0",
     "recharts": "^2.15.4",
-    "three": "^0.160.1",
     "tinycolor2": "^1.6.0",
     "use-file-picker": "^2.1.4",
+    "viem": "^2",
+    "wagmi": "^3",
     "zustand": "^4.5.7"
   },
   "devDependencies": {

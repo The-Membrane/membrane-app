@@ -157,20 +157,16 @@ export const useUserDiscount = (address: string | undefined) => {
 
 
 export const useBasketPositions = () => {
-  const { chainName } = useChainRoute()
-  const { address } = useWallet(chainName)
   const { appState } = useAppState()
   const { data: client } = useCDPClient(appState.rpcUrl)
-  // const router = useRouter()
 
   return useQuery({
     queryKey: ['all positions', client, appState.rpcUrl],
     queryFn: async () => {
-      // if (router.pathname != "/control-room" && router.pathname != "/mint") return
       if (!client) return
       return getBasketPositions(client)
     },
-    enabled: !!address,
+    enabled: !!client,
     staleTime: 1000 * 60 * 5,
   })
 }

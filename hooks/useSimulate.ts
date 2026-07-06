@@ -1,11 +1,8 @@
-import { parseError } from '@/helpers/parseError'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useEffect, useState } from 'react'
-import useWallet from './useWallet'
-import { StdFee } from '@cosmjs/stargate'
 import { useQuery } from '@tanstack/react-query'
-import { useChainRoute } from './useChainRoute'
-import { getGasConfig } from '@/config/gas'
+import { formatEther } from 'viem'
+import useWallet from './useWallet'
+import type { EvmCall, EvmFeeEstimate } from '@/services/chain/types'
 
 // Configuration for retry behavior
 const SIMULATION_CONFIG = {
@@ -14,209 +11,107 @@ const SIMULATION_CONFIG = {
   maxDelay: 10000, // 10 seconds
   staleTime: 15000, // 15 seconds
   gcTime: 60000, // 1 minute
-  fallbackGas: '1000000',
-  fallbackAmount: '2500',
+  gasBufferMultiplier: 1.05, // 5% buffer, carried over from the Cosmos pipeline
 } as const
 
-// Helper function to categorize errors for better debugging
-const categorizeError = (errorMessage: string): string => {
-  const message = errorMessage.toLowerCase()
+// Errors that are the user's to fix — retrying only re-prompts the same failure
+const USER_ERROR_PATTERNS = [
+  'insufficient funds',
+  'user rejected',
+  'user denied',
+  'request rejected',
+  'execution reverted', // contract revert: deterministic, retry won't help
+  'unauthorized',
+]
 
-  if (message.includes('network') || message.includes('timeout') || message.includes('connection')) {
-    return 'NETWORK'
-  }
-  if (message.includes('insufficient funds') || message.includes('user denied') || message.includes('request rejected')) {
-    return 'USER'
-  }
-  if (message.includes('unauthorized') || message.includes('car not found') || message.includes('track not found')) {
-    return 'CONTRACT'
-  }
-  if (message.includes('simulation') || message.includes('gas') || message.includes('fee')) {
-    return 'SIMULATION'
-  }
-  if (message.includes('rpc') || message.includes('endpoint')) {
-    return 'RPC'
-  }
-
-  return 'UNKNOWN'
-}
+const isUserError = (message: string) =>
+  USER_ERROR_PATTERNS.some((p) => message.toLowerCase().includes(p))
 
 type Simulate = {
-  msgs: MsgExecuteContractEncodeObject[] | undefined | null
+  msgs: EvmCall[] | undefined | null
   amount: string | undefined
   enabled?: boolean
   queryKey?: string[]
-  chain_id: string
+  /** legacy param, ignored — chain comes from the wagmi account context */
+  chain_id?: string
 }
 
-const useSimulate = ({ msgs, amount, enabled = false, queryKey = [], chain_id }: Simulate) => {
+/**
+ * Fee estimation + revert pre-flight — EVM internals behind the same hook shape the
+ * CTA pipeline has always used. Was: cosmos-kit estimateFee + StargateClient.simulate.
+ *
+ * data shape: [EvmFeeEstimate, totalGasUnits] (was [StdFee, simulatedGas]).
+ * viem's simulateContract both validates the call (revert = throw with decoded reason)
+ * and estimates; EIP-1559 fee params come from estimateFeesPerGas.
+ */
+const useSimulate = ({ msgs, amount, enabled = false, queryKey = [] }: Simulate) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const { chainName } = useChainRoute()
-  const { isWalletConnected, getSigningStargateClient, estimateFee, address, chain } = useWallet()
+  const { isWalletConnected, address, chain, publicClient } = useWallet()
 
   // clear error message when amount is changed
   useEffect(() => {
     if (amount === '' && !!errorMessage) setErrorMessage(null)
   }, [amount, errorMessage])
 
-  const simulate = useQuery<[StdFee, number] | undefined, Error>({
-    queryKey: ['simulate', amount, address, chain.chain_id, ...queryKey],
+  const simulate = useQuery<[EvmFeeEstimate, number] | undefined, Error>({
+    queryKey: ['simulate', amount, address, chain.id, ...queryKey],
     queryFn: async () => {
-      console.log('[useSimulate] queryFn start', {
-        enabled,
-        isWalletConnected,
-        hasAddress: !!address,
-        msgsCount: msgs?.length || 0,
-        chainId: chain?.chain_id,
-        routeChainName: chainName,
-      })
-
-      if (!enabled) {
-        console.log('[useSimulate] Skipping: enabled is false')
-        return undefined
-      }
-      if (!isWalletConnected) {
-        console.log('[useSimulate] Skipping: wallet not connected')
-        return undefined
-      }
-      if (!address) {
-        console.log('[useSimulate] Skipping: no address')
-        return undefined
-      }
-      if (!msgs || msgs.length === 0) {
-        console.log('[useSimulate] Skipping: no msgs to simulate')
-        return undefined
-      }
+      if (!enabled || !isWalletConnected || !address || !publicClient) return undefined
+      if (!msgs || msgs.length === 0) return undefined
 
       try {
-        const signingClient = await getSigningStargateClient()
         setErrorMessage(null)
 
-        // Get the estimated fee from the wallet with fallback
-        let estimatedFee: StdFee
-        try {
-          estimatedFee = await estimateFee(msgs)
-          console.log('[useSimulate] estimatedFee from wallet', estimatedFee)
-        } catch (feeError) {
-          console.warn('[useSimulate] Wallet fee estimation failed, using fallback:', feeError)
-
-          // Fallback fee estimation
-          const gasConfig = getGasConfig(chainName)
-          const fallbackGas = SIMULATION_CONFIG.fallbackGas
-          const fallbackDenom = gasConfig?.denom || 'uosmo'
-          const fallbackAmount = SIMULATION_CONFIG.fallbackAmount
-
-          estimatedFee = {
-            gas: fallbackGas,
-            amount: [{
-              denom: fallbackDenom,
-              amount: fallbackAmount,
-            }],
-          }
-          console.log('[useSimulate] Using fallback fee:', estimatedFee)
+        // Pre-flight each call (throws with decoded revert reason) and sum gas
+        let totalGas = 0n
+        for (const call of msgs) {
+          await publicClient.simulateContract({
+            address: call.address,
+            abi: call.abi,
+            functionName: call.functionName,
+            args: call.args as any,
+            value: call.value,
+            account: address,
+          })
+          totalGas += await publicClient.estimateContractGas({
+            address: call.address,
+            abi: call.abi,
+            functionName: call.functionName,
+            args: call.args as any,
+            value: call.value,
+            account: address,
+          })
         }
 
-        // Determine buffer behavior
-        const gasConfig = getGasConfig(chainName)
-        const bufferMultiplier = 1.05 // default 5% buffer if not specified
+        const bufferedGas =
+          (totalGas * BigInt(Math.round(SIMULATION_CONFIG.gasBufferMultiplier * 100))) / 100n
 
-        // Parse gas and compute buffered values
-        const simulatedGasUnits = Math.max(0, parseInt(estimatedFee.gas || '0') || 0)
-        const bufferedGasUnits = Math.ceil(simulatedGasUnits * bufferMultiplier)
+        const { maxFeePerGas } = await publicClient.estimateFeesPerGas()
+        const totalWei = bufferedGas * (maxFeePerGas ?? 0n)
 
-        // Scale fee amounts proportionally to the gas increase.
-        // Keep denom from estimate unless chain config explicitly specifies one.
-        const denomFromEstimate = estimatedFee.amount?.[0]?.denom
-        const denom = gasConfig?.denom || denomFromEstimate || 'uosmo'
-
-        const originalAmount = estimatedFee.amount?.[0]?.amount || '0'
-        const originalAmountNum = Math.max(0, parseInt(originalAmount || '0') || 0)
-        const bufferedAmountNum = Math.ceil(originalAmountNum * bufferMultiplier)
-
-        const finalFee: StdFee = {
-          ...estimatedFee,
-          gas: String(bufferedGasUnits),
-          amount: [
-            {
-              denom,
-              amount: String(bufferedAmountNum),
-            },
-          ],
+        const fee: EvmFeeEstimate = {
+          gas: bufferedGas,
+          maxFeePerGas: maxFeePerGas ?? 0n,
+          totalWei,
+          totalFormatted: `${Number(formatEther(totalWei)).toPrecision(3)} ETH`,
         }
 
-        console.log('[useSimulate] buffer applied', {
-          originalGas: estimatedFee.gas,
-          bufferedGas: finalFee.gas,
-          originalAmount: estimatedFee.amount,
-          newAmount: finalFee.amount,
-          bufferMultiplier,
-        })
-
-        const simResult = await signingClient?.simulate(address, msgs, undefined)
-        console.log('[useSimulate] simulate result', simResult)
-
-        return Promise.all([finalFee, simResult])
+        return [fee, Number(totalGas)]
       } catch (err: any) {
-        const errorMessage = err?.message || String(err)
-        const msg = parseError(errorMessage) || 'Simulation failed'
-
-        // Categorize the error for better debugging
-        const errorCategory = categorizeError(errorMessage)
-        console.error(`[useSimulate] ${errorCategory} error:`, {
-          error: err,
-          message: errorMessage,
-          category: errorCategory,
-          chainName,
-          address: address?.substring(0, 10) + '...',
-          msgsCount: msgs?.length || 0
-        })
-
+        const msg: string = err?.shortMessage ?? err?.message ?? String(err)
+        console.error('[useSimulate] simulation failed:', msg)
         setErrorMessage(msg)
         throw err
       }
     },
     enabled: enabled && (msgs?.length || 0) > 0 && isWalletConnected,
     retry: (failureCount, error) => {
-      // Don't retry if it's a user error (insufficient funds, etc.)
-      const errorMessage = error?.message || String(error)
-      const isUserError = [
-        'insufficient funds',
-        'user denied',
-        'request rejected',
-        'unauthorized',
-        'car not found',
-        'track not found',
-        'invalid car count',
-        'invalid action',
-        'invalid track',
-        'invalid race config',
-        'simulation error',
-        'q-learning error'
-      ].some(userError => errorMessage.toLowerCase().includes(userError))
-
-      if (isUserError) {
-        console.log('[useSimulate] Not retrying user error:', errorMessage)
-        return false
-      }
-
-      // Retry up to maxRetries times for network/technical errors
-      if (failureCount < SIMULATION_CONFIG.maxRetries) {
-        console.log(`[useSimulate] Retrying simulation (attempt ${failureCount + 1}/${SIMULATION_CONFIG.maxRetries})`)
-        return true
-      }
-
-      console.log('[useSimulate] Max retries reached, giving up')
-      return false
+      const message = error?.message || String(error)
+      if (isUserError(message)) return false
+      return failureCount < SIMULATION_CONFIG.maxRetries
     },
-    retryDelay: (attemptIndex) => {
-      // Exponential backoff with configurable base and max delay
-      const delay = Math.min(
-        SIMULATION_CONFIG.baseDelay * Math.pow(2, attemptIndex),
-        SIMULATION_CONFIG.maxDelay
-      )
-      console.log(`[useSimulate] Retry delay: ${delay}ms`)
-      return delay
-    },
+    retryDelay: (attemptIndex) =>
+      Math.min(SIMULATION_CONFIG.baseDelay * Math.pow(2, attemptIndex), SIMULATION_CONFIG.maxDelay),
     staleTime: SIMULATION_CONFIG.staleTime,
     gcTime: SIMULATION_CONFIG.gcTime,
   })

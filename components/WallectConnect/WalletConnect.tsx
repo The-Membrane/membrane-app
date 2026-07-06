@@ -6,7 +6,6 @@ import { Button, HStack, Icon, Stack, Text } from '@chakra-ui/react'
 import { useMemo, useState } from 'react'
 import { FaSignOutAlt } from 'react-icons/fa'
 import ConnectButton from './ConnectButton'
-import { useChainRoute } from '@/hooks/useChainRoute'
 
 const hoverStyles = {
   borderRadius: '8px',
@@ -16,13 +15,10 @@ const hoverStyles = {
 
 const WalletConnect = () => {
   const [isHovered, setIsHovered] = useState(false)
-  const { chainName } = useChainRoute()
-  const { connect, isWalletConnected, disconnect, username, address, chain } = useWallet(chainName)
+  const { connect, isWalletConnected, disconnect, address, connector } = useWallet()
 
-  const shortAddress = useMemo(
-    () => truncate(address, chain.bech32_prefix),
-    [address, chain.bech32_prefix],
-  )
+  const shortAddress = useMemo(() => truncate(address), [address])
+  const walletLabel = connector?.name ?? 'Connected'
 
   if (isWalletConnected) {
     return (
@@ -42,7 +38,7 @@ const WalletConnect = () => {
         bg="whiteAlpha.100"
       >
         <Stack gap="-2px" alignItems="flex-start" ml="-6px">
-          <Text fontSize="sm">{username}</Text>
+          <Text fontSize="sm">{walletLabel}</Text>
           <Text fontSize="xs" color={colors.noState}>
             {shortAddress}
           </Text>

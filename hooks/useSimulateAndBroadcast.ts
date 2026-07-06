@@ -1,6 +1,6 @@
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import useSimulate from './useSimulate'
 import useTransaction from './useTransaction'
+import type { EvmCall } from '@/services/chain/types'
 
 type SimulateAndBroadcast = {
   simulate: ReturnType<typeof useSimulate>
@@ -8,11 +8,12 @@ type SimulateAndBroadcast = {
 }
 
 type Props = {
-  msgs?: MsgExecuteContractEncodeObject[]
+  msgs?: EvmCall[]
   queryKey?: string[]
   enabled?: boolean
   amount?: string
   onSuccess?: () => void
+  /** legacy param, ignored — chain comes from the wagmi account context */
   chain_id?: string
   shrinkMessage?: boolean
 }
@@ -22,7 +23,6 @@ const useSimulateAndBroadcast = ({
   queryKey,
   amount,
   onSuccess,
-  chain_id = 'osmosis',
   enabled = false,
   shrinkMessage = false,
 }: Props): SimulateAndBroadcast => {
@@ -30,7 +30,6 @@ const useSimulateAndBroadcast = ({
     msgs,
     amount,
     queryKey,
-    chain_id,
     enabled,
   })
 
@@ -40,7 +39,6 @@ const useSimulateAndBroadcast = ({
     msgs,
     fee,
     onSuccess,
-    chain_id,
     shrinkMessage,
   })
 

@@ -6,7 +6,6 @@ import { useBasket } from '@/hooks/useCDP'
 import { shiftDigits } from '@/helpers/math'
 import { Formatter } from '@/helpers/formatter'
 import { num } from '@/helpers/num'
-// import OnboardModal from './LeapOnboarding'
 
 
 // Extracted FAQ component to reduce main component complexity

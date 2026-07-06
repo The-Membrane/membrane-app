@@ -2,7 +2,6 @@ import { HStack, Stack, Text } from '@chakra-ui/react'
 import LiveAuction from './LiveAuction'
 import NFTBid from './NFTBid'
 import AssetAuction from './AssetAuction'
-import BridgeTo from './BridgeTo'
 import { useLiveAssetAuction, useLiveNFTAuction } from './hooks/useBraneAuction'
 import React from "react"
 import useNFTState from './hooks/useNFTState'
@@ -21,7 +20,6 @@ const NFT = React.memo(() => {
                 <NFTBid currentBid={liveNFTAuction?.highest_bid} auctionEndTime={liveNFTAuction?.auction_end_time??0}/>
             </Stack>
             <Stack w="full" gap="5">
-                <BridgeTo />
                 <AssetAuction currentBid={liveAssetAuction?.highest_bid.amount} auctionAmount={liveAssetAuction?.auctioned_asset.amount} assetBidAmount={NFTState.assetBidAmount} auctionEndTime={liveNFTAuction?.auction_end_time??0}/>
             </Stack>
         </Stack>

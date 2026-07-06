@@ -39,9 +39,7 @@
     "@cosmos-kit/tailwind": "^1.10.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@leapwallet/elements": "^1.10.1",
     "@osmonauts/math": "^1.18.0",
-    "@skip-go/widget": "^3.14.23",
     "@tanstack/react-query": "^5.90.16",
     "bignumber.js": "^9.3.1",
     "chain-registry": "^1.69.453",
@@ -63,7 +61,7 @@
     "recharts": "^2.15.4",
     "tinycolor2": "^1.6.0",
     "use-file-picker": "^2.1.4",
-    "viem": "^2",
+    "viem": "^2.54.6",
     "wagmi": "^3",
     "zustand": "^4.5.7"
   },

@@ -20,6 +20,11 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
+      // EVM data is bigint-laden and some hooks key queries on it; JSON.stringify
+      // throws "Do not know how to serialize a BigInt" and crashes the page. Hash
+      // bigints explicitly (suffix disambiguates 1n from "1").
+      queryKeyHashFn: (key) =>
+        JSON.stringify(key, (_, v) => (typeof v === 'bigint' ? `${v.toString()}#bigint` : v)),
     },
   },
 })

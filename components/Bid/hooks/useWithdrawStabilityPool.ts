@@ -1,26 +1,24 @@
-import contracts from '@/config/contracts.json'
 import useWallet from '@/hooks/useWallet'
-import { StabilityPoolMsgComposer } from '@/contracts/codegen/stability_pool/StabilityPool.message-composer'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import type { EvmCall } from '@/services/chain/types'
 
+/**
+ * TODO(evm-migration): the Solidity port has NO stability pool — LiquidationEngine +
+ * LtvDisco tranches replace it by design (see services/chain/liquidation.ts). This hook
+ * returns no msgs so the withdraw CTA stays inert; the stability-pool UI it serves is
+ * slated for removal/replacement by Disco flows in the component-layer wave.
+ */
 export const useWithdrawStabilityPool = (amount: string) => {
   const { address } = useWallet()
 
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
     queryKey: ['msg omni-asset withdraw', address, amount],
-    queryFn: () => {
-      if (!address) return [] as MsgExecuteContractEncodeObject[]
-      
-      const messageComposer = new StabilityPoolMsgComposer(address, contracts.stabilityPool)
-      const msgs = messageComposer.withdraw({amount})
-      return [msgs] as MsgExecuteContractEncodeObject[]
-    },
+    queryFn: () => [] as EvmCall[],
     enabled: !!address,
   })
-  
+
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
     queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })

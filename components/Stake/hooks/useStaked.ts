@@ -1,37 +1,44 @@
 import { num } from '@/helpers/num'
-import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
-import { getRewards, getStaked, useStakingClient } from '@/services/staking'
+import { getUserStake, getUserRewards } from '@/services/chain/staking'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/router'
+import type { Address } from '@/config/evm/contracts'
 
-
+/**
+ * Per-user staking snapshot. EVM rewire (was services/staking getStaked/getRewards over
+ * the CosmWasm StakingQueryClient). Shape preserved for consumers:
+ *   { staked (micro number), unstaking [{ amount, unstake_start_time }], rewards [] }
+ */
 const useStaked = (run: boolean) => {
-  const { chainName } = useChainRoute()
-  const { address } = useWallet(chainName)
+  const { address, publicClient } = useWallet()
   const router = useRouter()
-  const { data: client } = useStakingClient()
 
   return useQuery({
-    queryKey: ['staked', address, client, run, router.pathname, chainName],
+    queryKey: ['staked', address, run, router.pathname, publicClient?.chain?.id],
     queryFn: async () => {
-      if (!router.pathname.endsWith("/stake") && !run) return
-      if (!address) return null
+      if (!router.pathname.endsWith('/stake') && !run) return
+      if (!address || !publicClient) return null
 
-      // Check if we use stakeState or requery
-      const data = await getStaked(address, client)
+      const data = await getUserStake(publicClient, address as Address)
+      if (!data) return null
 
-      const { deposit_list } = data
-      const staking = deposit_list?.filter((s) => !s.unstake_start_time)
-      const unstaking = deposit_list?.filter((s) => s.unstake_start_time)
+      const staking = data.deposits.filter((d) => d.unstakeStartTime === 0n)
+      const unstaking = data.deposits
+        .filter((d) => d.unstakeStartTime !== 0n)
+        .map((d) => ({
+          amount: d.amount.toString(),
+          unstake_start_time: Number(d.unstakeStartTime),
+        }))
 
-      const staked = staking?.reduce((acc, s) => {
-        return acc.plus(Number(s.amount))
-      }, num(0)).toNumber()
+      const staked = staking
+        .reduce((acc, d) => acc.plus(d.amount.toString()), num(0))
+        .toNumber()
 
+      // getUserRewards is a null stub on EVM (no pending-rewards view); keep the
+      // rewards array so ClaimAndRestake renders its empty state cleanly.
+      const rewards = (await getUserRewards(publicClient, address as Address)) ?? []
 
-      const rewards = await getRewards(address, client, chainName)
-      //Reward query is erroring (?)
       return {
         staked,
         unstaking,
@@ -39,6 +46,7 @@ const useStaked = (run: boolean) => {
       }
     },
     enabled: !!address,
+    staleTime: 1000 * 60 * 2,
   })
 }
 

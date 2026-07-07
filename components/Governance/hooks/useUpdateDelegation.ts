@@ -1,32 +1,20 @@
-import useWallet from '@/hooks/useWallet'
-import useDelegateState from './useDelegateState'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { useQuery } from '@tanstack/react-query'
-import { buildUpdateDelegationMsg } from '@/services/staking'
-import { decodeMsgs } from '@/helpers/decodeMsg'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { queryClient } from '@/pages/_app'
+import useDelegateState from './useDelegateState'
 
+/**
+ * Stake delegation update.
+ *
+ * TODO(evm-migration): delegation has no equivalent in Governance.sol — it is a
+ * Staking-organ feature (the Cosmos hook built its message via
+ * services/staking `buildUpdateDelegationMsg`). Reimplement onto the EVM staking
+ * write service when the Staking domain is migrated. Stubbed to an empty
+ * (disabled) pipeline so the {simulate, tx} shape ConfirmModal consumes is
+ * preserved without faking a governance mapping.
+ */
 const useUpdateDelegation = () => {
-  const { delegateState } = useDelegateState()
-  const { delegations = [] } = delegateState
-  const { address } = useWallet()
-
-  const amount = delegations.reduce((acc, delegation) => acc + delegation.newAmount, 0)
-  const commission = delegations.map((d) => d?.newCommission?.toString()).join(',')
-
-  const { data: updateDelegationMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[]>({
-    queryKey: ['msg', 'update delegation', address, amount.toString(), commission],
-    queryFn: async () => {
-      if (!address) return [] as MsgExecuteContractEncodeObject[]
-
-      const msgs = buildUpdateDelegationMsg(address, delegations!)
-
-      return msgs
-    },
-    // enabled: !!address && !!delegations && Math.abs(amount) > 0,
-    enabled: !!address && !!delegations,
-  })
+  // Kept so the delegate UI state wiring stays intact for the eventual re-impl.
+  useDelegateState()
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['delegations'] })
@@ -34,9 +22,9 @@ const useUpdateDelegation = () => {
   }
 
   return useSimulateAndBroadcast({
-    msgs: updateDelegationMsgs,
-    amount: Math.abs(amount).toString(),
-    queryKey: [],
+    msgs: undefined,
+    queryKey: ['update delegation sim'],
+    enabled: false,
     onSuccess,
   })
 }

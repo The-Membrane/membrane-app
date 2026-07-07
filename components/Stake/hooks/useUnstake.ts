@@ -1,50 +1,52 @@
-import contracts from '@/config/contracts.json'
-import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
+import { stakingAbi } from '@/contracts/abis/staking'
+import { getContractAddress } from '@/config/evm/contracts'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import { useChainRoute } from '@/hooks/useChainRoute'
-import useSimulate from '@/hooks/useSimulate'
-import useTransaction from '@/hooks/useTransaction'
+import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import type { EvmCall } from '@/services/chain/types'
+import { queryClient } from '@/pages/_app'
 import { useQuery } from '@tanstack/react-query'
 
 type UseUnstake = {
   amount: string
 }
 
+/** Mark deposits for unbonding. EVM rewire (was StakingMsgComposer.unstake). */
 const useUnstake = ({ amount }: UseUnstake) => {
-  const { chainName } = useChainRoute()
-  const { address } = useWallet(chainName)
-  const mbrnAsset = useAssetBySymbol('MBRN', chainName)
+  const { address, chain } = useWallet()
+  const mbrnAsset = useAssetBySymbol('MBRN')
+  const stakingAddr = chain ? getContractAddress(chain.id, 'staking') : undefined
 
-  const { data: unstakeMsgs = [] } = useQuery<MsgExecuteContractEncodeObject[] | null>({
-    queryKey: ['msg', address, mbrnAsset?.base, contracts.staking, amount],
-    queryFn: async () => {
-      if (!address || !mbrnAsset) return null
+  const { data: unstakeMsgs } = useQuery<EvmCall[] | undefined>({
+    queryKey: ['staking', 'unstake_msg', address, stakingAddr, amount],
+    queryFn: () => {
+      if (!address || !mbrnAsset || !stakingAddr) return undefined
+      const microAmount = BigInt(shiftDigits(amount, mbrnAsset.decimal).dp(0).toString())
 
-      const messageComposer = new StakingMsgComposer(address, contracts.staking)
-      const macroAmount = shiftDigits(amount, mbrnAsset?.decimal).toString()
-
-      const msg = messageComposer.unstake({ mbrnAmount: macroAmount })
-
-      if (!msg) return null
-
-      return [msg]
+      return [
+        {
+          address: stakingAddr,
+          abi: stakingAbi,
+          functionName: 'unstake',
+          args: [microAmount, false],
+        },
+      ]
     },
-    enabled: !!address && !!mbrnAsset && !!contracts.staking && Number(amount) > 0,
+    enabled: !!address && !!mbrnAsset && !!stakingAddr && Number(amount) > 0,
   })
 
-  const simulate = useSimulate({
-    msgs: unstakeMsgs,
-    amount: amount,
-    queryKey: [mbrnAsset?.base!],
-    chain_id: 'osmosis',
-  })
+  const onSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['staked'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
+  }
 
-  const tx = useTransaction({
+  const { simulate, tx } = useSimulateAndBroadcast({
     msgs: unstakeMsgs,
-    fee: simulate.data?.[0] || [],
+    amount,
+    queryKey: ['unstake', address ?? '', amount],
+    enabled: !!unstakeMsgs?.length,
+    onSuccess,
   })
 
   return {

@@ -1,47 +1,65 @@
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { queryClient } from '@/pages/_app'
-import { buildBidMsg } from '@/services/liquidation'
-import { coin } from '@cosmjs/stargate'
+import { assetKey, erc20ApproveAbi } from '@/services/chain/liquidation'
+import { liqQueueAbi } from '@/contracts/abis/liqQueue'
+import { getContractAddress } from '@/config/evm/contracts'
+import type { EvmCall } from '@/services/chain/types'
 import useBidState from './useBidState'
-import { buildStabilityPooldepositMsg } from '@/services/stabilityPool'
 
 type Props = {
   txSuccess?: () => void
 }
 
+/**
+ * Place a LiqQueue bid — EVM port (was submitBid on the CosmWasm liquidation_queue).
+ *
+ * Builds a 2-step EvmCall[]: approve CDT to the LiqQueue, then submitBid. The queue
+ * pulls the bid asset (CDT) via transferFrom (LiqQueue.sol:544), so the approve is
+ * required. `submitBid(bidFor, liqPremium, bidAmount, bidOwner)` takes the raw premium
+ * index (0..maxPremium) and credits `bidOwner` (address(0) → msg.sender).
+ *
+ * TODO(evm-migration): the Cosmos "Omni Asset Pool" (premium === 10, routed to the
+ * stability-pool deposit) has no Solidity equivalent — inv_no_stability_pool. That
+ * branch is dropped; premium 10 is treated as a normal 10%-premium single-asset bid.
+ */
 const useBid = ({ txSuccess }: Props) => {
   const { bidState } = useBidState()
   const cdtAsset = useAssetBySymbol('CDT')
   const selectedAsset = bidState?.selectedAsset
   const { premium, cdt } = bidState?.placeBid
-  const { address } = useWallet()
+  const { address, chain } = useWallet()
 
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['bid', 'msgs', address, selectedAsset?.base, premium, cdt],
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
+    queryKey: ['bid', 'msgs', address, selectedAsset?.symbol, premium, cdt],
     queryFn: () => {
-      if (!address || !selectedAsset) return
+      if (!address || !selectedAsset) return undefined
+      const liqQueue = getContractAddress(chain.id, 'liqQueue')
+      const cdtToken = getContractAddress(chain.id, 'cdt')
+      if (!liqQueue || !cdtToken) return undefined
 
-      const microAmount = shiftDigits(cdt, 6).dp(0).toString()
-      const funds = [coin(microAmount, cdtAsset?.base!)]
+      const decimals = cdtAsset?.decimal ?? 6
+      const bidAmount = BigInt(shiftDigits(cdt, decimals).dp(0).toString())
+      const bidFor = assetKey(selectedAsset.symbol ?? selectedAsset.base)
 
-      var msg;
-      if (premium === 10){
-        msg = buildStabilityPooldepositMsg({ address, funds })
-      } else {
-        msg = buildBidMsg({
-          address,
-          asset: selectedAsset,
-          liqPremium: premium,
-          funds,
-        })
-      }      
-      
-      return [msg] as MsgExecuteContractEncodeObject[]
+      const calls: EvmCall[] = [
+        {
+          address: cdtToken,
+          abi: erc20ApproveAbi,
+          functionName: 'approve',
+          args: [liqQueue, bidAmount],
+        },
+        {
+          address: liqQueue,
+          abi: liqQueueAbi,
+          functionName: 'submitBid',
+          args: [bidFor, BigInt(premium), bidAmount, address],
+        },
+      ]
+      return calls
     },
     enabled: !!address && !!selectedAsset && !!cdt,
   })
@@ -49,13 +67,13 @@ const useBid = ({ txSuccess }: Props) => {
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
     queryClient.invalidateQueries({ queryKey: ['user bids'] })
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
     txSuccess?.()
   }
 
   return useSimulateAndBroadcast({
     msgs,
-    queryKey: [],
+    queryKey: ['bid_sim', msgs?.toString() ?? '0'],
     amount: cdt.toString(),
     enabled: !!msgs,
     onSuccess,

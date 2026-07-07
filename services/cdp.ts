@@ -76,6 +76,21 @@ export const getHistoricalOraclePrices = async (asset: string, cosmWasmClient: a
   return response
 }
 
+export interface HistoricalInterestRatesResponse {
+  rates: Array<{
+    rate: string
+    timestamp: number
+  }>
+}
+
+export const getHistoricalInterestRates = async (asset: string, cosmWasmClient: any): Promise<HistoricalInterestRatesResponse> => {
+  return cosmWasmClient.queryContractSmart(contracts.cdp, {
+    get_historical_interest_rates: {
+      asset
+    }
+  }) as Promise<HistoricalInterestRatesResponse>
+}
+
 const getAssetInterestRate = (
   denom: string | undefined,
   collateralInterest: CollateralInterestResponse,
@@ -557,6 +572,7 @@ export const getRiskyPositions = (
   // const totalValue: number[] = []
 
   let liquidatibleCDPs: any[] = [];
+  let atRiskCDPs: any[] = [];
   let totalDebt = 0;
   let totalPositions = 0;
 
@@ -641,8 +657,14 @@ export const getRiskyPositions = (
         let liq_debt = liq_ratio.times(debtValue);
         liquidatibleCDPs.push({
           address: basketPosition.user,
-          id: position.position_id, // Use position instead of indexed lookup
+          id: position.position_id,
           fee: ltv_diff.div(100).multipliedBy(liq_debt).toNumber().toFixed(2),
+        });
+      } else if (ltv > liquidationLTV * 0.9) {
+        atRiskCDPs.push({
+          address: basketPosition.user,
+          id: position.position_id,
+          debt: debtValue.toFixed(2),
         });
       }
     });
@@ -650,7 +672,7 @@ export const getRiskyPositions = (
 
   console.log("totalDebt", totalDebt);
   console.log("totalPositions", totalPositions);
-  return { liquidatibleCDPs };
+  return { liquidatibleCDPs, atRiskCDPs };
 };
 
 // --- Volatility Window ---

@@ -13,12 +13,17 @@ export const useCollateralAssets = () => {
   // console.log("assets in collateral assets", assets)
 
   return useMemo(() => {
+    // TODO(evm-migration): useBasket is a null-stub (no aggregate basket view in Cdp.sol),
+    // so collateral types can't be derived yet. The mapping below re-activates unchanged
+    // once getBasket is backed by a Collateral service.
+    const collateralTypes = (basket as any)?.collateral_types as
+      | { asset: any; max_borrow_LTV: any }[]
+      | undefined
 
-    return basket?.collateral_types
+    return collateralTypes
       ?.map(({ asset, max_borrow_LTV }) => {
         const denom = asset?.info?.native_token?.denom || asset?.info?.token?.address
-        // console.log(assets)÷\
-        const newAsset = assets?.find((asset) => asset.base === denom)
+        const newAsset = assets?.find((a: any) => a.base === denom)
 
         if (!newAsset) return null
         return { ...newAsset, maxBorrowLTV: max_borrow_LTV }

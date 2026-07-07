@@ -186,13 +186,13 @@ export const getProposals = async (client: any) => {
   const start = 150
   const limit = 30 //Contract's max limit is 30 so we'll need to move the start point every 30 proposals
 
-  var activeProposals = (await client.activeProposals({ start, limit }).then((res) => res.proposal_list)).filter((prop) => prop.proposal_id != "61")
-  const secondProp = await client.proposal({ proposalId: 98 }).then((res) => res)
+  var activeProposals = (await client.activeProposals({ start, limit }).then((res: any) => res.proposal_list)).filter((prop: any) => prop.proposal_id != "61")
+  const secondProp = await client.proposal({ proposalId: 98 }).then((res: any) => res)
   activeProposals.push(secondProp)
   //filter out proposal 155
-  activeProposals = activeProposals.filter((prop) => prop.proposal_id != "155")
+  activeProposals = activeProposals.filter((prop: any) => prop.proposal_id != "155")
 
-  const pendingProposals = client.pendingProposals({}).then((res) => res.proposal_list)
+  const pendingProposals = client.pendingProposals({}).then((res: any) => res.proposal_list)
 
   const statusOrder: Record<string, number> = {
     active: 0,
@@ -221,8 +221,8 @@ export const getProposals = async (client: any) => {
   return allProposals.filter((prop) => prop.proposal_id != "61")
     .map((proposal) => ({
       ...proposal,
-      result: calculateProposalResult(proposal, config),
-      ratio: calcuateRatio(proposal, config),
+      result: calculateProposalResult(proposal as any, config),
+      ratio: calcuateRatio(proposal as any, config),
       requiredQuorum,
     }))
 }

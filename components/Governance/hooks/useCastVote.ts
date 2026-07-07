@@ -1,76 +1,75 @@
-import { GovernanceMsgComposer } from '@/contracts/codegen/governance/Governance.message-composer'
+import { useQuery } from '@tanstack/react-query'
 import { ProposalVoteOption } from '@/contracts/codegen/governance/Governance.types'
+import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
-import { useQuery } from '@tanstack/react-query'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import contracts from '@/config/contracts.json'
-import { PointsMsgComposer } from '@/contracts/codegen/points/Points.message-composer'
-import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
+import { governanceAbi } from '@/contracts/abis/governance'
+import { getContractAddress } from '@/config/evm/contracts'
+import type { EvmCall } from '@/services/chain/types'
+
+// Governance.sol VoteOption enum (For=0, Against=1, Amend=2, Remove=3, Align=4).
+const VOTE_OPTION: Record<ProposalVoteOption, number> = {
+  for: 0,
+  against: 1,
+  amend: 2,
+  remove: 3,
+  align: 4,
+}
 
 type CastVoteParams = {
   proposalId: number
   vote?: ProposalVoteOption | null
+  /**
+   * Caller's (pre-quadratic) voting power. Governance.castVote takes this as an
+   * argument — the contract does NOT read it from Staking itself.
+   * TODO(evm-migration): VoteButton should pass the value it already fetches via
+   * useVotingPower; the call is gated off while it is absent/zero.
+   */
+  votingPower?: string | number | bigint
 }
 
-const useCastVote = ({ proposalId, vote }: CastVoteParams) => {
-  const { address } = useWallet()
-  
-  
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg vote on proposal', address, proposalId, vote],
-    queryFn: () => {
-      if (!address || !vote) return [] as MsgExecuteContractEncodeObject[]
+const useCastVote = ({ proposalId, vote, votingPower }: CastVoteParams) => {
+  const { address, chain } = useWallet()
 
-        var msgs = [] as MsgExecuteContractEncodeObject[]
-        const pointsMessageComposer = new PointsMsgComposer(address, contracts.points)
-        const govMessageComposer = new GovernanceMsgComposer(address, contracts.governance)
-        msgs.push(
-          pointsMessageComposer.checkClaims({
-            cdpRepayment: undefined,
-            spClaims: false,
-            lqClaims: false,
-            vote: [proposalId],
-          })
-        )
-        msgs.push(
-          govMessageComposer.castVote({
-            proposalId,
-            vote,
-          })
-        )
-        msgs.push(
-          pointsMessageComposer.givePoints({
-            cdpRepayment: false,
-            spClaims: false,
-            lqClaims: false,
-            vote: [proposalId],
-          })
-        )
-        return msgs
-      },
-      enabled: !!address,
+  const { data: msgs } = useQuery<EvmCall[]>({
+    // NOTE: the Cosmos hook bundled points checkClaims/givePoints around the vote
+    // in one atomic tx. On EVM multi-call is non-atomic (one signature each) and
+    // Points is a separate migration domain, so this hook casts the vote only.
+    // TODO(evm-migration): re-add Points integration once that domain lands (via
+    // a router/multicall, since separate EvmCalls are not atomic).
+    queryKey: ['msg', 'vote on proposal', address, chain.id, proposalId, vote, votingPower?.toString()],
+    queryFn: () => {
+      const govAddress = getContractAddress(chain.id, 'governance')
+      if (!address || !vote || !govAddress || votingPower == null || BigInt(votingPower) === 0n) {
+        return []
+      }
+      return [
+        {
+          address: govAddress,
+          abi: governanceAbi,
+          functionName: 'castVote',
+          args: [BigInt(proposalId), VOTE_OPTION[vote], BigInt(votingPower)],
+        },
+      ]
+    },
+    enabled: !!address && !!vote,
   })
 
-  
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['proposal'] })
     queryClient.invalidateQueries({ queryKey: ['user voting power'] })
-    queryClient.invalidateQueries({ queryKey: ['proposals'] })  
-    //Reset points queries
-    queryClient.invalidateQueries({ queryKey: ['all users points'] })
-    queryClient.invalidateQueries({ queryKey: ['one users points'] })
-    queryClient.invalidateQueries({ queryKey: ['one users level'] })
+    queryClient.invalidateQueries({ queryKey: ['proposals'] })
   }
 
   return {
     action: useSimulateAndBroadcast({
+      msgs,
+      queryKey: ['vote proposal sim', proposalId?.toString(), msgs?.length ? '1' : '0'],
+      enabled: true,
+      onSuccess,
+    }),
     msgs,
-    queryKey: ['vote proposal sim and execute', (msgs?.toString() ?? '0')],
-    enabled: true,
-    onSuccess,
-  }), msgs }
-
+  }
 }
 
 export default useCastVote

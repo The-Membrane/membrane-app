@@ -1,40 +1,61 @@
-import contracts from '@/config/contracts.json'
-import { StakingMsgComposer } from '@/contracts/codegen/staking/Staking.message-composer'
+import { stakingAbi } from '@/contracts/abis/staking'
+import { getContractAddress } from '@/config/evm/contracts'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import { useQuery } from '@tanstack/react-query'
+import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
+import type { EvmCall } from '@/services/chain/types'
+import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/router'
 
-export const useClaimUnstake = ({ address, sim = true, run = true }: { address: string | undefined, sim: boolean, run: boolean }) => {
+/**
+ * Withdraw matured unbonding deposits. EVM rewire: the CosmWasm flow re-sent
+ * `unstake({ mbrnAmount: '0' })` to finalize; Staking.sol splits mark/finalize, so the
+ * finalize step is the dedicated `withdrawMatured()` call.
+ */
+export const useClaimUnstake = ({
+  address,
+  sim = true,
+  run = true,
+}: {
+  address: string | undefined
+  sim: boolean
+  run: boolean
+}) => {
   const router = useRouter()
+  const { chain } = useWallet()
+  const stakingAddr = chain ? getContractAddress(chain.id, 'staking') : undefined
 
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
-    queryKey: ['msg unstaking claims', address, run, router.pathname],
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
+    queryKey: ['staking', 'unstaking_claims_msg', address, stakingAddr, run, router.pathname],
     queryFn: () => {
-      if (router.pathname != "/bid" && !run) return
-      if (!address) return [] as MsgExecuteContractEncodeObject[]
+      if (router.pathname != '/bid' && !run) return undefined
+      if (!address || !stakingAddr) return undefined
 
-      const messageComposer = new StakingMsgComposer(address, contracts.staking)
-
-      const msgs = messageComposer.unstake({ mbrnAmount: '0' })
-
-      return [msgs] as MsgExecuteContractEncodeObject[]
+      return [
+        {
+          address: stakingAddr,
+          abi: stakingAbi,
+          functionName: 'withdrawMatured',
+          args: [],
+        },
+      ]
     },
-    enabled: !!address,
+    enabled: !!address && !!stakingAddr,
   })
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
 
   return {
     action: useSimulateAndBroadcast({
       msgs,
-      enabled: (sim && !!msgs),
+      queryKey: ['claim_unstake', address ?? ''],
+      enabled: sim && !!msgs?.length,
       onSuccess,
-    }), msgs
+    }),
+    msgs,
   }
 }
 

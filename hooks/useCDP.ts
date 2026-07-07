@@ -1,64 +1,68 @@
-import { useOraclePrice } from '@/hooks/useOracle'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/router'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
-import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
-import { getUserRedemptionInfo, getUserPositions, getBasketPositions, getCollateralInterest, getCreditRate, getUserDiscount, getBasket, getRates, getBasketAssets, useCDPClient } from '@/services/cdp'
-import { useRouter } from 'next/router'
 import useAppState from '@/persisted-state/useAppState'
-import useAssets from '@/hooks/useAssets'
+import { getPublicClient } from '@/services/chain/client'
+import type { Address } from '@/config/evm/contracts'
+import {
+  getBasket,
+  getRatesConfig,
+  getCollateralInterest,
+  getCreditRate,
+  getUserRedemptionInfo,
+  getUserPositions,
+  getUserBorrowRateDiscount,
+  getBasketPositions,
+} from '@/services/chain/cdp'
+
+/**
+ * CDP domain hooks — migrated from CosmWasm (PositionsQueryClient / queryContractSmart)
+ * to EVM (viem PublicClient via services/chain/cdp.ts). Hook names, React Query keys, and
+ * staleTime tiers are preserved so downstream imports keep resolving; the queryFns now call
+ * the EVM service layer. Where Cdp.sol has no equivalent view, the underlying service returns
+ * null (see the getBasket / getRates / getBasketPositions / redemption stubs) — those hooks
+ * therefore resolve to null-ish data with the reason documented in the service.
+ *
+ * The rpcUrl args are retained for signature compatibility with existing call sites; the EVM
+ * public client is chain-configured and wallet-independent (services/chain/client.ts).
+ */
 
 export const useBasket = (rpcUrl: string) => {
-  const { data: client } = useCDPClient(rpcUrl)
-  // const router = useRouter()
-
-  const result = useQuery({
-    queryKey: ['basket', client, rpcUrl],
+  return useQuery({
+    queryKey: ['basket', rpcUrl],
     queryFn: async () => {
-      // if (router.pathname != "/" && router.pathname != "/mint" && router.pathname != "/liquidate" && router.pathname != "/control-room" && router.pathname != "/manic") return
-      if (!client) return {}
-      return getBasket(client)
+      // TODO(evm-migration): getBasket is a stub (no aggregate basket view in Cdp.sol;
+      // per-asset LTVs live in the Collateral contract). Returns null until a Collateral
+      // service can supply max_LTV / max_borrow_LTV.
+      return getBasket(getPublicClient())
     },
-    // enabled: true,
-    // You might want to add staleTime to prevent unnecessary refetches
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
-
-  return result
 }
 
 export const useRates = (rpcUrl: string) => {
-  const { data: client } = useCDPClient(rpcUrl)
-
-  const result = useQuery({
-    queryKey: ['rates', client, rpcUrl],
+  return useQuery({
+    queryKey: ['rates', rpcUrl],
     queryFn: async () => {
-      if (!client) return {}
-      return getRates(client)
+      return getRatesConfig(getPublicClient())
     },
     staleTime: 1000 * 60 * 5,
   })
-
-  return result
 }
 
 export const useBasketAssets = () => {
   const { appState } = useAppState()
   const { data: basket } = useBasket(appState.rpcUrl)
   const { data: interest } = useCollateralInterest()
-  const { chainName } = useChainRoute()
-  const assets = useAssets(chainName)
-  // const router = useRouter()
-
 
   return useQuery({
-    queryKey: ['get_basket_assets', basket, interest, assets, appState.rpcUrl],
+    queryKey: ['get_basket_assets', basket, interest, appState.rpcUrl],
     queryFn: async () => {
-      // if (router.pathname != "/" && router.pathname != "/mint") return
-      if (!basket || !interest || !assets) return []
-
-      console.log(" basketAssets")
-      return getBasketAssets(basket, interest, assets)
+      // TODO(evm-migration): getBasketAssets (services/cdp.ts) is a pure CosmWasm-shape
+      // transform that needs the full Basket (incl. per-asset max_LTV/max_borrow_LTV) which
+      // Cdp.sol does not expose. Returns [] until getBasket is backed by a Collateral service.
+      return []
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -66,15 +70,11 @@ export const useBasketAssets = () => {
 
 export const useCollateralInterest = () => {
   const { appState } = useAppState()
-  const { data: client } = useCDPClient(appState.rpcUrl)
-  // const router = useRouter()
 
   return useQuery({
-    queryKey: ['collateral interest', client, appState.rpcUrl],
+    queryKey: ['collateral interest', appState.rpcUrl],
     queryFn: async () => {
-      if (!client) return {}
-      // if (router.pathname != "/" && router.pathname != "/mint") return
-      return getCollateralInterest(client)
+      return getCollateralInterest(getPublicClient())
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -82,16 +82,15 @@ export const useCollateralInterest = () => {
 
 export const useCreditRate = () => {
   const { appState } = useAppState()
-  const { data: client } = useCDPClient(appState.rpcUrl)
   const router = useRouter()
 
-
   return useQuery({
-    queryKey: ['credit rate', client, router.pathname, appState.rpcUrl],
+    queryKey: ['credit rate', router.pathname, appState.rpcUrl],
     queryFn: async () => {
-      if (!router.pathname.endsWith("/mint") && !router.pathname.endsWith("/portfolio")) return
-      if (!client) return {}
-      return getCreditRate(client)
+      if (!router.pathname.endsWith('/mint') && !router.pathname.endsWith('/portfolio')) return null
+      // TODO(evm-migration): getCreditRate is a stub — no credit-redemption-rate view in
+      // Cdp.sol (CPC-driven). Use getCreditPrice/getRatesConfig from the service instead.
+      return getCreditRate(getPublicClient())
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -99,17 +98,18 @@ export const useCreditRate = () => {
 
 export const useUserRemptionInfo = () => {
   const { appState } = useAppState()
-  const { data: client } = useCosmWasmClient(appState.rpcUrl)
   const { chainName } = useChainRoute()
   const { address } = useWallet(chainName)
   const router = useRouter()
 
   return useQuery({
-    queryKey: ['user_redemption_info', address, client, router.pathname, appState.rpcUrl],
+    queryKey: ['user_redemption_info', address, router.pathname, appState.rpcUrl],
     queryFn: async () => {
-      if (!router.pathname.endsWith("/mint") && !router.pathname.endsWith("/portfolio")) return
-      if (!address || !client) return
-      return getUserRedemptionInfo(address, client)
+      if (!router.pathname.endsWith('/mint') && !router.pathname.endsWith('/portfolio')) return null
+      if (!address) return null
+      // TODO(evm-migration): getUserRedemptionInfo is a stub — no redeemability view ported
+      // to Cdp.sol.
+      return getUserRedemptionInfo(getPublicClient(), address as Address)
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -119,55 +119,52 @@ export const useUserPositions = () => {
   const { chainName } = useChainRoute()
   const { address } = useWallet(chainName)
   const { appState } = useAppState()
-  const { data: client } = useCDPClient(appState.rpcUrl)
   const router = useRouter()
 
-  const result = useQuery({
-    queryKey: ['positions', address, client, router.pathname, appState.rpcUrl],
+  return useQuery({
+    queryKey: ['positions', address, router.pathname, appState.rpcUrl],
     queryFn: async () => {
-      console.log("route_running")
-      if (!router.pathname.endsWith("/mint") && !router.pathname.endsWith("/portfolio")) return []
-      if (!address || !client) return []
-      console.log("requerying basket positions")
-      return getUserPositions(address, client)
+      if (!router.pathname.endsWith('/mint') && !router.pathname.endsWith('/portfolio')) return []
+      if (!address) return []
+      // NOTE: returns EvmUserPosition[] (flat Solidity shape), not the CosmWasm
+      // BasketPositionsResponse[]. Consumers using the legacy getPositions/getDebt transforms
+      // must be adapted to this shape.
+      return getUserPositions(getPublicClient(), address as Address)
     },
     enabled: true,
-    // You might want to add staleTime to prevent unnecessary refetches
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
-
-  return result
 }
 
 export const useUserDiscount = (address: string | undefined) => {
   const { appState } = useAppState()
-  const { data: client } = useCosmWasmClient(appState.rpcUrl)
   const router = useRouter()
 
   return useQuery({
-    queryKey: ['user', 'discount', 'cdp', address, client, router.pathname, appState.rpcUrl],
+    queryKey: ['user', 'discount', 'cdp', address, router.pathname, appState.rpcUrl],
     queryFn: async () => {
-      if (!router.pathname.endsWith("/mint") && !router.pathname.endsWith("/portfolio")) return
-      if (!address || !client) return { user: "", discount: "0" }
-      return getUserDiscount(address, client)
+      if (!router.pathname.endsWith('/mint') && !router.pathname.endsWith('/portfolio')) return null
+      if (!address) return { user: '', discount: '0' }
+      // Cdp.sol borrowRateDiscount delegates to systemDiscounts.getDiscountFor(user);
+      // it is 1e18-fractional, so normalize to the 0..1 string the old shape used.
+      const raw = await getUserBorrowRateDiscount(getPublicClient(), address as Address)
+      const discount = raw === null ? '0' : (Number(raw) / 1e18).toString()
+      return { user: address, discount }
     },
     staleTime: 1000 * 60 * 5,
   })
 }
-
 
 export const useBasketPositions = () => {
   const { appState } = useAppState()
-  const { data: client } = useCDPClient(appState.rpcUrl)
 
   return useQuery({
-    queryKey: ['all positions', client, appState.rpcUrl],
+    queryKey: ['all positions', appState.rpcUrl],
     queryFn: async () => {
-      if (!client) return
-      return getBasketPositions(client)
+      // TODO(evm-migration): getBasketPositions is a stub — Cdp.sol has no protocol-wide
+      // position enumeration (userPositionIds is per-owner only). Needs an indexer.
+      return getBasketPositions(getPublicClient())
     },
-    enabled: !!client,
     staleTime: 1000 * 60 * 5,
   })
 }
-

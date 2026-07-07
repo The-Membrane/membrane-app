@@ -78,7 +78,7 @@ export const getStaked = async (address: Addr, client: any) => {
 
 const parseClaimable = (claimable: LiqAsset[], chainName: string) => {
   return claimable?.map((c) => {
-    const denom = c.info.native_token?.denom
+    const denom = (c.info as any).native_token?.denom
     const asset = getAssetByDenom(denom, chainName)
     return {
       amount: c.amount,
@@ -119,7 +119,7 @@ export const getUserDelegations = async (address: Addr, client: any) => {
     const delegations = delegates
       .map((delegator) => {
         const delegation = delegation_info?.delegated_to?.find(
-          (d) => d.delegate === delegator.address,
+          (d: any) => d.delegate === delegator.address,
         )
         const amount = shiftDigits(delegation?.amount || '0', -6)
           .dp(0)
@@ -169,7 +169,7 @@ export const getDelegatorInfo = async (address: Addr, client: any) => {
 
   const { delegation_info } = userDelegation
   const commission = delegation_info?.commission || '0'
-  const totalDelegation = delegation_info?.delegated?.reduce((acc, d) => {
+  const totalDelegation = delegation_info?.delegated?.reduce((acc: any, d: any) => {
     return acc.plus(d.amount)
   }, num(0))
 

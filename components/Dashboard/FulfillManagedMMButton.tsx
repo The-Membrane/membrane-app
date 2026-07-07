@@ -34,7 +34,7 @@ function FulfillManagedMMButton({ enabled, setEnabled }: { enabled: boolean; set
   const { action, msgs, status } = useFulfillManagedMarketIntents(enabled )
 //   console.log("msgs", msgs.length, msgs)
   console.log("status", status)
-  const disabled = msgs.length === 0
+  const disabled = (msgs ?? []).length === 0
   const loading = action?.simulate.isLoading || action?.tx.isPending
   const error = action?.simulate.isError
 //   console.log("action", action?.simulate.errorMessage, action?.tx.error)
@@ -73,11 +73,11 @@ function FulfillManagedMMButton({ enabled, setEnabled }: { enabled: boolean; set
     <Stack gap="1">
       <TxButton
         isLoading={loading}
-        isDisabled={error || disabled || (status === "finished" && msgs.length === 0)}
+        isDisabled={error || disabled || (status === "finished" && (msgs ?? []).length === 0)}
         onClick={() => setEnabled(true)}
         toggleConnectLabel={false}
       >
-        {status != "finished" ? "Fulfill Managed Market Intents" : (status === "finished" && msgs.length === 0) ? "Nothing to fulfill" : "Fulfill Managed Market Intents"}
+        {status != "finished" ? "Fulfill Managed Market Intents" : (status === "finished" && (msgs ?? []).length === 0) ? "Nothing to fulfill" : "Fulfill Managed Market Intents"}
       </TxButton>
     </Stack>
   )

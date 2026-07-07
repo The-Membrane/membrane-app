@@ -1,78 +1,65 @@
-import { useBasket, useUserPositions, useCollateralInterest, useUserDiscount } from '@/hooks/useCDP'
-import { useOraclePrice } from '@/hooks/useOracle'
-import { calculateVaultSummary } from '@/services/cdp'
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import useMintState from './useMintState'
 import useInitialVaultSummary from './useInitialVaultSummary'
-import useWallet from '@/hooks/useWallet'
-import useAppState from '@/persisted-state/useAppState'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
-// This hook is used to calculate the vault summary
+/**
+ * Vault summary — EVM migration.
+ *
+ * TODO(evm-migration): a faithful vault summary needs the basket aggregate — per-asset
+ * max_LTV / max_borrow_LTV / liquidation LTV plus the credit price — which Cdp.sol does not
+ * expose. getBasket / getBasketAssets are documented stubs in services/chain/cdp.ts (per-asset
+ * LTVs live in the Collateral contract, outside the CDP ABI), so calculateVaultSummary (which
+ * requires the full CosmWasm Basket) cannot run. We return honest defaults — the same
+ * zero-shape calculateVaultSummary yields when it has no basket — rather than inventing
+ * LTV / liquidation math. debtAmount / TVL fall through from useInitialVaultSummary (also
+ * honest defaults today). Re-wire onto a Collateral service when one exists.
+ */
 export const useVaultSummary = ({ positionNumber }: { positionNumber?: number } = {}) => {
-  const { address } = useWallet()
-  const { appState } = useAppState()
-  const { data: basket } = useBasket(appState.rpcUrl)
-  const { data: collateralInterest } = useCollateralInterest()
-  const { data: basketPositions } = useUserPositions()
-  const { data: prices } = useOraclePrice()
-  const { data: discount } = useUserDiscount(address)
   const { mintState } = useMintState()
+  const { chainName } = useChainRoute()
 
   const positionNum = positionNumber ?? mintState.positionNumber
   const { data: vaultSummary } = useInitialVaultSummary(positionNum - 1)
-
-  const { chainName } = useChainRoute()
-  console.log("vault sum chainName", chainName)
-
 
   const {
     initialBorrowLTV = 0,
     initialLTV = 0,
     initialTVL = 0,
-    basketAssets = [],
-    debtAmount = 0
+    debtAmount = 0,
   } = vaultSummary ?? {}
-
-  console.log("mint summary", mintState.summary)
 
   return useQuery({
     queryKey: [
       'vault summary',
-      basketPositions,
-      basket,
-      collateralInterest,
-      prices,
-      mintState?.summary,
-      vaultSummary,
-      mintState.mint,
-      mintState.repay,
-      positionNum,
-      mintState.newDebtAmount,
-      discount,
-      chainName
+      'evm',
+      chainName,
+      String(positionNum),
+      String(mintState.mint),
+      String(mintState.repay),
+      String(mintState.newDebtAmount),
+      String(debtAmount),
+      String(initialTVL),
     ],
-    queryFn: () => calculateVaultSummary({
-      basket,
-      collateralInterest,
-      basketPositions,
-      positionIndex: positionNum - 1,
-      prices,
-      newDeposit: mintState?.totalUsdValue ?? 0,
-      summary: mintState?.summary,
-      mint: mintState?.mint,
-      repay: mintState?.repay,
-      newDebtAmount: mintState?.newDebtAmount,
-      initialBorrowLTV,
-      initialLTV,
+    queryFn: () => ({
+      newDebtAmount: mintState?.newDebtAmount ?? 0,
       debtAmount,
+      cost: 0,
+      discountedCost: 0,
+      costRatios: [] as number[],
+      tvl: initialTVL,
+      ltv: initialLTV,
+      borrowLTV: initialBorrowLTV,
+      maxMint: 0,
+      liquidValue: 0,
+      liqudationLTV: 0,
+      initialLTV,
       initialTVL,
-      basketAssets,
-      discount: discount?.discount ?? "0",
-      chainName
+      initialBorrowLTV,
+      remainingMintAmount: 0,
+      positionId: '0',
     }),
-    enabled: true
+    enabled: true,
   })
 }
 

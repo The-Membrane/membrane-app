@@ -6,9 +6,7 @@ import { useOraclePrice } from '@/hooks/useOracle'
 import { getPositions } from '@/services/cdp'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { getMockBorrowData } from '../mockBorrowData'
-
-// Set to true to use mock data for testing the repay modal
-const USE_MOCK_DATA = process.env.NODE_ENV === 'development' && true
+import { USE_MOCK_DATA } from '../devConfig'
 
 interface UseRepayModalProps {
     positionIndex?: number
@@ -55,7 +53,11 @@ export const useRepayModal = ({ positionIndex = 0 }: UseRepayModalProps) => {
             }
         }
 
-        const positions = getPositions(finalBasketPositions, finalPrices, positionIndex, chainName) || []
+        // TODO(evm-migration): getPositions is a CosmWasm-shape transform needing the basket
+        // aggregate (stubbed in services/chain/cdp.ts); useUserPositions now returns
+        // EvmUserPosition[] it cannot consume, so collateral positions are unavailable until a
+        // Collateral service exists. Honest empty list — do not invent collateral value.
+        const positions: any[] = []
         const collateralValue = positions.reduce((sum, p) => sum + (p?.usdValue || 0), 0)
         const debtAmount = finalVaultSummary.debtAmount || 0
         const netWorth = num(collateralValue).minus(debtAmount).toNumber()

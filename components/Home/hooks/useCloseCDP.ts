@@ -1,115 +1,111 @@
+import { useQuery } from '@tanstack/react-query'
+
+import { cdpAbi } from '@/contracts/abis/cdp'
+import { getContractAddress } from '@/config/evm/contracts'
+import { assetKey } from '@/services/chain/liquidation'
+import { shiftDigits } from '@/helpers/math'
+import { num } from '@/helpers/num'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
-
-import contracts from '@/config/contracts.json'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
-import { toUtf8 } from "@cosmjs/encoding";
-import { num } from '@/helpers/num'
-import useNeuroState from "./useNeuroState"
-
+import type { EvmCall } from '@/services/chain/types'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 
+/**
+ * Close (or partially close) a CDP position, or withdraw all collateral when it is undebted.
+ * EVM mapping of the Cosmos `close_position` / `withdraw` flow.
+ *
+ * CONSUMER BREAKAGE: `position` is still the CosmWasm PositionResponse shape passed by the
+ * caller component (it has no migrated equivalent yet). We map its string fields onto the
+ * Cdp.sol calls here; the component should eventually pass the flat EvmUserPosition shape
+ * (services/chain/cdp.ts) instead.
+ */
+const useCloseCDP = ({
+  position,
+  debtAmount,
+  onSuccess,
+  run,
+  debtCloseAmount,
+  maxSpread: _maxSpread,
+}: {
+  position: PositionResponse
+  debtAmount: number
+  onSuccess: () => void
+  run: boolean
+  debtCloseAmount: number
+  maxSpread: string
+}) => {
+  const { address, chain } = useWallet()
+  const cdpAddr = chain ? getContractAddress(chain.id, 'cdp') : undefined
 
-const useCloseCDP = ({ position, debtAmount, onSuccess, run, debtCloseAmount, maxSpread }: { position: PositionResponse, debtAmount: number, onSuccess: () => void, run: boolean, debtCloseAmount: number, maxSpread: string }) => {
-    const { address } = useWallet()
-    // const { neuroState } = useNeuroState()
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
+    queryKey: [
+      'closeCDP_msg_creation',
+      address,
+      cdpAddr,
+      position.position_id,
+      position.credit_amount,
+      debtCloseAmount,
+      run,
+    ],
+    queryFn: () => {
+      if (!run || !address || !cdpAddr || !position) return undefined
+      if (debtCloseAmount != null && position.credit_amount !== '0' && debtCloseAmount === 0)
+        return undefined
 
-    type QueryData = {
-        msgs: MsgExecuteContractEncodeObject[] | undefined
-    }
-    const { data: queryData } = useQuery<QueryData>({
-        queryKey: [
-            'closeCDP_msg_creation',
-            address,
-            position.position_id,
-            position.credit_amount,
-            debtCloseAmount,
-            maxSpread,
-            run
-        ],
-        queryFn: () => {
+      const positionId = BigInt(position.position_id)
+      // TODO(evm-migration): CDT borrow-asset bytes32 key is deployment-defined
+      // (services/chain/liquidation.ts assetKey). Confirm against the deployment.
+      const cdtDenom = assetKey('CDT')
 
-            if (!run || !address || !position || (debtCloseAmount && position.credit_amount != "0" && debtCloseAmount == 0)) {
-                // console.log("closeCDP early return", run, address, position, debtCloseAmount, position.credit_amount != "0", position.credit_amount, !run, !address, !position, !debtCloseAmount, (debtCloseAmount && position.credit_amount != "0" && debtCloseAmount == 0)); 
-                return { msgs: [] }
-            }
-            var msgs = [] as MsgExecuteContractEncodeObject[]
+      if (Number(position.credit_amount) > 0) {
+        const fraction = num(debtCloseAmount).dividedBy(debtAmount)
+        const clamped = fraction.isGreaterThan(1) || !fraction.isFinite() ? num(1) : fraction
+        // closePosition takes closePercentage as a 1e18-fractional uint256.
+        const closePercentage = BigInt(shiftDigits(clamped.toString(), 18).dp(0).toString())
+        return [
+          {
+            address: cdpAddr,
+            abi: cdpAbi,
+            functionName: 'closePosition',
+            args: [positionId, closePercentage, cdtDenom],
+          },
+        ] as EvmCall[]
+      }
 
-
-            const percentToClose = num(debtCloseAmount).dividedBy(debtAmount).toFixed(4)
-            console.log("percentToClose:", percentToClose, debtAmount, debtCloseAmount)
-
-            //Close Position
-            //This execution flow doesn't work for undebted positions
-            if (Number(position.credit_amount) > 0) {
-                let closeMsg = {
-                    typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                    value: MsgExecuteContract.fromPartial({
-                        sender: address,
-                        contract: contracts.cdp,
-                        msg: toUtf8(JSON.stringify({
-                            close_position: {
-                                position_id: position.position_id,
-                                max_spread: maxSpread,
-                                close_percentage: Number(percentToClose) <= 0 && Number(percentToClose) != 0 ? "1" : percentToClose,
-                            }
-                        })),
-                        funds: []
-                    })
-                } as MsgExecuteContractEncodeObject
-                msgs.push(closeMsg)
-            } else {
-                //Map position collateral to assets
-                const collateralAssets = position.collateral_assets.map((asset) => {
-                    return asset.asset
-                })
-
-                //Withdraw all collateral if position is undebted
-                let withdrawMsg = {
-                    typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                    value: MsgExecuteContract.fromPartial({
-                        sender: address,
-                        contract: contracts.cdp,
-                        msg: toUtf8(JSON.stringify({
-                            withdraw: {
-                                position_id: position.position_id,
-                                assets: collateralAssets
-                            }
-                        })),
-                        funds: []
-                    })
-                } as MsgExecuteContractEncodeObject
-                msgs.push(withdrawMsg)
-            }
-
-            console.log("in query guardian msgs:", msgs)
-
-            return { msgs }
+      // Undebted -> withdraw all collateral.
+      const funds = position.collateral_assets.map((c: any) => ({
+        // TODO(evm-migration): collateral denom bytes32 key is deployment-defined; derived
+        // best-effort from the CosmWasm denom string here.
+        denom: assetKey(c.asset?.info?.native_token?.denom ?? c.asset?.info?.token?.contract_addr ?? ''),
+        amount: BigInt(c.asset?.amount ?? '0'),
+      }))
+      return [
+        {
+          address: cdpAddr,
+          abi: cdpAbi,
+          functionName: 'withdraw',
+          args: [positionId, funds],
         },
-        enabled: !!address,
-    })
+      ] as EvmCall[]
+    },
+    enabled: !!address && !!cdpAddr,
+  })
 
-    const msgs = queryData?.msgs ?? []
+  const onInitialSuccess = () => {
+    onSuccess()
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['positions'] })
+  }
 
-    // console.log("closeCDP msgs:", msgs)
-
-    const onInitialSuccess = () => {
-        onSuccess()
-        queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-        queryClient.invalidateQueries({ queryKey: ['positions'] })
-    }
-
-    return {
-        action: useSimulateAndBroadcast({
-            msgs,
-            queryKey: ['home_page_closeCDP', (msgs?.toString() ?? "0")],
-            onSuccess: onInitialSuccess,
-            enabled: !!msgs,
-        })
-    }
+  return {
+    action: useSimulateAndBroadcast({
+      msgs,
+      queryKey: ['home_page_closeCDP', (msgs?.toString() ?? '0')],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs?.length,
+    }),
+  }
 }
 
 export default useCloseCDP

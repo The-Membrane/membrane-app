@@ -1,62 +1,28 @@
-import { useBasket, useUserPositions, useCollateralInterest } from '@/hooks/useCDP'
-import { useOraclePrice } from '@/hooks/useOracle'
-import { calculateVaultSummary } from '@/services/cdp'
 import { useMemo } from 'react'
-import useInitialVaultSummary from '@/components/Mint/hooks/useInitialVaultSummary'
-import useQuickActionState from './useQuickActionState'
-import useAppState from '@/persisted-state/useAppState'
 
+/**
+ * Projected vault summary (debt / cost / TVL / LTV) for the leverage quick action.
+ *
+ * TODO(evm-migration): this composed `calculateVaultSummary` (services/cdp.ts) over the
+ * CosmWasm Basket + denom-keyed oracle prices + the `levAssets` deposit draft. All of those
+ * inputs are gone on EVM: `useBasket` and `useOraclePrice` are stubbed in the migrated data
+ * layer, `calculateVaultSummary` is a CosmWasm-shape transform, and `levAssets` was removed
+ * from QuickActionState. Returns a zeroed summary until an EVM basket/collateral view and an
+ * EVM-shape vault-summary calculator exist.
+ */
 const useQuickActionVaultSummary = () => {
-  const { appState } = useAppState()
-  const { data: basket } = useBasket(appState.rpcUrl)
-  const { data: collateralInterest } = useCollateralInterest()
-  const { data: basketPositions } = useUserPositions()
-  const { data: prices } = useOraclePrice()
-  const { quickActionState } = useQuickActionState()
-  const { data } = useInitialVaultSummary()
-  const { basketAssets } = data || {}
-
-  //Calc totalvalue
-  const totalUsdValue = useMemo(() => {
-    if (!quickActionState?.levAssets || quickActionState?.levAssets.length === 0) return 0
-    return quickActionState?.levAssets.map((asset) => asset.sliderValue ?? 0).reduce((a, b) => a + b, 0) ?? 0
-  }, [quickActionState?.assets])
-
-  return useMemo(() => {
-    if (!quickActionState?.levAssets) {
-      return {
-        debtAmount: 0,
-        cost: 0,
-        tvl: 0,
-        ltv: 0,
-        borrowLTV: 0,
-        liquidValue: 0,
-        liqudationLTV: 0,
-      }
-    }
-
-    return calculateVaultSummary({
-      basket,
-      collateralInterest,
-      basketPositions: undefined,
-      positionIndex: 0,
-      prices,
-      newDeposit: totalUsdValue,
-      summary: quickActionState?.levAssets as any[],
-      mint: 0,
-      initialBorrowLTV: 0,
-      initialLTV: 0,
+  return useMemo(
+    () => ({
       debtAmount: 0,
-      initialTVL: 0,
-      basketAssets: basketAssets ?? [],
-    })
-  }, [
-    basketPositions,
-    collateralInterest,
-    prices,
-    quickActionState?.assets,
-    totalUsdValue
-  ])
+      cost: 0,
+      tvl: 0,
+      ltv: 0,
+      borrowLTV: 0,
+      liquidValue: 0,
+      liqudationLTV: 0,
+    }),
+    [],
+  )
 }
 
 export default useQuickActionVaultSummary

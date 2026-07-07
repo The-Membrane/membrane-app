@@ -43,6 +43,7 @@ const store = (set) => ({
   reset: () => set((state: Store) => ({ ...state, neuroState: initialState }), false, '@reset'),
 })
 
+// @ts-ignore
 const useNeuroState = create<Store>(devtools(store, { name: 'neuroState' }))
 
 export default useNeuroState

@@ -1,99 +1,48 @@
-import { useBasket } from '@/hooks/useCDP'
-import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
-import useQuickActionState from './useQuickActionState'
+
+import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { queryClient } from '@/pages/_app'
-import { swapToCDTMsg } from '@/helpers/osmosis'
-import { useAssetBySymbol } from '@/hooks/useAssets'
-import { useOraclePrice } from '@/hooks/useOracle'
-import { denoms } from '@/config/defaults'
-import contracts from '@/config/contracts.json'
+import useQuickActionState from './useQuickActionState'
+import type { EvmCall } from '@/services/chain/types'
 
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
-import { toUtf8 } from '@cosmjs/encoding'
-
-const useSwapToCDT = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
+/**
+ * Swap USDC -> CDT (+ optional RangeBound LP enter).
+ *
+ * TODO(evm-migration): this is a multi-step DEX flow — the Cosmos version used the Osmosis
+ * swap router (`swapToCDTMsg`) plus the RangeBound LP `enter_vault`. There is no EVM swap
+ * router in this codebase (EvmCall[] is non-atomic; see services/chain/types.ts) and no
+ * RBLP vault contract on EVM. Msg building is stubbed until a router/vault service exists.
+ */
+const useSwapToCDT = ({ onSuccess }: { onSuccess: () => void; run: boolean }) => {
+  const { address } = useWallet()
   const { quickActionState } = useQuickActionState()
 
-  const { address } = useWallet()
-  const { data: prices } = useOraclePrice()
-  const usdcAsset = useAssetBySymbol('USDC')
-
-
-
-  type QueryData = {
-    msgs: MsgExecuteContractEncodeObject[] | undefined
-    tokenOutMinAmount: number
-  }
-  const { data: queryData } = useQuery<QueryData>({
-    queryKey: [
-      'home_page_swap',
-      address,
-      quickActionState?.usdcSwapToCDT,
-      quickActionState?.enterVaultToggle,
-      prices,
-      usdcAsset,
-      run
-    ],
+  const { data: queryData } = useQuery<{ msgs: EvmCall[] | undefined; tokenOutMinAmount: number }>({
+    queryKey: ['home_page_swap', address, quickActionState?.usdcSwapToCDT],
     queryFn: () => {
-      if (!address || !prices || !usdcAsset || quickActionState?.usdcSwapToCDT === 0 || !run) return { msgs: [], tokenOutMinAmount: 0 }
-      var msgs = [] as MsgExecuteContractEncodeObject[]
-      const cdtPrice = parseFloat(prices?.find((price) => price.denom === denoms.CDT[0])?.price ?? "0")
-
-      //1) Swap USDC to CDT
-      const { msg: swap, tokenOutMinAmount, foundToken } = swapToCDTMsg({
-        address,
-        swapFromAmount: quickActionState?.usdcSwapToCDT,
-        swapFromAsset: usdcAsset,
-        prices,
-        cdtPrice,
-        tokenOut: 'CDT'
-      })
-      msgs.push(swap as MsgExecuteContractEncodeObject)
-
-      //2) Enter Vault (?)
-      if (quickActionState?.enterVaultToggle) {
-        const funds = [{ amount: tokenOutMinAmount.toString(), denom: denoms.CDT[0] as string }]
-        let enterMsg = {
-          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-          value: MsgExecuteContract.fromPartial({
-            sender: address,
-            contract: contracts.rangeboundLP,
-            msg: toUtf8(JSON.stringify({
-              enter_vault: {}
-            })),
-            funds: funds
-          })
-        } as MsgExecuteContractEncodeObject
-        //Add msg
-        msgs.push(enterMsg)
-      }
-
-      return { msgs, tokenOutMinAmount }
-
+      // TODO(evm-migration): no EVM swap router / RBLP vault.
+      return { msgs: undefined, tokenOutMinAmount: 0 }
     },
     enabled: !!address,
   })
 
-  const msgs = queryData?.msgs ?? []
+  const msgs = queryData?.msgs
   const tokenOutMinAmount = queryData?.tokenOutMinAmount ?? 0
-
-  // console.log("swap to cdt msgs", msgs)
 
   const onInitialSuccess = () => {
     onSuccess()
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
   }
 
   return {
     action: useSimulateAndBroadcast({
       msgs,
-      queryKey: ['home_page_swap_sim', (msgs?.toString() ?? "0")],
+      queryKey: ['home_page_swap_sim', (msgs?.toString() ?? '0')],
       onSuccess: onInitialSuccess,
-      enabled: false
-    }), tokenOutMinAmount
+      enabled: false,
+    }),
+    tokenOutMinAmount,
   }
 }
 

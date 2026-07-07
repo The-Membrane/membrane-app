@@ -31,132 +31,26 @@ export interface LiqQueueSimulationResult {
  * Hook to simulate the Liquidation Queue stage of a liquidation.
  * Splits remaining debt by collateral ratios and queries CheckLiquidatible for each.
  */
+/**
+ * TODO(evm-migration): the CosmWasm LiquidationQueue.checkLiquidatible simulation has NO ported
+ * equivalent. The EVM LiqQueue is a premium-ordered bid book (services/chain/liquidation.ts)
+ * with no checkLiquidatible view, and the basket credit price (getBasket) is a documented stub.
+ * Stubbed to return null (query disabled) until an EVM liq-sim path exists — do not invent
+ * debt-repaid / cost figures.
+ */
 export const useLiquidationQueueSimulation = (
   remainingDebt: number,
   position?: PositionResponse,
 ) => {
-  const { chainName } = useChainRoute()
-  const { appState } = useAppState()
-  const { data: cosmWasmClient } = useCosmWasmClient(appState.rpcUrl)
-  const { data: prices } = useOraclePrice()
-  const { data: basket } = useBasket(appState.rpcUrl)
-
   return useQuery<LiqQueueSimulationResult | null>({
     queryKey: [
       'liq_queue_simulation',
-      remainingDebt,
-      position?.position_id,
-      prices,
-      basket?.credit_price?.price,
-      cosmWasmClient,
+      'evm',
+      String(remainingDebt),
+      String(position?.position_id ?? ''),
     ],
-    queryFn: async () => {
-      if (
-        !cosmWasmClient ||
-        !position ||
-        !prices ||
-        !basket ||
-        remainingDebt <= 0
-      ) {
-        return null
-      }
-
-      const creditPrice = basket.credit_price?.price || '1'
-      const ratios = position.cAsset_ratios || []
-      const collaterals = position.collateral_assets || []
-
-      if (ratios.length === 0 || collaterals.length !== ratios.length) {
-        return null
-      }
-
-      const liqQueueClient = new LiquidationQueueQueryClient(
-        cosmWasmClient,
-        contracts.liquidation,
-      )
-
-      const perAsset: LiqQueueAssetResult[] = []
-
-      const queries = collaterals.map(async (cAsset, i) => {
-        //@ts-ignore
-        const denom = cAsset.asset.info.native_token.denom
-        const ratio = Number(ratios[i]) || 0
-        if (ratio <= 0) return null
-
-        const assetInfo = getAssetByDenom(denom, chainName)
-        const decimals = assetInfo?.decimal ?? 6
-        const priceEntry = prices.find((p) => p.denom === denom)
-        const collateralPrice = priceEntry?.price || '0'
-
-        if (num(collateralPrice).isZero()) return null
-
-        // Debt share for this collateral (in CDT terms)
-        const debtShare = num(remainingDebt).times(ratio)
-
-        // Calculate collateral amount needed to cover this debt share
-        // collateral_amount = (debt_share * credit_price) / collateral_price
-        const collateralAmountHuman = debtShare
-          .times(creditPrice)
-          .div(collateralPrice)
-        const rawCollateralAmount = shiftDigits(
-          collateralAmountHuman.toFixed(decimals),
-          decimals,
-          0,
-        ).toFixed(0)
-
-        try {
-          const result = await liqQueueClient.checkLiquidatible({
-            bidFor: { native_token: { denom } },
-            collateralAmount: rawCollateralAmount,
-            collateralPrice,
-            creditInfo: { native_token: { denom: CDT_DENOM } },
-            creditPrice,
-          })
-
-          const debtRepaid = shiftDigits(result.total_debt_repaid, -6).toNumber()
-          const leftoverCollateralHuman = shiftDigits(
-            result.leftover_collateral,
-            -decimals,
-          ).toNumber()
-          const cost = num(leftoverCollateralHuman)
-            .times(collateralPrice)
-            .toNumber()
-
-          return {
-            symbol: assetInfo?.symbol || denom,
-            logo: assetInfo?.logo || '',
-            denom,
-            debtRepaid,
-            cost,
-          } as LiqQueueAssetResult
-        } catch (error) {
-          console.error(
-            `Error querying CheckLiquidatible for ${denom}:`,
-            error,
-          )
-          return null
-        }
-      })
-
-      const results = await Promise.all(queries)
-
-      let totalDebtRepaid = 0
-      let totalCost = 0
-
-      for (const r of results) {
-        if (!r) continue
-        perAsset.push(r)
-        totalDebtRepaid += r.debtRepaid
-        totalCost += r.cost
-      }
-
-      return { totalDebtRepaid, totalCost, perAsset }
-    },
-    enabled:
-      !!cosmWasmClient &&
-      !!position &&
-      !!prices &&
-      !!basket &&
-      remainingDebt > 0,
+    queryFn: async () => null,
+    enabled: false,
     staleTime: 1000 * 60 * 2,
   })
 }

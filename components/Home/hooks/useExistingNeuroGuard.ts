@@ -1,125 +1,95 @@
+import { erc20Abi } from 'viem'
+import { useQuery } from '@tanstack/react-query'
+
+import { cdpAbi } from '@/contracts/abis/cdp'
+import { getContractAddress } from '@/config/evm/contracts'
+import { assetKey } from '@/services/chain/liquidation'
+import { shiftDigits } from '@/helpers/math'
+import { num } from '@/helpers/num'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
-import { useEffect, useMemo, useState } from 'react'
+import useNeuroState from './useNeuroState'
+import type { EvmCall } from '@/services/chain/types'
 
-import contracts from '@/config/contracts.json'
-import { shiftDigits } from '@/helpers/math'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
-import { toUtf8 } from "@cosmjs/encoding";
-import { num } from '@/helpers/num'
-import useNeuroState from "./useNeuroState"
-import { useBasket } from "@/hooks/useCDP"
-import useAppState from '@/persisted-state/useAppState'
+/**
+ * NeuroGuard "deposit to existing position": add collateral to an existing CDP position and
+ * (on Cosmos) re-fulfil the mint intent.
+ *
+ * Partial EVM migration: the collateral deposit is the real approve + cdp.deposit action.
+ * TODO(evm-migration): the follow-up `fulfill_intents` step has no Cdp.sol equivalent (RBLP
+ * intent system not ported) and is omitted.
+ */
+const useExistingNeuroGuard = ({
+  position_id,
+  onSuccess,
+  run,
+}: { position_id: string; onSuccess: () => void; run: boolean }) => {
+  const { address, chain } = useWallet()
+  const { neuroState } = useNeuroState()
+  const cdpAddr = chain ? getContractAddress(chain.id, 'cdp') : undefined
 
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
+    queryKey: [
+      'existing_neuroGuard_msg_creation',
+      address,
+      cdpAddr,
+      neuroState.depositSelectedAsset,
+      position_id,
+      run,
+    ],
+    queryFn: () => {
+      const asset = neuroState.depositSelectedAsset
+      if (
+        !run ||
+        !address ||
+        !cdpAddr ||
+        !asset ||
+        num(asset?.sliderValue).isZero() ||
+        !position_id ||
+        position_id === '0'
+      )
+        return undefined
 
-import EventEmitter from 'events';
-import { getCookie, setCookie } from '@/helpers/cookies'
-EventEmitter.defaultMaxListeners = 25; // Increase the limit
+      const amount = BigInt(shiftDigits(asset.sliderValue ?? 0, asset.decimal).dp(0).toString())
+      if (amount <= 0n) return undefined
 
-const useExistingNeuroGuard = ({ position_id, onSuccess, run }: { position_id: string, onSuccess: () => void, run: boolean }) => {
-    const { address } = useWallet()
-    const { appState } = useAppState()
-    const { data: basket } = useBasket(appState.rpcUrl)
-    const { neuroState } = useNeuroState()
+      // TODO(evm-migration): collateral denom bytes32 key is deployment-defined.
+      const denom = assetKey(asset.symbol)
 
-    //Get cookie for the position_id. If cookie exists, we add the deposit to it.
-    const cookie = getCookie("neuroGuard " + position_id)
-    //parse the cookie
-    const cookiedDepositAmount = num(cookie ?? "0").toNumber()
-
-    console.log('RENDERED EXISTING', neuroState.depositSelectedAsset);
-
-    type QueryData = {
-        msgs: MsgExecuteContractEncodeObject[] | undefined
-    }
-    const { data: queryData } = useQuery<QueryData>({
-        queryKey: [
-            'existing_neuroGuard_msg_creation',
-            address,
-            neuroState.depositSelectedAsset,
-            basket,
-            position_id,
-            run
-        ],
-        queryFn: () => {
-            console.log("in query guardian", neuroState.depositSelectedAsset)
-
-
-            if (!run || !address || !neuroState.depositSelectedAsset || (neuroState.depositSelectedAsset && neuroState.depositSelectedAsset?.sliderValue == 0) || !basket || !position_id || (position_id && position_id === "0")) {
-                // console.log("existing neuroGuard early return", address, neuroState, basket, position_id); 
-                return { msgs: [] }
-            }
-            var msgs = [] as MsgExecuteContractEncodeObject[]
-
-            const newDeposit = num(neuroState.depositSelectedAsset.sliderValue).toNumber()
-            const amount = shiftDigits(newDeposit, neuroState.depositSelectedAsset.decimal).toFixed(0)
-            console.log("existingNeuro funds", newDeposit, amount, neuroState.depositSelectedAsset)
-            const funds = [{ amount, denom: neuroState.depositSelectedAsset.base }]
-            console.log(funds)
-
-            //Deposit msg
-            let depositMsg = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: contracts.cdp,
-                    msg: toUtf8(JSON.stringify({
-                        deposit: {
-                            position_id
-                        }
-                    })),
-                    funds: funds
-                })
-            } as MsgExecuteContractEncodeObject
-            msgs.push(depositMsg)
-
-            //Fulfill intent thru CDP to set the intent on the RBLP vault & mint the initial CDT
-            let fulfillIntentMsg = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: contracts.cdp,
-                    msg: toUtf8(JSON.stringify({
-                        fulfill_intents: {
-                            users: [address],
-                        }
-                    })),
-                    funds: []
-                })
-            } as MsgExecuteContractEncodeObject
-            msgs.push(fulfillIntentMsg)
-
-
-            console.log("in query guardian msgs:", msgs)
-
-            return { msgs }
+      return [
+        {
+          address: asset.base as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [cdpAddr, amount],
         },
-        enabled: !!address,
-    })
+        {
+          address: cdpAddr,
+          abi: cdpAbi,
+          functionName: 'deposit',
+          args: [BigInt(position_id), address as `0x${string}`, [{ denom, amount }]],
+        },
+        // TODO(evm-migration): fulfill_intents has no Cdp.sol equivalent — omitted.
+      ] as EvmCall[]
+    },
+    enabled: !!address && !!cdpAddr,
+  })
 
-    // console.log("neuroGuard msgs:", "enabled", !!address)
-    const msgs = queryData?.msgs ?? []
+  const onInitialSuccess = () => {
+    onSuccess()
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['positions'] })
+  }
 
-    // console.log("neuroGuard msgs:", msgs)
-
-    const onInitialSuccess = () => {
-        if (cookiedDepositAmount > 0) setCookie("neuroGuard " + position_id, num(cookiedDepositAmount).plus(neuroState?.depositSelectedAsset?.sliderValue ?? 0).toString(), 3650)
-        onSuccess()
-        queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-        queryClient.invalidateQueries({ queryKey: ['positions'] })
-    }
-
-    return {
-        action: useSimulateAndBroadcast({
-            msgs,
-            queryKey: ['home_page_existing_neuroGuard', (msgs?.toString() ?? "0")],
-            onSuccess: onInitialSuccess,
-            enabled: !!msgs,
-        })
-    }
+  return {
+    action: useSimulateAndBroadcast({
+      msgs,
+      queryKey: ['home_page_existing_neuroGuard', (msgs?.toString() ?? '0')],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs?.length,
+    }),
+  }
 }
 
 export default useExistingNeuroGuard

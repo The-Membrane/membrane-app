@@ -1,13 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
-import { toUtf8 } from '@cosmjs/encoding'
+import { cdpAbi } from '@/contracts/abis/cdp'
+import { assetKey } from '@/services/chain/liquidation'
+import { getContractAddress } from '@/config/evm/contracts'
+import type { EvmCall } from '@/services/chain/types'
 import useWallet from '@/hooks/useWallet'
 import { shiftDigits } from '@/helpers/math'
+import { useUserPositions } from '@/hooks/useCDP'
+import { useAssetBySymbol } from '@/hooks/useAssets'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { queryClient } from '@/pages/_app'
 import { BorrowRate } from './useBorrowModal'
-import contracts from '@/config/contracts.json'
 
 interface UseBorrowTransactionProps {
   asset: {
@@ -22,6 +24,19 @@ interface UseBorrowTransactionProps {
   onSuccess?: () => void
 }
 
+/**
+ * Borrow (mint) CTA — EVM port. Migration counterpart: CosmWasm `increase_debt` via the
+ * positions/marketManager contract. Here we build cdp.increaseDebt(positionId, cdtDenom,
+ * amount) (contracts/abis/cdp.ts).
+ *
+ * TODO(evm-migration): only variable-rate CDT borrow maps cleanly to the 3-arg
+ * increaseDebt(positionId, borrowAsset, amount). Fixed-rate tranches (fixed-1m/3m/6m) need
+ * the 5-arg increaseDebt with a CdpFixedRate.DebtSplit, and the USDC "peg" borrow (mint CDT
+ * then swap CDT→USDC via the transmuter) has no marketManager equivalent in the EVM address
+ * book yet — those paths are stubbed (return undefined ⇒ CTA disabled) until modeled.
+ * `receiveToWallet` also has no representation on the 3-arg entrypoint (CDT is minted to the
+ * position owner); it is ignored here.
+ */
 export const useBorrowTransaction = ({
   asset,
   borrowAmount,
@@ -31,85 +46,58 @@ export const useBorrowTransaction = ({
   enabled = true,
   onSuccess,
 }: UseBorrowTransactionProps) => {
-  const { address } = useWallet()
+  const { address, chain } = useWallet()
+  const { data: positions } = useUserPositions()
+  const cdtAsset = useAssetBySymbol('CDT')
 
-  // For CDT, we need to determine which contract to use
-  // CDT can be borrowed from the CDP contract (mint) or managed market
-  // For now, using managed market pattern
-  // TODO: Determine correct contract based on asset and position
-  
-  // Get the market contract - for CDT this might be the CDP contract
-  // For USDC, this would be a managed market contract
-  const marketContract = asset.symbol === 'CDT' 
-    ? contracts.cdp 
-    : contracts.marketManager // Would need to get specific market contract for USDC
+  const cdpAddr = chain ? getContractAddress(chain.id, 'cdp') : undefined
+  const positionId =
+    positions && positions.length > positionIndex ? positions[positionIndex].positionId : 0n
 
-  // Build borrow message
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[]>({
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
     queryKey: [
       'borrow_transaction',
-      address,
-      asset.denom,
-      borrowAmount,
+      'evm',
+      address ?? '',
+      cdpAddr ?? '',
+      positionId.toString(),
+      asset.symbol,
+      String(borrowAmount),
       selectedRate,
-      receiveToWallet,
-      positionIndex,
-      marketContract,
+      String(positionIndex),
     ],
+    staleTime: 1000 * 60 * 5,
     queryFn: () => {
-      if (!address || !borrowAmount || borrowAmount <= 0 || !enabled) {
-        return []
-      }
+      if (!address || !cdpAddr || !borrowAmount || borrowAmount <= 0 || !enabled) return undefined
+      // Only the variable-rate CDT path is supported on EVM (see file-level TODO).
+      if (asset.symbol !== 'CDT' || selectedRate !== 'variable') return undefined
 
-      // Convert borrow amount to micro units (assuming 6 decimals for CDT/USDC)
-      const microAmount = shiftDigits(borrowAmount, 6).toFixed(0)
-
-      // Build increase_debt message
-      const borrowMsg: MsgExecuteContractEncodeObject = {
-        typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
-        value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: marketContract,
-          msg: toUtf8(
-            JSON.stringify({
-              increase_debt: {
-                position_id: String(positionIndex + 1),
-                amount: microAmount,
-                mint_to_addr: receiveToWallet ? address : undefined,
-                // USDC borrows mint CDT then swap via transmuter (peg_debt)
-                peg_debt: asset.symbol === 'USDC' ? true : undefined,
-              },
-            })
-          ),
-          funds: [],
-        }),
-      }
-
-      return [borrowMsg]
+      const amount = BigInt(shiftDigits(borrowAmount, cdtAsset?.decimal ?? 18).dp(0).toString())
+      return [
+        {
+          address: cdpAddr,
+          abi: cdpAbi,
+          functionName: 'increaseDebt',
+          args: [positionId, assetKey('CDT'), amount],
+        },
+      ]
     },
-    enabled: enabled && !!address && borrowAmount > 0,
+    enabled: enabled && !!address && !!cdpAddr && borrowAmount > 0,
   })
 
   const handleSuccess = () => {
-    // Invalidate relevant queries
     queryClient.invalidateQueries({ queryKey: ['vault summary'] })
-    queryClient.invalidateQueries({ queryKey: ['basket positions'] })
+    queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['credit rate'] })
-    queryClient.invalidateQueries({ queryKey: ['user positions'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
     onSuccess?.()
   }
 
   return useSimulateAndBroadcast({
     msgs,
-    queryKey: ['borrow', asset.symbol, borrowAmount],
-    amount: borrowAmount.toString(),
+    queryKey: ['borrow', asset.symbol, String(borrowAmount)],
+    amount: String(borrowAmount),
     enabled: enabled && !!msgs && msgs.length > 0,
     onSuccess: handleSuccess,
   })
 }
-
-
-
-
-
-

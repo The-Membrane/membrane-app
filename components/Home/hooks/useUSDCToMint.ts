@@ -1,106 +1,122 @@
-import { useBasket } from '@/hooks/useCDP'
+import { erc20Abi } from 'viem'
+import { useQuery } from '@tanstack/react-query'
+
+import { cdpAbi } from '@/contracts/abis/cdp'
+import { getContractAddress } from '@/config/evm/contracts'
+import { getPublicClient } from '@/services/chain/client'
+import { getCurrentPositionId } from '@/services/chain/cdp'
+import { assetKey } from '@/services/chain/liquidation'
+import { shiftDigits } from '@/helpers/math'
+import { useAssetBySymbol } from '@/hooks/useAssets'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { useQuery } from '@tanstack/react-query'
-import useQuickActionState from './useQuickActionState'
 import { queryClient } from '@/pages/_app'
-import { useMemo } from 'react'
-import { swapToCDTMsg } from '@/helpers/osmosis'
-import { useAssetBySymbol } from '@/hooks/useAssets'
-import { useOraclePrice } from '@/hooks/useOracle'
-import { denoms } from '@/config/defaults'
-import contracts from '@/config/contracts.json'
-import { shiftDigits } from '@/helpers/math'
-import { PositionsMsgComposer } from '@/contracts/codegen/positions/Positions.message-composer'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
-import { toUtf8 } from '@cosmjs/encoding'
-import useAppState from '@/persisted-state/useAppState'
+import useQuickActionState from './useQuickActionState'
+import type { EvmCall } from '@/services/chain/types'
 
-const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void, run: boolean }) => {
-    const { quickActionState } = useQuickActionState()
+/**
+ * Deposit USDC into the CDP then mint CDT against it. This is the clean approve + action
+ * EVM mapping of the Cosmos `deposit` + `increase_debt` flow.
+ *
+ * Migration notes:
+ * - CDT is 18 decimals on EVM (config/evm/tokens.ts), so the mint amount is shifted by
+ *   cdtAsset.decimal (was a hardcoded 6 on Cosmos).
+ * - deposit funds pull the USDC ERC20 via transferFrom, so we prepend an approve. Not atomic
+ *   (two signatures) — see services/chain/types.ts.
+ * - The old flow's step 3 (enter the RangeBound LP vault with the minted CDT) is dropped:
+ *   the RBLP vault has no ported EVM contract. TODO(evm-migration) re-add once it exists.
+ */
+const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void; run: boolean }) => {
+  const { quickActionState } = useQuickActionState()
+  const { address, chain } = useWallet()
+  const usdcAsset = useAssetBySymbol('USDC')
+  const cdtAsset = useAssetBySymbol('CDT')
 
-    const { address } = useWallet()
-    const { appState } = useAppState()
-    const { data: basket } = useBasket(appState.rpcUrl)
+  const cdpAddr = chain ? getContractAddress(chain.id, 'cdp') : undefined
 
-    const positionID = useMemo(() => {
-        if (basket) {
-            return basket.current_position_id
-        }
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
+    queryKey: [
+      'home_page_mint',
+      address,
+      cdpAddr,
+      usdcAsset?.base,
+      cdtAsset?.base,
+      quickActionState?.usdcMint,
+      run,
+    ],
+    queryFn: async () => {
+      if (
+        !address ||
+        !cdpAddr ||
+        !usdcAsset ||
+        !cdtAsset ||
+        !run ||
+        quickActionState?.usdcMint.deposit === 0 ||
+        quickActionState?.usdcMint.mint < 21
+      )
         return undefined
-    }, [basket])
 
-    type QueryData = {
-        msgs: MsgExecuteContractEncodeObject[] | undefined
-    }
-    const { data: queryData } = useQuery<QueryData>({
-        queryKey: [
-            'home_page_mint',
-            address,
-            positionID,
-            quickActionState?.usdcMint,
-            quickActionState?.enterVaultToggle,
-            run
-        ],
-        queryFn: () => {
-            if (!address || !basket || !positionID || quickActionState?.usdcMint.mint < 21 || quickActionState?.usdcMint.deposit === 0 || !run) return { msgs: [] }
-            var msgs = [] as MsgExecuteContractEncodeObject[]
+      // TODO(evm-migration): Cdp.sol has no aggregate basket view (useBasket is stubbed), so
+      // the "next position id" is read directly from currentPositionId. Confirm against
+      // Cdp.sol.deposit whether passing 0 opens a new position and whether the resulting id
+      // equals the pre-deposit currentPositionId.
+      const nextId = await getCurrentPositionId(getPublicClient(), cdpAddr)
+      if (nextId === null) return undefined
 
-            const messageComposer = new PositionsMsgComposer(address, contracts.cdp)
-            //1) Deposit USDC 
-            const depositFunds = [{ amount: shiftDigits(quickActionState?.usdcMint.deposit, 6).dp(0).toNumber().toString(), denom: denoms.USDC[0] as string }]
-            const depositMsg = messageComposer.deposit({ positionOwner: address }, depositFunds)
-            msgs.push(depositMsg)
+      const depositAmount = BigInt(
+        shiftDigits(quickActionState.usdcMint.deposit, usdcAsset.decimal).dp(0).toString(),
+      )
+      const mintAmount = BigInt(
+        shiftDigits(quickActionState.usdcMint.mint, cdtAsset.decimal).dp(0).toString(),
+      )
+      if (depositAmount <= 0n || mintAmount <= 0n) return undefined
 
-            // console.log("quickActionState?.usdcMint.mint", quickActionState?.usdcMint.mint)
-            //2) Mint CDT
-            const mintMsg = messageComposer.increaseDebt({
-                positionId: positionID,
-                amount: shiftDigits(quickActionState?.usdcMint.mint, 6).dp(0).toString(),
-            })
-            msgs.push(mintMsg)
+      // TODO(evm-migration): the bytes32 asset-key convention is deployment-defined and
+      // opaque on-chain (services/chain/liquidation.ts assetKey). Confirm the USDC collateral
+      // key and the CDT borrow-asset key against the actual deployment before relying on this.
+      const usdcDenom = assetKey('USDC')
+      const cdtDenom = assetKey('CDT')
 
-            //3) Enter Vault (?)
-            if (quickActionState?.enterVaultToggle) {
-                const funds = [{ amount: shiftDigits(quickActionState?.usdcMint.mint, 6).dp(0).toString(), denom: denoms.CDT[0] as string }]
-                let enterMsg = {
-                    typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                    value: MsgExecuteContract.fromPartial({
-                        sender: address,
-                        contract: contracts.rangeboundLP,
-                        msg: toUtf8(JSON.stringify({
-                            enter_vault: {}
-                        })),
-                        funds: funds
-                    })
-                } as MsgExecuteContractEncodeObject
-                //Add msg
-                msgs.push(enterMsg)
-            }
-
-            return { msgs }
-
+      return [
+        {
+          address: usdcAsset.base as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [cdpAddr, depositAmount],
         },
-        enabled: !!address,
-    })
+        {
+          address: cdpAddr,
+          abi: cdpAbi,
+          functionName: 'deposit',
+          // deposit(positionId=0 -> new position, positionOwner, funds[])
+          args: [0n, address as `0x${string}`, [{ denom: usdcDenom, amount: depositAmount }]],
+        },
+        {
+          address: cdpAddr,
+          abi: cdpAbi,
+          functionName: 'increaseDebt',
+          // increaseDebt(positionId, borrowAsset, amount)
+          args: [nextId, cdtDenom, mintAmount],
+        },
+      ] as EvmCall[]
+    },
+    enabled: !!address && !!cdpAddr && !!usdcAsset && !!cdtAsset,
+  })
 
-    const msgs = queryData?.msgs ?? []
+  const onInitialSuccess = () => {
+    onSuccess()
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
+    queryClient.invalidateQueries({ queryKey: ['positions'] })
+  }
 
-    const onInitialSuccess = () => {
-        onSuccess()
-        queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-        queryClient.invalidateQueries({ queryKey: ['positions'] })
-    }
-
-    return {
-        action: useSimulateAndBroadcast({
-            msgs,
-            queryKey: ['home_page_mint_sim', (msgs?.toString() ?? "0")],
-            onSuccess: onInitialSuccess,
-            enabled: !!msgs,
-        })
-    }
+  return {
+    action: useSimulateAndBroadcast({
+      msgs,
+      queryKey: ['home_page_mint_sim', (msgs?.toString() ?? '0')],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs?.length,
+    }),
+  }
 }
 
 export default useUSDCToMint

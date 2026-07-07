@@ -54,7 +54,7 @@ async function fetchPriceHistoryFromCDP(
       // CoinGecko: [timestamp (ms), price (number)][]
       const prices: [number, number][] = response.prices
         .filter(pt => pt.timestamp >= cutoffTimestamp) // Filter by time range
-        .map(pt => [
+        .map((pt): [number, number] => [
           pt.timestamp * 1000, // Convert seconds to milliseconds
           parseFloat(pt.price) // Convert string to number
         ])

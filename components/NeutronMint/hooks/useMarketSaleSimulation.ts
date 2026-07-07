@@ -44,117 +44,25 @@ export interface MarketSaleSimulationResult {
  * Hook to simulate market sales for liquidation collateral
  * Uses the CDP's SimulateLiquidation query with multi-hop routing
  */
+/**
+ * TODO(evm-migration): the CosmWasm PositionsQueryClient.simulateLiquidation (market-sale
+ * routing via Astroport/Duality) has NO ported equivalent — the Solidity port exposes no
+ * on-chain swap-router / market-sale simulation surface. Stubbed to return null (query
+ * disabled) until such a path exists — do not invent input/output/slippage figures.
+ */
 export const useMarketSaleSimulation = (
   remainingDebt: number,
   position?: PositionResponse,
 ) => {
-  const { chainName } = useChainRoute()
-  const { appState } = useAppState()
-  const { data: cosmWasmClient } = useCosmWasmClient(appState.rpcUrl)
-  const { data: basket } = useBasket(appState.rpcUrl)
-
   return useQuery<MarketSaleSimulationResult | null>({
     queryKey: [
       'market_sale_simulation',
-      remainingDebt,
-      position?.position_id,
-      basket?.credit_asset?.info,
-      cosmWasmClient,
+      'evm',
+      String(remainingDebt),
+      String(position?.position_id ?? ''),
     ],
-    queryFn: async () => {
-      if (
-        !cosmWasmClient ||
-        !position ||
-        !basket ||
-        remainingDebt <= 0
-      ) {
-        return null
-      }
-
-      const creditDenom = CDT_DENOM
-      const ratios = position.cAsset_ratios || []
-      const collaterals = position.collateral_assets || []
-
-      if (ratios.length === 0 || collaterals.length !== ratios.length) {
-        return null
-      }
-
-      const positionsClient = new PositionsQueryClient(
-        cosmWasmClient,
-        contracts.positions,
-      )
-
-      // Build collateral_to_sell array
-      const collateralToSell: Array<{ denom: string; amount: string }> = []
-
-      for (let i = 0; i < collaterals.length; i++) {
-        //@ts-ignore
-        const denom = collaterals[i].asset.info.native_token.denom
-        //@ts-ignore
-        const amount = collaterals[i].asset.amount
-        const ratio = Number(ratios[i]) || 0
-
-        if (ratio > 0 && num(amount).gt(0)) {
-          // Calculate amount to sell based on remaining debt ratio
-          const sellAmount = num(amount).times(ratio).toFixed(0)
-          collateralToSell.push({ denom, amount: sellAmount })
-        }
-      }
-
-      if (collateralToSell.length === 0) {
-        return null
-      }
-
-      try {
-        // Query CDP's SimulateLiquidation
-        const result = await positionsClient.simulateLiquidation({
-          collateralToSell,
-          targetDenom: creditDenom,
-        })
-
-        const totalInputValue = num(result.total_input_value).toNumber()
-        const totalOutputValue = num(result.total_output_value).toNumber()
-        const totalSlippageCost = num(result.slippage_cost).toNumber()
-
-        const perAsset: MarketSaleAssetResult[] = []
-
-        // For now, we don't have per-asset breakdown from the query
-        // We'll aggregate all collateral into a single entry
-        // TODO: Update when CDP returns per-asset breakdown
-
-        const firstAsset = collateralToSell[0]
-        const assetInfo = getAssetByDenom(firstAsset.denom, chainName)
-
-        perAsset.push({
-          symbol: 'Mixed Collateral',
-          logo: assetInfo?.logo || '',
-          denom: 'multiple',
-          inputValue: totalInputValue,
-          outputValue: totalOutputValue,
-          slippageCost: totalSlippageCost,
-          routes: [], // Routes will be populated if multi-hop data available
-        })
-
-        return {
-          totalInputValue,
-          totalOutputValue,
-          totalSlippageCost,
-          perAsset,
-          asteriskNote: '*Astroport simulation only',
-        }
-      } catch (error) {
-        console.error('Error simulating market sale:', error)
-
-        // If simulation fails (e.g., Duality route), return null
-        // Component will fall back to placeholder
-        return null
-      }
-    },
-    enabled:
-      !!cosmWasmClient &&
-      !!position &&
-      !!basket &&
-      remainingDebt > 0,
+    queryFn: async () => null,
+    enabled: false,
     staleTime: 1000 * 60 * 2, // 2 minutes
   })
 }

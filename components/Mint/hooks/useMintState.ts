@@ -55,6 +55,6 @@ const store = (set) => ({
   reset: () => set((state: Store) => ({ ...state, mintState: initialState }), false, '@reset'),
 })
 
-const useMintState = create<Store>(devtools(store, { name: 'mintState' }))
+const useMintState = create<Store>()(devtools(store, { name: 'mintState' }))
 
 export default useMintState

@@ -463,13 +463,14 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
 
 
     const userDiscountQueries = useDiscounts ? useQueries({
-        queries: (allPositions || []).map((basketPosition) => ({
+        // TODO(evm-migration): useBasketPositions is a null-stub (no enumeration view in Cdp.sol) — cast keeps legacy per-position discount math compiling until an indexer feed lands
+        queries: ((allPositions || []) as any[]).map((basketPosition: any) => ({
             queryKey: ['user', 'discount', 'cdp', basketPosition.user, client],
             queryFn: async () => {
 
                 if (!client) return
                 // console.log(`Fetching discount for address: ${basketPosition.user}`);
-                if (basketPosition.positions.reduce((acc, position) => acc + parseInt(position.credit_amount), 0) <= 1000) return { discount: 0 }
+                if (basketPosition.positions.reduce((acc: any, position: any) => acc + parseInt(position.credit_amount), 0) <= 1000) return { discount: 0 }
                 return getUserDiscount(basketPosition.user, client)
             },
             staleTime: 60000, // 60 seconds (adjust based on your needs)
@@ -537,7 +538,7 @@ export const useVaultInfo = () => {
             //Normalize the debt amount
             const debtAmount = shiftDigits(vaultCDP.credit_amount, -6)
             //Set price from basket peg
-            const debtPrice = basket?.credit_price.price ?? "0"
+            const debtPrice = (basket as any)?.credit_price?.price ?? "0"
             //Calc the value of the debt
             const debtValue = num(debtAmount).times(debtPrice)
 
@@ -581,8 +582,8 @@ export const useVaultInfo = () => {
 
             //Calc the cost of the debt using the ratio of debt to collateral * the leverage
             const cost = 0
-            //num(debtToCollateral).times(basket?.lastest_collateral_rates[31].rate || 1)
-            console.log("Earn cost", cost.toString(), debtToCollateral.toString(), basket?.lastest_collateral_rates[31], leverage.toString())
+            //num(debtToCollateral).times((basket as any)?.lastest_collateral_rates?.[31].rate || 1)
+            console.log("Earn cost", cost.toString(), debtToCollateral.toString(), (basket as any)?.lastest_collateral_rates?.[31], leverage.toString())
             return {
                 totalTVL: totalVTValue,
                 unleveragedValue,

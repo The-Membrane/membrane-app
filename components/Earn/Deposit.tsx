@@ -392,7 +392,7 @@ const Deposit = () => {
                   {/* "Did you buy CDT under 99% of peg (calc this)? Redeem USDC" */}
                   {/* Redeen CDT input */}
                   {/* Redeem Button */}
-                  <RedeemButton basket={basket} />
+                  <RedeemButton basket={basket ?? undefined} />
                 </HStack>
                 {/* Crank APR Button */}
                 <TxButton

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useCreditRate, useRates } from '@/hooks/useCDP'
+import { useRates } from '@/hooks/useCDP'
 import useAppState from '@/persisted-state/useAppState'
 import { num } from '@/helpers/num'
 
@@ -7,43 +7,35 @@ interface UseBorrowRatesProps {
   assetSymbol: 'CDT' | 'USDC'
 }
 
+/**
+ * Borrow-rate display — EVM migration.
+ *
+ * TODO(evm-migration): there is no ported credit-interest / peg-rate view (getCreditRate is a
+ * documented stub in services/chain/cdp.ts). useRates now returns EvmRatesConfig (from
+ * cdp.ratesConfig), so the closest real read for the CDT variable rate is the global
+ * baseInterestRate (1e18-fractional); per-asset adaptive composition is not reproduced here,
+ * and the USDC peg rate has no EVM equivalent (→ 0). Fixed-tranche multipliers live in
+ * Cdp.sol fixedRateCaps(), which is not surfaced through EvmRatesConfig — the prior display
+ * fallbacks (1.2 / 1.5 / 2.0) are retained.
+ */
 export const useBorrowRates = ({ assetSymbol }: UseBorrowRatesProps) => {
   const { appState } = useAppState()
-  const { data: creditRate } = useCreditRate()
   const { data: rates } = useRates(appState.rpcUrl)
 
-  // Calculate Variable rate
+  // Variable rate from the global base interest rate (1e18-fractional) for CDT; USDC → 0.
   const variableRate = useMemo(() => {
-    if (assetSymbol === 'CDT' && creditRate?.credit_interest) {
-      return num(creditRate.credit_interest).times(100).toNumber()
-    }
-    // For USDC, use peg_rate_at_target from the Rates query
-    if (assetSymbol === 'USDC' && rates?.peg_rate_at_target?.length) {
-      // Average across collateral types for display
-      const sum = rates.peg_rate_at_target.reduce(
-        (acc: number, r: string) => acc + num(r).times(100).toNumber(),
-        0
-      )
-      return sum / rates.peg_rate_at_target.length
+    if (assetSymbol === 'CDT' && rates?.baseInterestRate != null) {
+      return num(rates.baseInterestRate.toString()).dividedBy(1e18).times(100).toNumber()
     }
     return 0
-  }, [creditRate, rates, assetSymbol])
+  }, [rates, assetSymbol])
 
-  // Get fixed rate multipliers from the Rates query
-  const fixedMultipliers = useMemo(() => {
-    if (!rates?.fixed_rate_caps) {
-      return { oneMonth: 1.2, threeMonth: 1.5, sixMonth: 2.0 }
-    }
-    return {
-      oneMonth: num(rates.fixed_rate_caps.one_month.multiplier).toNumber() || 1.2,
-      threeMonth: num(rates.fixed_rate_caps.three_month.multiplier).toNumber() || 1.5,
-      sixMonth: num(rates.fixed_rate_caps.six_month.multiplier).toNumber() || 2.0,
-    }
-  }, [rates])
+  // Fixed-rate multipliers — display fallbacks (fixedRateCaps() not surfaced via EvmRatesConfig).
+  const fixedMultipliers = useMemo(
+    () => ({ oneMonth: 1.2, threeMonth: 1.5, sixMonth: 2.0 }),
+    [],
+  )
 
-  // Fixed rate = collateral weighted rate * multiplier
-  // For the table/modal overview, we use the variable rate as the base
-  // The actual per-position fixed rate depends on collateral composition
   const fixed1mRate = useMemo(() => {
     return num(variableRate).times(fixedMultipliers.oneMonth).toNumber()
   }, [variableRate, fixedMultipliers])
@@ -56,7 +48,6 @@ export const useBorrowRates = ({ assetSymbol }: UseBorrowRatesProps) => {
     return num(variableRate).times(fixedMultipliers.sixMonth).toNumber()
   }, [variableRate, fixedMultipliers])
 
-  // Get rate for a specific rate type
   const getRate = (rateType: 'variable' | 'fixed-1m' | 'fixed-3m' | 'fixed-6m') => {
     switch (rateType) {
       case 'variable':

@@ -30,6 +30,6 @@ const store = (set) => ({
   reset: () => set((state: Store) => ({ ...state, LPState: initialState }), false, '@reset'),
 })
 
-const useLPState = create<Store>(devtools(store, { name: 'LPState' }))
+const useLPState = create<Store>()(devtools(store, { name: 'LPState' }))
 
 export default useLPState

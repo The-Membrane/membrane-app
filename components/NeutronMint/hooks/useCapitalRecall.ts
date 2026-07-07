@@ -83,7 +83,7 @@ export const useCapitalRecallAmount = (
   const { data: cosmWasmClient } = useCosmWasmClient(appState.rpcUrl)
 
   return useQuery<CapitalRecallResult>({
-    queryKey: ['capital_recall_amount', position?.position_id, userAddress, cosmWasmClient],
+    queryKey: ['capital_recall_amount', position?.position_id, userAddress, appState.rpcUrl],
     queryFn: async () => {
       if (!position || !userAddress || !cosmWasmClient) {
         return { total: 0, perVenue: [] }

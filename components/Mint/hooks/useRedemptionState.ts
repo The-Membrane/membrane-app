@@ -32,6 +32,6 @@ const store = (set) => ({
     reset: () => set((state: Store) => ({ ...state, redemptionState: initialState }), false, '@reset'),
 })
 
-const useRedemptionState = create<Store>(devtools(store, { name: 'redemptionState' }))
+const useRedemptionState = create<Store>()(devtools(store, { name: 'redemptionState' }))
 
 export default useRedemptionState

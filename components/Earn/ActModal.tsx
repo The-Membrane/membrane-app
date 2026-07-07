@@ -54,7 +54,7 @@ const ConfirmDetails = ({ children, action }: ConfirmProps) => {
         >
           Confirm
         </TxButton>
-        <TxError action={action} />
+        {action ? <TxError action={action} /> : null}
       </ModalFooter>
     </ModalContent>
   )

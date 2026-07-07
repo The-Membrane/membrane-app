@@ -4,7 +4,6 @@ import type { AppProps } from 'next/app'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
 import { wagmiConfig } from '@/config/evm/wagmi'
-import { useEffect } from 'react'
 import Layout from '@/components/Layout'
 
 import { lazy } from 'react'
@@ -26,11 +25,8 @@ export const queryClient = new QueryClient({
 })
 
 import '../styles/global.css';
-import useAppState from '@/persisted-state/useAppState'
 import Head from 'next/head'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { DEFAULT_CHAIN, getChainConfig } from '@/config/chains'
-import { rpcUrl } from '@/config/defaults'
 import { usePerformanceMetrics } from '@/hooks/usePerformanceMetrics'
 import { useAffiliateCaptureFromUrl } from '@/hooks/useAffiliate'
 
@@ -43,21 +39,11 @@ const App = ({ Component, pageProps }: AppProps) => {
   // Capture ?ref= affiliate param from URL
   useAffiliateCaptureFromUrl()
 
-  const { appState, setAppState } = useAppState()
-  // Legacy Cosmos read-path default (appState.rpcUrl feeds useCosmWasmClient) — kept
-  // until the service layer finishes migrating to services/chain (EVM). See
-  // docs/EVM_MIGRATION.md.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const defaultChainConfig = getChainConfig(DEFAULT_CHAIN)
-    const currentRpcUrl = appState?.rpcUrl
-    if (currentRpcUrl === undefined || currentRpcUrl === rpcUrl) {
-      if (currentRpcUrl !== defaultChainConfig.rpcUrl) {
-        setAppState({ rpcUrl: defaultChainConfig.rpcUrl });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appState?.rpcUrl])
+  // NOTE: the legacy Cosmos rpcUrl-defaulting effect that lived here is GONE — it
+  // ping-ponged appState.rpcUrl against HorizontalNav's route-sync effect (osmosis
+  // default vs DEFAULT_CHAIN), overflowing React's update depth (#185) in production.
+  // appState.rpcUrl only feeds dead Cosmos read paths now; HorizontalNav remains the
+  // single writer until those paths are deleted at cutover.
 
   return (
     <WagmiProvider config={wagmiConfig}>

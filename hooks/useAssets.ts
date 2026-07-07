@@ -1,21 +1,27 @@
 import { Asset, getAssets } from '@/helpers/chain'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { DEFAULT_CHAIN } from '@/config/chains'
+import useWallet from './useWallet'
 
-const useAssets = (chainID: string = DEFAULT_CHAIN) => {
+/**
+ * Asset registry hook — EVM-backed. Legacy chainID string params are accepted and
+ * ignored (single-EVM-chain app); the wallet's chain id keys the query instead so
+ * assets refresh on network switch.
+ */
+const useAssets = (_legacyChainID?: string) => {
+  const { chain } = useWallet()
   const { data: assets } = useQuery({
-    queryKey: [chainID + ' assets'],
+    queryKey: ['evm assets', chain.id],
     queryFn: async () => {
-      return getAssets(chainID)
+      return getAssets()
     },
   })
 
   return assets as Asset[]
 }
 
-export const useAssetBySymbol = (symbol: string, chainID: string = DEFAULT_CHAIN) => {
-  const assets = useAssets(chainID)
+export const useAssetBySymbol = (symbol: string, _legacyChainID?: string) => {
+  const assets = useAssets()
 
   return useMemo(() => {
     if (!assets || !symbol) return null
@@ -23,7 +29,7 @@ export const useAssetBySymbol = (symbol: string, chainID: string = DEFAULT_CHAIN
   }, [assets, symbol])
 }
 
-export const useAssetByDenom = (denom: string, chainID: string = DEFAULT_CHAIN, assets: any[]) => {
+export const useAssetByDenom = (denom: string, _legacyChainID?: string, assets?: any[]) => {
   return useMemo(() => {
     if (!assets || !denom) return null
     return assets.find((asset) => asset.base === denom)

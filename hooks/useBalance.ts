@@ -1,52 +1,67 @@
 import { shiftDigits } from '@/helpers/math'
 import { useQuery } from '@tanstack/react-query'
-import { QueryAllBalancesResponse } from 'osmojs/dist/codegen/cosmos/bank/v1beta1/query'
 import { useMemo } from 'react'
-import { useRpcClient } from './useRpcClient'
+import { erc20Abi } from 'viem'
 import useWallet from './useWallet'
-import { Asset } from '@/helpers/chain'
-import { DEFAULT_CHAIN } from '@/config/chains'
-import { useChainRoute } from './useChainRoute'
+import { Asset, getAssets } from '@/helpers/chain'
 
-export const useBalance = (chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
+type BalanceEntry = {
+  /** the asset's `base` — ERC-20 address, or 'native' */
+  denom: string
+  /** raw base-unit amount as string (18-dec for CDT/MBRN — see config/evm/tokens.ts) */
+  amount: string
+}
 
-  const { chainName } = useChainRoute()
-  const { address, chain } = useWallet(chainName)
-  const addressToUse = inputedAddress || address
-  const { getRpcClient } = useRpcClient(chain.chain_name)
-  console.log('useBalance - chainName:', chainName, 'addressToUse:', addressToUse)
+/**
+ * All-balances hook — EVM internals (native getBalance + per-token balanceOf) behind
+ * the Cosmos bank-query shape [{denom, amount}], so `.find(b => b.denom === asset.base)`
+ * consumers keep working. Legacy chainID param accepted and ignored.
+ *
+ * Sequential readContract instead of multicall: anvil has no Multicall3 predeploy and
+ * the registry is small.
+ */
+export const useBalance = (_legacyChainID?: string, inputedAddress?: string) => {
+  const { address, chain, publicClient } = useWallet()
+  const addressToUse = (inputedAddress || address) as `0x${string}` | undefined
 
-  return useQuery<QueryAllBalancesResponse['balances'] | null>({
-    queryKey: [chainID + ' balances', addressToUse, chain.chain_id],
+  return useQuery<BalanceEntry[] | null>({
+    queryKey: ['evm balances', addressToUse, chain.id],
     queryFn: async () => {
-      const client = await getRpcClient()
-      if (!addressToUse) return null
+      if (!addressToUse || !publicClient) return null
 
-      return client.cosmos.bank.v1beta1
-        .allBalances({
-          address: addressToUse,
-          pagination: {
-            key: new Uint8Array(),
-            offset: BigInt(0),
-            limit: BigInt(1000),
-            countTotal: false,
-            reverse: false,
-          },
-        })
-        .then((res) => {
-          return res.balances
-        })
+      const assets = getAssets()
+      const entries = await Promise.all(
+        assets.map(async (asset): Promise<BalanceEntry | null> => {
+          try {
+            if (asset.base === 'native') {
+              const wei = await publicClient.getBalance({ address: addressToUse })
+              return { denom: 'native', amount: wei.toString() }
+            }
+            const raw = await publicClient.readContract({
+              address: asset.base as `0x${string}`,
+              abi: erc20Abi,
+              functionName: 'balanceOf',
+              args: [addressToUse],
+            })
+            return { denom: asset.base, amount: raw.toString() }
+          } catch {
+            return null // token not deployed on this chain — omit
+          }
+        }),
+      )
+
+      return entries.filter((e): e is BalanceEntry => e !== null)
     },
-    enabled: !!getRpcClient && !!address,
+    enabled: !!addressToUse && !!publicClient,
     staleTime: 1000 * 10,
     refetchOnWindowFocus: true,
   })
 }
 
-export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT_CHAIN, inputedAddress?: string) => {
+export const useBalanceByAsset = (asset: Asset | null, _legacyChainID?: string, inputedAddress?: string) => {
   // Always call useWallet to keep hook order consistent
-  const { data: balances } = useBalance(chainID, inputedAddress)
-  const { address } = useWallet(chainID)
+  const { data: balances } = useBalance(undefined, inputedAddress)
+  const { address } = useWallet()
 
   // Decide which address to use (prop wins if provided)
   const addressToUse = inputedAddress || address
@@ -54,8 +69,8 @@ export const useBalanceByAsset = (asset: Asset | null, chainID: string = DEFAULT
   return useMemo(() => {
     if (!balances || !asset || !addressToUse) return '0'
 
-    const balance = balances.find((b: any) => b.denom === asset.base)?.amount
-    const decimals = asset.decimal || 6
+    const balance = balances.find((b) => b.denom === asset.base)?.amount
+    const decimals = asset.decimal || 18
 
     if (!balance) return '0'
     return shiftDigits(balance, -decimals).toString()

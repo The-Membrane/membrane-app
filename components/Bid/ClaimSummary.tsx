@@ -2,10 +2,13 @@ import { Coin } from '@cosmjs/stargate'
 import { getAssetByDenom } from '@/helpers/chain'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
-import { Asset } from '@chain-registry/types'
+import { Asset } from '@/helpers/chain'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { colors } from '@/config/defaults'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -27,10 +30,10 @@ const SummaryItem = ({
   <HStack
     key={label}
     justifyContent="space-between"
-    pb="1"
-    my="1"
+    pb={SPACING.xs}
+    my={SPACING.xs}
     borderBottom="1px solid"
-    borderColor="whiteAlpha.200"
+    borderColor={SEMANTIC_COLORS.borderMedium}
   >
     <HStack>
       <HStack>
@@ -42,19 +45,21 @@ const SummaryItem = ({
         ) : (
           <Image src={asset?.logo} w="24px" h="24px" />
         )}
-        <Text variant="value" textTransform="unset">
+        <Text textTransform="unset" fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary}>
           {label}
         </Text>
       </HStack>
 
       {showBadge && (
-        <Badge fontSize="10px" colorScheme={colors.summaryScheme}>
+        <Badge fontSize={TYPOGRAPHY.label} colorScheme={colors.summaryScheme}>
           {badge}
         </Badge>
       )}
     </HStack>
     <HStack>
-      <Text>{num(amount).abs().toString()}</Text>
+      <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary}>
+        {num(amount).abs().toString()}
+      </Text>
     </HStack>
   </HStack>
 )

@@ -1,7 +1,17 @@
-import { rpcUrl } from "./defaults";
+/**
+ * Route-level chain registry. EVM-only: there is exactly ONE chain path — /ethereum.
+ * Legacy Cosmos entries (osmosis/osmosis-v2/neutron/…) are gone; stale URLs resolve to
+ * ethereum via getChainConfig's fallback and useChainRoute's validation.
+ *
+ * The actual EVM network (anvil now, mainnet later) is configured separately in
+ * config/evm/chains.ts via NEXT_PUBLIC_EVM_CHAIN_ID / NEXT_PUBLIC_EVM_RPC_URL — this
+ * file only owns the URL segment and display metadata.
+ */
 
 export interface ChainConfig {
     name: string;
+    displayName: string;
+    walletChainName: string;
     logo: string;
     chainId: string;
     rpcUrl: string;
@@ -10,37 +20,24 @@ export interface ChainConfig {
 
 export const supportedChains: ChainConfig[] = [
     {
-        name: 'osmosis',
-        logo: '/images/osmo.svg',
-        chainId: 'osmosis-1',
-        rpcUrl: rpcUrl,
-        addressPrefix: 'osmo'
-    },
-    {
-        name: 'neutron',
-        logo: '/images/ntrn.svg',
-        chainId: 'neutron-1',
-        rpcUrl: 'https://rpc-celatone.neutron-1.neutron.org',
-        addressPrefix: 'neutron'
-    },
-    {
-        name: 'neutrontestnet',
-        logo: '/images/ntrn.svg',
-        chainId: 'pion-1',
-        rpcUrl: 'https://rpc-celatone.pion-1.ntrn.tech',
-        addressPrefix: 'neutron'
-    },
-    {
-        name: 'cosmoshub',
-        logo: '/images/atom.svg',
-        chainId: 'cosmoshub-4',
-        rpcUrl: 'https://rpc.cosmos.directory/cosmoshub',
-        addressPrefix: 'cosmos'
+        name: 'ethereum',
+        displayName: 'Ethereum',
+        walletChainName: 'ethereum',
+        logo: '/images/Logo.svg',
+        chainId: 'ethereum',
+        // legacy Cosmos field — dead read paths only; the EVM RPC lives in config/evm/chains.ts
+        rpcUrl: '',
+        addressPrefix: '0x'
     }
 ];
 
-export const DEFAULT_CHAIN = supportedChains[1].name;
+export const DEFAULT_CHAIN = 'ethereum';
 
 export const getChainConfig = (chainName: string): ChainConfig => {
     return supportedChains.find(chain => chain.name === chainName) || supportedChains[0];
-}; 
+};
+
+export const getWalletChainName = (chainName: string): string => {
+    const config = getChainConfig(chainName);
+    return config.walletChainName;
+};

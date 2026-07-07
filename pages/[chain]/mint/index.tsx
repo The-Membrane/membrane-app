@@ -17,14 +17,8 @@ const MintPage = () => {
   //     {/* <BeakerScale /> */}
   //   </HStack>)
 
-  // Use NeutronMint for Neutron chains, regular Mint for others
-  const isNeutronChain = chainName === 'neutron' || chainName === 'neutrontestnet'
-
-  if (isNeutronChain) {
-    return <NeutronMint />
-  }
-
-  return <Mint />
+  // EVM-only single chain: NeutronMint is the current mint experience
+  return <NeutronMint />
 }
 
 export default MintPage

@@ -1,5 +1,6 @@
 import Home from '@/components/Home/Home'
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { Box, Text, VStack } from '@chakra-ui/react'
@@ -20,11 +21,17 @@ const BaseHome = () => {
 }
 
 const IndexPage = () => {
-    const { chainName } = useChainRoute()
-    if (chainName === 'neutron') {
+    // EVM-only: a single chain path (/ethereum). Stale bookmarks (/osmosis, /neutron)
+    // land here with an invalid chain — rewrite the URL, then render the one Home.
+    const { chainName, isValidChain } = useChainRoute()
+    const router = useRouter()
+    useEffect(() => {
+        if (router.isReady && !isValidChain) {
+            router.replace(`/${chainName}`)
+        }
+    }, [router.isReady, isValidChain, chainName])
+
     return <Home />
-    }
-    return <BaseHome />
 }
 
 export default IndexPage

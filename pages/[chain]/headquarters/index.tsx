@@ -5,7 +5,7 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 
 export default function Headquarters() {
     const { chainName } = useChainRoute()
-    const showSpeechBubble = chainName === 'neutron'
+    const showSpeechBubble = true // EVM-only single chain
 
     return (
         <Box

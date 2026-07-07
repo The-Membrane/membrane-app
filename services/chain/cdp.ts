@@ -1,6 +1,8 @@
 import type { PublicClient } from 'viem'
+import { formatEther } from 'viem'
 import { cdpAbi } from '@/contracts/abis/cdp'
 import { getContractAddress, type Address } from '@/config/evm/contracts'
+import { getAllCollateralParams, type EvmCollateralParams } from './lens'
 
 /**
  * Cdp.sol read service — the reference implementation for the EVM service layer.
@@ -554,18 +556,98 @@ export async function getUserPositions(
 // ---------------------------------------------------------------------------
 
 /**
- * Cosmos getBasket() returned an aggregate Basket: credit_price + per-collateral config
- * (max_LTV, max_borrow_LTV, rate_index) + collateral_supply_caps.
+ * Legacy-shaped "basket" — the minimal faithful subset the surviving Cosmos-era consumers
+ * read (components/Bid/hooks/useCollateralAssets, hooks/useEarnQueries → getBasketAssets):
+ * `collateral_types[]` (asset identity + per-asset LTVs) and `collateral_supply_caps[]`.
  *
- * TODO(evm-migration): Cdp.sol has no aggregate basket view. The pieces are split across
- * getCreditPrice() (credit_price) and getSupplyCaps() (collateral_supply_caps + denoms),
- * but per-asset max_LTV / max_borrow_LTV live in the *Collateral* contract
- * (collateral.currentMaxLTV(denom)) which is outside the CDP ABI/domain. A faithful basket
- * requires reading Collateral too; returning a partial basket here would silently drop LTVs
- * and mis-price getBasketAssets, so this stays a stub until the Collateral service exists.
+ * Backed by FrontendLens.getAllCollateralParams (services/chain/lens.ts), which aggregates
+ * Collateral.sol + Cdp.sol so we no longer need a separate Collateral read.
+ *
+ * PRECISION / SEMANTICS:
+ *  - Cosmos returned LTVs as decimal STRINGS ("0.45"); the lens returns 1e18-scaled uints.
+ *    We convert via formatEther so the UI's existing Number()/num() math keeps working
+ *    ("0.8", "0.04", …).
+ *  - This port has NO separate max_borrow_LTV — `currentMaxLTV` IS the borrow-gating LTV,
+ *    so max_LTV and max_borrow_LTV are both set from currentMaxLTV.
+ *  - `asset.info.token.address` carries the ERC20 address (EVM identity); `denom` is the
+ *    on-chain bytes32 key. native_token.denom is intentionally omitted so consumers that
+ *    fall back `native_token?.denom || token?.address` resolve to the ERC20 address.
+ *
+ * STILL MISSING (not derivable from the lens; left undefined rather than faked):
+ *  - credit_price / credit_asset — read separately via getCreditPrice() (creditPriceSnapshot).
+ *  - rate_index per collateral — Cdp.sol accrues via currentAdaptiveRate (see
+ *    getCollateralInterest); no cumulative rate index is exposed on the lens.
+ *  - multi_asset_supply_caps / stability_pool ratios — no ported equivalent (LiqQueue.sol
+ *    has no stability pool), so SPCapRatio is left undefined.
+ *  - per-asset debt_total on the supply caps — the lens exposes supplyCap + currentSupply
+ *    only; borrowed-debt per denom is a separate CDP read (getSupplyCap().debtTotal /
+ *    getTotalBorrowedAgainst). Cosmos-style "supply-cap-reached" math that reads
+ *    supplyCap.debt_total must be adapted to fetch it from the CDP.
  */
-export async function getBasket(_client: PublicClient | null, _contractAddr?: Address) {
-  return null
+export type EvmBasketAsset = {
+  amount: string
+  info: { token: { address: Address }; native_token?: { denom: string } }
+}
+export type EvmBasketCollateralType = {
+  asset: EvmBasketAsset
+  denom: Bytes32
+  max_LTV: string
+  max_borrow_LTV: string
+  enabled: boolean
+  is_in_onboarding: boolean
+  supply_cap: string
+  current_supply: string
+  supply_cap_ratio: string
+}
+export type EvmBasketSupplyCap = {
+  denom: Bytes32
+  supply_cap: string
+  current_supply: string
+  supply_cap_ratio: string
+}
+export type EvmBasket = {
+  collateral_types: EvmBasketCollateralType[]
+  collateral_supply_caps: EvmBasketSupplyCap[]
+}
+
+/** current/cap as a 0..1 decimal string ("0" when the cap is zero/unlimited or drained). */
+function capRatio(current: bigint, cap: bigint): string {
+  if (cap <= 0n) return '0'
+  return (Number(current) / Number(cap)).toString()
+}
+
+function toBasketCollateralType(p: EvmCollateralParams): EvmBasketCollateralType {
+  const maxLtv = formatEther(p.currentMaxLTV)
+  return {
+    asset: { amount: '0', info: { token: { address: p.token } } },
+    denom: p.denom,
+    max_LTV: maxLtv,
+    max_borrow_LTV: maxLtv,
+    enabled: p.enabled,
+    is_in_onboarding: p.isInOnboarding,
+    supply_cap: p.supplyCap.toString(),
+    current_supply: p.currentSupply.toString(),
+    supply_cap_ratio: capRatio(p.currentSupply, p.supplyCap),
+  }
+}
+
+export async function getBasket(
+  client: PublicClient | null,
+  contractAddr?: Address,
+): Promise<EvmBasket | null> {
+  if (!client) return null
+  // contractAddr, if supplied, is the FrontendLens address override (basket now sources
+  // from the lens, not the CDP). The CDP scalar reads above keep their own address book.
+  const params = await getAllCollateralParams(client, contractAddr)
+  if (!params) return null
+  const collateral_types = params.map(toBasketCollateralType)
+  const collateral_supply_caps: EvmBasketSupplyCap[] = collateral_types.map((c) => ({
+    denom: c.denom,
+    supply_cap: c.supply_cap,
+    current_supply: c.current_supply,
+    supply_cap_ratio: c.supply_cap_ratio,
+  }))
+  return { collateral_types, collateral_supply_caps }
 }
 
 /**

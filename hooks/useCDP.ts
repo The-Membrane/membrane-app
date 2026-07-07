@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
+import { formatEther } from 'viem'
 import { useRouter } from 'next/router'
+import { getAssets, type Asset } from '@/helpers/chain'
+import type { BasketAsset } from '@/services/cdp'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
 import useAppState from '@/persisted-state/useAppState'
@@ -32,9 +35,9 @@ export const useBasket = (rpcUrl: string) => {
   return useQuery({
     queryKey: ['basket', rpcUrl],
     queryFn: async () => {
-      // TODO(evm-migration): getBasket is a stub (no aggregate basket view in Cdp.sol;
-      // per-asset LTVs live in the Collateral contract). Returns null until a Collateral
-      // service can supply max_LTV / max_borrow_LTV.
+      // Legacy-shaped basket sourced from FrontendLens.getAllCollateralParams
+      // (services/chain/cdp.ts getBasket → services/chain/lens.ts). credit_price is not part
+      // of this shape — read it via useCreditRate / getCreditPrice where needed.
       return getBasket(getPublicClient())
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -59,10 +62,31 @@ export const useBasketAssets = () => {
   return useQuery({
     queryKey: ['get_basket_assets', basket, interest, appState.rpcUrl],
     queryFn: async () => {
-      // TODO(evm-migration): getBasketAssets (services/cdp.ts) is a pure CosmWasm-shape
-      // transform that needs the full Basket (incl. per-asset max_LTV/max_borrow_LTV) which
-      // Cdp.sol does not expose. Returns [] until getBasket is backed by a Collateral service.
-      return []
+      // Rebuild the legacy BasketAsset[] shape (services/cdp.ts consumers read
+      // .asset.base / .interestRate / .maxLTV / .maxBorrowLTV / .rateIndex / .supplyCapRatio)
+      // from the lens-backed basket + per-collateral adaptive interest. Matched by bytes32
+      // denom. rateIndex has no lens equivalent (Cdp.sol has no cumulative index) → 0.
+      if (!basket) return [] as BasketAsset[]
+      const assets = getAssets()
+      return basket.collateral_types.map((ct): BasketAsset => {
+        const address = ct.asset.info.token.address
+        const chainAsset = assets?.find((a: Asset) => a.base === address)
+        // Fallback keeps the BasketAsset.asset shape (Asset) intact when a collateral token
+        // isn't in the static registry; symbol/decimals are resolved for display where a
+        // component needs them (see components/Bid/hooks/useCollateralAssets erc20 merge).
+        const asset: Asset =
+          chainAsset ?? { base: address, symbol: '', name: '', decimal: 18, logo: '', isLP: false }
+        const rateEntry = (interest || []).find((r) => r.denom === ct.denom)
+        const interestRate = rateEntry ? Number(formatEther(rateEntry.rate)) : 0
+        return {
+          asset,
+          interestRate,
+          rateIndex: 0,
+          maxLTV: Number(ct.max_LTV),
+          maxBorrowLTV: Number(ct.max_borrow_LTV),
+          supplyCapRatio: ct.supply_cap_ratio,
+        }
+      })
     },
     staleTime: 1000 * 60 * 5,
   })

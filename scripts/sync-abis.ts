@@ -30,6 +30,9 @@ const CONTRACTS: Record<string, string> = {
   SystemDiscounts: 'systemDiscounts',
   Auction: 'auction',
   Vesting: 'vesting',
+  Collateral: 'collateral',
+  FrontendLens: 'frontendLens',
+  CdpRouter: 'cdpRouter',
 }
 
 function main() {

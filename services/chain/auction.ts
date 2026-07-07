@@ -1,6 +1,7 @@
 import type { PublicClient } from 'viem'
 import { auctionAbi } from '@/contracts/abis/auction'
 import { getContractAddress, type Address } from '@/config/evm/contracts'
+import { liveFeeAuctions as lensLiveFeeAuctions } from './lens'
 import { assetKey } from './liquidation'
 
 /**
@@ -89,12 +90,17 @@ export async function getFeeAuction(
 
 /**
  * All currently-live fee auctions — the EVM equivalent of the Cosmos
- * `ongoingFeeAuctions` query. Auction.sol keys fee auctions by denom in a
- * non-enumerable mapping, so the candidate denom set is reconstructed from the
- * indexed `AuctionStarted(denom, ...)` event, then each denom is re-read via
- * `feeAuctions(denom)` and filtered to `exists` (a swap that drains an auction
- * `delete`s the record — see Auction.sol:515-519). Sorted by start time ascending
- * (oldest = deepest discount first), preserving getLiveFeeAuction semantics.
+ * `ongoingFeeAuctions` query.
+ *
+ * PRIMARY: FrontendLens.liveFeeAuctions (services/chain/lens.ts) returns the live set
+ * pre-filtered on-chain in one call. Its {denom, amount, startTime} rows map directly to
+ * FeeAuction (exists = true by construction). Sorted by start time ascending (oldest =
+ * deepest discount first), preserving getLiveFeeAuction semantics.
+ *
+ * FALLBACK: when the FrontendLens address is not configured, reconstruct from the indexed
+ * `AuctionStarted(denom, ...)` event — Auction.sol keys fee auctions by denom in a
+ * non-enumerable mapping — then re-read each denom via `feeAuctions(denom)` and filter to
+ * `exists` (a swap that drains an auction `delete`s the record — Auction.sol:515-519).
  * Returns null on failure.
  */
 export async function getLiveFeeAuctions(
@@ -103,6 +109,27 @@ export async function getLiveFeeAuctions(
   contractAddr?: Address,
 ): Promise<FeeAuction[] | null> {
   if (!client) return null
+
+  // PRIMARY: lens aggregation (only when the lens address is configured).
+  const hasLens = client.chain && getContractAddress(client.chain.id, 'frontendLens')
+  if (hasLens) {
+    const live = await lensLiveFeeAuctions(client)
+    if (live) {
+      return live
+        .map((a) => ({
+          auctionAssetDenom: a.denom,
+          auctionAssetAmount: a.amount,
+          auctionStartTime: a.startTime,
+          exists: true,
+        }))
+        .sort((x, y) =>
+          x.auctionStartTime < y.auctionStartTime ? -1 : x.auctionStartTime > y.auctionStartTime ? 1 : 0,
+        )
+    }
+    // lens read failed → fall through to the event-reconstruction fallback below.
+  }
+
+  // FALLBACK: event reconstruction against Auction.sol directly.
   const address = auctionAddress(client, contractAddr)
   if (!address) return null
   try {

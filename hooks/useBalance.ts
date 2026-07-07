@@ -17,8 +17,8 @@ type BalanceEntry = {
  * the Cosmos bank-query shape [{denom, amount}], so `.find(b => b.denom === asset.base)`
  * consumers keep working. Legacy chainID param accepted and ignored.
  *
- * Sequential readContract instead of multicall: anvil has no Multicall3 predeploy and
- * the registry is small.
+ * balanceOf reads batch through Multicall3 (etched on anvil by
+ * membrane-solidity script/DeployLocalExtras.s.sol / anvil_setCode).
  */
 export const useBalance = (_legacyChainID?: string, inputedAddress?: string) => {
   const { address, chain, publicClient } = useWallet()
@@ -30,27 +30,36 @@ export const useBalance = (_legacyChainID?: string, inputedAddress?: string) => 
       if (!addressToUse || !publicClient) return null
 
       const assets = getAssets()
-      const entries = await Promise.all(
-        assets.map(async (asset): Promise<BalanceEntry | null> => {
-          try {
-            if (asset.base === 'native') {
-              const wei = await publicClient.getBalance({ address: addressToUse })
-              return { denom: 'native', amount: wei.toString() }
-            }
-            const raw = await publicClient.readContract({
-              address: asset.base as `0x${string}`,
-              abi: erc20Abi,
-              functionName: 'balanceOf',
-              args: [addressToUse],
-            })
-            return { denom: asset.base, amount: raw.toString() }
-          } catch {
-            return null // token not deployed on this chain — omit
-          }
-        }),
-      )
+      const erc20s = assets.filter((a) => a.base !== 'native')
+      const native = assets.find((a) => a.base === 'native')
 
-      return entries.filter((e): e is BalanceEntry => e !== null)
+      const [nativeWei, tokenResults] = await Promise.all([
+        native ? publicClient.getBalance({ address: addressToUse }).catch(() => null) : null,
+        erc20s.length
+          ? publicClient.multicall({
+              contracts: erc20s.map((a) => ({
+                address: a.base as `0x${string}`,
+                abi: erc20Abi,
+                functionName: 'balanceOf' as const,
+                args: [addressToUse],
+              })),
+              allowFailure: true,
+            })
+          : [],
+      ])
+
+      const entries: BalanceEntry[] = []
+      if (nativeWei !== null && nativeWei !== undefined) {
+        entries.push({ denom: 'native', amount: nativeWei.toString() })
+      }
+      tokenResults.forEach((res, i) => {
+        // failed slots = token not deployed on this chain — omit
+        if (res.status === 'success') {
+          entries.push({ denom: erc20s[i].base, amount: (res.result as bigint).toString() })
+        }
+      })
+
+      return entries
     },
     enabled: !!addressToUse && !!publicClient,
     staleTime: 1000 * 10,

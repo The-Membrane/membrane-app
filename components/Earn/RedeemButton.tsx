@@ -1,6 +1,6 @@
 import { Button, Card, HStack, Input, Stack, Text } from '@chakra-ui/react'
 import { TxButton } from '../TxButton'
-import { Basket } from '@/contracts/codegen/positions/Positions.types'
+import type { EvmBasket } from '@/services/chain/cdp'
 import useEarnState from './hooks/useEarnState'
 import { num } from '@/helpers/num'
 import React, { ChangeEvent } from 'react'
@@ -10,7 +10,10 @@ import useCDPRedeem from './hooks/useCDPRedeem'
 
 
 
-export const RedeemButton = React.memo(({ basket }: { basket: Basket | undefined }) => {
+// TODO(evm-migration): CDT redemption is stubbed (no user-facing redemption surface in
+// the port — see useCDPRedeem); EvmBasket carries no credit_price (separate getCreditPrice
+// read), so the price hint renders $0 until this section is redesigned or removed.
+export const RedeemButton = React.memo(({ basket }: { basket: EvmBasket | undefined }) => {
 
     const { earnState, setEarnState } = useEarnState()
     const cdtAsset = useAssetBySymbol('CDT')
@@ -28,7 +31,7 @@ export const RedeemButton = React.memo(({ basket }: { basket: Basket | undefined
     return (
 
         <Stack py="5" w="full" gap="3" mb={"0"} >
-            <Text variant="body"> Did you buy CDT {`<= $`}{num(basket?.credit_price.price ?? "0").multipliedBy(0.985).toFixed(3)}?</Text>
+            <Text variant="body"> Did you buy CDT {`<= $`}{num((basket as any)?.credit_price?.price ?? "0").multipliedBy(0.985).toFixed(3)}?</Text>
             <HStack>
                 <Input
                     width={"40%"}

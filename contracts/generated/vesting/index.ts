@@ -7,11 +7,9 @@
 import * as _12 from "./Vesting.types";
 import * as _13 from "./Vesting.client";
 import * as _14 from "./Vesting.message-composer";
-import * as _15 from "./Vesting.react-query";
 export namespace contracts {
   export const Vesting = { ..._12,
     ..._13,
-    ..._14,
-    ..._15
+    ..._14
   };
 }

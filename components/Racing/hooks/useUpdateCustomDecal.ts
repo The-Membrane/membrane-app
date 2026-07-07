@@ -1,7 +1,4 @@
-import contracts from '@/config/contracts.json'
 import useExecute from '@/hooks/useExecute'
-import useWallet from '@/hooks/useWallet'
-import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
 export type UseUpdateCustomDecalParams = {
   tokenId: string
@@ -9,29 +6,17 @@ export type UseUpdateCustomDecalParams = {
   contractAddress?: string
 }
 
-const resolveCarContractAddress = (override?: string) => {
-  if (override) return override
-  return (contracts as any).carNft || (contracts as any).car || (contracts as any).carNFT
-}
-
-export default function useUpdateCustomDecal(params: UseUpdateCustomDecalParams) {
-  const { address, getSigningCosmWasmClient } = useWallet()
-
+/**
+ * TODO(evm-migration): the Racing mini-game car NFT (custom decal) contract has NO
+ * equivalent in the Solidity port. This CTA hook's submit is inert (rejects) until/if
+ * racing contracts are ported. The useExecute mutation return shape is preserved so
+ * consumers keep compiling.
+ */
+export default function useUpdateCustomDecal(_params: UseUpdateCustomDecalParams) {
   return useExecute({
-    onSubmit: async () => {
-      if (!address) return Promise.reject(new Error('Wallet not connected'))
-
-      const contractAddress = resolveCarContractAddress(params.contractAddress)
-      if (!contractAddress) return Promise.reject(new Error('Car contract address missing in contracts.json'))
-
-      const signingClient: SigningCosmWasmClient = await getSigningCosmWasmClient()
-      const msg = {
-        update_custom_decal: {
-          token_id: params.tokenId,
-          svg: params.svg,
-        },
-      }
-      return signingClient.execute(address, contractAddress, msg, 'auto')
-    },
+    onSubmit: () =>
+      Promise.reject(
+        new Error('Racing custom decals are not available: no EVM contract in the Solidity port'),
+      ),
   })
-} 
+}

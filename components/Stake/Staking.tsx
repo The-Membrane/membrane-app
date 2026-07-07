@@ -45,7 +45,8 @@ const Stakeing = () => {
     const diff = num(value).minus(stakedBalance).toString()
 
     setStakeState({
-      asset: mbrnAsset,
+      // TODO(evm-migration): stakeState.asset is the legacy @chain-registry Asset; mbrnAsset is the EVM helpers/chain Asset.
+      asset: mbrnAsset as any,
       amount: num(diff).abs().toString(),
       txType: num(diff).isGreaterThanOrEqualTo(0) ? 'Stake' : 'Unstake',
     })

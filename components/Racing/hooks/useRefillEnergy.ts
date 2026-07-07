@@ -2,11 +2,9 @@ import contracts from '@/config/contracts.json'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import useAppState from '@/persisted-state/useAppState'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import { toUtf8 } from '@cosmjs/encoding'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import type { EvmCall } from '@/services/chain/types'
 
 export type TrainingPaymentOption = {
     denom: string
@@ -19,12 +17,16 @@ export type UseRefillEnergyParams = {
     contractAddress?: string
 }
 
+/**
+ * TODO(evm-migration): the Racing mini-game car NFT / pay-for-training contract has
+ * NO equivalent in the Solidity port. This CTA hook returns no msgs so the "refill
+ * energy" action stays inert until/if racing contracts are ported. Return shape preserved.
+ */
 const useRefillEnergy = (params: UseRefillEnergyParams) => {
     const { address } = useWallet()
     const { appState } = useAppState()
 
-    type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
-    const { data: queryData } = useQuery<QueryData>({
+    const { data: msgs } = useQuery<EvmCall[] | undefined>({
         queryKey: [
             'refill_energy_msgs_creation',
             address ?? null,
@@ -34,38 +36,9 @@ const useRefillEnergy = (params: UseRefillEnergyParams) => {
             params.paymentOption?.amount ?? null,
             params.contractAddress ?? (contracts as any).car ?? null,
         ],
-        queryFn: () => {
-            if (!address) return { msgs: [] }
-            if (!params.tokenId) return { msgs: [] }
-
-            const msg = {
-                pay_for_training: {
-                    token_id: params.tokenId,
-                },
-            }
-
-            const funds = params.paymentOption
-                ? [{ denom: params.paymentOption.denom, amount: params.paymentOption.amount }]
-                : []
-
-            const exec = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: (params.contractAddress ?? (contracts as any).car) as string,
-                    msg: toUtf8(JSON.stringify(msg)),
-                    funds,
-                }),
-            } as MsgExecuteContractEncodeObject
-
-            return { msgs: [exec] }
-        },
+        queryFn: () => [] as EvmCall[],
         enabled: !!address,
     })
-
-    const msgs = queryData?.msgs ?? []
-
-    console.log('energy msgs', msgs)
 
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['car_energy'] })

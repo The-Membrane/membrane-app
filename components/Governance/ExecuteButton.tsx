@@ -20,8 +20,8 @@ const ExecuteButton = ({ show, proposalId }: Props) => {
       px="5"
       w="fit-content"
       fontSize="sm"
-      isLoading={executeProposal.isPending}
-      onClick={() => executeProposal.mutate()}
+      isLoading={executeProposal.tx.isPending}
+      onClick={() => executeProposal.simulate.refetch().then(() => executeProposal.tx.mutate())}
       toggleConnectLabel={false}
     >
       Execute

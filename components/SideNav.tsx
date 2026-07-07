@@ -201,7 +201,7 @@ function SideNav() {
       </Stack>
 
       {/* Mobile Menu */}
-      <HStack as="mobile" display={{ base: "flex", md: "none" }} spacing="0.5rem">
+      <HStack as={"mobile" as any} display={{ base: "flex", md: "none" }} spacing="0.5rem">
         {!isMobileMenuOpen && (
           <IconButton
             icon={<HamburgerIcon />}

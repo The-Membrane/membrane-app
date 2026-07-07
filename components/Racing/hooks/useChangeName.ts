@@ -1,24 +1,25 @@
-import contracts from '@/config/contracts.json'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import useAppState from '@/persisted-state/useAppState'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import { toUtf8 } from '@cosmjs/encoding'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import type { EvmCall } from '@/services/chain/types'
 
 export type UseChangeNameParams = {
     tokenId?: string | null
     newName?: string | null
 }
 
+/**
+ * TODO(evm-migration): the Racing mini-game car NFT contract has NO equivalent in
+ * the Solidity port. This CTA hook returns no msgs so the "change car name" action
+ * stays inert until/if racing contracts are ported. Return shape preserved.
+ */
 const useChangeName = (params: UseChangeNameParams) => {
     const { address } = useWallet()
     const { appState } = useAppState()
 
-    type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
-    const { data: queryData } = useQuery<QueryData>({
+    const { data: msgs } = useQuery<EvmCall[] | undefined>({
         queryKey: [
             'change_car_name_msgs_creation',
             address,
@@ -26,33 +27,9 @@ const useChangeName = (params: UseChangeNameParams) => {
             params.tokenId ?? null,
             params.newName ?? null,
         ],
-        queryFn: () => {
-            if (!address) return { msgs: [] }
-            if (!params.tokenId || !params.newName) return { msgs: [] }
-
-            const msg = {
-                update_car_name: {
-                    token_id: params.tokenId,
-                    new_name: params.newName,
-                },
-            }
-
-            const exec = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: (contracts as any).car,
-                    msg: toUtf8(JSON.stringify(msg)),
-                    funds: [],
-                }),
-            } as MsgExecuteContractEncodeObject
-
-            return { msgs: [exec] }
-        },
+        queryFn: () => [] as EvmCall[],
         enabled: !!address,
     })
-
-    const msgs = queryData?.msgs ?? []
 
     const onInitialSuccess = () => {
         // Refresh car-related queries

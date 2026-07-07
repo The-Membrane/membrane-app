@@ -1,34 +1,29 @@
-import useWallet from '@/hooks/useWallet'
 import { useQuery } from '@tanstack/react-query'
-import { Block } from 'cosmwasm'
 import { DEFAULT_CHAIN } from '@/config/chains'
-import { useChainRoute } from '@/hooks/useChainRoute'
 
+/**
+ * TODO(evm-migration): these Stargaze client / block-info helpers served the Brane NFT
+ * auction, which does NOT exist in the Solidity port (no brane_auction contract ported).
+ * The cosmos-kit signing-client (getSigningStargateClient) and CosmWasm block queries have
+ * no EVM analog here, so both hooks are inert (disabled, null data). No consumers remain;
+ * kept as stubs pending NFT-auction UI removal in the component-layer wave.
+ */
 export const useClient = (chain_name: string = DEFAULT_CHAIN) => {
-  const { chainName } = useChainRoute()
-  const { address, getSigningStargateClient } = useWallet(chainName)
-
   return useQuery({
-    queryKey: [chain_name + ' client', address],
-    queryFn: async () => {
-      return getSigningStargateClient()
-    },
+    queryKey: [chain_name + ' client'],
+    queryFn: async () => null,
+    enabled: false,
   })
 }
 
 export const useBlockInfo = (chain_name: string = DEFAULT_CHAIN) => {
-  const { data: client } = useClient(chain_name)
-
   return useQuery({
-    queryKey: [chain_name + ' block info', client],
-    queryFn: async () => {
-      const { currentBlock: currentBlock, currentHeight: height } = await client!.getHeight().then(async (height) => {
-        const currentBlock = await client!.getBlock(height);
-
-        return { currentBlock: currentBlock, currentHeight: height }
-      })
-      return { currentBlock: currentBlock, currentHeight: height } as { currentBlock: Block | undefined, currentHeight: number | undefined }
-    },
+    queryKey: [chain_name + ' block info'],
+    queryFn: async () =>
+      ({ currentBlock: undefined, currentHeight: undefined }) as {
+        currentBlock: unknown | undefined
+        currentHeight: number | undefined
+      },
+    enabled: false,
   })
 }
-

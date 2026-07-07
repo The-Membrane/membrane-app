@@ -164,7 +164,9 @@ export const SupplyCaps = () => {
 
     //Create health object for each asset using the formula: (assetValue / poolValuesByAsset) * 100
     const capData = useMemo(() => {
-        const basketPositions = basket?.collateral_types.map((asset) => {
+        // TODO(evm-migration): basket is null-stubbed (no aggregate basket view in Cdp.sol);
+        // collateral_types / collateral_supply_caps have no faithful EVM equivalent here yet.
+        const basketPositions = (basket as any)?.collateral_types.map((asset: any) => {
             //@ts-ignore
             const denom = asset.asset.info.native_token.denom
             const assetInfo = getAssetByDenom(denom, chainName)
@@ -188,10 +190,10 @@ export const SupplyCaps = () => {
         const positionsWithRatio = getAssetRatio(false, tvl, basketPositions)
 
         return positionsWithRatio.map((position, index) => {
-            return { name: position?.symbol ?? "N/A", ratio: position?.ratio ?? 0, cap: basket?.collateral_supply_caps[index].supply_cap_ratio ?? "0" }
+            return { name: position?.symbol ?? "N/A", ratio: position?.ratio ?? 0, cap: (basket as any)?.collateral_supply_caps[index].supply_cap_ratio ?? "0" }
         })
 
-    }, [basket?.collateral_supply_caps, prices])
+    }, [(basket as any)?.collateral_supply_caps, prices])
 
     // // console.log("capData", capData)
 

@@ -92,15 +92,18 @@ export const OracleHealth = () => {
     const { appState } = useAppState()
     const { data: basket } = useBasket(appState.rpcUrl)
     const usedAssets = useMemo(() => {
-        if (!basket || !basket.collateral_supply_caps) return []
-        return basket.collateral_supply_caps
-            .filter((cap) => Number(cap.supply_cap_ratio) > 0)
+        // TODO(evm-migration): basket is null-stubbed (no aggregate basket view in Cdp.sol);
+        // collateral_supply_caps has no faithful EVM equivalent here yet, so read defensively.
+        const b = basket as any
+        if (!b || !b.collateral_supply_caps) return []
+        return b.collateral_supply_caps
+            .filter((cap: any) => Number(cap.supply_cap_ratio) > 0)
             //@ts-ignore
             .map((cap) => (cap.asset_info as AssetInfo),  // Directly assign if you're sure it's always a native_token
             );
     }, [basket])
     //@ts-ignore
-    const usedDenoms = usedAssets.map((asset) => asset.native_token.denom)
+    const usedDenoms = usedAssets.map((asset: any) => asset.native_token.denom)
     const { chainName } = useChainRoute()
     const assetObjects = getAssetsByDenom(usedDenoms, chainName)
     const assetDecimals = assetObjects.map((asset) => ({ decimal: asset.decimal || 6, denom: asset.base }))
@@ -135,7 +138,7 @@ export const OracleHealth = () => {
     //Calculate the value of usedAssets in USD using basket.collateral_supply_caps.current_supply * price
     const assetValues = useMemo(() => {
         if (!basket || !prices) return []
-        return basket.collateral_supply_caps.map((cap) => {
+        return (basket as any).collateral_supply_caps.map((cap: any) => {
             const assetPrice = prices.find((price) => price.denom === cap.asset_info.native_token.denom)?.price || 0
             const assetDecimal = assetDecimals.find(({ denom }) => denom === cap.asset_info.native_token.denom)?.decimal || 6;
             const assetAmount = shiftDigits(cap.current_supply, -assetDecimal);
@@ -149,7 +152,7 @@ export const OracleHealth = () => {
         if (!poolIDsPerAsset || !totalPoolValues) return []
         return poolIDsPerAsset.map(({ asset_info, pool_IDs }) => {
             const totalValue = pool_IDs.reduce((acc, poolID) => acc + (totalPoolValues[poolID] || 0), 0)
-            return { name: asset_info.native_token.denom, value: totalValue }
+            return { name: (asset_info as any).native_token.denom, value: totalValue }
         })
     }, [poolIDsPerAsset, totalPoolValues])
 
@@ -157,7 +160,7 @@ export const OracleHealth = () => {
 
     //Create health object for each asset using the formula: (assetValue / poolValuesByAsset) * 100
     const healthData = useMemo(() => {
-        return assetValues.map(({ name, value }) => {
+        return assetValues.map(({ name, value }: { name: any; value: number }) => {
             const poolValue = poolValuesByAsset.find((asset) => asset.name === name)?.value
             if (!poolValue) return
             const health = value > poolValue ? 0 : ((poolValue - value) / poolValue) * 100;
@@ -178,8 +181,8 @@ export const OracleHealth = () => {
                 padding: "10px", // Ensures outer gaps are also colored
                 border: "2px solid white",
             }}>
-                {healthData.filter((entry): entry is { name: any; health: number } => entry !== undefined)
-                    .map(({ name, health }) => (
+                {healthData.filter((entry: any): entry is { name: any; health: number } => entry !== undefined)
+                    .map(({ name, health }: { name: any; health: number }) => (
                         <HealthStatus key={name} health={health} label={name} />
                     ))}
 

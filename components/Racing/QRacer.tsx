@@ -74,26 +74,14 @@ const QRacer: React.FC = () => {
       isReady: router.isReady
     });
 
+    // TODO(evm-migration): the legacy Cosmos `chain` query param is gone — chain now
+    // comes from the wagmi account context, so the old chain-presence guard is dropped.
     const nextQuery = { ...router.query, tab: key }
-
-    // Log current chain parameter (don't override)
-    console.log('🔧 QRacer current chain parameter:', nextQuery.chain);
 
     console.log('🔧 QRacer final routing data:', {
       pathname: router.pathname,
       nextQuery,
-      hasChain: !!nextQuery.chain
     });
-
-    if (!nextQuery.chain) {
-      console.error('❌ QRacer CRITICAL: Missing chain parameter!', {
-        pathname: router.pathname,
-        nextQuery,
-        currentPath,
-        pathSegments
-      });
-      return;
-    }
 
     try {
       router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
@@ -141,14 +129,6 @@ const QRacer: React.FC = () => {
           console.log('🔧 QRacer auto-start switching to race tab');
           const nextQuery = { ...router.query, tab: 'race' };
 
-          // Log current chain parameter (don't override)
-          console.log('🔧 QRacer auto-start current chain parameter:', nextQuery.chain);
-
-          if (!nextQuery.chain) {
-            console.error('❌ QRacer auto-start CRITICAL: Missing chain parameter!');
-            return;
-          }
-
           try {
             router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
             console.log('✅ QRacer auto-start route update successful');
@@ -168,14 +148,6 @@ const QRacer: React.FC = () => {
     if (!router.query?.tab) {
       console.log('🔧 QRacer setting default tab:', activeTab);
       const nextQuery = { ...router.query, tab: activeTab };
-
-      // Log current chain parameter (don't override)
-      console.log('🔧 QRacer default tab current chain parameter:', nextQuery.chain);
-
-      if (!nextQuery.chain) {
-        console.error('❌ QRacer default tab CRITICAL: Missing chain parameter!');
-        return;
-      }
 
       try {
         router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });

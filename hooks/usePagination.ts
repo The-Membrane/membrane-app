@@ -15,20 +15,20 @@ interface Filter {
   [key: string]: any
 }
 
-const applySearchFilter = (item: T, search: string): boolean => {
+const applySearchFilter = (item: any, search: string): boolean => {
   const matchesSearch = (value: any) =>
     typeof value === 'string' && value.toLowerCase().includes(search.toLowerCase())
 
   return Object.values(item).some(matchesSearch)
 }
 
-const applyCustomFilter = (item: T, filter: Filter): boolean => {
+const applyCustomFilter = (item: any, filter: Filter): boolean => {
   const matchesFilter = (key: string) => item[key] === filter[key]
 
   return Object.keys(filter).every(matchesFilter)
 }
 
-const applyFilter = (item: T, filter?: Filter, search?: string): boolean => {
+const applyFilter = (item: any, filter?: Filter, search?: string): boolean => {
   if (search) {
     return applySearchFilter(item, search)
   }

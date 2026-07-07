@@ -36,7 +36,9 @@ export const TxDetails = ({ action, onClose }: Props) => {
   //   console.log("refreshed SP queries")
   // }
 
-  const { gasUsed, transactionHash, code } = action.tx.data
+  // TODO(evm-migration): the EVM tx pipeline's TxResult carries only { transactionHash, code }
+  // (hooks/useTransaction.ts) — no gasUsed. Show N/A for gas until a receipt read exposes it.
+  const { transactionHash, code } = action.tx.data
 
   return (
     <ModalContent>
@@ -55,7 +57,7 @@ export const TxDetails = ({ action, onClose }: Props) => {
           <ExplorerLink txHash={transactionHash} />
           <LineItem
             label="Gas used"
-            value={shiftDigits(gasUsed.toString(), -(osmo?.decimal || 6)).toString()}
+            value={"N/A"}
           />
         </Stack>
 

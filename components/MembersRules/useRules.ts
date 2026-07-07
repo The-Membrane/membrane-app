@@ -31,6 +31,7 @@ const store = (set) => ({
 
 
 
+// @ts-ignore
 const useMembersRulesState = create<Store>(persist(store, { name: 'members-rules' }))
 
 export default useMembersRulesState

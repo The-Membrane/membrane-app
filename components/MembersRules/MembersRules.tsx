@@ -4,7 +4,7 @@ import { RulesModal } from './RulesModal'
 
 
 const MembersRules = () => {
-  const { rulesState } = useMembersRulesState()
+  const { rulesState, setRulesState } = useMembersRulesState()
   if (rulesState.show === false && rulesState.show != undefined) return null
   return (
     <Center
@@ -20,7 +20,7 @@ const MembersRules = () => {
       bgRepeat="no-repeat"
       bgPosition="center"
     >
-      <RulesModal />
+      <RulesModal isOpen={rulesState.show} onClose={() => setRulesState({ show: false })} />
     </Center>
   )
 }

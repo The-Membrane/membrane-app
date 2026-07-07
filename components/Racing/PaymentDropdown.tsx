@@ -67,7 +67,8 @@ const PaymentDropdown: React.FC<PaymentDropdownProps> = ({
         if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
     }, [])
 
-    const handleOptionChange = (val: string) => {
+    const handleOptionChange = (value: string | string[]) => {
+        const val = Array.isArray(value) ? value[0] : value
         if (val === 'free') {
             setSelectedOption(null)
         } else {

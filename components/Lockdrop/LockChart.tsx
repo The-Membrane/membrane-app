@@ -106,10 +106,9 @@ const LockChart = () => {
         </Stack>
 
         <TxButton
-          isDisabled={!isGreaterThanZero(incentives?.amount)}
           w="310px"
           isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
-          isDisabled={claim?.simulate.isError || !claim?.simulate.data}
+          isDisabled={!isGreaterThanZero(incentives?.amount) || claim?.simulate.isError || !claim?.simulate.data}
           onClick={() => claim?.tx.mutate()}
         >
           Claim

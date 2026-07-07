@@ -2,11 +2,9 @@ import contracts from '@/config/contracts.json'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import useAppState from '@/persisted-state/useAppState'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import { toUtf8 } from '@cosmjs/encoding'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import type { EvmCall } from '@/services/chain/types'
 
 export interface CarAttribute {
   trait_type: string
@@ -34,12 +32,16 @@ export type UseMintCarParams = {
   onSuccess?: () => void
 }
 
+/**
+ * TODO(evm-migration): the Racing mini-game car NFT contract has NO equivalent in
+ * the Solidity port. This CTA hook returns no msgs so the "mint car" action stays
+ * inert until/if racing contracts are ported. Return shape preserved for consumers.
+ */
 const useMintCar = (params: UseMintCarParams) => {
   const { address } = useWallet()
   const { appState } = useAppState()
 
-  type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
-  const { data: queryData } = useQuery<QueryData>({
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
     queryKey: [
       'mint_car_msgs_creation',
       address ?? null,
@@ -49,39 +51,9 @@ const useMintCar = (params: UseMintCarParams) => {
       params.paymentOption?.amount ?? null,
       params.contractAddress ?? (contracts as any).car ?? null,
     ],
-    queryFn: () => {
-      if (!address) return { msgs: [] }
-
-      const msg = {
-        create_car: {
-          owner: address,
-          token_uri: null,
-          name: params.name,
-        }
-      }
-
-      const funds = params.paymentOption
-        ? [{ denom: params.paymentOption.denom, amount: params.paymentOption.amount }]
-        : []
-
-      const exec = {
-        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-        value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: (params.contractAddress ?? (contracts as any).car) as string,
-          msg: toUtf8(JSON.stringify(msg)),
-          funds,
-        }),
-      } as MsgExecuteContractEncodeObject
-
-      return { msgs: [exec] }
-    },
+    queryFn: () => [] as EvmCall[],
     enabled: !!address,
   })
-
-  const msgs = queryData?.msgs ?? []
-
-  console.log('mint car msgs', msgs)
 
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['neutron balances'] })

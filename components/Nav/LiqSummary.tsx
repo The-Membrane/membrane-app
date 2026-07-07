@@ -37,7 +37,7 @@ export const LiqSummary = ({ liquidations }: Props) => {
           return (
             <SummaryItem
               id={liq.position_id}
-              fee={liq.position_fee}
+              fee={Number(liq.position_fee)}
             />
           )
         })}

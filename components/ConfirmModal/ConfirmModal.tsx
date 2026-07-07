@@ -41,8 +41,8 @@ const ConfirmModal = ({
   const { openConfirmation } = useDittoConfirmation()
   const { chainName } = useChainRoute()
   
-  // Use Ditto for neutron chain, legacy modal for others
-  const shouldUseDitto = chainName === 'neutron' && !useLegacyModal
+  // Use Ditto for Osmosis v2 chain, legacy modal for others
+  const shouldUseDitto = chainName === 'osmosis-v2' && !useLegacyModal
 
   const onModalOpen = () => {
     onOpen()

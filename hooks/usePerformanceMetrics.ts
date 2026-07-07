@@ -49,8 +49,11 @@ export const usePerformanceMetrics = (logToConsole = true) => {
       // Try to get TTI from navigation timing
       if (navigation) {
         // Use domInteractive as a proxy for TTI if interactive is not available
-        metrics.timeToInteractive = navigation.interactive > 0 
-          ? Math.round(navigation.interactive) 
+        // TODO(evm-migration): `interactive` is a legacy non-standard timing field absent
+        // from the typed PerformanceNavigationTiming; cast to read it when present.
+        const navInteractive = (navigation as any).interactive as number | undefined
+        metrics.timeToInteractive = navInteractive && navInteractive > 0
+          ? Math.round(navInteractive)
           : (perfData.domInteractive - perfData.navigationStart)
       } else {
         // Fallback to legacy timing API

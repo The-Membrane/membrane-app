@@ -7,11 +7,9 @@
 import * as _0 from "./Oracle.types";
 import * as _1 from "./Oracle.client";
 import * as _2 from "./Oracle.message-composer";
-import * as _3 from "./Oracle.react-query";
 export namespace contracts {
   export const Oracle = { ..._0,
     ..._1,
-    ..._2,
-    ..._3
+    ..._2
   };
 }

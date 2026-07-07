@@ -34,7 +34,7 @@ type ClaimAssetProps = {
 
 const ClaimAsset = ({ claimable }: ClaimAssetProps) => {
   const { chainName } = useChainRoute()
-  const asset = getAssetByDenom(claimable.info.native_token.denom, chainName)
+  const asset = getAssetByDenom((claimable.info as any).native_token.denom, chainName)
   return (
     <Tr>
       <Td>
@@ -121,8 +121,8 @@ const TokenAllocation = (props: Props) => {
         <TableContainer>
           <Table variant="unstyled">
             <Tbody>
-              {claimables?.map((claimable) => (
-                <ClaimAsset key={claimable.info.native_token.denom} claimable={claimable} />
+              {claimables?.map((claimable: any) => (
+                <ClaimAsset key={(claimable.info as any).native_token.denom} claimable={claimable} />
               ))}
             </Tbody>
           </Table>

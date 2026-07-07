@@ -30,7 +30,9 @@ interface AssetProps {
     maxBorrowLTV?: number;
     maxLTV?: string;
     marketContract: string;
-    asset: Asset;
+    // TODO(evm-migration): optional so callers (NeutronHome index) can render before an asset is
+    // resolved; basket-driven asset selection is null-stubbed under the EVM CDP service.
+    asset?: Asset;
 }
 
 const Mycelium: React.FC<AssetProps> = ({ logo, large, glowColor, balance, price, maxBorrowLTV, maxLTV, marketContract, asset }) => {
@@ -62,10 +64,12 @@ const Mycelium: React.FC<AssetProps> = ({ logo, large, glowColor, balance, price
     // Selected asset state (default to prop asset)
     const [selectedAssetBase, setSelectedAssetBase] = useState<string | undefined>(asset?.base);
     const availableAssets = useMemo<Asset[]>(() => {
-        const bases: string[] = (basket?.collateral_types || []).map((ct: any) => ct?.denom || ct?.base).filter(Boolean);
+        // TODO(evm-migration): basket is null-stubbed (no aggregate basket view in Cdp.sol);
+        // collateral_types has no faithful EVM equivalent here yet, so read defensively.
+        const bases: string[] = ((basket as any)?.collateral_types || []).map((ct: any) => ct?.denom || ct?.base).filter(Boolean);
         if (!chainAssets || !bases.length) return chainAssets || (asset ? [asset] as Asset[] : []);
         return chainAssets.filter((a: Asset) => bases.includes(a.base));
-    }, [basket?.collateral_types, chainAssets, asset]);
+    }, [(basket as any)?.collateral_types, chainAssets, asset]);
 
     // Auto-select first available asset if none selected
     useEffect(() => {
@@ -82,12 +86,12 @@ const Mycelium: React.FC<AssetProps> = ({ logo, large, glowColor, balance, price
     const logoToShow = selectedAsset?.logo || logo;
     // Resolve maxBorrowLTV from basket collateral_types if available, else mock map, else prop
     const resolvedMaxBorrowLTV = useMemo(() => {
-        const ct = basket?.collateral_types?.find((ct: any) => ct?.denom === selectedAsset?.base || ct?.base === selectedAsset?.base);
+        const ct = (basket as any)?.collateral_types?.find((ct: any) => ct?.denom === selectedAsset?.base || ct?.base === selectedAsset?.base);
         const basketVal = ct?.max_loan_to_value;
         const mockVal = selectedAsset?.base ? MOCK_LTVS[selectedAsset.base] : undefined;
         const v = Number((basketVal ?? mockVal ?? maxBorrowLTV ?? 0));
         return isFinite(v) && v > 0 ? v : 0;
-    }, [basket?.collateral_types, selectedAsset?.base, maxBorrowLTV, MOCK_LTVS]);
+    }, [(basket as any)?.collateral_types, selectedAsset?.base, maxBorrowLTV, MOCK_LTVS]);
 
     const maxMultiplier = resolvedMaxBorrowLTV > 0 ? 1 / (1 - resolvedMaxBorrowLTV) : 1;
 
@@ -148,7 +152,7 @@ const Mycelium: React.FC<AssetProps> = ({ logo, large, glowColor, balance, price
     const borrowAmount = (Number(value) / 10).toString();
     const { action: transformExposure } = useTransformExposure({
         marketContract: marketContract,
-        asset: selectedAsset ?? asset,
+        asset: (selectedAsset ?? asset) as Asset,
         managedActionState: managedActionState,
         maxBorrowLTV: resolvedMaxBorrowLTV ?? 0,
         collateralValue: collateralValue,
@@ -559,7 +563,7 @@ const Mycelium: React.FC<AssetProps> = ({ logo, large, glowColor, balance, price
                 >
                     <TransformExposureSummary
                         mode={mode}
-                        asset={selectedAsset ?? asset}
+                        asset={(selectedAsset ?? asset) as Asset}
                         collateralAmount={managedActionState.collateralAmount}
                         multiplier={managedActionState.multiplier}
                         borrowAmount={borrowAmount}

@@ -16,7 +16,7 @@ type Props = {
   }
   
   export const AssetsWithBalanceMenu = ({ value, onChange, assets }: Props) => {
-      return <QASelect options={assets} onChange={onChange} value={value} />
+      return <QASelect options={assets as any} onChange={onChange} value={value} />
   }
   
   type SliderWithInputProps = {
@@ -33,8 +33,8 @@ type Props = {
         const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
 
-        if (num(value).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: max }})
-        else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: value }})
+        if (num(value).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: max } as any })
+        else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: value } as any })
           
       }
   
@@ -45,8 +45,8 @@ type Props = {
           else setInputAmount(parseInt(e.target.value))
   
         setTimeout(() => {
-          if (num(newAmount).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: max }})
-            else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: (parseInt(e.target.value)) }})
+          if (num(newAmount).isGreaterThan(max)) setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: max } as any })
+            else setNFTState({ selectedAsset: { ...NFTState?.selectedAsset, sliderValue: (parseInt(e.target.value)) } as any })
         }, delayTime);  
       }
   
@@ -67,7 +67,7 @@ type Props = {
         <Divider mx="0" mt="0" mb="5"/>
         <HStack justifyContent="space-between">
           <AssetsWithBalanceMenu 
-            value={NFTState?.selectedAsset} 
+            value={NFTState?.selectedAsset as any}
             onChange={onMenuChange}
             assets={NFTState?.assets}
           />

@@ -148,7 +148,9 @@ const Dashboard = () => {
     const { data: prices } = useOraclePrice()
     const { chainName } = useChainRoute()
     const assetData = useMemo(() => {
-        const { TVL, positions } = getProjectTVL({ basket, prices, chainName })
+        // TODO(evm-migration): getProjectTVL is a legacy CosmWasm-shape transform; basket is
+        // null-stubbed and prices is the EVM denom-price shape, so cast through.
+        const { TVL, positions } = getProjectTVL({ basket, prices, chainName } as any)
         //Set TVL in each position object to the outputted TVL
         positions.forEach((position) => {
             position.totalValue = TVL

@@ -295,7 +295,7 @@ export const LTVNumberLineCarousel: React.FC<LTVNumberLineCarouselProps> = ({
                                     px={3}
                                     py={2}
                                     maxW="200px"
-                                    minw="164px"
+                                    minW="164px"
                                 >
                                     <Box
                                         as="button"

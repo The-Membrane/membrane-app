@@ -7,6 +7,7 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import { getProjectTVL } from '@/services/cdp'
+import useAppState from '@/persisted-state/useAppState'
 
 /**
  * Hook to calculate user's system contribution percentage
@@ -14,9 +15,10 @@ import { getProjectTVL } from '@/services/cdp'
  */
 export const useContributionPercentage = () => {
     const { chainName } = useChainRoute()
+    const { appState } = useAppState()
     const { data: metrics } = usePortMetrics()
     const { data: basketPositions } = useUserPositions()
-    const { data: basket } = useBasket()
+    const { data: basket } = useBasket(appState.rpcUrl)
     const { data: prices } = useOraclePrice()
     const assets = useAssets(chainName)
 
@@ -33,9 +35,13 @@ export const useContributionPercentage = () => {
         }
 
         // Calculate user TVL
+        // TODO(evm-migration): useUserPositions now returns the flat EvmUserPosition[] (no nested
+        // `.positions` / CosmWasm `collateral_assets`). Read defensively via any so this falls
+        // through to userTVL=0 until the contribution calc is re-modeled on the EVM shape.
         let userTVL = 0
-        if (basketPositions[0]?.positions) {
-            basketPositions[0].positions.forEach((position: any) => {
+        const bp = basketPositions as any
+        if (bp[0]?.positions) {
+            bp[0].positions.forEach((position: any) => {
                 position.collateral_assets?.forEach((collateral: any) => {
                     const denom = collateral.asset.info.native_token.denom
                     const asset = assets.find((a: any) => a.base === denom)
@@ -47,7 +53,7 @@ export const useContributionPercentage = () => {
         }
 
         // Calculate system TVL (from basket)
-        const systemTVL = getProjectTVL({ basket, prices, chainName })
+        const systemTVL = getProjectTVL({ basket, prices, chainName } as any)
 
         // Calculate TVL contribution percentage
         const tvlContribution = systemTVL > 0 ? (userTVL / systemTVL) * 100 : 0

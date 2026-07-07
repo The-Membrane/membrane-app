@@ -26,9 +26,12 @@ const SelectAsset = (props: Props) => {
     }
   }, [assetsWithOptions])
 
-  const onChange = (value: string) => {
+  // The Select option objects are the collateral assets themselves (spread + label/value),
+  // so the selected option is a valid Asset. Typed as any at the Select seam because the
+  // generic Select props narrow to OptionType.
+  const onChange = (value: any) => {
     console.log("selectedAsset", value)
-    
+
     setBidState({
       selectedAsset: value,
       placeBid: {
@@ -38,7 +41,7 @@ const SelectAsset = (props: Props) => {
     })
   }
 
-  return <Select options={assetsWithOptions} onChange={onChange} value={bidState?.selectedAsset} />
+  return <Select options={(assetsWithOptions ?? []) as any} onChange={onChange} value={bidState?.selectedAsset as any} />
 }
 
 export default SelectAsset

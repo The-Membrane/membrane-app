@@ -18,7 +18,7 @@ const Unstake = () => {
   const stakedBalance = useMemo(() => {
     if (!staked || !mbrnAsset) return '0'
 
-    return shiftDigits(staked?.staked.total_staked, -mbrnAsset?.decimal).toString()
+    return shiftDigits(staked?.staked, -mbrnAsset?.decimal).toString()
   }, [staked, mbrnAsset])
 
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,34 +1,26 @@
-import contracts from '@/config/contracts.json'
-import { BraneAuctionMsgComposer } from '@/contracts/codegen/brane_auction/BraneAuction.message-composer'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
-import { coin } from '@cosmjs/stargate'
-import useNFTState from "./useNFTState";
+import useNFTState from './useNFTState'
 import { queryClient } from '@/pages/_app'
-import { shiftDigits } from '@/helpers/math'
+import type { EvmCall } from '@/services/chain/types'
 
+/**
+ * TODO(evm-migration): the Brane NFT auction (Stargaze) does NOT exist in the Solidity
+ * port — no brane_auction contract was ported. This hook returns no msgs so the
+ * "bid for assets" CTA stays inert; the NFT-auction UI it serves is slated for removal in
+ * the component-layer wave. Return shape (a bare useSimulateAndBroadcast) preserved.
+ */
 const useLiveAssetBid = (assetBidAmount: number) => {
-  const { address } = useWallet('stargaze')
+  const { address } = useWallet()
   const { setNFTState } = useNFTState()
 
-  const { data: msgs } = useQuery<MsgExecuteContractEncodeObject[] | undefined>({
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
     queryKey: ['msg liveAssetbid', address, assetBidAmount],
-    queryFn: () => {
-      if (!address) return [] as MsgExecuteContractEncodeObject[]
-
-      const messageComposer = new BraneAuctionMsgComposer(address, contracts.brane_auction)
-
-      const funds = coin(shiftDigits(assetBidAmount, 6).toString(), "ibc/E94BB144B818CB8061F43E202BEA1E9273B87D6326C8C6F4E6AE71C62FD37854")
-      const msg = messageComposer.bidForAssets([funds])
-
-      return [msg] as MsgExecuteContractEncodeObject[]
-    },
+    queryFn: () => [] as EvmCall[],
     enabled: !!address,
   })
 
-  
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['live asset auction'] })
     queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
@@ -39,9 +31,8 @@ const useLiveAssetBid = (assetBidAmount: number) => {
     msgs,
     enabled: !!msgs,
     onSuccess,
-    amount: "0",
-    queryKey: ['sim asset auction', (msgs?.toString()??"0")],
-    chain_id: 'stargaze'
+    amount: '0',
+    queryKey: ['sim asset auction', msgs?.toString() ?? '0'],
   })
 }
 

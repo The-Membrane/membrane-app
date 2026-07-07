@@ -9,8 +9,10 @@ type Props = {
 }
 
 export const LoadingContent = ({ action }: Props) => {
-  const { wallet, isWalletConnected } = useWallet()
-  const wallentName = wallet?.prettyName || 'wallet'
+  // TODO(evm-migration): cosmos-kit exposed the connected `wallet` (with `.prettyName`);
+  // wagmi exposes the active `connector` whose `.name` is the closest equivalent.
+  const { connector, isWalletConnected } = useWallet()
+  const wallentName = connector?.name || 'wallet'
 
   if (!action?.tx?.isPending) return null
 

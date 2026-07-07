@@ -18,17 +18,17 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
         if (selectedAsset && Number(transactionValue) > 0) {
             return ossifiedDeposits
                 .concat([{ ...selectedAsset, amountValue: transactionValue, txType: "deposit" }])
-                .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit");
+                .filter((asset: any) => asset && asset.amountValue > 0 && asset.txType === "deposit");
         }
         return ossifiedDeposits
-            .filter(asset => asset && asset.amountValue > 0 && asset.txType === "deposit");
+            .filter((asset: any) => asset && asset.amountValue > 0 && asset.txType === "deposit");
     };
 
     const assets = getAssetsList() ?? [];
 
     return (
         <>
-            {assets.map((asset, index) => (
+            {assets.map((asset: any, index: number) => (
                 <React.Fragment key={`${asset.symbol}-${index}`}>
                     <Text
                         as="span"
@@ -144,10 +144,10 @@ export const InitialCDPDeposit = () => {
         });
         console.log("updatedAssets", updatedAssets)
 
-        const { summary, totalUsdValue } = getSummary(updatedAssets);
+        const { summary, totalUsdValue } = getSummary(updatedAssets as any);
         console.log("summary", summary)
 
-        setMintState({ assets: updatedAssets, summary, totalUsdValue });
+        setMintState({ assets: updatedAssets as any, summary: summary as any, totalUsdValue });
     };
 
     const onChange = (value: AssetWithBalance) => {
@@ -185,7 +185,7 @@ export const InitialCDPDeposit = () => {
                     </Stack>
                 )}
 
-                {assetsWithOptions && assetsWithOptions.length != 0 && <><div style={{ width: "fit-content", alignSelf: "center", marginTop: "3%" }}><Select options={assetsWithOptions} onChange={onChange} value={selectedAsset} /></div>
+                {assetsWithOptions && assetsWithOptions.length != 0 && <><div style={{ width: "fit-content", alignSelf: "center", marginTop: "3%" }}><Select options={assetsWithOptions as any} onChange={onChange as any} value={selectedAsset as any} /></div>
                     <HStack mt="2%" width="100%" justifyContent="left">
                         <HStack width="75%">
                             {selectedAsset && selectedAsset.logo && <Image src={selectedAsset?.logo} w="30px" h="30px" />}

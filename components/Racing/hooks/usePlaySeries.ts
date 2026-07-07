@@ -1,12 +1,9 @@
-import contracts from '@/config/contracts.json'
 import useWallet from '@/hooks/useWallet'
 import { useQuery } from '@tanstack/react-query'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
-import { toUtf8 } from '@cosmjs/encoding'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useAppState from '@/persisted-state/useAppState'
 import { queryClient } from '@/pages/_app'
+import type { EvmCall } from '@/services/chain/types'
 
 export type SeriesModeFixed = { type: 'fixed'; ticks: number }
 export type SeriesModeBestOf = { type: 'bestOf'; winsTarget: number }
@@ -24,12 +21,17 @@ export type UsePlaySeriesParams = {
     maxTicks?: number
 }
 
+/**
+ * TODO(evm-migration): the Racing mini-game rpsEngine (Q-learning play-series)
+ * contract has NO equivalent in the Solidity port. This CTA hook returns no msgs so
+ * the "play series" action stays inert until/if racing contracts are ported.
+ * Return shape preserved for consumers.
+ */
 const usePlaySeries = (params: UsePlaySeriesParams) => {
     const { address } = useWallet()
     const { appState } = useAppState()
 
-    type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
-    const { data: queryData } = useQuery<QueryData>({
+    const { data: msgs } = useQuery<EvmCall[] | undefined>({
         queryKey: [
             'rps_play_series_msgs',
             address,
@@ -43,57 +45,9 @@ const usePlaySeries = (params: UsePlaySeriesParams) => {
             params.enableDecay ?? true,
             params.mode
         ],
-        queryFn: () => {
-            console.log('params', params)
-            if (!address) return { msgs: [] }
-            if (!params.carId) return { msgs: [] }
-
-            const carId = params.carId
-            const opponentId = params.opponentId ?? '0'
-
-            const modeMsg = params.mode?.type === 'bestOf'
-                ? { best_of: { wins_target: (params.mode as SeriesModeBestOf).winsTarget } }
-                : { fixed_ticks: { ticks: params.mode?.ticks ?? 10 } }
-
-            const trainingConfig = params.train ? {
-                training_mode: true,
-                epsilon: params.epsilon ?? '0.6',
-                temperature: params.temperature ?? '0.0',
-                enable_epsilon_decay: params.enableDecay ?? true,
-            } : undefined
-
-            const msg = {
-                play_series: {
-                    car_id: carId,
-                    opponent_id: opponentId === '0' ? null : opponentId,
-                    train: params.train ?? false,
-                    training_config: trainingConfig,
-                    reward_config: undefined,
-                    mode: modeMsg,
-
-                }
-            }
-
-            const exec = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: (contracts as any).rpsEngine,
-                    msg: toUtf8(JSON.stringify(msg)),
-                    funds: [],
-                }),
-            } as MsgExecuteContractEncodeObject
-
-            const count = Math.max(1, params.numberOfMatches ?? 1)
-            const msgs = Array.from({ length: count }, () => ({ ...exec }))
-            return { msgs }
-        },
+        queryFn: () => [] as EvmCall[],
         enabled: !!address,
     })
-
-    const msgs = queryData?.msgs ?? []
-
-    console.log('rps msgs', msgs)
 
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['rps_tick_history'] })

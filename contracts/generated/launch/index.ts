@@ -7,11 +7,9 @@
 import * as _8 from "./Launch.types";
 import * as _9 from "./Launch.client";
 import * as _10 from "./Launch.message-composer";
-import * as _11 from "./Launch.react-query";
 export namespace contracts {
   export const Launch = { ..._8,
     ..._9,
-    ..._10,
-    ..._11
+    ..._10
   };
 }

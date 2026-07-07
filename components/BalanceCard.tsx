@@ -9,7 +9,7 @@ import { GrPowerReset } from 'react-icons/gr'
 import { queryClient } from '@/pages/_app'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
-export const Stats = ({ label, value }) => (
+export const Stats = ({ label, value }: { label: string; value: string }) => (
   <Stack gap="1">
 
     {label != "" ? <Text

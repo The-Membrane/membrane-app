@@ -30,7 +30,8 @@ const RestakeButton = (reward: any) => {
 export const ClaimAndRestake = (props: Props) => {
   const { chainName } = useChainRoute()
   const { data } = useStaked(true)
-  const { rewards = [] } = data || {}
+  // TODO(evm-migration): getUserRewards is a null stub on EVM, so rewards is typed never[]; keep it loose.
+  const { rewards = [] } = (data || {}) as { rewards?: any[] }
   const { action: claim } = useStakingClaim(false)
   console.log("CLAIM", claim)
 

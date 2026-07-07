@@ -2,12 +2,10 @@ import contracts from '@/config/contracts.json'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import useAppState from '@/persisted-state/useAppState'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import { toUtf8 } from '@cosmjs/encoding'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import useRacingState from './useRacingState'
+import type { EvmCall } from '@/services/chain/types'
 
 const ENERGY_CONSUMED_PER_TRAINING_SESSION = 5
 
@@ -24,13 +22,18 @@ export type UseRunRaceParams = {
     maxRaceTicks?: number
 }
 
+/**
+ * TODO(evm-migration): the Racing mini-game raceEngine (Q-learning race sim)
+ * contract has NO equivalent in the Solidity port. This CTA hook returns no msgs so
+ * the "run race" action stays inert until/if racing contracts are ported.
+ * Return shape preserved for consumers.
+ */
 const useRunRace = (params: UseRunRaceParams) => {
     const { address } = useWallet()
     const { appState } = useAppState()
     const { racingState, setRacingState, incrementSingularityTrainingSessions } = useRacingState()
 
-    type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
-    const { data: queryData } = useQuery<QueryData>({
+    const { data: msgs } = useQuery<EvmCall[] | undefined>({
         queryKey: [
             'run_race_msgs_creation',
             address,
@@ -46,90 +49,9 @@ const useRunRace = (params: UseRunRaceParams) => {
             params.maxRaceTicks ?? null,
             racingState.rewardConfig ?? null,
         ],
-        queryFn: () => {
-            if (!address) return { msgs: [] }
-            if (!params.trackId || !params.carIds || params.carIds.length === 0) return { msgs: [] }
-
-
-            const carIdsNums = params.carIds.map((id) => id)
-
-            const rewardCfg = racingState.rewardConfig ?? {
-                distance: 3,
-                stuck: -3,
-                wall: -40,
-                no_move: -30,
-                explore: 0,
-                going_backward: {
-                    penalty: -4,
-                    include_progress_towards_finish: true
-                },
-                rank: {
-                    first: 50,
-                    second: 0,
-                    third: 0,
-                    other: 0
-                }
-            }
-            console.log('rewardCfg', rewardCfg)
-
-            const msg = {
-                simulate_race: {
-                    track_id: params.trackId,
-                    car_ids: carIdsNums,
-                    train: params.train ?? false,
-                    pvp: params.pvp ?? false,
-                    training_config: params.train ? {
-                        training_mode: params.train ?? false,
-                        epsilon: params.explorationRate?.toString() ?? "0.6",
-                        temperature: "0.0",
-                        enable_epsilon_decay: params.enableDecay ?? true,
-                    } : undefined,
-                    max_race_ticks: params.maxRaceTicks ?? undefined, // This is different from numberOfRaces - it limits ticks per race, not number of races
-                    reward_config: rewardCfg
-                },
-            }
-
-
-            const exec = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: contracts.raceEngine,
-                    msg: toUtf8(JSON.stringify(msg)),
-                    funds: [],
-                }),
-            } as MsgExecuteContractEncodeObject
-
-            //Add a secondary run that will use no randomness to track the car's new best time.
-            //NOT USING THIS NOW BC RACES ARE EXPENSIVE.
-            // const exec2 = {
-            //     typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-            //     value: MsgExecuteContract.fromPartial({
-            //         sender: address,
-            //         contract: contracts.raceEngine,
-            //         msg: toUtf8(JSON.stringify({
-            //             simulate_race: {
-            //                 track_id: params.trackId,
-            //                 car_ids: carIdsNums,
-            //                 train: false,
-            //                 pvp: params.pvp ?? false,
-            //                 max_race_ticks: params.maxRaceTicks ?? undefined,
-            //             },
-            //         })),
-            //     }),
-            // } as MsgExecuteContractEncodeObject
-
-            // Create multiple race messages based on numberOfRaces
-            const raceCount = params.numberOfRaces ?? 1
-            const msgs = Array.from({ length: raceCount }, () => ({ ...exec }))
-
-
-            return { msgs }
-        },
+        queryFn: () => [] as EvmCall[],
         enabled: !!address,
     })
-
-    const msgs = queryData?.msgs ?? []
 
     const onInitialSuccess = () => {
         if (params.train) {

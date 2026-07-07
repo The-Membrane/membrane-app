@@ -71,7 +71,7 @@ const ProposalLink = ({ link }: { link?: string | null }) => {
       <Text fontSize="sm" color="whiteAlpha.700">
         Link:
       </Text>
-      <Link isExternal href={link} color={colors.link}>
+      <Link isExternal href={link ?? undefined} color={colors.link}>
         proposal discussion
       </Link>
     </HStack>
@@ -146,7 +146,7 @@ const ProposalDescription = ({ description }: { description: string }) => {
 
 const votes = ['for', 'against', 'amend', 'remove', 'align']
 
-const Voted = ({ proposalDetails }) => {
+const Voted = ({ proposalDetails }: { proposalDetails?: any }) => {
   if (!proposalDetails?.voted) return null
 
   const { votedAlign, votedAmend, votedFor, votedAgainst, votedRemove } = proposalDetails
@@ -169,7 +169,7 @@ const Voted = ({ proposalDetails }) => {
   )
 }
 
-const Quorum = ({ requiredQuorum = 0, quorum = 0, isRejected }) => {
+const Quorum = ({ requiredQuorum = 0, quorum = 0, isRejected }: { requiredQuorum?: number; quorum?: number; isRejected?: boolean }) => {
   return (
     <HStack>
       <Text color="whiteAlpha.700">Quorum:</Text>
@@ -206,7 +206,8 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
     (proposal?.status === 'active' || proposal?.status === 'pending') && !proposalDetails?.voted
   const isPending = proposal?.status === 'pending'
 
-  const { days, hours, minutes } = proposal?.daysLeft || {}
+  // TODO(evm-migration): daysLeft is added by the CosmWasm parseProposal transform, not on the ProposalResponse type.
+  const { days, hours, minutes } = (proposal as any)?.daysLeft || {}
   const isEnded = !days && !hours && !minutes
 
   console.log("isEnded?", isEnded)
@@ -272,7 +273,7 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
                           <PowerAction
                             key={v}
                             label={v}
-                            power={proposal.ratio?.[v + 'Ratio']}
+                            power={(proposal.ratio as any)?.[v + 'Ratio']}
                             isSelected={vote === v}
                             onSelect={() => setVote(v as ProposalVoteOption)}
                           />
@@ -283,7 +284,7 @@ const ProposalDetails = ({ proposal, children }: PropsWithChildren<Props>) => {
                 </Stack>
               )}
               <Quorum
-                requiredQuorum={proposal?.requiredQuorum}
+                requiredQuorum={(proposal as any)?.requiredQuorum}
                 quorum={proposalDetails?.quorum}
                 isRejected={proposal?.badge === 'rejected'}
               />

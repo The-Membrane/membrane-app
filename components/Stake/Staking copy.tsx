@@ -12,7 +12,7 @@ const Stake = () => {
   const mbrnAsset = useAssetBySymbol('MBRN')
   const mbrnBalance = useBalanceByAsset(mbrnAsset)
   const [stakeAmount, setStakeAmount] = useState('')
-  const stake = useStake({ amount: stakeAmount })
+  const { action: stake } = useStake({ amount: stakeAmount })
 
   const onInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setStakeAmount(e.target.value)

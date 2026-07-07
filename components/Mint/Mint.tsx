@@ -115,7 +115,9 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
 
   const totalPages = useMemo(() => {
     if (!basketPositions || basketPositions.length === 0) return 1
-    return Math.min(basketPositions[0].positions.length + 1, MAX_CDP_POSITIONS)
+    // TODO(evm-migration): useUserPositions returns EvmUserPosition[] (flat), not the CosmWasm
+    // BasketPositions[] with a nested `.positions` array. Kept null-safe until the position view is remapped.
+    return Math.min((((basketPositions as any)[0]?.positions?.length) ?? 0) + 1, MAX_CDP_POSITIONS)
   }, [basketPositions])
 
 
@@ -155,7 +157,8 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
 
   const { data: prices } = useOraclePrice()
   const positionNumber = mintState.positionNumber
-  const cdp = basketPositions?.[0]?.positions?.[positionNumber - 1] as PositionResponse
+  // TODO(evm-migration): EvmUserPosition[] has no nested `.positions`; cast until the position view is remapped.
+  const cdp = (basketPositions as any)?.[0]?.positions?.[positionNumber - 1] as PositionResponse
   const cdtMarketPrice = useMemo(() => prices?.find((price) => price.denom === denoms.CDT[0])?.price || "1", [prices])
 
 

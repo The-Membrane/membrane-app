@@ -7,11 +7,9 @@
 import * as _24 from "./Positions.types";
 import * as _25 from "./Positions.client";
 import * as _26 from "./Positions.message-composer";
-import * as _27 from "./Positions.react-query";
 export namespace contracts {
   export const Positions = { ..._24,
     ..._25,
-    ..._26,
-    ..._27
+    ..._26
   };
 }

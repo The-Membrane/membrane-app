@@ -32,7 +32,9 @@ export const CollateralizedBundle = ({
       return []
     }
 
-    const positions = getPositions(basketPositions, prices, positionIndex, chainName)
+    // TODO(evm-migration): useUserPositions now returns the flat EvmUserPosition[]; getPositions
+    // is a legacy CosmWasm-shape transform (BasketPositionsResponse[]) — cast at the seam.
+    const positions = getPositions(basketPositions as any, prices, positionIndex, chainName)
     if (!positions || positions.length === 0) return []
 
     return positions
@@ -44,16 +46,18 @@ export const CollateralizedBundle = ({
         const price = num(priceRaw).toNumber()
 
         // Find APY from rates store's lastest_collateral_rates
-        const collateralIndex = basket.collateral_types?.findIndex(
+        // TODO(evm-migration): basket is null-stubbed and useRates returns the flat EvmRatesConfig
+        // (no lastest_collateral_rates); useBasketAssets is []-stubbed. Read defensively via any.
+        const collateralIndex = (basket as any).collateral_types?.findIndex(
           (c: any) => c.asset?.info?.native_token?.denom === position.denom
         )
         const rate = collateralIndex >= 0
-          ? rates?.lastest_collateral_rates?.[collateralIndex]?.rate
+          ? (rates as any)?.lastest_collateral_rates?.[collateralIndex]?.rate
           : null
         const apy = rate ? num(rate).times(100).toNumber() : 0
 
         // Find max LTV from basket assets
-        const basketAsset = basketAssets?.find(ba => ba.asset?.base === position.denom)
+        const basketAsset = (basketAssets as any)?.find((ba: any) => ba.asset?.base === position.denom)
         const maxLTV = basketAsset?.maxLTV || 0
         const maxBorrowLTV = basketAsset?.maxBorrowLTV || 0
 

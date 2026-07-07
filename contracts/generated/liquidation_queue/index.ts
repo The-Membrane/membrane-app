@@ -7,11 +7,9 @@
 import * as _16 from "./LiquidationQueue.types";
 import * as _17 from "./LiquidationQueue.client";
 import * as _18 from "./LiquidationQueue.message-composer";
-import * as _19 from "./LiquidationQueue.react-query";
 export namespace contracts {
   export const LiquidationQueue = { ..._16,
     ..._17,
-    ..._18,
-    ..._19
+    ..._18
   };
 }

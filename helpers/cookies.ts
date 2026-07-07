@@ -36,12 +36,12 @@ export function setSecureCookie(name: string, value: string, days: number): void
   document.cookie = name + "=" + value + expires + "; path=/; Secure; HttpOnly";
 }
 
-export function setObjectCookie(name: string, value: T, days: number): void {
+export function setObjectCookie<T = any>(name: string, value: T, days: number): void {
   const stringValue = JSON.stringify(value);
   setCookie(name, stringValue, days);
 }
 
-export function getObjectCookie(name: string): T | null {
+export function getObjectCookie<T = any>(name: string): T | null {
   const value = getCookie(name);
   if (value) {
     return JSON.parse(value) as T;

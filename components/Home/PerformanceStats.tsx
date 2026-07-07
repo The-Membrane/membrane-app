@@ -30,8 +30,12 @@ const PerformanceStats = ({ positionIndex }: Props) => {
 
   //Set positionID
   const { position, positionID } = useMemo(() => {
-    if (!basketPositions || !basketPositions[0].positions[positionIndex]) return { position: undefined, positionID: undefined }
-    return { position: basketPositions[0].positions[positionIndex], positionID: basketPositions[0].positions[positionIndex].position_id }
+    // TODO(evm-migration): useUserPositions now returns the flat EvmUserPosition[] (no nested
+    // `.positions` / CosmWasm `collateral_assets`). Read defensively so this renders its empty
+    // state until the loop/unloop flow is re-modeled on the EVM position shape.
+    const bp = basketPositions as any
+    if (!bp || !bp[0]?.positions?.[positionIndex]) return { position: undefined, positionID: undefined }
+    return { position: bp[0].positions[positionIndex], positionID: bp[0].positions[positionIndex].position_id }
   }, [basketPositions])
 
   //Get the position value saved in le cookie

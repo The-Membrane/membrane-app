@@ -45,7 +45,7 @@ function SoloLeveling() {
   const { data: rank } = useUserRank()
 
   return (
-    <Stack as="solo-leveling" style={{ marginTop: "6%" }}>
+    <Stack as={"solo-leveling" as any} style={{ marginTop: "6%" }}>
       <HStack justify="space-between" align="center">
         <Text fontSize="1rem" color="whiteAlpha.700">
           <span style={{ fontWeight: "bold", color: "white" }}>Rank {rank}:</span> {parseFloat(points.stats.total_points).toFixed(1)} Points

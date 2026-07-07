@@ -38,12 +38,17 @@ export const StatsTitle = React.memo(() => {
     const { data: prices } = useOraclePrice()
 
     const tvl = useMemo(() =>
-        getProjectTVL({ basket, prices, chainName })
+        // TODO(evm-migration): getProjectTVL is a legacy CosmWasm-shape transform; useBasket is
+        // null-stubbed and useOraclePrice returns the EVM denom-price shape, so cast through.
+        getProjectTVL({ basket, prices, chainName } as any)
         , [basket, prices, chainName])
 
     const mintedAmount = useMemo(() => {
-        if (!basket || !basket.credit_asset || !basket.credit_asset.amount) return 0
-        return shiftDigits(num(basket?.credit_asset.amount).toString(), -6).dp(0).toNumber()
+        // TODO(evm-migration): basket is null-stubbed (no aggregate basket view in Cdp.sol);
+        // credit_asset.amount has no EVM equivalent here yet.
+        const b = basket as any
+        if (!b || !b.credit_asset || !b.credit_asset.amount) return 0
+        return shiftDigits(num(b?.credit_asset.amount).toString(), -6).dp(0).toNumber()
     }, [basket])
 
     return (

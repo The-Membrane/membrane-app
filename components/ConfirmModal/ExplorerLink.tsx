@@ -27,19 +27,14 @@ export const getExplorer = (chain: any | undefined) => {
 
 export const ExplorerLink = ({ txHash }: { txHash: string | undefined }) => {
   const { chain } = useWallet()
-  const [explorer] = useMemo(() => getExplorer(chain), [chain])
 
   if (!txHash) return null
 
-  const chainId = chain?.chain_id
-  let txLink: string | undefined
-  if (chainId === 'pion-1') {
-    txLink = `https://neutron.celat.one/pion-1/txs/${txHash}`
-  } else if (chainId === 'neutron-1') {
-    txLink = `https://neutron.celat.one/neutron-1/txs/${txHash}`
-  } else if (explorer?.tx_page) {
-    txLink = explorer.tx_page.replace('${txHash}', txHash)
-  }
+  // TODO(evm-migration): EVM block explorers expose /tx/<hash>; the base URL comes from the
+  // viem Chain's blockExplorers config (config/evm/chains.ts). Was: Cosmos chain.explorers
+  // priority list + celat.one neutron special-casing (see getExplorer above).
+  const baseUrl = chain?.blockExplorers?.default?.url
+  const txLink = baseUrl ? `${baseUrl.replace(/\/$/, '')}/tx/${txHash}` : undefined
 
   if (!txLink) return null
 

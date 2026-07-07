@@ -24,8 +24,8 @@ const RemoveButton = ({ show, proposalId }: Props) => {
       fontSize="sm"
       colorScheme="red"
       color="black"
-      isLoading={removeProposal.isPending}
-      onClick={() => removeProposal.mutate()}
+      isLoading={removeProposal.tx.isPending}
+      onClick={() => removeProposal.simulate.refetch().then(() => removeProposal.tx.mutate())}
       toggleConnectLabel={false}
     >
       Remove

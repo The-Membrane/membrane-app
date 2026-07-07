@@ -22,12 +22,12 @@ interface Prop {
     assetBidAmount: number
 }
 
-const getMBRNPrice = (prices: Price[] | undefined, MBRN: Asset) => {
+const getMBRNPrice = (prices: Price[] | null | undefined, MBRN: Asset) => {
     const price = prices?.find((price) => price.denom === MBRN?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)
 }
-const getCDTPrice = (prices: Price[] | undefined, cdt: Asset) => {
+const getCDTPrice = (prices: Price[] | null | undefined, cdt: Asset) => {
     const price = prices?.find((price) => price.denom === cdt?.base)
     if (!price) return '0'
     return parseFloat((price.price)).toFixed(4)

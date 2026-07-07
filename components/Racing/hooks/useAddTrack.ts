@@ -1,12 +1,10 @@
 import contracts from '@/config/contracts.json'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import useAppState from '@/persisted-state/useAppState'
 import { useQuery } from '@tanstack/react-query'
-import { toUtf8 } from '@cosmjs/encoding'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { queryClient } from '@/pages/_app'
+import type { EvmCall } from '@/services/chain/types'
 
 export interface TileProperties {
   speed_modifier: number
@@ -27,50 +25,26 @@ export type UseAddTrackParams = {
   contractAddress?: string
 }
 
+/**
+ * TODO(evm-migration): the Racing mini-game (Q-learning racer / trackManager,
+ * raceEngine, byteMinter, car NFT, tournament contracts) has NO equivalent in the
+ * Solidity port. This CTA hook returns no msgs so the "add track" action stays inert
+ * until/if racing contracts are ported. Return shape preserved for consumers.
+ */
 const useAddTrack = (params: UseAddTrackParams) => {
   const { address } = useWallet()
   const { appState } = useAppState()
 
-  type QueryData = {
-    msgs: MsgExecuteContractEncodeObject[]
-  }
-  const { data: queryData } = useQuery<QueryData>({
+  const { data: msgs } = useQuery<EvmCall[] | undefined>({
     queryKey: [
       'add_track_msgs_creation',
       address,
       appState.rpcUrl,
       params
     ],
-    queryFn: () => {
-      if (!address || !params.width || !params.height) { console.log("create trackearly return", address, params.width, params.height); return { msgs: [] } }
-      var msgs = [] as MsgExecuteContractEncodeObject[]
-
-      let addTrackMsg = {
-        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-        value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: contracts.trackManager,
-          msg: toUtf8(JSON.stringify({
-            add_track: {
-              name: params.name.trim(),
-              width: params.width,
-              height: params.height,
-              layout: params.layout,
-            }
-          })),
-          funds: []
-        })
-      } as MsgExecuteContractEncodeObject
-      msgs.push(addTrackMsg)
-
-      console.log("add track msgs:", msgs)
-
-      return { msgs }
-    },
+    queryFn: () => [] as EvmCall[],
     enabled: !!address,
   })
-
-  const msgs = queryData?.msgs ?? []
 
   const onInitialSuccess = () => {
     console.log('Track added successfully, invalidating caches...')

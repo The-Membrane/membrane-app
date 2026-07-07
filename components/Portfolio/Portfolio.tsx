@@ -868,8 +868,11 @@ const Portfolio: React.FC = () => {
   }, [userIntents]);
 
   const cdpPositions = useMemo(() => {
-    if (basketPositions && basketPositions[0] && basketPositions[0].positions) {
-      return basketPositions[0].positions
+    // TODO(evm-migration): useUserPositions now returns the flat EvmUserPosition[] (no nested
+    // `.positions` / CosmWasm `collateral_assets`); read defensively until re-modeled.
+    const bp = basketPositions as any
+    if (bp && bp[0] && bp[0].positions) {
+      return bp[0].positions
         .map((position: any, index: number) => ({ position, positionNumber: index + 1 }))
         .filter(({ position }: { position: any }) =>
           neuroGuardIntents.find((intent: any) => (intent.position_id ?? 0).toString() === position.position_id) === undefined
@@ -902,7 +905,8 @@ const Portfolio: React.FC = () => {
 
   // Get all prices (oracle)
   const { data: prices = [] } = useOraclePrice();
-  const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price?.price || "1";
+  // TODO(evm-migration): basket is null-stubbed; credit_price has no EVM equivalent here yet.
+  const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || (basket as any)?.credit_price?.price || "1";
 
   // Get debt price (use first static market)
   const { data: debtPriceData } = useMarketDebtPrice(marketsToQuery[0]?.address);
@@ -1030,7 +1034,7 @@ const Portfolio: React.FC = () => {
 
   // Compute global stats from filteredPositions
   const cdpMetrics = useMemo(() => {
-    if (!cdpPositions.length || !prices.length || !assets.length || !cdtMarketPrice) {
+    if (!cdpPositions.length || !prices?.length || !assets.length || !cdtMarketPrice) {
       return { tvl: new BigNumber(0), debt: new BigNumber(0) };
     }
 
@@ -1045,7 +1049,7 @@ const Portfolio: React.FC = () => {
       // Calculate TVL
       cdp.position.collateral_assets.forEach((collateral: any) => {
         const assetInfo = assets.find(a => a.base === collateral.asset.info.native_token.denom);
-        const priceInfo = prices.find(p => p.denom === collateral.asset.info.native_token.denom);
+        const priceInfo = prices?.find(p => p.denom === collateral.asset.info.native_token.denom);
 
         if (assetInfo && priceInfo) {
           const collateralAmount = shiftDigits(collateral.asset.amount, -(assetInfo.decimal || 6));

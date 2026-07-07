@@ -50,7 +50,7 @@ function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnable
     }, [claimsDisabled, liquidateDisabled, enabled])
 
     return (
-        <Stack as="uniButtons" gap="1">
+        <Stack as={"uniButtons" as any} gap="1">
             {/* Claim Button */}
             <ConfirmModal
                 label={'Claim'}

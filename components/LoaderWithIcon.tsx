@@ -4,7 +4,9 @@ import { Box, Spinner, Image } from '@chakra-ui/react'
 import React from 'react'
 
 const LoaderWithIcon = () => {
-  const { wallet } = useWallet()
+  // TODO(evm-migration): cosmos-kit exposed the connected `wallet` (with a `.logo`); wagmi
+  // exposes the active `connector` whose `.icon` is the closest equivalent.
+  const { connector } = useWallet()
 
   return (
     <Box position="relative">
@@ -27,7 +29,7 @@ const LoaderWithIcon = () => {
         top="48%"
         transform="translate(-50%, -50%)"
         borderRadius="full"
-        src={wallet?.logo}
+        src={connector?.icon}
       />
     </Box>
   )

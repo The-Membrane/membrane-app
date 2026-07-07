@@ -2,12 +2,10 @@ import contracts from '@/config/contracts.json'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import useAppState from '@/persisted-state/useAppState'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import { toUtf8 } from '@cosmjs/encoding'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
 import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
+import type { EvmCall } from '@/services/chain/types'
 
 export type UseGenerateMazeParams = {
     onSuccess?: () => void
@@ -15,56 +13,24 @@ export type UseGenerateMazeParams = {
     validMazeId?: string | null
 }
 
+/**
+ * TODO(evm-migration): the Racing mini-game byteMinter/maze contract has NO
+ * equivalent in the Solidity port. This CTA hook returns no msgs so the "generate
+ * maze" action stays inert until/if racing contracts are ported. Return shape preserved.
+ */
 const useGenerateMaze = (params: UseGenerateMazeParams) => {
     const { address } = useWallet()
     const { appState } = useAppState()
 
-    type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
-    const { data: queryData } = useQuery<QueryData>({
+    const { data: msgs } = useQuery<EvmCall[] | undefined>({
         queryKey: [
             'generate_maze_and_start_window_msgs_creation',
             address,
             appState.rpcUrl,
         ],
-        queryFn: () => {
-            if (!address) return { msgs: [] }
-
-            const generateMazeMsg = {
-                generate_maze: {
-                    name: `Maze on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${['st', 'nd', 'rd'][new Date().getDate() % 10 - 1] || 'th'} @ ${new Date().getHours().toString().padStart(2, '0')}${new Date().getMinutes().toString().padStart(2, '0')}`
-                },
-            }
-
-            const startNewWindowMsg = {
-                start_new_windows: {},
-            }
-
-            const generateMazeExec = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: (contracts as any).byteMinter,
-                    msg: toUtf8(JSON.stringify(generateMazeMsg)),
-                    funds: [],
-                }),
-            } as MsgExecuteContractEncodeObject
-
-            const startNewWindowExec = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: (contracts as any).byteMinter,
-                    msg: toUtf8(JSON.stringify(startNewWindowMsg)),
-                    funds: [],
-                }),
-            } as MsgExecuteContractEncodeObject
-
-            return { msgs: [generateMazeExec, startNewWindowExec] }
-        },
+        queryFn: () => [] as EvmCall[],
         enabled: !!address,
     })
-
-    const msgs = queryData?.msgs ?? []
     // console.log("generate maze and start window msgs", msgs)
 
     const onInitialSuccess = () => {

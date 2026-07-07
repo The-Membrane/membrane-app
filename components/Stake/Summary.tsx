@@ -44,7 +44,8 @@ const SummaryItem = ({ label, amount = 0, badge, showBadge = true, logo }: Summa
 export const Summary = () => {
   const { stakeState } = useStakeState()
   const { asset } = stakeState
-  const logo = getAssetLogo(asset!)
+  // TODO(evm-migration): stakeState.asset is the legacy @chain-registry Asset; getAssetLogo expects the EVM helpers/chain Asset.
+  const logo = getAssetLogo(asset as any)
 
   return (
     <Stack h="max-content" overflow="auto" w="full">

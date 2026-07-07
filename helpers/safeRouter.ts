@@ -34,8 +34,6 @@ export const safeRouterReplace = (
         console.error('❌ CRITICAL: Missing chain parameter in route update!', {
             pathname: router.pathname,
             nextQuery,
-            currentPath,
-            pathSegments,
             updates
         });
         return false;

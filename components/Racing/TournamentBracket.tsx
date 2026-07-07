@@ -157,7 +157,7 @@ const TournamentBracket: React.FC = () => {
 
     // Get car names (you'll need to implement this based on your car data structure)
     const getCarName = (carId: number, ownedCars: any): string => {
-        const carName = (ownedCars?.find(car => car.id === carId.toString()))?.name
+        const carName = (ownedCars?.find((car: any) => car.id === carId.toString()))?.name
         if (carName) {
             return carName
         }
@@ -168,7 +168,7 @@ const TournamentBracket: React.FC = () => {
     // Check if a car is already registered
     const isCarRegistered = (carId: number): boolean => {
         const result = registrations?.registrations.some(reg =>
-            reg.car_id === carId || reg.car_id === carId.toString() || reg.car_id.toString() === carId.toString()
+            String(reg.car_id) === String(carId)
         ) ?? false
         // console.log('isCarRegistered:', {
         //     carId,

@@ -2,7 +2,7 @@ import { colors } from "@/config/defaults";
 import { Stack, Text } from "@chakra-ui/react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 
-const getColorFromName = (name) => {
+const getColorFromName = (name: string) => {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -11,7 +11,7 @@ const getColorFromName = (name) => {
     return `hsl(${hue}, 10%, 50%)`; // Muted, neutral tones
 };
 
-const AssetPieChart = ({ data }) => {
+const AssetPieChart = ({ data }: { data: any[] }) => {
     return (
         <Stack width={"55%"}>
             <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Collateral Composition</Text>
@@ -27,7 +27,7 @@ const AssetPieChart = ({ data }) => {
                         percent > 0.1 ? `${name}: ${(percent * 100).toFixed(1)}%` : ""
                     }
                 >
-                    {data.map((entry) => (
+                    {data.map((entry: any) => (
                         <Cell key={entry.name} fill={getColorFromName(entry.name)} />
                     ))}
                 </Pie>

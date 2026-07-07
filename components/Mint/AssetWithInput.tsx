@@ -82,7 +82,7 @@ export const AssetWithInput = ({ asset, label }: AssetWithInputProps) => {
     });
 
     const { summary, totalUsdValue } = getSummary(updatedAssets);
-    setMintState({ assets: updatedAssets, summary, totalUsdValue });
+    setMintState({ assets: updatedAssets, summary: summary as any, totalUsdValue });
     console.log("updatedAssets", updatedAssets);
     console.log("summary", summary);
     console.log("totalUsdValue", totalUsdValue);

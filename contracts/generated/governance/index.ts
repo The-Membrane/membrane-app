@@ -7,11 +7,9 @@
 import * as _4 from "./Governance.types";
 import * as _5 from "./Governance.client";
 import * as _6 from "./Governance.message-composer";
-import * as _7 from "./Governance.react-query";
 export namespace contracts {
   export const Governance = { ..._4,
     ..._5,
-    ..._6,
-    ..._7
+    ..._6
   };
 }

@@ -9,5 +9,6 @@ export { FunnelAnimation } from './FunnelAnimation'
 export { HexGraphic } from './HexGraphic'
 export { MetricsCard } from './MetricsCard'
 export { EpochRevenueCard } from './EpochRevenueCard'
-export type { LTVSegment } from './HexGraphic'
+// TODO(evm-migration): LTVSegment was never exported from HexGraphic (it's a local interface in
+// WeldingArmScene.tsx and has no importers via this barrel), so the broken re-export is dropped.
 

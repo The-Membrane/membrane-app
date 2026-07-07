@@ -7,11 +7,9 @@
 import * as _20 from "./StabilityPool.types";
 import * as _21 from "./StabilityPool.client";
 import * as _22 from "./StabilityPool.message-composer";
-import * as _23 from "./StabilityPool.react-query";
 export namespace contracts {
   export const StabilityPool = { ..._20,
     ..._21,
-    ..._22,
-    ..._23
+    ..._22
   };
 }

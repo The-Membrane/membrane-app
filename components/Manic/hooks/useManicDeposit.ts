@@ -1,13 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
-import contracts from '@/config/contracts.json'
-import { EarnMsgComposer } from '@/contracts/codegen/earn/Earn.message-composer'
-import { shiftDigits } from '@/helpers/math'
-import { useAssetBySymbol } from '@/hooks/useAssets'
-import { coin } from '@cosmjs/stargate'
+import type { EvmCall } from '@/services/chain/types'
 
 /**
  * Parameters for depositing USDC to the looping vault
@@ -20,53 +15,21 @@ interface UseManicDepositParams {
 }
 
 /**
- * Hook to deposit USDC to create/add to a looping position.
- * 
- * Uses the Earn contract's `enterVault` function to deposit USDC.
- * 
- * @example
- * ```typescript
- * const deposit = useManicDeposit({
- *   amount: '1000',
- *   txSuccess: () => console.log('Deposit successful!'),
- * })
- * 
- * // Use with Ditto confirmation
- * openConfirmation(deposit.action, <Details />, { label: 'Deposit', actionType: 'deposit' })
- * ```
+ * TODO(evm-migration): the Manic / USDC-looping "Earn" vault does NOT exist in the Solidity
+ * port — no earn (margin/looping) contract was ported. This hook returns no msgs so the
+ * deposit CTA stays inert; the Manic UI it serves is slated for removal in the
+ * component-layer wave. {action, msgs} shape and params preserved.
  */
-const useManicDeposit = ({
-  amount,
-  txSuccess,
-}: UseManicDepositParams) => {
+const useManicDeposit = ({ amount, txSuccess }: UseManicDepositParams) => {
   const { address } = useWallet()
-  const usdcAsset = useAssetBySymbol('USDC')
-  const earnContract = contracts.earn
 
-  type QueryData = { msgs: MsgExecuteContractEncodeObject[] | undefined }
-
-  const { data: queryData } = useQuery<QueryData>({
+  const { data: queryMsgs } = useQuery<EvmCall[] | undefined>({
     queryKey: ['manic_deposit', 'msgs', address, amount],
-    queryFn: () => {
-      if (!address || !amount || !usdcAsset) {
-        return { msgs: undefined }
-      }
-      if (!earnContract || earnContract === '') {
-        return { msgs: undefined }
-      }
-
-      const microAmount = shiftDigits(amount, 6).dp(0).toString()
-      const funds = [coin(microAmount, usdcAsset.base)]
-
-      const messageComposer = new EarnMsgComposer(address, earnContract)
-      const msg = messageComposer.enterVault(funds)
-
-      return { msgs: [msg] }
-    },
-    enabled: !!address && !!amount && !!usdcAsset,
+    queryFn: () => [] as EvmCall[],
+    enabled: !!address && !!amount,
   })
 
-  const msgs = queryData?.msgs ?? []
+  const msgs = queryMsgs ?? []
 
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['usdc_looping_position'] })
@@ -77,7 +40,7 @@ const useManicDeposit = ({
 
   const action = useSimulateAndBroadcast({
     msgs,
-    queryKey: ['manic_deposit_sim', (msgs?.toString() ?? '0')],
+    queryKey: ['manic_deposit_sim', msgs?.toString() ?? '0'],
     amount,
     enabled: !!msgs?.length,
     onSuccess,
@@ -90,29 +53,3 @@ const useManicDeposit = ({
 }
 
 export default useManicDeposit
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

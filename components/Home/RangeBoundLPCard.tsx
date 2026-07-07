@@ -155,7 +155,9 @@ const RangeBoundLPCard = () => {
   const revenueDistributionThreshold = 50000000
   const percentToDistribution = useMemo(() => {
     if (!basket) return 0
-    return num(basket?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()
+    // TODO(evm-migration): basket is null-stubbed (no aggregate basket view in Cdp.sol);
+    // pending_revenue has no EVM equivalent here yet.
+    return num((basket as any)?.pending_revenue).dividedBy(revenueDistributionThreshold).toNumber()
 
   }, [basket])
 

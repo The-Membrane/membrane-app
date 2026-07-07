@@ -1,10 +1,12 @@
-// LTV can be Decimal, string, or number
+// LTV can be a Decimal-like object (with toString), string, or number.
+// TODO(evm-migration): the CosmWasm `Decimal` type is gone; accept any toString-able object.
+type DecimalLike = { toString(): string }
 
 /**
  * Maps LTV to layer number (0-9)
  * Layers: 60-63, 63-66, 66-69, 69-72, 72-75, 75-78, 78-81, 81-84, 84-87, 87-90
  */
-export const getLTVLayer = (ltv: Decimal | string | number): number => {
+export const getLTVLayer = (ltv: DecimalLike | string | number): number => {
     const ltvNum = typeof ltv === 'string'
         ? parseFloat(ltv)
         : typeof ltv === 'number'

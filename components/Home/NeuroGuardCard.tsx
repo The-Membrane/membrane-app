@@ -920,7 +920,9 @@ const NeuroGuardCard = () => {
 
     // console.log(" calculatedRBYield")
     if (!basket || !interest || !TVL) return "0";
-    return simpleBoundedAPRCalc(shiftDigits(basket.credit_asset.amount, -6).toNumber(), interest, TVL, 0);
+    // TODO(evm-migration): basket is null-stubbed (no aggregate basket view in Cdp.sol) and
+    // useCollateralInterest returns the flat EVM {denom,rate}[] shape, not CollateralInterestResponse.
+    return simpleBoundedAPRCalc(shiftDigits((basket as any).credit_asset.amount, -6).toNumber(), interest as any, TVL, 0);
   }, [basket, interest, TVL]);
   // // console.log(calculatedRBYield, basket, interest, TVL)
 
@@ -931,7 +933,8 @@ const NeuroGuardCard = () => {
   ////
 
 
-  const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || basket?.credit_price.price || "1"
+  // TODO(evm-migration): basket is null-stubbed; credit_price has no EVM equivalent here yet.
+  const cdtMarketPrice = prices?.find((price) => price.denom === denoms.CDT[0])?.price || (basket as any)?.credit_price.price || "1"
   // const usdcPrice = useMemo(() => {
   //   // console.log(" usdcPrice")
   //   return prices?.find((price) => price.denom === denoms.USDC[0])?.price ?? "1"
@@ -962,7 +965,7 @@ const NeuroGuardCard = () => {
     }];
 
     return assetsPlusCDT
-      .filter(asset => asset && walletDenoms.includes(asset.base))
+      .filter(asset => asset && walletDenoms.includes(asset.base as string))
       .map(asset => ({
         ...asset,
         value: asset?.symbol,
@@ -1025,7 +1028,9 @@ const NeuroGuardCard = () => {
       //Iterate thru intents and find all intents that are for NeuroGuard (i.e. have a position ID)
       return neuroGuardIntents.map((intent: any) => {
         // // console.log("big checkers", neuroGuardIntents, intent, basketPositions)
-        let position = basketPositions[0].positions.find((position: any) => position.position_id === (intent.position_id ?? 0).toString())
+        // TODO(evm-migration): useUserPositions now returns the flat EvmUserPosition[] (no nested
+        // `.positions` / CosmWasm `collateral_assets`); read defensively until re-modeled.
+        let position = (basketPositions as any)[0]?.positions?.find((position: any) => position.position_id === (intent.position_id ?? 0).toString())
         // // console.log("position", basketPositions[0].positions[0].position_id,(intent.position_id??0).toString(), basketPositions[0].positions[0].position_id === (intent.position_id??0).toString())
         // // console.log("position", position)
         if (position === undefined) return
@@ -1035,7 +1040,7 @@ const NeuroGuardCard = () => {
         let fullAssetInfo = assets?.find((p: any) => p.base === asset.asset.info.native_token.denom)
         let assetDecimals = fullAssetInfo?.decimal ?? 0
         let assetValue = shiftDigits(asset.asset.amount, -(assetDecimals)).times(assetPrice)
-        let creditPrice = basket.credit_price.price
+        let creditPrice = (basket as any).credit_price.price
         let creditValue = shiftDigits(position.credit_amount, -6).times(creditPrice)
         let LTV = creditValue.dividedBy(assetValue).toString()
 
@@ -1061,7 +1066,8 @@ const NeuroGuardCard = () => {
   //Iterate thru positions and find all positions that aren't for NeuroGuard (i.e. don't have a position ID)
   const nonNeuroGuardPositions = useMemo(() => {
     if (basketPositions) {
-      return basketPositions[0].positions
+      // TODO(evm-migration): flat EvmUserPosition[] has no nested `.positions`; read defensively.
+      return ((basketPositions as any)[0]?.positions ?? [])
         .map((position: any, index: number) => ({ position, positionNumber: index + 1 }))
         .filter(({ position }: { position: any }) =>
           neuroGuardIntents.find((intent: any) => (intent.position_id ?? 0).toString() === position.position_id) === undefined

@@ -19,8 +19,10 @@ const MotionBox = motion(Box)
  * Loading View - Shown while transaction is pending
  */
 const TxLoadingView: React.FC<{ isApproved: boolean }> = ({ isApproved }) => {
-    const { wallet } = useWallet()
-    const walletName = wallet?.prettyName || 'wallet'
+    // TODO(evm-migration): cosmos-kit exposed the connected `wallet` (with `.prettyName`);
+    // wagmi exposes the active `connector` whose `.name` is the closest equivalent.
+    const { connector } = useWallet()
+    const walletName = connector?.name || 'wallet'
 
     return (
         <MotionBox
@@ -184,16 +186,14 @@ const TxSuccessView: React.FC<{
     }, [isSuccess, pointsData, previousPoints])
 
     // Build explorer link
-    const [explorer] = getExplorer(chain) || []
-    const chainId = chain?.chain_id
-    let txLink: string | undefined
-    if (chainId === 'pion-1') {
-        txLink = `https://neutron.celat.one/pion-1/txs/${transactionHash}`
-    } else if (chainId === 'neutron-1') {
-        txLink = `https://neutron.celat.one/neutron-1/txs/${transactionHash}`
-    } else if (explorer?.tx_page) {
-        txLink = explorer.tx_page.replace('${txHash}', transactionHash || '')
-    }
+    // TODO(evm-migration): EVM block explorers expose /tx/<hash>; the base URL comes from the
+    // viem Chain's blockExplorers config (config/evm/chains.ts). Was: Cosmos chain.explorers
+    // priority list + celat.one neutron special-casing.
+    const explorerBaseUrl = chain?.blockExplorers?.default?.url
+    const txLink =
+        explorerBaseUrl && transactionHash
+            ? `${explorerBaseUrl.replace(/\/$/, '')}/tx/${transactionHash}`
+            : undefined
 
     const first4 = transactionHash?.slice(0, 4) || ''
     const last4 = transactionHash?.slice(-4) || ''
@@ -420,7 +420,7 @@ export const TxConfirmationSection: React.FC = () => {
                         onConfirm={confirmTransaction}
                         onClose={closeConfirmation}
                         canConfirm={canConfirm}
-                        isLoading={isLoading}
+                        isLoading={isLoading ?? false}
                         error={simulateError}
                     >
                         {children}

@@ -7,11 +7,9 @@
 import * as _28 from "./Staking.types";
 import * as _29 from "./Staking.client";
 import * as _30 from "./Staking.message-composer";
-import * as _31 from "./Staking.react-query";
 export namespace contracts {
   export const Staking = { ..._28,
     ..._29,
-    ..._30,
-    ..._31
+    ..._30
   };
 }

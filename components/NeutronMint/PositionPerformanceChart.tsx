@@ -60,7 +60,9 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
     if (!basketPositions || basketPositions.length === 0 || !prices) {
       return []
     }
-    return getPositions(basketPositions, prices, positionIndex, chainName) || []
+    // TODO(evm-migration): useUserPositions now returns the flat EvmUserPosition[]; getPositions
+    // is a legacy CosmWasm-shape transform (BasketPositionsResponse[]) — cast at the seam.
+    return getPositions(basketPositions as any, prices, positionIndex, chainName) || []
   }, [basketPositions, prices, positionIndex, chainName])
 
   // Check if user has a position

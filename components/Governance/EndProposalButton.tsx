@@ -21,8 +21,8 @@ const EndProposalButton = ({ show, proposalId }: Props) => {
       px="5"
       w="fit-content"
       fontSize="sm"
-      isLoading={endProposal.isPending}
-      onClick={() => endProposal.mutate()}
+      isLoading={endProposal.tx.isPending}
+      onClick={() => endProposal.simulate.refetch().then(() => endProposal.tx.mutate())}
       toggleConnectLabel={false}
     >
       End Proposal

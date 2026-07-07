@@ -28,7 +28,8 @@ const ActionButtons = ({
 }: Props) => {
   const { isWalletConnected, connect } = useWallet()
 
-  const { days, hours, minutes } = proposal?.daysLeft || {}
+  // TODO(evm-migration): daysLeft is added by the CosmWasm parseProposal transform, not on the ProposalResponse type.
+  const { days, hours, minutes } = (proposal as any)?.daysLeft || {}
   const isEnded = !days && !hours && !minutes
 
   if (!isWalletConnected) {

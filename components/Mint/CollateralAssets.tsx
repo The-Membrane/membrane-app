@@ -50,7 +50,8 @@ const CollateralAssets = () => {
     }
   }, [toggle, mintState.transactionType])
 
-  const showInitialCDPDeposit = basketPositions !== undefined && basketPositions.length > 0 && mintState.positionNumber <= basketPositions[0].positions.length
+  // TODO(evm-migration): useUserPositions returns EvmUserPosition[] (flat), not CosmWasm BasketPositions[] with `.positions`.
+  const showInitialCDPDeposit = !!basketPositions && basketPositions.length > 0 && mintState.positionNumber <= (((basketPositions as any)[0]?.positions?.length) ?? 0)
 
   return (
     <Stack gap={showInitialCDPDeposit ? "1.5rem" : "0.5rem"}>

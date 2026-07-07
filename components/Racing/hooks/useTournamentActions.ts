@@ -1,17 +1,21 @@
-import contracts from '@/config/contracts.json'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import useAppState from '@/persisted-state/useAppState'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { useQuery } from '@tanstack/react-query'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import { toUtf8 } from '@cosmjs/encoding'
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx'
+import type { EvmCall } from '@/services/chain/types'
 
 export type TrainingPaymentOption = {
     denom: string
     amount: string
 }
+
+/**
+ * TODO(evm-migration): the Racing mini-game tournament contract has NO equivalent in
+ * the Solidity port. These CTA hooks return no msgs so tournament actions (register,
+ * run next match, start tournament) stay inert until/if racing contracts are ported.
+ * Return shapes preserved for consumers.
+ */
 
 // Hook for registering for tournament
 export const useRegisterForTournament = (params: {
@@ -23,8 +27,7 @@ export const useRegisterForTournament = (params: {
     const { address } = useWallet()
     const { appState } = useAppState()
 
-    type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
-    const { data: queryData } = useQuery<QueryData>({
+    const { data: msgs } = useQuery<EvmCall[] | undefined>({
         queryKey: [
             'register_tournament_msgs',
             address ?? null,
@@ -34,37 +37,9 @@ export const useRegisterForTournament = (params: {
             params.paymentOption?.amount ?? null,
             params.isRegistered ?? null,
         ],
-        queryFn: () => {
-            if (!address || params.carId == null || params.isRegistered) return { msgs: [] }
-
-            const msg = {
-                register_for_tournament: {
-                    car_id: params.carId.toString(),
-                }
-            }
-            console.log('msg', msg)
-            console.log('params.carId', params.carId)
-
-            const funds = params.paymentOption
-                ? [{ denom: params.paymentOption.denom, amount: params.paymentOption.amount }]
-                : []
-
-            const exec = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: (contracts as any).tournament as string,
-                    msg: toUtf8(JSON.stringify(msg)),
-                    funds,
-                }),
-            } as MsgExecuteContractEncodeObject
-
-            return { msgs: [exec] }
-        },
+        queryFn: () => [] as EvmCall[],
         enabled: !!address && params.carId != null,
     })
-
-    const msgs = queryData?.msgs ?? []
 
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['tournament'] })
@@ -94,36 +69,15 @@ export const useRunNextMatch = (params: {
     const { address } = useWallet()
     const { appState } = useAppState()
 
-    type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
-    const { data: queryData } = useQuery<QueryData>({
+    const { data: msgs } = useQuery<EvmCall[] | undefined>({
         queryKey: [
             'run_next_match_msgs',
             address ?? null,
             appState.rpcUrl,
         ],
-        queryFn: () => {
-            if (!address) return { msgs: [] }
-
-            const msg = {
-                run_next_match: {}
-            }
-
-            const exec = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: (contracts as any).tournament as string,
-                    msg: toUtf8(JSON.stringify(msg)),
-                    funds: [],
-                }),
-            } as MsgExecuteContractEncodeObject
-
-            return { msgs: [exec] }
-        },
+        queryFn: () => [] as EvmCall[],
         enabled: !!address,
     })
-
-    const msgs = queryData?.msgs ?? []
 
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['tournament'] })
@@ -153,8 +107,7 @@ export const useStartTournament = (params: {
     const { address } = useWallet()
     const { appState } = useAppState()
 
-    type QueryData = { msgs: MsgExecuteContractEncodeObject[] }
-    const { data: queryData } = useQuery<QueryData>({
+    const { data: msgs } = useQuery<EvmCall[] | undefined>({
         queryKey: [
             'start_tournament_msgs',
             address ?? null,
@@ -162,36 +115,9 @@ export const useStartTournament = (params: {
             params.trackId,
             params.maxParticipants ?? null,
         ],
-        queryFn: () => {
-            if (!address) return { msgs: [] }
-
-            const msg = {
-                start_tournament: {
-                    criteria: params.criteria,
-                    track_id: params.trackId,
-                    max_participants: params.maxParticipants,
-                    allow_free_registration: params.allowFreeRegistration,
-                    registration_payment_options: params.registrationPaymentOptions,
-                    max_ticks: params.maxTicks,
-                }
-            }
-
-            const exec = {
-                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-                value: MsgExecuteContract.fromPartial({
-                    sender: address,
-                    contract: (contracts as any).tournament as string,
-                    msg: toUtf8(JSON.stringify(msg)),
-                    funds: [],
-                }),
-            } as MsgExecuteContractEncodeObject
-
-            return { msgs: [exec] }
-        },
+        queryFn: () => [] as EvmCall[],
         enabled: !!address,
     })
-
-    const msgs = queryData?.msgs ?? []
 
     const onInitialSuccess = () => {
         queryClient.invalidateQueries({ queryKey: ['tournament'] })

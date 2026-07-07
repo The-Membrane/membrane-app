@@ -8,13 +8,15 @@ interface DraggableComponentSelectorProps {
     trackWidth: number
     trackHeight: number
     onPlacementModeChange: (isActive: boolean) => void
+    onPlacementComponentSet?: (component: TrackComponent, rotation: number, mirrored: boolean) => void
 }
 
 const DraggableComponentSelector: React.FC<DraggableComponentSelectorProps> = ({
     onComponentPlace,
     trackWidth,
     trackHeight,
-    onPlacementModeChange
+    onPlacementModeChange,
+    onPlacementComponentSet
 }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>('all')
     const [selectedComponent, setSelectedComponent] = useState<TrackComponent | null>(null)
@@ -132,7 +134,7 @@ const DraggableComponentSelector: React.FC<DraggableComponentSelectorProps> = ({
     const handlePlacementClick = () => {
         if (selectedComponent) {
             // Set the component for placement and enable placement mode
-            onPlacementComponentSet(selectedComponent, rotation, mirrored)
+            onPlacementComponentSet?.(selectedComponent, rotation, mirrored)
             onPlacementModeChange(true)
         }
     }

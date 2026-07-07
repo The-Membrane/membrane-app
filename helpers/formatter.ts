@@ -1,3 +1,4 @@
+// @ts-ignore -- numeral ships no type declarations (no @types/numeral installed)
 import numeral from 'numeral'
 
 /**

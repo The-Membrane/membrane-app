@@ -13,7 +13,8 @@ const RedemptionCard = () => {
     const { chainName } = useChainRoute()
     const { data: userRedemptionInfo } = useUserRemptionInfo()
     console.log("userRedemptionInfo", userRedemptionInfo)
-    const userPremium = userRedemptionInfo?.premium_infos[0]?.premium ?? 0
+    // TODO(evm-migration): getUserRedemptionInfo is a stub (returns null on EVM); shape kept loose.
+    const userPremium = (userRedemptionInfo as any)?.premium_infos?.[0]?.premium ?? 0
 
 
     //////DEPOSIT STATE STUFF/////
@@ -32,10 +33,11 @@ const RedemptionCard = () => {
     const { data: basketPositions } = useUserPositions()
     //Use the current position id or use the basket's next position ID (for new positions)
     const positionId = useMemo(() => {
-        return basketPositions?.[0]?.positions?.[mintState.positionNumber - 1]?.position_id || 0
+        // TODO(evm-migration): EvmUserPosition[] has no nested `.positions`; cast until the position view is remapped.
+        return (basketPositions as any)?.[0]?.positions?.[mintState.positionNumber - 1]?.position_id || 0
     }, [basketPositions, mintState.positionNumber])
     //Get the position we're working with
-    const position = basketPositions?.[0]?.positions?.find((pos: any) => pos.position_id === positionId)
+    const position = (basketPositions as any)?.[0]?.positions?.find((pos: any) => pos.position_id === positionId)
     const usdcDeposit = position?.collateral_assets.find((a: any) => a.asset.info.native_token.denom === "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4")?.asset.amount ?? "0"
     // const { data: underlyingUSDC } = useDepositTokenConversionforMarsUSDC(marsUSDCDeposit) ?? "0"
     // const { data: marsUSDCyield } = useMarsUSDCSupplyAPR() ?? "0"

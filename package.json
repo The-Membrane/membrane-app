@@ -39,6 +39,7 @@
     "@cosmos-kit/tailwind": "^1.10.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@metamask/connect-evm": "^2.1.0",
     "@osmonauts/math": "^1.18.0",
     "@tanstack/react-query": "^5.90.16",
     "bignumber.js": "^9.3.1",

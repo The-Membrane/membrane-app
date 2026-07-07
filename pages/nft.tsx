@@ -1,10 +1,12 @@
-import ManagedTable from '@/components/ManagedMarkets/ManagedTable'
-import NFT from '@/components/NFT'
 import React from 'react'
+import dynamic from 'next/dynamic'
+
+// Client-only: LiveAuction builds an <img> via document.createElement in render,
+// which breaks prerender.
+const NFT = dynamic(() => import('@/components/NFT'), { ssr: false })
 
 const NFTPage = () => {
     return <NFT />
-    // return <ManagedTable />
 }
 
 export default NFTPage

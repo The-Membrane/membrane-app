@@ -25,6 +25,16 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       'chain-registry': chainRegistryPath,
+      // Optional wallet SDKs referenced by the @wagmi/connectors barrel that we
+      // don't ship (we only use metaMask + injected; @metamask/connect-evm IS
+      // installed). `false` stubs them out.
+      porto: false,
+      accounts: false,
+      '@base-org/account': false,
+      '@coinbase/wallet-sdk': false,
+      '@safe-global/safe-apps-provider': false,
+      '@safe-global/safe-apps-sdk': false,
+      '@walletconnect/ethereum-provider': false,
     };
     // Also ensure proper module resolution
     config.resolve.modules = [

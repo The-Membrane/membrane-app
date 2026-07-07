@@ -1,80 +1,40 @@
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import { useMemo } from 'react'
+import type { EvmCall } from '@/services/chain/types'
 
-import { getRiskyPositions, getUserDiscount } from '@/services/cdp'
-import { useBasket, useBasketAssets, useBasketPositions, useCollateralInterest, useUserDiscount } from '@/hooks/useCDP'
-import { useOraclePrice } from '@/hooks/useOracle'
-import { getLiquidationMsgs } from '@/helpers/mint'
-import useBidState from '@/components/Bid/hooks/useBidState'
-import useStaked from '@/components/Stake/hooks/useStaked'
-import { useChainRoute } from '@/hooks/useChainRoute'
-import useAppState from '@/persisted-state/useAppState'
 export type Liq = {
   position_id: string
   position_fee: string
 }
 
 type QueryData = {
-  msgs: MsgExecuteContractEncodeObject[] | undefined
+  msgs: EvmCall[] | undefined
   liquidating_positions: Liq[]
 }
 
+/**
+ * TODO(evm-migration): protocol-wide keeper liquidations are stubbed. The Cosmos flow
+ * scanned ALL positions (useBasketPositions) and risk-scored them client-side
+ * (getRiskyPositions) — Cdp.sol has no position-enumeration view, so the scan needs an
+ * indexer or event reconstruction. The EVM write path exists (LiquidationEngine.sol /
+ * LiqQueue.liquidate) once a liquidatable-position feed is available.
+ */
 const useProtocolLiquidations = ({ run }: { run: boolean }) => {
-  const liquidating_positions: Liq[] = [];
-  const { chainName } = useChainRoute()
-  const { address } = useWallet(chainName)
-
-  const { data: prices } = useOraclePrice()
-  const { data: allPositions } = useBasketPositions()
-  const { appState } = useAppState()
-  const { data: basket } = useBasket(appState.rpcUrl)
-  const { data: basketAssets } = useBasketAssets()
-
-  // console.log(" basketAssets", basketAssets)
-
-
+  const { address } = useWallet()
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['msg_liquidations', run, address, allPositions, prices, basket, basketAssets],
+    queryKey: ['msg_liquidations', run, address],
     queryFn: () => {
-      if (!address || !allPositions || !prices || !basket || !basketAssets || !run) {
-        // console.log("liq attempt", !address, !allPositions, !prices, !basket, !basketAssets, !run);
-        return { msgs: [], liquidating_positions: [] }
-      }
-
-      //For metric purposes
-      console.log("total # of CDPs: ", allPositions?.length)
-      var msgs = [] as MsgExecuteContractEncodeObject[]
-
-      const cdpCalcs = getRiskyPositions(allPositions, prices, basket, basketAssets)
-      console.log("liquidatible positions:", cdpCalcs.liquidatibleCDPs)
-      const liq = cdpCalcs.liquidatibleCDPs.filter((pos) => pos !== undefined) as { address: string, id: string, fee: string }[]
-      console.log("liquidatible positions:", liq)
-
-
-      if (liq.length > 0) {
-        const liq_msgs = getLiquidationMsgs({ address, liq_info: liq })
-        msgs = msgs.concat(liq_msgs)
-
-        liq.map((pos) => {
-          liquidating_positions.push({
-            position_id: pos.id,
-            position_fee: pos.fee
-          })
-        })
-      }
-
-      return { msgs, liquidating_positions }
+      return { msgs: [], liquidating_positions: [] }
     },
     enabled: !!address,
   })
 
   const { msgs, liquidating_positions: liq_pos } = useMemo(() => {
-    if (!queryData) return { msgs: [], liquidating_positions: liquidating_positions }
+    if (!queryData) return { msgs: [] as EvmCall[], liquidating_positions: [] as Liq[] }
     else return queryData
   }, [queryData])
 

@@ -12,23 +12,22 @@ const auctionDiscount = 0.01
 const auctionDiscountIncreaseTimeframe = 36
 
 const AuctionClaim = React.memo(() => {
-  const mbrn = useAssetBySymbol('MBRN')
-  const MBRNBalance = useBalanceByAsset(mbrn)
+  // Auction.sol pulls CDT as the quote asset (AUC-C-01) — gate on CDT, not MBRN
+  const cdt = useAssetBySymbol('CDT')
+  const CDTBalance = useBalanceByAsset(cdt)
   const { action: claim } = useAuction()
   const { data: feeAuctions } = useLiveFeeAuction()
 
   //Take the lowest discount
   const discount = useMemo(() => {
     if (!feeAuctions || !feeAuctions[0]) return 0
-    const startTime = dayjs.unix(feeAuctions[0].auction_start_time)
+    const startTime = dayjs.unix(Number(feeAuctions[0].auctionStartTime))
     const currentTime = dayjs()
     const timeElapsed = startTime.diff(currentTime, 'second')
     const discount = parseInt((timeElapsed / auctionDiscountIncreaseTimeframe).toFixed(0)) * auctionDiscount
 
     return Math.max(discount, 0.99) * 100
   }, [feeAuctions])
-  
-  console.log(!isGreaterThanZero(MBRNBalance), claim?.simulate.errorMessage, claim?.simulate.isError, !claim?.simulate.data)
   return (
     // <ConfirmModal 
     //     action={claim}
@@ -42,7 +41,7 @@ const AuctionClaim = React.memo(() => {
         w="full"
         height="64px"
         px="10"
-        isDisabled={!isGreaterThanZero(MBRNBalance) || claim?.simulate.isError || !claim?.simulate.data}
+        isDisabled={!isGreaterThanZero(CDTBalance) || claim?.simulate.isError || !claim?.simulate.data}
         isLoading={claim.simulate.isPending && !claim.simulate.isError && claim.simulate.data}
         onClick={() => claim.tx.mutate()}
         toggleConnectLabel={false}

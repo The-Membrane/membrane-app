@@ -1,52 +1,24 @@
-import contracts from '@/config/contracts.json'
-import { VestingMsgComposer } from '@/contracts/codegen/vesting/Vesting.message-composer'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import useWallet from '@/hooks/useWallet'
-import { queryClient } from '@/pages/_app'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { useQuery } from '@tanstack/react-query'
-import { useRouter } from 'next/router'
-import { useMemo } from 'react'
+import type { EvmCall } from '@/services/chain/types'
 
-const useClaimFees = (run: boolean = true) => {
-  const { address } = useWallet()
-  const router = useRouter()
-
-  type QueryData = {
-    msgs: MsgExecuteContractEncodeObject[] | undefined
-  }
-  const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['allocation claim fees', 'msgs', address, run, router.pathname],
-    queryFn: () => {
-      if (router.pathname != "/lockdrop" && !run) return { msgs: undefined }
-      if (!address) return { msgs: undefined }
-      const messageComposer = new VestingMsgComposer(address, contracts.vesting)
-
-      const claimFeeMsg = messageComposer.claimFeesforContract()
-      const claimReceipientMsg = messageComposer.claimFeesforRecipient()
-      return { msgs: [claimFeeMsg, claimReceipientMsg] }
-    },
-    enabled: !!address,
-  })
-
-
-  const { msgs }: QueryData = useMemo(() => {
-    if (!queryData) return { msgs: undefined }
-    else return queryData
-  }, [queryData])
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['allocations'] })
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-  }
+/**
+ * TODO(evm-migration): the Cosmos lockdrop / vesting fee-claim flow does not exist in the
+ * Solidity port — Acquisition replaces launch mechanics, and Vesting.sol has no
+ * recipient/contract fee-claim wired into this UI. Honest stub: emits no calls and never
+ * simulates. Kept so the Lockdrop component (TokenAllocation.tsx) keeps compiling. The
+ * one live vesting claim (Vesting.sol withdrawUnlocked) is surfaced through the
+ * protocol-claims aggregator (components/Nav/hooks/useClaims.ts), not here.
+ */
+const useClaimFees = (_run: boolean = true) => {
+  const msgs: EvmCall[] | undefined = undefined
 
   return {
     action: useSimulateAndBroadcast({
       msgs,
-      onSuccess,
-      queryKey: ['vesting_fee_claim', (msgs?.toString() ?? "0")],
-      enabled: !!msgs
-    }), msgs
+      queryKey: ['vesting_fee_claim_stub'],
+      enabled: false,
+    }),
+    msgs,
   }
 }
 

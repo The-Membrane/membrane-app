@@ -1,77 +1,93 @@
 import { useQuery } from '@tanstack/react-query'
-import { getAllConversionRates, getAllUserPoints, getUserConversionRates, getPointsMultipliers } from '@/services/points'
+import {
+  getLeaderboard,
+  getPointsMultipliers,
+  getUserConversionRates,
+  getAllConversionRates,
+  POINTS_DECIMALS,
+} from '@/services/chain/points'
+import { shiftDigits } from '@/helpers/math'
 import useWallet from './useWallet'
-import useAppState from '@/persisted-state/useAppState'
-import { useChainRoute } from './useChainRoute'
+
+/**
+ * Points hooks (EVM). Migrated from services/points (CosmWasm) to
+ * services/chain/points (PointsSystem.sol).
+ *
+ * Shape parity: getLeaderboard returns raw 6-dec balances reconstructed from
+ * PointsAwarded/PointsRedeemed events; this layer reshapes them to the legacy
+ * `{ user, stats: { total_points } }` object (total_points human-scaled by
+ * POINTS_DECIMALS) so downstream level/rank/leaderboard consumers are untouched.
+ */
+
+export type UserPointsEntry = {
+  user: string
+  stats: { total_points: string }
+}
 
 export const useAllUserPoints = () => {
-  const { appState } = useAppState()
+  const { chain, publicClient } = useWallet()
 
-  const result = useQuery({
-    queryKey: ['all users points'],
+  return useQuery<UserPointsEntry[]>({
+    queryKey: ['all users points', chain.id],
     queryFn: async () => {
-      return getAllUserPoints(appState.rpcUrl)
+      const entries = await getLeaderboard(publicClient ?? null)
+      if (!entries) return []
+      return entries.map((e) => ({
+        user: e.user,
+        stats: { total_points: shiftDigits(e.points.toString(), -POINTS_DECIMALS).toString() },
+      }))
     },
-    enabled: true,
+    enabled: !!publicClient,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
-
-  return result
 }
 
+/**
+ * STUB (evm-migration): per-vault conversion-rate tracking is Cosmos-only —
+ * see services/chain/points.getUserConversionRates. Returns null.
+ */
 export const useUserConversionRates = () => {
-  const { appState } = useAppState()
-  const { chainName } = useChainRoute()
-  const { address } = useWallet(chainName)
+  const { publicClient } = useWallet()
 
   return useQuery({
-    queryKey: ['use_user_conversion_rates', address],
+    queryKey: ['use_user_conversion_rates'],
     queryFn: async () => {
-      if (!address) return
-      return getUserConversionRates(address, appState.rpcUrl)
+      return getUserConversionRates(publicClient ?? null)
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 
+/**
+ * STUB (evm-migration): conversion-rate table is Cosmos-only. Returns null.
+ */
 export const useAllConversionRates = () => {
-  const { appState } = useAppState()
+  const { publicClient } = useWallet()
 
   return useQuery({
     queryKey: ['all_conversion_rates'],
     queryFn: async () => {
-      return getAllConversionRates(appState.rpcUrl)
+      return getAllConversionRates(publicClient ?? null)
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 
 export const useUserPoints = () => {
-  const { chainName } = useChainRoute()
-  const { address } = useWallet(chainName)
+  const { address } = useWallet()
   const { data: points } = useAllUserPoints()
-  //sort points by total_points
-  // points?.sort((a, b) => parseFloat(b.stats.total_points) - parseFloat(a.stats.total_points))
-  // console.log("all points", points)
 
   return useQuery({
     queryKey: ['one users points', address, points],
     queryFn: async () => {
-      // console.log("in points", address)
       if (!points || !address) return null
-      // console.log("under points", address, points)
-      // console.log("under points", address, points[0])
-      // console.log("under points", address, points[0].user)
-      // console.log("under points", address, Array.from(points).find((point) => point.user === address))
       return points.find((point) => point.user === address) || null
     },
   })
 }
 
-
 export const useUserRank = () => {
-  const { chainName } = useChainRoute()
-  const { address } = useWallet(chainName)
+  const { address } = useWallet()
   const { data: points } = useAllUserPoints()
   //sort points by total_points
   points?.sort((a, b) => parseFloat(b.stats.total_points) - parseFloat(a.stats.total_points))
@@ -88,7 +104,6 @@ export const useUserRank = () => {
 
 export const useSoloLevel = () => {
   const { data: points } = useUserPoints()
-  // console.log("user points", points)
 
   return useQuery({
     queryKey: ['one users level', points],
@@ -121,8 +136,7 @@ export const useSoloLevel = () => {
 }
 
 export const useLeaderboardData = () => {
-  const { chainName } = useChainRoute()
-  const { address } = useWallet(chainName)
+  const { address } = useWallet()
   const { data: points } = useAllUserPoints()
 
   return useQuery({
@@ -153,13 +167,17 @@ export const useLeaderboardData = () => {
   })
 }
 
+/**
+ * STUB (evm-migration): PointsSystem.sol has no points_multipliers view —
+ * multipliers are applied at the awarding callsite on-chain. Returns null.
+ */
 export const usePointsMultipliers = () => {
-  const { appState } = useAppState()
+  const { publicClient } = useWallet()
 
   return useQuery({
-    queryKey: ['points_multipliers', appState.rpcUrl],
+    queryKey: ['points_multipliers'],
     queryFn: async () => {
-      return getPointsMultipliers(appState.rpcUrl)
+      return getPointsMultipliers(publicClient ?? null)
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   })

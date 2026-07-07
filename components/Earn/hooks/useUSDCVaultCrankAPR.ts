@@ -1,69 +1,51 @@
-import useWallet from '@/hooks/useWallet'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 
-import contracts from '@/config/contracts.json'
-import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { toUtf8 } from "@cosmjs/encoding";
+import { transmuterAbi } from '@/contracts/abis/transmuter'
+import { getContractAddress } from '@/config/evm/contracts'
+import type { EvmCall } from '@/services/chain/types'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { queryClient } from '@/pages/_app';
+import useWallet from '@/hooks/useWallet'
+import { queryClient } from '@/pages/_app'
 
-const useUSDCVaultCrankAPR = ( ) => {
-  const { address } = useWallet()
+/**
+ * Permissionless "crank" that refreshes the vault's rate/APR bookkeeping — migrated to EVM.
+ *
+ * Cosmos flow was marsUSDCvault.crank_a_p_r + earn.crank_realized_a_p_r. The EVM analog on the
+ * Transmuter is the pair of permissionless, no-arg maintenance calls:
+ *   crank_a_p_r          → Transmuter.addToRateHistory()   (append current conversion rate)
+ *   crank_realized_a_p_r → Transmuter.updateVolumeWindow() (roll the volume window)
+ * Two separate signatures (EvmCall[] is not atomic — see services/chain/types.ts), which is fine:
+ * each crank is independent and idempotent.
+ */
+const useUSDCVaultCrankAPR = () => {
+  const { address, chain } = useWallet()
+  const transmuterAddr = chain ? getContractAddress(chain.id, 'transmuter') : undefined
 
-  type QueryData = {
-    msgs: MsgExecuteContractEncodeObject[] | undefined
-  }
-  const { data: queryData } = useQuery<QueryData>({
-    queryKey: [
-      'earn_page_management_redeem_msg_creation',
-      address,
-    ],
+  const { data: queryData } = useQuery<{ msgs: EvmCall[] | undefined }>({
+    queryKey: ['earn_page_management_crank_msg_creation', address, transmuterAddr],
     queryFn: () => {
-      if (!address) return { msgs: undefined }
-      var msgs = [] as MsgExecuteContractEncodeObject[]
-    
-      // Crank APR Msg Sim
-      const crankMsg  = {
-          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-          value: MsgExecuteContract.fromPartial({
-          sender: address,
-          contract: contracts.marsUSDCvault,
-          msg: toUtf8(JSON.stringify({
-              crank_a_p_r: {}
-          })),
-          funds: []
-          })
-      } as MsgExecuteContractEncodeObject
-      msgs.push(crankMsg)
-
-      //Crank Realized APR
-      const crankRealizedMsg  = {
-        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-        value: MsgExecuteContract.fromPartial({
-        sender: address,
-        contract: contracts.earn,
-        msg: toUtf8(JSON.stringify({
-            crank_realized_a_p_r: {}
-        })),
-        funds: []
-        })
-    } as MsgExecuteContractEncodeObject
-    msgs.push(crankRealizedMsg)
-
-      
+      if (!address || !transmuterAddr) return { msgs: undefined }
+      const msgs: EvmCall[] = [
+        {
+          address: transmuterAddr,
+          abi: transmuterAbi,
+          functionName: 'addToRateHistory',
+          args: [],
+        },
+        {
+          address: transmuterAddr,
+          abi: transmuterAbi,
+          functionName: 'updateVolumeWindow',
+          args: [],
+        },
+      ]
       return { msgs }
     },
-    enabled: !!address,
+    enabled: !!address && !!transmuterAddr,
   })
 
-  const { msgs }: QueryData = useMemo(() => {
-    if (!queryData) return { msgs: undefined }
-    else return queryData
-  }, [queryData])
-
-  console.log("crank msg:", msgs)
+  const { msgs } = useMemo(() => queryData ?? { msgs: undefined }, [queryData])
 
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['useEarnUSDCRealizedAPR'] })
@@ -72,11 +54,12 @@ const useUSDCVaultCrankAPR = ( ) => {
 
   return {
     action: useSimulateAndBroadcast({
-    msgs,
-    queryKey: ['earn_page_management_crank_apr', (msgs?.toString()??"0")],
-    onSuccess: onInitialSuccess,
-    enabled: !!msgs,
-  })}
+      msgs,
+      queryKey: ['earn_page_management_crank_apr', (msgs?.toString() ?? '0')],
+      onSuccess: onInitialSuccess,
+      enabled: !!msgs,
+    }),
+  }
 }
 
 export default useUSDCVaultCrankAPR

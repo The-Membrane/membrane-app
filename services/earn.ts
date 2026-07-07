@@ -108,7 +108,7 @@ export const getDepositTokenConversionforMarsUSDC = async (depositAmount: string
 }
 
 export const getUnderlyingUSDC = async (vtAmount: string, client: any) => {
-  return client.vaultTokenUnderlying({ vaultTokenAmount: vtAmount }).then((res) => res) as Promise<Uint128>
+  return client.vaultTokenUnderlying({ vaultTokenAmount: vtAmount }).then((res: any) => res) as Promise<Uint128>
 }
 
 export const getUnderlyingCDT = async (vtAmount: string, cosmWasmClient: any) => {
@@ -135,7 +135,7 @@ export const getVaultAPRResponse = async (cosmWasmClient: any) => {
 }
 
 export const getEarnUSDCRealizedAPR = async (client: any) => {
-  return client.aPR().then((res) => res) as Promise<ClaimTracker>
+  return client.aPR().then((res: any) => res) as Promise<ClaimTracker>
 }
 
 export const getEarnCDTRealizedAPR = async (cosmWasmClient: any) => {

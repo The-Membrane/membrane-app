@@ -25,5 +25,5 @@ export const useAssetAuctionClient = () => {
 
 
 export const getLiveFeeAuction = async (client: any) => {
-  return client.ongoingFeeAuctions({}).then((res) => res) as Promise<FeeAuction[]>
+  return client.ongoingFeeAuctions({}).then((res: FeeAuction[]) => res) as Promise<FeeAuction[]>
 }

@@ -1,127 +1,129 @@
-import { getDepostAndWithdrawMsgs } from '@/helpers/mint'
-import { useBasket, useUserPositions } from '@/hooks/useCDP'
+import { erc20Abi, zeroHash } from 'viem'
+import { useQuery } from '@tanstack/react-query'
+
+import { transmuterAbi } from '@/contracts/abis/transmuter'
+import { assetKey } from '@/services/chain/transmuter'
+import { getContractAddress } from '@/config/evm/contracts'
+import type { EvmCall } from '@/services/chain/types'
+import { useAssetBySymbol } from '@/hooks/useAssets'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
-import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
-import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
-import { useMemo } from 'react'
-import useAppState from '@/persisted-state/useAppState'
-
-import contracts from '@/config/contracts.json'
-import { EarnMsgComposer } from '@/contracts/codegen/earn/Earn.message-composer'
-import { useAssetBySymbol } from '@/hooks/useAssets'
-import useEarnState from './useEarnState'
-import { useBalanceByAsset } from '@/hooks/useBalance'
-import { useUSDCVaultTokenUnderlying, useVaultInfo } from '../../../hooks/useEarnQueries'
 import { shiftDigits } from '@/helpers/math'
-import { num } from '@/helpers/num'
-import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { toUtf8 } from "@cosmjs/encoding";
-import { useChainRoute } from '@/hooks/useChainRoute';
+import useEarnState from './useEarnState'
 
+/**
+ * Earn deposit/withdraw CTA — migrated to EVM (EvmCall[]).
+ *
+ * The Cosmos "Earn vault" (Mars-USDC looped CDP: EarnMsgComposer.enterVault/exitVault +
+ * close_c_d_p) does NOT exist in the port. The EVM analog is the Transmuter PSM vault, whose
+ * tranche capital IS the swap inventory (see services/chain/transmuter.ts / Transmuter.sol):
+ *   deposit  → Transmuter.enterVault(recipient, fundsCdt, fundsPaired, trancheAssets,
+ *                                    trancheJunior, trancheAmounts, affiliate)
+ *   withdraw → Transmuter.exitVault(effectiveUser, recipient, trancheAssets, trancheJunior,
+ *                                   vtAmounts, withdrawAs)
+ *
+ * USDC is the paired asset, deposited into a single SENIOR tranche keyed by the paired-asset
+ * denom. There is no `close_c_d_p` equivalent (no per-user CDP behind the vault).
+ */
 const useEarn = () => {
   const { address } = useWallet()
-  const { chainName } = useChainRoute()
   const { earnState, setEarnState } = useEarnState()
-  const usdcAsset = useAssetBySymbol('USDC', chainName)
-  const earnUSDCAsset = useAssetBySymbol('earnUSDC', chainName)
-  const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset)
-  const { appState } = useAppState()
-  const { data: basket } = useBasket(appState.rpcUrl)
-  const { data: vaultInfo } = useVaultInfo()
+  const usdcAsset = useAssetBySymbol('USDC')
+  const earnUSDCAsset = useAssetBySymbol('earnUSDC')
 
-  const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
-  const underlyingUSDC = data ?? "1"
+  const { chain } = useWallet()
+  const transmuterAddr = chain ? getContractAddress(chain.id, 'transmuter') : undefined
 
-  type QueryData = {
-    msgs: MsgExecuteContractEncodeObject[]
-  }
-  const { data: queryData } = useQuery<QueryData>({
+  const { data: queryData } = useQuery<{ msgs: EvmCall[] }>({
     queryKey: [
       'earn_msgs_creation',
       address,
+      transmuterAddr,
       earnState.withdraw,
       earnState.deposit,
-      usdcAsset,
-      earnUSDCAsset,
-      underlyingUSDC,
-      earnUSDCBalance,
-      vaultInfo?.debtAmount,
-      appState.rpcUrl
+      usdcAsset?.base,
     ],
     queryFn: () => {
-      if (!address || !earnUSDCAsset || !usdcAsset) { console.log("earn exit early return", address, earnUSDCAsset, earnState.withdraw, underlyingUSDC, earnUSDCBalance, vaultInfo?.debtAmount); return { msgs: [] } }
-      var msgs = [] as MsgExecuteContractEncodeObject[]
-      let messageComposer = new EarnMsgComposer(address, contracts.earn)
+      if (!address || !usdcAsset || !transmuterAddr) return { msgs: [] }
+      const msgs: EvmCall[] = []
+
+      // TODO(evm-migration): the canonical paired-asset bytes32 key is config.paired_asset_denom
+      // (getConfig() in services/chain/transmuter.ts) — deployment-defined. Derived here from the
+      // USDC symbol via the shared assetKey() convention. Senior tranche (junior=false).
+      const trancheDenom = assetKey(usdcAsset.symbol)
+      const pairedErc20 = usdcAsset.base as `0x${string}`
 
       if (earnState.withdraw != 0) {
-
-        const usdcWithdrawAmount = shiftDigits(earnState.withdraw, 6).toNumber()
-        // find percent of underlying usdc to withdraw
-        const percentToWithdraw = num(usdcWithdrawAmount).div(underlyingUSDC).toNumber()
-
-        // Calc VT to withdraw using the percent
-        const withdrawAmount = num(shiftDigits(earnUSDCBalance, 6)).times(percentToWithdraw).dp(0).toNumber()
-        // const withdrawAmount = shiftDigits(earnUSDCBalance, 6).toFixed(0);
-
-        // console.log("withdrawAmount", withdrawAmount, usdcWithdrawAmount, percentToWithdraw)
-
-        //if the debt is less than or equal to 24, add a close_cdp msg
-        if (vaultInfo?.debtAmount && vaultInfo?.debtAmount <= 24 && vaultInfo?.debtAmount > 0) {
-          let closeCDPMsg = {
-            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-            value: MsgExecuteContract.fromPartial({
-              sender: address,
-              contract: contracts.earn,
-              msg: toUtf8(JSON.stringify({
-                close_c_d_p: {}
-              })),
-              funds: []
-            })
-          } as MsgExecuteContractEncodeObject
-          msgs.push(closeCDPMsg)
+        // exitVault burns vault-token shares. earnState.withdraw is a USDC *underlying* amount;
+        // the precise underlying→VT conversion is `vt = underlying * vault_token_supply / total_staked`
+        // (getTrancheState / getTrancheUnderlying). Wired 1:1 in VT base units here.
+        // TODO(evm-migration): read trancheState to convert underlying→VT exactly before enabling.
+        const vtDecimals = earnUSDCAsset?.decimal ?? 18
+        const vtAmount = BigInt(shiftDigits(earnState.withdraw, vtDecimals).dp(0).toString())
+        if (vtAmount > 0n) {
+          msgs.push({
+            address: transmuterAddr,
+            abi: transmuterAbi,
+            functionName: 'exitVault',
+            // (effectiveUser, recipient, trancheAssets, trancheJunior, vtAmounts, withdrawAs)
+            // withdrawAs = 0 (PROPORTIONAL).
+            args: [address, address, [trancheDenom], [false], [vtAmount], 0],
+          })
         }
-
-        const funds = [{ amount: withdrawAmount.toString(), denom: earnUSDCAsset.base }]
-        let exitMsg = messageComposer.exitVault(funds)
-        msgs.push(exitMsg)
-
       }
 
       if (earnState.deposit != 0) {
-
-        const funds = [{ amount: shiftDigits(earnState.deposit, usdcAsset.decimal).dp(0).toNumber().toString(), denom: usdcAsset.base }]
-        let enterMsg = messageComposer.enterVault(funds)
-        msgs.push(enterMsg)
-
+        const microAmount = BigInt(shiftDigits(earnState.deposit, usdcAsset.decimal).dp(0).toString())
+        if (microAmount > 0n) {
+          // ERC-20 pattern: approve then enterVault. NOT atomic — two wallet signatures
+          // (see services/chain/types.ts). enterVault pulls the paired asset via transferFrom.
+          msgs.push({
+            address: pairedErc20,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [transmuterAddr, microAmount],
+          })
+          msgs.push({
+            address: transmuterAddr,
+            abi: transmuterAbi,
+            functionName: 'enterVault',
+            // (recipient, fundsCdt, fundsPaired, trancheAssets, trancheJunior, trancheAmounts, affiliate)
+            // fundsCdt=0 (pure paired deposit); affiliate = bytes32(0).
+            args: [
+              address,
+              0n,
+              microAmount,
+              [trancheDenom],
+              [false],
+              [microAmount],
+              zeroHash,
+            ],
+          })
+        }
       }
-
-      console.log("earn msgs:", msgs)
 
       return { msgs }
     },
-    enabled: !!address,
+    enabled: !!address && !!usdcAsset && !!transmuterAddr,
   })
 
   const msgs = queryData?.msgs ?? []
 
   const onInitialSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+    queryClient.invalidateQueries({ queryKey: ['balances'] })
     queryClient.invalidateQueries({ queryKey: ['useVaultInfo'] })
     setEarnState({ withdraw: 0, deposit: 0 })
   }
 
-  console.log("here to return action ")
-
   return {
     action: useSimulateAndBroadcast({
       msgs,
-      queryKey: ['earn_page_mars_usdc_looped_vault', (msgs?.toString() ?? "0")],
+      queryKey: ['earn_page_transmuter_vault', (msgs?.toString() ?? '0')],
       onSuccess: onInitialSuccess,
       enabled: !!msgs?.length,
-    })
+    }),
   }
 }
 

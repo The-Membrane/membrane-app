@@ -58,7 +58,8 @@ export const PointsProgressCard: React.FC<PointsProgressCardProps> = ({ compact 
 
     // Calculate conversion rate range from multipliers
     const conversionRateRange = useMemo(() => {
-        const multipliers = multipliersData?.points_multipliers || mockMultipliers
+        // TODO(evm-migration): usePointsMultipliers is a null-stub (multipliers applied on-chain at award time) — mock fallback renders
+        const multipliers = (multipliersData as any)?.points_multipliers || mockMultipliers
 
         const rates = [
             parseFloat(multipliers.interest_rate || '0'),
@@ -91,7 +92,8 @@ export const PointsProgressCard: React.FC<PointsProgressCardProps> = ({ compact 
 
     // Tooltip content for conversion rates
     const conversionRatesTooltip = useMemo(() => {
-        const multipliers = multipliersData?.points_multipliers || mockMultipliers
+        // TODO(evm-migration): usePointsMultipliers is a null-stub (multipliers applied on-chain at award time) — mock fallback renders
+        const multipliers = (multipliersData as any)?.points_multipliers || mockMultipliers
 
         const rates = [
             { label: 'Interest Rate', value: parseFloat(multipliers.interest_rate || '0') },

@@ -3,8 +3,11 @@ import { Box, Grid, GridItem, VStack } from '@chakra-ui/react'
 import { CollateralizedBundle } from './CollateralizedBundle'
 import { AvailableCollateral } from './AvailableCollateral'
 import { AvailableToBorrow } from './AvailableToBorrow'
+import { AvailableToLend } from './AvailableToLend'
+import { CurrentlyLent } from './CurrentlyLent'
 import { PositionPerformanceChart } from './PositionPerformanceChart'
 import { LiquidationSimulator } from './LiquidationSimulator'
+import { PositionOverview } from './PositionOverview'
 import { DebtCard } from './DebtCard'
 import { RepayModal } from './RepayModal'
 import useVaultSummary from '../Mint/hooks/useVaultSummary'
@@ -17,9 +20,7 @@ import { num } from '@/helpers/num'
 import useWallet from '@/hooks/useWallet'
 import { PositionResponse } from '@/contracts/codegen/positions/Positions.types'
 import { getMockBorrowData } from './mockBorrowData'
-
-// Set to true to use mock data for testing (position with debt)
-const USE_MOCK_DATA = process.env.NODE_ENV === 'development' && true
+import { USE_MOCK_DATA } from './devConfig'
 
 // Hexagon background component
 const HexagonBackground = () => (
@@ -129,15 +130,12 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
     } else {
       // Default: switch to deposit transaction type
       setMintState({ transactionType: 'deposit' })
-      console.log('Deposit requested for:', denom)
     }
   }, [onDeposit, setMintState])
 
   const handleManage = useCallback((denom: string) => {
     if (onManage) {
       onManage(denom)
-    } else {
-      console.log('Manage requested for:', denom)
     }
   }, [onManage])
 
@@ -147,7 +145,6 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
     } else {
       // Default: switch to mint action
       setMintState({ isTakeAction: true })
-      console.log('Borrow requested for:', denom)
     }
   }, [onBorrow, setMintState])
 
@@ -168,22 +165,36 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
       {/* Main Content */}
       <Box w="100%" maxW="1400px" mx="auto" p={4} position="relative" zIndex={1}>
         <VStack spacing={6} align="stretch">
-          {/* Top Row: Performance Chart - centered */}
-          <Box display="flex" justifyContent="center">
-            <Box w="100%" maxW="900px">
-              <PositionPerformanceChart
-                positionIndex={positionIndex}
-                liquidationValue={liquidationValue}
-              />
+          {/* Position Overview - centered */}
+          {hasPosition && (
+            <Box display="flex" justifyContent="center">
+              <Box w="100%" maxW="900px">
+                <PositionOverview positionIndex={positionIndex} />
+              </Box>
             </Box>
-          </Box>
+          )}
+
+          {/* Performance Chart - centered.
+              Only shown once the user actually has a position; with no position
+              there is nothing to chart, so we lead with the action panels below
+              (Available Collateral / Available to Borrow) instead of sample data. */}
+          {hasPosition && (
+            <Box display="flex" justifyContent="center">
+              <Box w="100%" maxW="900px">
+                <PositionPerformanceChart
+                  positionIndex={positionIndex}
+                  liquidationValue={liquidationValue}
+                />
+              </Box>
+            </Box>
+          )}
 
           {/* Bottom Row: Two columns */}
           <Grid
             templateColumns={{ base: '1fr', lg: 'repeat(2, 1fr)' }}
             gap={6}
           >
-            {/* Left Column: Collateralized Bundle (if position exists) + Available Collateral */}
+            {/* Left Column: Current Deposits */}
             <GridItem>
               <VStack spacing={6} align="stretch">
                 {hasPosition && (
@@ -192,15 +203,6 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
                     onManage={handleManage}
                   />
                 )}
-                <AvailableCollateral
-                  onDeposit={handleDeposit}
-                />
-              </VStack>
-            </GridItem>
-
-            {/* Right Column: Debt + Available to Borrow + Liquidation Simulator */}
-            <GridItem>
-              <VStack spacing={6} align="stretch">
                 {hasPosition && (
                   <DebtCard
                     rateSegments={mockData?.rateSegments || []}
@@ -211,21 +213,34 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
                     positionIndex={positionIndex}
                   />
                 )}
+                <CurrentlyLent />
+              </VStack>
+            </GridItem>
+
+            {/* Right Column: Availables */}
+            <GridItem>
+              <VStack spacing={6} align="stretch">
+                <AvailableCollateral
+                  positionIndex={positionIndex}
+                />
                 <AvailableToBorrow
                   onBorrow={handleBorrow}
                   positionIndex={positionIndex}
                 />
-                <LiquidationSimulator
-                  collateralValue={collateralValue}
-                  liquidationLTV={liquidationLTV}
-                  borrowLTV={borrowLTV}
-                  positionIndex={positionIndex}
-                  position={position}
-                  userAddress={userAddress}
-                />
+                <AvailableToLend />
               </VStack>
             </GridItem>
           </Grid>
+
+          {/* Liquidation Simulator - full width below the grid */}
+          <LiquidationSimulator
+            collateralValue={collateralValue}
+            liquidationLTV={liquidationLTV}
+            borrowLTV={borrowLTV}
+            positionIndex={positionIndex}
+            position={position}
+            userAddress={userAddress}
+          />
         </VStack>
       </Box>
 

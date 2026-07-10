@@ -1,21 +1,59 @@
 import { num } from '@/helpers/num'
 import { shiftDigits } from '@/helpers/math'
-import { Box, Button, HStack, Image, Stack, Text, Table, Thead, Tbody, Tr, Th, Td, Tooltip, Collapse, Icon } from '@chakra-ui/react'
+import { Box, Button, HStack, Image, Stack, Text, Table, Thead, Tbody, Tr, Th, Td, Tooltip, Collapse, Icon, VStack } from '@chakra-ui/react'
 import { useBasket, useBasketAssets, useRates } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import useAppState from '@/persisted-state/useAppState'
 import { useMemo, useState } from 'react'
 import { CollateralRowData, getSymbolFromDenom, getLogoFromSymbol } from './types'
-import { getMockCollateralData, USE_MOCK_COLLATERAL_DATA } from './mockCollateralData'
+import { getMockCollateralData, USE_MOCK_COLLATERAL_DATA, mockHistoricalLTVData } from './mockCollateralData'
 import { ChevronDownIcon, ChevronUpIcon, InfoIcon } from '@chakra-ui/icons'
 import { Card } from '@/components/ui/Card'
 import { ProgressBar } from '@/components/ui/ProgressBar'
+import { DepositModal } from './DepositModal'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { SPACING } from '@/config/spacing'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  CartesianGrid,
+} from 'recharts'
 
-interface AvailableCollateralProps {
-  onDeposit?: (denom: string) => void
+const formatTimeUntil = (shiftTimestamp: number): string => {
+  const nowSec = Math.floor(Date.now() / 1000)
+  const diffSec = shiftTimestamp - nowSec
+  if (diffSec <= 0) return 'Imminent'
+  const hours = diffSec / 3600
+  if (hours < 1) return `${Math.ceil(diffSec / 60)}m`
+  if (hours < 24) return `${hours.toFixed(1)}h`
+  return `${(hours / 24).toFixed(1)}d`
 }
 
-export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => {
+const LTVChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null
+  return (
+    <Box bg="rgba(10,10,10,0.95)" border="1px solid" borderColor="whiteAlpha.200" borderRadius="md" px={2} py={1}>
+      <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
+        {new Date(label * 1000).toLocaleDateString()}
+      </Text>
+      <Text fontSize={TYPOGRAPHY.small} color="white" fontWeight={TYPOGRAPHY.medium}>
+        {payload[0].value.toFixed(2)}%
+      </Text>
+    </Box>
+  )
+}
+
+interface AvailableCollateralProps {
+  positionIndex?: number
+}
+
+export const AvailableCollateral = ({ positionIndex = 0 }: AvailableCollateralProps) => {
   const { appState } = useAppState()
   const { data: prices } = useOraclePrice()
   const { data: basket } = useBasket(appState.rpcUrl)
@@ -24,6 +62,10 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
 
   // Track expanded rows
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+
+  // Deposit modal state
+  const [depositModalOpen, setDepositModalOpen] = useState(false)
+  const [selectedDenom, setSelectedDenom] = useState<string>('')
 
   // Format large numbers with K/M suffix
   const formatLargeNumber = (value: number): string => {
@@ -116,6 +158,18 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
       })
   }, [basketData, basketAssetsData, pricesData, rates])
 
+  // Selected asset for deposit modal
+  const selectedAsset = useMemo(() => {
+    const row = collateralRows.find(r => r.denom === selectedDenom)
+    if (!row) return null
+    return {
+      symbol: row.symbol,
+      denom: row.denom,
+      logo: row.logo,
+      price: row.price,
+    }
+  }, [collateralRows, selectedDenom])
+
   if (collateralRows.length === 0) {
     return (
       <Card p={4}>
@@ -130,6 +184,7 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
   }
 
   return (
+  <>
     <Card p={4}>
       <Text fontSize="lg" fontWeight="bold" mb={4} color="white">
         Available Collateral
@@ -254,7 +309,7 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
                           size="xs"
                           colorScheme="purple"
                           variant="outline"
-                          onClick={() => onDeposit?.(row.denom)}
+                          onClick={() => { setSelectedDenom(row.denom); setDepositModalOpen(true) }}
                           isDisabled={isSupplyCapReached}
                           cursor={isSupplyCapReached ? 'not-allowed' : 'pointer'}
                           borderColor={isSupplyCapReached ? 'rgba(215, 80, 80, 0.3)' : 'purple.400'}
@@ -290,51 +345,112 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
                         borderLeft="2px solid"
                         borderColor="cyan.500"
                       >
-                        <Stack spacing={3}>
-                          {/* Stats Grid */}
-                          <HStack spacing={6} justify="space-around">
-                            <Stack spacing={0} align="center">
-                              <Text color="whiteAlpha.600" fontSize="xs">
-                                Max LTV
-                              </Text>
-                              <Text color="white" fontSize="sm" fontWeight="bold">
-                                {num(row.maxLTV || 0).times(100).toFixed(2)}%
-                              </Text>
-                            </Stack>
-                            <Stack spacing={0} align="center">
-                              <Text color="whiteAlpha.600" fontSize="xs">
-                                Liquidation LTV
-                              </Text>
-                              <Text color="white" fontSize="sm" fontWeight="bold">
-                                {num(row.maxBorrowLTV || 0).times(100).toFixed(2)}%
-                              </Text>
-                            </Stack>
-                            <Stack spacing={0} align="center">
-                              <Text color="whiteAlpha.600" fontSize="xs">
-                                Oracle Price
-                              </Text>
-                              <Text color="white" fontSize="sm" fontWeight="bold">
-                                ${row.price.toFixed(2)}
-                              </Text>
-                            </Stack>
-                          </HStack>
+                        <VStack spacing={3} align="stretch">
+                          {/* Stats Row */}
+                          {(() => {
+                            const ltvData = mockHistoricalLTVData[row.denom]
+                            return (
+                              <HStack spacing={6} justify="space-around" align="flex-start">
+                                <Stack spacing={0} align="center">
+                                  <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
+                                    Liquidation LTV
+                                  </Text>
+                                  <Text color="white" fontSize={TYPOGRAPHY.small} fontWeight={TYPOGRAPHY.bold}>
+                                    {num(row.maxLTV || 0).times(100).toFixed(1)}%
+                                  </Text>
+                                </Stack>
+                                <Stack spacing={0} align="center">
+                                  <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
+                                    Target LTV
+                                  </Text>
+                                  <Text color={SEMANTIC_COLORS.success} fontSize={TYPOGRAPHY.small} fontWeight={TYPOGRAPHY.bold}>
+                                    {ltvData ? `${ltvData.pendingLTV.toFixed(1)}%` : `${num(row.maxBorrowLTV || 0).times(100).toFixed(1)}%`}
+                                  </Text>
+                                  {ltvData && (
+                                    <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
+                                      in {formatTimeUntil(ltvData.shiftTime)}
+                                    </Text>
+                                  )}
+                                </Stack>
+                                <Stack spacing={0} align="center">
+                                  <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
+                                    Oracle Price
+                                  </Text>
+                                  <Text color="white" fontSize={TYPOGRAPHY.small} fontWeight={TYPOGRAPHY.bold}>
+                                    ${row.price.toFixed(2)}
+                                  </Text>
+                                </Stack>
+                              </HStack>
+                            )
+                          })()}
 
-                          {/* Chart placeholder */}
-                          <Box
-                            h="120px"
-                            bg="rgba(0, 0, 0, 0.2)"
-                            borderRadius="md"
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="center"
-                            border="1px solid"
-                            borderColor="whiteAlpha.200"
-                          >
-                            <Text color="whiteAlpha.500" fontSize="xs">
-                              Historical LTV Chart (Coming Soon)
-                            </Text>
-                          </Box>
-                        </Stack>
+                          {/* Historical LTV Chart */}
+                          {(() => {
+                            const ltvData = mockHistoricalLTVData[row.denom]
+                            if (!ltvData) return null
+                            const chartData = ltvData.historicalSnapshots
+                            const maxLTV = num(row.maxLTV || 0).times(100).toNumber()
+
+                            return (
+                              <Box h="140px" bg="rgba(0, 0, 0, 0.2)" borderRadius="md" border="1px solid" borderColor="whiteAlpha.200" pt={2}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                    <XAxis
+                                      dataKey="timestamp"
+                                      tickFormatter={(ts: number) => new Date(ts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                                      axisLine={false}
+                                      tickLine={false}
+                                      minTickGap={40}
+                                    />
+                                    <YAxis
+                                      domain={[(dataMin: number) => Math.floor(dataMin - 5), (dataMax: number) => Math.ceil(dataMax + 5)]}
+                                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                                      axisLine={false}
+                                      tickLine={false}
+                                      tickFormatter={(v: number) => `${v.toFixed(0)}%`}
+                                      width={50}
+                                    />
+                                    <RechartsTooltip content={<LTVChartTooltip />} />
+                                    {/* Liquidation LTV reference */}
+                                    <ReferenceLine
+                                      y={maxLTV}
+                                      stroke={SEMANTIC_COLORS.danger}
+                                      strokeDasharray="4 4"
+                                      strokeWidth={1}
+                                      label={{ value: 'Liq', fill: SEMANTIC_COLORS.danger, fontSize: 9, position: 'right' }}
+                                    />
+                                    {/* Pending target LTV reference */}
+                                    <ReferenceLine
+                                      y={ltvData.pendingLTV}
+                                      stroke={SEMANTIC_COLORS.warning}
+                                      strokeDasharray="4 4"
+                                      strokeWidth={1}
+                                      label={{ value: 'Target', fill: SEMANTIC_COLORS.warning, fontSize: 9, position: 'right' }}
+                                    />
+                                    <Line
+                                      type="monotone"
+                                      dataKey="ltv"
+                                      stroke="#22d3ee"
+                                      strokeWidth={1.5}
+                                      dot={false}
+                                      activeDot={{ r: 3, fill: '#22d3ee' }}
+                                    />
+                                    <Line
+                                      type="stepAfter"
+                                      dataKey="currentLtv"
+                                      stroke="white"
+                                      strokeWidth={1}
+                                      dot={false}
+                                      activeDot={{ r: 2, fill: 'white' }}
+                                    />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </Box>
+                            )
+                          })()}
+                        </VStack>
                       </Box>
                     </Collapse>
                   </Td>
@@ -345,6 +461,16 @@ export const AvailableCollateral = ({ onDeposit }: AvailableCollateralProps) => 
         </Tbody>
       </Table>
     </Card>
+
+    {selectedAsset && (
+      <DepositModal
+        isOpen={depositModalOpen}
+        onClose={() => setDepositModalOpen(false)}
+        asset={selectedAsset}
+        positionIndex={positionIndex}
+      />
+    )}
+  </>
   )
 }
 

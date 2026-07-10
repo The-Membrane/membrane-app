@@ -27,11 +27,11 @@ const CYAN = ASSET_COLORS[0] // Use first color from theme
 const LIQUIDATION_RED = 'rgba(239, 68, 68, 0.3)'
 
 // Mock asset config for demo when no position exists
-// Target split: NTRN 40%, BTC 40%, USDC 20%
+// Target split: WETH 40%, WBTC 40%, USDC 20%
 const MOCK_ASSET_CONFIG = [
-  { denom: 'untrn', symbol: 'NTRN', weight: 0.4 },
-  { denom: 'factory/osmo1z0qrq605sjgcqpylfl4aa6s90x738j7m58wyatt0tdzflg2ha26q67k743/wbtc', symbol: 'BTC', weight: 0.4 },
-  { denom: 'ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4', symbol: 'USDC', weight: 0.2 },
+  { denom: 'weth', symbol: 'WETH', weight: 0.4 },
+  { denom: 'wbtc', symbol: 'WBTC', weight: 0.4 },
+  { denom: 'usdc', symbol: 'USDC', weight: 0.2 },
 ]
 const MOCK_TOTAL_VALUE = 10000 // $10,000 total portfolio value for mock
 const MOCK_LIQUIDATION_VALUE = 8000 // Mock liquidation threshold (80% LTV of $10k)
@@ -224,7 +224,7 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
           <Text fontSize="xs" color="whiteAlpha.600" textAlign="center">
             {hasPosition
               ? 'Compare your portfolio vs single-asset allocations'
-              : 'Sample: NTRN, BTC & USDC performance comparison'}
+              : 'Sample: WETH, WBTC & USDC performance comparison'}
           </Text>
         </VStack>
 

@@ -336,7 +336,7 @@ export const DebtCard = ({
                       <Box textAlign="right">
                         {segment.endTime ? (
                           <Stack spacing={0} alignItems="flex-end">
-                            <Text color="whiteAlpha.700" fontSize="xs">
+                            <Text color="whiteAlpha.700" fontSize="xs" suppressHydrationWarning>
                               {formatTimeRemaining(segment.endTime)}
                             </Text>
                             <Text color="whiteAlpha.500" fontSize="2xs">

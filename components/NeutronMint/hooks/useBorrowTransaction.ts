@@ -18,30 +18,83 @@ interface UseBorrowTransactionProps {
   }
   borrowAmount: number
   selectedRate: BorrowRate
-  receiveToWallet: boolean
   positionIndex?: number
   enabled?: boolean
   onSuccess?: () => void
 }
 
+/** DECIMAL_FRACTIONAL — a full 1e18-scaled fraction (== 100%). */
+const ONE_FRACTION = 10n ** 18n
+
+/** DebtSplit tuple for the 5-arg increaseDebt overload (CdpFixedRate.DebtSplit). */
+type DebtSplit = {
+  variable: bigint
+  oneM: bigint
+  threeM: bigint
+  sixM: bigint
+  pegVariable: bigint
+  pegOneM: bigint
+  pegThreeM: bigint
+  pegSixM: bigint
+  rolloverFlags: number
+}
+
+const EMPTY_SPLIT: DebtSplit = {
+  variable: 0n,
+  oneM: 0n,
+  threeM: 0n,
+  sixM: 0n,
+  pegVariable: 0n,
+  pegOneM: 0n,
+  pegThreeM: 0n,
+  pegSixM: 0n,
+  rolloverFlags: 0,
+}
+
 /**
- * Borrow (mint) CTA — EVM port. Migration counterpart: CosmWasm `increase_debt` via the
- * positions/marketManager contract. Here we build cdp.increaseDebt(positionId, cdtDenom,
- * amount) (contracts/abis/cdp.ts).
+ * Build the DebtSplit for a single-tranche borrow. Fractions sum to 1e18 in exactly one
+ * non-empty pool (regular OR peg); rollover disabled. `pegDebt` selects the pool: the peg
+ * pool mints CDT and transmutes it to USDC for the owner (single atomic call), the regular
+ * pool mints CDT to the owner.
+ */
+const buildSplit = (selectedRate: BorrowRate, pegDebt: boolean): DebtSplit => {
+  const split = { ...EMPTY_SPLIT }
+  if (pegDebt) {
+    switch (selectedRate) {
+      case 'fixed-1m': split.pegOneM = ONE_FRACTION; break
+      case 'fixed-3m': split.pegThreeM = ONE_FRACTION; break
+      case 'fixed-6m': split.pegSixM = ONE_FRACTION; break
+      default: split.pegVariable = ONE_FRACTION; break
+    }
+  } else {
+    switch (selectedRate) {
+      case 'fixed-1m': split.oneM = ONE_FRACTION; break
+      case 'fixed-3m': split.threeM = ONE_FRACTION; break
+      case 'fixed-6m': split.sixM = ONE_FRACTION; break
+      default: split.variable = ONE_FRACTION; break
+    }
+  }
+  return split
+}
+
+/**
+ * Borrow (mint) CTA — EVM port. Migration counterpart: CosmWasm `increase_debt`.
  *
- * TODO(evm-migration): only variable-rate CDT borrow maps cleanly to the 3-arg
- * increaseDebt(positionId, borrowAsset, amount). Fixed-rate tranches (fixed-1m/3m/6m) need
- * the 5-arg increaseDebt with a CdpFixedRate.DebtSplit, and the USDC "peg" borrow (mint CDT
- * then swap CDT→USDC via the transmuter) has no marketManager equivalent in the EVM address
- * book yet — those paths are stubbed (return undefined ⇒ CTA disabled) until modeled.
- * `receiveToWallet` also has no representation on the 3-arg entrypoint (CDT is minted to the
- * position owner); it is ignored here.
+ * The debt is always denominated in CDT (borrowAsset = bytes32("CDT"), amount in CDT base
+ * units); `pegDebt` chooses whether the minted CDT is handed over as-is or transmuted to
+ * USDC. Paths:
+ *   - CDT + variable → 3-arg increaseDebt(positionId, borrowAsset, amount) (atomic, simplest).
+ *   - CDT + fixed-1m/3m/6m → 5-arg with pegDebt=false and the fraction in oneM/threeM/sixM.
+ *   - USDC (peg) any tranche → 5-arg with pegDebt=true and the fraction in the peg pool;
+ *     the contract mints CDT and transmutes to USDC to the owner in ONE call.
+ *
+ * Borrowed funds always mint to the position OWNER — there is no recipient arg, so no
+ * "receive to wallet" choice exists on-chain.
  */
 export const useBorrowTransaction = ({
   asset,
   borrowAmount,
   selectedRate,
-  receiveToWallet,
   positionIndex = 0,
   enabled = true,
   onSuccess,
@@ -69,16 +122,35 @@ export const useBorrowTransaction = ({
     staleTime: 1000 * 60 * 5,
     queryFn: () => {
       if (!address || !cdpAddr || !borrowAmount || borrowAmount <= 0 || !enabled) return undefined
-      // Only the variable-rate CDT path is supported on EVM (see file-level TODO).
-      if (asset.symbol !== 'CDT' || selectedRate !== 'variable') return undefined
 
+      // Debt is always CDT-denominated (amount in CDT base units); the peg path transmutes
+      // the minted CDT to USDC in-contract. USDC ≈ CDT 1:1, so the entered amount maps to
+      // the same CDT debt figure either way.
       const amount = BigInt(shiftDigits(borrowAmount, cdtAsset?.decimal ?? 18).dp(0).toString())
+      const borrowAsset = assetKey('CDT')
+      const pegDebt = asset.symbol === 'USDC'
+
+      // CDT + variable → the 3-arg overload (already-atomic, minimal calldata).
+      if (!pegDebt && selectedRate === 'variable') {
+        return [
+          {
+            address: cdpAddr,
+            abi: cdpAbi,
+            functionName: 'increaseDebt',
+            args: [positionId, borrowAsset, amount],
+          },
+        ]
+      }
+
+      // Everything else (CDT fixed tranches, and all USDC/peg tranches) → the 5-arg overload
+      // with a single-tranche DebtSplit. viem resolves the overload by arg count/shape.
+      const split = buildSplit(selectedRate, pegDebt)
       return [
         {
           address: cdpAddr,
           abi: cdpAbi,
           functionName: 'increaseDebt',
-          args: [positionId, assetKey('CDT'), amount],
+          args: [positionId, borrowAsset, amount, pegDebt, split],
         },
       ]
     },

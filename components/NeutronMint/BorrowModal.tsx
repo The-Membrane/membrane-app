@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo, useEffect, useCallback } from 'react'
 import {
     Modal,
     ModalOverlay,
@@ -21,6 +21,8 @@ import { num } from '@/helpers/num'
 import { useBorrowModal, type BorrowRate } from './hooks/useBorrowModal'
 import { useBorrowRates } from './hooks/useBorrowRates'
 import { useBorrowTransaction } from './hooks/useBorrowTransaction'
+import { useFixedRateCaps, remainingFixedCapacity } from './hooks/useFixedRateCaps'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { BorrowRateSelector } from './BorrowRateSelector'
 import { BorrowModalPositionPreview } from './BorrowModalPositionPreview'
 import { Slider, SliderTrack, SliderFilledTrack, SliderThumb, SliderMark } from '@chakra-ui/react'
@@ -31,10 +33,9 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import { getSymbolFromDenom, getLogoFromSymbol } from './types'
 import { getMockBorrowData } from './mockBorrowData'
 import { stableSymbols } from '@/config/defaults'
-
-// Set to true to use mock data for testing the borrow modal
-// Change this to `true` to enable mock data
-const USE_MOCK_DATA = process.env.NODE_ENV === 'development' && true
+import { useTransmuterTVL } from '@/hooks/useTransmuterData'
+import { shiftDigits } from '@/helpers/math'
+import { USE_MOCK_DATA } from './devConfig'
 
 interface BorrowModalProps {
     isOpen: boolean
@@ -60,6 +61,7 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
     const mockData = USE_MOCK_DATA ? getMockBorrowData() : null
     const { data: basketPositions } = useUserPositions()
     const { data: prices } = useOraclePrice()
+    const { data: transmuterTVL } = useTransmuterTVL()
 
     // Override with mock data if enabled
     const finalBasketPositions = mockData?.basketPositions || basketPositions
@@ -71,7 +73,6 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
     const {
         selectedRate,
         borrowAmount,
-        receiveToWallet,
         sliderValue,
         maxBorrowable,
         currentPosition,
@@ -80,9 +81,11 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
         handleAmountChange,
         handleSliderChange,
         handleMaxClick,
-        setReceiveToWallet,
         reset,
     } = borrowModal
+
+    // Fixed-rate aggregate cap (20% of basket debt) + on-chain bucket multipliers.
+    const { data: fixedCaps } = useFixedRateCaps()
 
     // Reset modal when it closes
     useEffect(() => {
@@ -91,16 +94,63 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
         }
     }, [isOpen, reset])
 
-    // Get current rate APR
+    const isFixed = selectedRate !== 'variable'
+
+    // Displayed fixed rate = bucket multiplier × current variable rate (fixed rates are not
+    // quoted on-chain). Multipliers come from fixedRateCapsView (fallbacks in the hook).
+    const getDisplayRate = useCallback(
+        (rate: BorrowRate) => {
+            const m = fixedCaps?.multipliers
+            switch (rate) {
+                case 'fixed-1m':
+                    return num(rates.variable).times(m?.oneMonth ?? 1.1).toNumber()
+                case 'fixed-3m':
+                    return num(rates.variable).times(m?.threeMonth ?? 1.3).toNumber()
+                case 'fixed-6m':
+                    return num(rates.variable).times(m?.sixMonth ?? 1.7).toNumber()
+                default:
+                    return rates.variable
+            }
+        },
+        [rates.variable, fixedCaps],
+    )
+
+    // Rates surfaced to the selector, with fixed tranches recomputed as multiplier × variable.
+    const displayRates = useMemo(
+        () => ({
+            variable: rates.variable,
+            fixed1m: getDisplayRate('fixed-1m'),
+            fixed3m: getDisplayRate('fixed-3m'),
+            fixed6m: getDisplayRate('fixed-6m'),
+        }),
+        [rates.variable, getDisplayRate],
+    )
+
+    // Remaining fixed-rate capacity (human CDT) before the aggregate cap reverts.
+    const fixedCapacity = useMemo(() => remainingFixedCapacity(fixedCaps), [fixedCaps])
+
+    // A fixed borrow that pushes the basket over the 20% aggregate cap will revert
+    // FixedRateCapExceeded() — gate the CTA and warn before the user signs.
+    const exceedsFixedCap = useMemo(
+        () => isFixed && Number.isFinite(fixedCapacity) && borrowAmount > fixedCapacity,
+        [isFixed, fixedCapacity, borrowAmount],
+    )
+
+    // Get current rate APR (fixed tranches use the multiplier-derived display rate)
     const currentApr = useMemo(() => {
-        return rates.getRate(selectedRate)
-    }, [rates, selectedRate])
+        return getDisplayRate(selectedRate)
+    }, [getDisplayRate, selectedRate])
 
     // Get liquidity available
+    // CDT minting is unlimited (-1). USDC liquidity comes from the transmuter pool.
     const liquidityAvailable = useMemo(() => {
-        // CDT is unlimited (-1), USDC would have actual liquidity
-        return asset.symbol === 'CDT' ? -1 : 0 // TODO: Get actual USDC liquidity
-    }, [asset.symbol])
+        if (asset.symbol === 'CDT') return -1
+        // USDC available = transmuter TVL (USDC held in the transmuter pool)
+        if (transmuterTVL) {
+            return shiftDigits(transmuterTVL, -6).toNumber()
+        }
+        return 0
+    }, [asset.symbol, transmuterTVL])
 
     // Build position data for preview
     const positionData = useMemo(() => {
@@ -131,8 +181,10 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
         }
     }, [currentPosition, projectedPosition, currentApr])
 
-    // Build debt composition for preview (dynamic based on current debt and borrow input)
-    // TODO: Replace existing debt rate type lookup with actual queries to get debt composition by rate type
+    // Build debt composition for preview (dynamic based on current debt and borrow input).
+    // Note: The CDP contract's BasketPositionsResponse returns only total credit_amount
+    // without a per-rate-type breakdown. Until the contract exposes debt-by-rate-type,
+    // existing debt is assumed to be Variable rate.
     const debtComposition = useMemo(() => {
         const compositionRows: Array<{
             type: string
@@ -165,7 +217,7 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
         }
 
         if (existingDebt > 0 && newBorrow === 0) {
-            // Only existing debt - assume Variable for now (TODO: query actual rate type)
+            // Only existing debt — contract does not expose rate type, defaulting to Variable
             compositionRows.push({
                 type: 'Variable',
                 rate: rates.getRate('variable'),
@@ -185,7 +237,7 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
                 })
             } else {
                 // Different rate types - show separately
-                // Assume existing debt is Variable (TODO: query actual rate type)
+                // Contract does not expose rate type, defaulting existing debt to Variable
                 compositionRows.push({
                     type: 'Variable',
                     rate: rates.getRate('variable'),
@@ -215,7 +267,7 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
             return 0
         }
 
-        // For current debt, assume Variable rate (TODO: query actual rate types)
+        // Contract does not expose per-rate-type debt breakdown, defaulting to Variable
         return rates.getRate('variable')
     }, [currentPosition.debtAmount, rates])
 
@@ -324,9 +376,8 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
         asset,
         borrowAmount,
         selectedRate,
-        receiveToWallet,
         positionIndex,
-        enabled: isOpen && borrowAmount > 0,
+        enabled: isOpen && borrowAmount > 0 && !exceedsFixedCap,
         onSuccess: () => {
             onClose()
             reset()
@@ -334,7 +385,7 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
     })
 
     const isLoading = borrowTransaction?.simulate.isLoading || borrowTransaction?.tx.isPending
-    const isDisabled = borrowAmount <= 0 || borrowTransaction?.simulate.isError || !borrowTransaction?.simulate.data
+    const isDisabled = borrowAmount <= 0 || exceedsFixedCap || borrowTransaction?.simulate.isError || !borrowTransaction?.simulate.data
 
     // Get rate label for contextual text
     const getRateLabel = (rate: typeof selectedRate) => {
@@ -381,14 +432,10 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
                                 <Box>
                                     <BorrowRateSelector
                                         selectedRate={selectedRate}
-                                        rates={{
-                                            variable: rates.variable,
-                                            fixed1m: rates.fixed1m,
-                                            fixed3m: rates.fixed3m,
-                                            fixed6m: rates.fixed6m,
-                                        }}
+                                        rates={displayRates}
                                         assetSymbol={asset.symbol}
                                         liquidityAvailable={liquidityAvailable}
+                                        fixedRateCapacity={Number.isFinite(fixedCapacity) ? fixedCapacity : undefined}
                                         onRateChange={handleRateChange}
                                     />
                                 </Box>
@@ -593,6 +640,19 @@ export const BorrowModal: React.FC<BorrowModalProps> = ({
                                         <Text color="whiteAlpha.400" fontSize="xs" textAlign="left">
                                             Borrowed funds will go directly to your wallet
                                         </Text>
+
+                                        {/* Fixed-rate aggregate cap notice */}
+                                        {isFixed && Number.isFinite(fixedCapacity) && (
+                                            <Text
+                                                color={exceedsFixedCap ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.warning}
+                                                fontSize="xs"
+                                                textAlign="left"
+                                            >
+                                                {exceedsFixedCap
+                                                    ? `Exceeds fixed-rate capacity. Up to ${num(fixedCapacity).toFixed(2)} CDT available at a fixed rate.`
+                                                    : `Fixed-rate capacity remaining: ${num(fixedCapacity).toFixed(2)} CDT`}
+                                            </Text>
+                                        )}
 
                                         {/* Borrow Button */}
                                         <Button

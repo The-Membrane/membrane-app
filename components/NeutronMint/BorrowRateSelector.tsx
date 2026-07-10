@@ -32,6 +32,12 @@ interface BorrowRateSelectorProps {
     }
     assetSymbol: 'CDT' | 'USDC'
     liquidityAvailable: number // -1 for unlimited, or USD value
+    /**
+     * Remaining fixed-rate capacity (human CDT) before the 20% basket-wide aggregate cap
+     * reverts. Shared across all fixed tranches (single pool). Undefined ⇒ cap read
+     * unavailable, fall back to indicative values.
+     */
+    fixedRateCapacity?: number
     onRateChange: (rate: BorrowRate) => void
 }
 
@@ -40,16 +46,19 @@ export const BorrowRateSelector: React.FC<BorrowRateSelectorProps> = ({
     rates,
     assetSymbol,
     liquidityAvailable,
+    fixedRateCapacity,
     onRateChange,
 }) => {
     const [hoveredRate, setHoveredRate] = useState<BorrowRate | null>(null)
 
-    // Mock liquidity data per rate option
-    const mockLiquidityData: Record<BorrowRate, number> = {
+    // Liquidity per rate option. Fixed tranches share the on-chain aggregate cap
+    // (fixedRateCapacity); variable CDT minting is unlimited (-1). Indicative fallbacks are
+    // used only when the on-chain cap could not be read.
+    const liquidityByRate: Record<BorrowRate, number> = {
         'variable': -1, // Unlimited for CDT
-        'fixed-1m': 150000, // $150K available
-        'fixed-3m': 120000, // $120K available
-        'fixed-6m': 90000,  // $90K available
+        'fixed-1m': fixedRateCapacity ?? 150000,
+        'fixed-3m': fixedRateCapacity ?? 120000,
+        'fixed-6m': fixedRateCapacity ?? 90000,
     }
 
     const rateOptions: RateOption[] = [
@@ -91,8 +100,8 @@ export const BorrowRateSelector: React.FC<BorrowRateSelectorProps> = ({
     // Get current liquidity based on hover or selection
     const currentLiquidity = useMemo(() => {
         const rateToUse = hoveredRate || selectedRate
-        return mockLiquidityData[rateToUse] ?? liquidityAvailable
-    }, [hoveredRate, selectedRate, liquidityAvailable])
+        return liquidityByRate[rateToUse] ?? liquidityAvailable
+    }, [hoveredRate, selectedRate, liquidityAvailable, fixedRateCapacity])
 
     // Get current APR based on hover or selection
     const currentApr = useMemo(() => {

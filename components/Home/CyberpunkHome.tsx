@@ -5,6 +5,12 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import { UserCircle, ArrowUp, ArrowLeft, Lock, Unlock, Wifi } from 'lucide-react'
 import useAppState from '@/persisted-state/useAppState'
 import { SpeechBubble } from '@/components/SpeechBubble'
+import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
+
+// Total duration (ms) of the full scan cycle (down -> up -> down). The scan
+// line's position is derived purely from elapsed time so that a momentary
+// mouseleave / pointer jitter can never cancel an in-progress scan.
+const SCAN_DURATION_MS = 1800
 
 type View = 'storefront' | 'about' | 'levels'
 
@@ -124,6 +130,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
     const scanLineRef = React.useRef<HTMLDivElement>(null)
     const scannerRef = React.useRef<HTMLDivElement>(null)
     const scanAnimationRef = React.useRef<number | null>(null)
+    const scanStartTimeRef = React.useRef<number | null>(null)
 
     // Load TOS content only when modal opens
     useEffect(() => {
@@ -156,52 +163,56 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 
 
 
-    // Auto-scanning animation
+    // Auto-scanning animation.
+    // Position is derived from elapsed wall-clock time (not per-frame pixel
+    // increments), so the cycle always completes in SCAN_DURATION_MS
+    // regardless of frame rate. Combined with handleScannerMouseLeave no
+    // longer cancelling the scan, this makes the gesture reliably
+    // completable instead of requiring uninterrupted hover for the whole
+    // three-phase cycle.
     React.useEffect(() => {
         if (!isScanning || scanComplete || !scannerBounds) return
 
-        let direction: 'up' | 'down' = 'down' // Start going down from top
-        let currentY = scannerBounds.top
-        const speed = 0.6 // Slower speed - pixels per frame
-        let cycleStep = 0 // Track cycle steps: 0=initial, 1=reached bottom, 2=reached top after bottom, 3=reached bottom again (complete)
+        if (scanStartTimeRef.current === null) {
+            scanStartTimeRef.current = performance.now()
+        }
 
-        const animate = () => {
-            if (direction === 'down') {
-                currentY += speed
-                if (currentY >= scannerBounds.bottom) {
-                    currentY = scannerBounds.bottom
-                    if (cycleStep === 0) {
-                        // First time reaching bottom (first part: down)
-                        cycleStep = 1
-                        direction = 'up'
-                        setCurrentDirection('up')
-                    } else if (cycleStep === 2) {
-                        // Reached bottom again (third part: down) - complete cycle: down -> up -> down
-                        setScanComplete(true)
-                        setIsScanning(false)
-                        setAppState({ setCookie: true })
-                        return // Stop animation
-                    }
-                }
+        const { top, bottom } = scannerBounds
+        const boxHeight = bottom - top
+        const phaseDuration = SCAN_DURATION_MS / 3 // down, up, down
+
+        const animate = (now: number) => {
+            const startTime = scanStartTimeRef.current ?? now
+            const elapsed = now - startTime
+
+            if (elapsed >= SCAN_DURATION_MS) {
+                setScanLineY(bottom)
+                setLastY(bottom)
+                setCurrentDirection('down')
+                setScanComplete(true)
+                setIsScanning(false)
+                setAppState({ setCookie: true })
+                return // Stop animation - cycle complete
+            }
+
+            const phase = Math.floor(elapsed / phaseDuration) // 0, 1, or 2
+            const phaseProgress = (elapsed - phase * phaseDuration) / phaseDuration
+
+            let currentY: number
+            if (phase === 1) {
+                // Second part: up (bottom -> top)
+                currentY = bottom - boxHeight * phaseProgress
+                setCurrentDirection('up')
             } else {
-                currentY -= speed
-                if (currentY <= scannerBounds.top) {
-                    currentY = scannerBounds.top
-                    if (cycleStep === 1) {
-                        // Reached top after going down (second part: up)
-                        cycleStep = 2
-                        direction = 'down'
-                        setCurrentDirection('down')
-                    }
-                }
+                // First and third parts: down (top -> bottom)
+                currentY = top + boxHeight * phaseProgress
+                setCurrentDirection('down')
             }
 
             setScanLineY(currentY)
             setLastY(currentY)
 
-            if (isScanning && !scanComplete) {
-                scanAnimationRef.current = requestAnimationFrame(animate)
-            }
+            scanAnimationRef.current = requestAnimationFrame(animate)
         }
 
         scanAnimationRef.current = requestAnimationFrame(animate)
@@ -211,7 +222,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                 cancelAnimationFrame(scanAnimationRef.current)
             }
         }
-    }, [isScanning, scanComplete, scannerBounds])
+    }, [isScanning, scanComplete, scannerBounds, setAppState])
 
     // Update scanning line position (within the 40px box, not following cursor)
     React.useEffect(() => {
@@ -228,15 +239,19 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
         })
     }, [scanLineY, isScanning, scanComplete, scannerBounds])
 
-    const handleScannerMouseEnter = (e: React.MouseEvent) => {
-        if (scanComplete) return
+    // Shared entry point for starting a scan - triggered by hover, click/tap,
+    // or keyboard activation so the gesture is completable without needing
+    // sustained, precise pointer control.
+    const startScan = (target: HTMLElement) => {
+        if (scanComplete || isScanning) return
 
         // Get scanner bounds - 16px x 24px activation area in the center
-        const rect = e.currentTarget.getBoundingClientRect()
+        const rect = target.getBoundingClientRect()
         const boxHeight = 24 // 24px height
         const centerX = rect.left + rect.width / 2
         const centerY = rect.top + rect.height / 2
 
+        scanStartTimeRef.current = null // let the animation effect stamp a fresh start time
         setScannerBounds({
             top: centerY - boxHeight / 2,
             bottom: centerY + boxHeight / 2,
@@ -250,15 +265,25 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
         setLastY(centerY - boxHeight / 2)
     }
 
+    const handleScannerMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+        startScan(e.currentTarget)
+    }
 
-    const handleScannerMouseLeave = () => {
-        if (scanComplete) return
-        setIsScanning(false)
-        setCurrentDirection(null)
-        setLastY(null)
-        setScannerBounds(null)
-        if (scanAnimationRef.current) {
-            cancelAnimationFrame(scanAnimationRef.current)
+    // Intentionally a no-op: once a scan begins it runs to completion based
+    // on elapsed time (see the animation effect above), so a momentary
+    // mouseleave / pointer jitter can no longer cancel it.
+    const handleScannerMouseLeave = () => { }
+
+    // Accessible fallbacks for keyboard, touch, and automation - a single
+    // click/tap or Enter/Space press starts the same reliable, time-based scan.
+    const handleScannerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        startScan(e.currentTarget)
+    }
+
+    const handleScannerKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault()
+            startScan(e.currentTarget)
         }
     }
 
@@ -502,18 +527,35 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                                         pointerEvents="none"
                                     />
                                 </Box>
-                                {/* 40px activation area in the center */}
+                                {/* 40px activation area in the center - hoverable, clickable/tappable,
+                                and keyboard-activatable (Enter/Space) so the scan is reliably completable */}
                                 <Box
                                     ref={scannerRef}
                                     position="absolute"
                                     w="16px"
                                     h="24px"
                                     cursor="pointer"
+                                    tabIndex={scanComplete ? -1 : 0}
+                                    role="button"
+                                    aria-label={
+                                        scanComplete
+                                            ? 'Identity scan complete'
+                                            : isScanning
+                                                ? 'Scanning in progress'
+                                                : 'Hover, click, or press Enter to scan and accept the vow'
+                                    }
+                                    aria-pressed={isScanning || scanComplete}
                                     onMouseEnter={handleScannerMouseEnter}
                                     onMouseLeave={handleScannerMouseLeave}
+                                    onClick={handleScannerClick}
+                                    onKeyDown={handleScannerKeyDown}
                                     left="50%"
                                     top="50%"
                                     transform="translate(-50%, -50%)"
+                                    borderRadius="sm"
+                                    transition={TRANSITIONS.shadow}
+                                    _focus={FOCUS_STYLES.ringCyan}
+                                    _focusVisible={FOCUS_STYLES.ringCyan}
                                 />
                             </Box>
                         </VStack>
@@ -1914,22 +1956,32 @@ const LevelsView = ({
 export const CyberpunkHome = React.memo(() => {
     const router = useRouter()
     const { chainName } = useChainRoute()
+    const { appState, setAppState } = useAppState()
 
-    // Check for query parameter to set initial view
+    // Check for query parameter to set initial view. This intentionally
+    // ignores appState.setCookie on the very first (SSR-matching) render to
+    // avoid a hydration mismatch - the effect below corrects it immediately
+    // after mount for returning users.
     const initialView = (router.query.view as View) || 'storefront'
     const [currentView, setCurrentView] = useState<View>(initialView)
 
-    // Update view when query parameter changes
+    // Update view when the query parameter changes, or - for returning
+    // users who have already accepted the vow/ToS+cookies (persisted via
+    // appState.setCookie) - skip the storefront ritual and land straight in
+    // the normal app view. An explicit `?view=storefront` always re-opens
+    // the ritual, e.g. for testing or re-reading the terms.
     React.useEffect(() => {
         if (router.query.view) {
             setCurrentView(router.query.view as View)
+        } else if (appState.setCookie) {
+            setCurrentView('levels')
         }
-    }, [router.query.view])
-
-    const { appState, setAppState } = useAppState()
+    }, [router.query.view, appState.setCookie])
 
     const handleEnter = (username: string) => {
-        setAppState({ username })
+        // Persist ToS + cookie acceptance so returning users aren't forced
+        // through the storefront/scan ritual on every visit.
+        setAppState({ username, setCookie: true })
         setCurrentView('levels')
         
         // Check if user has an intended route to redirect to

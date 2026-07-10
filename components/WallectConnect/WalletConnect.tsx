@@ -15,7 +15,7 @@ const hoverStyles = {
 
 const WalletConnect = () => {
   const [isHovered, setIsHovered] = useState(false)
-  const { connect, isWalletConnected, disconnect, address, connector } = useWallet()
+  const { isWalletConnected, disconnect, address, connector } = useWallet()
 
   const shortAddress = useMemo(() => truncate(address), [address])
   const walletLabel = connector?.name ?? 'Connected'

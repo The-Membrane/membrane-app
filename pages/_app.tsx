@@ -4,6 +4,8 @@ import type { AppProps } from 'next/app'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
 import { wagmiConfig } from '@/config/evm/wagmi'
+import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
+import '@rainbow-me/rainbowkit/styles.css'
 import Layout from '@/components/Layout'
 
 import { lazy } from 'react'
@@ -53,15 +55,17 @@ const App = ({ Component, pageProps }: AppProps) => {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <Head>
-          <title>{pageTitle}</title>
-        </Head>
-        <ChakraProvider resetCSS theme={theme}>
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
-        </ChakraProvider>
-        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+        <RainbowKitProvider theme={darkTheme({ accentColor: '#A692FF' })}>
+          <Head>
+            <title>{pageTitle}</title>
+          </Head>
+          <ChakraProvider resetCSS theme={theme}>
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
+          </ChakraProvider>
+          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   )

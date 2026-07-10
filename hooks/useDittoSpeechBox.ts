@@ -30,7 +30,6 @@ export const useDittoSpeechBox = () => {
 
         // Don't auto-navigate if user just manually navigated to a section
         if (justManuallyNavigatedRef.current) {
-            console.log('Skipping auto-navigation - user just manually navigated')
             justManuallyNavigatedRef.current = false
             return
         }
@@ -47,7 +46,6 @@ export const useDittoSpeechBox = () => {
                             pathname.includes('/manic') ? 'manic' : null)
 
                 if (matchingView) {
-                    console.log('Auto-navigating to:', matchingView)
                     return matchingView
                 }
             }
@@ -57,13 +55,11 @@ export const useDittoSpeechBox = () => {
 
     // Reset user navigation flag when returning to hub
     const openSection = (view: SpeechBoxView) => {
-        console.log('openSection called with view:', view)
         // justManuallyNavigatedRef.current = true // Mark that user manually navigated
         setCurrentView(view)
 
         // setIsUserNavigated(true)
         // justReturnedToHubRef.current = false
-        console.log('setCurrentView called with:', view)
     }
 
     const returnToHub = () => {

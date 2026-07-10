@@ -35,7 +35,6 @@ export const useGovernanceClient = () => {
 }
 
 export const getGovernanceClient = async (rpcUrl: string) => {
-  console.log("gov CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new GovernanceQueryClient(cosmWasmClient, contracts.governance)
 }

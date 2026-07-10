@@ -292,7 +292,6 @@ export interface JsonCarInfoResponse {
 export async function getCarEnergy(tokenId: string, rpc: string = defaultRpcUrl): Promise<JsonCarInfoResponse | null> {
     const carAddr = (contracts as any).car as string;
     const client = await getCosmWasmClient(rpc);
-    console.log('getCarEnergy', tokenId, rpc)
     try {
         const response = (await client.queryContractSmart(carAddr, {
             get_car_info: { token_id: tokenId },
@@ -305,7 +304,6 @@ export async function getCarEnergy(tokenId: string, rpc: string = defaultRpcUrl)
 }
 
 export function useCarEnergy(tokenId?: string, rpc: string = defaultRpcUrl) {
-    console.log('useCarEnergy', tokenId, rpc)
     return useQuery<JsonCarInfoResponse | null>({
         queryKey: ['car_energy', (contracts as any).car, tokenId, rpc],
         queryFn: async () => {
@@ -354,7 +352,6 @@ export async function getValidMazeId(rpc: string = defaultRpcUrl): Promise<strin
     const client = await getCosmWasmClient(rpc)
     try {
         const res = (await client.queryContractSmart(addr, { valid_maze_i_d: {} } as any)) as any
-        console.log('getValidMazeId res', res)
         return res?.toString() ?? null
     } catch (e) {
         console.error('Error fetching valid maze ID', e)
@@ -472,12 +469,10 @@ export async function getQRacingTrack(trackId: string, rpcUrl: string = defaultR
     }
 
     const client = await getCosmWasmClient(rpcUrl);
-    console.log('HERE');
     // Rust expects { get_track: { track_id: Uint128-string } }
     const response = (await client.queryContractSmart(contracts.trackManager, {
         get_track: { track_id: trackId },
     })) as JsonTrack;
-    console.log('response', response);
 
     return jsonTrackToLegendGrid(response);
 }
@@ -491,7 +486,6 @@ export async function listTracks(rpc: string = defaultRpcUrl): Promise<JsonTrack
                 limit: 200,
             },
         })) as JsonListTracksResponse;
-        console.log('response tracks', response.tracks);
         return response.tracks ?? [];
     } catch (error) {
         console.error('Error listing tracks:', error);
@@ -528,7 +522,6 @@ export async function getRecentRacesForCar(carId: string, rpcUrl: string = defau
     const client = await getCosmWasmClient(rpcUrl);
 
     try {
-        console.log('getRecentRacesForCar: Fetching races for carId:', carId, 'with limit: 100');
         const response = (await client.queryContractSmart(raceEngineAddr, {
             list_recent_races: {
                 car_id: carId,
@@ -536,10 +529,7 @@ export async function getRecentRacesForCar(carId: string, rpcUrl: string = defau
             },
         })) as JsonRecentRacesResponse;
 
-        console.log('getRecentRacesForCar: Received', response.races?.length || 0, 'races');
         if (response.races && response.races.length > 0) {
-            console.log('getRecentRacesForCar: First race ID:', response.races[0].race_id);
-            console.log('getRecentRacesForCar: Last race ID:', response.races[response.races.length - 1].race_id);
         }
 
         return response.races;
@@ -585,7 +575,6 @@ export async function getOwnedCars(walletAddress: string, rpcUrl: string = defau
         })) as JsonTokensResponse;
 
         const tokens = response.tokens ?? [];
-        console.log('getOwnedCars tokens', walletAddress, rpcUrl, tokens?.length)
         const results = await Promise.all(
             tokens.map(async (token) => {
                 try {
@@ -893,7 +882,6 @@ export async function getRpsTickHistory(carId: string, rpc: string = defaultRpcU
         const response = (await client.queryContractSmart(rpsEngineAddr, {
             get_tick_history: { car_id: carId },
         })) as JsonGetRpsTickHistoryResponse;
-        console.log('getRpsTickHistory', response)
         return response ?? null;
     } catch (error) {
         console.error('Error fetching RPS tick history:', error);

@@ -77,7 +77,6 @@ function getPositionLTV(position_value: number, credit_amount: number, basket: B
 
 export const OsmosisClient = async (rpcUrl: string) => {
     const { createRPCQueryClient } = osmosis.ClientFactory;
-    console.log("osmosis CW client")
     const osmosisClient = await createRPCQueryClient({ rpcEndpoint: rpcUrl })
     return osmosisClient
 }
@@ -224,7 +223,6 @@ export const getBestCLRange = () => {
             for (const position of clRewards) {
                 //Add reward totals
                 const totalReward = position.reward && position.reward.claimableSpreadRewards.length == 2 ? parseInt(position.reward.claimableSpreadRewards[0].amount) + parseInt(position.reward.claimableSpreadRewards[1].amount) : 0;
-                console.log("LP IDs", position.reward, position.position.id)
                 //Add position to list
                 rewardList.push({ position: position.position, reward: totalReward });
             }
@@ -428,7 +426,6 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Confirm desired LTV isn't over the borrowable LTV
     if (LTV > borrowLTV / 100) {
         // console.log("Desired LTV is over the Position's borrowable LTV")
-        console.log(LTV, borrowLTV / 100)
         LTV = borrowLTV / 100;
         // return { msgs: [], newValue: 0, newLTV: 0 };
     }
@@ -439,7 +436,6 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
-        console.log("Desired LTV is under the Position's current LTV")
         return { msgs: [], newValue: 0, newLTV: 0 };
     }
     //Repeat until CDT to mint is under 1 or Loops are done
@@ -455,7 +451,6 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
         mintAmount = parseInt(((mintValue / parseFloat(basket.credit_price.price)) * 1_000_000).toFixed(0));
         // console.log("mintAmount", mintAmount)
         if (!mintAmount) {
-            console.log("mintAmount please return us", mintAmount)
             return { msgs: [], newValue: 0, newLTV: 0 };
         }
         //Create mint msg
@@ -719,12 +714,10 @@ const getCDTtokenOutAmount = (tokenInAmount: number, cdtPrice: number, swapFromP
 const getCDTRoute = (tokenIn: keyof exported_supportedAssets, tokenOut?: keyof exported_supportedAssets) => {
     // console.log(tokenIn)
     var route = cdtRoutes[tokenIn];
-    console.log("cdtRoutes", route)
     //to protect against infinite loops
     var iterations = 0;
 
     while (route != undefined && route[route.length - 1].tokenOutDenom as string !== denoms.CDT[0] && iterations < 5) {
-        console.log("route denoms", route[route.length - 1].tokenOutDenom === denoms[tokenOut ?? "CDT"][0] as string)
         if (tokenOut && route[route.length - 1].tokenOutDenom === denoms[tokenOut][0] as string) return { route, foundToken: true };
 
         //Find the key from this denom
@@ -776,22 +769,15 @@ const getCollateralRoute = (tokenOut: keyof exported_supportedAssets) => {//Swap
 
 
     const { route: temp_routes, foundToken, } = getCDTRoute(tokenOut);
-    console.log("cdt routes", temp_routes, foundToken)
     //Reverse the route
-    console.log("pre")
     temp_routes.reverse();
     //This route key logic is breaking the fn
-    console.log("before routeKey", cdtRoutes["CDT"][0].tokenOutDenom)
-    console.log("post", temp_routes)
     var routes = temp_routes;
     //Swap tokenOutdenom of the route to the key of the route
     routes = routes.map((route) => {
-        console.log("pre", route.tokenOutDenom, route.poolId)
         let routeKey = Object.keys(cdtRoutes).find(key => cdtRoutes[key as keyof exported_supportedAssets][0].tokenOutDenom === route.tokenOutDenom && route.poolId === cdtRoutes[key as keyof exported_supportedAssets][0].poolId);
-        console.log("routeKey", routeKey)
 
         let keyDenom = denoms[routeKey as keyof exported_supportedAssets][0] as string;
-        console.log("keyDenom", keyDenom)
         return {
             poolId: route.poolId,
             tokenOutDenom: keyDenom,
@@ -809,19 +795,15 @@ const getCollateraltokenOutAmount = (cdtPrice: number, CDTInAmount: number, toke
 
 //Swapping CDT to collateral
 export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOutPrice: number, tokenOut: keyof exported_supportedAssets, CDTInAmount: number, slippage?: number): { msg: any, tokenOutMinAmount: number } => {
-    console.log("herein 1")
     //Get tokenOutAmount
     const decimalDiff = denoms[tokenOut][1] as number - 6;
     // const tokenOutAmount = shiftDigits(getCDTtokenOutAmount(tokenInAmount, cdtPrice, swapFromPrice), -decimalDiff);
     const tokenOutAmount = shiftDigits(getCollateraltokenOutAmount(cdtPrice, CDTInAmount, tokenOutPrice), decimalDiff);
-    console.log("herein 2")
 
     //Swap routes
     const routes: SwapAmountInRoute[] = getCollateralRoute(tokenOut);
-    console.log("herein 3")
 
     const tokenOutMinAmount = parseInt(calcAmountWithSlippage(tokenOutAmount.toString(), slippage ?? SWAP_SLIPPAGE)).toString();
-    console.log("herein 4")
 
 
     const msg = swapExactAmountIn({
@@ -830,7 +812,6 @@ export const handleCollateralswaps = (address: string, cdtPrice: number, tokenOu
         tokenIn: coin(CDTInAmount.toString(), denoms.CDT[0] as string),
         tokenOutMinAmount
     });
-    console.log("herein 5")
 
     // await base_client?.signAndBroadcast(user_address, [msg], "auto",).then((res) => {// console.log(res)});
     return { msg, tokenOutMinAmount: parseInt(tokenOutMinAmount) };

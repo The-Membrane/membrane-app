@@ -217,7 +217,6 @@ export const useEarnUSDCRealizedAPR = () => {
                 vt_claim_of_checkpoint: num(currentClaim).minus(40237).toString(), //subtracting gains from the exit bug
                 time_since_last_checkpoint
             }
-            console.log("claim tracker", currentClaimTracker)
 
             //Add the current claim to the claim tracker
             claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
@@ -263,7 +262,6 @@ export const useEarnCDTRealizedAPR = () => {
                 vt_claim_of_checkpoint: num(currentClaim).toString(), //subtracting gains from the exit bug
                 time_since_last_checkpoint
             }
-            console.log("Manic Vault claim tracker", currentClaimTracker)
 
             //Add the current claim to the claim tracker
             claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
@@ -312,7 +310,6 @@ export const useBoundedCDTRealizedAPR = () => {
             const march11th = new Date("2025-03-11T00:00:00Z").getTime() / 1000
 
 
-            console.log("block time", blockTime, "march 11th", march11th)
             const time_since_last_checkpoint = blockTime - march11th //39D bc that's the checkpoint for when the vault changed to market making
             // console.log("time since last checkpoint", time_since_last_checkpoint)
             // NEED TO DYNAMICALLY Calculate the time since last checkpoint using March 11th as the start date
@@ -320,7 +317,6 @@ export const useBoundedCDTRealizedAPR = () => {
                 vt_claim_of_checkpoint: num(currentClaim).toString(),
                 time_since_last_checkpoint
             }
-            console.log("autoSP claim tracker", currentClaimTracker)
 
             //Add the current claim to the claim tracker
             // claimTracker.vt_claim_checkpoints.push(currentClaimTracker)
@@ -393,14 +389,9 @@ export const getBoundedCDTBalance = () => {
             if (router.pathname !== `/${chainName}`) return
             if (!data || !boundCDTBalance) return "0"
             const intents = data
-            console.log("hello", intents)
-            console.log("hello1", intents[0].intent)
-            console.log("hello2", intents[0].intent.vault_tokens)
             const totalVTs = num(boundCDTBalance).plus(intents[0].intent.vault_tokens).toString()
-            console.log("made it here", intents, totalVTs)
 
             const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(totalVTs, 6)).toFixed(0))
-            console.log("underlyiG", underlyingData, totalVTs, shiftDigits(underlyingData ?? "1000000", -6).toString() ?? "0")
             return shiftDigits(underlyingData ?? "1000000", -6).toString()
         },
         staleTime: 1000 * 60 * 5,
@@ -488,15 +479,13 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
         ],
         queryFn: async () => {
             if (router.pathname !== `/${chainName}`) return
-            if (!allPositions || !prices || !basketAssets || !setBidState || !userDiscountQueries.every(query => query.isSuccess || query.failureReason?.message === "Query failed with (6): Generic error: Querier contract error: alloc::vec::Vec<membrane::types::StakeDeposit> not found: query wasm contract failed: query wasm contract failed: unknown request")) { console.log("revenue calc attempt", allPositions, !prices, !basketAssets); return { totalExpectedRevenue: 0, undiscountedTER: 0 } }
+            if (!allPositions || !prices || !basketAssets || !setBidState || !userDiscountQueries.every(query => query.isSuccess || query.failureReason?.message === "Query failed with (6): Generic error: Querier contract error: alloc::vec::Vec<membrane::types::StakeDeposit> not found: query wasm contract failed: query wasm contract failed: unknown request")) { return { totalExpectedRevenue: 0, undiscountedTER: 0 } }
 
             const cdpCalcs = getEstimatedAnnualInterest(allPositions, prices, userDiscountQueries, basketAssets)
             // console.log("cdpCalcs", cdpCalcs)
 
             setBidState({ cdpExpectedAnnualRevenue: cdpCalcs.totalExpectedRevenue })
 
-            console.log("undiscounted total expected annual revenue", cdpCalcs.undiscountedTER.toString())
-            console.log("total expected annual revenue", cdpCalcs.totalExpectedRevenue.toString())
 
             return cdpCalcs
         },
@@ -564,7 +553,6 @@ export const useVaultInfo = () => {
                 })
             //Find the amount of the buffer
             const bufferAmount = earnBalances?.find((balance) => balance.denom === "factory/osmo1fqcwupyh6s703rn0lkxfx0ch2lyrw6lz4dedecx0y3ced2jq04tq0mva2l/mars-usdc-tokenized")?.amount ?? "0"
-            console.log("bufferAmount", bufferAmount, earnBalances)
 
             //Add buffer amount to the collateral amount
             const totalVTokens = num(collateralAmount).plus(shiftDigits(bufferAmount, -12))
@@ -575,7 +563,6 @@ export const useVaultInfo = () => {
 
             //Find the leverage
             const leverage = totalVTValue.div(unleveragedValue)
-            console.log("leverage logs", leverage.toString(), totalVTValue.toString(), unleveragedValue.toString(), debtValue.toString())
 
 
             //////////////////
@@ -583,7 +570,6 @@ export const useVaultInfo = () => {
             //Calc the cost of the debt using the ratio of debt to collateral * the leverage
             const cost = 0
             //num(debtToCollateral).times((basket as any)?.lastest_collateral_rates?.[31].rate || 1)
-            console.log("Earn cost", cost.toString(), debtToCollateral.toString(), (basket as any)?.lastest_collateral_rates?.[31], leverage.toString())
             return {
                 totalTVL: totalVTValue,
                 unleveragedValue,

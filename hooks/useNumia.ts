@@ -10,7 +10,6 @@ export const useCDTDailyVolume = () => {
             if (!router.pathname.endsWith("/control-room")) return
             const response = await fetch('/api/proxy'); // Calls your Next.js API route
             const data = await response.json();
-            console.log("proxy log", data);
             return data as {
                 volume_24h: number;
             };

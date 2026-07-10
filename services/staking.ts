@@ -43,7 +43,6 @@ export const useStakingClient = () => {
 }
 
 export const stakingClient = async (rpcUrl: string) => {
-  console.log("staking CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new StakingQueryClient(cosmWasmClient, contracts.staking)
 }

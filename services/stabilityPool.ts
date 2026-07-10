@@ -22,7 +22,6 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { Coin } from '@cosmjs/stargate'
 
 export const stabiityPoolClient = async (rpcUrl: string) => {
-  console.log("stability pool CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new StabilityPoolQueryClient(cosmWasmClient, contracts.stabilityPool)
 }

@@ -4,14 +4,12 @@ import { getCosmWasmClient } from '@/helpers/cosmwasmClient'
 import { PointsQueryClient } from '@/contracts/codegen/points/Points.client'
 
 export const PointsClient = async (rpcUrl: string) => {
-  console.log("points CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new PointsQueryClient(cosmWasmClient, contracts.points)
 }
 
 export const getAllUserPoints = async (rpcUrl: string) => {
   const client = await PointsClient(rpcUrl)
-  console.log("b4 query", client)
   return client.userStats({
     limit: 1024
   })

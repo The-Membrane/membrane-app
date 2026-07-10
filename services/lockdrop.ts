@@ -9,7 +9,6 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 
 export const lockdropClient = async (rpcUrl: string) => {
-  console.log("lockdrop CW client")
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   return new LaunchQueryClient(cosmWasmClient, contracts.lockdrop)
 }

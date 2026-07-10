@@ -309,7 +309,6 @@ export const getUserPositions = async (
  * Generate mock market conditions data
  */
 const getMockMarketConditions = (limit: number = 100): MarketConditions[] => {
-    console.log('[getMockMarketConditions] Generating mock data with limit:', limit)
     const now = Math.floor(Date.now() / 1000)
     const conditions: MarketConditions[] = []
 
@@ -340,7 +339,6 @@ const getMockMarketConditions = (limit: number = 100): MarketConditions[] => {
         })
     }
 
-    console.log('[getMockMarketConditions] Generated', conditions.length, 'entries')
     return conditions
 }
 
@@ -349,20 +347,15 @@ export const getMarketConditions = async (
     limit: number = 100,
     contractAddr?: string
 ): Promise<MarketConditions[] | null> => {
-    console.log('[getMarketConditions] Called with:', { USE_MOCK_DATA_TRANSMUTER, limit, hasClient: !!client })
 
     // Use mock data if enabled
     if (USE_MOCK_DATA_TRANSMUTER) {
         await new Promise(resolve => setTimeout(resolve, 100))
         const mockData = getMockMarketConditions(limit)
-        console.log('[getMarketConditions] Generated mock data:', mockData.length, 'entries')
-        console.log('[getMarketConditions] First entry:', mockData[0])
-        console.log('[getMarketConditions] Last entry:', mockData[mockData.length - 1])
         return mockData
     }
 
     if (!client) {
-        console.log('[getMarketConditions] No client, returning null')
         return null
     }
 

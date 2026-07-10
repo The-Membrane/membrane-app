@@ -12,7 +12,6 @@ const RECENT_RACES_KEY = ['q-racing', 'recent-races'];
 const OWNED_CARS_KEY = ['q-racing', 'owned_cars'];
 
 export function useQRacingTrack(trackId?: string, rpcUrl?: string) {
-    console.log('trackId', trackId);
     return useQuery<Track>({
         queryKey: [...TRACK_KEY, trackId ?? 'no-track', rpcUrl],
         queryFn: () => getQRacingTrack(trackId!, rpcUrl),

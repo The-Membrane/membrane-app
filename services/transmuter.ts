@@ -1,5 +1,6 @@
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import contracts from '@/config/contracts.json'
+import type { UserIntentsResponse } from '@/types/acquisitionIntents'
 
 // Set to true to use mock data instead of querying contract
 const USE_MOCK_DATA_TRANSMUTER = true // Change to false when contract is ready
@@ -251,14 +252,6 @@ const getMockTransmuterVolumeHistory = () => {
         next_start_after: null
     }
 
-    console.log('[getMockTransmuterVolumeHistory] Generated mock data:', {
-        recordCount: result.records.length,
-        firstRecord: result.records[0],
-        lastRecord: result.records[result.records.length - 1],
-        firstCumulative: result.records[0]?.cumulative_volume,
-        lastCumulative: result.records[result.records.length - 1]?.cumulative_volume
-    })
-
     return result
 }
 
@@ -303,14 +296,6 @@ const getMockTransmuterRateHistory = () => {
         next_start_after: null
     }
 
-    console.log('[getMockTransmuterRateHistory] Generated mock rate history:', {
-        recordCount: result.records.length,
-        firstRate: result.records[0]?.conversion_rate,
-        lastRate: result.records[result.records.length - 1]?.conversion_rate,
-        firstTimestamp: result.records[0]?.timestamp,
-        lastTimestamp: result.records[result.records.length - 1]?.timestamp
-    })
-
     return result
 }
 
@@ -347,7 +332,6 @@ export const transformVolumeHistoryToChartData = (
     volumeHistory: any[]
 ): TransmuterVolumeChartPoint[] => {
     if (!volumeHistory || volumeHistory.length === 0) {
-        console.log('[transformVolumeHistoryToChartData] No volume history provided')
         return []
     }
 
@@ -364,13 +348,182 @@ export const transformVolumeHistoryToChartData = (
         }
     }).sort((a, b) => a.timestamp - b.timestamp)
 
-    console.log('[transformVolumeHistoryToChartData] Transformed data:', {
-        inputLength: volumeHistory.length,
-        outputLength: transformed.length,
-        firstPoint: transformed[0],
-        lastPoint: transformed[transformed.length - 1]
-    })
-
     return transformed
+}
+
+/**
+ * Get transmuter config (includes usage_fee and utilization threshold)
+ */
+export const getTransmuterConfig = async (
+    client: CosmWasmClient | null,
+    contractAddr?: string
+) => {
+    if (USE_MOCK_DATA_TRANSMUTER) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return {
+            usage_fee: "0.005", // 0.5%
+            usage_fee_utilization_threshold: "0.8", // 80%
+        }
+    }
+
+    if (!client) return null
+
+    const transmuterContract = contractAddr || (contracts as any).transmuter
+    if (!transmuterContract || transmuterContract === "") return null
+
+    try {
+        const response = await client.queryContractSmart(transmuterContract, {
+            config: {}
+        })
+        return response
+    } catch (error) {
+        console.error("Error querying transmuter config:", error)
+        return null
+    }
+}
+
+/**
+ * Get vault token denom from transmuter config
+ */
+export const getTransmuterVaultDenom = async (
+    client: CosmWasmClient | null,
+    contractAddr?: string
+): Promise<string | null> => {
+    if (USE_MOCK_DATA_TRANSMUTER) {
+        return "factory/neutron1transmuter/vault-token"
+    }
+
+    if (!client) return null
+
+    const transmuterContract = contractAddr || (contracts as any).transmuter
+    if (!transmuterContract || transmuterContract === "") return null
+
+    try {
+        const response = await client.queryContractSmart(transmuterContract, {
+            config: {}
+        })
+        return response?.vault_token_denom || null
+    } catch (error) {
+        console.error("Error querying transmuter vault denom:", error)
+        return null
+    }
+}
+
+/**
+ * Get user's base transmuter deposit (vault tokens converted to USDC)
+ */
+export const getUserTransmuterDeposit = async (
+    client: CosmWasmClient | null,
+    userAddress: string,
+    contractAddr?: string
+): Promise<{ vaultTokens: string; underlyingUsdc: string } | null> => {
+    if (USE_MOCK_DATA_TRANSMUTER) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return { vaultTokens: "5000000000", underlyingUsdc: "5100000000" } // ~5.1K USDC
+    }
+
+    if (!client || !userAddress) return null
+
+    const transmuterContract = contractAddr || (contracts as any).transmuter
+    if (!transmuterContract || transmuterContract === "") return null
+
+    try {
+        // 1. Get vault token denom
+        const vaultDenom = await getTransmuterVaultDenom(client, transmuterContract)
+        if (!vaultDenom) return null
+
+        // 2. Query user's vault token balance
+        const balanceResponse = await client.getBalance(userAddress, vaultDenom)
+        const vaultTokens = balanceResponse?.amount || "0"
+        if (vaultTokens === "0") return { vaultTokens: "0", underlyingUsdc: "0" }
+
+        // 3. Convert vault tokens to underlying USDC via VaultUnderlying query
+        const underlyingResponse = await client.queryContractSmart(transmuterContract, {
+            vault_underlying: { amount: vaultTokens }
+        })
+        const underlyingUsdc = underlyingResponse?.amount || vaultTokens
+
+        return { vaultTokens, underlyingUsdc }
+    } catch (error) {
+        console.error("Error querying user transmuter deposit:", error)
+        return null
+    }
+}
+
+/**
+ * Get transmuter vault info (balances for utilization calculation)
+ */
+export const getTransmuterVaultInfo = async (
+    client: CosmWasmClient | null,
+    contractAddr?: string
+) => {
+    if (USE_MOCK_DATA_TRANSMUTER) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return {
+            total_deposit_value: "50000000000", // 50M
+            paired_asset_balance: "10000000000", // 10M → 80% utilization
+            cdt_balance: "40000000000",
+            deposit_total: "50000000000",
+        }
+    }
+
+    if (!client) return null
+
+    const transmuterContract = contractAddr || (contracts as any).transmuter
+    if (!transmuterContract || transmuterContract === "") return null
+
+    try {
+        const response = await client.queryContractSmart(transmuterContract, {
+            vault_info: {}
+        })
+        return response
+    } catch (error) {
+        console.error("Error querying transmuter vault info:", error)
+        return null
+    }
+}
+
+/**
+ * Get user's intents from the transmuter contract
+ * These intents control how the base transmuter deposit is directed (e.g., to insurance slots)
+ */
+export const getUserTransmuterIntents = async (
+    client: CosmWasmClient | null,
+    user: string,
+    contractAddr?: string
+): Promise<UserIntentsResponse | null> => {
+    if (USE_MOCK_DATA_TRANSMUTER) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        // Mock: base transmuter deposit directed to Slot 3 (higher risk/higher reward)
+        return {
+            intents: [
+                {
+                    intent_type: {
+                        deposit_via_mars_mirror: {
+                            asset: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
+                            slot: 3,
+                        },
+                    },
+                    ratio: "1.0",
+                    lock: null,
+                },
+            ],
+        }
+    }
+
+    if (!client || !user) return null
+
+    const transmuterContract = contractAddr || (contracts as any).transmuter
+    if (!transmuterContract || transmuterContract === "") return null
+
+    try {
+        const response = await client.queryContractSmart(transmuterContract, {
+            user_intents: { user }
+        })
+        return response as UserIntentsResponse
+    } catch (error) {
+        console.error("Error querying transmuter user intents:", error)
+        return null
+    }
 }
 

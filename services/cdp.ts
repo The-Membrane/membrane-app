@@ -207,11 +207,8 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
   return positions?.collateral_assets.map((asset) => {
     //@ts-ignore
     const denom = asset.asset.info.native_token.denom
-    console.log("denom", denom)
     const assetInfo = getAssetByDenom(denom, chainName)
-    console.log("assetInfo", assetInfo)
     const amount = shiftDigits(asset.asset.amount, -(assetInfo?.decimal ?? 6)).toNumber()
-    console.log("amount", amount, asset.asset.amount, assetInfo?.decimal)
     const assetPrice = prices?.find((price) => price.denom === denom)?.price || 0
 
     const usdValue = num(amount).times(assetPrice).toNumber()
@@ -324,9 +321,7 @@ export const getLiqudationLTV = (
   basketAssets: BasketAsset[] = [],
   ratios?: any[],
 ) => {
-  console.log("positions", positions, "basketAssets", basketAssets, "ratios", ratios)
   const positionsWithRatio = ratios ?? getAssetRatio(false, tvl, positions);
-  console.log("positionsWithRatio", positionsWithRatio)
   const maxLTV = positionsWithRatio.reduce((acc, position) => {
     if (!position) return acc
     const ltv = basketAssets.find((asset) => asset?.asset?.base === position.denom || asset?.asset?.base === position.base)?.maxLTV || 0
@@ -581,7 +576,6 @@ export const getRiskyPositions = (
 
     basketPosition.positions.forEach((position, posIndex) => {
       totalPositions++;
-      console.log("position", position.position_id);
       const positions = getPositions([basketPosition], prices, posIndex, chainName);
 
 
@@ -620,13 +614,11 @@ export const getRiskyPositions = (
       const debt = getDebt([basketPosition], posIndex);
 
       if (debt === 0) {
-        console.log("no debt for position", posIndex);
         return; // Prevent skipping other positions
       }
 
       const debtValue = num(debt).times(basket.credit_price.price).toNumber();
       if (debtValue === 0) {
-        console.log("no debt value for position", posIndex);
         return;
       }
 
@@ -649,9 +641,7 @@ export const getRiskyPositions = (
       //   undiscountedTER += annualInterest
       // }
 
-      console.log(ltv, "<", liquidationLTV);
       if (ltv > liquidationLTV) {
-        console.log("liquidatible position assets", positions);
         let ltv_diff = num(ltv).minus(liquidationLTV);
         let liq_ratio = ltv_diff.div(ltv);
         let liq_debt = liq_ratio.times(debtValue);
@@ -670,8 +660,6 @@ export const getRiskyPositions = (
     });
   });
 
-  console.log("totalDebt", totalDebt);
-  console.log("totalPositions", totalPositions);
   return { liquidatibleCDPs, atRiskCDPs };
 };
 

@@ -157,10 +157,8 @@ export const useMarketConditions = (limit: number = 100) => {
     const query = useQuery({
         queryKey: ['market_conditions', limit, client, appState.rpcUrl, USE_MOCK_DATA_TRANSMUTER],
         queryFn: async () => {
-            console.log('[useMarketConditions] Query function called')
             // Remove client check - let getMarketConditions handle mock data
             const result = await getMarketConditions(client || null, limit)
-            console.log('[useMarketConditions] Query result:', result?.length || 0, 'entries', result)
             if (!result || result.length === 0) {
                 console.warn('[useMarketConditions] Warning: Received null or empty result')
             }
@@ -170,14 +168,6 @@ export const useMarketConditions = (limit: number = 100) => {
         enabled: true, // Enable for mock data
         retry: false, // Don't retry on error for mock data
         gcTime: 0, // Don't cache - always refetch (for debugging)
-    })
-
-    console.log('[useMarketConditions] Query state:', {
-        isLoading: query.isLoading,
-        isError: query.isError,
-        error: query.error,
-        dataLength: query.data?.length || 0,
-        data: query.data,
     })
 
     return query
@@ -259,7 +249,6 @@ export const useDeploymentProfitData = () => {
             // Toggle this off in production by setting ENABLE_MOCK_PROFIT_DATA to false
             if (ENABLE_MOCK_PROFIT_DATA) {
                 const mockData = generateMockProfitData()
-                console.log('Using mock profit data:', mockData.length, 'data points')
                 return mockData
             }
             return []

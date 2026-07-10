@@ -4,7 +4,7 @@ import { Box, Button, HStack, Image, Stack, Text, Table, Thead, Tbody, Tr, Th, T
 import { useBasket, useBasketAssets, useRates } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import useAppState from '@/persisted-state/useAppState'
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { CollateralRowData, getSymbolFromDenom, getLogoFromSymbol } from './types'
 import { getMockCollateralData, USE_MOCK_COLLATERAL_DATA, mockHistoricalLTVData } from './mockCollateralData'
 import { ChevronDownIcon, ChevronUpIcon, InfoIcon } from '@chakra-ui/icons'
@@ -241,9 +241,8 @@ export const AvailableCollateral = ({ positionIndex = 0 }: AvailableCollateralPr
             const maxCapUsdValue = num(maxSupplyAllowed).times(row.price).toNumber()
 
             return (
-              <>
+              <Fragment key={row.denom}>
                 <Tr
-                  key={row.denom}
                   _hover={{ bg: 'whiteAlpha.50' }}
                   opacity={isSupplyCapReached ? 0.7 : 1}
                 >
@@ -455,7 +454,7 @@ export const AvailableCollateral = ({ positionIndex = 0 }: AvailableCollateralPr
                     </Collapse>
                   </Td>
                 </Tr>
-              </>
+              </Fragment>
             )
           })}
         </Tbody>

@@ -55,42 +55,47 @@ export const rb_conversion_rates = {
   "119D": 2745965,
 }
 
+// Living Typeface token layer: bone ink on near-black, phosphor-green accent.
+// The `primary` Chakra color scale (p100..p900) is a phosphor ramp; `link` reads
+// primary.200 (phos) and `linkHover` primary.300. No purple / navy / cyan here.
 export const colors = {
-  globalBG: "#091326", //"#212121",
-  global: "rgb(229, 222, 223)",
-  tabBG: "#4fcabb",
-  rangeBoundBox: "#3d414b", //"#7990fe",
-  rangeBoundBorder: "#091326",
-  summaryScheme: "rgb(156, 178, 145)",
-  noState: "rgb(176, 176, 184)",
+  globalBG: "#09090a", // page bg (was navy #091326)
+  global: "#ece6d8",   // bone ink (was rgb(229,222,223))
+  tabBG: "#46d39a",    // cyber teal (secondary/machine)
+  rangeBoundBox: "#100f12",  // raised surface
+  rangeBoundBorder: "#09090a",
+  summaryScheme: "rgb(156, 178, 145)", // mossy sage — left as-is (organic accent)
+  noState: "#8d877b",  // ink dim
   link: "primary.200",
   linkHover: "primary.300",
-  sliderCardBorder: "rgb(133, 98, 203)",
-  slider: "#4fcabb",
-  alert: "rgb(215, 80, 80)",
-  textHighlight: "rgb(133, 98, 203)",
-  earnText: "rgb(229, 222, 223)",
-  sliderThumb: "#4fcabb",
-  collateralScrollBG: "rgb(7, 9, 25)",
-  sliderTrack: "rgb(229, 222, 223)",
-  sliderFilledTrack: "#20d6ff",
-  walletIcon: "#7990fe",
-  emptyLoader: "rgba(250, 129, 253, 0.57)",
+  sliderCardBorder: "rgba(236, 230, 216, 0.22)", // strong hairline (was purple)
+  slider: "#46d39a",
+  alert: "#cf4034",    // blood red
+  textHighlight: "#9bdc4f", // phosphor (was purple)
+  earnText: "#ece6d8",
+  sliderThumb: "#9bdc4f",
+  collateralScrollBG: "#09090a",
+  sliderTrack: "#ece6d8",
+  sliderFilledTrack: "#9bdc4f", // phosphor (was #20d6ff)
+  walletIcon: "#9bdc4f",
+  emptyLoader: "rgba(155, 220, 79, 0.4)", // phos translucent (was pink)
   loader: "primary.500",
-  cardBG: "rgb(90, 90, 90)",
-  inputBorder: "rgb(127, 79, 128)",
-  inputBG: "rgb(12, 5, 15)",
-  modalBG: "rgb(22, 24, 39)",
-  textLight: "rgba(255, 255, 255, 0.6)",
-  p100: "rgb(194, 233, 248)",
-  p200: "#4fcabb",
-  p300: "rgb(22, 121, 196)",
-  p400: "rgb(18, 95, 163)",
-  p500: "rgb(16, 75, 140)",
-  p600: "rgb(13, 62, 114)",
-  p700: "rgb(10, 49, 89)",
-  p800: "rgb(7, 36, 63)",
-  p900: "rgb(4, 24, 39)"
+  cardBG: "#0e0d10",   // card surface (was rgb(90,90,90))
+  inputBorder: "rgba(236, 230, 216, 0.22)", // hairline (was purple)
+  inputBG: "#100f12",  // raised (was rgb(12,5,15))
+  modalBG: "#0e0d10",  // card surface (was rgb(22,24,39))
+  textLight: "#8d877b", // ink dim (was rgba(255,255,255,0.6))
+  // Phosphor-green ramp (light → dark); p200 is the canonical phos accent #9bdc4f,
+  // p600 lands on moss-dark #4a8636.
+  p100: "#e4f4c9",
+  p200: "#9bdc4f",
+  p300: "#8bc93f",
+  p400: "#7ab534",
+  p500: "#6aa02b",
+  p600: "#4a8636",
+  p700: "#3d6b2d",
+  p800: "#2c4d20",
+  p900: "#1a2e13"
 }
 
 //Original colors

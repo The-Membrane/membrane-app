@@ -9,15 +9,17 @@ import type { ComponentStyleConfig } from '@chakra-ui/react'
 export const Input: ComponentStyleConfig = {
   baseStyle: {
     field: {
-      borderRadius: '16px',
+      borderRadius: '0', // sharp
       border: '1px solid',
-      boxShadow: '0px 6px 24px 0px rgba(26, 26, 26, 0.04)',
+      boxShadow: 'none',
       px: 6,
       py: 2,
+      // Numbers/data are mono in Living Typeface; inputs are data entry.
+      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
       fontSize: 'lg',
       w: 'full',
       textAlign: 'right',
-      transition: 'all 0.2s',
+      transition: 'border-color 0.15s ease, color 0.15s ease',
     },
   },
   variants: {
@@ -27,28 +29,29 @@ export const Input: ComponentStyleConfig = {
     outline: {
       field: {
         border: '1px solid',
-        borderColor: colors.inputBorder,
-        color: colors.link,
-        background: colors.inputBG,
+        borderColor: colors.inputBorder, // bone hairline
+        color: '#ece6d8',
+        background: colors.inputBG, // raised #100f12
+        // Focus = 1px phosphor border (no blurred ring).
         _focusVisible: {
-          borderColor: colors.link,
-          boxShadow: `0 0 0 1px ${colors.link}`,
+          borderColor: '#9bdc4f',
+          boxShadow: '0 0 0 1px #9bdc4f',
           outline: 'none',
         },
         _hover: {
-          borderColor: colors.link,
+          borderColor: 'rgba(236, 230, 216, 0.22)',
         },
         _invalid: {
-          borderColor: 'red.400',
+          borderColor: '#cf4034',
           _focusVisible: {
-            borderColor: 'red.400',
-            boxShadow: '0 0 0 1px #ef4444',
+            borderColor: '#cf4034',
+            boxShadow: '0 0 0 1px #cf4034',
           },
         },
         _disabled: {
           opacity: 0.6,
           cursor: 'not-allowed',
-          borderColor: 'gray.600',
+          borderColor: 'rgba(236, 230, 216, 0.10)',
         },
       },
     },
@@ -58,14 +61,14 @@ export const Input: ComponentStyleConfig = {
     filled: {
       field: {
         border: 'none',
-        background: 'rgba(255, 255, 255, 0.05)',
-        color: 'white',
+        background: '#100f12',
+        color: '#ece6d8',
         _hover: {
-          background: 'rgba(255, 255, 255, 0.08)',
+          background: '#0e0d10',
         },
         _focusVisible: {
-          background: 'rgba(255, 255, 255, 0.1)',
-          borderColor: colors.link,
+          background: '#100f12',
+          borderColor: '#9bdc4f',
         },
       },
     },

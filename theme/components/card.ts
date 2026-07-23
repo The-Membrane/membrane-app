@@ -4,15 +4,14 @@ import { createMultiStyleConfigHelpers } from '@chakra-ui/react'
 
 const { definePartsStyle, defineMultiStyleConfig } = createMultiStyleConfigHelpers(cardAnatomy.keys)
 
+// Living Typeface card = card bg + 1px bone hairline, SHARP corners, no glow/shadow.
 const baseStyle = definePartsStyle({
   container: {
-    borderRadius: '24px',
-    // border: '2px solid rgba(250, 129, 253, 0.37)',
-    // background: 'rgba(5, 7, 27, 0.85)',
-    // boxShadow: '0px 0px 24px 0px rgba(250, 129, 253, 0.32)',
-    // backdropFilter: 'blur(50px)',
-    // bg: '#141628',
-    bg: colors.cardBG,
+    borderRadius: '0', // sharp
+    bg: colors.cardBG, // #0e0d10
+    border: '1px solid',
+    borderColor: 'rgba(236, 230, 216, 0.10)',
+    boxShadow: 'none',
     padding: '6',
   },
   header: {},

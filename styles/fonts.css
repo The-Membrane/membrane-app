@@ -1,0 +1,94 @@
+/*
+ * Living Typeface — @font-face declarations
+ * =========================================
+ * Redaction (serif display/headings) + JetBrains Mono (body UI + all numbers/data).
+ *
+ * The .woff2 files under /public/fonts/redaction and /public/fonts/jetbrains may not
+ * exist yet. They are emitted by scripts/extract-fonts.mjs, which pulls the base64
+ * woff2 data-URIs out of the user's living-typeface design HTML:
+ *
+ *     node scripts/extract-fonts.mjs path/to/living-typeface.html
+ *
+ * Until then nothing breaks: font-display:swap + the Georgia / ui-monospace fallbacks
+ * declared in theme/fonts.ts mean the browser renders the fallback face immediately
+ * and never blocks. Once the files land, these @font-face rules pick them up.
+ *
+ * Redaction variants 10/35/50/70/100 are increasing PIXELATION (the "moss-grown"
+ * display faces), DISPLAY ONLY — declared as separate families, not weights.
+ */
+
+/* ---- Redaction (serif) ---------------------------------------------------- */
+@font-face {
+  font-family: 'Redaction';
+  src: url('/fonts/redaction/redaction-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Redaction';
+  src: url('/fonts/redaction/redaction-italic-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Pixelation display variants (DISPLAY ONLY — wordmark / heroes / section openers) */
+@font-face {
+  font-family: 'Redaction 10';
+  src: url('/fonts/redaction/redaction-10.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Redaction 35';
+  src: url('/fonts/redaction/redaction-35.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Redaction 50';
+  src: url('/fonts/redaction/redaction-50.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Redaction 70';
+  src: url('/fonts/redaction/redaction-70.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Redaction 100';
+  src: url('/fonts/redaction/redaction-100.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---- JetBrains Mono (body UI + numbers/data) ------------------------------ */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains/jetbrains-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains/jetbrains-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains/jetbrains-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

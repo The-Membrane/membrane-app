@@ -37,9 +37,8 @@ const global = {
     boxSizing: 'border-box',
   },
   'html, body': {
-    bg: configColors.globalBG,
-    // background: "radial-gradient(66.3% 66.3% at 72.54% 59.91%, rgba(17, 16, 21, 0.00) 0%, rgba(17, 16, 21, 0.00) 42%, #111015 100%)",
-    color: configColors.global,
+    bg: configColors.globalBG, // Living Typeface page bg #09090a
+    color: configColors.global, // bone ink #ece6d8
     width: '100vw',
     height: '100vh',
     overflowX: 'hidden',
@@ -56,11 +55,11 @@ const global = {
   // Custom scrollbar behavior
   'html': {
     scrollbarWidth: 'thin',
-    scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
+    scrollbarColor: 'rgba(236, 230, 216, 0.22) transparent',
   },
   'body': {
     scrollbarWidth: 'thin',
-    scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
+    scrollbarColor: 'rgba(236, 230, 216, 0.22) transparent',
   },
   // Webkit scrollbar styles
   '::-webkit-scrollbar': {
@@ -71,11 +70,11 @@ const global = {
     background: 'transparent',
   },
   '::-webkit-scrollbar-thumb': {
-    background: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: '4px',
+    background: 'rgba(236, 230, 216, 0.22)',
+    borderRadius: '0px', // sharp
   },
   '::-webkit-scrollbar-thumb:hover': {
-    background: 'rgba(255, 255, 255, 0.5)',
+    background: 'rgba(236, 230, 216, 0.35)',
   },
   '::-webkit-scrollbar-corner': {
     background: 'transparent',
@@ -87,6 +86,24 @@ const config = {
   useSystemColorMode: false,
 }
 
+// Living Typeface: SHARP CORNERS everywhere. Override the entire Chakra radii
+// scale to 0 so any consumer using theme radius tokens (borderRadius="md", etc.)
+// renders square. Per-component overrides in theme/components also set radius 0.
+const radii = {
+  none: '0',
+  sm: '0',
+  base: '0',
+  md: '0',
+  lg: '0',
+  xl: '0',
+  '2xl': '0',
+  '3xl': '0',
+  // `full` intentionally stays circular: avatars, status dots, spinners and other
+  // genuinely round elements rely on it. Sharp corners apply to rectangular
+  // surfaces (cards/buttons/inputs/modals), not to circles.
+  full: '9999px',
+}
+
 const theme = extendTheme(
   {
     config,
@@ -95,6 +112,7 @@ const theme = extendTheme(
     fonts,
     fontSizes,
     fontWeights,
+    radii,
     components,
     breakpoints: {
       base: "0px", // Chakra implicitly treats 0 as the starting point

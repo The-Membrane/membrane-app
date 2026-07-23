@@ -1,19 +1,19 @@
 import { colors } from '@/config/defaults'
 import type { ComponentStyleConfig } from '@chakra-ui/react'
 
+// Living Typeface modal: card surface + 1px bone hairline, SHARP corners, no glow.
 export const Modal: ComponentStyleConfig = {
   baseStyle: {
     dialog: {
-      // bg: '#05071B',
-      borderRadius: '24px',
-      // border: '2px solid rgba(250, 129, 253, 0.37)',
-      // background: 'rgba(5, 7, 27, 0.75)',
-      bg: colors.modalBG,
-      // boxShadow: '0px 0px 24px 0px rgba(250, 129, 253, 0.32)',
-      backdropFilter: 'blur(6px)',
+      borderRadius: '0', // sharp
+      bg: colors.modalBG, // card surface #0e0d10
+      border: '1px solid',
+      borderColor: 'rgba(236, 230, 216, 0.22)',
+      boxShadow: 'none',
       padding: '6',
     },
     overlay: {
+      bg: 'rgba(9, 9, 10, 0.72)', // near-black scrim
       backdropFilter: 'blur(10px)',
     },
   },

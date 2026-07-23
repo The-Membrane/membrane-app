@@ -1,9 +1,70 @@
+/*
+ * Living Typeface font declarations live in styles/fonts.css (imported alongside
+ * this file in pages/_app.tsx): 'Redaction' (serif, + pixelation display variants)
+ * and 'JetBrains Mono'. Both carry Georgia / ui-monospace fallback stacks in
+ * theme/fonts.ts, so the app renders correctly even before the woff2 files exist.
+ */
+
 @font-face {
   font-family: 'Neon Tubes';
   src: url('/fonts/NeonTubes2.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
+}
+
+/*
+ * Living Typeface page background. The Chakra theme already sets html/body bg, but
+ * pin the page canvas to near-black here too so the raw document background (visible
+ * during hydration / overscroll) matches.
+ */
+html,
+body {
+  background-color: #09090a;
+}
+
+/* ===========================================================================
+ * Living Typeface atmosphere layers — OPT-IN utility classes.
+ * These are NOT applied globally yet. Add a class to a positioned container to
+ * layer the effect; each uses a ::before/::after overlay with pointer-events:none
+ * so it never blocks interaction. Colors: phosphor #9bdc4f, gold #d8b24a, bone.
+ * =========================================================================== */
+
+/* Scanlines: faint horizontal bone lines over a surface. */
+.lt-scanlines {
+  position: relative;
+}
+.lt-scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(236, 230, 216, 0.035) 0px,
+    rgba(236, 230, 216, 0.035) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+}
+
+/* Canopy: soft green/gold radial glows drifting over a dark section. */
+.lt-canopy {
+  position: relative;
+}
+.lt-canopy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(40% 50% at 22% 18%, rgba(155, 220, 79, 0.10) 0%, transparent 70%),
+    radial-gradient(45% 55% at 82% 30%, rgba(216, 178, 74, 0.08) 0%, transparent 72%),
+    radial-gradient(60% 60% at 50% 100%, rgba(74, 134, 54, 0.10) 0%, transparent 75%);
+  mix-blend-mode: screen;
 }
 
 .chakra-card && .css-6d76p {

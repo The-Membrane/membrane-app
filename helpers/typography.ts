@@ -1,8 +1,20 @@
 /**
- * Typography System
+ * Typography System — Living Typeface
  *
  * Standardized typography scale for the Membrane app.
  * Use these constants instead of arbitrary font sizes.
+ *
+ * FONT FAMILIES (set globally in the Chakra theme, see theme/fonts.ts):
+ * - Display + headings: 'Redaction', Georgia, serif (weight 400; italic for
+ *   editorial/sub copy). This is the heading font in the theme.
+ * - Body UI + ALL numbers/data: 'JetBrains Mono', ui-monospace, monospace.
+ *   This is BOTH the theme `body` and `mono` font — numbers must stay
+ *   machine-readable.
+ * - Labels: mono, 10–11px, uppercase, letter-spacing ~.2em.
+ *
+ * Redaction weights are effectively 400 only (the 10/35/50/70/100 variants are
+ * increasing pixelation, DISPLAY ONLY — not a numeric weight axis). For UI weight
+ * emphasis, lean on JetBrains Mono weights (400/500/700) below.
  *
  * @example
  * ```tsx
@@ -26,10 +38,10 @@ export const TYPOGRAPHY = {
   small: '14px', // Secondary text, descriptions
   xs: '12px',    // Tertiary text, timestamps
 
-  // Labels (typically uppercase with letter-spacing)
+  // Labels (mono, uppercase, letter-spaced ~.2em)
   label: '11px', // Form labels, table headers
 
-  // Font weights
+  // Font weights (map to JetBrains Mono 400/500/700; 'bold' rounds to 700).
   bold: 700,
   semibold: 600,
   medium: 500,
@@ -43,48 +55,48 @@ export const TEXT_STYLES = {
   pageTitle: {
     fontSize: TYPOGRAPHY.h1,
     fontWeight: TYPOGRAPHY.bold,
-    color: 'white',
+    color: '#ece6d8',
     mb: 6,
   },
   sectionTitle: {
     fontSize: TYPOGRAPHY.h2,
     fontWeight: TYPOGRAPHY.semibold,
-    color: 'white',
+    color: '#ece6d8',
     mb: 4,
   },
   modalTitle: {
     fontSize: TYPOGRAPHY.h3,
     fontWeight: TYPOGRAPHY.bold,
-    color: 'white',
+    color: '#ece6d8',
     mb: 4,
   },
   cardTitle: {
     fontSize: TYPOGRAPHY.h4,
     fontWeight: TYPOGRAPHY.semibold,
-    color: 'white',
+    color: '#ece6d8',
     mb: 2,
   },
   tableHeader: {
     fontSize: TYPOGRAPHY.label,
     fontWeight: TYPOGRAPHY.normal,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.1em',
-    color: 'rgba(160, 160, 160, 1)',
+    letterSpacing: '0.2em',
+    color: '#8d877b',
   },
   body: {
     fontSize: TYPOGRAPHY.body,
     fontWeight: TYPOGRAPHY.normal,
-    color: 'white',
+    color: '#ece6d8',
   },
   bodySecondary: {
     fontSize: TYPOGRAPHY.small,
     fontWeight: TYPOGRAPHY.normal,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: '#8d877b',
   },
   bodyTertiary: {
     fontSize: TYPOGRAPHY.xs,
     fontWeight: TYPOGRAPHY.normal,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: '#56524a',
   },
 } as const
 

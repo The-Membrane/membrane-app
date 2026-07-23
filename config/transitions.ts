@@ -66,9 +66,13 @@ export const TRANSITIONS = {
   background: `background-color ${DURATION.quick} ${EASING.easeInOut}`,
   shadow: `box-shadow ${DURATION.standard} ${EASING.easeOut}`,
 
-  // Combined (comma-separated for multiple properties)
-  transformAndOpacity: `transform ${DURATION.standard} ${EASING.easeInOut}, opacity ${DURATION.standard} ${EASING.easeOut}`,
-  transformAndShadow: `transform ${DURATION.standard} ${EASING.easeInOut}, box-shadow ${DURATION.standard} ${EASING.easeOut}`,
+  // Living Typeface canonical interaction transition: fast color/border shift, .15s.
+  colors: `color 0.15s ${EASING.easeInOut}, border-color 0.15s ${EASING.easeInOut}, background-color 0.15s ${EASING.easeInOut}`,
+
+  // Combined — kept for API compatibility. No transform/shadow motion in the new
+  // system, so these now resolve to the same simple color/border transition.
+  transformAndOpacity: `color 0.15s ${EASING.easeInOut}, border-color 0.15s ${EASING.easeInOut}, opacity ${DURATION.standard} ${EASING.easeOut}`,
+  transformAndShadow: `color 0.15s ${EASING.easeInOut}, border-color 0.15s ${EASING.easeInOut}`,
 } as const
 
 // ============================================
@@ -79,53 +83,54 @@ export const TRANSITIONS = {
  * Standardized hover transforms
  * Use with `_hover` prop in Chakra UI
  */
+// Living Typeface: NO translateY lift, NO glow, NO scale. Interaction is
+// communicated through border + text color shifts only. Keys are preserved so
+// the ~100 consuming components keep compiling; the VALUES no longer transform.
 export const HOVER_EFFECTS = {
-  // Elevation - lift element up slightly
+  // Was "lift" — now a hairline + ink shift (border brightens, text goes to full bone).
   lift: {
-    transform: 'translateY(-2px)',
-    transition: TRANSITIONS.transformAndShadow,
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    transition: TRANSITIONS.colors,
+    borderColor: 'rgba(236, 230, 216, 0.22)',
+    color: '#ece6d8',
   },
 
   liftSubtle: {
-    transform: 'translateY(-1px)',
-    transition: TRANSITIONS.transformQuick,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    transition: TRANSITIONS.colors,
+    borderColor: 'rgba(236, 230, 216, 0.22)',
   },
 
-  // Scale - grow element slightly
+  // Was "scale" — now a phosphor border highlight (cards).
   scale: {
-    transform: 'scale(1.02)',
-    transition: TRANSITIONS.transformAndShadow,
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+    transition: TRANSITIONS.colors,
+    borderColor: '#9bdc4f',
   },
 
   scaleSubtle: {
-    transform: 'scale(1.01)',
-    transition: TRANSITIONS.transform,
+    transition: TRANSITIONS.colors,
+    borderColor: 'rgba(236, 230, 216, 0.22)',
   },
 
-  // Glow - add glowing border/shadow
+  // Was "glow" — now a phosphor border (special emphasis), no shadow.
   glow: {
-    transition: TRANSITIONS.shadow,
-    boxShadow: '0 0 20px rgba(166, 146, 255, 0.6)', // Primary purple glow
+    transition: TRANSITIONS.colors,
+    borderColor: '#9bdc4f',
   },
 
   glowCyan: {
-    transition: TRANSITIONS.shadow,
-    boxShadow: '0 0 20px rgba(34, 211, 238, 0.6)', // Cyan glow
+    transition: TRANSITIONS.colors,
+    borderColor: '#46d39a',
   },
 
-  // Brightness - lighten element
+  // Brightness → ink brighten toward full bone (icon buttons).
   brighten: {
-    transition: TRANSITIONS.allQuick,
-    filter: 'brightness(1.1)',
+    transition: TRANSITIONS.colors,
+    color: '#ece6d8',
   },
 
-  // Border highlight
+  // Border highlight — the canonical Living Typeface hover.
   borderHighlight: {
-    transition: TRANSITIONS.all,
-    borderColor: 'whiteAlpha.400',
+    transition: TRANSITIONS.colors,
+    borderColor: 'rgba(236, 230, 216, 0.22)',
   },
 } as const
 
@@ -133,20 +138,27 @@ export const HOVER_EFFECTS = {
  * Active (pressed) states
  * Use with `_active` prop in Chakra UI
  */
+// Living Typeface: pressed/selected state = phosphor border + phosphor text +
+// raised bg. No translate, no scale. Keys preserved.
 export const ACTIVE_EFFECTS = {
   press: {
-    transform: 'translateY(0)', // Reset lift
-    transition: TRANSITIONS.transformQuick,
+    transition: TRANSITIONS.colors,
+    borderColor: '#9bdc4f',
+    color: '#9bdc4f',
+    bg: '#100f12',
   },
 
   pressDown: {
-    transform: 'translateY(1px) scale(0.98)',
-    transition: TRANSITIONS.transformQuick,
+    transition: TRANSITIONS.colors,
+    borderColor: '#9bdc4f',
+    color: '#9bdc4f',
+    bg: '#100f12',
   },
 
   scaleDown: {
-    transform: 'scale(0.98)',
-    transition: TRANSITIONS.transformQuick,
+    transition: TRANSITIONS.colors,
+    borderColor: '#9bdc4f',
+    color: '#9bdc4f',
   },
 } as const
 
@@ -158,33 +170,41 @@ export const ACTIVE_EFFECTS = {
  * Accessible focus indicators
  * Use with `_focus` and `_focusVisible` props
  */
+// Living Typeface: focus = a crisp phosphor outline (not a blurred ring).
+// A 2px solid outline with a small offset, plus a phos border. No box-shadow glow.
 export const FOCUS_STYLES = {
-  // Default focus ring (purple)
+  // Default focus indicator (phosphor)
   ring: {
-    outline: 'none',
-    boxShadow: '0 0 0 3px rgba(166, 146, 255, 0.4)',
-    transition: TRANSITIONS.shadow,
+    outline: '2px solid #9bdc4f',
+    outlineOffset: '1px',
+    boxShadow: 'none',
+    borderColor: '#9bdc4f',
+    transition: TRANSITIONS.colors,
   },
 
-  // Cyan focus ring
+  // Alt accent focus (cyber teal)
   ringCyan: {
-    outline: 'none',
-    boxShadow: '0 0 0 3px rgba(34, 211, 238, 0.4)',
-    transition: TRANSITIONS.shadow,
+    outline: '2px solid #46d39a',
+    outlineOffset: '1px',
+    boxShadow: 'none',
+    borderColor: '#46d39a',
+    transition: TRANSITIONS.colors,
   },
 
-  // Subtle border highlight
+  // Subtle border highlight (1px phos border, no outline)
   borderHighlight: {
     outline: 'none',
-    borderColor: 'primary.400',
-    transition: TRANSITIONS.all,
+    borderColor: '#9bdc4f',
+    transition: TRANSITIONS.colors,
   },
 
-  // Glow effect
+  // Was "glow" — now identical crisp phosphor outline, no shadow.
   glow: {
-    outline: 'none',
-    boxShadow: '0 0 0 3px rgba(166, 146, 255, 0.3), 0 0 20px rgba(166, 146, 255, 0.2)',
-    transition: TRANSITIONS.shadow,
+    outline: '2px solid #9bdc4f',
+    outlineOffset: '1px',
+    boxShadow: 'none',
+    borderColor: '#9bdc4f',
+    transition: TRANSITIONS.colors,
   },
 } as const
 
@@ -310,17 +330,18 @@ export const MOTION_VARIANTS = {
     },
   },
 
-  // Hover lift (for cards, buttons)
+  // Was "hover lift" — Living Typeface has no lift/scale. Neutralized to a static
+  // (color-driven) interaction so consumers using this variant no longer translate.
   hoverLift: {
     rest: { y: 0, scale: 1 },
     hover: {
-      y: -4,
-      scale: 1.02,
-      transition: { duration: 0.2, ease: 'easeOut' },
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.15, ease: 'easeInOut' },
     },
     tap: {
       y: 0,
-      scale: 0.98,
+      scale: 1,
       transition: { duration: 0.1 },
     },
   },

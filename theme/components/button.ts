@@ -1,50 +1,64 @@
 import { colors } from '@/config/defaults'
 import { type ComponentStyleConfig } from '@chakra-ui/react'
-import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
+
+// Living Typeface buttons: transparent bg, 1px bone hairline, mono uppercase
+// letter-spaced label, SHARP corners. No translateY lift, no glow.
+// - hover      → text brightens to full bone, hairline strengthens
+// - active/sel → phosphor border + phosphor text + raised bg
+// - focus      → crisp phosphor outline (FOCUS_STYLES.ring)
+const HAIRLINE = 'rgba(236, 230, 216, 0.10)'
+const HAIRLINE_STRONG = 'rgba(236, 230, 216, 0.22)'
+const INK = '#ece6d8'
+const INK_DIM = '#8d877b'
+const PHOS = '#9bdc4f'
+const RAISED = '#100f12'
 
 export const Button: ComponentStyleConfig = {
   baseStyle: {
-    borderRadius: '8px',
-    fontWeight: 'bold',
+    borderRadius: '0', // sharp
+    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+    fontWeight: '500',
+    fontSize: '11px',
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
     py: 2,
     px: 3,
     w: 'full',
     cursor: 'pointer',
-    // Add smooth transitions to all buttons
-    transition: TRANSITIONS.transformAndShadow,
-    // Accessible focus indicator
+    transition: TRANSITIONS.colors,
     _focus: FOCUS_STYLES.ring,
     _focusVisible: FOCUS_STYLES.ring,
   },
   defaultProps: {
-    colorScheme: 'purple',
+    colorScheme: 'primary',
     variant: 'solid',
   },
   variants: {
+    // "solid" is the primary CTA. In Living Typeface it reads as a phosphor-outlined
+    // affordance rather than a filled purple block.
     solid: {
-      color: 'white',
-      bg: 'purple.500',
-      borderColor: colors.link,
-      border: 'none',
-      fontSize: 'md',
-      // Enhanced hover with lift effect
+      color: INK,
+      bg: 'transparent',
+      border: '1px solid',
+      borderColor: HAIRLINE_STRONG,
       _hover: {
-        bg: 'purple.400',
-        ...HOVER_EFFECTS.lift,
+        color: PHOS,
+        borderColor: PHOS,
+        bg: RAISED,
         _disabled: {
-          bg: 'purple.500',
-          transform: 'none',
-          boxShadow: 'none',
+          bg: 'transparent',
+          borderColor: HAIRLINE_STRONG,
+          color: INK,
         },
       },
-      // Pressed state
       _active: {
-        bg: 'purple.600',
-        ...ACTIVE_EFFECTS.press,
+        color: PHOS,
+        borderColor: PHOS,
+        bg: RAISED,
       },
-      // Disabled state
       _disabled: {
-        opacity: 0.6,
+        opacity: 0.4,
         cursor: 'not-allowed',
       },
     },
@@ -54,15 +68,15 @@ export const Button: ComponentStyleConfig = {
       color: colors.link,
       border: 'none',
       boxShadow: 'none',
+      textTransform: 'none',
+      letterSpacing: 'normal',
       transition: TRANSITIONS.color,
       _hover: {
         textDecoration: 'underline',
         bg: 'transparent',
         color: colors.linkHover,
-        ...HOVER_EFFECTS.brighten,
         _disabled: {
           color: colors.link,
-          filter: 'none',
         },
       },
       _active: {
@@ -70,24 +84,25 @@ export const Button: ComponentStyleConfig = {
       },
     },
     ghost: {
-      fontWeight: '500',
       bg: 'transparent',
       border: '1px solid',
-      borderColor: 'whiteAlpha.200',
-      transition: TRANSITIONS.all,
-      // Border highlight on hover
+      borderColor: HAIRLINE,
+      color: INK_DIM,
+      transition: TRANSITIONS.colors,
       _hover: {
-        ...HOVER_EFFECTS.borderHighlight,
-        bg: 'whiteAlpha.50',
+        color: INK,
+        borderColor: HAIRLINE_STRONG,
+        bg: 'transparent',
         _disabled: {
           bg: 'transparent',
-          borderColor: 'whiteAlpha.200',
+          borderColor: HAIRLINE,
+          color: INK_DIM,
         },
       },
-      // Subtle press effect
       _active: {
-        bg: 'whiteAlpha.100',
-        ...ACTIVE_EFFECTS.pressDown,
+        color: PHOS,
+        borderColor: PHOS,
+        bg: RAISED,
       },
       _disabled: {
         opacity: 0.4,
@@ -97,22 +112,23 @@ export const Button: ComponentStyleConfig = {
     outline: {
       bg: 'transparent',
       border: '1px solid',
-      borderColor: 'purple.400',
-      color: 'purple.300',
-      transition: TRANSITIONS.all,
+      borderColor: HAIRLINE_STRONG,
+      color: INK,
+      transition: TRANSITIONS.colors,
       _hover: {
-        bg: 'purple.900',
-        borderColor: 'purple.300',
-        ...HOVER_EFFECTS.liftSubtle,
+        color: PHOS,
+        borderColor: PHOS,
+        bg: RAISED,
         _disabled: {
           bg: 'transparent',
-          borderColor: 'purple.400',
-          transform: 'none',
+          borderColor: HAIRLINE_STRONG,
+          color: INK,
         },
       },
       _active: {
-        bg: 'purple.800',
-        ...ACTIVE_EFFECTS.press,
+        color: PHOS,
+        borderColor: PHOS,
+        bg: RAISED,
       },
       _disabled: {
         opacity: 0.4,

@@ -28,30 +28,32 @@ export const SEMANTIC_COLORS = {
   // ============================================
   // STATE COLORS
   // ============================================
+  // Living Typeface: phosphor = up/healthy, blood = down/danger,
+  // gold = gates/warnings, cyber teal = machine/info.
 
   /**
    * Success state - positive outcomes, confirmations
    * Used for: Success messages, positive metrics, completion states
    */
-  success: '#22d3ee', // Cyan
+  success: '#9bdc4f', // Phosphor green
 
   /**
    * Warning state - caution, approaching limits
    * Used for: Warnings, capacity warnings, attention needed
    */
-  warning: '#fbbf24', // Yellow
+  warning: '#d8b24a', // Gold
 
   /**
    * Danger state - errors, critical issues, destructive actions
    * Used for: Error messages, liquidation warnings, delete actions
    */
-  danger: '#ef4444', // Red
+  danger: '#cf4034', // Blood red
 
   /**
    * Info state - informational, neutral information
    * Used for: Info messages, tooltips, helper text
    */
-  info: '#60a5fa', // Blue
+  info: '#46d39a', // Cyber teal
 
   // ============================================
   // EMPHASIS COLORS
@@ -61,73 +63,76 @@ export const SEMANTIC_COLORS = {
    * Primary action color - main CTAs, important actions
    * Used for: Primary buttons, important links, key actions
    */
-  primary: '#A692FF', // Purple
+  primary: '#9bdc4f', // Phosphor green
 
   /**
    * Secondary action color - supporting actions
    * Used for: Secondary buttons, alternative actions
    */
-  secondary: '#4fcabb', // Teal
+  secondary: '#46d39a', // Cyber teal
 
   // ============================================
   // TEXT COLORS
   // ============================================
+  // Warm bone ink, NOT white.
 
   /**
    * Primary text - main content, headings
    * High contrast for readability
    */
-  textPrimary: 'rgb(229, 222, 223)',
+  textPrimary: '#ece6d8',
 
   /**
    * Secondary text - supporting content, descriptions
    * Medium contrast
    */
-  textSecondary: 'rgba(255, 255, 255, 0.6)',
+  textSecondary: '#8d877b',
 
   /**
    * Tertiary text - timestamps, metadata, least important text
    * Lower contrast
    */
-  textTertiary: 'rgba(255, 255, 255, 0.4)',
+  textTertiary: '#56524a',
 
   // ============================================
   // BACKGROUND COLORS
   // ============================================
+  // Near-black, NOT navy.
 
   /**
    * Primary background - main app background
    */
-  bgPrimary: '#091326',
+  bgPrimary: '#09090a',
 
   /**
    * Secondary background - cards, panels, elevated surfaces
    */
-  bgSecondary: 'rgba(10, 10, 10, 0.8)',
+  bgSecondary: '#0e0d10', // Card
 
   /**
    * Tertiary background - nested elements, subtle elevation
    */
-  bgTertiary: 'rgb(90, 90, 90)',
+  bgTertiary: '#100f12', // Raised
 
   // ============================================
   // BORDER COLORS
   // ============================================
+  // Bone hairlines.
 
   /**
    * Subtle borders - barely visible, gentle separation
    */
-  borderSubtle: 'rgba(255, 255, 255, 0.05)',
+  borderSubtle: 'rgba(236, 230, 216, 0.10)',
 
   /**
    * Medium borders - standard borders, clear separation
    */
-  borderMedium: 'rgba(255, 255, 255, 0.1)',
+  borderMedium: 'rgba(236, 230, 216, 0.10)',
 
   /**
    * Strong borders - emphasized borders, focus states
    */
-  borderStrong: 'rgba(255, 255, 255, 0.2)',
+  borderStrong: 'rgba(236, 230, 216, 0.22)',
 } as const
 
 /**

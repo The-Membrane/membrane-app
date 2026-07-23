@@ -18,25 +18,30 @@
  * ```
  */
 
-// Color constants
-const GRID_COLOR = 'rgba(111, 255, 194, 0.1)'
-const AXIS_COLOR = '#F5F5F5'
-const TOOLTIP_BG = 'rgba(10, 10, 10, 0.95)'
-const TOOLTIP_BORDER = 'rgba(255, 255, 255, 0.2)'
+// Color constants — Living Typeface palette (bone on near-black, phosphor accent).
+const GRID_COLOR = 'rgba(236, 230, 216, 0.08)' // faint bone grid
+const AXIS_COLOR = '#ece6d8'                    // bone ink
+const TOOLTIP_BG = '#0e0d10'                    // card surface
+const TOOLTIP_BORDER = 'rgba(236, 230, 216, 0.22)' // strong hairline
 
 /**
  * Asset colors for multi-line charts
  * Used for hypothetical comparisons, multiple assets, etc.
+ * Living Typeface series palette: phosphor, cyber teal, gold, blood, bone-dim,
+ * moss-dark — an organic/machine spectrum, no purple/cyan.
  */
+// 8-entry tuple: kept at length 8 because consumers index ASSET_COLORS[6]/[7]
+// directly (the `as const` tuple length is load-bearing). All on the Living
+// Typeface organic/machine spectrum — no purple/cyan.
 export const ASSET_COLORS = [
-  '#22d3ee', // cyan
-  '#a78bfa', // purple
-  '#34d399', // green
-  '#fb923c', // orange
-  '#f472b6', // pink
-  '#60a5fa', // blue
-  '#fbbf24', // yellow
-  '#f87171', // red
+  '#9bdc4f', // phosphor green
+  '#46d39a', // cyber teal
+  '#d8b24a', // gold
+  '#cf4034', // blood red
+  '#8d877b', // bone dim
+  '#4a8636', // moss dark
+  '#c8e89a', // pale phosphor
+  '#e0c877', // pale gold
 ] as const
 
 /**
@@ -94,11 +99,11 @@ export const CHART_THEME = {
     contentStyle: {
       backgroundColor: TOOLTIP_BG,
       border: `1px solid ${TOOLTIP_BORDER}`,
-      borderRadius: '8px',
+      borderRadius: '0px', // sharp corners
       color: AXIS_COLOR,
     },
     cursor: {
-      stroke: 'rgba(255, 255, 255, 0.1)',
+      stroke: 'rgba(236, 230, 216, 0.10)',
       strokeWidth: 1,
     },
   },
@@ -109,7 +114,7 @@ export const CHART_THEME = {
   legend: {
     wrapperStyle: {
       fontSize: 12,
-      color: 'rgba(255, 255, 255, 0.8)',
+      color: '#8d877b',
     },
     iconType: 'line' as const,
   },
@@ -137,7 +142,7 @@ export const CHART_THEME = {
    * Bar chart specific
    */
   bar: {
-    radius: [4, 4, 0, 0] as [number, number, number, number],
+    radius: [0, 0, 0, 0] as [number, number, number, number], // sharp corners
   },
 } as const
 
@@ -164,12 +169,12 @@ export const createCustomLegend = (labelTransform?: (value: string) => string) =
           flexWrap: 'wrap',
         }}
       >
-        {payload.map((entry: any, index: number) => {
+        {payload.map((entry: any) => {
           const displayName = labelTransform ? labelTransform(entry.value) : entry.value
 
           return (
             <div
-              key={`legend-${index}`}
+              key={entry.dataKey ?? entry.value}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -188,8 +193,8 @@ export const createCustomLegend = (labelTransform?: (value: string) => string) =
                   strokeDasharray={entry.strokeDasharray || '0'}
                 />
               </svg>
-              {/* White text label */}
-              <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '12px' }}>
+              {/* Bone-dim text label */}
+              <span style={{ color: '#8d877b', fontSize: '12px' }}>
                 {displayName}
               </span>
             </div>
@@ -221,21 +226,21 @@ export const CHART_DIMENSIONS = {
  */
 export const REFERENCE_STYLES = {
   liquidation: {
-    stroke: '#ef4444',
+    stroke: '#cf4034', // blood red, dashed
     strokeWidth: 2,
     strokeDasharray: '5 5',
     label: {
-      fill: '#ef4444',
+      fill: '#cf4034',
       fontSize: 10,
       position: 'right' as const,
     },
   },
   target: {
-    stroke: '#22d3ee',
+    stroke: '#9bdc4f', // phosphor green
     strokeWidth: 1,
     strokeDasharray: '3 3',
     label: {
-      fill: '#22d3ee',
+      fill: '#9bdc4f',
       fontSize: 10,
       position: 'right' as const,
     },

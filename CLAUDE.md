@@ -2,6 +2,27 @@
 
 **CRITICAL:** All code changes MUST follow these standardized patterns. No exceptions.
 
+> **Brand direction:** Living Typeface (bone-on-black, phosphor green, sharp corners, hairlines). This
+> supersedes the old cyberpunk navy/purple/glow system. See
+> `.claude/skills/branding-guidelines/SKILL.md` for the full brand guide.
+
+---
+
+## 🌱 Living Typeface Principles
+
+Four rules to internalize before touching any component:
+
+1. **Cyber ⇄ Organic axis.** Membrane sits between a machine (precise, mono, hairline grids) and a
+   living thing (serif, grown, slightly imperfect). Every surface leans one way or the other — never
+   split the difference into something generic.
+2. **The living face is display-only.** The moss-grown, pixelated Redaction wordmark treatment
+   belongs to heroes, landing pages, and section openers — never inside app chrome, cards, tables, or
+   anything a user reads while transacting.
+3. **Numbers are always machine-readable.** Balances, LTVs, APRs, amounts — always JetBrains Mono
+   (or plain Redaction, never the pixelated/moss variant). Never render a number in a decorative font.
+4. **Warm bone, not pure white.** Text is `#ece6d8`, not `#fff` or `whiteAlpha.*`. Backgrounds are
+   near-black (`#09090a`), not navy.
+
 ---
 
 ## 🎨 Design System Components
@@ -13,39 +34,60 @@
 ```tsx
 import { TYPOGRAPHY } from '@/helpers/typography'
 
-// Page titles
-<Text fontSize={TYPOGRAPHY.h1} fontWeight={TYPOGRAPHY.bold}>Page Title</Text>
+// Page titles — Redaction serif display
+<Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} fontWeight={TYPOGRAPHY.bold}>
+  Page Title
+</Text>
 
-// Section titles
-<Text fontSize={TYPOGRAPHY.h2} fontWeight={TYPOGRAPHY.semibold}>Section</Text>
+// Section titles — Redaction serif
+<Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h2} fontWeight={TYPOGRAPHY.semibold}>
+  Section
+</Text>
 
-// Card titles
-<Text fontSize={TYPOGRAPHY.h4} fontWeight={TYPOGRAPHY.medium}>Card Title</Text>
+// Card titles — Redaction serif or mono, per context
+<Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h4} fontWeight={TYPOGRAPHY.medium}>
+  Card Title
+</Text>
 
-// Body text
-<Text fontSize={TYPOGRAPHY.body}>Content</Text>
+// Body / data text — JetBrains Mono
+<Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.body}>Content</Text>
 
-// Labels (uppercase)
-<Text fontSize={TYPOGRAPHY.label} textTransform="uppercase" color="whiteAlpha.600">
-  Label
+// Eyebrows / labels — mono, uppercase, letterspaced
+<Text
+  fontFamily={TYPOGRAPHY.fontMono}
+  fontSize={TYPOGRAPHY.label}
+  textTransform="uppercase"
+  letterSpacing="0.28em"
+  color={SEMANTIC_COLORS.textSecondary}
+>
+  01 / Label
 </Text>
 ```
 
-**Scale:**
-- h1: 32px (page titles)
-- h2: 24px (section titles)
-- h3: 18px (subsection titles)
-- h4: 16px (card titles)
-- body: 16px (primary text)
-- small: 14px (secondary text)
-- xs: 12px (tertiary text)
-- label: 11px (labels, table headers - uppercase)
+**Scale (sizes unchanged, families changed):**
+- h1: 32px (page titles) — Redaction serif
+- h2: 24px (section titles) — Redaction serif
+- h3: 18px (subsection titles) — Redaction serif or mono
+- h4: 16px (card titles) — Redaction serif or mono
+- body: 16px (primary text) — JetBrains Mono
+- small: 14px (secondary text) — JetBrains Mono
+- xs: 12px (tertiary text) — JetBrains Mono
+- label: 11px (labels, table headers, eyebrows — always uppercase, mono, letterspacing 0.28em)
 
 **Weights:**
 - bold: 700
 - semibold: 600
 - medium: 500
 - normal: 400
+
+**Font families:**
+- `TYPOGRAPHY.fontDisplay` → `'Redaction', Georgia, serif` — headings, editorial copy, italic sub-copy
+- `TYPOGRAPHY.fontMono` → `'JetBrains Mono', ui-monospace, monospace` — everything functional: body, data, labels, buttons, inputs
+
+**Rules:**
+- ❌ NEVER use the pixelated/moss Redaction variant outside wordmark/hero contexts
+- ❌ NEVER render a number, balance, or metric in the display serif
+- ✅ Prose reads in serif, data reads in mono — don't blend them mid-sentence
 
 ---
 
@@ -59,26 +101,37 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 // State colors
-bg={SEMANTIC_COLORS.success}  // #22d3ee (cyan) - positive outcomes
-bg={SEMANTIC_COLORS.warning}  // #fbbf24 (yellow) - caution
-bg={SEMANTIC_COLORS.danger}   // #ef4444 (red) - errors, critical
-bg={SEMANTIC_COLORS.info}     // #60a5fa (blue) - informational
+bg={SEMANTIC_COLORS.success}  // #9bdc4f (phosphor) - positive outcomes, healthy, up
+bg={SEMANTIC_COLORS.warning}  // #d8b24a (gold) - gates, caution, approaching limits
+bg={SEMANTIC_COLORS.danger}   // #cf4034 (blood) - errors, liquidation risk, down
+bg={SEMANTIC_COLORS.info}     // #46d39a (cyber teal) - informational, machine-side emphasis
 
 // Emphasis colors
-bg={SEMANTIC_COLORS.primary}    // #A692FF (purple) - main CTAs
-bg={SEMANTIC_COLORS.secondary}  // #4fcabb (teal) - secondary actions
+bg={SEMANTIC_COLORS.primary}    // #9bdc4f (phosphor) - main CTAs, living/organic emphasis
+bg={SEMANTIC_COLORS.secondary}  // #46d39a (cyber teal) - secondary actions, machine emphasis
 
-// Text colors
-color={SEMANTIC_COLORS.textPrimary}    // rgb(229, 222, 223)
-color={SEMANTIC_COLORS.textSecondary}  // rgba(255, 255, 255, 0.6)
-color={SEMANTIC_COLORS.textTertiary}   // rgba(255, 255, 255, 0.4)
+// Text colors (warm bone, not pure white)
+color={SEMANTIC_COLORS.textPrimary}    // #ece6d8 (bone)
+color={SEMANTIC_COLORS.textSecondary}  // #8d877b (dim)
+color={SEMANTIC_COLORS.textTertiary}   // #56524a (faint)
+
+// Backgrounds
+bg={SEMANTIC_COLORS.bgPage}   // #09090a (near-black)
+bg={SEMANTIC_COLORS.bgRaise}  // #100f12
+bg={SEMANTIC_COLORS.bgCard}   // #0e0d10
+
+// Hairline borders (never solid glass borders)
+borderColor={SEMANTIC_COLORS.hairline}        // rgba(236,230,216,0.10)
+borderColor={SEMANTIC_COLORS.hairlineStrong}  // rgba(236,230,216,0.22)
 ```
 
 **Color Usage Rules:**
 - ❌ NEVER use random colors
-- ❌ NEVER use `color="cyan.500"` for states
+- ❌ NEVER use purple (`#A692FF`, `#6943FF`) — it is the legacy brand color, being migrated out
+- ❌ NEVER use cyan for success — cyan/`#22d3ee` was the old success color
+- ❌ NEVER use pure white (`#fff`, `whiteAlpha.*`) for text — always warm bone
 - ✅ ALWAYS use semantic color names
-- ✅ Success = cyan, Warning = yellow, Danger = red
+- ✅ Success = phosphor green, Warning = gold, Danger = blood red, Info = cyber teal
 
 ---
 
@@ -118,14 +171,20 @@ gap={SPACING_PATTERNS.formFieldGap}   // 4 = 16px
 
 ### Modal Padding Standard
 
-**ALL modals MUST use standardized padding:**
+**ALL modals MUST use standardized padding. Modals are sharp-cornered with a hairline border, not
+rounded glass:**
 
 ```tsx
 <Modal isOpen={isOpen} onClose={onClose}>
   <ModalOverlay />
-  <ModalContent>
-    <ModalHeader>Title</ModalHeader>
-    <ModalCloseButton />
+  <ModalContent
+    bg={SEMANTIC_COLORS.bgCard}
+    borderRadius={0}
+    border="1px solid"
+    borderColor={SEMANTIC_COLORS.hairline}
+  >
+    <ModalHeader fontFamily={TYPOGRAPHY.fontDisplay}>Title</ModalHeader>
+    <ModalCloseButton _focus={FOCUS_STYLES.ring} />
 
     {/* REQUIRED: pb={6} or pb={SPACING_PATTERNS.modalPadding} */}
     <ModalBody pb={SPACING_PATTERNS.modalPadding}>
@@ -144,7 +203,7 @@ gap={SPACING_PATTERNS.formFieldGap}   // 4 = 16px
 </Modal>
 ```
 
-**Standard:** `pb={6}` (24px) for ModalBody
+**Standard:** `pb={6}` (24px) for ModalBody. `borderRadius={0}`, hairline border, no backdrop glow.
 
 ---
 
@@ -152,7 +211,9 @@ gap={SPACING_PATTERNS.formFieldGap}   // 4 = 16px
 
 ### Micro-Interactions (`config/transitions.ts`)
 
-**ALL interactive elements MUST use standardized transitions:**
+Living Typeface motion is **subtle** — color and border transitions only. No lift, no scale, no glow.
+Ambient breathing/sway motion exists only in opt-in atmosphere layers (heroes, landing, section
+openers) and never on interactive UI.
 
 ```tsx
 import {
@@ -165,9 +226,9 @@ import {
 
 // Buttons (REQUIRED on all buttons)
 <Button
-  transition={TRANSITIONS.transformAndShadow}
-  _hover={HOVER_EFFECTS.lift}
-  _active={ACTIVE_EFFECTS.press}
+  transition={TRANSITIONS.colorAndBorder}
+  _hover={HOVER_EFFECTS.borderHighlight}
+  _active={ACTIVE_EFFECTS.dim}
   _focus={FOCUS_STYLES.ring}
 >
   Click me
@@ -175,7 +236,7 @@ import {
 
 // Interactive Cards
 <Card
-  interactive  // Enables hover effects automatically
+  interactive  // Enables hairline-brighten hover automatically
   onClick={handleClick}
 >
   Content
@@ -185,18 +246,18 @@ import {
 <Box
   onClick={handleClick}
   cursor="pointer"
-  transition={TRANSITIONS.transformAndShadow}
-  _hover={HOVER_EFFECTS.scale}
-  _active={ACTIVE_EFFECTS.pressDown}
+  transition={TRANSITIONS.colorAndBorder}
+  _hover={HOVER_EFFECTS.borderHighlight}
+  _active={ACTIVE_EFFECTS.dim}
 >
   Content
 </Box>
 
-// Animated Entrances (Framer Motion)
+// Atmosphere-only entrances (heroes/landing, NOT app chrome)
 import { motion } from 'framer-motion'
 
 <motion.div
-  variants={MOTION_VARIANTS.fadeInUp}
+  variants={MOTION_VARIANTS.ambientSway}
   initial="hidden"
   animate="visible"
 >
@@ -206,18 +267,21 @@ import { motion } from 'framer-motion'
 
 **Animation Rules:**
 - ❌ NEVER use inline transitions: `transition="all 0.2s"`
-- ❌ NEVER use arbitrary timings: `transition="transform 0.35s"`
+- ❌ NEVER use arbitrary timings
+- ❌ NEVER add lift (`translateY`), scale, or glow/box-shadow-bloom hovers to interactive components
 - ✅ ALWAYS import from `config/transitions.ts`
-- ✅ ALWAYS use standardized hover effects
+- ✅ Color/border transitions run at `.15s` — fast and quiet
 - ✅ ALWAYS add focus indicators for accessibility
 
 **Available Effects:**
-- `HOVER_EFFECTS.lift` - Lift up 2px + shadow (primary buttons)
-- `HOVER_EFFECTS.liftSubtle` - Lift up 1px + shadow (secondary)
-- `HOVER_EFFECTS.scale` - Scale to 1.02 (cards)
-- `HOVER_EFFECTS.glow` - Purple glow (special emphasis)
-- `HOVER_EFFECTS.brighten` - Brightness filter (icon buttons)
-- `HOVER_EFFECTS.borderHighlight` - Border color change (ghost buttons)
+- `HOVER_EFFECTS.borderHighlight` - hairline brightens (`0.10` → `0.22` alpha) — default for cards, ghost buttons, inputs
+- `HOVER_EFFECTS.colorShift` - text/icon shifts to phosphor - links, icon buttons
+- `HOVER_EFFECTS.bgRaise` - background steps from `bgCard` → `bgRaise` - solid buttons
+- `ACTIVE_EFFECTS.dim` - opacity dips slightly on press (no translate)
+
+**Removed (do not reintroduce):** `lift`, `liftSubtle`, `scale`, `glow`, `brighten`-filter — these were
+signature cyberpunk-era effects. If you see them in older components, that's legacy code pending
+migration, not something to copy.
 
 ---
 
@@ -228,25 +292,22 @@ import { motion } from 'framer-motion'
 **Standard button patterns:**
 
 ```tsx
-// Primary CTA (solid variant - default)
-<Button
-  colorScheme="purple"
-  // Hover/active/focus states applied automatically via theme
->
+// Primary CTA (solid, phosphor)
+<Button colorScheme="phosphor" borderRadius={0}>
   Primary Action
 </Button>
 
-// Secondary action (ghost variant)
+// Secondary action (ghost, hairline border)
 <Button variant="ghost">
   Secondary Action
 </Button>
 
-// Outline variant
+// Outline variant (hairline)
 <Button variant="outline">
   Outline Action
 </Button>
 
-// Link variant
+// Link variant (mono, uppercase)
 <Button variant="link">
   Link Action
 </Button>
@@ -254,10 +315,11 @@ import { motion } from 'framer-motion'
 
 **Button Rules:**
 - ❌ NEVER add custom hover states (theme handles it)
-- ❌ NEVER use solid purple for repeated actions (use ghost)
-- ✅ Button theme automatically applies lift effect
-- ✅ Ghost buttons automatically get border highlight
-- ✅ All buttons have focus rings
+- ❌ NEVER use `colorScheme="purple"` — legacy
+- ❌ NEVER round the corners
+- ✅ Button theme applies border-highlight/bg-raise automatically, not lift
+- ✅ Ghost/outline buttons get hairline brightening on hover
+- ✅ All buttons have focus rings (1px phosphor outline)
 
 ### Cards
 
@@ -279,7 +341,7 @@ import { Card } from '@/components/ui/Card'
 // Interactive/clickable card
 <Card
   variant="default"
-  interactive  // Enables hover effects
+  interactive  // Enables hairline-brighten hover
   onClick={handleClick}
 >
   <Text>Clickable content</Text>
@@ -288,9 +350,10 @@ import { Card } from '@/components/ui/Card'
 
 **Card Rules:**
 - ❌ NEVER use Box with inline card styling
-- ❌ NEVER add custom hover effects
+- ❌ NEVER round corners (`borderRadius={0}` always) or add scale/glow hover
 - ✅ ALWAYS use Card component
-- ✅ Use `interactive` prop for clickable cards
+- ✅ Cards are `bgCard` + `1px solid hairline` — sharp corners, no glass blur
+- ✅ Use `interactive` prop for clickable cards (hairline brightens on hover)
 - ✅ Variants: default, elevated, subtle
 
 ### Forms & Inputs
@@ -302,17 +365,19 @@ import { FOCUS_STYLES } from '@/config/transitions'
 
 <Input
   placeholder="Enter amount"
-  transition={TRANSITIONS.all}
-  _focus={FOCUS_STYLES.ring}  // Purple focus ring
+  borderRadius={0}
+  border="1px solid"
+  borderColor={SEMANTIC_COLORS.hairline}
+  transition={TRANSITIONS.colorAndBorder}
+  _focus={FOCUS_STYLES.ring}  // 1px phosphor outline
   _invalid={{
     borderColor: SEMANTIC_COLORS.danger,
-    boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.2)',
   }}
 />
 
 // With error state
 <FormControl isInvalid={hasError}>
-  <FormLabel fontSize={TYPOGRAPHY.label} textTransform="uppercase">
+  <FormLabel fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} textTransform="uppercase" letterSpacing="0.28em">
     Amount
   </FormLabel>
   <Input {...inputProps} />
@@ -323,10 +388,11 @@ import { FOCUS_STYLES } from '@/config/transitions'
 ```
 
 **Form Rules:**
-- ✅ ALWAYS use focus rings for accessibility
-- ✅ ALWAYS use semantic colors for validation
-- ✅ Labels should be uppercase (11px)
+- ✅ ALWAYS use focus rings for accessibility (1px phosphor outline, no blurred box-shadow)
+- ✅ ALWAYS use semantic colors for validation (danger = blood, never plain red)
+- ✅ Labels are mono, uppercase, letterspaced 0.28em (11px)
 - ✅ Error messages use danger color
+- ❌ NEVER round input corners
 
 ---
 
@@ -403,6 +469,9 @@ const handleClick = useCallback(() => {
 
 ### Focus Management
 
+Focus rings are a **1px solid phosphor (`#9bdc4f`) outline, offset 2px** — not a purple blurred
+box-shadow ring. Sharp, precise, visible on the near-black background.
+
 ```tsx
 import { FOCUS_STYLES } from '@/config/transitions'
 
@@ -450,7 +519,7 @@ import { FOCUS_STYLES } from '@/config/transitions'
 
 **Accessibility Rules:**
 - ✅ All buttons need aria-label if no text
-- ✅ Focus indicators required (WCAG 2.1 AA)
+- ✅ Focus indicators required (WCAG 2.1 AA) — 1px phosphor outline, not a glow
 - ✅ Form inputs need labels
 - ✅ Modals need aria-labelledby
 - ✅ Error states need aria-invalid + aria-describedby
@@ -539,7 +608,8 @@ components/
 // Inline transitions
 <Button transition="all 0.2s">
 
-// Random colors
+// Legacy purple / cyan
+<Text color="#A692FF">Emphasis</Text>
 <Text color="cyan.500">Success!</Text>
 
 // No focus indicators
@@ -548,14 +618,15 @@ components/
 // Arbitrary font sizes
 <Text fontSize="17px" fontWeight={550}>
 
-// Inline card styling
+// Rounded corners / glass card styling
 <Box bg="rgba(10,10,10,0.8)" borderRadius="24px" p={6}>
 
-// Custom hover without standards
+// Lift/scale hover, glow shadow
 <Button _hover={{ transform: "translateY(-3px)" }}>
+<Box _hover={{ boxShadow: "0 0 20px rgba(155,220,79,0.6)" }}>
 
-// No semantic meaning
-<Text color="#22d3ee">Completed</Text>
+// Sans-serif heading, pure-white text
+<Text fontFamily="Inter" color="white">Section Title</Text>
 ```
 
 ### ✅ DO THIS INSTEAD:
@@ -566,22 +637,27 @@ components/
 
 // Standardized transitions
 <Button
-  transition={TRANSITIONS.transformAndShadow}
-  _hover={HOVER_EFFECTS.lift}
+  transition={TRANSITIONS.colorAndBorder}
+  _hover={HOVER_EFFECTS.borderHighlight}
   _focus={FOCUS_STYLES.ring}
 >
 
 // Semantic colors
 <Text color={SEMANTIC_COLORS.success}>Success!</Text>
 
-// Typography scale
-<Text fontSize={TYPOGRAPHY.body} fontWeight={TYPOGRAPHY.medium}>
+// Typography scale (mono for data, serif for display)
+<Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.body} fontWeight={TYPOGRAPHY.medium}>
+  1,204.55 CDT
+</Text>
+<Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h2}>Section Title</Text>
 
-// Card component
+// Card component — sharp corners, hairline border
 <Card variant="default">
 
-// Semantic color with meaning
-<Text color={SEMANTIC_COLORS.success}>Completed</Text>
+// Mono uppercase eyebrow label
+<Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} textTransform="uppercase" letterSpacing="0.28em">
+  01 / Overview
+</Text>
 ```
 
 ---
@@ -604,9 +680,9 @@ import { Card } from '@/components/ui/Card'
 ```tsx
 // Button
 <Button
-  transition={TRANSITIONS.transformAndShadow}
-  _hover={HOVER_EFFECTS.lift}
-  _active={ACTIVE_EFFECTS.press}
+  transition={TRANSITIONS.colorAndBorder}
+  _hover={HOVER_EFFECTS.borderHighlight}
+  _active={ACTIVE_EFFECTS.dim}
   _focus={FOCUS_STYLES.ring}
 >
   Action
@@ -630,7 +706,7 @@ import { Card } from '@/components/ui/Card'
 
 // Form field
 <FormControl>
-  <FormLabel fontSize={TYPOGRAPHY.label} textTransform="uppercase">
+  <FormLabel fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} textTransform="uppercase" letterSpacing="0.28em">
     Label
   </FormLabel>
   <Input _focus={FOCUS_STYLES.ring} />
@@ -644,13 +720,16 @@ import { Card } from '@/components/ui/Card'
 Before submitting any PR, verify:
 
 - [ ] Using SPACING constants (no arbitrary values)
-- [ ] Using SEMANTIC_COLORS for states
-- [ ] Using TYPOGRAPHY for text sizing
-- [ ] Using TRANSITIONS for animations
-- [ ] Buttons have hover/active/focus states
-- [ ] Interactive elements have focus indicators
+- [ ] Using SEMANTIC_COLORS for states (success = phosphor, not cyan; no purple)
+- [ ] Using TYPOGRAPHY for text sizing (serif for display, mono for data/body)
+- [ ] Using TRANSITIONS for animations (color/border only, no lift/scale/glow)
+- [ ] No `borderRadius` on cards/buttons/inputs/modals — sharp corners throughout
+- [ ] Hairline borders used consistently (not solid white or glass borders)
+- [ ] Buttons have border-highlight/color-shift + focus states
+- [ ] Interactive elements have focus indicators (1px phosphor outline)
 - [ ] Cards use Card component (not Box)
-- [ ] Modals use standard padding (pb={6})
+- [ ] Modals use standard padding (pb={6}) and sharp corners
+- [ ] Labels/eyebrows are mono, uppercase, letterspaced
 - [ ] No inline styles that bypass design system
 - [ ] Tested on mobile, tablet, desktop
 - [ ] No console errors
@@ -661,13 +740,14 @@ Before submitting any PR, verify:
 ## 📖 Documentation
 
 **Complete Documentation:**
-- `docs/DESIGN_AUDIT.md` - Overall design system audit (95% complete!)
+- `docs/DESIGN_AUDIT.md` - Overall design system audit
 - `docs/SPACING_AUDIT.md` - Spacing standards
 - `docs/MODAL_PADDING_AUDIT.md` - Modal standards
 - `docs/MICRO_INTERACTIONS_GUIDE.md` - Animation guide
 - `docs/PLAYWRIGHT_SETUP.md` - Testing guide
 - `docs/BUTTON_PATTERNS.md` - Button usage
 - `docs/COMPONENT_GUIDE.md` - Component reference
+- `.claude/skills/branding-guidelines/SKILL.md` - Full Living Typeface brand guide
 
 **Config Files:**
 - `config/spacing.ts` - Spacing scale & patterns
@@ -681,19 +761,23 @@ Before submitting any PR, verify:
 
 **Golden Rules:**
 1. **NEVER** use arbitrary spacing values
-2. **ALWAYS** use semantic colors for states
-3. **ALWAYS** use standardized transitions
-4. **ALWAYS** add focus indicators
-5. **ALWAYS** use Card component for cards
+2. **ALWAYS** use semantic colors for states (phosphor/teal/gold/blood — never purple/cyan)
+3. **ALWAYS** use standardized transitions (color/border only — no lift, scale, or glow)
+4. **ALWAYS** add focus indicators (1px phosphor outline)
+5. **ALWAYS** use Card component for cards — sharp corners, hairline border
 6. **ALWAYS** import from config files
+7. **ALWAYS** use serif (Redaction) for display headings, mono (JetBrains Mono) for everything functional
 
 **When in doubt:**
-- Check existing components for patterns
+- Check `.claude/skills/branding-guidelines/SKILL.md` for the full token set and rationale
+- Check existing components for patterns — but note the app's component long tail still contains
+  legacy purple/cyan/glow code pending migration; don't copy those
 - Read the documentation in `docs/`
 - Use the Quick Reference above
 
 ---
 
-**Design System Status:** 95% Complete (21/22 items)
-**Last Updated:** February 6, 2026
+**Design System Status:** Living Typeface migration in progress — this doc and the brand guide are
+updated; component-level migration off legacy purple/cyan/glow is ongoing.
+**Last Updated:** July 23, 2026
 **Maintainer:** Design system standards enforced automatically

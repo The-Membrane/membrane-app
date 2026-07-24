@@ -44,6 +44,16 @@ export interface BorrowRowData {
   borrowApy: number
   liquidityAvailable: number
   liquidityUsdValue: number
+  subtitle?: string
+}
+
+export interface LendRowData {
+  symbol: string
+  logo: string
+  denom: string
+  lendApy: number
+  available: number // -1 = protocol-managed, 0 = coming soon, >0 = actual amount
+  availableUsdValue: number
 }
 
 // Rate segment types matching the Rust RateSegment struct
@@ -119,8 +129,8 @@ export const DENOM_TO_COINGECKO: Record<string, string> = {
 
 // Chart colors for hypothetical lines
 export const ASSET_COLORS = [
-  '#22d3ee', // cyan
-  '#a78bfa', // purple
+  '#46d39a', // cyber teal
+  '#9bdc4f', // phosphor
   '#34d399', // green
   '#fb923c', // orange
   '#f472b6', // pink

@@ -1,7 +1,7 @@
-import { Box, Button, HStack, Image, Stack, Text, Spacer, IconButton, Drawer, DrawerOverlay, DrawerContent, DrawerBody, useDisclosure, VStack, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
-import React, { useEffect } from 'react';
-import { FaUserCircle, FaBars, FaChevronDown } from 'react-icons/fa';
-import WallectConnect from './WallectConnect';
+import { Box, Button, HStack, Image, Stack, Text, Spacer, IconButton, Drawer, DrawerOverlay, DrawerContent, DrawerBody, useDisclosure, VStack, Menu, MenuButton, MenuList, MenuItem, Collapse } from '@chakra-ui/react';
+import React, { useEffect, useState } from 'react';
+import { FaUserCircle, FaBars, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import WallectConnect from './WallectConnect/WalletConnect';
 import NextLink from 'next/link';
 import { useRouter } from 'next/router';
 import { colors } from '@/config/defaults';
@@ -13,23 +13,42 @@ import useAppState from '@/persisted-state/useAppState';
 const navItems = [
     { label: 'About', href: '/about' },
     { label: 'Home', href: '/' },
-    { label: 'Portfolio', href: '/portfolio' },
-    { label: 'Transmuter', href: '/transmuter' },
-    { label: 'Manic', href: '/manic' },
-    { label: 'Disco', href: '/disco' },
-    { label: 'Maze Runners', href: '/maze-runners' },
-    { label: 'Bridge', href: '/bridge' },
+    { label: 'Mint', href: '/mint' },
+    // { label: 'Portfolio', href: '/portfolio' },
+    // { label: 'Transmuter', href: '/transmuter' },
+    // { label: 'Manic', href: '/manic' },
+    { label: 'The Disco', href: '/disco' },
+    // { label: 'Maze Runners', href: '/maze-runners' },
+    // { label: 'Bridge', href: '/bridge' },
 
     // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
     // { label: 'Isolated Markets', href: '/isolated' }, //Remove supplied CDT Trix
-    // { label: 'Mint', href: '/mint' },
-    // { label: 'Liquidate', href: '/liquidate' },
+    { label: 'Liquidate', href: '/liquidate' },
     // { label: 'Stake', href: '/stake' },
     // { label: 'Control Room', href: '/control-room' },
 ];
 
+const dashboardItems = [
+    { label: 'Acquisition', href: '/acquisition-dashboard' },
+    { label: 'LTVs', href: '/ltv-dashboard' },
+    { label: 'Membrane', href: '/membrane-dashboard' },
+];
+
+// Neutron only shows Maze Runners
+const neutronNavItems = [
+    { label: 'Maze Runners', href: '/maze-runners' },
+];
+
+const getNavItemsForChain = (chainName: string) => {
+    if (chainName === 'neutron' || chainName === 'neutrontestnet') {
+        return { navItems: neutronNavItems, dashboards: [] as typeof dashboardItems };
+    }
+    return { navItems, dashboards: dashboardItems };
+};
+
 const HorizontalNav = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
+    const [dashboardsOpen, setDashboardsOpen] = useState(false);
     const router = useRouter();
     const { chainName } = useChainRoute();
     const currentChain = getChainConfig(chainName);
@@ -50,10 +69,11 @@ const HorizontalNav = () => {
         router.push(newPath);
     };
 
-    // Filter out Home page from nav if user has completed contract signing
-    const filteredNavItems = appState.setCookie 
-        ? navItems.filter(item => item.label !== 'Home')
-        : navItems;
+    // Get chain-specific nav items, then filter out Home if contract signed
+    const { navItems: chainNavItems, dashboards } = getNavItemsForChain(chainName);
+    const filteredNavItems = appState.setCookie
+        ? chainNavItems.filter(item => item.label !== 'Home')
+        : chainNavItems;
 
     return (
         <Box
@@ -62,9 +82,10 @@ const HorizontalNav = () => {
             w="full"
             px={{ base: 2, md: 8 }}
             py={2}
-            bgGradient="linear(to-r, #232A3E 60%, #2B3A67 100%)"
-            boxShadow="md"
-            borderRadius="0 0 2xl 2xl"
+            bg="#0e0d10"
+            borderBottom="1px solid"
+            borderColor="rgba(236, 230, 216, 0.10)"
+            borderRadius={0}
             display="flex"
             alignItems="center"
             justifyContent="space-between"
@@ -96,7 +117,7 @@ const HorizontalNav = () => {
                         as={NextLink}
                         href={`/${chainName}${item.href}`}
                         variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                        color="white"
+                        color="#ece6d8"
                         fontWeight="semibold"
                         borderRadius="full"
                         border="none"
@@ -110,6 +131,51 @@ const HorizontalNav = () => {
                         {item.label}
                     </Button>
                 ))}
+                {chainName && dashboards.length > 0 && (
+                    <>
+                        <Button
+                            rightIcon={dashboardsOpen ? <FaChevronUp /> : <FaChevronDown />}
+                            variant="ghost"
+                            color="#ece6d8"
+                            fontWeight="semibold"
+                            borderRadius="full"
+                            border="none"
+                            px={4}
+                            py={2}
+                            bg={dashboardsOpen || dashboards.some(d => router.asPath === `/${chainName}${d.href}`) ? 'whiteAlpha.200' : 'transparent'}
+                            _hover={{ bg: 'whiteAlpha.300' }}
+                            fontSize="13px"
+                            w={"fit-content"}
+                            onClick={() => setDashboardsOpen(!dashboardsOpen)}
+                        >
+                            Dashboards
+                        </Button>
+                        <Collapse in={dashboardsOpen} animateOpacity>
+                            <HStack spacing={1} pl={1}>
+                                {dashboards.map((item) => (
+                                    <Button
+                                        key={item.label}
+                                        as={NextLink}
+                                        href={`/${chainName}${item.href}`}
+                                        variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
+                                        color="#ece6d8"
+                                        fontWeight="semibold"
+                                        borderRadius="full"
+                                        border="none"
+                                        px={4}
+                                        py={2}
+                                        bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
+                                        _hover={{ bg: 'whiteAlpha.300' }}
+                                        fontSize="13px"
+                                        w={"fit-content"}
+                                    >
+                                        {item.label}
+                                    </Button>
+                                ))}
+                            </HStack>
+                        </Collapse>
+                    </>
+                )}
             </HStack>
 
             {/* Hamburger for mobile */}
@@ -120,7 +186,7 @@ const HorizontalNav = () => {
                 onClick={onOpen}
                 bg="transparent"
                 border="none"
-                color="white"
+                color="#ece6d8"
                 fontSize="22px"
                 _hover={{ bg: 'whiteAlpha.200' }}
                 mr={2}
@@ -135,27 +201,27 @@ const HorizontalNav = () => {
                         as={Button}
                         w={"fit-content"}
                         rightIcon={<FaChevronDown />}
-                        leftIcon={<Image src={currentChain.logo} alt={`${currentChain.name} Logo`} boxSize={6} />}
+                        leftIcon={<Image src={currentChain.logo} alt={`${currentChain.displayName} Logo`} boxSize={6} />}
                         variant="ghost"
                         border="none"
-                        color="white"
+                        color="#ece6d8"
                         _hover={{ bg: 'whiteAlpha.200' }}
                         px={2}
                     >
                     </MenuButton>
-                    <MenuList bg="#232A3E">
+                    <MenuList bg="#0e0d10">
                         {supportedChains.map((chain) => (
                             <MenuItem
                                 key={chain.name}
                                 onClick={() => handleChainChange(chain.name)}
                                 bg={chain.name === currentChain.name ? 'whiteAlpha.200' : 'transparent'}
                                 _hover={{ bg: 'whiteAlpha.300' }}
-                                color="white"
+                                color="#ece6d8"
                                 cursor="pointer"
                             >
                                 <HStack>
-                                    <Image src={chain.logo} alt={`${chain.name} Logo`} boxSize={6} />
-                                    <Text>{chain.name}</Text>
+                                    <Image src={chain.logo} alt={`${chain.displayName} Logo`} boxSize={6} />
+                                    <Text>{chain.displayName}</Text>
                                 </HStack>
                             </MenuItem>
                         ))}
@@ -168,7 +234,7 @@ const HorizontalNav = () => {
             {/* Drawer for mobile nav */}
             <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs">
                 <DrawerOverlay />
-                <DrawerContent bg="#232A3E">
+                <DrawerContent bg="#0e0d10">
                     <DrawerBody p={0} pt={8}>
                         <VStack align="stretch" spacing={1} h="full" justify="space-between">
                             <VStack align="stretch" spacing={1}>
@@ -181,7 +247,7 @@ const HorizontalNav = () => {
                                         as={NextLink}
                                         href={`/${chainName}${item.href}`}
                                         variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                                        color="white"
+                                        color="#ece6d8"
                                         fontWeight="semibold"
                                         borderRadius="full"
                                         border="none"
@@ -197,6 +263,54 @@ const HorizontalNav = () => {
                                         {item.label}
                                     </Button>
                                 ))}
+                                {chainName && dashboards.length > 0 && (
+                                    <>
+                                        <Button
+                                            rightIcon={dashboardsOpen ? <FaChevronUp /> : <FaChevronDown />}
+                                            variant="ghost"
+                                            color="#ece6d8"
+                                            fontWeight="semibold"
+                                            borderRadius="full"
+                                            border="none"
+                                            px={6}
+                                            py={4}
+                                            bg={dashboardsOpen || dashboards.some(d => router.asPath === `/${chainName}${d.href}`) ? 'whiteAlpha.200' : 'transparent'}
+                                            _hover={{ bg: 'whiteAlpha.300' }}
+                                            fontSize="13px"
+                                            maxW={"fit-content"}
+                                            justifyContent="flex-start"
+                                            onClick={() => setDashboardsOpen(!dashboardsOpen)}
+                                        >
+                                            Dashboards
+                                        </Button>
+                                        <Collapse in={dashboardsOpen} animateOpacity>
+                                            <VStack align="stretch" spacing={1} pl={4}>
+                                                {dashboards.map((item) => (
+                                                    <Button
+                                                        key={item.label}
+                                                        as={NextLink}
+                                                        href={`/${chainName}${item.href}`}
+                                                        variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
+                                                        color="#ece6d8"
+                                                        fontWeight="semibold"
+                                                        borderRadius="full"
+                                                        border="none"
+                                                        px={6}
+                                                        py={4}
+                                                        bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
+                                                        _hover={{ bg: 'whiteAlpha.300' }}
+                                                        fontSize="13px"
+                                                        maxW={"fit-content"}
+                                                        justifyContent="flex-start"
+                                                        onClick={onClose}
+                                                    >
+                                                        {item.label}
+                                                    </Button>
+                                                ))}
+                                            </VStack>
+                                        </Collapse>
+                                    </>
+                                )}
                             </VStack>
                             <Box p={4}>
                                 <Text

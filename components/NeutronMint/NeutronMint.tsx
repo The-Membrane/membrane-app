@@ -42,21 +42,21 @@ const HexagonBackground = () => (
           <polygon
             points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
             fill="none"
-            stroke="#6943FF"
+            stroke="rgba(236, 230, 216, 0.22)"
             strokeWidth="1"
           />
           {/* Right hexagon (offset down) */}
           <polygon
             points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
             fill="none"
-            stroke="#6943FF"
+            stroke="rgba(236, 230, 216, 0.22)"
             strokeWidth="1"
           />
           {/* Top-right continuation for seamless tiling */}
           <polygon
             points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
             fill="none"
-            stroke="#6943FF"
+            stroke="rgba(236, 230, 216, 0.22)"
             strokeWidth="1"
           />
         </pattern>

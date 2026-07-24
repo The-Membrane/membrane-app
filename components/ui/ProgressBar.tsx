@@ -37,6 +37,20 @@ export interface ProgressBarProps extends Omit<ProgressProps, 'value'> {
 }
 
 /**
+ * Adaptive color logic (Living Typeface semantic ramp):
+ * - 100%+:  blood  (#cf4034) — at/over cap
+ * - 85-99%: gold   (#d8b24a) — approaching cap
+ * - 70-84%: gold-dim         — moderate usage
+ * - 0-69%:  phosphor (#9bdc4f) — healthy / plenty of room
+ */
+const getColor = (percent: number): string => {
+  if (percent >= 100) return '#cf4034'
+  if (percent >= 85) return '#d8b24a'
+  if (percent >= 70) return '#c19a3a'
+  return '#9bdc4f'
+}
+
+/**
  * Standardized ProgressBar Component
  *
  * Features:
@@ -66,6 +80,13 @@ export interface ProgressBarProps extends Omit<ProgressProps, 'value'> {
  * />
  * ```
  */
+// Height mapping
+const heights = {
+  sm: '4px',
+  md: '6px',
+  lg: '8px',
+}
+
 export const ProgressBar: React.FC<ProgressBarProps> = ({
   value,
   maxValue,
@@ -79,29 +100,6 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   const usagePercent = maxValue > 0 ? (value / maxValue) * 100 : 0
   const cappedPercent = Math.min(usagePercent, 100)
 
-  /**
-   * Adaptive color logic:
-   * - 100%+: Red (at/over cap)
-   * - 85-99%: Dark cyan (approaching cap)
-   * - 70-84%: Medium cyan (moderate usage)
-   * - 50-69%: Standard cyan
-   * - 0-49%: Light cyan (plenty of room)
-   */
-  const getColor = (percent: number): string => {
-    if (percent >= 100) return 'red.400'
-    if (percent >= 85) return 'cyan.700'
-    if (percent >= 70) return 'cyan.600'
-    if (percent >= 50) return 'cyan.500'
-    return 'cyan.400'
-  }
-
-  // Height mapping
-  const heights = {
-    sm: '4px',
-    md: '6px',
-    lg: '8px',
-  }
-
   // Format display values
   const displayValue = formatValue ? formatValue(value) : value.toString()
   const displayMax = formatValue ? formatValue(maxValue) : maxValue.toString()
@@ -109,7 +107,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   return (
     <Stack spacing={1}>
       {showLabel && (
-        <Text fontSize="sm" color="white" fontWeight="medium">
+        <Text fontSize="sm" color="#ece6d8" fontWeight="medium">
           {displayValue} / {displayMax}
         </Text>
       )}
@@ -121,14 +119,14 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
           left={0}
           right={0}
           height={heights[size]}
-          bg="rgba(255, 255, 255, 0.05)"
+          bg="rgba(236, 230, 216, 0.06)"
           borderRadius="3px"
         />
         {/* Progress fill */}
         <Progress
           value={cappedPercent}
           height={heights[size]}
-          colorScheme={colorScheme || 'cyan'}
+          colorScheme={colorScheme || 'primary'}
           bg="transparent"
           borderRadius="3px"
           sx={{

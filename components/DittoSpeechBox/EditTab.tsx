@@ -22,7 +22,7 @@ export const EditTab: React.FC<EditTabProps> = ({ onClick, isPanelOpen }) => {
             borderBottom="1px solid"
             borderRight="1px solid"
             // borderLeft="1px solid"
-            borderColor="purple.400"
+            borderColor="primary.400"
             cursor="pointer"
             display="flex"
             alignItems="center"
@@ -52,7 +52,7 @@ export const EditTab: React.FC<EditTabProps> = ({ onClick, isPanelOpen }) => {
                     fontSize="sm"
                     fontWeight={700}
                     letterSpacing="0.1em"
-                    color="#F5F5F5"
+                    color="#ece6d8"
                     whiteSpace="nowrap"
                 >
                     EDIT

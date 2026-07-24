@@ -34,20 +34,20 @@ export const WithdrawForm: React.FC<WithdrawFormProps> = ({ depositType, maxAmou
 
     return (
         <VStack align="stretch" spacing={4} w="100%" h="100%" pb="50px" overflowY="auto">
-            <Text fontSize="xs" color="#F5F5F580" fontWeight="bold" textTransform="uppercase">
+            <Text fontSize="xs" color="#ece6d880" fontWeight="bold" textTransform="uppercase">
                 {isStaking ? 'Unstake MBRN' : 'Withdraw from LTV Disco'}
             </Text>
 
             {/* Amount Input */}
             <Box>
                 <HStack justify="space-between" mb={2}>
-                    <Text fontSize="xs" color="#F5F5F580">
+                    <Text fontSize="xs" color="#ece6d880">
                         Amount (MBRN)
                     </Text>
                     <Button
                         size="xs"
                         variant="ghost"
-                        color="cyan.400"
+                        color="secondary.400"
                         onClick={handleMax}
                         _hover={{ bg: '#38B2AC20' }}
                         h="auto"
@@ -65,15 +65,15 @@ export const WithdrawForm: React.FC<WithdrawFormProps> = ({ depositType, maxAmou
                     <NumberInputField
                         bg="#1A1D26"
                         border="1px solid"
-                        borderColor="#6943FF30"
-                        color="#F5F5F5"
+                        borderColor="#9bdc4f30"
+                        color="#ece6d8"
                         fontSize="sm"
-                        _hover={{ borderColor: '#6943FF60' }}
+                        _hover={{ borderColor: '#9bdc4f60' }}
                         _focus={{ borderColor: '#38B2AC', boxShadow: '0 0 0 1px #38B2AC' }}
                         placeholder="0.00"
                     />
                 </NumberInput>
-                <Text fontSize="2xs" color="#F5F5F550" mt={1}>
+                <Text fontSize="2xs" color="#ece6d850" mt={1}>
                     Available: {maxAmountFormatted} MBRN
                 </Text>
             </Box>
@@ -98,11 +98,11 @@ export const WithdrawForm: React.FC<WithdrawFormProps> = ({ depositType, maxAmou
                 left={0}
                 right={0}
                 size="sm"
-                bg="cyan.500"
+                bg="secondary.500"
                 color="white"
                 onClick={handleSubmit}
                 isDisabled={!amount || parseFloat(amount) <= 0}
-                _hover={{ bg: 'cyan.400', boxShadow: '0 0 15px rgba(56, 178, 172, 0.4)' }}
+                _hover={{ bg: 'secondary.400', boxShadow: '0 0 15px rgba(56, 178, 172, 0.4)' }}
                 _disabled={{ opacity: 0.5, cursor: 'not-allowed' }}
             >
                 {isStaking ? 'Unstake' : 'Withdraw'}

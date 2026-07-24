@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Box, Text, HStack, IconButton } from '@chakra-ui/react'
 import { CloseIcon } from '@chakra-ui/icons'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { DittoMessage, DittoSeverity } from './types/dittoContract'
 
 // ============================================================================
@@ -94,6 +94,7 @@ export const DittoToast: React.FC<DittoToastProps> = ({
     }, [message, autoDismissMs, onDismiss])
 
     // Reset exit state when message changes
+    // react-doctor(no-reset-all-state-on-prop-change): kept — isExiting is a transient exit-animation flag set imperatively (auto-dismiss timer / dismiss click), so it can't be derived. Idiomatic `key={message?.id}` fix belongs on the parent but would change the inter-message exit animation (behavior-changing). Component is currently only re-exported, not rendered.
     useEffect(() => {
         setIsExiting(false)
     }, [message?.id])
@@ -107,7 +108,7 @@ export const DittoToast: React.FC<DittoToastProps> = ({
     return (
         <AnimatePresence>
             {isVisible && !isExiting && (
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -151,7 +152,7 @@ export const DittoToast: React.FC<DittoToastProps> = ({
                                 )}
                                 <Text
                                     fontSize="xs"
-                                    color="#F5F5F5"
+                                    color="#ece6d8"
                                     lineHeight="1.4"
                                     fontFamily="mono"
                                 >
@@ -165,8 +166,8 @@ export const DittoToast: React.FC<DittoToastProps> = ({
                                 icon={<CloseIcon boxSize={2} />}
                                 size="xs"
                                 variant="ghost"
-                                color="#F5F5F580"
-                                _hover={{ color: '#F5F5F5', bg: 'transparent' }}
+                                color="#ece6d880"
+                                _hover={{ color: '#ece6d8', bg: 'transparent' }}
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     setIsExiting(true)
@@ -187,20 +188,22 @@ export const DittoToast: React.FC<DittoToastProps> = ({
                                 overflow="hidden"
                                 borderBottomRadius="lg"
                             >
-                                <motion.div
-                                    initial={{ width: '100%' }}
-                                    animate={{ width: '0%' }}
+                                <m.div
+                                    initial={{ scaleX: 1 }}
+                                    animate={{ scaleX: 0 }}
                                     transition={{ duration: autoDismissMs / 1000, ease: 'linear' }}
                                     style={{
+                                        width: '100%',
                                         height: '100%',
                                         backgroundColor: styles.borderColor,
                                         opacity: 0.5,
+                                        transformOrigin: 'left',
                                     }}
                                 />
                             </Box>
                         )}
                     </Box>
-                </motion.div>
+                </m.div>
             )}
         </AnimatePresence>
     )
@@ -230,6 +233,13 @@ interface DittoToastContainerProps {
     autoDismissMs?: number
 }
 
+const positionStyles = {
+    top: { bottom: '100%', left: '50%', transform: 'translateX(-50%)', mb: 2 },
+    bottom: { top: '100%', left: '50%', transform: 'translateX(-50%)', mt: 2 },
+    left: { right: '100%', top: '50%', transform: 'translateY(-50%)', mr: 2 },
+    right: { left: '100%', top: '50%', transform: 'translateY(-50%)', ml: 2 },
+}
+
 export const DittoToastContainer: React.FC<DittoToastContainerProps> = ({
     position = 'top',
     message,
@@ -238,13 +248,6 @@ export const DittoToastContainer: React.FC<DittoToastContainerProps> = ({
     onClick,
     autoDismissMs = 5000,
 }) => {
-    const positionStyles = {
-        top: { bottom: '100%', left: '50%', transform: 'translateX(-50%)', mb: 2 },
-        bottom: { top: '100%', left: '50%', transform: 'translateX(-50%)', mt: 2 },
-        left: { right: '100%', top: '50%', transform: 'translateY(-50%)', mr: 2 },
-        right: { left: '100%', top: '50%', transform: 'translateY(-50%)', ml: 2 },
-    }
-
     return (
         <Box
             position="absolute"

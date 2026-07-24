@@ -9,15 +9,16 @@ import contracts from '@/config/contracts.json'
 import { mockEpochRevenue, mockEpochCountdown } from './mockData'
 
 // Color constants
-const PRIMARY_PURPLE = 'rgb(166, 146, 255)'
+const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
 
 interface EpochRevenueCardProps {
-    selectedLTV?: {
+    selectedSlot?: {
+        slot: number
         tvl: number
     } | null
 }
 
-export const EpochRevenueCard: React.FC<EpochRevenueCardProps> = ({ selectedLTV }) => {
+export const EpochRevenueCard: React.FC<EpochRevenueCardProps> = ({ selectedSlot }) => {
     const { appState } = useAppState()
     const { data: client } = useCosmWasmClient(appState.rpcUrl)
     const discoContract = (contracts as any).ltv_disco
@@ -77,11 +78,11 @@ export const EpochRevenueCard: React.FC<EpochRevenueCardProps> = ({ selectedLTV 
         return total
     }, [epochRevenueToUse])
 
-    // Calculate TVL from selectedLTV (convert from base units to MBRN)
+    // Calculate TVL from selectedSlot (convert from base units to MBRN)
     const tvlInMBRN = useMemo(() => {
-        if (selectedLTV?.tvl === undefined || selectedLTV?.tvl === null) return null
-        return parseFloat(shiftDigits(selectedLTV.tvl.toString(), -6).toString())
-    }, [selectedLTV])
+        if (selectedSlot?.tvl === undefined || selectedSlot?.tvl === null) return null
+        return parseFloat(shiftDigits(selectedSlot.tvl.toString(), -6).toString())
+    }, [selectedSlot])
 
     // Calculate estimated APR from epoch revenue and TVL
     const estimatedAPR = useMemo(() => {
@@ -131,10 +132,9 @@ export const EpochRevenueCard: React.FC<EpochRevenueCardProps> = ({ selectedLTV 
                     </Text>
                     <Text
                         fontSize="lg"
-                        fontWeight="bold"
-                        color="green.400"
-                        fontFamily="mono"
-                        textShadow="0 0 10px rgba(72, 187, 120, 0.6)"
+                        fontWeight={500}
+                        color="secondary.400"
+                        fontFamily="'Neon Tubes', monospace"
                     >
                         {isLoading && !useMockData ? (
                             'Loading...'
@@ -151,15 +151,14 @@ export const EpochRevenueCard: React.FC<EpochRevenueCardProps> = ({ selectedLTV 
                     </Text>
                     <Text
                         fontSize="lg"
-                        fontWeight="bold"
-                        color={tvlInMBRN !== null ? "cyan.400" : "whiteAlpha.500"}
-                        fontFamily="mono"
-                        textShadow={tvlInMBRN !== null && tvlInMBRN > 0 ? "0 0 10px rgba(56, 178, 172, 0.6)" : undefined}
+                        fontWeight={500}
+                        color={tvlInMBRN !== null ? "white" : "whiteAlpha.500"}
+                        fontFamily="'Neon Tubes', monospace"
                     >
                         {tvlInMBRN !== null ? (
                             `${tvlInMBRN.toLocaleString(undefined, { maximumFractionDigits: 2 })} MBRN`
                         ) : (
-                            'Select LTV'
+                            'Select Slot'
                         )}
                     </Text>
                 </VStack>
@@ -193,9 +192,9 @@ export const EpochRevenueCard: React.FC<EpochRevenueCardProps> = ({ selectedLTV 
                     </Tooltip>
                     <Text
                         fontSize="lg"
-                        fontWeight="bold"
-                        color={estimatedAPR !== null ? "cyan.400" : "whiteAlpha.500"}
-                        fontFamily="mono"
+                        fontWeight={500}
+                        color={estimatedAPR !== null ? "secondary.400" : "whiteAlpha.500"}
+                        fontFamily="'Neon Tubes', monospace"
                         textShadow={estimatedAPR !== null ? "0 0 10px rgba(56, 178, 172, 0.6)" : undefined}
                     >
                         {estimatedAPR !== null ? (

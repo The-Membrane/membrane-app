@@ -2,14 +2,14 @@ import React from 'react'
 import { Box, Text, IconButton, HStack } from '@chakra-ui/react'
 import { keyframes } from '@emotion/react'
 import { CloseIcon } from '@chakra-ui/icons'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 
-const MotionBox = motion(Box)
+const MotionBox = m(Box)
 
 const pulseKeyframes = keyframes`
-    0% { box-shadow: 0 0 0 0 rgba(105, 67, 255, 0.4); }
-    70% { box-shadow: 0 0 0 6px rgba(105, 67, 255, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(105, 67, 255, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(155, 220, 79, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(155, 220, 79, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(155, 220, 79, 0); }
 `
 
 interface TimedMessageBannerProps {
@@ -39,13 +39,13 @@ export const TimedMessageBanner: React.FC<TimedMessageBannerProps> = ({
                     transform="translateX(-50%)"
                     bg="#23252B"
                     border="1px solid"
-                    borderColor="#6943FF60"
+                    borderColor="#9bdc4f60"
                     borderRadius="full"
                     px={4}
                     py={2}
                     zIndex={10001}
                     maxW="280px"
-                    boxShadow="0 4px 12px rgba(0,0,0,0.3), 0 0 20px rgba(105, 67, 255, 0.2)"
+                    boxShadow="0 4px 12px rgba(0,0,0,0.3), 0 0 20px rgba(155, 220, 79, 0.2)"
                     animation={`${pulseKeyframes} 2s infinite`}
                     _before={{
                         content: '""',
@@ -63,7 +63,7 @@ export const TimedMessageBanner: React.FC<TimedMessageBannerProps> = ({
                     <HStack spacing={2} align="center">
                         <Text
                             fontSize="xs"
-                            color="#F5F5F5"
+                            color="#ece6d8"
                             fontWeight="medium"
                             whiteSpace="nowrap"
                             overflow="hidden"
@@ -76,8 +76,8 @@ export const TimedMessageBanner: React.FC<TimedMessageBannerProps> = ({
                             icon={<CloseIcon boxSize={2} />}
                             size="xs"
                             variant="ghost"
-                            color="#F5F5F580"
-                            _hover={{ color: '#F5F5F5', bg: 'transparent' }}
+                            color="#ece6d880"
+                            _hover={{ color: '#ece6d8', bg: 'transparent' }}
                             onClick={onDismiss}
                             minW="auto"
                             h="auto"
@@ -104,22 +104,29 @@ export const TimedMessageInline: React.FC<TimedMessageBannerProps> = ({
         <AnimatePresence>
             {isVisible && message && (
                 <MotionBox
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
+                    // Auto-height reveal: a scaleY transform would squash the text, so
+                    // animate grid-template-rows 0fr→1fr instead. The grid row (not the
+                    // box height) drives the reveal, so the box never triggers per-frame
+                    // layout while the content clips rather than distorting (react.doctor
+                    // Case C recipe for unknown-size reveals).
+                    initial={{ opacity: 0, gridTemplateRows: '0fr' }}
+                    animate={{ opacity: 1, gridTemplateRows: '1fr' }}
+                    exit={{ opacity: 0, gridTemplateRows: '0fr' }}
                     transition={{ duration: 0.3 }}
+                    display="grid"
                     overflow="hidden"
                     mb={3}
                 >
+                    <Box minH={0} overflow="hidden">
                     <Box
-                        bg="linear-gradient(135deg, #6943FF20 0%, #3BE5E520 100%)"
+                        bg="linear-gradient(135deg, #9bdc4f20 0%, #46d39a20 100%)"
                         border="1px solid"
-                        borderColor="#6943FF40"
+                        borderColor="#9bdc4f40"
                         borderRadius="md"
                         p={3}
                     >
                         <HStack justify="space-between" align="flex-start">
-                            <Text fontSize="sm" color="#F5F5F5" flex={1}>
+                            <Text fontSize="sm" color="#ece6d8" flex={1}>
                                 {message}
                             </Text>
                             <IconButton
@@ -127,14 +134,15 @@ export const TimedMessageInline: React.FC<TimedMessageBannerProps> = ({
                                 icon={<CloseIcon boxSize={2} />}
                                 size="xs"
                                 variant="ghost"
-                                color="#F5F5F580"
-                                _hover={{ color: '#F5F5F5', bg: 'transparent' }}
+                                color="#ece6d880"
+                                _hover={{ color: '#ece6d8', bg: 'transparent' }}
                                 onClick={onDismiss}
                                 minW="auto"
                                 h="auto"
                                 p={1}
                             />
                         </HStack>
+                    </Box>
                     </Box>
                 </MotionBox>
             )}

@@ -12,11 +12,16 @@ import { DepositCard, WithdrawCard } from '@/components/Manic/DepositModal'
 import useManicDeposit from '@/components/Manic/hooks/useManicDeposit'
 import useManicWithdraw from '@/components/Manic/hooks/useManicWithdraw'
 
+const handleNavigate = () => {
+    // router.push(`/${chainName}/manic`)
+}
+
 export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number; hideCharts?: boolean }> = ({ onBack, tabIndex = 0, hideCharts = false }) => {
     const { funnelFillRatio, aprMetrics, hasPosition, usdcPosition, baseDeposit } = useManicData()
     const { data: profitData, isLoading: isLoadingProfit } = useDeploymentProfitData()
     const router = useRouter()
     const { chainName } = useChainRoute()
+    // react-doctor(rerender-state-only-in-handlers) FP: view-state, not an instance value — drives the Loop button's isLoading/isDisabled (currently commented out, ~L283-284). Keep useState; useRef would break re-render when those are re-enabled.
     const [isLooping, setIsLooping] = useState(false)
     const [showDepositCard, setShowDepositCard] = useState(false)
     const [showWithdrawCard, setShowWithdrawCard] = useState(false)
@@ -72,10 +77,6 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
             .filter(d => d.apr !== undefined)
             .reduce((sum, d) => sum + (d.apr || 0), 0) / profitData.filter(d => d.apr !== undefined).length
         : undefined
-
-    const handleNavigate = () => {
-        // router.push(`/${chainName}/manic`)
-    }
 
     const handleDepositClick = () => {
         setShowDepositCard(true)
@@ -176,10 +177,10 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                     <HStack spacing={4} align="flex-start" wrap="wrap" justifyContent={"center"}>
 
                         <VStack>
-                            <Text fontSize="xs" color="#F5F5F580" mb={1}>
+                            <Text fontSize="xs" color="#ece6d880" mb={1}>
                                 TVL
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="#F5F5F5" mb={3}>
+                            <Text fontSize="sm" fontWeight="bold" color="#ece6d8" mb={3}>
                                 {tvl > 0 ? `${tvl.toFixed(2)} USDC` : '—'}
                             </Text>
                         </VStack>
@@ -187,33 +188,33 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                         {/* {hasPosition && usdcPosition && (
                             <>
                                 <Box flex={1}>
-                                    <Text fontSize="xs" color="#F5F5F580" mb={1}>
+                                    <Text fontSize="xs" color="#ece6d880" mb={1}>
                                         Collateral
                                     </Text>
-                                    <Text fontSize="sm" color="#F5F5F5">
+                                    <Text fontSize="sm" color="#ece6d8">
                                         {usdcPosition.collateralAmount.toFixed(2)} USDC
                                     </Text>
                                 </Box>
                                 <Box flex={1}>
-                                    <Text fontSize="xs" color="#F5F5F580" mb={1}>
+                                    <Text fontSize="xs" color="#ece6d880" mb={1}>
                                         Debt
                                     </Text>
-                                    <Text fontSize="sm" color="#F5F5F5">
+                                    <Text fontSize="sm" color="#ece6d8">
                                         {usdcPosition.debtAmount.toFixed(2)} USDC
                                     </Text>
                                 </Box>
                             </>
                         )} */}
                         <VStack >
-                            <Text fontSize="xs" color="#F5F5F580" mb={1}>
+                            <Text fontSize="xs" color="#ece6d880" mb={1}>
                                 Current APR
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="cyan.400">
+                            <Text fontSize="sm" fontWeight="bold" color="secondary.400">
                                 {aprMetrics.userAPR.toFixed(2)}%
                             </Text>
                         </VStack>
                         <VStack >
-                            <Text fontSize="xs" color="#F5F5F580" mb={1}>
+                            <Text fontSize="xs" color="#ece6d880" mb={1}>
                                 Avg Historical APR
                             </Text>
                             <Text fontSize="sm" fontWeight="bold" color="green.400">
@@ -245,7 +246,7 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                         <Box key="normal-view" mb={4}>
                             {!hideCharts && (
                                 <Box mt={4}>
-                                    <Text fontSize="xs" color="#F5F5F580" mb={2}>
+                                    <Text fontSize="xs" color="#ece6d880" mb={2}>
                                         Profit Over Time
                                     </Text>
                                     <ProfitChart data={profitData || []} isLoading={isLoadingProfit} />
@@ -257,8 +258,8 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                             <HStack mt={4}>
                                 <Button
                                     size="sm"
-                                    // colorScheme="cyan"
-                                    // bg="cyan.500"
+                                    // colorScheme="secondary"
+                                    // bg="secondary.500"
                                     color="white"
                                     onClick={handleDepositClick}
                                 >
@@ -267,8 +268,8 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                                 {true && (<>
                                     <Button
                                         size="sm"
-                                        // colorScheme="cyan"
-                                        // bg="cyan.500"
+                                        // colorScheme="secondary"
+                                        // bg="secondary.500"
                                         color="white"
                                         onClick={handleWithdrawClick}
                                     >
@@ -276,8 +277,8 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                                     </Button>
                                     <Button
                                         size="sm"
-                                        // colorScheme="cyan"
-                                        // bg="cyan.500"
+                                        // colorScheme="secondary"
+                                        // bg="secondary.500"
                                         color="white"
                                         onClick={handleLoop}
                                     // isLoading={isLooping || fulfillIntent?.tx?.isPending}

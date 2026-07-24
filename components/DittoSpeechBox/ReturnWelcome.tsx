@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { Box, Text, HStack, VStack } from '@chakra-ui/react'
 import { keyframes } from '@emotion/react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { useActivityDetection, formatIdleTime } from './hooks/useActivityDetection'
 import { useDittoSpeechBox } from './hooks/useDittoSpeechBox'
 import { useProtocolUpdates } from './hooks/useProtocolUpdates'
 
-const MotionBox = motion(Box)
+const MotionBox = m(Box)
 
 const waveKeyframes = keyframes`
     0% { transform: rotate(0deg); }
@@ -91,11 +91,11 @@ export const ReturnWelcome: React.FC<ReturnWelcomeProps> = ({ onDismiss }) => {
                     <Box
                         bg="#23252B"
                         border="1px solid"
-                        borderColor="#6943FF40"
+                        borderColor="#9bdc4f40"
                         borderRadius="lg"
                         p={3}
                         maxW="260px"
-                        boxShadow="0 4px 20px rgba(0,0,0,0.4), 0 0 30px rgba(105, 67, 255, 0.2)"
+                        boxShadow="0 4px 20px rgba(0,0,0,0.4), 0 0 30px rgba(155, 220, 79, 0.2)"
                     >
                         <HStack spacing={3} align="flex-start">
                             <Box
@@ -106,10 +106,10 @@ export const ReturnWelcome: React.FC<ReturnWelcomeProps> = ({ onDismiss }) => {
                                 👋
                             </Box>
                             <VStack align="stretch" spacing={1} flex={1}>
-                                <Text fontSize="sm" color="#F5F5F5" fontWeight="medium">
+                                <Text fontSize="sm" color="#ece6d8" fontWeight="medium">
                                     {getMessage()}
                                 </Text>
-                                <Text fontSize="xs" color="#F5F5F580">
+                                <Text fontSize="xs" color="#ece6d880">
                                     Click to open Ditto
                                 </Text>
                             </VStack>
@@ -125,12 +125,18 @@ export const ReturnWelcome: React.FC<ReturnWelcomeProps> = ({ onDismiss }) => {
                             borderBottomRadius="lg"
                             overflow="hidden"
                         >
+                            {/* Countdown bar: animate scaleX (GPU-composited) instead of
+                                width so the shrink never triggers layout. transformOrigin
+                                "left" makes it collapse toward the left edge, identical to
+                                the original 100%→0% width animation. */}
                             <MotionBox
-                                initial={{ width: '100%' }}
-                                animate={{ width: '0%' }}
+                                initial={{ scaleX: 1 }}
+                                animate={{ scaleX: 0 }}
                                 transition={{ duration: 5, ease: 'linear' }}
+                                w="100%"
                                 h="100%"
-                                bg="linear-gradient(to right, #6943FF, #3BE5E5)"
+                                transformOrigin="left"
+                                bg="linear-gradient(to right, #9bdc4f, #46d39a)"
                             />
                         </Box>
                     </Box>
@@ -175,7 +181,7 @@ export const IdleIndicator: React.FC = () => {
                 left="20px"
                 zIndex={9998}
             >
-                <Text fontSize="xs" color="#F5F5F540" fontStyle="italic">
+                <Text fontSize="xs" color="#ece6d840" fontStyle="italic">
                     💤 Idle for {formatIdleTime(idleTime)}
                 </Text>
             </MotionBox>

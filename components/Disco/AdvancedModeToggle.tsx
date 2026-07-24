@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, HStack, Text, Switch } from '@chakra-ui/react'
 
-const PRIMARY_PURPLE = 'rgb(166, 146, 255)'
+const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
 
 interface AdvancedModeToggleProps {
     isAdvancedMode: boolean

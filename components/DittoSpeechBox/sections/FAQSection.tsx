@@ -18,31 +18,25 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqItems, onBack }) => {
             clearTimeout(timeoutRef.current)
         }
 
-        setOpenFaqItems((prev) => {
-            const newSet = new Set<string>()
+        // If clicking on the same item that's open, close it
+        if (openFaqItems.has(id)) {
+            setOpenFaqItems(new Set<string>())
+            return
+        }
 
-            // If clicking on the same item that's open, close it
-            if (prev.has(id)) {
-                return newSet
-            }
+        // If there's an item currently open, close it first
+        if (openFaqItems.size > 0) {
+            // Start closing animation immediately
+            setOpenFaqItems(new Set<string>())
 
-            // If there's an item currently open, close it first
-            if (prev.size > 0) {
-                // Start closing animation immediately
-                setOpenFaqItems(new Set<string>())
-
-                // After closing animation completes, open the new item
-                timeoutRef.current = setTimeout(() => {
-                    setOpenFaqItems(new Set([id]))
-                }, 200) // Match the Collapse transition duration
-
-                return prev // Return current state for immediate close
-            } else {
-                // No item is open, open the clicked item immediately
-                newSet.add(id)
-                return newSet
-            }
-        })
+            // After closing animation completes, open the new item
+            timeoutRef.current = setTimeout(() => {
+                setOpenFaqItems(new Set([id]))
+            }, 200) // Match the Collapse transition duration
+        } else {
+            // No item is open, open the clicked item immediately
+            setOpenFaqItems(new Set([id]))
+        }
     }
 
     // Cleanup timeout on unmount
@@ -57,10 +51,10 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqItems, onBack }) => {
     if (faqItems.length === 0) {
         return (
             <VStack spacing={4} align="stretch" w="100%" p={2}>
-                <Text fontSize="sm" fontWeight="bold" color="#F5F5F5">
+                <Text fontSize="sm" fontWeight="bold" color="#ece6d8">
                     FAQ
                 </Text>
-                <Text fontSize="sm" color="#F5F5F580">
+                <Text fontSize="sm" color="#ece6d880">
                     No FAQ items available.
                 </Text>
             </VStack>
@@ -69,7 +63,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqItems, onBack }) => {
 
     return (
         <VStack spacing={4} align="stretch" w="100%" h="100%" p={3} overflowY="auto">
-            <Text fontSize="md" fontWeight="bold" color="#F5F5F5" letterSpacing="0.5px" pb={2} borderBottom="1px solid" borderColor="#6943FF20">
+            <Text fontSize="md" fontWeight="bold" color="#ece6d8" letterSpacing="0.5px" pb={2} borderBottom="1px solid" borderColor="#9bdc4f20">
                 Frequently Asked Questions
             </Text>
 
@@ -80,25 +74,25 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqItems, onBack }) => {
                     bg="#1A1D26"
                     borderRadius="md"
                     border="1px solid"
-                    borderColor="#6943FF20"
+                    borderColor="#9bdc4f20"
                     overflow="hidden"
                 >
                     <Box
                         p={4}
                         cursor="pointer"
-                        _hover={{ bg: '#6943FF20', transform: 'translateX(2px)' }}
+                        _hover={{ bg: '#9bdc4f20', transform: 'translateX(2px)' }}
                         _active={{ transform: 'translateX(0px)' }}
                         onClick={() => toggleFaqItem(item.id)}
                         transition="all 0.2s ease"
                         borderRadius="md"
                     >
                         <HStack justify="space-between" align="center" spacing={3}>
-                            <Text fontSize="sm" fontWeight="semibold" color="#F5F5F5" flex={1} lineHeight="1.5">
+                            <Text fontSize="sm" fontWeight="semibold" color="#ece6d8" flex={1} lineHeight="1.5">
                                 {item.question}
                             </Text>
                             <Icon
                                 as={ChevronDownIcon}
-                                color="#6943FF"
+                                color="#9bdc4f"
                                 boxSize={5}
                                 transform={openFaqItems.has(item.id) ? 'rotate(180deg)' : 'rotate(0deg)'}
                                 transition="transform 0.3s ease"
@@ -107,7 +101,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqItems, onBack }) => {
                     </Box>
                     <Collapse in={openFaqItems.has(item.id)}>
                         <Box p={4} pt={0} pl={4}>
-                            <Text fontSize="sm" color="#F5F5F580" lineHeight="1.7" letterSpacing="0.2px">
+                            <Text fontSize="sm" color="#ece6d880" lineHeight="1.7" letterSpacing="0.2px">
                                 {item.answer}
                             </Text>
                         </Box>

@@ -1,16 +1,18 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import { VStack, Box, Text, HStack, Divider } from '@chakra-ui/react'
-import { DollarSign, TrendingUp, Clock, Gift, Lock, Music, Zap, ArrowRight } from 'lucide-react'
+import { DollarSign, TrendingUp, Clock, Gift, Lock, Music, Zap, ArrowRight, Link } from 'lucide-react'
 import { useRouter } from 'next/router'
 import { StatusCard, ShortcutCard } from '../StatusCard'
 import { useProtocolUpdates } from '../hooks/useProtocolUpdates'
 import { useDiscoUserMetrics } from '@/hooks/useDiscoData'
-import { useLockdropClaimsReady } from '../hooks/useLockdropNotifications'
+import { useLockdropClaimsReady } from '../hooks/useAcquisitionNotifications'
 import { useVolatileWindowAlert } from '../hooks/useVolatileWindowAlert'
+import { useSuggestedAction } from '../hooks/useSuggestedAction'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
 import { shiftDigits } from '@/helpers/math'
 import { RepayModal } from '@/components/NeutronMint/RepayModal'
+import { generateReferralLink } from '@/helpers/referral'
 import dayjs from 'dayjs'
 import duration from 'dayjs/plugin/duration'
 
@@ -54,7 +56,22 @@ export const StatusTab: React.FC = () => {
     const { claimsReady, claimableAmount } = useLockdropClaimsReady()
     const { pendingClaims } = useDiscoUserMetrics(address || undefined)
     const { showAlert: showVolatileAlert, volatileAssets, pointsAvailable } = useVolatileWindowAlert()
+    const { executeSuggestedAction, validatedActions, hasValidActions } = useSuggestedAction()
     const [isRepayModalOpen, setIsRepayModalOpen] = useState(false)
+    const [referralCopied, setReferralCopied] = useState(false)
+
+    const handleCopyReferral = useCallback(async () => {
+        if (!address) return
+        const link = generateReferralLink(address)
+        await navigator.clipboard.writeText(link)
+        setReferralCopied(true)
+        setTimeout(() => setReferralCopied(false), 2000)
+    }, [address])
+
+    const referralTitle = referralCopied ? 'Copied!' : 'Copy Referral Link'
+    const referralSubtitle = address
+        ? 'Earn MBRN as referrals utilize the CDP, Transmuter, or Insurance vaults'
+        : 'Connect wallet to generate your referral link'
 
     // Calculate pending CDT from Disco
     const pendingCDT = useMemo(() => {
@@ -94,7 +111,7 @@ export const StatusTab: React.FC = () => {
             {/* While You Were Away Section */}
             {hasIdleGains && (
                 <Box>
-                    <Text fontSize="xs" color="#F5F5F580" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                    <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
                         While You Were Away
                     </Text>
                     <StatusCard
@@ -110,11 +127,11 @@ export const StatusTab: React.FC = () => {
                         <Box mt={2}>
                             <StatusCard
                                 icon={Gift}
-                                iconColor="purple.400"
+                                iconColor="primary.400"
                                 title="Points earned"
                                 subtitle={`+${idleGains.pointsEarned.toFixed(1)} points (${formatMBRN(idleGains.mbrnEarned)} MBRN)`}
                                 subtitleHighlight={`+${idleGains.pointsEarned.toFixed(1)}`}
-                                highlightColor="purple.400"
+                                highlightColor="primary.400"
                                 showChevron={false}
                             />
                         </Box>
@@ -123,20 +140,20 @@ export const StatusTab: React.FC = () => {
             )}
 
             {/* Actionable Status Cards */}
-            {(hasPendingCDT || hasLockdropClaims) && (
+            {(hasPendingCDT || hasLockdropClaims || hasValidActions) && (
                 <Box>
-                    <Text fontSize="xs" color="#F5F5F580" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                    <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
                         Actions Available
                     </Text>
-                    
+
                     {hasPendingCDT && (
                         <StatusCard
                             icon={DollarSign}
-                            iconColor="cyan.400"
+                            iconColor="secondary.400"
                             title="Claim available"
                             subtitle={`${pendingCDT.toFixed(2)} CDT ready to claim.`}
                             subtitleHighlight={`${pendingCDT.toFixed(2)} CDT`}
-                            highlightColor="cyan.400"
+                            highlightColor="secondary.400"
                             onClick={() => navigateTo('/disco')}
                         />
                     )}
@@ -145,40 +162,63 @@ export const StatusTab: React.FC = () => {
                         <Box mt={2}>
                             <StatusCard
                                 icon={Lock}
-                                iconColor="purple.400"
+                                iconColor="primary.400"
                                 title="Lockdrop claim ready"
                                 subtitle={`${claimableAmount.toFixed(2)} MBRN available to claim`}
                                 subtitleHighlight={`${claimableAmount.toFixed(2)} MBRN`}
-                                highlightColor="purple.400"
+                                highlightColor="primary.400"
                                 onClick={() => navigateTo('/transmuter')}
                             />
                         </Box>
                     )}
+
+                    {/* Validated suggested actions from usePageActions */}
+                    {validatedActions.map((action, idx) => (
+                        <Box key={action.id} mt={(hasPendingCDT || hasLockdropClaims || idx > 0) ? 2 : 0}>
+                            <StatusCard
+                                icon={ArrowRight}
+                                iconColor="primary.400"
+                                title={action.label}
+                                subtitle={action.description}
+                                onClick={() => executeSuggestedAction(action.id)}
+                            />
+                        </Box>
+                    ))}
                 </Box>
             )}
 
-            {/* Opportunities - Volatile Window Points */}
-            {showVolatileAlert && (
-                <Box>
-                    <Text fontSize="xs" color="#F5F5F580" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
-                        Opportunities
-                    </Text>
+            {/* Opportunities */}
+            <Box>
+                <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                    Opportunities
+                </Text>
+                {showVolatileAlert && (
                     <StatusCard
                         icon={Zap}
                         iconColor="yellow.400"
                         title="Repay debt for MBRN"
                         subtitle="Management during volatility gets rewarded, repay any amount for +5 MBRN"
                         subtitleHighlight="+5 MBRN"
-                        highlightColor="purple.400"
+                        highlightColor="primary.400"
                         onClick={() => setIsRepayModalOpen(true)}
                     />
+                )}
+                <Box mt={showVolatileAlert ? 2 : 0}>
+                    <StatusCard
+                        icon={Link}
+                        iconColor="primary.400"
+                        title={referralTitle}
+                        subtitle={referralSubtitle}
+                        showChevron={false}
+                        onClick={address ? handleCopyReferral : undefined}
+                    />
                 </Box>
-            )}
+            </Box>
 
             {/* Protocol Updates */}
             {recentUpdates.length > 0 && (
                 <Box>
-                    <Text fontSize="xs" color="#F5F5F580" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                    <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
                         Updates
                     </Text>
                     {recentUpdates.map((update, idx) => (
@@ -197,22 +237,22 @@ export const StatusTab: React.FC = () => {
 
             {/* Quick Navigation Shortcuts */}
             <Box>
-                <Text fontSize="xs" color="#F5F5F580" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
                     Quick Access
                 </Text>
-                
+
                 <ShortcutCard
                     label="Jump to Disco"
                     highlightText="Disco"
-                    highlightColor="purple.400"
+                    highlightColor="primary.400"
                     onClick={() => navigateTo('/disco')}
                 />
-                
+
                 <Box mt={2}>
                     <ShortcutCard
                         label="Jump to Manic"
                         highlightText="Manic"
-                        highlightColor="cyan.400"
+                        highlightColor="secondary.400"
                         onClick={() => navigateTo('/manic')}
                     />
                 </Box>
@@ -228,12 +268,12 @@ export const StatusTab: React.FC = () => {
             </Box>
 
             {/* Empty state */}
-            {!hasIdleGains && !hasPendingCDT && !hasLockdropClaims && !showVolatileAlert && recentUpdates.length === 0 && (
+            {!hasIdleGains && !hasPendingCDT && !hasLockdropClaims && !hasValidActions && !showVolatileAlert && recentUpdates.length === 0 && (
                 <Box textAlign="center" py={6}>
-                    <Text fontSize="sm" color="#F5F5F580">
+                    <Text fontSize="sm" color="#ece6d880">
                         No new updates
                     </Text>
-                    <Text fontSize="xs" color="#F5F5F540" mt={1}>
+                    <Text fontSize="xs" color="#ece6d840" mt={1}>
                         Check back later for protocol updates and earnings
                     </Text>
                 </Box>

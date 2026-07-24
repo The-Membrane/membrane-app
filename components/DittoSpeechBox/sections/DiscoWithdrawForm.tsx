@@ -1,25 +1,25 @@
 import React, { useState, useMemo } from 'react'
 import { VStack, Text, Box, HStack, Button, NumberInput, NumberInputField } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { getLTVQueue, getCumulativeRevenue } from '@/services/disco'
+import { getAssetQueue, getCumulativeRevenue } from '@/services/disco'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import useAppState from '@/persisted-state/useAppState'
 import { shiftDigits } from '@/helpers/math'
+import { getSlotLabel } from '@/components/Disco/types'
 
-interface DiscoWithdrawFormProps {
+interface DiscoUnstakeFormProps {
     deposit: {
         asset: string
         amount: number
-        maxLtv?: string | number
-        maxBorrowLtv?: string | number
+        slot?: number
+        depositId?: string
         apr?: number
-        lockDaysRemaining?: number
     }
     onCancel: () => void
     onSubmit: (amount: string) => void
 }
 
-export const DiscoWithdrawForm: React.FC<DiscoWithdrawFormProps> = ({
+export const DiscoWithdrawForm: React.FC<DiscoUnstakeFormProps> = ({
     deposit,
     onCancel,
     onSubmit,
@@ -39,79 +39,43 @@ export const DiscoWithdrawForm: React.FC<DiscoWithdrawFormProps> = ({
         onSubmit(amount)
     }
 
-    // Query LTV queue to get total_locked_vault_tokens for deposit's LTV section
-    const ltvQueueData = useQuery({
-        queryKey: ['disco', 'ltv_queue_withdraw', deposit.asset, deposit.maxLtv, deposit.maxBorrowLtv, appState.rpcUrl],
+    // Query asset queue to get slot TVL
+    const slotQueueData = useQuery({
+        queryKey: ['disco', 'slot_queue_unstake', deposit.asset, deposit.slot, appState.rpcUrl],
         queryFn: async () => {
-            if (!client || !deposit.asset || !deposit.maxLtv) return null
+            if (!client || !deposit.asset || !deposit.slot) return null
 
             try {
-                const queueResponse = await getLTVQueue(client, deposit.asset)
+                const queueResponse = await getAssetQueue(client, deposit.asset)
                 if (!queueResponse?.queue?.slots) return null
 
-                const liquidationLTV = typeof deposit.maxLtv === 'string'
-                    ? parseFloat(deposit.maxLtv)
-                    : parseFloat(deposit.maxLtv.toString() || '0')
-
-                const slot = queueResponse.queue.slots.find((s: any) => {
-                    const slotLtv = typeof s.ltv === 'string' ? parseFloat(s.ltv) : parseFloat(s.ltv?.toString() || '0')
-                    return Math.abs(slotLtv - liquidationLTV) < 0.001
-                })
-
-                if (!slot || !slot.deposit_groups) return null
-
-                if (deposit.maxBorrowLtv) {
-                    const borrowLTV = typeof deposit.maxBorrowLtv === 'string'
-                        ? parseFloat(deposit.maxBorrowLtv)
-                        : parseFloat(deposit.maxBorrowLtv.toString() || '0')
-
-                    const group = slot.deposit_groups.find((g: any) => {
-                        const groupBorrowLtv = typeof g.max_borrow_ltv === 'string'
-                            ? parseFloat(g.max_borrow_ltv)
-                            : parseFloat(g.max_borrow_ltv?.toString() || '0')
-                        return Math.abs(groupBorrowLtv - borrowLTV) < 0.001
-                    })
-
-                    if (group) {
-                        const totalLockedVaultTokens = group.total_locked_vault_tokens || '0'
-                        return {
-                            totalLockedVaultTokens: typeof totalLockedVaultTokens === 'string'
-                                ? totalLockedVaultTokens
-                                : totalLockedVaultTokens.toString()
-                        }
-                    }
-                }
-
-                const totalLockedVaultTokens = slot.deposit_groups.reduce((sum: number, g: any) => {
-                    const tokens = g.total_locked_vault_tokens || '0'
-                    const tokensNum = typeof tokens === 'string' ? parseFloat(tokens) : parseFloat(tokens.toString() || '0')
-                    return sum + tokensNum
-                }, 0)
+                const slot = queueResponse.queue.slots.find((s: any) => s.index === deposit.slot)
+                if (!slot) return null
 
                 return {
-                    totalLockedVaultTokens: totalLockedVaultTokens.toString()
+                    totalDepositTokens: slot.total_deposit_tokens || '0',
+                    totalVaultTokens: slot.total_vault_tokens || '0',
                 }
             } catch (error) {
-                console.error('Error querying LTV queue for withdraw:', error)
+                console.error('Error querying slot queue for unstake:', error)
                 return null
             }
         },
-        enabled: Boolean(client && deposit.asset && deposit.maxLtv),
+        enabled: Boolean(client && deposit.asset && deposit.slot),
         staleTime: 1000 * 60 * 5,
     })
 
-    // Query revenue for deposit's LTV section
+    // Query revenue for deposit's slot
     const revenueData = useQuery({
-        queryKey: ['disco', 'ltv_revenue_withdraw', deposit.asset, deposit.maxLtv, deposit.maxBorrowLtv, appState.rpcUrl],
+        queryKey: ['disco', 'slot_revenue_unstake', deposit.asset, deposit.slot, appState.rpcUrl],
         queryFn: async () => {
-            if (!client || !deposit.asset || !deposit.maxLtv) return null
+            if (!client || !deposit.asset || !deposit.slot) return null
 
             try {
                 const revenueEntries = await getCumulativeRevenue(
                     client,
                     deposit.asset,
-                    deposit.maxLtv.toString(),
-                    deposit.maxBorrowLtv?.toString()
+                    deposit.slot
                 )
 
                 if (!revenueEntries || !Array.isArray(revenueEntries) || revenueEntries.length === 0) {
@@ -123,7 +87,7 @@ export const DiscoWithdrawForm: React.FC<DiscoWithdrawFormProps> = ({
                         timestamp: entry.timestamp || 0,
                         total_revenue: parseFloat(shiftDigits(entry.total_revenue || '0', -6).toString())
                     }))
-                    .sort((a, b) => a.timestamp - b.timestamp)
+                    .sort((a: any, b: any) => a.timestamp - b.timestamp)
 
                 if (sortedEntries.length < 2) return null
 
@@ -139,98 +103,72 @@ export const DiscoWithdrawForm: React.FC<DiscoWithdrawFormProps> = ({
                     dailyRevenue: daysActive > 0 ? totalRevenue / daysActive : 0
                 }
             } catch (error) {
-                console.error('Error querying revenue for withdraw:', error)
+                console.error('Error querying revenue for unstake:', error)
                 return null
             }
         },
-        enabled: Boolean(client && deposit.asset && deposit.maxLtv),
+        enabled: Boolean(client && deposit.asset && deposit.slot),
         staleTime: 1000 * 60 * 5,
     })
 
-    // Calculate revenue loss per day using effective MBRN share
-    // Use current deposit's lock days to calculate effective MBRN
+    // Calculate revenue loss per day
     const revenueLossPerDay = useMemo(() => {
-        if (!amount || parseFloat(amount) <= 0) {
-            return 0
-        }
+        if (!amount || parseFloat(amount) <= 0) return 0
+        if (!slotQueueData.data || !revenueData.data) return 0
 
-        // Calculate effective MBRN: amount * (lockDays + 1)
-        const lockDays = deposit.lockDaysRemaining || 0
-        const effectiveMBRN = parseFloat(amount) * (lockDays + 1)
+        const unstakeAmount = parseFloat(amount)
+        const totalDeposit = parseFloat(shiftDigits(slotQueueData.data.totalDepositTokens, -6).toString())
 
-        if (!ltvQueueData.data || !revenueData.data || effectiveMBRN <= 0) {
-            return 0
-        }
+        if (totalDeposit <= 0 || unstakeAmount <= 0) return 0
 
-        const totalLockedVaultTokens = parseFloat(shiftDigits(ltvQueueData.data.totalLockedVaultTokens, -6).toString())
-
-        if (totalLockedVaultTokens <= 0 || effectiveMBRN <= 0) {
-            return 0
-        }
-
-        const userShare = effectiveMBRN / totalLockedVaultTokens
-        const dailyRevenueLoss = revenueData.data.dailyRevenue * userShare
-
-        return dailyRevenueLoss
-    }, [amount, deposit.lockDaysRemaining, ltvQueueData.data, revenueData.data])
+        const userShare = unstakeAmount / totalDeposit
+        return revenueData.data.dailyRevenue * userShare
+    }, [amount, slotQueueData.data, revenueData.data])
 
     return (
         <VStack spacing={4} align="stretch">
             {/* Section Details Display */}
             <Box
-                bg="rgba(166, 146, 255, 0.1)"
+                bg="rgba(155, 220, 79, 0.1)"
                 p={3}
                 borderRadius="md"
                 border="1px solid"
-                borderColor="rgba(166, 146, 255, 0.25)"
+                borderColor="rgba(155, 220, 79, 0.25)"
             >
                 <Text
                     fontSize="sm"
                     fontWeight="bold"
-                    color="rgb(166, 146, 255)"
+                    color="rgb(155, 220, 79)"
                     fontFamily="mono"
                     letterSpacing="1px"
                     mb={2}
                     textTransform="uppercase"
                 >
-                    Section Details
+                    Unstake Details
                 </Text>
                 <VStack spacing={1.5} align="stretch">
-                    {deposit.maxBorrowLtv ? (
-                        <>
-                            <HStack justify="space-between">
-                                <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono">
-                                    Liquidation LTV
-                                </Text>
-                                <Text fontSize="xs" fontWeight="bold" color="rgb(166, 146, 255)" fontFamily="mono">
-                                    {deposit.maxLtv ? (parseFloat(deposit.maxLtv.toString()) * 100).toFixed(0) : '0'}%
-                                </Text>
-                            </HStack>
-                            <HStack justify="space-between">
-                                <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono">
-                                    Borrow LTV
-                                </Text>
-                                <Text fontSize="xs" fontWeight="bold" color="cyan.400" fontFamily="mono">
-                                    {deposit.maxBorrowLtv ? (parseFloat(deposit.maxBorrowLtv.toString()) * 100).toFixed(0) : '0'}%
-                                </Text>
-                            </HStack>
-                        </>
-                    ) : (
-                        <HStack justify="space-between">
-                            <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono">
-                                LTV
-                            </Text>
-                            <Text fontSize="xs" fontWeight="bold" color="rgb(166, 146, 255)" fontFamily="mono">
-                                {deposit.maxLtv ? (parseFloat(deposit.maxLtv.toString()) * 100).toFixed(0) : '0'}%
-                            </Text>
-                        </HStack>
-                    )}
+                    <HStack justify="space-between">
+                        <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono">
+                            Risk Slot
+                        </Text>
+                        <Text fontSize="xs" fontWeight="bold" color="rgb(155, 220, 79)" fontFamily="mono">
+                            {deposit.slot ? `Slot ${getSlotLabel(deposit.slot || 0)}` : 'N/A'}
+                        </Text>
+                    </HStack>
                     <HStack justify="space-between">
                         <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono">
                             APR
                         </Text>
-                        <Text fontSize="xs" fontWeight="bold" color={deposit.apr ? "cyan.400" : "whiteAlpha.500"} fontFamily="mono">
+                        <Text fontSize="xs" fontWeight="bold" color={deposit.apr ? "secondary.400" : "whiteAlpha.500"} fontFamily="mono">
                             {deposit.apr ? `${deposit.apr.toFixed(2)}%` : 'N/A'}
+                        </Text>
+                    </HStack>
+                    <HStack justify="space-between">
+                        <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono">
+                            Cooldown
+                        </Text>
+                        <Text fontSize="xs" fontWeight="bold" color="yellow.400" fontFamily="mono">
+                            2 days after request
                         </Text>
                     </HStack>
                 </VStack>
@@ -249,7 +187,7 @@ export const DiscoWithdrawForm: React.FC<DiscoWithdrawFormProps> = ({
                     </Text>
                     <Text
                         fontSize="xs"
-                        color="rgb(166, 146, 255)"
+                        color="rgb(155, 220, 79)"
                         fontFamily="mono"
                         letterSpacing="0.5px"
                         cursor="pointer"
@@ -271,14 +209,14 @@ export const DiscoWithdrawForm: React.FC<DiscoWithdrawFormProps> = ({
                     <NumberInputField
                         bg="rgba(10, 10, 10, 0.8)"
                         border="1px solid"
-                        borderColor="rgba(166, 146, 255, 0.25)"
+                        borderColor="rgba(155, 220, 79, 0.25)"
                         color="white"
                         fontFamily="mono"
                         fontSize="sm"
-                        _hover={{ borderColor: 'rgba(166, 146, 255, 0.4)' }}
+                        _hover={{ borderColor: 'rgba(155, 220, 79, 0.4)' }}
                         _focus={{
-                            borderColor: 'rgb(166, 146, 255)',
-                            boxShadow: '0 0 0 1px rgba(166, 146, 255, 0.25)'
+                            borderColor: 'rgb(155, 220, 79)',
+                            boxShadow: '0 0 0 1px rgba(155, 220, 79, 0.25)'
                         }}
                         placeholder="0.00"
                         autoFocus
@@ -302,12 +240,12 @@ export const DiscoWithdrawForm: React.FC<DiscoWithdrawFormProps> = ({
                         flex={1}
                         size="sm"
                         variant="outline"
-                        borderColor="rgba(166, 146, 255, 0.25)"
+                        borderColor="rgba(155, 220, 79, 0.25)"
                         color="whiteAlpha.700"
                         fontFamily="mono"
                         fontSize="xs"
                         _hover={{
-                            borderColor: 'rgb(166, 146, 255)',
+                            borderColor: 'rgb(155, 220, 79)',
                             color: 'white'
                         }}
                         onClick={onCancel}
@@ -317,53 +255,22 @@ export const DiscoWithdrawForm: React.FC<DiscoWithdrawFormProps> = ({
                     <Button
                         flex={1}
                         size="sm"
-                        bg="rgb(166, 146, 255)"
+                        bg="rgb(155, 220, 79)"
                         color="white"
                         fontFamily="mono"
                         fontSize="xs"
                         fontWeight="bold"
                         _hover={{
                             bg: 'rgb(186, 166, 255)',
-                            boxShadow: '0 0 15px rgba(166, 146, 255, 0.4)'
+                            boxShadow: '0 0 15px rgba(155, 220, 79, 0.4)'
                         }}
                         isDisabled={!amount || parseFloat(amount) <= 0}
                         onClick={handleSubmit}
                     >
-                        Withdraw
+                        Request Unstake
                     </Button>
                 </HStack>
             </VStack>
         </VStack>
     )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

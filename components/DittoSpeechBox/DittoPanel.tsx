@@ -2,12 +2,12 @@ import React, { useState } from 'react'
 import { Box, HStack, Text, IconButton, Icon, Tabs, TabList, Tab, TabPanels, TabPanel } from '@chakra-ui/react'
 import { CloseIcon } from '@chakra-ui/icons'
 import { AlertCircle, MessageSquare } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { StatusTab } from './tabs/StatusTab'
 import { LearnTab } from './tabs/LearnTab'
 import { FeedbackTab } from './tabs/FeedbackTab'
 
-const MotionBox = motion(Box)
+const MotionBox = m(Box)
 
 interface DittoPanelProps {
     isVisible: boolean
@@ -36,10 +36,10 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                 maxH="700px"
                 bg="#15171E"
                 border="1px solid"
-                borderColor="#6943FF40"
+                borderColor="#9bdc4f40"
                 borderRadius="xl"
                 overflow="hidden"
-                boxShadow="0 8px 32px rgba(105, 67, 255, 0.15), 0 0 0 1px rgba(105, 67, 255, 0.1)"
+                boxShadow="0 8px 32px rgba(155, 220, 79, 0.15), 0 0 0 1px rgba(155, 220, 79, 0.1)"
                 display="flex"
                 flexDirection="column"
             >
@@ -50,7 +50,7 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                         icon={<CloseIcon w={2} h={2} />}
                         size="xs"
                         variant="ghost"
-                        color="#F5F5F580"
+                        color="#ece6d880"
                         position="absolute"
                         top={1}
                         right={1}
@@ -58,7 +58,7 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                         minW="unset"
                         h="24px"
                         zIndex={1}
-                        _hover={{ bg: '#6943FF20', color: '#F5F5F5' }}
+                        _hover={{ bg: '#9bdc4f20', color: '#ece6d8' }}
                         onClick={onClose}
                     />
                 </Box>
@@ -79,7 +79,7 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                         pb={2}
                         gap={2}
                         borderBottom="1px solid"
-                        borderColor="#6943FF10"
+                        borderColor="#9bdc4f10"
                         overflowX="auto"
                         overflowY="hidden"
                         flexShrink={0}
@@ -95,15 +95,15 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                             fontSize="sm"
                             fontWeight="medium"
                             flexShrink={0}
-                            color={activeTab === 0 ? '#F5F5F5' : '#F5F5F580'}
-                            bg={activeTab === 0 ? '#6943FF30' : 'transparent'}
+                            color={activeTab === 0 ? '#ece6d8' : '#ece6d880'}
+                            bg={activeTab === 0 ? '#9bdc4f30' : 'transparent'}
                             borderBottom={activeTab === 0 ? '2px solid' : '2px solid transparent'}
-                            borderColor={activeTab === 0 ? 'cyan.400' : 'transparent'}
-                            _hover={{ bg: activeTab === 0 ? undefined : '#6943FF10' }}
+                            borderColor={activeTab === 0 ? 'secondary.400' : 'transparent'}
+                            _hover={{ bg: activeTab === 0 ? undefined : '#9bdc4f10' }}
                             transition="all 0.2s"
                         >
                             <HStack spacing={2}>
-                                <Icon as={AlertCircle} w={4} h={4} color={activeTab === 0 ? 'cyan.400' : '#F5F5F580'} />
+                                <Icon as={AlertCircle} w={4} h={4} color={activeTab === 0 ? 'secondary.400' : '#ece6d880'} />
                                 <Text>Status</Text>
                             </HStack>
                         </Tab>
@@ -114,11 +114,11 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                             fontSize="sm"
                             fontWeight="medium"
                             flexShrink={0}
-                            color={activeTab === 1 ? '#F5F5F5' : '#F5F5F580'}
-                            bg={activeTab === 1 ? '#6943FF30' : 'transparent'}
+                            color={activeTab === 1 ? '#ece6d8' : '#ece6d880'}
+                            bg={activeTab === 1 ? '#9bdc4f30' : 'transparent'}
                             borderBottom={activeTab === 1 ? '2px solid' : '2px solid transparent'}
-                            borderColor={activeTab === 1 ? 'purple.400' : 'transparent'}
-                            _hover={{ bg: activeTab === 1 ? undefined : '#6943FF10' }}
+                            borderColor={activeTab === 1 ? 'primary.400' : 'transparent'}
+                            _hover={{ bg: activeTab === 1 ? undefined : '#9bdc4f10' }}
                             transition="all 0.2s"
                         >
                             Learn
@@ -130,15 +130,15 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                             fontSize="sm"
                             fontWeight="medium"
                             flexShrink={0}
-                            color={activeTab === 2 ? '#F5F5F5' : '#F5F5F580'}
-                            bg={activeTab === 2 ? '#6943FF30' : 'transparent'}
+                            color={activeTab === 2 ? '#ece6d8' : '#ece6d880'}
+                            bg={activeTab === 2 ? '#9bdc4f30' : 'transparent'}
                             borderBottom={activeTab === 2 ? '2px solid' : '2px solid transparent'}
-                            borderColor={activeTab === 2 ? 'cyan.400' : 'transparent'}
-                            _hover={{ bg: activeTab === 2 ? undefined : '#6943FF10' }}
+                            borderColor={activeTab === 2 ? 'secondary.400' : 'transparent'}
+                            _hover={{ bg: activeTab === 2 ? undefined : '#9bdc4f10' }}
                             transition="all 0.2s"
                         >
                             <HStack spacing={2}>
-                                <Icon as={MessageSquare} w={4} h={4} color={activeTab === 2 ? 'cyan.400' : '#F5F5F580'} />
+                                <Icon as={MessageSquare} w={4} h={4} color={activeTab === 2 ? 'secondary.400' : '#ece6d880'} />
                                 <Text>Feedback</Text>
                             </HStack>
                         </Tab>

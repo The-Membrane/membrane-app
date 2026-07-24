@@ -1,160 +1,91 @@
-import React, { useState, useMemo, useRef } from 'react'
-import { Box, VStack, Text } from '@chakra-ui/react'
-import { motion } from 'framer-motion'
+import React, { useState, useMemo } from 'react'
+import { m } from 'framer-motion'
 import { shiftDigits } from '@/helpers/math'
+import { getSlotLabel } from './types'
+import type { DiscoSlot } from './types'
 
 // Color constants
-const PRIMARY_PURPLE = 'rgb(166, 146, 255)'
+const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
 
 // Hex panel constants
 const HEX_CENTER_X = 400
 const HEX_CENTER_Y = 300
 const HEX_RADIUS = 200
 
-export interface LTVSegment {
-    minLTV: number
-    maxLTV: number
-    tvl: number
-    segmentIndex: number
-    opacityRatio: number
-}
-
 interface HexGraphicProps {
-    ltvQueues: any[]
+    slots: DiscoSlot[]
     svgRef?: React.RefObject<SVGSVGElement>
-    onSegmentHover?: (segment: LTVSegment | null) => void
-    onSegmentClick?: (segment: LTVSegment) => void
-    asset?: { logo?: string; symbol?: string } | null // Asset for display inside hexagon
+    onSlotHover?: (slot: DiscoSlot | null) => void
+    onSlotClick?: (slot: DiscoSlot) => void
+    asset?: { logo?: string; symbol?: string } | null
 }
 
-export const HexGraphic: React.FC<HexGraphicProps> = ({ ltvQueues, svgRef, onSegmentHover, onSegmentClick, asset }) => {
-    const [hoveredSegment, setHoveredSegment] = useState<number | null>(null)
-    const [selectedSegment, setSelectedSegment] = useState<number | null>(null)
+// Calculate size for each slot hexagon
+// Index 0 = outermost/riskiest (largest), last = innermost/safest (smallest)
+const getSlotSize = (idx: number): number => {
+    const baseSize = HEX_RADIUS * 1.8
+    const scaleFactor = Math.pow(0.91, idx)
+    return baseSize * scaleFactor
+}
+
+// Generate hexagon points for hover area
+const generateHexPoints = (centerX: number, centerY: number, size: number): string => {
+    const radius = size / 2
+    const points: string[] = []
+    for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3
+        const x = centerX + radius * Math.cos(angle)
+        const y = centerY + radius * Math.sin(angle)
+        points.push(`${x},${y}`)
+    }
+    return points.join(' ')
+}
+
+const getSlotId = (slot: DiscoSlot) => Math.round(parseFloat(slot.max_ltv) * 100)
+
+export const HexGraphic: React.FC<HexGraphicProps> = ({ slots, svgRef, onSlotHover, onSlotClick, asset }) => {
+    const [hoveredSlot, setHoveredSlot] = useState<number | null>(null)
+    const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
     const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
 
-    // Calculate LTV segments (every 3%)
-    const segments = useMemo(() => {
-        const segmentMap = new Map<number, number>() // segmentIndex -> total TVL
+    // Use provided slots directly (already sorted descending by max_ltv)
+    const allSlots = useMemo(() => {
+        if (slots.length > 0) return slots
+        // Fallback empty slot
+        return [{ max_ltv: "0.50", total_deposit_tokens: "0", total_vault_tokens: "0", bad_debt: "0" }]
+    }, [slots])
 
-        // Process all LTV queues
-        ltvQueues.forEach((query: any) => {
-            const queue = query.data?.queue
-            if (queue?.slots) {
-                queue.slots.forEach((slot: any) => {
-                    const ltvStr = slot.ltv
-                    const ltv = typeof ltvStr === 'string'
-                        ? parseFloat(ltvStr)
-                        : parseFloat(ltvStr?.toString() || '0')
+    // Mock fallback if all slots are empty
+    const displaySlots = useMemo(() => {
+        const hasAnyTVL = allSlots.some(s => parseFloat(s.total_deposit_tokens) > 0)
+        if (hasAnyTVL) return allSlots
 
-                    // Determine which 3% segment this slot belongs to (60-90% range)
-                    // Segment 0 = 60-63%, Segment 1 = 63-66%, ..., Segment 9 = 87-90%
-                    const segmentIndex = Math.floor((ltv * 100 - 60) / 3)
-                    if (segmentIndex >= 0 && segmentIndex < 10 && ltv >= 0.6 && ltv < 0.9) {
-                        const depositTokens = slot.total_deposit_tokens
-                        const depositTokensStr = typeof depositTokens === 'string'
-                            ? depositTokens
-                            : depositTokens?.toString() || '0'
-                        const tvl = parseFloat(depositTokensStr) || 0
+        // Mock data for visualization
+        const mockTVLs = [40000000000, 35000000000, 30000000000, 25000000000, 20000000000, 15000000000, 12000000000, 8000000000, 5000000000]
+        return allSlots.map((slot, i) => ({
+            ...slot,
+            total_deposit_tokens: mockTVLs[i]?.toString() || "0",
+        }))
+    }, [allSlots])
 
-                        if (tvl > 0) {
-                            const currentTvl = segmentMap.get(segmentIndex) || 0
-                            segmentMap.set(segmentIndex, currentTvl + tvl)
-                        }
-                    }
-                })
+    // Memoize opacity values for each slot
+    const slotOpacities = useMemo(() => {
+        const totalTvl = displaySlots.reduce((sum, s) => sum + parseFloat(s.total_deposit_tokens), 0)
+        return displaySlots.map((slot, idx) => {
+            const tvl = parseFloat(slot.total_deposit_tokens)
+            return {
+                idx,
+                baseOpacity: totalTvl > 0
+                    ? Math.max(0.1, Math.min(1, 0.1 + (tvl / totalTvl) * 3))
+                    : 0.3,
             }
         })
-
-        // Convert to array of segments (60-90% range)
-        const segmentsArray: LTVSegment[] = []
-        for (let i = 0; i < 10; i++) {
-            const tvl = segmentMap.get(i) || 0
-            if (tvl > 0) {
-                segmentsArray.push({
-                    minLTV: 0.6 + (i * 0.03), // 60% + (i * 3%)
-                    maxLTV: 0.6 + ((i + 1) * 0.03), // 60% + ((i+1) * 3%)
-                    tvl: tvl,
-                    segmentIndex: i,
-                    opacityRatio: 0, // Will be calculated below
-                })
-            }
-        }
-
-        // Add mock data if no segments found (for visualization)
-        if (segmentsArray.length === 0) {
-            // Create mock segments with varying TVL amounts
-            const mockSegments = [
-                { segmentIndex: 9, tvl: 5000000 },   // 87-90% (innermost)
-                { segmentIndex: 8, tvl: 8000000 },   // 84-87%
-                { segmentIndex: 7, tvl: 12000000 },  // 81-84%
-                { segmentIndex: 6, tvl: 15000000 },  // 78-81%
-                { segmentIndex: 5, tvl: 20000000 },  // 75-78%
-                { segmentIndex: 4, tvl: 18000000 },  // 72-75%
-                { segmentIndex: 3, tvl: 25000000 },  // 69-72%
-                { segmentIndex: 2, tvl: 30000000 },  // 66-69%
-                { segmentIndex: 1, tvl: 35000000 },  // 63-66%
-                { segmentIndex: 0, tvl: 40000000 },  // 60-63% (outermost)
-            ]
-
-            mockSegments.forEach((mock) => {
-                segmentsArray.push({
-                    minLTV: 0.6 + (mock.segmentIndex * 0.03),
-                    maxLTV: 0.6 + ((mock.segmentIndex + 1) * 0.03),
-                    tvl: mock.tvl,
-                    segmentIndex: mock.segmentIndex,
-                    opacityRatio: 0, // Will be calculated below
-                })
-            })
-        }
-
-        // Calculate total TVL for opacity ratio
-        const totalTvl = segmentsArray.reduce((sum, seg) => sum + seg.tvl, 0)
-
-        // Add opacity ratio to each segment
-        return segmentsArray.map(segment => ({
-            ...segment,
-            opacityRatio: totalTvl > 0 ? segment.tvl / totalTvl : 0,
-        }))
-    }, [ltvQueues])
-
-    // Calculate size for each segment
-    // Each layer is 9% smaller than the previous one
-    // position: 0 = outermost (first rendered), higher = more inner
-    const getSegmentSize = (position: number): number => {
-        // Start from 90% of main radius and each subsequent layer is 9% smaller
-        const baseSize = HEX_RADIUS * 1.8 // Diameter for hexagon (radius * 2)
-        const scaleFactor = Math.pow(0.91, position) // Each layer is 91% of previous (9% smaller)
-        return baseSize * scaleFactor
-    }
-
-    // Generate hexagon points for hover area
-    const generateHexPoints = (centerX: number, centerY: number, size: number): string => {
-        const radius = size / 2
-        const points: string[] = []
-        for (let i = 0; i < 6; i++) {
-            const angle = (i * Math.PI) / 3
-            const x = centerX + radius * Math.cos(angle)
-            const y = centerY + radius * Math.sin(angle)
-            points.push(`${x},${y}`)
-        }
-        return points.join(' ')
-    }
-
-    // Memoize opacity values for each segment to prevent recalculation on hover
-    const segmentOpacities = useMemo(() => {
-        const totalTvl = segments.reduce((sum, seg) => sum + seg.tvl, 0)
-        return segments.map(segment => ({
-            segmentIndex: segment.segmentIndex,
-            baseOpacity: totalTvl > 0
-                ? Math.max(0.0, Math.min(1, 0.0 + (segment.tvl / totalTvl) * 3))
-                : 0.3,
-        }))
-    }, [segments])
+    }, [displaySlots])
 
     const handleHexInteraction = (
-        segmentIndex: number,
+        slotIndex: number,
         event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>,
-        segment: LTVSegment
+        slot: DiscoSlot
     ) => {
         if (svgRef?.current) {
             const svg = svgRef.current
@@ -166,17 +97,15 @@ export const HexGraphic: React.FC<HexGraphicProps> = ({ ltvQueues, svgRef, onSeg
                 pt.y = mouseEvent.clientY
             } else {
                 const touchEvent = event as React.TouchEvent<SVGElement>
-                // Use touches if available, otherwise fall back to changedTouches
                 const touch = touchEvent.touches?.[0] || touchEvent.changedTouches?.[0]
                 if (touch) {
                     pt.x = touch.clientX
                     pt.y = touch.clientY
                 } else {
-                    // Fallback to center if no touch data available
                     setTooltipPosition({ x: HEX_CENTER_X, y: HEX_CENTER_Y - 100 })
-                    setSelectedSegment(segmentIndex)
-                    setHoveredSegment(segmentIndex)
-                    onSegmentClick?.(segment)
+                    setSelectedSlot(slotIndex)
+                    setHoveredSlot(slotIndex)
+                    onSlotClick?.(slot)
                     return
                 }
             }
@@ -184,25 +113,23 @@ export const HexGraphic: React.FC<HexGraphicProps> = ({ ltvQueues, svgRef, onSeg
             const svgPt = pt.matrixTransform(svg.getScreenCTM()?.inverse())
             setTooltipPosition({ x: svgPt.x, y: svgPt.y })
         } else {
-            // Fallback to center
             setTooltipPosition({ x: HEX_CENTER_X, y: HEX_CENTER_Y - 100 })
         }
 
-        setSelectedSegment(segmentIndex)
-        setHoveredSegment(segmentIndex)
-        onSegmentClick?.(segment)
+        setSelectedSlot(slotIndex)
+        setHoveredSlot(slotIndex)
+        onSlotClick?.(slot)
     }
 
     const handleHover = (
-        segmentIndex: number | null,
-        segment: LTVSegment | null,
+        slotIndex: number | null,
+        slot: DiscoSlot | null,
         event?: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
     ) => {
-        setHoveredSegment(segmentIndex)
-        onSegmentHover?.(segment || null)
+        setHoveredSlot(slotIndex)
+        onSlotHover?.(slot || null)
 
-        // Update tooltip position on hover
-        if (segmentIndex !== null && event && svgRef?.current) {
+        if (slotIndex !== null && event && svgRef?.current) {
             const svg = svgRef.current
             const pt = svg.createSVGPoint()
 
@@ -212,13 +139,11 @@ export const HexGraphic: React.FC<HexGraphicProps> = ({ ltvQueues, svgRef, onSeg
                 pt.y = mouseEvent.clientY
             } else {
                 const touchEvent = event as React.TouchEvent<SVGElement>
-                // Use touches if available, otherwise fall back to changedTouches
                 const touch = touchEvent.touches?.[0] || touchEvent.changedTouches?.[0]
                 if (touch) {
                     pt.x = touch.clientX
                     pt.y = touch.clientY
                 } else {
-                    // Skip tooltip position update if no touch data available
                     return
                 }
             }
@@ -228,9 +153,8 @@ export const HexGraphic: React.FC<HexGraphicProps> = ({ ltvQueues, svgRef, onSeg
         }
     }
 
-    // Find the segment data
-    const getSegmentData = (segmentIndex: number): LTVSegment | undefined => {
-        return segments.find(s => s.segmentIndex === segmentIndex)
+    const getSlotData = (slotIndex: number): DiscoSlot | undefined => {
+        return displaySlots.find(s => getSlotId(s) === slotIndex)
     }
 
     return (
@@ -255,35 +179,31 @@ export const HexGraphic: React.FC<HexGraphicProps> = ({ ltvQueues, svgRef, onSeg
                     height={80}
                     opacity={0.9}
                     style={{
-                        filter: 'drop-shadow(0 0 10px rgba(166, 146, 255, 0.5))',
+                        filter: 'drop-shadow(0 0 10px rgba(155, 220, 79, 0.5))',
                         pointerEvents: 'none'
                     }}
                 />
             )}
 
-            {/* LTV Segment Hexagons - render from largest to smallest */}
-            {/* Higher LTV = larger hex (outer), Lower LTV = smaller hex (inner) */}
-            {segments
-                .sort((a, b) => b.segmentIndex - a.segmentIndex) // Sort by segmentIndex descending (higher LTV = outer)
-                .map((segment, position) => {
-                    // Position in sorted array determines size (0 = outermost)
-                    const size = getSegmentSize(position)
-                    const isHovered = hoveredSegment === segment.segmentIndex
-                    const isSelected = selectedSegment === segment.segmentIndex
+            {/* Slot Hexagons - render from outermost (highest LTV) to innermost (lowest LTV) */}
+            {displaySlots.map((slot, idx) => {
+                    const slotId = getSlotId(slot)
+                    const size = getSlotSize(idx)
+                    const isHovered = hoveredSlot === slotId
+                    const isSelected = selectedSlot === slotId
                     const x = HEX_CENTER_X - size / 2
                     const y = HEX_CENTER_Y - size / 2
 
-                    // Get pre-calculated opacity from memoized values
-                    const opacityData = segmentOpacities.find((op: { segmentIndex: number; baseOpacity: number }) => op.segmentIndex === segment.segmentIndex)
+                    const opacityData = slotOpacities[idx]
                     const baseOpacity = opacityData?.baseOpacity ?? 0.3
                     const hoverOpacity = Math.min(1.0, baseOpacity + 0.2)
 
                     const hexPoints = generateHexPoints(HEX_CENTER_X, HEX_CENTER_Y, size)
 
                     return (
-                        <g key={segment.segmentIndex}>
+                        <g key={slotId}>
                             {/* MBRN Hexagon SVG */}
-                            <motion.image
+                            <m.image
                                 href="/images/MBRN-hexagon.svg"
                                 x={x}
                                 y={y}
@@ -300,28 +220,28 @@ export const HexGraphic: React.FC<HexGraphicProps> = ({ ltvQueues, svgRef, onSeg
                                 points={hexPoints}
                                 fill="transparent"
                                 style={{ cursor: 'pointer' }}
-                                onMouseEnter={(e) => handleHover(segment.segmentIndex, segment, e)}
-                                onMouseMove={(e) => handleHover(segment.segmentIndex, segment, e)}
+                                onMouseEnter={(e) => handleHover(slotId, slot, e)}
+                                onMouseMove={(e) => handleHover(slotId, slot, e)}
                                 onMouseLeave={() => {
-                                    if (selectedSegment !== segment.segmentIndex) {
+                                    if (selectedSlot !== slotId) {
                                         handleHover(null, null)
                                     }
                                 }}
-                                onClick={(e) => handleHexInteraction(segment.segmentIndex, e, segment)}
-                                onTouchStart={(e) => handleHexInteraction(segment.segmentIndex, e, segment)}
+                                onClick={(e) => handleHexInteraction(slotId, e, slot)}
+                                onTouchStart={(e) => handleHexInteraction(slotId, e, slot)}
                             />
                         </g>
                     )
                 })}
 
             {/* Tooltip/Data Panel */}
-            {(hoveredSegment !== null || selectedSegment !== null) && (() => {
-                const segment = getSegmentData(hoveredSegment !== null ? hoveredSegment : selectedSegment!)
-                if (!segment) return null
+            {(hoveredSlot !== null || selectedSlot !== null) && (() => {
+                const slot = getSlotData(hoveredSlot !== null ? hoveredSlot : selectedSlot!)
+                if (!slot) return null
 
-                // Ensure tooltip is within SVG bounds
                 const tooltipX = Math.max(10, Math.min(tooltipPosition.x + 20, 580))
                 const tooltipY = Math.max(10, Math.min(tooltipPosition.y - 80, 490))
+                const tvl = parseFloat(shiftDigits(slot.total_deposit_tokens, -6).toString())
 
                 return (
                     <foreignObject
@@ -346,10 +266,10 @@ export const HexGraphic: React.FC<HexGraphicProps> = ({ ltvQueues, svgRef, onSeg
                             }}
                         >
                             <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: PRIMARY_PURPLE }}>
-                                LTV: {(segment.minLTV * 100).toFixed(0)}% - {(segment.maxLTV * 100).toFixed(0)}%
+                                Slot {getSlotLabel(Math.round(parseFloat(slot.max_ltv) * 100))}
                             </div>
                             <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)', fontFamily: 'monospace' }}>
-                                TVL: {parseFloat(shiftDigits(segment.tvl.toString(), -6).toString()).toLocaleString()} MBRN
+                                TVL: {tvl.toLocaleString()} MBRN
                             </div>
                         </div>
                     </foreignObject>
@@ -358,4 +278,3 @@ export const HexGraphic: React.FC<HexGraphicProps> = ({ ltvQueues, svgRef, onSeg
         </g>
     )
 }
-

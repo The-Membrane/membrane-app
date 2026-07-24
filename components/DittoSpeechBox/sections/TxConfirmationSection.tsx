@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { VStack, HStack, Text, Box, Button, Spinner, Link, Icon, Divider } from '@chakra-ui/react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { CheckCircle, XCircle, ExternalLink, AlertTriangle, Loader2 } from 'lucide-react'
 import { useDittoConfirmation } from '../hooks/useDittoConfirmation'
-import { getExplorer } from '@/components/ConfirmModal/ExplorerLink'
+import { getExplorer } from '@/components/ConfirmModal/getExplorer'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useChainRoute } from '@/hooks/useChainRoute'
@@ -13,7 +13,7 @@ import { useRouter } from 'next/router'
 import LoaderWithIcon from '@/components/LoaderWithIcon'
 import { useUserPoints } from '@/hooks/usePoints'
 
-const MotionBox = motion(Box)
+const MotionBox = m(Box)
 
 /**
  * Loading View - Shown while transaction is pending
@@ -34,10 +34,10 @@ const TxLoadingView: React.FC<{ isApproved: boolean }> = ({ isApproved }) => {
             <VStack spacing={4} align="center" py={4}>
                 <LoaderWithIcon />
                 <VStack spacing={1}>
-                    <Text fontSize="sm" color="#F5F5F5" fontWeight="medium">
+                    <Text fontSize="sm" color="#ece6d8" fontWeight="medium">
                         {isApproved ? 'Broadcasting transaction' : `Approve on ${walletName}`}
                     </Text>
-                    <Text fontSize="xs" color="#F5F5F580">
+                    <Text fontSize="xs" color="#ece6d880">
                         {isApproved
                             ? 'Waiting for confirmation...'
                             : 'Please confirm in your wallet'}
@@ -69,15 +69,15 @@ const TxConfirmView: React.FC<{
             <VStack spacing={3} align="stretch">
                 {/* Header */}
                 <VStack spacing={1} align="stretch">
-                    <Text fontSize="md" fontWeight="bold" color="#F5F5F5">
+                    <Text fontSize="md" fontWeight="bold" color="#ece6d8">
                         Confirm Transaction
                     </Text>
-                    <Text fontSize="xs" color="#F5F5F580">
+                    <Text fontSize="xs" color="#ece6d880">
                         Please review your transaction details.
                     </Text>
                 </VStack>
 
-                <Divider borderColor="#6943FF30" />
+                <Divider borderColor="#9bdc4f30" />
 
                 {/* Transaction Details */}
                 <Box
@@ -114,22 +114,22 @@ const TxConfirmView: React.FC<{
                         flex={1}
                         size="sm"
                         variant="ghost"
-                        color="#F5F5F580"
+                        color="#ece6d880"
                         onClick={onClose}
-                        _hover={{ bg: '#6943FF20', color: '#F5F5F5' }}
+                        _hover={{ bg: '#9bdc4f20', color: '#ece6d8' }}
                     >
                         Cancel
                     </Button>
                     <Button
                         flex={1}
                         size="sm"
-                        bg="#6943FF"
+                        bg="#9bdc4f"
                         color="white"
                         isLoading={isLoading}
                         isDisabled={!canConfirm}
                         onClick={onConfirm}
                         _hover={{ bg: '#5a38e0' }}
-                        _disabled={{ bg: '#6943FF60', cursor: 'not-allowed' }}
+                        _disabled={{ bg: '#9bdc4f60', cursor: 'not-allowed' }}
                     >
                         Confirm
                     </Button>
@@ -209,8 +209,8 @@ const TxSuccessView: React.FC<{
                 {/* Success Icon and Message */}
                 <VStack spacing={2} align="center" py={2}>
                     <MotionBox
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
                         transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.1 }}
                     >
                         <Icon
@@ -220,28 +220,28 @@ const TxSuccessView: React.FC<{
                             color={isSuccess ? 'green.400' : 'red.400'}
                         />
                     </MotionBox>
-                    <Text fontSize="md" fontWeight="bold" color="#F5F5F5">
+                    <Text fontSize="md" fontWeight="bold" color="#ece6d8">
                         {isSuccess ? 'Transaction Successful!' : 'Transaction Failed'}
                     </Text>
-                    <Text fontSize="sm" color="#F5F5F5" textAlign="center">
+                    <Text fontSize="sm" color="#ece6d8" textAlign="center">
                         {acknowledgementMessage}
                     </Text>
                     {/* Points Earned Display */}
                     {isSuccess && pointsEarned !== null && pointsEarned > 0 && (
                         <Box
-                            bg="linear-gradient(135deg, #6943FF20 0%, #3BE5E520 100%)"
+                            bg="linear-gradient(135deg, #9bdc4f20 0%, #46d39a20 100%)"
                             border="1px solid"
-                            borderColor="purple.400"
+                            borderColor="primary.400"
                             borderRadius="md"
                             px={4}
                             py={2}
                             mt={2}
                         >
                             <HStack spacing={2} align="center">
-                                <Text fontSize="xs" color="purple.300">
+                                <Text fontSize="xs" color="primary.300">
                                     Points Earned:
                                 </Text>
-                                <Text fontSize="sm" fontWeight="bold" color="purple.300">
+                                <Text fontSize="sm" fontWeight="bold" color="primary.300">
                                     +{pointsEarned.toFixed(1)}
                                 </Text>
                             </HStack>
@@ -249,12 +249,12 @@ const TxSuccessView: React.FC<{
                     )}
                 </VStack>
 
-                <Divider borderColor="#6943FF30" />
+                <Divider borderColor="#9bdc4f30" />
 
                 {/* Transaction Details */}
                 <VStack spacing={2} align="stretch">
                     <HStack justify="space-between">
-                        <Text fontSize="xs" color="#F5F5F580">
+                        <Text fontSize="xs" color="#ece6d880">
                             Status
                         </Text>
                         <Text
@@ -268,16 +268,16 @@ const TxSuccessView: React.FC<{
 
                     {txLink && transactionHash && (
                         <HStack justify="space-between">
-                            <Text fontSize="xs" color="#F5F5F580">
+                            <Text fontSize="xs" color="#ece6d880">
                                 Transaction Hash
                             </Text>
                             <Link
                                 href={txLink}
                                 isExternal
-                                color="purple.400"
+                                color="primary.400"
                                 fontSize="xs"
                                 fontWeight="medium"
-                                _hover={{ color: 'purple.300' }}
+                                _hover={{ color: 'primary.300' }}
                             >
                                 <HStack spacing={1}>
                                     <Text>{`${first4}...${last4}`}</Text>
@@ -289,10 +289,10 @@ const TxSuccessView: React.FC<{
 
                     {gasUsed && (
                         <HStack justify="space-between">
-                            <Text fontSize="xs" color="#F5F5F580">
+                            <Text fontSize="xs" color="#ece6d880">
                                 Gas Used
                             </Text>
-                            <Text fontSize="xs" color="#F5F5F5">
+                            <Text fontSize="xs" color="#ece6d8">
                                 {shiftDigits(gasUsed.toString(), -(osmo?.decimal || 6)).toString()}
                             </Text>
                         </HStack>
@@ -302,7 +302,7 @@ const TxSuccessView: React.FC<{
                 {/* Close Button */}
                 <Button
                     size="sm"
-                    bg="#6943FF"
+                    bg="#9bdc4f"
                     color="white"
                     onClick={onClose}
                     _hover={{ bg: '#5a38e0' }}
@@ -333,7 +333,7 @@ const TxErrorView: React.FC<{
                 {/* Error Icon and Message */}
                 <VStack spacing={2} align="center" py={2}>
                     <Icon as={XCircle} w={12} h={12} color="red.400" />
-                    <Text fontSize="md" fontWeight="bold" color="#F5F5F5">
+                    <Text fontSize="md" fontWeight="bold" color="#ece6d8">
                         Transaction Failed
                     </Text>
                     <Box
@@ -356,16 +356,16 @@ const TxErrorView: React.FC<{
                         flex={1}
                         size="sm"
                         variant="ghost"
-                        color="#F5F5F580"
+                        color="#ece6d880"
                         onClick={onClose}
-                        _hover={{ bg: '#6943FF20', color: '#F5F5F5' }}
+                        _hover={{ bg: '#9bdc4f20', color: '#ece6d8' }}
                     >
                         Cancel
                     </Button>
                     <Button
                         flex={1}
                         size="sm"
-                        bg="#6943FF"
+                        bg="#9bdc4f"
                         color="white"
                         onClick={onRetry}
                         _hover={{ bg: '#5a38e0' }}

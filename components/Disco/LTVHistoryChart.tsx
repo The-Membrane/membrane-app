@@ -1,108 +1,194 @@
-import React, { useMemo } from 'react'
-import { Box, VStack, Text } from '@chakra-ui/react'
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    Tooltip as RechartsTooltip,
-    ResponsiveContainer,
-    Legend,
-} from 'recharts'
-import { useDailyLTV } from '@/hooks/useDiscoData'
-import { mockDailyLTV } from './mockData'
+import React, { useMemo, useState } from 'react'
+import { Box, VStack, HStack, Text, Menu, MenuButton, MenuList, MenuItem, Button } from '@chakra-ui/react'
+import { ChevronDownIcon } from '@chakra-ui/icons'
+import { lazyChart } from '@/components/ui/lazyChart'
+import { useDailyDeposits } from '@/hooks/useDiscoData'
+import { mockDailyDeposits } from './mockData'
+import { shiftDigits } from '@/helpers/math'
 
 // Color constants
-const PRIMARY_PURPLE = 'rgb(166, 146, 255)'
-const CYAN = 'rgb(34, 211, 238)'
+const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+type TimeUnit = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+const TIME_UNIT_LABELS: Record<TimeUnit, string> = {
+    daily: 'Daily',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    quarterly: 'Quarterly',
+    yearly: 'Yearly',
+}
+
+// Get bucket key for a timestamp based on time unit
+const getBucketKey = (timestamp: number, unit: TimeUnit): string => {
+    const d = new Date(timestamp * 1000)
+    const y = d.getFullYear()
+    const m = d.getMonth()
+    switch (unit) {
+        case 'daily': return `${y}-${m}-${d.getDate()}`
+        case 'weekly': {
+            // ISO week: group by Monday of the week
+            const day = new Date(d)
+            day.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+            return `${day.getFullYear()}-W${String(Math.ceil(((day.getTime() - new Date(day.getFullYear(), 0, 1).getTime()) / 86400000 + 1) / 7)).padStart(2, '0')}`
+        }
+        case 'monthly': return `${y}-${String(m + 1).padStart(2, '0')}`
+        case 'quarterly': return `${y}-Q${Math.floor(m / 3) + 1}`
+        case 'yearly': return `${y}`
+    }
+}
 
 interface LTVHistoryChartProps {
     asset: string
     assetSymbol?: string
-    ltvQueue?: any // The LTV queue data from the contract
+    ltvQueue?: any
 }
 
-export const LTVHistoryChart: React.FC<LTVHistoryChartProps> = ({ asset, assetSymbol, ltvQueue }) => {
-    const { data: dailyLTV, isLoading } = useDailyLTV(asset)
+const DepositHistoryChart = lazyChart<{ chartData: any[]; yMax: number }>(
+    ({ LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip: RechartsTooltip, ResponsiveContainer, Brush }) =>
+        function DepositHistoryChart({ chartData, yMax }) {
+            return (
+                <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={chartData}>
+                        <XAxis
+                            dataKey="date"
+                            stroke={PRIMARY_PURPLE}
+                            strokeOpacity={0.6}
+                            tick={{ fill: 'white', fontFamily: 'mono', fontSize: '10px', letterSpacing: '2px', fontWeight: 700 }}
+                            interval="preserveStartEnd"
+                            tickFormatter={(value, index) => {
+                                if (chartData.length === 0) return value
+                                // Show ~5 ticks evenly spaced
+                                const step = Math.max(1, Math.floor(chartData.length / 5))
+                                if (index === 0 || index === chartData.length - 1 || index % step === 0) {
+                                    return value
+                                }
+                                return ''
+                            }}
+                        />
+                        <YAxis
+                            stroke={PRIMARY_PURPLE}
+                            strokeOpacity={0.6}
+                            domain={[0, yMax]}
+                            tick={{ fill: 'white', fontFamily: 'mono', fontSize: '10px', letterSpacing: '2px', fontWeight: 700 }}
+                            tickFormatter={(value: number) => {
+                                if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+                                if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`
+                                return value.toString()
+                            }}
+                        />
+                        <RechartsTooltip
+                            contentStyle={{
+                                backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                                border: `2px solid ${PRIMARY_PURPLE}`,
+                                borderRadius: '4px',
+                                color: 'white',
+                                fontFamily: 'mono',
+                            }}
+                            formatter={(value: any) => {
+                                const formattedValue = typeof value === 'number'
+                                    ? value.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                                    : parseFloat(value || '0').toLocaleString(undefined, { maximumFractionDigits: 0 })
+                                return [`${formattedValue} MBRN`, 'Deposits']
+                            }}
+                            labelFormatter={(label) => `Date: ${label}`}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="deposits"
+                            stroke="#46d39a"
+                            strokeWidth={2}
+                            name="Deposits"
+                            dot={false}
+                            activeDot={{ r: 5 }}
+                        />
+                        <Brush
+                            dataKey="date"
+                            height={40}
+                            stroke={PRIMARY_PURPLE}
+                            fill="rgba(10, 10, 10, 0.8)"
+                            travellerWidth={10}
+                            tickFormatter={() => ''}
+                        >
+                            <AreaChart data={chartData}>
+                                <Area
+                                    type="monotone"
+                                    dataKey="deposits"
+                                    stroke="#46d39a"
+                                    fill="#46d39a"
+                                    fillOpacity={0.2}
+                                    strokeWidth={1}
+                                />
+                            </AreaChart>
+                        </Brush>
+                    </LineChart>
+                </ResponsiveContainer>
+            )
+        },
+    250,
+)
+
+export const LTVHistoryChart: React.FC<LTVHistoryChartProps> = ({ asset, assetSymbol }) => {
+    const { data: dailyDeposits, isLoading } = useDailyDeposits(asset)
+    const [timeUnit, setTimeUnit] = useState<TimeUnit>('daily')
 
     // Use mock data if real data is not available
-    const useMockData = !dailyLTV || !dailyLTV.entries || dailyLTV.entries.length === 0
-    const dailyLTVToUse = useMockData ? mockDailyLTV.entries : (dailyLTV?.entries || [])
+    const useMockData = !dailyDeposits || !dailyDeposits.entries || dailyDeposits.entries.length === 0
+    // Memoized so the reference is stable across renders (prevents rawChartData useMemo from
+    // recomputing every render).
+    const dailyDepositsToUse = useMemo(
+        () => (useMockData ? mockDailyDeposits.entries : (dailyDeposits?.entries || [])),
+        [useMockData, dailyDeposits]
+    )
 
-    // Process chart data
-    const chartData = useMemo(() => {
-        if (!dailyLTVToUse || dailyLTVToUse.length === 0) {
-            return []
-        }
+    // Process raw chart data
+    const rawChartData = useMemo(() => {
+        if (!dailyDepositsToUse || dailyDepositsToUse.length === 0) return []
 
-        return dailyLTVToUse.map((entry: any) => {
-            // Convert Decimal strings to numbers
-            const avgMaxLTV = typeof entry.average_max_ltv === 'string'
-                ? parseFloat(entry.average_max_ltv)
-                : entry.average_max_ltv
-            const avgMaxBorrowLTV = typeof entry.average_max_borrow_ltv === 'string'
-                ? parseFloat(entry.average_max_borrow_ltv)
-                : entry.average_max_borrow_ltv
-
+        return dailyDepositsToUse.map((entry: any) => {
+            const depositTokens = parseFloat(shiftDigits(entry.deposit_tokens || '0', -6).toString())
             return {
-                date: new Date(entry.timestamp * 1000).toLocaleDateString(),
                 timestamp: entry.timestamp,
-                liquidationLTV: avgMaxLTV * 100, // Convert to percentage
-                borrowLTV: avgMaxBorrowLTV * 100, // Convert to percentage
+                deposits: depositTokens,
             }
         })
-    }, [dailyLTV])
+    }, [dailyDepositsToUse])
 
-    // Extract min/max for Y-axis domain from LTV queue if available, otherwise from data
-    // NOTE: This hook must be called before any early returns to follow Rules of Hooks
-    const { minLTV, maxLTV } = useMemo(() => {
-        // If we have the LTV queue, use its min/max ranges
-        if (ltvQueue?.queue) {
-            const borrowRange = ltvQueue.queue.borrow_ltv
-            const liquidationRange = ltvQueue.queue.liquidation_ltv
-
-            // Parse Decimal values (can be string or number)
-            const parseDecimal = (val: any): number => {
-                if (typeof val === 'string') {
-                    return parseFloat(val)
+    // Aggregate by time unit
+    const chartData = useMemo(() => {
+        if (rawChartData.length === 0) return []
+        if (timeUnit === 'daily') {
+            return rawChartData.map(d => {
+                const date = new Date(d.timestamp * 1000)
+                return {
+                    ...d,
+                    date: `${MONTHS[date.getMonth()]} '${String(date.getFullYear()).slice(2)}`,
                 }
-                if (typeof val === 'number') {
-                    return val
-                }
-                if (val?.toString) {
-                    return parseFloat(val.toString())
-                }
-                return 0
-            }
+            })
+        }
 
-            const borrowMin = parseDecimal(borrowRange?.min) * 100
-            const borrowMax = parseDecimal(borrowRange?.max) * 100
-            const liquidationMin = parseDecimal(liquidationRange?.min) * 100
-            const liquidationMax = parseDecimal(liquidationRange?.max) * 100
+        const buckets = new Map<string, { timestamp: number; deposits: number }>()
+        for (const entry of rawChartData) {
+            const key = getBucketKey(entry.timestamp, timeUnit)
+            buckets.set(key, entry) // last entry wins (point-in-time snapshot)
+        }
 
-            // Use the overall min/max across both ranges
-            const min = Math.min(borrowMin, liquidationMin)
-            const max = Math.max(borrowMax, liquidationMax)
-
-            // Add 2% padding
+        return Array.from(buckets.values()).map(d => {
+            const date = new Date(d.timestamp * 1000)
             return {
-                minLTV: Math.floor(Math.max(0, min - 2)),
-                maxLTV: Math.ceil(Math.min(100, max + 2)),
+                ...d,
+                date: `${MONTHS[date.getMonth()]} '${String(date.getFullYear()).slice(2)}`,
             }
-        }
+        })
+    }, [rawChartData, timeUnit])
 
-        // Fallback to calculating from chart data
-        if (!chartData || chartData.length === 0) {
-            return { minLTV: 60, maxLTV: 90 }
-        }
-        const allLTVs = chartData.flatMap((d: any) => [d.liquidationLTV, d.borrowLTV])
-        const min = Math.max(0, Math.min(...allLTVs) - 2) // Add 2% padding below
-        const max = Math.min(100, Math.max(...allLTVs) + 2) // Add 2% padding above
-        return {
-            minLTV: Math.floor(min),
-            maxLTV: Math.ceil(max),
-        }
-    }, [ltvQueue, chartData])
+    // Y-axis max with 20% buffer
+    const yMax = useMemo(() => {
+        if (chartData.length === 0) return 0
+        const max = Math.max(...chartData.map((d: any) => d.deposits))
+        return Math.ceil(max * 1.2)
+    }, [chartData])
 
     // Early returns after all hooks are called
     if (isLoading) {
@@ -120,7 +206,7 @@ export const LTVHistoryChart: React.FC<LTVHistoryChartProps> = ({ asset, assetSy
                 boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
             >
                 <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px">
-                    Loading LTV History...
+                    Loading Deposit History...
                 </Text>
             </Box>
         )
@@ -140,7 +226,7 @@ export const LTVHistoryChart: React.FC<LTVHistoryChartProps> = ({ asset, assetSy
                 boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
             >
                 <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px">
-                    No LTV history available
+                    No deposit history available
                 </Text>
             </Box>
         )
@@ -160,101 +246,61 @@ export const LTVHistoryChart: React.FC<LTVHistoryChartProps> = ({ asset, assetSy
             boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
         >
             <VStack align="stretch" spacing={1}>
-                <Text
-                    fontSize="xl"
-                    fontWeight="bold"
-                    color={PRIMARY_PURPLE}
-                    fontFamily="mono"
-                    letterSpacing="2px"
-                    textTransform="uppercase"
-                >
-                    {assetSymbol || asset} LTV History
-                </Text>
-                <Text fontSize="sm" color="whiteAlpha.600" fontFamily="mono" mt={-1}>
-                    Historical average LTV values for {assetSymbol || asset}
-                </Text>
-                <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={chartData}>
-                        <XAxis
-                            dataKey="date"
-                            stroke={PRIMARY_PURPLE}
-                            strokeOpacity={0.6}
-                            tick={{ fill: PRIMARY_PURPLE, fontFamily: 'mono', fontSize: '10px', letterSpacing: '2px', fontWeight: 700 }}
-                            interval="preserveStartEnd"
-                            tickFormatter={(value, index) => {
-                                // Show only weekly dates (every 7 days)
-                                if (chartData.length === 0) return value
-                                const entry = chartData[index]
-                                if (!entry || !entry.timestamp) return value
-
-                                // Get the first entry's timestamp as reference
-                                const firstTimestamp = chartData[0]?.timestamp || 0
-                                const daysSinceStart = Math.floor((entry.timestamp - firstTimestamp) / 86400)
-
-                                // Show date if it's a multiple of 7 days, or if it's the first/last entry
-                                if (daysSinceStart % 7 === 0 || index === 0 || index === chartData.length - 1) {
-                                    return value
-                                }
-                                return ''
-                            }}
-                        />
-                        <YAxis
-                            stroke={PRIMARY_PURPLE}
-                            strokeOpacity={0.6}
-                            tick={{ fill: PRIMARY_PURPLE, fontFamily: 'mono', fontSize: '10px', letterSpacing: '2px', fontWeight: 700 }}
-                            label={{ value: 'LTV %', angle: -90, position: 'insideLeft', fill: PRIMARY_PURPLE, fontFamily: 'mono', letterSpacing: '2px', fontWeight: 700, fontSize: '12px' }}
-                            domain={[minLTV, maxLTV]}
-                        />
-                        <RechartsTooltip
-                            contentStyle={{
-                                backgroundColor: 'rgba(10, 10, 10, 0.95)',
-                                border: `2px solid ${PRIMARY_PURPLE}`,
-                                borderRadius: '4px',
-                                color: PRIMARY_PURPLE,
-                                fontFamily: 'mono',
-                            }}
-                            formatter={(value: any, name: string, props: any) => {
-                                const formattedValue = typeof value === 'number'
-                                    ? value.toFixed(2)
-                                    : parseFloat(value || '0').toFixed(2)
-                                const dataKey = props.dataKey
-                                const label = dataKey === 'liquidationLTV' ? 'Liquidation LTV' : 'Borrow LTV'
-                                return [`${formattedValue}%`, label]
-                            }}
-                            labelFormatter={(label) => `Date: ${label}`}
-                            itemSorter={(item) => {
-                                // Ensure Liquidation LTV appears first
-                                if (item.dataKey === 'liquidationLTV') return -1
-                                if (item.dataKey === 'borrowLTV') return 1
-                                return 0
-                            }}
-                        />
-                        <Legend
-                            wrapperStyle={{ fontFamily: 'mono', color: PRIMARY_PURPLE }}
-                            iconType="line"
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="liquidationLTV"
-                            stroke={PRIMARY_PURPLE}
-                            strokeWidth={2}
-                            name="Liquidation LTV"
-                            dot={false}
-                            activeDot={{ r: 5 }}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="borrowLTV"
-                            stroke={CYAN}
-                            strokeWidth={2}
-                            name="Borrow LTV"
-                            dot={false}
-                            activeDot={{ r: 5 }}
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
+                <Box>
+                    <Text
+                        fontSize="xl"
+                        fontWeight="bold"
+                        color="white"
+                        fontFamily="mono"
+                        letterSpacing="2px"
+                        textTransform="uppercase"
+                    >
+                        {assetSymbol || asset} Deposit History
+                    </Text>
+                    <Text fontSize="sm" color="whiteAlpha.600" fontFamily="mono" mt={-1}>
+                        Historical daily MBRN deposits for {assetSymbol || asset}
+                    </Text>
+                </Box>
+                <Box mt={2} w={{ base: '120px', md: '15%' }} minW="100px">
+                    <Menu>
+                        <MenuButton
+                            as={Button}
+                            w="100%"
+                            size="xs"
+                            variant="outline"
+                            borderColor={`${PRIMARY_PURPLE}60`}
+                            color="whiteAlpha.800"
+                            fontFamily="mono"
+                            fontSize="xs"
+                            rightIcon={<ChevronDownIcon />}
+                            _hover={{ borderColor: PRIMARY_PURPLE, color: 'white' }}
+                            _active={{ bg: `${PRIMARY_PURPLE}20` }}
+                        >
+                            {TIME_UNIT_LABELS[timeUnit]}
+                        </MenuButton>
+                        <MenuList
+                            bg="rgba(10, 10, 10, 0.95)"
+                            borderColor={PRIMARY_PURPLE}
+                            minW="120px"
+                        >
+                            {(Object.keys(TIME_UNIT_LABELS) as TimeUnit[]).map(unit => (
+                                <MenuItem
+                                    key={unit}
+                                    onClick={() => setTimeUnit(unit)}
+                                    bg={timeUnit === unit ? `${PRIMARY_PURPLE}20` : 'transparent'}
+                                    color={timeUnit === unit ? PRIMARY_PURPLE : 'whiteAlpha.800'}
+                                    fontFamily="mono"
+                                    fontSize="xs"
+                                    _hover={{ bg: `${PRIMARY_PURPLE}15`, color: 'white' }}
+                                >
+                                    {TIME_UNIT_LABELS[unit]}
+                                </MenuItem>
+                            ))}
+                        </MenuList>
+                    </Menu>
+                </Box>
+                <DepositHistoryChart chartData={chartData} yMax={yMax} />
             </VStack>
         </Box>
     )
 }
-

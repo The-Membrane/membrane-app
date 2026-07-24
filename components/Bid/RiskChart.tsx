@@ -3,44 +3,54 @@ import { num } from '@/helpers/num'
 import useWallet from '@/hooks/useWallet'
 import { Box, HStack, Spinner, Stack, Text, useBreakpointValue } from '@chakra-ui/react'
 import { useMemo } from 'react'
-import { Bar, BarChart, Cell, Rectangle, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
+import { lazyChart } from '@/components/ui/lazyChart'
 import useBidState from './hooks/useBidState'
 import { useCapitalAheadOfDeposit, useLiquidation, useStabilityAssetPool } from '@/hooks/useLiquidations'
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 const CustomTooltip = ({ active, payload, label }) => {
   const { tvl, premium, capitalAheadAmount } = payload[0]?.payload || {}
 
   if (active && payload && payload.length) {
     return (
-      <Stack bg="black" p={4} borderRadius="md" minW="200px">
+      <Stack
+        bg="rgba(10, 10, 10, 0.95)"
+        p={SPACING.base}
+        borderRadius="md"
+        minW="200px"
+        border="1px solid"
+        borderColor={SEMANTIC_COLORS.borderMedium}
+      >
         <HStack
           justifyContent="space-between"
           borderBottom="1px solid"
-          borderColor="whiteAlpha.300"
-          pb={1}
+          borderColor={SEMANTIC_COLORS.borderMedium}
+          pb={SPACING.xs}
         >
-          <Text fontSize="xs" color="whiteAlpha.600">
+          <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
             TVL
           </Text>
-          <Text fontSize="xs" color="whiteAlpha.800">
+          <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textPrimary}>
             {tvl} CDT
           </Text>
         </HStack>
         {premium === 10 ? (
           <HStack justifyContent="space-between">
-            <Text fontSize="xs" color="whiteAlpha.600">
+            <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
               Capital Ahead
             </Text>
-            <Text fontSize="xs" color="whiteAlpha.800">
+            <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textPrimary}>
               {capitalAheadAmount}
             </Text>
           </HStack>
         ) : (
           <HStack justifyContent="space-between">
-            <Text fontSize="xs" color="whiteAlpha.600">
+            <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
               Premium
             </Text>
-            <Text fontSize="xs" color="whiteAlpha.800">
+            <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textPrimary}>
               {label}%
             </Text>
           </HStack>
@@ -52,20 +62,109 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null
 }
 
-// Custom Tick component
 const CustomTick = ({ x, y, payload, bidState, onClick }) => {
-  // Check if this tick needs restyling
-  const isSpecialTick = payload.value === 10;
+  const isSpecialTick = payload.value === 10
+  const isSelected = payload.value === bidState.placeBid.premium
 
   return (
     <g transform={`translate(${x},${y})`}>
-      {/* Restyle the tick based on the condition */}
-      <text x={0} y={0} dy={11} textAnchor="middle" fill={payload.value === bidState.placeBid.premium ? "#00A3F9" : isSpecialTick ? '#C445F0' : '#FFF'} fontSize={16} onClick={() => { onClick(payload.value) }} cursor={"pointer"}>
+      <text
+        x={0}
+        y={0}
+        dy={11}
+        textAnchor="middle"
+        fill={isSelected ? SEMANTIC_COLORS.success : isSpecialTick ? SEMANTIC_COLORS.primary : '#ece6d8'}
+        fontSize={16}
+        onClick={() => { onClick(payload.value) }}
+        cursor="pointer"
+      >
         {payload.value}
       </text>
     </g>
-  );
-};
+  )
+}
+
+const BidRiskChart = lazyChart<{
+  data: any[] | undefined
+  userBidIndices: (number | undefined)[] | undefined
+  bidState: any
+  onPremiumChange: (value: number) => void
+  isMobile: boolean | undefined
+}>(
+  ({ Bar, BarChart, Cell, Rectangle, ResponsiveContainer, Tooltip: RechartsTooltip, XAxis }) =>
+    function BidRiskChart({ data, userBidIndices, bidState, onPremiumChange, isMobile }) {
+      const userBidIndexSet = new Set(userBidIndices)
+      return (
+        <ResponsiveContainer style={{ justifySelf: "center" }} width={isMobile ? "86%" : "100%"} height="100%">
+          <BarChart
+            width={420}
+            height={200}
+            data={data}
+            margin={{
+              bottom: 5,
+            }}
+          >
+            <defs>
+              <linearGradient id="colorTVL" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#46d39a" />
+                <stop offset="100%" stopColor="#46d39a" />
+              </linearGradient>
+
+              <linearGradient id="goldTVL" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fbbf24" />
+                <stop offset="100%" stopColor="#46d39a" />
+              </linearGradient>
+
+              <linearGradient id="userTVL" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fbbf24" />
+                <stop offset="100%" stopColor="#9bdc4f" />
+              </linearGradient>
+            </defs>
+
+            <Bar
+              dataKey="tvl"
+              fill="url(#goldTVL)"
+              barSize={24}
+              shape={<Rectangle radius={[10, 10, 0, 0]} />}
+            >
+              {data?.map((entry, index) => (
+                <Cell
+                  key={`cell-${entry.premium}`}
+                  fill={
+                    index === 10
+                      ? 'url(#goldTVL)'
+                      : userBidIndexSet.has(index)
+                        ? 'url(#userTVL)'
+                        : 'url(#colorTVL)'
+                  }
+                />
+              ))}
+            </Bar>
+
+            <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'none' }} />
+            <XAxis
+              dataKey="premium"
+              tick={({ x, y, payload }) => (
+                <CustomTick x={x} y={y} payload={payload} bidState={bidState} onClick={onPremiumChange} />
+              )}
+              tickMargin={10}
+              axisLine={{ stroke: '#ece6d8' }}
+              tickLine={false}
+              height={50}
+              label={{
+                value: 'Premium %',
+                position: 'insideBottom',
+                offset: -5,
+                fill: SEMANTIC_COLORS.textTertiary,
+                fontSize: 13,
+              }}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      )
+    },
+  200,
+)
 
 const RiskChart = () => {
   const { address } = useWallet()
@@ -74,7 +173,6 @@ const RiskChart = () => {
   const { data: stabilityPoolAssets } = useStabilityAssetPool(true)
   const { data: capitalAheadAmount = 0 } = useCapitalAheadOfDeposit()
   const isMobile = useBreakpointValue({ base: true, md: false })
-
 
   const onPremiumChange = (value: number) => {
     const existingBid = bidState?.placeBid || {}
@@ -85,7 +183,6 @@ const RiskChart = () => {
     setBidState({ ...bidState, placeBid })
   }
 
-  //Save the indices of the LQ Slots that users are deposited in
   var userBidIndices = liqudation?.map((slot) => {
     if (slot.bids.find((bid) => bid.user == (address as string)) != undefined) {
       return parseInt(slot.liq_premium) * 10
@@ -113,84 +210,25 @@ const RiskChart = () => {
     })
 
     return chartData
-  }, [liqudation])
+  }, [liqudation, capitalAheadAmount, stabilityPoolAmount])
 
   if (isLoading) {
     return (
       <Box w="420px" h="180px" display="flex" justifyContent="center" alignItems="center">
-        <Spinner color="primary.200" />
+        <Spinner color={SEMANTIC_COLORS.primary} />
       </Box>
     )
   }
 
   return (
     <Box w="420px" h="200px">
-      <ResponsiveContainer style={{justifySelf: "center"}} width={isMobile ? "86%" : "100%" } height="100%">
-        <BarChart
-          width={420}
-          height={200}
-          data={data}
-          margin={{
-            bottom: 5,
-          }}
-        >
-          <defs>
-            <linearGradient id="colorTVL" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00A3F9" />
-              <stop offset="100%" stopColor="#00F1EF" />
-            </linearGradient>
-
-            <linearGradient id="goldTVL" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#e9f339" />
-              <stop offset="100%" stopColor="#00F1EF" />
-            </linearGradient>
-
-            <linearGradient id="userTVL" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#e9f339" />
-              <stop offset="100%" stopColor="#C445F0" />
-            </linearGradient>
-          </defs>
-
-          <Bar
-            dataKey="tvl"
-            fill="url(#goldTVL)"
-            barSize={24}
-            shape={<Rectangle radius={[10, 10, 0, 0]} />}
-          >
-            {data?.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={
-                  index === 10
-                    ? 'url(#goldTVL)'
-                    : userBidIndices?.includes(index)
-                      ? 'url(#userTVL)'
-                      : 'url(#colorTVL)'
-                }
-              />
-            ))}
-          </Bar>
-
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'none' }} />
-          <XAxis
-            dataKey="premium"
-            tick={({ x, y, payload }) => (
-              <CustomTick x={x} y={y} payload={payload} bidState={bidState} onClick={onPremiumChange} />
-            )}
-            tickMargin={10}
-            axisLine={{ stroke: '#FFF' }}
-            tickLine={false}
-            height={50}
-            label={{
-              value: 'Premium %',
-              position: 'insideBottom',
-              offset: -5,
-              fill: 'gray',
-              fontSize: 13,
-            }}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      <BidRiskChart
+        data={data}
+        userBidIndices={userBidIndices}
+        bidState={bidState}
+        onPremiumChange={onPremiumChange}
+        isMobile={isMobile}
+      />
     </Box>
   )
 }

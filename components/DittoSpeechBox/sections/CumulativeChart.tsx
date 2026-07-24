@@ -1,14 +1,6 @@
 import React from 'react'
 import { Box, Text, VStack } from '@chakra-ui/react'
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    ResponsiveContainer,
-    Tooltip as RechartsTooltip,
-    CartesianGrid,
-} from 'recharts'
+import { lazyChart } from '@/components/ui/lazyChart'
 
 export interface CumulativeChartDataPoint {
     timestamp: number
@@ -21,6 +13,23 @@ interface CumulativeChartProps {
     label?: string
 }
 
+// Format timestamp for X-axis
+const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp * 1000)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// Format volume for Y-axis (abbreviate large numbers)
+const formatVolume = (value: number) => {
+    if (value >= 1_000_000) {
+        return `$${(value / 1_000_000).toFixed(1)}M`
+    }
+    if (value >= 1_000) {
+        return `$${(value / 1_000).toFixed(1)}K`
+    }
+    return `$${value.toFixed(0)}`
+}
+
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload as CumulativeChartDataPoint
@@ -29,15 +38,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             <Box
                 bg="#23252B"
                 border="1px solid"
-                borderColor="cyan.500"
+                borderColor="secondary.500"
                 borderRadius="md"
                 p={2}
                 fontSize="xs"
             >
-                <Text color="cyan.400" fontWeight="bold" mb={1}>
+                <Text color="secondary.400" fontWeight="bold" mb={1}>
                     {date.toLocaleDateString()} {date.toLocaleTimeString()}
                 </Text>
-                <Text color="#F5F5F5">
+                <Text color="#ece6d8">
                     Volume: ${data.volume.toFixed(2)}
                 </Text>
             </Box>
@@ -45,6 +54,42 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     }
     return null
 }
+
+const CumulativeLineChart = lazyChart<{ data: CumulativeChartDataPoint[] }>(
+    ({ LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip: RechartsTooltip, CartesianGrid }) =>
+        function CumulativeLineChart({ data }) {
+            return (
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#9bdc4f20" />
+                        <XAxis
+                            dataKey="timestamp"
+                            tickFormatter={formatDate}
+                            tick={{ fontSize: 10, fill: '#ece6d880' }}
+                            axisLine={{ stroke: '#9bdc4f40' }}
+                            tickLine={{ stroke: '#9bdc4f40' }}
+                        />
+                        <YAxis
+                            tickFormatter={formatVolume}
+                            tick={{ fontSize: 10, fill: '#ece6d880' }}
+                            axisLine={{ stroke: '#9bdc4f40' }}
+                            tickLine={{ stroke: '#9bdc4f40' }}
+                        />
+                        <RechartsTooltip content={<CustomTooltip />} />
+                        <Line
+                            type="monotone"
+                            dataKey="volume"
+                            stroke="#00BFFF"
+                            strokeWidth={2}
+                            dot={false}
+                            activeDot={{ r: 4, fill: '#00BFFF' }}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            )
+        },
+    '100%',
+)
 
 export const CumulativeChart: React.FC<CumulativeChartProps> = ({
     data,
@@ -61,7 +106,7 @@ export const CumulativeChart: React.FC<CumulativeChartProps> = ({
     if (isLoading) {
         return (
             <Box h="200px" display="flex" alignItems="center" justifyContent="center">
-                <Text color="#F5F5F580" fontSize="sm">
+                <Text color="#ece6d880" fontSize="sm">
                     Loading chart data...
                 </Text>
             </Box>
@@ -73,10 +118,10 @@ export const CumulativeChart: React.FC<CumulativeChartProps> = ({
         return (
             <Box h="200px" display="flex" alignItems="center" justifyContent="center">
                 <VStack spacing={2}>
-                    <Text color="#F5F5F580" fontSize="sm">
+                    <Text color="#ece6d880" fontSize="sm">
                         No volume data available
                     </Text>
-                    <Text color="#F5F5F540" fontSize="xs">
+                    <Text color="#ece6d840" fontSize="xs">
                         Volume data will appear here over time
                     </Text>
                 </VStack>
@@ -84,52 +129,9 @@ export const CumulativeChart: React.FC<CumulativeChartProps> = ({
         )
     }
 
-    // Format timestamp for X-axis
-    const formatDate = (timestamp: number) => {
-        const date = new Date(timestamp * 1000)
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    }
-
-    // Format volume for Y-axis (abbreviate large numbers)
-    const formatVolume = (value: number) => {
-        if (value >= 1_000_000) {
-            return `$${(value / 1_000_000).toFixed(1)}M`
-        }
-        if (value >= 1_000) {
-            return `$${(value / 1_000).toFixed(1)}K`
-        }
-        return `$${value.toFixed(0)}`
-    }
-
     return (
         <Box w="100%" h="250px" mt={4}>
-            <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#6943FF20" />
-                    <XAxis
-                        dataKey="timestamp"
-                        tickFormatter={formatDate}
-                        tick={{ fontSize: 10, fill: '#F5F5F580' }}
-                        axisLine={{ stroke: '#6943FF40' }}
-                        tickLine={{ stroke: '#6943FF40' }}
-                    />
-                    <YAxis
-                        tickFormatter={formatVolume}
-                        tick={{ fontSize: 10, fill: '#F5F5F580' }}
-                        axisLine={{ stroke: '#6943FF40' }}
-                        tickLine={{ stroke: '#6943FF40' }}
-                    />
-                    <RechartsTooltip content={<CustomTooltip />} />
-                    <Line
-                        type="monotone"
-                        dataKey="volume"
-                        stroke="#00BFFF"
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 4, fill: '#00BFFF' }}
-                    />
-                </LineChart>
-            </ResponsiveContainer>
+            <CumulativeLineChart data={data} />
         </Box>
     )
 }

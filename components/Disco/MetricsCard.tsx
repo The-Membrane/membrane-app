@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Box, VStack, HStack, Text } from '@chakra-ui/react'
-import { motion, useMotionValue, useSpring } from 'framer-motion'
+import { m, useMotionValue, useSpring } from 'framer-motion'
 
 // Color constants
-const PRIMARY_PURPLE = 'rgb(166, 146, 255)'
+const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
 
 interface MetricsCardProps {
     totalDeposits: number
@@ -15,6 +15,90 @@ interface MetricsCardProps {
     recentLiquidations: number
 }
 
+// Animated Counter Component
+const AnimatedCounter: React.FC<{ value: number; decimals?: number }> = ({ value, decimals = 0 }) => {
+    const motionValue = useMotionValue(0)
+    const spring = useSpring(motionValue, { stiffness: 50, damping: 30 })
+    const [displayValue, setDisplayValue] = useState(0)
+
+    useEffect(() => {
+        motionValue.set(value)
+    }, [value, motionValue])
+
+    useEffect(() => {
+        // spring.on returns its own unsubscribe handle — return it directly as cleanup.
+        const unsubscribe = spring.on('change', (latest) => {
+            setDisplayValue(latest)
+        })
+        return unsubscribe
+    }, [spring])
+
+    const formattedValue = decimals > 0
+        ? parseFloat(displayValue.toFixed(decimals)).toLocaleString('en-US')
+        : Math.round(displayValue).toLocaleString('en-US')
+
+    return (
+        <m.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+        >
+            {formattedValue}
+        </m.span>
+    )
+}
+
+const MetricRow: React.FC<{ label: string; value: string | number; unit?: string }> = ({
+    label,
+    value,
+    unit = '',
+}) => {
+    const isNumber = typeof value === 'number'
+    const numValue = isNumber ? value : 0
+    const hasDecimals = isNumber && (numValue % 1 !== 0 || label.includes('LTV') || label.includes('Yield'))
+
+    return (
+        <VStack align="stretch" spacing={0.5} mb={2}>
+            <Text fontSize="9px" color="whiteAlpha.600" fontFamily="mono" letterSpacing="0.5px" lineHeight="1.2">
+                {label}
+            </Text>
+            <HStack spacing={1}>
+                <m.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <Text
+                        fontSize="sm"
+                        fontWeight="bold"
+                        color={PRIMARY_PURPLE}
+                        fontFamily="mono"
+                        textShadow={`0 0 5px ${PRIMARY_PURPLE}`}
+                        lineHeight="1.2"
+                    >
+                        {isNumber ? (
+                            <AnimatedCounter value={numValue} decimals={hasDecimals ? 2 : 0} />
+                        ) : (
+                            value
+                        )}
+                    </Text>
+                </m.div>
+                {unit && (
+                    <Text fontSize="8px" color="whiteAlpha.500" fontFamily="mono" lineHeight="1.2">
+                        {unit}
+                    </Text>
+                )}
+            </HStack>
+            <Box
+                h="0.5px"
+                bgGradient={`linear(to-r, transparent, ${PRIMARY_PURPLE}, transparent)`}
+                opacity={0.5}
+                mt={0.5}
+            />
+        </VStack>
+    )
+}
+
 export const MetricsCard: React.FC<MetricsCardProps> = ({
     totalDeposits,
     averageLTV,
@@ -24,89 +108,6 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
     totalInsurance,
     recentLiquidations,
 }) => {
-    // Animated Counter Component
-    const AnimatedCounter: React.FC<{ value: number; decimals?: number }> = ({ value, decimals = 0 }) => {
-        const motionValue = useMotionValue(0)
-        const spring = useSpring(motionValue, { stiffness: 50, damping: 30 })
-        const [displayValue, setDisplayValue] = useState(0)
-
-        useEffect(() => {
-            motionValue.set(value)
-        }, [value, motionValue])
-
-        useEffect(() => {
-            const unsubscribe = spring.on('change', (latest) => {
-                setDisplayValue(latest)
-            })
-            return () => unsubscribe()
-        }, [spring])
-
-        const formattedValue = decimals > 0
-            ? parseFloat(displayValue.toFixed(decimals)).toLocaleString()
-            : Math.round(displayValue).toLocaleString()
-
-        return (
-            <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-            >
-                {formattedValue}
-            </motion.span>
-        )
-    }
-
-    const MetricRow: React.FC<{ label: string; value: string | number; unit?: string }> = ({
-        label,
-        value,
-        unit = '',
-    }) => {
-        const isNumber = typeof value === 'number'
-        const numValue = isNumber ? value : 0
-        const hasDecimals = isNumber && (numValue % 1 !== 0 || label.includes('LTV') || label.includes('Yield'))
-
-        return (
-            <VStack align="stretch" spacing={0.5} mb={2}>
-                <Text fontSize="9px" color="whiteAlpha.600" fontFamily="mono" letterSpacing="0.5px" lineHeight="1.2">
-                    {label}
-                </Text>
-                <HStack spacing={1}>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        <Text
-                            fontSize="sm"
-                            fontWeight="bold"
-                            color={PRIMARY_PURPLE}
-                            fontFamily="mono"
-                            textShadow={`0 0 5px ${PRIMARY_PURPLE}`}
-                            lineHeight="1.2"
-                        >
-                            {isNumber ? (
-                                <AnimatedCounter value={numValue} decimals={hasDecimals ? 2 : 0} />
-                            ) : (
-                                value
-                            )}
-                        </Text>
-                    </motion.div>
-                    {unit && (
-                        <Text fontSize="8px" color="whiteAlpha.500" fontFamily="mono" lineHeight="1.2">
-                            {unit}
-                        </Text>
-                    )}
-                </HStack>
-                <Box
-                    h="0.5px"
-                    bgGradient={`linear(to-r, transparent, ${PRIMARY_PURPLE}, transparent)`}
-                    opacity={0.5}
-                    mt={0.5}
-                />
-            </VStack>
-        )
-    }
-
     return (
         <Box
             style={{ zoom: "111%" }}
@@ -153,10 +154,9 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
                 pointerEvents="none"
                 opacity={0.1}
                 borderRadius="md"
-                backgroundImage="linear-gradient(rgba(166, 146, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(166, 146, 255, 0.1) 1px, transparent 1px)"
+                backgroundImage="linear-gradient(rgba(155, 220, 79, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(155, 220, 79, 0.1) 1px, transparent 1px)"
                 backgroundSize="10px 10px"
             />
         </Box>
     )
 }
-

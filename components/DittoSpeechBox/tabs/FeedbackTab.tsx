@@ -21,12 +21,12 @@ const FEATURE_AREAS = ['disco', 'mint', 'transmuter', 'portfolio', 'swap', 'othe
 
 const inputStyles = {
   bg: 'rgba(10, 10, 10, 0.8)',
-  borderColor: 'rgba(166, 146, 255, 0.25)',
-  color: '#F5F5F5',
+  borderColor: 'rgba(155, 220, 79, 0.25)',
+  color: '#ece6d8',
   fontSize: TYPOGRAPHY.small,
-  _hover: { borderColor: 'rgba(166, 146, 255, 0.4)' },
+  _hover: { borderColor: 'rgba(155, 220, 79, 0.4)' },
   _focus: FOCUS_STYLES.ring,
-  _placeholder: { color: '#F5F5F550' },
+  _placeholder: { color: '#ece6d850' },
 }
 
 export const FeedbackTab: React.FC = () => {
@@ -103,7 +103,7 @@ export const FeedbackTab: React.FC = () => {
 
   return (
     <VStack spacing={SPACING_PATTERNS.formFieldGap} align="stretch" p={3} h="100%" overflowY="auto">
-      <Text fontSize={TYPOGRAPHY.xs} color="#F5F5F580" fontWeight="medium" textTransform="uppercase" letterSpacing="wide">
+      <Text fontSize={TYPOGRAPHY.xs} color="#ece6d880" fontWeight="medium" textTransform="uppercase" letterSpacing="wide">
         Share Feedback
       </Text>
 

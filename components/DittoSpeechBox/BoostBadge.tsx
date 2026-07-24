@@ -23,13 +23,13 @@ export const BoostBadge: React.FC = () => {
             px={2}
             py={1}
             border="1px solid"
-            borderColor="purple.400"
+            borderColor="primary.400"
             borderRadius="md"
             bg="gray.800"
             onClick={handleClick}
             _hover={{
-                borderColor: 'purple.300',
-                boxShadow: '0 0 10px rgba(166, 146, 255, 0.2)',
+                borderColor: 'primary.300',
+                boxShadow: '0 0 10px rgba(155, 220, 79, 0.2)',
             }}
             transition="all 0.2s"
         >
@@ -37,7 +37,7 @@ export const BoostBadge: React.FC = () => {
                 <Text
                     fontSize="xs"
                     fontWeight="bold"
-                    bgGradient="linear(to-r, purple.400, cyan.400)"
+                    bgGradient="linear(to-r, primary.400, secondary.400)"
                     bgClip="text"
                     fontFamily="mono"
                 >

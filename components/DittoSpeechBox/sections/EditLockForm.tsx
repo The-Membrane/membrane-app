@@ -31,7 +31,7 @@ export const EditLockForm: React.FC<EditLockFormProps> = ({ depositType, current
 
     return (
         <VStack align="stretch" spacing={4} w="100%" h="100%" pb="50px" overflowY="auto">
-            <Text fontSize="xs" color="#F5F5F580" fontWeight="bold" textTransform="uppercase">
+            <Text fontSize="xs" color="#ece6d880" fontWeight="bold" textTransform="uppercase">
                 Extend Lock Duration
             </Text>
 
@@ -39,15 +39,15 @@ export const EditLockForm: React.FC<EditLockFormProps> = ({ depositType, current
             <Box
                 bg="#1A1D26"
                 border="1px solid"
-                borderColor="#6943FF30"
+                borderColor="#9bdc4f30"
                 borderRadius="md"
                 p={3}
             >
                 <HStack justify="space-between">
-                    <Text fontSize="xs" color="#F5F5F580">
+                    <Text fontSize="xs" color="#ece6d880">
                         Current Lock
                     </Text>
-                    <Text fontSize="xs" color="purple.300" fontWeight="bold">
+                    <Text fontSize="xs" color="primary.300" fontWeight="bold">
                         {currentLockDays} days remaining
                     </Text>
                 </HStack>
@@ -56,10 +56,10 @@ export const EditLockForm: React.FC<EditLockFormProps> = ({ depositType, current
             {/* Lock Days Slider */}
             <Box>
                 <HStack justify="space-between" mb={2}>
-                    <Text fontSize="xs" color="#F5F5F580">
+                    <Text fontSize="xs" color="#ece6d880">
                         New Lock Duration
                     </Text>
-                    <Text fontSize="xs" color={canExtend ? 'cyan.300' : '#F5F5F580'} fontWeight="bold">
+                    <Text fontSize="xs" color={canExtend ? 'secondary.300' : '#ece6d880'} fontWeight="bold">
                         {lockDays} days
                     </Text>
                 </HStack>
@@ -82,8 +82,8 @@ export const EditLockForm: React.FC<EditLockFormProps> = ({ depositType, current
                     />
                 </Slider>
                 <HStack justify="space-between" mt={1}>
-                    <Text fontSize="2xs" color="#F5F5F550">{currentLockDays}</Text>
-                    <Text fontSize="2xs" color="#F5F5F550">{maxLockDays}</Text>
+                    <Text fontSize="2xs" color="#ece6d850">{currentLockDays}</Text>
+                    <Text fontSize="2xs" color="#ece6d850">{maxLockDays}</Text>
                 </HStack>
             </Box>
 
@@ -98,7 +98,7 @@ export const EditLockForm: React.FC<EditLockFormProps> = ({ depositType, current
                 >
                     <VStack align="stretch" spacing={2}>
                         <HStack justify="space-between">
-                            <Text fontSize="xs" color="#F5F5F580">
+                            <Text fontSize="xs" color="#ece6d880">
                                 Extension
                             </Text>
                             <Text fontSize="xs" color="blue.300" fontWeight="bold">
@@ -106,10 +106,10 @@ export const EditLockForm: React.FC<EditLockFormProps> = ({ depositType, current
                             </Text>
                         </HStack>
                         <HStack justify="space-between">
-                            <Text fontSize="xs" color="#F5F5F580">
+                            <Text fontSize="xs" color="#ece6d880">
                                 Effective MBRN Boost
                             </Text>
-                            <Text fontSize="xs" color="cyan.300" fontWeight="bold">
+                            <Text fontSize="xs" color="secondary.300" fontWeight="bold">
                                 {(lockDays + 1).toFixed(1)}x
                             </Text>
                         </HStack>
@@ -118,7 +118,7 @@ export const EditLockForm: React.FC<EditLockFormProps> = ({ depositType, current
             )}
 
             {/* Info Text */}
-            <Text fontSize="2xs" color="#F5F5F550">
+            <Text fontSize="2xs" color="#ece6d850">
                 Note: Lock days decrease over time as the lock period progresses. You can extend the lock to maintain or increase your boost.
             </Text>
 

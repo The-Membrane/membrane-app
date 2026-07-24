@@ -38,17 +38,17 @@ export const TutorialSection: React.FC<TutorialSectionProps> = ({
         <VStack spacing={4} align="stretch" w="100%" h="100%" p={3}>
             {/* Progress indicator */}
             <HStack spacing={3} w="100%" align="center">
-                <Box flex={1} h="3px" bg="#6943FF20" borderRadius="full" position="relative" overflow="hidden">
+                <Box flex={1} h="3px" bg="#9bdc4f20" borderRadius="full" position="relative" overflow="hidden">
                     <Box
                         h="100%"
-                        bg="linear-gradient(90deg, #6943FF, #7C5AFF)"
+                        bg="linear-gradient(90deg, #9bdc4f, #7C5AFF)"
                         borderRadius="full"
                         transition="width 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
                         width={`${((currentStep + 1) / totalSteps) * 100}%`}
-                        boxShadow="0 0 8px rgba(105, 67, 255, 0.5)"
+                        boxShadow="0 0 8px rgba(155, 220, 79, 0.5)"
                     />
                 </Box>
-                <Text fontSize="xs" color="#F5F5F580" fontFamily="mono" minW="45px" textAlign="right" fontWeight="medium">
+                <Text fontSize="xs" color="#ece6d880" fontFamily="mono" minW="45px" textAlign="right" fontWeight="medium">
                     {currentStep + 1}/{totalSteps}
                 </Text>
             </HStack>
@@ -56,22 +56,22 @@ export const TutorialSection: React.FC<TutorialSectionProps> = ({
             {/* Step content */}
             <Box flex={1} overflowY="auto" py={3} px={1}>
                 <VStack spacing={4} align="stretch">
-                    <Text fontSize="md" fontWeight="bold" color="#F5F5F5" lineHeight="1.4">
+                    <Text fontSize="md" fontWeight="bold" color="#ece6d8" lineHeight="1.4">
                         {step.title}
                     </Text>
-                    <Text fontSize="sm" color="#F5F5F580" lineHeight="1.7" letterSpacing="0.2px">
+                    <Text fontSize="sm" color="#ece6d880" lineHeight="1.7" letterSpacing="0.2px">
                         {step.content}
                     </Text>
                 </VStack>
             </Box>
 
             {/* Navigation */}
-            <HStack spacing={3} justify="space-between" w="100%" pt={3} borderTop="1px solid" borderColor="#6943FF20">
+            <HStack spacing={3} justify="space-between" w="100%" pt={3} borderTop="1px solid" borderColor="#9bdc4f20">
                 <Button
                     size="sm"
                     variant="ghost"
-                    color="#F5F5F5"
-                    _hover={{ bg: '#6943FF20', color: '#6943FF' }}
+                    color="#ece6d8"
+                    _hover={{ bg: '#9bdc4f20', color: '#9bdc4f' }}
                     _active={{ transform: 'scale(0.95)' }}
                     onClick={onPrevious}
                     isDisabled={isFirstStep}
@@ -87,9 +87,9 @@ export const TutorialSection: React.FC<TutorialSectionProps> = ({
 
                 <Button
                     size="sm"
-                    bg="#6943FF"
+                    bg="#9bdc4f"
                     color="white"
-                    _hover={{ bg: '#7C5AFF', transform: 'scale(1.05)', boxShadow: '0 0 15px rgba(105, 67, 255, 0.5)' }}
+                    _hover={{ bg: '#7C5AFF', transform: 'scale(1.05)', boxShadow: '0 0 15px rgba(155, 220, 79, 0.5)' }}
                     _active={{ transform: 'scale(0.95)' }}
                     onClick={isLastStep ? onFinish : onNext}
                     rightIcon={isLastStep ? undefined : <ChevronRightIcon />}

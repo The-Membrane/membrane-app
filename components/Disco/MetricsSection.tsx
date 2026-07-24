@@ -1,55 +1,188 @@
-import React, { useMemo } from 'react'
-import { Box, VStack, Text, Grid, GridItem } from '@chakra-ui/react'
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    Tooltip as RechartsTooltip,
-    ResponsiveContainer,
-} from 'recharts'
+import React, { useMemo, useState } from 'react'
+import { Box, VStack, HStack, Text, Grid, GridItem, Menu, MenuButton, MenuList, MenuItem, Button } from '@chakra-ui/react'
+import { ChevronDownIcon } from '@chakra-ui/icons'
+import { lazyChart } from '@/components/ui/lazyChart'
 import { useDailyTVL } from '@/hooks/useDiscoData'
 import { shiftDigits } from '@/helpers/math'
 import { mockDailyTVL } from './mockData'
 import { LTVHistoryChart } from './LTVHistoryChart'
 
-interface IndividualLTVData {
-    ltv: number
-    borrowLTV?: number
+// Color constants
+const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+type TimeUnit = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+const TIME_UNIT_LABELS: Record<TimeUnit, string> = {
+    daily: 'Daily',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    quarterly: 'Quarterly',
+    yearly: 'Yearly',
+}
+
+const getBucketKey = (timestamp: number, unit: TimeUnit): string => {
+    const d = new Date(timestamp * 1000)
+    const y = d.getFullYear()
+    const m = d.getMonth()
+    switch (unit) {
+        case 'daily': return `${y}-${m}-${d.getDate()}`
+        case 'weekly': {
+            const day = new Date(d)
+            day.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+            return `${day.getFullYear()}-W${String(Math.ceil(((day.getTime() - new Date(day.getFullYear(), 0, 1).getTime()) / 86400000 + 1) / 7)).padStart(2, '0')}`
+        }
+        case 'monthly': return `${y}-${String(m + 1).padStart(2, '0')}`
+        case 'quarterly': return `${y}-Q${Math.floor(m / 3) + 1}`
+        case 'yearly': return `${y}`
+    }
+}
+
+interface SlotData {
+    slot: number
     tvl: number
     apr?: string | null
-    slotData?: any
+    weight?: string
 }
 
 interface MetricsSectionProps {
     globalTotalDeposits: number
     globalTotalInsurance: number
-    selectedLTVData?: IndividualLTVData | null
+    selectedSlotData?: SlotData | null
     ltvChartAsset?: string
     ltvChartAssetSymbol?: string
     ltvChartQueue?: any
 }
 
-export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDeposits, globalTotalInsurance, selectedLTVData, ltvChartAsset, ltvChartAssetSymbol, ltvChartQueue }) => {
+const GlobalTVLChart = lazyChart<{ tvlChartData: any[] }>(
+    ({ LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip: RechartsTooltip, ResponsiveContainer, Brush }) =>
+        function GlobalTVLChart({ tvlChartData }) {
+            return (
+                <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={tvlChartData}>
+                        <XAxis
+                            dataKey="date"
+                            stroke={PRIMARY_PURPLE}
+                            strokeOpacity={0.6}
+                            tick={{ fill: 'white', fontFamily: 'mono', fontSize: '10px', letterSpacing: '2px', fontWeight: 700 }}
+                            interval="preserveStartEnd"
+                            tickFormatter={(value, index) => {
+                                if (tvlChartData.length === 0) return value
+                                const step = Math.max(1, Math.floor(tvlChartData.length / 5))
+                                if (index === 0 || index === tvlChartData.length - 1 || index % step === 0) {
+                                    return value
+                                }
+                                return ''
+                            }}
+                        />
+                        <YAxis
+                            stroke={PRIMARY_PURPLE}
+                            strokeOpacity={0.6}
+                            tick={{ fill: 'white', fontFamily: 'mono', fontSize: '10px', letterSpacing: '2px', fontWeight: 700 }}
+                            tickFormatter={(value: number) => {
+                                if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+                                if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`
+                                return value.toString()
+                            }}
+                        />
+                        <RechartsTooltip
+                            contentStyle={{
+                                backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                                border: `2px solid ${PRIMARY_PURPLE}`,
+                                borderRadius: '4px',
+                                color: 'white',
+                                fontFamily: 'mono',
+                            }}
+                            formatter={(value: any) => {
+                                const formattedValue = typeof value === 'number'
+                                    ? value.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                                    : parseFloat(value || '0').toLocaleString(undefined, { maximumFractionDigits: 0 })
+                                return [`${formattedValue} MBRN`, 'TVL']
+                            }}
+                            labelFormatter={(label) => label}
+                        />
+                        <Line type="monotone" dataKey="tvl" stroke="#46d39a" strokeWidth={2} dot={false} />
+                        <Brush
+                            dataKey="date"
+                            height={40}
+                            stroke={PRIMARY_PURPLE}
+                            fill="rgba(10, 10, 10, 0.8)"
+                            travellerWidth={10}
+                            tickFormatter={() => ''}
+                        >
+                            <AreaChart data={tvlChartData}>
+                                <Area
+                                    type="monotone"
+                                    dataKey="tvl"
+                                    stroke="#46d39a"
+                                    fill="#46d39a"
+                                    fillOpacity={0.2}
+                                    strokeWidth={1}
+                                />
+                            </AreaChart>
+                        </Brush>
+                    </LineChart>
+                </ResponsiveContainer>
+            )
+        },
+    250,
+)
+
+export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDeposits, globalTotalInsurance, selectedSlotData, ltvChartAsset, ltvChartAssetSymbol, ltvChartQueue }) => {
     const { data: dailyTVL } = useDailyTVL()
+    const [timeUnit, setTimeUnit] = useState<TimeUnit>('daily')
 
     // Use mock data if real data is not available
     const useMockData = !dailyTVL || !dailyTVL.entries || dailyTVL.entries.length === 0
-    const dailyTVLToUse = useMockData ? mockDailyTVL.entries : (dailyTVL?.entries || [])
+    // Memoized so the reference is stable across renders (prevents rawTvlData useMemo from
+    // recomputing every render).
+    const dailyTVLToUse = useMemo(
+        () => (useMockData ? mockDailyTVL.entries : (dailyTVL?.entries || [])),
+        [useMockData, dailyTVL]
+    )
 
-    // Daily TVL chart data (already global)
-    const tvlChartData = dailyTVLToUse.map((entry: any) => {
-        const value = shiftDigits(entry.tvl || '0', -6)
-        return {
-            date: new Date(entry.timestamp * 1000).toLocaleDateString(),
-            timestamp: entry.timestamp,
-            tvl: parseFloat(typeof value === 'object' ? value.toString() : String(value)),
+    // Raw daily TVL chart data
+    const rawTvlData = useMemo(() => {
+        return dailyTVLToUse.map((entry: any) => {
+            const value = shiftDigits(entry.tvl || '0', -6)
+            return {
+                timestamp: entry.timestamp,
+                tvl: parseFloat(typeof value === 'object' ? value.toString() : String(value)),
+            }
+        })
+    }, [dailyTVLToUse])
+
+    // Aggregate by time unit
+    const tvlChartData = useMemo(() => {
+        if (rawTvlData.length === 0) return []
+        if (timeUnit === 'daily') {
+            return rawTvlData.map(d => {
+                const date = new Date(d.timestamp * 1000)
+                return {
+                    ...d,
+                    date: `${MONTHS[date.getMonth()]} '${String(date.getFullYear()).slice(2)}`,
+                }
+            })
         }
-    })
 
-    // Calculate section-specific metrics based on selectedLTVData
+        const buckets = new Map<string, { timestamp: number; tvl: number }>()
+        for (const entry of rawTvlData) {
+            const key = getBucketKey(entry.timestamp, timeUnit)
+            buckets.set(key, entry)
+        }
+
+        return Array.from(buckets.values()).map(d => {
+            const date = new Date(d.timestamp * 1000)
+            return {
+                ...d,
+                date: `${MONTHS[date.getMonth()]} '${String(date.getFullYear()).slice(2)}`,
+            }
+        })
+    }, [rawTvlData, timeUnit])
+
+    // Calculate section-specific metrics based on selectedSlotData
     const sectionMetrics = useMemo(() => {
-        if (!selectedLTVData) {
+        if (!selectedSlotData) {
             return {
                 totalDeposits: 0,
                 pendingClaims: 0,
@@ -58,16 +191,9 @@ export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDepo
             }
         }
 
-        // Section-specific deposits (convert from base units to MBRN)
-        const sectionDeposits = parseFloat(shiftDigits(selectedLTVData.tvl.toString(), -6).toString())
-
-        // Section-specific pending claims (placeholder - would need actual section-specific query)
-        const sectionPendingClaims = 0 // TODO: Query section-specific pending claims
-
-        // Section-specific lifetime revenue (placeholder - would need actual section-specific query)
-        const sectionLifetimeRevenue = 0 // TODO: Query section-specific lifetime revenue
-
-        // Section-specific insurance (proportional to deposits or placeholder)
+        const sectionDeposits = parseFloat(shiftDigits(selectedSlotData.tvl.toString(), -6).toString())
+        const sectionPendingClaims = 0
+        const sectionLifetimeRevenue = 0
         const sectionInsurance = sectionDeposits > 0 && globalTotalDeposits > 0
             ? (sectionDeposits / globalTotalDeposits) * globalTotalInsurance
             : 0
@@ -78,11 +204,7 @@ export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDepo
             lifetimeRevenue: sectionLifetimeRevenue,
             totalInsurance: sectionInsurance,
         }
-    }, [selectedLTVData, globalTotalDeposits, globalTotalInsurance])
-
-    // Color constants
-    const PRIMARY_PURPLE = 'rgb(166, 146, 255)'
-    const DARK_BG = '#0A0A0A'
+    }, [selectedSlotData, globalTotalDeposits, globalTotalInsurance])
 
     return (
         <Box w="100%" maxW="1400px" mx="auto" p={8}>
@@ -104,7 +226,7 @@ export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDepo
                     <Text
                         fontSize="2xl"
                         fontWeight="bold"
-                        color={PRIMARY_PURPLE}
+                        color="white"
                         fontFamily="mono"
                         letterSpacing="2px"
                         textTransform="uppercase"
@@ -139,26 +261,6 @@ export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDepo
                         </Box>
                     </GridItem> */}
 
-                        {/* Pending Claims */}
-                        <GridItem>
-                            <Box
-                                bg="rgba(10, 10, 10, 0.8)"
-                                p={4}
-                                borderRadius="md"
-                                border="2px solid"
-                                borderColor={PRIMARY_PURPLE}
-                                position="relative"
-                                boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
-                            >
-                                <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px" mb={2}>
-                                    Pending Claims
-                                </Text>
-                                <Text fontSize="3xl" fontWeight="bold" color={PRIMARY_PURPLE} fontFamily="mono" textShadow={`0 0 10px ${PRIMARY_PURPLE}`}>
-                                    {sectionMetrics.pendingClaims.toLocaleString()} CDT
-                                </Text>
-                            </Box>
-                        </GridItem>
-
                         {/* Lifetime Revenue */}
                         <GridItem>
                             <Box
@@ -173,8 +275,8 @@ export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDepo
                                 <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px" mb={2}>
                                     Lifetime Revenue
                                 </Text>
-                                <Text fontSize="3xl" fontWeight="bold" color={PRIMARY_PURPLE} fontFamily="mono" textShadow={`0 0 10px ${PRIMARY_PURPLE}`}>
-                                    {sectionMetrics.lifetimeRevenue.toLocaleString(undefined, { maximumFractionDigits: 2 })} CDT
+                                <Text fontSize="3xl" fontWeight="bold" color="white" fontFamily="mono">
+                                    {sectionMetrics.lifetimeRevenue.toLocaleString('en-US', { maximumFractionDigits: 2 })} CDT
                                 </Text>
                             </Box>
                         </GridItem>
@@ -193,8 +295,8 @@ export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDepo
                                 <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px" mb={2}>
                                     Total Insurance
                                 </Text>
-                                <Text fontSize="3xl" fontWeight="bold" color={PRIMARY_PURPLE} fontFamily="mono" textShadow={`0 0 10px ${PRIMARY_PURPLE}`}>
-                                    {sectionMetrics.totalInsurance.toLocaleString(undefined, { maximumFractionDigits: 2 })} CDT
+                                <Text fontSize="3xl" fontWeight="bold" color="white" fontFamily="mono">
+                                    {sectionMetrics.totalInsurance.toLocaleString('en-US', { maximumFractionDigits: 2 })} CDT
                                 </Text>
                             </Box>
                         </GridItem>
@@ -211,70 +313,60 @@ export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDepo
                         position="relative"
                         boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
                     >
-                        <Text
-                            fontSize="2xl"
-                            fontWeight="bold"
-                            color={PRIMARY_PURPLE}
-                            fontFamily="mono"
-                            letterSpacing="2px"
-                            textTransform="uppercase"
-                            mb={2}
-                        >
-                            Global Disco Metrics
-                        </Text>
-                        <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px" mb={4}>
-                            Daily TVL History
-                        </Text>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <LineChart data={tvlChartData}>
-                                <XAxis
-                                    dataKey="date"
-                                    stroke={PRIMARY_PURPLE}
-                                    strokeOpacity={0.6}
-                                    tick={{ fill: PRIMARY_PURPLE, fontFamily: 'mono', fontSize: '10px' }}
-                                    interval="preserveStartEnd"
-                                    tickFormatter={(value, index) => {
-                                        // Show only weekly dates (every 7 days)
-                                        if (tvlChartData.length === 0) return value
-                                        const entry = tvlChartData[index]
-                                        if (!entry || !entry.timestamp) return value
-
-                                        // Get the first entry's timestamp as reference
-                                        const firstTimestamp = tvlChartData[0]?.timestamp || 0
-                                        const daysSinceStart = Math.floor((entry.timestamp - firstTimestamp) / 86400)
-
-                                        // Show date if it's a multiple of 7 days, or if it's the first/last entry
-                                        if (daysSinceStart % 7 === 0 || index === 0 || index === tvlChartData.length - 1) {
-                                            return value
-                                        }
-                                        return ''
-                                    }}
-                                />
-                                <YAxis
-                                    stroke={PRIMARY_PURPLE}
-                                    strokeOpacity={0.6}
-                                    tick={{ fill: PRIMARY_PURPLE, fontFamily: 'mono', fontSize: '10px' }}
-                                    label={{ value: 'MBRN', angle: -90, position: 'insideLeft', fill: PRIMARY_PURPLE, fontFamily: 'mono', fontSize: '12px', fontWeight: '700' }}
-                                />
-                                <RechartsTooltip
-                                    contentStyle={{
-                                        backgroundColor: 'rgba(10, 10, 10, 0.95)',
-                                        border: `2px solid ${PRIMARY_PURPLE}`,
-                                        borderRadius: '4px',
-                                        color: PRIMARY_PURPLE,
-                                        fontFamily: 'mono',
-                                    }}
-                                    formatter={(value: any) => {
-                                        const formattedValue = typeof value === 'number'
-                                            ? value.toFixed(2)
-                                            : parseFloat(value || '0').toFixed(2)
-                                        return [`${formattedValue} MBRN`, 'TVL']
-                                    }}
-                                    labelFormatter={(label) => label}
-                                />
-                                <Line type="monotone" dataKey="tvl" stroke={PRIMARY_PURPLE} strokeWidth={2} dot={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        <Box mb={2}>
+                            <Text
+                                fontSize="2xl"
+                                fontWeight="bold"
+                                color="white"
+                                fontFamily="mono"
+                                letterSpacing="2px"
+                                textTransform="uppercase"
+                            >
+                                Global Disco Metrics
+                            </Text>
+                            <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px">
+                                Daily MBRN TVL History
+                            </Text>
+                        </Box>
+                        <Box mb={2} w={{ base: '120px', md: '15%' }} minW="100px">
+                            <Menu>
+                                <MenuButton
+                                    as={Button}
+                                    w="100%"
+                                    size="xs"
+                                    variant="outline"
+                                    borderColor={`${PRIMARY_PURPLE}60`}
+                                    color="whiteAlpha.800"
+                                    fontFamily="mono"
+                                    fontSize="xs"
+                                    rightIcon={<ChevronDownIcon />}
+                                    _hover={{ borderColor: PRIMARY_PURPLE, color: 'white' }}
+                                    _active={{ bg: `${PRIMARY_PURPLE}20` }}
+                                >
+                                    {TIME_UNIT_LABELS[timeUnit]}
+                                </MenuButton>
+                                <MenuList
+                                    bg="rgba(10, 10, 10, 0.95)"
+                                    borderColor={PRIMARY_PURPLE}
+                                    minW="120px"
+                                >
+                                    {(Object.keys(TIME_UNIT_LABELS) as TimeUnit[]).map(unit => (
+                                        <MenuItem
+                                            key={unit}
+                                            onClick={() => setTimeUnit(unit)}
+                                            bg={timeUnit === unit ? `${PRIMARY_PURPLE}20` : 'transparent'}
+                                            color={timeUnit === unit ? PRIMARY_PURPLE : 'whiteAlpha.800'}
+                                            fontFamily="mono"
+                                            fontSize="xs"
+                                            _hover={{ bg: `${PRIMARY_PURPLE}15`, color: 'white' }}
+                                        >
+                                            {TIME_UNIT_LABELS[unit]}
+                                        </MenuItem>
+                                    ))}
+                                </MenuList>
+                            </Menu>
+                        </Box>
+                        <GlobalTVLChart tvlChartData={tvlChartData} />
                     </Box>
                 </GridItem>
 
@@ -285,4 +377,3 @@ export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDepo
 })
 
 MetricsSection.displayName = 'MetricsSection'
-

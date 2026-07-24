@@ -25,8 +25,8 @@ export const DiscoBallMeteor = React.memo(() => {
                 sx={{
                     background: `
                         radial-gradient(circle at 25% 35%, rgba(255, 255, 255, 0.4) 0%, transparent 4%),
-                        radial-gradient(circle at 65% 70%, rgba(166, 146, 255, 0.3) 0%, transparent 5%),
-                        radial-gradient(circle at 85% 25%, rgba(59, 229, 229, 0.4) 0%, transparent 4%)
+                        radial-gradient(circle at 65% 70%, rgba(155, 220, 79, 0.3) 0%, transparent 5%),
+                        radial-gradient(circle at 85% 25%, rgba(70, 211, 154, 0.4) 0%, transparent 4%)
                     `,
                     animation: 'discoSparkle 2.5s ease-in-out infinite',
                     mixBlendMode: 'screen',

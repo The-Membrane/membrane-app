@@ -5,7 +5,7 @@ import { DittoSpeechBoxSection } from './DittoSpeechBoxSection'
 import { DiscoSection } from './sections/DiscoSection'
 import { TransmuterSection } from './sections/TransmuterSection'
 import { ManicSection } from './sections/ManicSection'
-import { TransmuterLockdropSection } from './sections/TransmuterLockdropSection'
+import { AcquisitionSection } from './sections/AcquisitionSection'
 import { BoostSection } from './sections/BoostSection'
 import { UpdatesSection } from './sections/UpdatesSection'
 import { TxConfirmationSection } from './sections/TxConfirmationSection'
@@ -38,16 +38,16 @@ export const DittoSpeechBox: React.FC<DittoSpeechBoxProps> = ({ isVisible = true
             transformOrigin="bottom left"
             transition="transform 0.3s ease-in-out, opacity 0.3s ease-in-out"
             bg="#23252B"
-            color="#F5F5F5"
+            color="#ece6d8"
             px={4}
             py={3}
             borderRadius="md"
             w="353px"
             minH="300px"
             maxH="450px"
-            boxShadow="0 4px 12px rgba(0,0,0,0.5), 0 0 20px rgba(105, 67, 255, 0.3)"
+            boxShadow="0 4px 12px rgba(0,0,0,0.5), 0 0 20px rgba(155, 220, 79, 0.3)"
             border="1px solid"
-            borderColor="#6943FF40"
+            borderColor="#9bdc4f40"
             zIndex={10000}
             overflow="hidden"
             display="flex"
@@ -73,7 +73,7 @@ export const DittoSpeechBox: React.FC<DittoSpeechBoxProps> = ({ isVisible = true
                 height: 0,
                 borderLeft: '9px solid transparent',
                 borderRight: '9px solid transparent',
-                borderTop: '9px solid #6943FF40',
+                borderTop: '9px solid #9bdc4f40',
             }}
         >
             {currentView === 'disco' && (
@@ -98,19 +98,19 @@ export const DittoSpeechBox: React.FC<DittoSpeechBoxProps> = ({ isVisible = true
                     title="Manic"
                     onBack={returnToHub}
                     onClose={close}
-                    titleColor="cyan.400"
+                    titleColor="secondary.400"
                 >
                     <ManicSection onBack={returnToHub} />
                 </DittoSpeechBoxSection>
             )}
-            {currentView === 'transmuter-lockdrop' && (
+            {currentView === 'acquisition' && (
                 <DittoSpeechBoxSection
-                    title="Transmuter Lockdrop"
+                    title="Acquisition"
                     onBack={returnToHub}
                     onClose={close}
-                    titleColor="purple.400"
+                    titleColor="primary.400"
                 >
-                    <TransmuterLockdropSection onBack={returnToHub} />
+                    <AcquisitionSection onBack={returnToHub} />
                 </DittoSpeechBoxSection>
             )}
             {currentView === 'boost' && (
@@ -118,7 +118,7 @@ export const DittoSpeechBox: React.FC<DittoSpeechBoxProps> = ({ isVisible = true
                     title="Boost Breakdown"
                     onBack={returnToHub}
                     onClose={close}
-                    titleColor="cyan.400"
+                    titleColor="secondary.400"
                 >
                     <BoostSection onBack={returnToHub} />
                 </DittoSpeechBoxSection>
@@ -128,7 +128,7 @@ export const DittoSpeechBox: React.FC<DittoSpeechBoxProps> = ({ isVisible = true
                     title="Updates"
                     onBack={returnToHub}
                     onClose={close}
-                    titleColor="cyan.400"
+                    titleColor="secondary.400"
                 >
                     <UpdatesSection onBack={returnToHub} />
                 </DittoSpeechBoxSection>
@@ -143,7 +143,7 @@ export const DittoSpeechBox: React.FC<DittoSpeechBoxProps> = ({ isVisible = true
                     title="Tutorial"
                     onBack={returnToPreviousView}
                     onClose={close}
-                    titleColor="purple.400"
+                    titleColor="primary.400"
                     showTutorialButton={false}
                     onFAQClick={openFAQ}
                 >
@@ -155,7 +155,7 @@ export const DittoSpeechBox: React.FC<DittoSpeechBoxProps> = ({ isVisible = true
                     title="FAQ"
                     onBack={returnToPreviousView}
                     onClose={close}
-                    titleColor="purple.400"
+                    titleColor="primary.400"
                 >
                     <FAQSectionWrapper onBack={returnToPreviousView} />
                 </DittoSpeechBoxSection>

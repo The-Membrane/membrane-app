@@ -20,7 +20,7 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
     onBack,
     onClose,
     children,
-    titleColor = "#F5F5F5",
+    titleColor = "#ece6d8",
     showTutorialButton = false,
     onTutorialClick,
     onFAQClick,
@@ -38,8 +38,8 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                             variant="ghost"
                             leftIcon={<ChevronLeftIcon />}
                             onClick={onBack}
-                            color="#F5F5F5"
-                            _hover={{ bg: '#6943FF20' }}
+                            color="#ece6d8"
+                            _hover={{ bg: '#9bdc4f20' }}
                             flexShrink={0}
                             minW="60px"
                             width="20%"
@@ -58,7 +58,7 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                 zIndex={1}
                             >
                                 <Box
-                                    bgGradient="linear(to-r, purple.400, cyan.400)"
+                                    bgGradient="linear(to-r, primary.400, secondary.400)"
                                     p="2px"
                                     borderRadius="md"
                                     display="inline-block"
@@ -75,7 +75,7 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                         <Text
                                             fontSize="xl"
                                             fontWeight="bold"
-                                            color="#F5F5F5"
+                                            color="#ece6d8"
                                             lineHeight="1.2"
                                         >
                                             Boost
@@ -83,7 +83,7 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                         <Text
                                             fontSize="xl"
                                             fontWeight="bold"
-                                            color="#F5F5F5"
+                                            color="#ece6d8"
                                             lineHeight="1.2"
                                         >
                                             Breakdown
@@ -97,12 +97,12 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                 display="flex"
                                 justifyContent="center"
                                 alignItems="center"
-                                transform={title === "Transmuter Lockdrop" ? "translate(0, 0%)" : "translate(-3%, 0%)"}
+                                transform={title === "Acquisition" ? "translate(0, 0%)" : "translate(-3%, 0%)"}
                                 position="relative"
                                 zIndex={1}
                             >
                                 <Box
-                                    bgGradient="linear(to-r, purple.400, cyan.400)"
+                                    bgGradient="linear(to-r, primary.400, secondary.400)"
                                     p="2px"
                                     borderRadius="md"
                                     display="inline-block"
@@ -110,13 +110,13 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                     <Text
                                         fontSize="xl"
                                         fontWeight="bold"
-                                        color="#F5F5F5"
+                                        color="#ece6d8"
                                         textAlign="center"
                                         px={3}
                                         py={1}
                                         bg="#23252B"
                                         borderRadius="md"
-                                        noOfLines={title === "Transmuter Lockdrop" ? undefined : 1}
+                                        noOfLines={title === "Acquisition" ? undefined : 1}
                                     >
                                         {title}
                                     </Text>
@@ -130,9 +130,9 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                     icon={<Icon as={BookOpen} w={4} h={4} />}
                                     size="sm"
                                     variant="ghost"
-                                    color="#F5F5F5"
+                                    color="#ece6d8"
                                     onClick={onTutorialClick}
-                                    _hover={{ bg: '#6943FF20', color: '#6943FF', transform: 'scale(1.1)' }}
+                                    _hover={{ bg: '#9bdc4f20', color: '#9bdc4f', transform: 'scale(1.1)' }}
                                     _active={{ transform: 'scale(0.95)' }}
                                     title="Tutorial"
                                     transition="all 0.2s ease"
@@ -145,9 +145,9 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                     icon={<Icon as={HelpCircle} w={4} h={4} />}
                                     size="sm"
                                     variant="ghost"
-                                    color="#F5F5F5"
+                                    color="#ece6d8"
                                     onClick={onFAQClick}
-                                    _hover={{ bg: '#6943FF20', color: '#6943FF', transform: 'scale(1.1)' }}
+                                    _hover={{ bg: '#9bdc4f20', color: '#9bdc4f', transform: 'scale(1.1)' }}
                                     _active={{ transform: 'scale(0.95)' }}
                                     title="FAQ"
                                     transition="all 0.2s ease"
@@ -159,9 +159,9 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                 icon={<CloseIcon />}
                                 size="sm"
                                 variant="ghost"
-                                color="#F5F5F5"
+                                color="#ece6d8"
                                 onClick={onClose || (() => { })}
-                                _hover={{ bg: '#6943FF20', color: '#F5F5F5', transform: 'scale(1.1)' }}
+                                _hover={{ bg: '#9bdc4f20', color: '#ece6d8', transform: 'scale(1.1)' }}
                                 _active={{ transform: 'scale(0.95)' }}
                                 transition="all 0.2s ease"
                                 borderRadius="md"
@@ -187,11 +187,11 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                             borderRadius: '3px',
                         },
                         '&::-webkit-scrollbar-thumb': {
-                            background: '#6943FF60',
+                            background: '#9bdc4f60',
                             borderRadius: '3px',
                         },
                         '&::-webkit-scrollbar-thumb:hover': {
-                            background: '#6943FF',
+                            background: '#9bdc4f',
                         },
                     }}
                 >

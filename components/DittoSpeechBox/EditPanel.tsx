@@ -1,6 +1,6 @@
 import React from 'react'
 import { Box, VStack, Button, HStack, IconButton } from '@chakra-ui/react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/router'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { ChevronLeftIcon } from '@chakra-ui/icons'
@@ -33,7 +33,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({ isOpen, onClose, currentVi
     return (
         <AnimatePresence>
             {isOpen && (
-                <motion.div
+                <m.div
                     initial={{ x: 0, scaleX: 0 }}
                     animate={{ x: 0, scaleX: 1 }}
                     exit={{ x: 0, scaleX: 0 }}
@@ -54,10 +54,10 @@ export const EditPanel: React.FC<EditPanelProps> = ({ isOpen, onClose, currentVi
                         h="100%"
                         bg="#23252B"
                         border="1px solid"
-                        borderColor="#6943FF40"
+                        borderColor="#9bdc4f40"
                         borderLeft="none"
                         borderRadius="0 md md 0"
-                        boxShadow="0 4px 12px rgba(0,0,0,0.5), 0 0 20px rgba(105, 67, 255, 0.3)"
+                        boxShadow="0 4px 12px rgba(0,0,0,0.5), 0 0 20px rgba(155, 220, 79, 0.3)"
                         // boxShadowLeft="none"
                         p={4}
                         pl={0}
@@ -76,7 +76,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({ isOpen, onClose, currentVi
                                 icon={<ChevronLeftIcon />}
                                 size="sm"
                                 variant="ghost"
-                                color="#F5F5F5"
+                                color="#ece6d8"
                                 onClick={onClose}
                                 _hover={{ bg: undefined, color: undefined }}
                                 _active={{ bg: undefined, color: undefined }}
@@ -85,36 +85,36 @@ export const EditPanel: React.FC<EditPanelProps> = ({ isOpen, onClose, currentVi
                             <HStack spacing={3} align="stretch" mt={4} w={"fit-content"}>
                                 <Button
                                     size="sm"
-                                    colorScheme="cyan"
-                                    bg="cyan.500"
+                                    colorScheme="secondary"
+                                    bg="secondary.500"
                                     color="white"
                                     onClick={handleDeposit}
                                     _hover={{
-                                        bg: 'cyan.400',
+                                        bg: 'secondary.400',
                                     }}
                                 >
                                     Deposit
                                 </Button>
                                 <Button
                                     size="sm"
-                                    colorScheme="cyan"
-                                    bg="cyan.500"
+                                    colorScheme="secondary"
+                                    bg="secondary.500"
                                     color="white"
                                     onClick={handleWithdraw}
                                     _hover={{
-                                        bg: 'cyan.400',
+                                        bg: 'secondary.400',
                                     }}
                                 >
                                     Withdraw
                                 </Button>
                                 <Button
                                     size="sm"
-                                    colorScheme="cyan"
-                                    bg="cyan.500"
+                                    colorScheme="secondary"
+                                    bg="secondary.500"
                                     color="white"
                                     onClick={handleLoop}
                                     _hover={{
-                                        bg: 'cyan.400',
+                                        bg: 'secondary.400',
                                     }}
                                 >
                                     Loop
@@ -122,7 +122,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({ isOpen, onClose, currentVi
                             </HStack>
                         </HStack>
                     </Box>
-                </motion.div>
+                </m.div>
             )}
         </AnimatePresence>
     )

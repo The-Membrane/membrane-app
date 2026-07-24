@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Box, VStack, HStack, Text, Flex } from '@chakra-ui/react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { useDiscoAssets, useDailyTVL, useDiscoUserMetrics } from '@/hooks/useDiscoData'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { getLTVQueue } from '@/services/disco'
+import { getAssetQueue } from '@/services/disco'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import useAppState from '@/persisted-state/useAppState'
 import { shiftDigits } from '@/helpers/math'
 import { getDiscoTotalInsurance } from '@/services/flywheel'
 
 // Color constants
-const PRIMARY_PURPLE = 'rgb(166, 146, 255)'
-const DARK_BG = '#0A0A0A'
+const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
+const DARK_BG = '#09090a'
 const NEON_BLUE = '#00bfff'
 const WELD_WHITE = '#ffffff'
-const WELD_BLUE = '#4fcabb'
+const WELD_BLUE = '#46d39a'
 
 // Hex panel constants
 const HEX_CENTER_X = 400
@@ -27,6 +27,29 @@ interface LTVSegment {
     tvl: number
     segmentIndex: number
     opacityRatio: number
+}
+
+// Calculate size for each segment
+// Each layer is 9% smaller than the previous one
+// position: 0 = outermost (first rendered), higher = more inner
+const getSegmentSize = (position: number): number => {
+    // Start from 90% of main radius and each subsequent layer is 9% smaller
+    const baseSize = HEX_RADIUS * 1.8 // Diameter for hexagon (radius * 2)
+    const scaleFactor = Math.pow(0.91, position) // Each layer is 91% of previous (9% smaller)
+    return baseSize * scaleFactor
+}
+
+// Generate hexagon points for hover area
+const generateHexPoints = (centerX: number, centerY: number, size: number): string => {
+    const radius = size / 2
+    const points: string[] = []
+    for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3
+        const x = centerX + radius * Math.cos(angle)
+        const y = centerY + radius * Math.sin(angle)
+        points.push(`${x},${y}`)
+    }
+    return points.join(' ')
 }
 
 // Hexagonal Forcefield Panel with LTV Segments
@@ -123,29 +146,6 @@ const HexPanel: React.FC<{
         }))
     }, [ltvQueues])
 
-    // Calculate size for each segment
-    // Each layer is 9% smaller than the previous one
-    // position: 0 = outermost (first rendered), higher = more inner
-    const getSegmentSize = (position: number): number => {
-        // Start from 90% of main radius and each subsequent layer is 9% smaller
-        const baseSize = HEX_RADIUS * 1.8 // Diameter for hexagon (radius * 2)
-        const scaleFactor = Math.pow(0.91, position) // Each layer is 91% of previous (9% smaller)
-        return baseSize * scaleFactor
-    }
-
-    // Generate hexagon points for hover area
-    const generateHexPoints = (centerX: number, centerY: number, size: number): string => {
-        const radius = size / 2
-        const points: string[] = []
-        for (let i = 0; i < 6; i++) {
-            const angle = (i * Math.PI) / 3
-            const x = centerX + radius * Math.cos(angle)
-            const y = centerY + radius * Math.sin(angle)
-            points.push(`${x},${y}`)
-        }
-        return points.join(' ')
-    }
-
     // Memoize opacity values for each segment to prevent recalculation on hover
     const segmentOpacities = useMemo(() => {
         const totalTvl = segments.reduce((sum, seg) => sum + seg.tvl, 0)
@@ -226,7 +226,7 @@ const HexPanel: React.FC<{
                     return (
                         <g key={segment.segmentIndex}>
                             {/* MBRN Hexagon SVG */}
-                            <motion.image
+                            <m.image
                                 href="/images/MBRN-hexagon.svg"
                                 x={x}
                                 y={y}
@@ -291,7 +291,7 @@ const HexPanel: React.FC<{
                                     color="whiteAlpha.700"
                                     fontFamily="mono"
                                 >
-                                    TVL: {parseFloat(shiftDigits(segment.tvl.toString(), -6).toString()).toLocaleString()} MBRN
+                                    TVL: {parseFloat(shiftDigits(segment.tvl.toString(), -6).toString()).toLocaleString('en-US')} MBRN
                                 </Text>
                             </VStack>
                         </Box>
@@ -301,6 +301,46 @@ const HexPanel: React.FC<{
         </g>
     )
 }
+
+// Data Panel Metric Row
+const MetricRow: React.FC<{ label: string; value: string | number; unit?: string }> = ({
+    label,
+    value,
+    unit = '',
+}) => (
+    <VStack align="stretch" spacing={1} mb={4}>
+        <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px">
+            {label}
+        </Text>
+        <HStack>
+            <m.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+            >
+                <Text
+                    fontSize="2xl"
+                    fontWeight="bold"
+                    color={PRIMARY_PURPLE}
+                    fontFamily="mono"
+                    textShadow={`0 0 10px ${PRIMARY_PURPLE}`}
+                >
+                    {typeof value === 'number' ? value.toLocaleString() : value}
+                </Text>
+            </m.div>
+            {unit && (
+                <Text fontSize="sm" color="whiteAlpha.500" fontFamily="mono">
+                    {unit}
+                </Text>
+            )}
+        </HStack>
+        <Box
+            h="1px"
+            bgGradient={`linear(to-r, transparent, ${PRIMARY_PURPLE}, transparent)`}
+            opacity={0.5}
+        />
+    </VStack>
+)
 
 // Data Panel Component
 const DataPanel: React.FC<{
@@ -312,45 +352,6 @@ const DataPanel: React.FC<{
     totalInsurance: number
     recentLiquidations: number
 }> = ({ totalDeposits, averageLTV, activeTranches, yieldRange, pendingRevenue, totalInsurance, recentLiquidations }) => {
-    const MetricRow: React.FC<{ label: string; value: string | number; unit?: string }> = ({
-        label,
-        value,
-        unit = '',
-    }) => (
-        <VStack align="stretch" spacing={1} mb={4}>
-            <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono" letterSpacing="1px">
-                {label}
-            </Text>
-            <HStack>
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <Text
-                        fontSize="2xl"
-                        fontWeight="bold"
-                        color={PRIMARY_PURPLE}
-                        fontFamily="mono"
-                        textShadow={`0 0 10px ${PRIMARY_PURPLE}`}
-                    >
-                        {typeof value === 'number' ? value.toLocaleString() : value}
-                    </Text>
-                </motion.div>
-                {unit && (
-                    <Text fontSize="sm" color="whiteAlpha.500" fontFamily="mono">
-                        {unit}
-                    </Text>
-                )}
-            </HStack>
-            <Box
-                h="1px"
-                bgGradient={`linear(to-r, transparent, ${PRIMARY_PURPLE}, transparent)`}
-                opacity={0.5}
-            />
-        </VStack>
-    )
-
     return (
         <Box
             w="100%"
@@ -395,7 +396,7 @@ const DataPanel: React.FC<{
                 inset={0}
                 pointerEvents="none"
                 opacity={0.1}
-                backgroundImage="linear-gradient(rgba(166, 146, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(166, 146, 255, 0.1) 1px, transparent 1px)"
+                backgroundImage="linear-gradient(rgba(155, 220, 79, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(155, 220, 79, 0.1) 1px, transparent 1px)"
                 backgroundSize="20px 20px"
             />
         </Box>
@@ -419,12 +420,30 @@ export const WeldingArmScene: React.FC = () => {
     // Query LTV queues for all assets
     const ltvQueueQueries = useQueries({
         queries: (assets?.assets || []).map((asset: string) => ({
-            queryKey: ['disco', 'ltv_queue', asset, appState.rpcUrl],
-            queryFn: () => getLTVQueue(client || null, asset),
+            queryKey: ['disco', 'asset_queue', asset, appState.rpcUrl],
+            queryFn: () => getAssetQueue(client || null, asset),
             enabled: !!client && !!asset,
             staleTime: 1000 * 60 * 5,
         })),
     })
+
+    // rendering-hydration-mismatch-time fix: ambient particle positions/timings used to be
+    // computed with Math.random() directly in JSX, so SSR markup and the client's first
+    // render diverged. Generate them once, client-only, after mount instead.
+    const [ambientParticles, setAmbientParticles] = useState<
+        { left: number; top: number; duration: number; delay: number }[]
+    >([])
+
+    useEffect(() => {
+        setAmbientParticles(
+            Array.from({ length: 20 }, () => ({
+                left: Math.random() * 100,
+                top: Math.random() * 100,
+                duration: 3 + Math.random() * 2,
+                delay: Math.random() * 2,
+            }))
+        )
+    }, [])
 
     // Calculate metrics
     const metrics = useMemo(() => {
@@ -520,7 +539,7 @@ export const WeldingArmScene: React.FC = () => {
                 w="70%"
                 h="100%"
                 position="relative"
-                bg="radial-gradient(circle at center, rgba(166, 146, 255, 0.05) 0%, transparent 70%)"
+                bg="radial-gradient(circle at center, rgba(155, 220, 79, 0.05) 0%, transparent 70%)"
             >
                 <Box
                     w="100%"
@@ -533,7 +552,7 @@ export const WeldingArmScene: React.FC = () => {
                         height="100%"
                         viewBox="0 0 800 600"
                         preserveAspectRatio="xMidYMid meet"
-                        style={{ filter: 'drop-shadow(0 0 20px rgba(166, 146, 255, 0.3))' }}
+                        style={{ filter: 'drop-shadow(0 0 20px rgba(155, 220, 79, 0.3))' }}
                     >
                         <defs>
                             {/* Glow filters */}
@@ -565,8 +584,8 @@ export const WeldingArmScene: React.FC = () => {
                     pointerEvents="none"
                     opacity={0.3}
                 >
-                    {[...Array(20)].map((_, i) => (
-                        <motion.div
+                    {ambientParticles.map((particle, i) => (
+                        <m.div
                             key={i}
                             style={{
                                 position: 'absolute',
@@ -574,17 +593,17 @@ export const WeldingArmScene: React.FC = () => {
                                 height: '2px',
                                 background: PRIMARY_PURPLE,
                                 borderRadius: '50%',
-                                left: `${Math.random() * 100}%`,
-                                top: `${Math.random() * 100}%`,
+                                left: `${particle.left}%`,
+                                top: `${particle.top}%`,
                             }}
                             animate={{
                                 y: [0, -30, 0],
                                 opacity: [0, 1, 0],
                             }}
                             transition={{
-                                duration: 3 + Math.random() * 2,
+                                duration: particle.duration,
                                 repeat: Infinity,
-                                delay: Math.random() * 2,
+                                delay: particle.delay,
                             }}
                         />
                     ))}

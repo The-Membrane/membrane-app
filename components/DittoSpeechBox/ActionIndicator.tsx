@@ -1,19 +1,19 @@
 import React from 'react'
 import { Box, Text, Tooltip } from '@chakra-ui/react'
 import { keyframes } from '@emotion/react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 
-const MotionBox = motion(Box)
+const MotionBox = m(Box)
 
 const pulseGlow = keyframes`
     0% {
-        box-shadow: 0 0 0 0 rgba(105, 67, 255, 0.6);
+        box-shadow: 0 0 0 0 rgba(155, 220, 79, 0.6);
     }
     70% {
-        box-shadow: 0 0 0 10px rgba(105, 67, 255, 0);
+        box-shadow: 0 0 0 10px rgba(155, 220, 79, 0);
     }
     100% {
-        box-shadow: 0 0 0 0 rgba(105, 67, 255, 0);
+        box-shadow: 0 0 0 0 rgba(155, 220, 79, 0);
     }
 `
 
@@ -39,6 +39,19 @@ interface ActionIndicatorProps {
  * Visual indicator shown on Ditto when actions are available on the current page.
  * Shows a pulsing exclamation mark with a glow effect and optional tooltip.
  */
+// Static icon element hoisted to module scope so it isn't reallocated on every render.
+const ACTION_ICON = (
+    <Text
+        fontSize="14px"
+        fontWeight="black"
+        color="white"
+        lineHeight="1"
+        textShadow="0 1px 2px rgba(0,0,0,0.3)"
+    >
+        !
+    </Text>
+)
+
 export const ActionIndicator: React.FC<ActionIndicatorProps> = ({
     hasActions,
     tooltip,
@@ -46,18 +59,6 @@ export const ActionIndicator: React.FC<ActionIndicatorProps> = ({
     onClick,
 }) => {
     if (!hasActions) return null
-
-    const displayIcon = (
-        <Text
-            fontSize="14px"
-            fontWeight="black"
-            color="white"
-            lineHeight="1"
-            textShadow="0 1px 2px rgba(0,0,0,0.3)"
-        >
-            !
-        </Text>
-    )
 
     const displayTooltip = tooltip || 'Actions available'
 
@@ -67,13 +68,13 @@ export const ActionIndicator: React.FC<ActionIndicatorProps> = ({
             placement="top"
             hasArrow
             bg="#23252B"
-            color="#F5F5F5"
+            color="#ece6d8"
             fontSize="xs"
             px={3}
             py={2}
             borderRadius="md"
             border="1px solid"
-            borderColor="#6943FF40"
+            borderColor="#9bdc4f40"
         >
             <Box
                 position="relative"
@@ -102,15 +103,15 @@ export const ActionIndicator: React.FC<ActionIndicatorProps> = ({
                     w="22px"
                     h="22px"
                     borderRadius="full"
-                    bg="linear-gradient(135deg, #6943FF 0%, #3BE5E5 100%)"
+                    bg="linear-gradient(135deg, #9bdc4f 0%, #46d39a 100%)"
                     border="2px solid #23252B"
                     animation={`${breathe} 2s ease-in-out infinite`}
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    boxShadow="0 0 12px rgba(105, 67, 255, 0.6)"
+                    boxShadow="0 0 12px rgba(155, 220, 79, 0.6)"
                 >
-                    {displayIcon}
+                    {ACTION_ICON}
                 </Box>
             </Box>
         </Tooltip>
@@ -139,7 +140,7 @@ export const DittoActionGlow: React.FC<{ hasActions: boolean }> = ({ hasActions 
                 repeat: Infinity,
                 ease: 'easeInOut',
             }}
-            bg="radial-gradient(circle, rgba(105, 67, 255, 0.3) 0%, rgba(59, 229, 229, 0.1) 50%, transparent 70%)"
+            bg="radial-gradient(circle, rgba(155, 220, 79, 0.3) 0%, rgba(70, 211, 154, 0.1) 50%, transparent 70%)"
         />
     )
 }

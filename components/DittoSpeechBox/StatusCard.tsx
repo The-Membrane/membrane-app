@@ -1,10 +1,10 @@
 import React from 'react'
 import { Box, HStack, Text, Icon, IconButton } from '@chakra-ui/react'
 import { ChevronRightIcon } from '@chakra-ui/icons'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { LucideIcon } from 'lucide-react'
 
-const MotionBox = motion(Box)
+const MotionBox = m(Box)
 
 export interface StatusCardProps {
     /** Icon component to display */
@@ -39,12 +39,12 @@ export interface StatusCardProps {
  */
 export const StatusCard: React.FC<StatusCardProps> = ({
     icon,
-    iconColor = 'cyan.400',
+    iconColor = 'secondary.400',
     iconBg = 'transparent',
     title,
     subtitle,
     subtitleHighlight,
-    highlightColor = 'cyan.400',
+    highlightColor = 'secondary.400',
     onClick,
     showChevron = true,
     isExpanded = false,
@@ -59,12 +59,12 @@ export const StatusCard: React.FC<StatusCardProps> = ({
             <Box
                 bg="#1A1D26"
                 border="1px solid"
-                borderColor={isExpanded ? '#6943FF60' : '#6943FF20'}
+                borderColor={isExpanded ? '#9bdc4f60' : '#9bdc4f20'}
                 borderRadius="lg"
                 overflow="hidden"
                 transition="all 0.2s"
                 _hover={{
-                    borderColor: '#6943FF60',
+                    borderColor: '#9bdc4f60',
                     bg: '#1E2130',
                 }}
             >
@@ -98,12 +98,12 @@ export const StatusCard: React.FC<StatusCardProps> = ({
                             <Text
                                 fontSize="sm"
                                 fontWeight="semibold"
-                                color="#F5F5F5"
+                                color="#ece6d8"
                                 lineHeight="1.3"
                             >
                                 {title}
                             </Text>
-                            <Text fontSize="xs" color="#F5F5F580" lineHeight="1.3">
+                            <Text fontSize="xs" color="#ece6d880" lineHeight="1.3">
                                 {subtitleHighlight ? (
                                     <>
                                         {subtitle.split(subtitleHighlight)[0]}
@@ -125,7 +125,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({
                             as={ChevronRightIcon}
                             w={5}
                             h={5}
-                            color="#F5F5F540"
+                            color="#ece6d840"
                             transform={isExpanded ? 'rotate(90deg)' : 'rotate(0deg)'}
                             transition="transform 0.2s"
                         />
@@ -136,7 +136,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({
                 {isExpanded && children && (
                     <Box
                         borderTop="1px solid"
-                        borderColor="#6943FF20"
+                        borderColor="#9bdc4f20"
                         p={3}
                         bg="#15171E"
                     >
@@ -161,7 +161,7 @@ export interface ShortcutCardProps {
 export const ShortcutCard: React.FC<ShortcutCardProps> = ({
     label,
     highlightText,
-    highlightColor = 'purple.400',
+    highlightColor = 'primary.400',
     onClick,
 }) => {
     return (
@@ -173,21 +173,21 @@ export const ShortcutCard: React.FC<ShortcutCardProps> = ({
             <Box
                 bg="#1A1D26"
                 border="1px solid"
-                borderColor="#6943FF20"
+                borderColor="#9bdc4f20"
                 borderRadius="lg"
                 p={3}
                 cursor="pointer"
                 transition="all 0.2s"
                 _hover={{
-                    borderColor: '#6943FF60',
+                    borderColor: '#9bdc4f60',
                     bg: '#1E2130',
                 }}
                 onClick={onClick}
             >
                 <HStack justify="space-between" align="center">
                     <HStack spacing={2}>
-                        <Text color="purple.400" fontSize="sm">→</Text>
-                        <Text fontSize="sm" color="#F5F5F5">
+                        <Text color="primary.400" fontSize="sm">→</Text>
+                        <Text fontSize="sm" color="#ece6d8">
                             {highlightText ? (
                                 <>
                                     {label.split(highlightText)[0]}
@@ -201,7 +201,7 @@ export const ShortcutCard: React.FC<ShortcutCardProps> = ({
                             )}
                         </Text>
                     </HStack>
-                    <Icon as={ChevronRightIcon} w={5} h={5} color="#F5F5F540" />
+                    <Icon as={ChevronRightIcon} w={5} h={5} color="#ece6d840" />
                 </HStack>
             </Box>
         </MotionBox>

@@ -8,7 +8,7 @@ import { FAQItem } from '../hooks/usePageTutorial'
 const allFAQs: Record<string, { icon: any; color: string; items: FAQItem[] }> = {
     disco: {
         icon: Music,
-        color: 'purple.400',
+        color: 'primary.400',
         items: [
             {
                 id: 'what-is-disco',
@@ -39,7 +39,7 @@ const allFAQs: Record<string, { icon: any; color: string; items: FAQItem[] }> = 
     },
     manic: {
         icon: Zap,
-        color: 'cyan.400',
+        color: 'secondary.400',
         items: [
             {
                 id: 'what-is-manic',
@@ -91,7 +91,7 @@ const allFAQs: Record<string, { icon: any; color: string; items: FAQItem[] }> = 
     },
     lockdrop: {
         icon: Lock,
-        color: 'purple.400',
+        color: 'primary.400',
         items: [
             {
                 id: 'what-is-lockdrop',
@@ -179,12 +179,12 @@ export const LearnTab: React.FC = () => {
                                     fontSize="xs"
                                     fontWeight="medium"
                                     textTransform="capitalize"
-                                    color={isSelected ? config.color : '#F5F5F580'}
+                                    color={isSelected ? config.color : '#ece6d880'}
                                     bg={isSelected ? `${config.color}20` : 'transparent'}
                                     border="1px solid"
                                     borderColor={isSelected ? config.color : 'transparent'}
                                     _hover={{
-                                        bg: isSelected ? undefined : '#6943FF10',
+                                        bg: isSelected ? undefined : '#9bdc4f10',
                                     }}
                                     transition="all 0.2s"
                                 >
@@ -208,7 +208,7 @@ export const LearnTab: React.FC = () => {
                             key={item.id}
                             bg="#1A1D26"
                             border="1px solid"
-                            borderColor={isOpen ? '#6943FF60' : '#6943FF20'}
+                            borderColor={isOpen ? '#9bdc4f60' : '#9bdc4f20'}
                             borderRadius="lg"
                             overflow="hidden"
                             transition="all 0.2s"
@@ -221,14 +221,14 @@ export const LearnTab: React.FC = () => {
                                 onClick={() => toggleItem(item.id)}
                                 _hover={{ bg: '#1E2130' }}
                             >
-                                <Text fontSize="sm" color="#F5F5F5" fontWeight="medium" flex={1}>
+                                <Text fontSize="sm" color="#ece6d8" fontWeight="medium" flex={1}>
                                     {item.question}
                                 </Text>
                                 <Icon
                                     as={ChevronDownIcon}
                                     w={5}
                                     h={5}
-                                    color="#F5F5F540"
+                                    color="#ece6d840"
                                     transform={isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
                                     transition="transform 0.2s"
                                 />
@@ -238,9 +238,9 @@ export const LearnTab: React.FC = () => {
                                     p={3}
                                     pt={0}
                                     borderTop="1px solid"
-                                    borderColor="#6943FF20"
+                                    borderColor="#9bdc4f20"
                                 >
-                                    <Text fontSize="xs" color="#F5F5F580" lineHeight="1.6">
+                                    <Text fontSize="xs" color="#ece6d880" lineHeight="1.6">
                                         {item.answer}
                                     </Text>
                                 </Box>
@@ -252,7 +252,7 @@ export const LearnTab: React.FC = () => {
 
             {currentFAQs.length === 0 && (
                 <Box textAlign="center" py={6}>
-                    <Text fontSize="sm" color="#F5F5F580">
+                    <Text fontSize="sm" color="#ece6d880">
                         No FAQs available for this category
                     </Text>
                 </Box>

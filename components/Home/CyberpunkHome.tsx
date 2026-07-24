@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Box, Button, Text, VStack, HStack, Image, Icon, Input, FormControl, FormLabel, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, ModalHeader, useDisclosure } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { useChainRoute } from '@/hooks/useChainRoute'
@@ -6,81 +6,17 @@ import { UserCircle, ArrowUp, ArrowLeft, Lock, Unlock, Wifi } from 'lucide-react
 import useAppState from '@/persisted-state/useAppState'
 import { SpeechBubble } from '@/components/SpeechBubble'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
-
-// Total duration (ms) of the full scan cycle (down -> up -> down). The scan
-// line's position is derived purely from elapsed time so that a momentary
-// mouseleave / pointer jitter can never cancel an in-progress scan.
-const SCAN_DURATION_MS = 1800
+import type { Level } from './CyberpunkLevelsData'
+import { useStorefront } from './hooks/useStorefront'
+import { StorefrontRulesSection } from './StorefrontRulesSection'
+import { StorefrontPortal } from './StorefrontPortal'
+import { StorefrontTOSModal } from './StorefrontTOSModal'
+import { LevelsControlPanel } from './LevelsControlPanel'
+import { LevelsDisplay } from './LevelsDisplay'
 
 type View = 'storefront' | 'about' | 'levels'
 
-export interface Level {
-    id: number
-    name: string
-    subtitle?: string
-    description: string
-    status: 'unlocked' | 'locked'
-    color: string
-    route?: string
-}
-
-export const levels: Level[] = [
-
-    {
-        id: 1,
-        name: 'TRANSMUTER',
-        subtitle: 'CDT <> USDC Exchange',
-        description: 'Earn MBRN by providing USDC to fuel the transmutation of CDT to USDC.',
-        status: 'unlocked',
-        color: '#3BE5E5',
-        route: 'transmuter'
-    },
-    {
-        id: 2,
-        name: 'MANIC',
-        subtitle: 'Boosted stablecoin yield',
-        description: 'Loop USDC supplied on Mars Protocol to boost your stablecoin yield by 10x.',
-        status: 'unlocked',
-        color: '#6943FF',
-        route: 'manic'
-    },
-    {
-        id: 3,
-        name: 'LTV DISCO',
-        subtitle: 'Revenue-fueled System Backstop',
-        description: 'Deposit MBRN to earn protocol revenue in exchange for backstopping the system.',
-        status: 'unlocked',
-        color: '#A692FF',
-        route: 'disco'
-    },
-    {
-        id: 5,
-        name: 'MAZE RUNNERS',
-        subtitle: 'On-chain AI Racing Game',
-        description: 'Train your own AI to traverse mazes, earn $BYTE and reign supreme as the world\'s #1.',
-        status: 'unlocked',
-        color: '#6943FF',
-        route: 'maze-runners'
-    },
-    {
-        id: 6,
-        name: 'STAKE',
-        subtitle: 'Staking Protocol',
-        description: 'Stake MBRN to earn protocol rewards.',
-        status: 'unlocked',
-        color: '#A692FF',
-        route: 'stake'
-    },
-    {
-        id: 7,
-        name: 'BRIDGE',
-        subtitle: 'Osmosis -> Neutron MBRN Bridge',
-        description: 'Bridge MBRN & transmute MBRN from Osmosis to use on Neutron.',
-        status: 'unlocked',
-        color: '#3BE5E5',
-        route: 'bridge'
-    }
-]
+export type { Level }
 
 // ImageWithFallback component
 const ImageWithFallback = ({ src, alt, ...props }: any) => {
@@ -112,186 +48,28 @@ const ImageWithFallback = ({ src, alt, ...props }: any) => {
 
 // Storefront Component
 const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) => {
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-    const circleRef = React.useRef<HTMLDivElement>(null)
-    const { setAppState } = useAppState()
-
-    // Scanner state
-    const [isScanning, setIsScanning] = useState(false)
-    const [scanComplete, setScanComplete] = useState(false)
-    const [scanPatterns, setScanPatterns] = useState(0)
-    const [lastY, setLastY] = useState<number | null>(null)
-    const [currentDirection, setCurrentDirection] = useState<'down' | 'up' | null>(null)
-    const [scanLineY, setScanLineY] = useState(0)
-    const [scannerBounds, setScannerBounds] = useState<{ top: number; bottom: number; centerX: number } | null>(null)
-    const [username, setUsername] = useState('')
-    const [tosContent, setTosContent] = useState<string>('')
-    const { isOpen: isTOSOpen, onOpen: onTOSOpen, onClose: onTOSClose } = useDisclosure()
-    const scanLineRef = React.useRef<HTMLDivElement>(null)
-    const scannerRef = React.useRef<HTMLDivElement>(null)
-    const scanAnimationRef = React.useRef<number | null>(null)
-    const scanStartTimeRef = React.useRef<number | null>(null)
-
-    // Load TOS content only when modal opens
-    useEffect(() => {
-        if (isTOSOpen && !tosContent) {
-            fetch('/TOS.md')
-                .then(res => res.text())
-                .then(text => setTosContent(text))
-                .catch(err => console.error('Failed to load TOS:', err))
-        }
-    }, [isTOSOpen, tosContent])
-
-    React.useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            // Use requestAnimationFrame for smoother updates
-            requestAnimationFrame(() => {
-                if (circleRef.current) {
-                    // Use transform instead of left/top for better performance
-                    circleRef.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`
-                }
-                setMousePosition({ x: e.clientX, y: e.clientY })
-            })
-        }
-
-        window.addEventListener('mousemove', handleMouseMove)
-
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove)
-        }
-    }, [])
-
-
-
-    // Auto-scanning animation.
-    // Position is derived from elapsed wall-clock time (not per-frame pixel
-    // increments), so the cycle always completes in SCAN_DURATION_MS
-    // regardless of frame rate. Combined with handleScannerMouseLeave no
-    // longer cancelling the scan, this makes the gesture reliably
-    // completable instead of requiring uninterrupted hover for the whole
-    // three-phase cycle.
-    React.useEffect(() => {
-        if (!isScanning || scanComplete || !scannerBounds) return
-
-        if (scanStartTimeRef.current === null) {
-            scanStartTimeRef.current = performance.now()
-        }
-
-        const { top, bottom } = scannerBounds
-        const boxHeight = bottom - top
-        const phaseDuration = SCAN_DURATION_MS / 3 // down, up, down
-
-        const animate = (now: number) => {
-            const startTime = scanStartTimeRef.current ?? now
-            const elapsed = now - startTime
-
-            if (elapsed >= SCAN_DURATION_MS) {
-                setScanLineY(bottom)
-                setLastY(bottom)
-                setCurrentDirection('down')
-                setScanComplete(true)
-                setIsScanning(false)
-                setAppState({ setCookie: true })
-                return // Stop animation - cycle complete
-            }
-
-            const phase = Math.floor(elapsed / phaseDuration) // 0, 1, or 2
-            const phaseProgress = (elapsed - phase * phaseDuration) / phaseDuration
-
-            let currentY: number
-            if (phase === 1) {
-                // Second part: up (bottom -> top)
-                currentY = bottom - boxHeight * phaseProgress
-                setCurrentDirection('up')
-            } else {
-                // First and third parts: down (top -> bottom)
-                currentY = top + boxHeight * phaseProgress
-                setCurrentDirection('down')
-            }
-
-            setScanLineY(currentY)
-            setLastY(currentY)
-
-            scanAnimationRef.current = requestAnimationFrame(animate)
-        }
-
-        scanAnimationRef.current = requestAnimationFrame(animate)
-
-        return () => {
-            if (scanAnimationRef.current) {
-                cancelAnimationFrame(scanAnimationRef.current)
-            }
-        }
-    }, [isScanning, scanComplete, scannerBounds, setAppState])
-
-    // Update scanning line position (within the 40px box, not following cursor)
-    React.useEffect(() => {
-        if (!isScanning || scanComplete || !scanLineRef.current || !scannerBounds) return
-
-        // Calculate center of the 40px box
-        const boxCenterX = scannerBounds.centerX
-        const boxCenterY = (scannerBounds.top + scannerBounds.bottom) / 2
-
-        requestAnimationFrame(() => {
-            if (scanLineRef.current) {
-                scanLineRef.current.style.transform = `translate(${boxCenterX}px, ${scanLineY}px) translate(-50%, -50%)`
-            }
-        })
-    }, [scanLineY, isScanning, scanComplete, scannerBounds])
-
-    // Shared entry point for starting a scan - triggered by hover, click/tap,
-    // or keyboard activation so the gesture is completable without needing
-    // sustained, precise pointer control.
-    const startScan = (target: HTMLElement) => {
-        if (scanComplete || isScanning) return
-
-        // Get scanner bounds - 16px x 24px activation area in the center
-        const rect = target.getBoundingClientRect()
-        const boxHeight = 24 // 24px height
-        const centerX = rect.left + rect.width / 2
-        const centerY = rect.top + rect.height / 2
-
-        scanStartTimeRef.current = null // let the animation effect stamp a fresh start time
-        setScannerBounds({
-            top: centerY - boxHeight / 2,
-            bottom: centerY + boxHeight / 2,
-            centerX: centerX
-        })
-
-        setIsScanning(true)
-        setScanPatterns(0)
-        setCurrentDirection('down') // Start with down direction
-        setScanLineY(centerY - boxHeight / 2)
-        setLastY(centerY - boxHeight / 2)
-    }
-
-    const handleScannerMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-        startScan(e.currentTarget)
-    }
-
-    // Intentionally a no-op: once a scan begins it runs to completion based
-    // on elapsed time (see the animation effect above), so a momentary
-    // mouseleave / pointer jitter can no longer cancel it.
-    const handleScannerMouseLeave = () => { }
-
-    // Accessible fallbacks for keyboard, touch, and automation - a single
-    // click/tap or Enter/Space press starts the same reliable, time-based scan.
-    const handleScannerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        startScan(e.currentTarget)
-    }
-
-    const handleScannerKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-            e.preventDefault()
-            startScan(e.currentTarget)
-        }
-    }
+    const {
+        scanComplete,
+        isScanning,
+        scannerRef,
+        scanLineRef,
+        handleScannerMouseEnter,
+        handleScannerMouseLeave,
+        handleScannerClick,
+        handleScannerKeyDown,
+        username,
+        setUsername,
+        isTOSOpen,
+        onTOSOpen,
+        onTOSClose,
+        tosContent,
+    } = useStorefront()
 
     return (
         <Box
             position="relative"
             minH="100vh"
-            bg="#0A0A0A"
+            bg="#09090a"
             overflow="hidden"
             display="flex"
             flexDirection="column"
@@ -319,21 +97,21 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                             <polygon
                                 points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
                                 fill="none"
-                                stroke="#6943FF"
+                                stroke="#9bdc4f"
                                 strokeWidth="1"
                             />
                             {/* Right hexagon (offset down) */}
                             <polygon
                                 points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
                                 fill="none"
-                                stroke="#6943FF"
+                                stroke="#9bdc4f"
                                 strokeWidth="1"
                             />
                             {/* Top-right continuation for seamless tiling */}
                             <polygon
                                 points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
                                 fill="none"
-                                stroke="#6943FF"
+                                stroke="#9bdc4f"
                                 strokeWidth="1"
                             />
                         </pattern>
@@ -344,223 +122,16 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 
             {/* Rules Section - At the top */}
             {!scanComplete && (
-                <VStack spacing={4} position="relative" zIndex={2} mb={8} maxW="800px" w="100%" px={4} mt={8}>
-                    <Box
-                        bg="#0A0A0A"
-                        border="2px solid"
-                        borderColor="#6943FF50"
-                        borderRadius="md"
-                        py={24}
-                        px={6}
-                        w="fit-content"
-                        mx="auto"
-                    >
-                        <VStack spacing={8} align="stretch">
-                            {/* Neon Sign */}
-                            <VStack spacing={4} position="relative" zIndex={2} mb={{ base: 12, md: 24 }}>
-                                <Box
-                                    className="neonSignon"
-                                    letterSpacing="wider"
-                                    textAlign="center"
-                                    display="flex"
-                                    flexDirection={{ base: "column" }}
-                                    justifyContent="center"
-                                    alignItems="center"
-                                    gap={{ base: 0, md: "0.2em" }}
-                                    as="div"
-                                >
-                                    <b style={{ display: "flex" }}>
-                                        <span>T</span>
-                                        <span>H</span>
-                                        <span>E</span>
-                                        <span style={{ marginRight: '0.2em', width: '0.2em' }}> </span>
-                                    </b>
-                                    <b style={{ display: "flex" }}>
-                                        <a>M</a>
-                                        <span>E</span>
-                                        <span>M</span>
-                                        <a>B</a>
-                                        <a>R</a>
-                                        <span>A</span>
-                                        <a>N</a>
-                                        <span>E</span>
-                                    </b>
-                                </Box>
-                            </VStack>
-
-                            {/* TOS Text */}
-                            <VStack spacing={1} align="stretch" position="relative" zIndex={2}>
-                                <Text
-                                    fontSize={{ base: "sm", md: "md" }}
-                                    color="#F5F5F5"
-                                    textAlign="left"
-                                    lineHeight="1.8"
-                                    fontFamily="mono"
-                                    letterSpacing="0.08em"
-                                    textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
-                                >
-                                    I approach as a sovereign soul, claiming my own risks and severing foreign ties.
-                                </Text>
-                                <Text
-                                    fontSize={{ base: "sm", md: "md" }}
-                                    color="#F5F5F5"
-                                    textAlign="left"
-                                    lineHeight="1.8"
-                                    fontFamily="mono"
-                                    letterSpacing="0.08em"
-                                    textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
-                                >
-                                    I accept that every action I take becomes an immutable ripple through time.
-                                </Text>
-                                <Text
-                                    fontSize={{ base: "sm", md: "md" }}
-                                    color="#F5F5F5"
-                                    textAlign="left"
-                                    lineHeight="1.8"
-                                    fontFamily="mono"
-                                    letterSpacing="0.08em"
-                                    textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
-                                >
-                                    If I break this vow, the consequences fall solely upon me.
-                                </Text>
-                                <Text
-                                    fontSize={{ base: "sm", md: "md" }}
-                                    color="#F5F5F5"
-                                    textAlign="left"
-                                    lineHeight="1.8"
-                                    fontFamily="mono"
-                                    letterSpacing="0.08em"
-                                    textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
-                                >
-                                    My steps are my fingerprint.
-                                </Text>
-                                <Text
-                                    fontSize={{ base: "sm", md: "md" }}
-                                    color="#F5F5F5"
-                                    textAlign="left"
-                                    lineHeight="1.8"
-                                    fontFamily="mono"
-                                    letterSpacing="0.08em"
-                                    textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
-                                >
-                                    Once inside, there is no return.
-                                </Text>
-                                <Text
-                                    fontSize={{ base: "sm", md: "md" }}
-                                    color="#F5F5F5"
-                                    textAlign="left"
-                                    lineHeight="1.8"
-                                    fontFamily="mono"
-                                    letterSpacing="0.08em"
-                                    textShadow="0 0 8px rgba(59, 229, 229, 0.8), 0 0 15px rgba(105, 67, 255, 0.6)"
-                                >
-                                    Within, we are the Membrane.
-                                </Text>
-                            </VStack>
-
-                            {/* Scan Instructions */}
-                            <VStack spacing={0} mt={6}>
-                                <Text
-                                    fontSize={{ base: "md", md: "lg" }}
-                                    color="#3BE5E5"
-                                    textAlign="center"
-                                    letterSpacing="wider"
-                                    fontWeight="bold"
-                                    mb={2}
-                                >
-                                    Initiate Scan to Accept the{' '}
-                                    <Text
-                                        as="span"
-                                        color="#3BE5E5"
-                                        cursor="pointer"
-                                        textDecoration="underline"
-                                        _hover={{
-                                            color: '#A692FF',
-                                            textShadow: '0 0 10px #3BE5E5',
-                                        }}
-                                        onClick={onTOSOpen}
-                                        transition="all 0.3s"
-                                    >
-                                        Terms
-                                    </Text>
-                                </Text>
-                                <Text
-                                    fontSize={{ base: "xs", md: "sm" }}
-                                    color="#8A8A8A"
-                                    fontStyle="italic"
-                                    textAlign="end"
-                                >
-                                    Scan completion activates the Contract.
-                                </Text>
-                                <Text
-                                    fontSize={{ base: "xs", md: "sm" }}
-                                    color="#8A8A8A"
-                                    fontStyle="italic"
-                                    textAlign="end"
-                                >
-                                    Includes acceptance of essential, analytics, and functional cookies.
-                                </Text>
-                            </VStack>
-
-                            {/* Cursor Scanner - Inside rules box */}
-                            <Box
-                                position="relative"
-                                zIndex={3}
-                                w="100%"
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                            // mt={4}
-                            >
-                                <Box
-                                    position="relative"
-                                    css={{
-                                        animation: 'scannerGlow 2s ease-in-out infinite',
-                                    }}
-                                >
-                                    <Image
-                                        src="/images/cursor-scanner.svg"
-                                        alt="Scanner"
-                                        w="75px"
-                                        h="75px"
-                                        objectFit="contain"
-                                        pointerEvents="none"
-                                    />
-                                </Box>
-                                {/* 40px activation area in the center - hoverable, clickable/tappable,
-                                and keyboard-activatable (Enter/Space) so the scan is reliably completable */}
-                                <Box
-                                    ref={scannerRef}
-                                    position="absolute"
-                                    w="16px"
-                                    h="24px"
-                                    cursor="pointer"
-                                    tabIndex={scanComplete ? -1 : 0}
-                                    role="button"
-                                    aria-label={
-                                        scanComplete
-                                            ? 'Identity scan complete'
-                                            : isScanning
-                                                ? 'Scanning in progress'
-                                                : 'Hover, click, or press Enter to scan and accept the vow'
-                                    }
-                                    aria-pressed={isScanning || scanComplete}
-                                    onMouseEnter={handleScannerMouseEnter}
-                                    onMouseLeave={handleScannerMouseLeave}
-                                    onClick={handleScannerClick}
-                                    onKeyDown={handleScannerKeyDown}
-                                    left="50%"
-                                    top="50%"
-                                    transform="translate(-50%, -50%)"
-                                    borderRadius="sm"
-                                    transition={TRANSITIONS.shadow}
-                                    _focus={FOCUS_STYLES.ringCyan}
-                                    _focusVisible={FOCUS_STYLES.ringCyan}
-                                />
-                            </Box>
-                        </VStack>
-                    </Box>
-                </VStack>
+                <StorefrontRulesSection
+                    scanComplete={scanComplete}
+                    isScanning={isScanning}
+                    scannerRef={scannerRef}
+                    onTOSOpen={onTOSOpen}
+                    handleScannerMouseEnter={handleScannerMouseEnter}
+                    handleScannerMouseLeave={handleScannerMouseLeave}
+                    handleScannerClick={handleScannerClick}
+                    handleScannerKeyDown={handleScannerKeyDown}
+                />
             )}
 
             {/* Neon Sign - Shown after scan complete */}
@@ -583,13 +154,13 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                             <span>E</span>
                         </b>
                         <b style={{ display: "flex" }}>
-                            <a>M</a>
+                            <i style={{ display: "inline-block", fontSize: "clamp(75px, 4vh, 4vh)", fontStyle: "normal" }}>M</i>
                             <span>E</span>
                             <span>M</span>
-                            <a>B</a>
-                            <a>R</a>
+                            <i style={{ display: "inline-block", fontSize: "clamp(75px, 4vh, 4vh)", fontStyle: "normal" }}>B</i>
+                            <i style={{ display: "inline-block", fontSize: "clamp(75px, 4vh, 4vh)", fontStyle: "normal" }}>R</i>
                             <span>A</span>
-                            <a>N</a>
+                            <i style={{ display: "inline-block", fontSize: "clamp(75px, 4vh, 4vh)", fontStyle: "normal" }}>N</i>
                             <span>E</span>
                         </b>
                     </Box>
@@ -601,7 +172,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                 <VStack spacing={4} position="relative" zIndex={2} mb={24}>
                     <Text
                         fontSize={{ base: "xs", md: "sm" }}
-                        color="#8A8A8A"
+                        color="#8d877b"
                         fontStyle="italic"
                         textAlign="end"
                     >
@@ -612,23 +183,23 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                             // placeholder="Enter username to step within"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            bg="#0A0A0A"
+                            bg="#09090a"
                             border="2px solid"
-                            borderColor="#3BE5E550"
-                            color="#F5F5F5"
+                            borderColor="#46d39a50"
+                            color="#ece6d8"
                             borderRadius="md"
                             px={4}
                             py={3}
                             _hover={{
-                                borderColor: '#3BE5E5',
+                                borderColor: '#46d39a',
                             }}
                             _focus={{
-                                borderColor: '#3BE5E5',
-                                boxShadow: '0 0 10px #3BE5E5',
+                                borderColor: '#46d39a',
+                                boxShadow: '0 0 10px #46d39a',
                                 outline: 'none',
                             }}
                             _placeholder={{
-                                color: '#8A8A8A',
+                                color: '#8d877b',
                                 letterSpacing: 'widest',
                                 fontSize: 'sm',
                                 textAlign: 'center',
@@ -650,7 +221,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                     top={0}
                     w="75px"
                     h="3px"
-                    bg="#3BE5E5"
+                    bg="#46d39a"
                     pointerEvents="none"
                     zIndex={4}
                     willChange="transform"
@@ -661,115 +232,11 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
             )}
 
             {/* Hexagonal Portal */}
-            <Box
-                position="relative"
-                zIndex={2}
-                opacity={scanComplete ? 1 : 0}
-                transform={scanComplete ? 'scale(1)' : 'scale(0.3)'}
-                transition="opacity 0.5s, transform 0.6s ease-out"
-                style={{
-                    transformOrigin: 'center center',
-                }}
-                onClick={scanComplete && username.trim() ? () => onEnter(username.trim()) : undefined}
-                cursor={scanComplete && username.trim() ? 'pointer' : 'default'}
-                role="group"
-            >
-                {/* Enter Label - Visible on hover */}
-                {/* {scanComplete && username.trim() && (
-                    <Text
-                        position="absolute"
-                        top="-40px"
-                        left="50%"
-                        transform="translateX(-50%)"
-                        color="#3BE5E5"
-                        fontSize="sm"
-                        letterSpacing="widest"
-                        opacity={0}
-                        transition="opacity 0.3s"
-                        _groupHover={{
-                            opacity: 1,
-                        }}
-                        pointerEvents="none"
-                        zIndex={11}
-                    >
-                        ENTER
-                    </Text>
-                )} */}
-                {/* Hexagonal Portal Component */}
-                <Box
-                    position="relative"
-                    w="256px"
-                    h="256px"
-                    mx="auto"
-                >
-                    {/* Rotating Portal Image - Clipped to Hex */}
-                    <Box
-                        position="absolute"
-                        inset="0"
-                        overflow="hidden"
-                        style={{
-                            clipPath: 'polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%)',
-                        }}
-                    >
-                        <Box
-                            position="absolute"
-                            left="-25%"
-                            top="-25%"
-                            transform="translate(-50%, -50%)"
-                            w="150%"
-                            h="150%"
-                            style={{
-                                animation: 'portalSpin 20s linear infinite',
-                                animationPlayState: username.trim() ? 'running' : 'paused',
-                                transformOrigin: 'center center',
-                            }}
-                        >
-                            <Image
-                                src="/images/portal_within.svg"
-                                alt="Portal"
-                                w="100%"
-                                h="100%"
-                                objectFit="cover"
-                            />
-                        </Box>
-                    </Box>
-
-                    {/* Static Hexagonal Border with Gradient - SVG approach */}
-                    <Box
-                        as="svg"
-                        position="absolute"
-                        left="-2px"
-                        top="-2px"
-                        right="-2px"
-                        bottom="-2px"
-                        pointerEvents="none"
-                        zIndex={10}
-                        w="calc(100% + 4px)"
-                        h="calc(100% + 4px)"
-                        viewBox="-2 -2 258 258"
-                        preserveAspectRatio="none"
-                        overflow="visible"
-                        transition="filter 0.3s"
-                        _groupHover={username.trim() ? {
-                            filter: 'drop-shadow(0 0 20px #3BE5E5) drop-shadow(0 0 30px #6943FF)',
-                        } : {}}
-                    >
-                        <defs>
-                            <linearGradient id="hexBorderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#3BE5E5" />
-                                <stop offset="50%" stopColor="#6943FF" />
-                                <stop offset="100%" stopColor="#A692FF" />
-                            </linearGradient>
-                        </defs>
-                        <polygon
-                            points="128,0 240,64 240,192 128,256 12,192 12,64"
-                            fill="none"
-                            stroke="url(#hexBorderGradient)"
-                            strokeWidth="8"
-                        />
-                    </Box>
-                </Box>
-            </Box>
+            <StorefrontPortal
+                scanComplete={scanComplete}
+                username={username}
+                onEnter={onEnter}
+            />
 
             {/* Cursor-Following Black Circle */}
             {/* <Box
@@ -789,167 +256,18 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
             /> */}
 
             {/* TOS Modal */}
-            <Modal isOpen={isTOSOpen} onClose={onTOSClose} size="xl" isCentered>
-                <ModalOverlay bg="blackAlpha.800" />
-                <ModalContent
-                    bg="#0A0A0A"
-                    border="2px solid"
-                    borderColor="#6943FF"
-                    borderRadius="md"
-                    minW={{ base: "90%", md: "600px" }}
-                    maxW="800px"
-                    maxH="70vh"
-                >
-                    <ModalHeader
-                        color="#A692FF"
-                        fontSize={{ base: "xl", md: "2xl" }}
-                        textShadow="0 0 20px #6943FF"
-                        letterSpacing="wider"
-                        borderBottom="1px solid"
-                        borderColor="#6943FF50"
-                        pb={4}
-                    >
-                        TERMS OF SERVICE
-                    </ModalHeader>
-                    <ModalCloseButton color="#8A8A8A" _hover={{ color: "#3BE5E5" }} />
-                    <ModalBody
-                        p={6}
-                        overflowY="auto"
-                        css={{
-                            '&::-webkit-scrollbar': {
-                                width: '8px',
-                            },
-                            '&::-webkit-scrollbar-track': {
-                                background: '#0A0A0A',
-                            },
-                            '&::-webkit-scrollbar-thumb': {
-                                background: '#6943FF',
-                                borderRadius: '4px',
-                            },
-                            '&::-webkit-scrollbar-thumb:hover': {
-                                background: '#3BE5E5',
-                            },
-                        }}
-                    >
-                        <VStack spacing={4} align="stretch">
-                            {tosContent.split('\n').map((line, index) => {
-                                const trimmed = line.trim();
-
-                                if (trimmed.startsWith('# ')) {
-                                    return (
-                                        <React.Fragment key={index}>
-                                            <Text
-                                                as="h1"
-                                                color="#A692FF"
-                                                fontSize="1.5em"
-                                                fontWeight="bold"
-                                                mt={6}
-                                                mb={2}
-                                                textShadow="0 0 10px #6943FF"
-                                            >
-                                                {trimmed.substring(2)}
-                                            </Text>
-                                            <br />
-                                        </React.Fragment>
-                                    );
-                                }
-
-                                if (trimmed.startsWith('## ')) {
-                                    return (
-                                        <React.Fragment key={index}>
-                                            <Text
-                                                as="h2"
-                                                color="#3BE5E5"
-                                                fontSize="1.3em"
-                                                fontWeight="bold"
-                                                mt={5}
-                                                mb={2}
-                                                textShadow="0 0 8px #3BE5E5"
-                                            >
-                                                {trimmed.substring(3)}
-                                            </Text>
-                                            <br />
-                                        </React.Fragment>
-                                    );
-                                }
-
-                                if (trimmed === '---') {
-                                    return (
-                                        <React.Fragment key={index}>
-                                            <Box
-                                                borderTop="1px solid"
-                                                borderColor="#6943FF50"
-                                                my={6}
-                                            />
-                                            <br />
-                                        </React.Fragment>
-                                    );
-                                }
-
-                                if (trimmed.startsWith('- ') || /^\d+\. /.test(trimmed)) {
-                                    const listItem = trimmed.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, '');
-                                    return (
-                                        <React.Fragment key={index}>
-                                            <Text
-                                                as="li"
-                                                ml={6}
-                                                color="#F5F5F5"
-                                            >
-                                                {listItem.split(/\*\*(.+?)\*\*/g).map((part, i) =>
-                                                    i % 2 === 1 ? (
-                                                        <Text as="span" key={i} color="#3BE5E5" fontWeight="bold">
-                                                            {part}
-                                                        </Text>
-                                                    ) : (
-                                                        part
-                                                    )
-                                                )}
-                                            </Text>
-                                            <br />
-                                        </React.Fragment>
-                                    );
-                                }
-
-                                if (trimmed === '') {
-                                    return (
-                                        <React.Fragment key={index}>
-                                            <Box h={2} />
-                                            <br />
-                                        </React.Fragment>
-                                    );
-                                }
-
-                                return (
-                                    <React.Fragment key={index}>
-                                        <Text
-                                            color="#F5F5F5"
-                                            mb={2}
-                                        >
-                                            {trimmed.split(/\*\*(.+?)\*\*/g).map((part, i) =>
-                                                i % 2 === 1 ? (
-                                                    <Text as="span" key={i} color="#3BE5E5" fontWeight="bold">
-                                                        {part}
-                                                    </Text>
-                                                ) : (
-                                                    part
-                                                )
-                                            )}
-                                        </Text>
-                                        <br />
-                                    </React.Fragment>
-                                );
-                            })}
-                        </VStack>
-                    </ModalBody>
-                </ModalContent>
-            </Modal>
+            <StorefrontTOSModal
+                isOpen={isTOSOpen}
+                onClose={onTOSClose}
+                tosContent={tosContent}
+            />
 
             {/* Ambient Info */}
             <Box position="absolute" bottom={8} right={8} textAlign="right" zIndex={2}>
-                <Text color="#8A8A8A" fontSize="xs" letterSpacing="widest">
+                <Text color="#8d877b" fontSize="xs" letterSpacing="widest">
                     OPEN 24/7
                 </Text>
-                <Text color="#3BE5E5" fontSize="xs" letterSpacing="widest">
+                <Text color="#46d39a" fontSize="xs" letterSpacing="widest">
                     NEURAL_DISTRICT_07
                 </Text>
             </Box>
@@ -1003,7 +321,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //         <Box
 //             position="relative"
 //             minH="100vh"
-//             bg="#0A0A0A"
+//             bg="#09090a"
 //             overflow="hidden"
 //             display="flex"
 //             flexDirection="column"
@@ -1028,21 +346,21 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                             <polygon
 //                                 points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
 //                                 fill="none"
-//                                 stroke="#6943FF"
+//                                 stroke="#9bdc4f"
 //                                 strokeWidth="1"
 //                             />
 //                             {/* Right hexagon (offset down) */}
 //                             <polygon
 //                                 points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
 //                                 fill="none"
-//                                 stroke="#6943FF"
+//                                 stroke="#9bdc4f"
 //                                 strokeWidth="1"
 //                             />
 //                             {/* Top-right continuation for seamless tiling */}
 //                             <polygon
 //                                 points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
 //                                 fill="none"
-//                                 stroke="#6943FF"
+//                                 stroke="#9bdc4f"
 //                                 strokeWidth="1"
 //                             />
 //                         </pattern>
@@ -1092,14 +410,14 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                     <Text
 //                         fontSize={{ base: '2xl', md: '4xl', lg: '6xl' }}
 //                         fontFamily="mono"
-//                         color="#A692FF"
-//                         textShadow="0 0 20px #6943FF, 0 0 30px #6943FF"
+//                         color="#9bdc4f"
+//                         textShadow="0 0 20px #9bdc4f, 0 0 30px #9bdc4f"
 //                         letterSpacing="wider"
 //                         textAlign="center"
 //                     >
 //                         WELCOME TO THE MEMBRANE
 //                     </Text>
-//                     <Text color="#8A8A8A" letterSpacing="widest" fontSize="sm">
+//                     <Text color="#8d877b" letterSpacing="widest" fontSize="sm">
 //                         CHOOSE YOUR DESTINATION
 //                     </Text>
 //                 </VStack>
@@ -1119,16 +437,16 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                         position="relative"
 //                         h="320px"
 //                         w="100%"
-//                         bgGradient="linear(to-br, #6943FF20, #0A0A0A)"
+//                         bgGradient="linear(to-br, #9bdc4f20, #09090a)"
 //                         border="2px solid"
-//                         borderColor="#6943FF"
+//                         borderColor="#9bdc4f"
 //                         borderRadius="md"
 //                         overflow="hidden"
 //                         transition="all 0.3s"
 //                         cursor="pointer"
 //                         _hover={{
-//                             borderColor: '#A692FF',
-//                             boxShadow: '0 0 40px #6943FF',
+//                             borderColor: '#9bdc4f',
+//                             boxShadow: '0 0 40px #9bdc4f',
 //                             transform: 'scale(1.05)',
 //                         }}
 //                         role="group"
@@ -1145,11 +463,11 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                                     as={UserCircle}
 //                                     w={20}
 //                                     h={20}
-//                                     color="#6943FF"
-//                                     filter="drop-shadow(0 0 10px #6943FF)"
+//                                     color="#9bdc4f"
+//                                     filter="drop-shadow(0 0 10px #9bdc4f)"
 //                                     transition="color 0.3s"
 //                                     _groupHover={{
-//                                         color: '#A692FF',
+//                                         color: '#9bdc4f',
 //                                     }}
 //                                 />
 //                                 <Box
@@ -1159,7 +477,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                                     right="-16px"
 //                                     bottom="-16px"
 //                                     border="2px solid"
-//                                     borderColor="#3BE5E5"
+//                                     borderColor="#46d39a"
 //                                     borderRadius="full"
 //                                     opacity={0.3}
 //                                     css={{
@@ -1177,13 +495,13 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                             spacing={2}
 //                             px={6}
 //                         >
-//                             <Text color="#F5F5F5" fontSize="2xl" letterSpacing="wider">
+//                             <Text color="#ece6d8" fontSize="2xl" letterSpacing="wider">
 //                                 RECEPTIONIST
 //                             </Text>
-//                             <Text color="#8A8A8A" fontSize="sm">
+//                             <Text color="#8d877b" fontSize="sm">
 //                                 Learn about The Membrane
 //                             </Text>
-//                             <Box mt={4} h="4px" w="96px" mx="auto" bgGradient="linear(to-r, transparent, #3BE5E5, transparent)" />
+//                             <Box mt={4} h="4px" w="96px" mx="auto" bgGradient="linear(to-r, transparent, #46d39a, transparent)" />
 //                         </VStack>
 
 //                         {/* Corner Accents */}
@@ -1195,7 +513,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                             h="64px"
 //                             borderTop="4px solid"
 //                             borderRight="4px solid"
-//                             borderColor="#3BE5E5"
+//                             borderColor="#46d39a"
 //                             opacity={0.5}
 //                         />
 //                         <Box
@@ -1206,7 +524,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                             h="64px"
 //                             borderBottom="4px solid"
 //                             borderLeft="4px solid"
-//                             borderColor="#3BE5E5"
+//                             borderColor="#46d39a"
 //                             opacity={0.5}
 //                         />
 //                     </Box>
@@ -1218,16 +536,16 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                         position="relative"
 //                         h="320px"
 //                         w="100%"
-//                         bgGradient="linear(to-br, #3BE5E520, #0A0A0A)"
+//                         bgGradient="linear(to-br, #46d39a20, #09090a)"
 //                         border="2px solid"
-//                         borderColor="#3BE5E5"
+//                         borderColor="#46d39a"
 //                         borderRadius="md"
 //                         overflow="hidden"
 //                         transition="all 0.3s"
 //                         cursor="pointer"
 //                         _hover={{
-//                             borderColor: '#A692FF',
-//                             boxShadow: '0 0 40px #3BE5E5',
+//                             borderColor: '#9bdc4f',
+//                             boxShadow: '0 0 40px #46d39a',
 //                             transform: 'scale(1.05)',
 //                         }}
 //                         role="group"
@@ -1243,9 +561,9 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                                 w="96px"
 //                                 h="128px"
 //                                 border="4px solid"
-//                                 borderColor="#3BE5E5"
+//                                 borderColor="#46d39a"
 //                                 borderRadius="md"
-//                                 bg="#0A0A0A80"
+//                                 bg="#09090a80"
 //                                 display="flex"
 //                                 alignItems="center"
 //                                 justifyContent="center"
@@ -1254,12 +572,12 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                                     as={ArrowUp}
 //                                     w={12}
 //                                     h={12}
-//                                     color="#3BE5E5"
-//                                     filter="drop-shadow(0 0 10px #3BE5E5)"
+//                                     color="#46d39a"
+//                                     filter="drop-shadow(0 0 10px #46d39a)"
 //                                     transition="color 0.3s"
 //                                     animation="bounce 1s infinite"
 //                                     _groupHover={{
-//                                         color: '#A692FF',
+//                                         color: '#9bdc4f',
 //                                     }}
 //                                 />
 //                             </Box>
@@ -1273,13 +591,13 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                             spacing={2}
 //                             px={6}
 //                         >
-//                             <Text color="#F5F5F5" fontSize="2xl" letterSpacing="wider">
+//                             <Text color="#ece6d8" fontSize="2xl" letterSpacing="wider">
 //                                 ELEVATOR
 //                             </Text>
-//                             <Text color="#8A8A8A" fontSize="sm">
+//                             <Text color="#8d877b" fontSize="sm">
 //                                 Explore the levels
 //                             </Text>
-//                             <Box mt={4} h="4px" w="96px" mx="auto" bgGradient="linear(to-r, transparent, #6943FF, transparent)" />
+//                             <Box mt={4} h="4px" w="96px" mx="auto" bgGradient="linear(to-r, transparent, #9bdc4f, transparent)" />
 //                         </VStack>
 
 //                         {/* Corner Accents */}
@@ -1291,7 +609,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                             h="64px"
 //                             borderTop="4px solid"
 //                             borderRight="4px solid"
-//                             borderColor="#6943FF"
+//                             borderColor="#9bdc4f"
 //                             opacity={0.5}
 //                         />
 //                         <Box
@@ -1302,7 +620,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                             h="64px"
 //                             borderBottom="4px solid"
 //                             borderLeft="4px solid"
-//                             borderColor="#6943FF"
+//                             borderColor="#9bdc4f"
 //                             opacity={0.5}
 //                         />
 //                     </Box>
@@ -1314,12 +632,12 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 //                     px={8}
 //                     py={3}
 //                     border="1px solid"
-//                     borderColor="#8A8A8A"
-//                     color="#8A8A8A"
+//                     borderColor="#8d877b"
+//                     color="#8d877b"
 //                     bg="transparent"
 //                     _hover={{
-//                         borderColor: '#F5F5F5',
-//                         color: '#F5F5F5',
+//                         borderColor: '#ece6d8',
+//                         color: '#ece6d8',
 //                     }}
 //                     transition="colors 0.3s"
 //                     letterSpacing="wider"
@@ -1346,7 +664,7 @@ const AboutView = ({
         <Box
             position="relative"
             minH="100vh"
-            bg="#0A0A0A"
+            bg="#09090a"
             overflow="hidden"
             display="flex"
             flexDirection="column"
@@ -1372,21 +690,21 @@ const AboutView = ({
                             <polygon
                                 points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
                                 fill="none"
-                                stroke="#6943FF"
+                                stroke="#9bdc4f"
                                 strokeWidth="1"
                             />
                             {/* Right hexagon (offset down) */}
                             <polygon
                                 points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
                                 fill="none"
-                                stroke="#6943FF"
+                                stroke="#9bdc4f"
                                 strokeWidth="1"
                             />
                             {/* Top-right continuation for seamless tiling */}
                             <polygon
                                 points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
                                 fill="none"
-                                stroke="#6943FF"
+                                stroke="#9bdc4f"
                                 strokeWidth="1"
                             />
                         </pattern>
@@ -1403,59 +721,59 @@ const AboutView = ({
                         display="inline-block"
                         p={6}
                         border="2px solid"
-                        borderColor="#6943FF"
+                        borderColor="#9bdc4f"
                         borderRadius="full"
-                        boxShadow="0 0 30px #6943FF"
+                        boxShadow="0 0 30px #9bdc4f"
                     >
                         <Box
                             w="96px"
                             h="96px"
-                            bgGradient="linear(to-br, #6943FF, #A692FF)"
+                            bgGradient="linear(to-br, #9bdc4f, #9bdc4f)"
                             borderRadius="full"
                             display="flex"
                             alignItems="center"
                             justifyContent="center"
                         >
-                            <Text color="#F5F5F5" fontSize="4xl">R</Text>
+                            <Text color="#ece6d8" fontSize="4xl">R</Text>
                         </Box>
                     </Box>
                     <Text
                         fontSize={{ base: '2xl', md: '4xl', lg: '6xl' }}
                         fontFamily="mono"
-                        color="#A692FF"
-                        textShadow="0 0 20px #6943FF"
+                        color="#9bdc4f"
+                        textShadow="0 0 20px #9bdc4f"
                         letterSpacing="wider"
                         textAlign="center"
                     >
                         RECEPTIONIST
                     </Text>
-                    <Text color="#8A8A8A" letterSpacing="widest">
+                    <Text color="#8d877b" letterSpacing="widest">
                         NEURAL INTERFACE ACTIVE
                     </Text>
                 </VStack>
 
                 {/* Dialogue Box */}
                 <Box
-                    bgGradient="linear(to-br, #6943FF10, #0A0A0A)"
+                    bgGradient="linear(to-br, #9bdc4f10, #09090a)"
                     border="2px solid"
-                    borderColor="#6943FF"
+                    borderColor="#9bdc4f"
                     borderRadius="md"
                     p={8}
                     mb={8}
-                    boxShadow="0 0 20px #6943FF20"
+                    boxShadow="0 0 20px #9bdc4f20"
                 >
                     <VStack spacing={6} align="stretch">
                         <HStack align="start" spacing={4}>
                             <Box
                                 w="8px"
                                 h="8px"
-                                bg="#3BE5E5"
+                                bg="#46d39a"
                                 borderRadius="full"
                                 mt={2}
                                 animation="pulse 2s infinite"
                             />
-                            <Text color="#F5F5F5" flex={1}>
-                                Welcome to <Text as="span" color="#A692FF">The Membrane</Text>, where the boundaries between reality and the digital realm blur into something extraordinary.
+                            <Text color="#ece6d8" flex={1}>
+                                Welcome to <Text as="span" color="#9bdc4f">The Membrane</Text>, where the boundaries between reality and the digital realm blur into something extraordinary.
                             </Text>
                         </HStack>
 
@@ -1463,13 +781,13 @@ const AboutView = ({
                             <Box
                                 w="8px"
                                 h="8px"
-                                bg="#3BE5E5"
+                                bg="#46d39a"
                                 borderRadius="full"
                                 mt={2}
                                 animation="pulse 2s infinite"
                                 style={{ animationDelay: '0.5s' }}
                             />
-                            <Text color="#F5F5F5" flex={1}>
+                            <Text color="#ece6d8" flex={1}>
                                 We are more than just a club. We are a neural nexus, a convergence point for digital consciousness and human experience.
                             </Text>
                         </HStack>
@@ -1484,57 +802,57 @@ const AboutView = ({
                 >
                     <Box
                         border="1px solid"
-                        borderColor="#6943FF50"
+                        borderColor="#9bdc4f50"
                         borderRadius="md"
                         p={6}
-                        bg="#0A0A0A80"
-                        _hover={{ borderColor: '#3BE5E5' }}
+                        bg="#09090a80"
+                        _hover={{ borderColor: '#46d39a' }}
                         transition="colors 0.3s"
                         flex={1}
                     >
-                        <Text color="#3BE5E5" mb={4} fontSize="2xl">⚡</Text>
-                        <Text color="#F5F5F5" mb={2} fontWeight="bold">
+                        <Text color="#46d39a" mb={4} fontSize="2xl">⚡</Text>
+                        <Text color="#ece6d8" mb={2} fontWeight="bold">
                             IMMERSIVE EXPERIENCE
                         </Text>
-                        <Text color="#8A8A8A" fontSize="sm">
+                        <Text color="#8d877b" fontSize="sm">
                             Cutting-edge neural technology creates unparalleled sensory journeys
                         </Text>
                     </Box>
 
                     <Box
                         border="1px solid"
-                        borderColor="#6943FF50"
+                        borderColor="#9bdc4f50"
                         borderRadius="md"
                         p={6}
-                        bg="#0A0A0A80"
-                        _hover={{ borderColor: '#3BE5E5' }}
+                        bg="#09090a80"
+                        _hover={{ borderColor: '#46d39a' }}
                         transition="colors 0.3s"
                         flex={1}
                     >
-                        <Text color="#A692FF" mb={4} fontSize="2xl">🛡️</Text>
-                        <Text color="#F5F5F5" mb={2} fontWeight="bold">
+                        <Text color="#9bdc4f" mb={4} fontSize="2xl">🛡️</Text>
+                        <Text color="#ece6d8" mb={2} fontWeight="bold">
                             SECURE PROTOCOL
                         </Text>
-                        <Text color="#8A8A8A" fontSize="sm">
+                        <Text color="#8d877b" fontSize="sm">
                             Military-grade encryption protects your neural signature
                         </Text>
                     </Box>
 
                     <Box
                         border="1px solid"
-                        borderColor="#6943FF50"
+                        borderColor="#9bdc4f50"
                         borderRadius="md"
                         p={6}
-                        bg="#0A0A0A80"
-                        _hover={{ borderColor: '#3BE5E5' }}
+                        bg="#09090a80"
+                        _hover={{ borderColor: '#46d39a' }}
                         transition="colors 0.3s"
                         flex={1}
                     >
-                        <Text color="#6943FF" mb={4} fontSize="2xl">🧠</Text>
-                        <Text color="#F5F5F5" mb={2} fontWeight="bold">
+                        <Text color="#9bdc4f" mb={4} fontSize="2xl">🧠</Text>
+                        <Text color="#ece6d8" mb={2} fontWeight="bold">
                             MULTI-LEVEL ACCESS
                         </Text>
-                        <Text color="#8A8A8A" fontSize="sm">
+                        <Text color="#8d877b" fontSize="sm">
                             Explore different dimensions of consciousness across our levels
                         </Text>
                     </Box>
@@ -1543,17 +861,17 @@ const AboutView = ({
                 {/* Info Box */}
                 <Box
                     borderLeft="4px solid"
-                    borderColor="#3BE5E5"
-                    bg="#3BE5E505"
+                    borderColor="#46d39a"
+                    bg="#46d39a05"
                     borderRadius="md"
                     p={6}
                     mb={8}
                 >
-                    <Text color="#F5F5F5" mb={2}>
-                        <Text as="span" color="#3BE5E5">STATUS:</Text> Currently operating at 99.7% neural sync capacity
+                    <Text color="#ece6d8" mb={2}>
+                        <Text as="span" color="#46d39a">STATUS:</Text> Currently operating at 99.7% neural sync capacity
                     </Text>
-                    <Text color="#F5F5F5">
-                        <Text as="span" color="#3BE5E5">LOCATION:</Text> Neural District 07, Sector Grid 42-A
+                    <Text color="#ece6d8">
+                        <Text as="span" color="#46d39a">LOCATION:</Text> Neural District 07, Sector Grid 42-A
                     </Text>
                 </Box>
 
@@ -1564,12 +882,12 @@ const AboutView = ({
                         px={8}
                         py={3}
                         border="2px solid"
-                        borderColor="#6943FF"
-                        color="#F5F5F5"
+                        borderColor="#9bdc4f"
+                        color="#ece6d8"
                         bg="transparent"
                         _hover={{
-                            bg: '#6943FF20',
-                            boxShadow: '0 0 20px #6943FF',
+                            bg: '#9bdc4f20',
+                            boxShadow: '0 0 20px #9bdc4f',
                         }}
                         transition="all 0.3s"
                         letterSpacing="wider"
@@ -1581,10 +899,10 @@ const AboutView = ({
                         onClick={onElevator}
                         px={8}
                         py={3}
-                        bgGradient="linear(to-r, #6943FF, #A692FF)"
-                        color="#F5F5F5"
+                        bgGradient="linear(to-r, #9bdc4f, #9bdc4f)"
+                        color="#ece6d8"
                         _hover={{
-                            boxShadow: '0 0 30px #6943FF',
+                            boxShadow: '0 0 30px #9bdc4f',
                         }}
                         transition="all 0.3s"
                         letterSpacing="wider"
@@ -1608,7 +926,7 @@ const LevelsView = ({
     const router = useRouter()
     const { chainName } = useChainRoute()
     const [selectedLevel, setSelectedLevel] = useState<number | null>(null)
-    const [currentFloor, setCurrentFloor] = useState(0)
+    const currentFloorRef = useRef(0)
 
     const handleLevelClick = (level: Level) => {
         if (level.status === 'unlocked') {
@@ -1617,7 +935,7 @@ const LevelsView = ({
                 return
             }
             setSelectedLevel(level.id)
-            setCurrentFloor(level.id)
+            currentFloorRef.current = level.id
         }
     }
 
@@ -1625,7 +943,7 @@ const LevelsView = ({
         <Box
             position="relative"
             minH="100vh"
-            bg="#0A0A0A"
+            bg="#09090a"
             overflow="hidden"
             display="flex"
             flexDirection="column"
@@ -1651,21 +969,21 @@ const LevelsView = ({
                             <polygon
                                 points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
                                 fill="none"
-                                stroke="#6943FF"
+                                stroke="#9bdc4f"
                                 strokeWidth="1"
                             />
                             {/* Right hexagon (offset down) */}
                             <polygon
                                 points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
                                 fill="none"
-                                stroke="#6943FF"
+                                stroke="#9bdc4f"
                                 strokeWidth="1"
                             />
                             {/* Top-right continuation for seamless tiling */}
                             <polygon
                                 points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
                                 fill="none"
-                                stroke="#6943FF"
+                                stroke="#9bdc4f"
                                 strokeWidth="1"
                             />
                         </pattern>
@@ -1681,14 +999,14 @@ const LevelsView = ({
                     <Text
                         fontSize={{ base: '2xl', md: '4xl', lg: '6xl' }}
                         fontFamily="mono"
-                        color="#3BE5E5"
-                        textShadow="0 0 20px #3BE5E5, 0 0 40px #3BE5E5"
+                        color="#46d39a"
+                        textShadow="0 0 20px #46d39a, 0 0 40px #46d39a"
                         letterSpacing="wider"
                         textAlign="center"
                     >
                         ELEVATOR ACCESS
                     </Text>
-                    <HStack spacing={2} color="#8A8A8A">
+                    <HStack spacing={2} color="#8d877b">
                         <Icon as={Wifi} w={4} h={4} animation="pulse 2s infinite" />
                         <Text letterSpacing="widest" fontSize="sm">NEURAL LINK STABLE</Text>
                     </HStack>
@@ -1704,209 +1022,13 @@ const LevelsView = ({
                     align="stretch"
                 >
                     {/* Elevator Control Panel */}
-                    <Box flex={1} display="flex" flexDirection="column">
-                        <Box
-                            bgGradient="linear(to-br, #6943FF10, #0A0A0A)"
-                            border="2px solid"
-                            borderColor="#6943FF"
-                            borderRadius="md"
-                            p={6}
-                            boxShadow="0 0 30px #6943FF30"
-                            flex={1}
-                            display="flex"
-                            flexDirection="column"
-                        >
-                            <HStack justify="space-between" mb={6}>
-                                <Text color="#F5F5F5" fontSize="xl" letterSpacing="wider">
-                                    CONTROL PANEL
-                                </Text>
-                                {/* <Text color="#3BE5E5" fontSize="2xl" fontFamily="mono">
-                                    {currentFloor}
-                                </Text> */}
-                            </HStack>
-
-                            {/* Level Buttons */}
-                            <VStack spacing={3}>
-                                {levels.map((level) => (
-                                    <Button
-                                        key={level.id}
-                                        onClick={() => handleLevelClick(level)}
-                                        isDisabled={level.status === 'locked'}
-                                        w="100%"
-                                        p={4}
-                                        border="2px solid"
-                                        borderRadius="md"
-                                        transition="all 0.3s"
-                                        bg={
-                                            selectedLevel === level.id
-                                                ? `linear-gradient(to right, ${level.color}30, ${level.color}20)`
-                                                : 'transparent'
-                                        }
-                                        borderColor={
-                                            selectedLevel === level.id
-                                                ? '#3BE5E5'
-                                                : level.status === 'locked'
-                                                    ? '#8A8A8A30'
-                                                    : '#6943FF50'
-                                        }
-                                        opacity={level.status === 'locked' ? 0.5 : 1}
-                                        cursor={level.status === 'locked' ? 'not-allowed' : 'pointer'}
-                                        _hover={
-                                            level.status === 'unlocked'
-                                                ? {
-                                                    borderColor: '#A692FF',
-                                                    bg: '#6943FF10',
-                                                }
-                                                : {}
-                                        }
-                                        boxShadow={
-                                            selectedLevel === level.id && level.status === 'unlocked'
-                                                ? `0 0 20px ${level.color}`
-                                                : 'none'
-                                        }
-                                    >
-                                        <HStack justify="space-between" w="100%">
-                                            <VStack align="start" spacing={1}>
-                                                <HStack spacing={2}>
-                                                    <Icon
-                                                        as={level.status === 'unlocked' ? Unlock : Lock}
-                                                        w={4}
-                                                        h={4}
-                                                        color={level.status === 'unlocked' ? level.color : '#8A8A8A'}
-                                                    />
-                                                    <Text
-                                                        letterSpacing="wider"
-                                                        color={level.status === 'unlocked' ? level.color : '#8A8A8A'}
-                                                    >
-                                                        {level.name}
-                                                    </Text>
-                                                </HStack>
-                                                <Text color="#8A8A8A" fontSize="sm">
-                                                    {level.description}
-                                                </Text>
-                                            </VStack>
-                                            <Text
-                                                fontSize="3xl"
-                                                fontFamily="mono"
-                                                color={level.status === 'unlocked' ? level.color : '#8A8A8A'}
-                                            >
-                                                {level.id}
-                                            </Text>
-                                        </HStack>
-                                    </Button>
-                                ))}
-                            </VStack>
-                        </Box>
-                    </Box>
+                    <LevelsControlPanel
+                        selectedLevel={selectedLevel}
+                        onLevelClick={handleLevelClick}
+                    />
 
                     {/* Level Display */}
-                    <Box flex={1} display="flex" flexDirection="column">
-                        {selectedLevel ? (
-                            <Box
-                                bgGradient="linear(to-br, #3BE5E510, #0A0A0A)"
-                                border="2px solid"
-                                borderColor="#3BE5E5"
-                                borderRadius="md"
-                                p={8}
-                                flex={1}
-                                display="flex"
-                                flexDirection="column"
-                                boxShadow="0 0 30px #3BE5E530"
-                            >
-                                <VStack
-                                    align="center"
-                                    justify="center"
-                                    flex={1}
-                                    spacing={6}
-                                    textAlign="center"
-                                >
-                                    {/* <Text
-                                        fontSize="8xl"
-                                        fontFamily="mono"
-                                        color={levels[selectedLevel - 1].color}
-                                        textShadow={`0 0 30px ${levels[selectedLevel - 1].color}`}
-                                    >
-                                        {selectedLevel}
-                                    </Text> */}
-                                    <Text
-                                        fontSize="3xl"
-                                        letterSpacing="wider"
-                                        color={levels[selectedLevel - 1].color}
-                                    >
-                                        {levels[selectedLevel - 1].name}
-                                    </Text>
-                                    <Text color="#F5F5F5" maxW="md">
-                                        {levels[selectedLevel - 1].description}
-                                    </Text>
-
-                                    {/* Level Visualization */}
-                                    <VStack spacing={2} w="100%" maxW="xs">
-                                        {[...Array(levels.length)].reverse().map((_, i) => {
-                                            const levelIndex = levels.length - 1 - i
-                                            const level = levels[levelIndex]
-                                            return (
-                                                <Box
-                                                    key={i}
-                                                    h="48px"
-                                                    mb={2}
-                                                    border="2px solid"
-                                                    borderRadius="md"
-                                                    transition="all 0.3s"
-                                                    bg={
-                                                        level.id === selectedLevel
-                                                            ? 'linear-gradient(to right, #6943FF, #A692FF)'
-                                                            : '#0A0A0A'
-                                                    }
-                                                    borderColor={
-                                                        level.id === selectedLevel
-                                                            ? '#3BE5E5'
-                                                            : '#6943FF30'
-                                                    }
-                                                    boxShadow={
-                                                        level.id === selectedLevel
-                                                            ? '0 0 20px #6943FF'
-                                                            : 'none'
-                                                    }
-                                                >
-                                                    <HStack justify="space-between" h="100%" px={4}>
-                                                        <Text color="#8A8A8A" fontSize="sm">
-                                                            {level.name}
-                                                        </Text>
-                                                        {level.id === selectedLevel && (
-                                                            <Box
-                                                                w="8px"
-                                                                h="8px"
-                                                                bg="#3BE5E5"
-                                                                borderRadius="full"
-                                                                animation="pulse 2s infinite"
-                                                            />
-                                                        )}
-                                                    </HStack>
-                                                </Box>
-                                            )
-                                        })}
-                                    </VStack>
-                                </VStack>
-                            </Box>
-                        ) : (
-                            <Box
-                                border="2px solid"
-                                borderColor="#6943FF30"
-                                borderStyle="dashed"
-                                borderRadius="md"
-                                p={8}
-                                flex={1}
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                            >
-                                <VStack spacing={4}>
-                                    <Text fontSize="6xl" opacity={0.2}>⟐</Text>
-                                    <Text color="#8A8A8A">Select a level to begin</Text>
-                                </VStack>
-                            </Box>
-                        )}
-                    </Box>
+                    <LevelsDisplay selectedLevel={selectedLevel} />
                 </HStack>
 
                 {/* Navigation */}
@@ -1916,12 +1038,12 @@ const LevelsView = ({
                         px={8}
                         py={3}
                         border="2px solid"
-                        borderColor="#8A8A8A"
-                        color="#8A8A8A"
+                        borderColor="#8d877b"
+                        color="#8d877b"
                         bg="transparent"
                         _hover={{
-                            borderColor: '#F5F5F5',
-                            color: '#F5F5F5',
+                            borderColor: '#ece6d8',
+                            color: '#ece6d8',
                         }}
                         transition="all 0.3s"
                         letterSpacing="wider"
@@ -1934,12 +1056,12 @@ const LevelsView = ({
                         px={8}
                         py={3}
                         border="2px solid"
-                        borderColor="#6943FF"
-                        color="#F5F5F5"
+                        borderColor="#9bdc4f"
+                        color="#ece6d8"
                         bg="transparent"
                         _hover={{
-                            bg: '#6943FF20',
-                            boxShadow: '0 0 20px #6943FF',
+                            bg: '#9bdc4f20',
+                            boxShadow: '0 0 20px #9bdc4f',
                         }}
                         transition="all 0.3s"
                         letterSpacing="wider"

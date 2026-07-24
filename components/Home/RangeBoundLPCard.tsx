@@ -3,7 +3,7 @@ import { TxButton } from "../TxButton"
 import useSPCompound from "./hooks/useSPCompound"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { isGreaterThanZero, num } from "@/helpers/num"
-import { useBoundedCDTVaultTokenUnderlying, useBoundedCDTRealizedAPR, getBoundedCDTBalance, useBoundedCDTBalance, useEstimatedAnnualInterest, useBoundedTVL, useRBLPCDTBalance } from "../../hooks/useEarnQueries"
+import { useBoundedCDTVaultTokenUnderlying, useBoundedCDTRealizedAPR, useEstimatedAnnualInterest, useBoundedTVL, useRBLPCDTBalance } from "../../hooks/useEarnQueries"
 import useBidState from "../Bid/hooks/useBidState"
 import useQuickActionState from "./hooks/useQuickActionState"
 import { useAssetBySymbol } from "@/hooks/useAssets"
@@ -20,7 +20,7 @@ import { QASummary } from "./QASummary"
 import { GrPowerReset } from "react-icons/gr"
 import useBoundedManage from "../Dashboard/hooks/useRangeBoundLPManage"
 import useRangeBoundLP from "./hooks/useRangeBoundLP"
-import { getBestCLRange } from "@/services/osmosis"
+import { useBestCLRange } from "@/services/osmosis"
 import { colors, LPJoinDate } from "@/config/defaults"
 import YieldCounter from "./YieldCounter"
 import useAppState from "@/persisted-state/useAppState"
@@ -93,11 +93,11 @@ const ActSlider = React.memo(() => {
   return (
     <Stack gap="0" borderWidth={3} borderRadius="2rem">
       <HStack justifyContent="space-between" padding="4%">
-        <Text fontSize="lg" fontFamily="Inter" variant="lable" textTransform="unset">
+        <Text fontSize="lg" fontFamily="var(--font-inter)" variant="lable" textTransform="unset">
           CDT in Vault
         </Text>
         <HStack>
-          <Text fontFamily="Inter" variant="value">{pendingBalance.toFixed(2)}</Text>
+          <Text fontFamily="var(--font-inter)" variant="value">{pendingBalance.toFixed(2)}</Text>
         </HStack>
       </HStack>
 
@@ -161,7 +161,7 @@ const RangeBoundLPCard = () => {
 
   }, [basket])
 
-  const { data: clRewardList } = getBestCLRange()
+  const { data: clRewardList } = useBestCLRange()
   const daysSinceDeposit = num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber()
   const rangeBoundAPR = useMemo(() => {
     //upperXlower & middle are just for logs rn
@@ -171,26 +171,26 @@ const RangeBoundLPCard = () => {
     const middleAPR = ((clRewardList[5].reward + clRewardList[6].reward + clRewardList[7].reward + clRewardList[8].reward + clRewardList[9].reward) / 5) / 1000000 / daysSinceDeposit * 365
     console.log("middleAPR", middleAPR)
     return totalrewards / 1000000 / daysSinceDeposit * 365
-  }, [clRewardList])
+  }, [clRewardList, daysSinceDeposit])
   console.log("rangeBoundAPR", rangeBoundAPR)
 
 
 
   const { bidState } = useBidState()
-  const isDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero() }, [manage?.simulate.isError, manage?.simulate.data])
+  const isDisabled = useMemo(() => { return manage?.simulate.isError || !manage?.simulate.data || num(amountToManage).isZero() }, [manage?.simulate.isError, manage?.simulate.data, amountToManage])
 
   return (
     <Card width={isMobile ? "100%" : "50%"} borderWidth={3} padding={4}>
       <Stack>
-        <Text variant="title" fontFamily="Inter" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Earn CDT</Text>
+        <Text variant="title" fontFamily="var(--font-inter)" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Earn CDT</Text>
         <Stack>
-          <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.earnText }}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-          <Text variant="title" fontFamily="Inter" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.earnText }}>Estimated APR: &nbsp;</a>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
+          <Text variant="title" fontFamily="var(--font-inter)" fontSize={"lg"} letterSpacing={"1px"} display="flex"><span style={{ fontWeight: "bold", color: colors.earnText }}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</span> <span className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</span></Text>
+          <Text variant="title" fontFamily="var(--font-inter)" fontSize={"lg"} letterSpacing={"1px"} display="flex"><span style={{ fontWeight: "bold", color: colors.earnText }}>Estimated APR: &nbsp;</span>{bidState.cdpExpectedAnnualRevenue ? num(bidState.cdpExpectedAnnualRevenue).times(0.80).dividedBy(TVL || 1).plus(rangeBoundAPR).multipliedBy(100).toFixed(1) + "%" : "loading..."}</Text>
         </Stack>
         <Divider marginBottom={"3vh"} />
         <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-          <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: colors.earnText }}>Yield:</a> Revenue & Swap Fees</ListItem>
-          <ListItem fontFamily="Inter" fontSize="md">
+          <ListItem fontFamily="var(--font-inter)" fontSize="md"><span style={{ fontWeight: "bold", color: colors.earnText }}>Yield:</span> Revenue & Swap Fees</ListItem>
+          <ListItem fontFamily="var(--font-inter)" fontSize="md">
             <YieldCounter incrementPerSecond={bidState.cdpExpectedAnnualRevenue ? shiftDigits(bidState.cdpExpectedAnnualRevenue, -6).times(0.80).dividedBy(86400 * 365).toNumber() : 0} precision={8} />
           </ListItem>
         </List>
@@ -205,7 +205,7 @@ const RangeBoundLPCard = () => {
           value={percentToDistribution}
         >
           <SliderTrack h="1.5">
-            <SliderFilledTrack bg={'#20d6ff'} />
+            <SliderFilledTrack bg={'#9bdc4f'} />
           </SliderTrack>
         </Slider>
         <TxButton

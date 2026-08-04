@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json.schemastore.org/base.json",
+  "brand": "Membrane — Living Typeface",
+  "spec": "docs/BRAND_CHARTS.md",
+  "sourceOfTruth": ["config/chartTheme.tsx", "config/semanticColors.ts"],
+  "updated": "2026-07",
+
+  "surface": {
+    "bg": "#09090a",
+    "bgCard": "#0e0d10",
+    "bgRaise": "#100f12"
+  },
+
+  "ink": {
+    "primary": "#ece6d8",
+    "dim": "#8d877b",
+    "faint": "#56524a"
+  },
+
+  "hairline": {
+    "subtle": "rgba(236,230,216,0.10)",
+    "strong": "rgba(236,230,216,0.22)",
+    "grid": "rgba(236,230,216,0.08)"
+  },
+
+  "semantic": {
+    "success": "#9bdc4f",
+    "primary": "#9bdc4f",
+    "info": "#46d39a",
+    "secondary": "#46d39a",
+    "warning": "#d8b24a",
+    "danger": "#cf4034"
+  },
+
+  "series": [
+    { "hex": "#9bdc4f", "name": "phosphor green" },
+    { "hex": "#46d39a", "name": "cyber teal" },
+    { "hex": "#d8b24a", "name": "gold" },
+    { "hex": "#cf4034", "name": "blood red" },
+    { "hex": "#8d877b", "name": "bone dim" },
+    { "hex": "#4a8636", "name": "moss dark" },
+    { "hex": "#c8e89a", "name": "pale phosphor" },
+    { "hex": "#e0c877", "name": "pale gold" }
+  ],
+
+  "retiredDoNotUse": ["#6943FF", "#A692FF", "#3BE5E5", "#22d3ee", "#091326", "#ffffff"],
+
+  "typography": {
+    "display": {
+      "family": "Redaction",
+      "fallback": "Georgia, 'Times New Roman', serif",
+      "use": "chart titles and editorial copy only"
+    },
+    "data": {
+      "family": "JetBrains Mono",
+      "fallback": "ui-monospace, SFMono-Regular, Menlo, monospace",
+      "use": "ALL numbers, axes, ticks, legends, labels — mandatory"
+    },
+    "sizes": { "tick": 10, "legend": 12, "annotation": 10, "title": 17 },
+    "label": { "transform": "uppercase", "letterSpacing": "0.28em", "size": 11 },
+    "numerals": "tabular-nums"
+  },
+
+  "structure": {
+    "borderRadius": 0,
+    "panelBorder": "1px solid rgba(236,230,216,0.10)",
+    "effectsForbidden": ["glow", "bloom", "drop-shadow", "gradient-series-fill", "backdrop-filter"]
+  },
+
+  "components": {
+    "grid": { "stroke": "rgba(236,230,216,0.08)", "strokeDasharray": "3 3" },
+    "axis": { "stroke": "#ece6d8", "strokeOpacity": 0.6, "tickFill": "#ece6d8", "tickFontSize": 10 },
+    "line": { "strokeWidth": 2, "dot": false, "activeDotRadius": 5 },
+    "area": { "strokeWidth": 2, "fillOpacity": 0.3 },
+    "bar": { "radius": [0, 0, 0, 0] },
+    "tooltip": {
+      "backgroundColor": "#0e0d10",
+      "border": "1px solid rgba(236,230,216,0.22)",
+      "borderRadius": "0px",
+      "color": "#ece6d8",
+      "cursorStroke": "rgba(236,230,216,0.10)"
+    },
+    "legend": { "fontSize": 12, "color": "#8d877b", "iconType": "line" }
+  },
+
+  "referenceLines": {
+    "liquidation": { "stroke": "#cf4034", "strokeWidth": 2, "strokeDasharray": "5 5" },
+    "target": { "stroke": "#9bdc4f", "strokeWidth": 1, "strokeDasharray": "3 3" },
+    "crossing": { "stroke": "#d8b24a", "strokeWidth": 1, "strokeDasharray": "2 3" }
+  },
+
+  "sizeTiers": {
+    "note": "ghosted variants for size-comparison charts; keep the largest tier legible",
+    "tiers": [
+      { "multiple": 1, "opacity": 1.0, "dash": null },
+      { "multiple": 10, "opacity": 0.72, "dash": "6 3" },
+      { "multiple": 100, "opacity": 0.5, "dash": "2 3" }
+    ],
+    "bandFillOpacity": "0.24 * tierOpacity"
+  },
+
+  "chartHeights": { "sm": 200, "md": 300, "lg": 400, "xl": 500 },
+
+  "bindingContentRules": [
+    "Uncertainty renders as a band whose width scales with real uncertainty — never as a footnote or disclaimer.",
+    "Never use APY/APR as the y-axis on a comparison meant to teach sizing; use realized value net of exit cost.",
+    "Never average away a low-confidence component; surface the weakest prong or show each separately.",
+    "No confidence figure unless backed by realized outcomes; use an honest empty state such as '0 of 0 scored'.",
+    "Headline takeaways in dollars or hours, rounded to two significant figures.",
+    "Prefer time-to-event over percentage for risk headroom."
+  ]
+}

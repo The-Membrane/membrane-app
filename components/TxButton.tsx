@@ -26,14 +26,7 @@ export const TxButton: FC<PropsWithChildren<ConnectionButtonProps & ButtonProps>
   // Capitalize first letter
   const formattedChainName = displayChainName.charAt(0).toUpperCase() + displayChainName.slice(1).toLowerCase()
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/2832749a-788e-42b9-9c1d-ba475ed16f2f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'TxButton.tsx:27', message: 'TxButton render', data: { chainName, chain_name_prop: chain_name, displayChainName, formattedChainName, isWalletConnected }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'post-fix', hypothesisId: 'A' }) }).catch(() => { });
-  // #endregion
-
   if (!isWalletConnected) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/2832749a-788e-42b9-9c1d-ba475ed16f2f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'TxButton.tsx:34', message: 'Rendering connect button', data: { chain_name_display: formattedChainName, chainName_from_route: chainName, toggleConnectLabel }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'post-fix', hypothesisId: 'A' }) }).catch(() => { });
-    // #endregion
     return toggleConnectLabel ? <Button {...buttonProps} isDisabled={false} onClick={connect}>Connect to {formattedChainName}</Button>
       : <Button {...buttonProps} isDisabled={false} onClick={connect}>{children}</Button>
   }

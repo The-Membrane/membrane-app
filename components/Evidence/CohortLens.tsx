@@ -6,7 +6,8 @@ import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 
-import { CURE_LEGEND, Eyebrow, InfoTip, pct, usd } from './atoms'
+import { Eyebrow, InfoTip } from './atoms'
+import { CURE_LEGEND, pct, usd } from './format'
 import { useCohort, useFacets } from './useEvidence'
 import { CohortRow, OutcomeFilter, SortKey, sparedUsd } from './types'
 

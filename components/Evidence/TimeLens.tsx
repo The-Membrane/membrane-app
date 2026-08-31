@@ -6,7 +6,8 @@ import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { Card } from '@/components/ui/Card'
 
-import { Eyebrow, Stat, pct } from './atoms'
+import { Eyebrow, Stat } from './atoms'
+import { pct } from './format'
 import { TimeSummary } from './types'
 
 /** One step of the funnel, drawn as a proportional bar. */

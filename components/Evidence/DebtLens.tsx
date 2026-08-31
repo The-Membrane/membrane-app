@@ -6,7 +6,8 @@ import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { Card } from '@/components/ui/Card'
 
-import { CURE_LEGEND, CompareBar, Eyebrow, InfoTip, Stat, pct, usd } from './atoms'
+import { CompareBar, Eyebrow, InfoTip, Stat } from './atoms'
+import { CURE_LEGEND, pct, usd } from './format'
 import { AssetSummary, DebtSummary } from './types'
 
 /**

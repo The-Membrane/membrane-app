@@ -104,7 +104,7 @@ Chart heights: `sm 200 · md 300 · lg 400 · xl 500`.
 
 ## 4. Binding content rules
 
-These come from the **User Expertise Ruleset** (`~/Downloads/membrane-badass-ruleset.md`, §4, §6.3, §7, §11) and are **not stylistic** — a chart that breaks them is rejected regardless of how it looks.
+These come from the **User Expertise Ruleset** (`docs/BADASS_RULESET.md`, §4, §6.3, §7, §11) and are **not stylistic** — a chart that breaks them is rejected regardless of how it looks.
 
 1. **Uncertainty renders as geometry, never as a footnote.** Where confidence is low, draw a **band**, not a line. Band width must scale with actual uncertainty — a wide band on a shallow venue and a tight band on a deep one is how the reader learns depth. A disclaimer under the chart does not satisfy this.
 

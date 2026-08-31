@@ -5,27 +5,42 @@ import WallectConnect from './WallectConnect/WalletConnect';
 import NextLink from 'next/link';
 import { useRouter } from 'next/router';
 import { colors } from '@/config/defaults';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions';
 import Logo from './Logo';
 import { supportedChains, getChainConfig } from '@/config/chains';
 import { useChainRoute } from '@/hooks/useChainRoute';
 import useAppState from '@/persisted-state/useAppState';
 
+// Sim-first launch (owner ruling, Aug 31 2026 — docs/GAME_LAUNCH_PLAN.md): the simulation
+// game goes public before any executable page. Only the wallet-free surfaces sit at the top
+// level; everything that needs a live contract is grouped under the "Coming soon" menu.
+// Keeping all 13 flat overflowed the nav and pushed the whole document sideways by 252px.
+// Evidence is the landing page (renders at '/'), so its nav entry points at the root
+// rather than /evidence — that route 307s here, keeping one canonical URL.
+// The old marketing home moved to /home; it was not deleted.
 const navItems = [
     { label: 'About', href: '/about' },
-    { label: 'Home', href: '/' },
-    // Proto-port surfaces, depth-ordered per public/proto/flow.html
+    { label: 'Evidence', href: '/' },
+    { label: 'Simulator', href: '/simulator' },
+    { label: 'Home', href: '/home' },
+    { label: 'Builder', href: '/builder' },
+    { label: 'Defend', href: '/defend' },
+    // Promoted out of the removed Dashboards menu — it stands on its own.
+    { label: 'Membrane', href: '/membrane-dashboard' },
+];
+
+// Reachable, but not advertised as live. Depth-ordered per public/proto/flow.html.
+const comingSoonItems = [
     { label: 'Position', href: '/position' },
     { label: 'Borrow', href: '/borrow' },
     { label: 'Carry', href: '/carry' },
     { label: 'Earn', href: '/earn' },
     { label: 'Liquidate', href: '/liquidate' },
-    { label: 'Defend', href: '/defend' },
-    { label: 'Builder', href: '/builder' },
     { label: 'Mint', href: '/mint' },
     { label: 'Portfolio', href: '/portfolio' }, // flow.html marks this replaced by Position — keep until owner removes
-    // { label: 'Transmuter', href: '/transmuter' },
-    // { label: 'Manic', href: '/manic' },
     { label: 'The Disco', href: '/disco' },
+    // { label: 'Transmuter', href: '/transmuter' },
     // { label: 'Maze Runners', href: '/maze-runners' },
     // { label: 'Bridge', href: '/bridge' },
 
@@ -35,11 +50,14 @@ const navItems = [
     // { label: 'Control Room', href: '/control-room' },
 ];
 
-const dashboardItems = [
-    { label: 'Acquisition', href: '/acquisition-dashboard' },
-    { label: 'LTVs', href: '/ltv-dashboard' },
-    { label: 'Membrane', href: '/membrane-dashboard' },
-];
+// Dashboards menu removed (owner ruling, Aug 31 2026):
+//   - Acquisition — the underlying feature does not exist yet
+//   - LTVs        — these updates belong on the Disco / Defend pages, not a separate dashboard
+//   - Membrane    — promoted to a solo top-level nav item above
+// Emptied rather than deleted: both render sites are guarded by `dashboards.length > 0`,
+// so the menu disappears while the markup stays ready to restore. The pages themselves
+// are untouched and still reachable by direct URL.
+const dashboardItems: { label: string; href: string }[] = [];
 
 // Neutron only shows Maze Runners
 const neutronNavItems = [
@@ -48,9 +66,9 @@ const neutronNavItems = [
 
 const getNavItemsForChain = (chainName: string) => {
     if (chainName === 'neutron' || chainName === 'neutrontestnet') {
-        return { navItems: neutronNavItems, dashboards: [] as typeof dashboardItems };
+        return { navItems: neutronNavItems, comingSoon: [] as typeof comingSoonItems, dashboards: [] as typeof dashboardItems };
     }
-    return { navItems, dashboards: dashboardItems };
+    return { navItems, comingSoon: comingSoonItems, dashboards: dashboardItems };
 };
 
 const HorizontalNav = () => {
@@ -83,7 +101,7 @@ const HorizontalNav = () => {
     };
 
     // Get chain-specific nav items, then filter out Home if contract signed
-    const { navItems: chainNavItems, dashboards } = getNavItemsForChain(chainName);
+    const { navItems: chainNavItems, comingSoon, dashboards } = getNavItemsForChain(chainName);
     const filteredNavItems = appState.setCookie
         ? chainNavItems.filter(item => item.label !== 'Home')
         : chainNavItems;
@@ -122,28 +140,98 @@ const HorizontalNav = () => {
                     </Text> */}
             {/* </Stack> */}
 
-            {/* Desktop Nav */}
-            <HStack spacing={1} display={{ base: 'none', lg: 'flex' }}>
+            {/* Desktop Nav.
+                minW={0} lets this flex child shrink below its content width; without it the
+                item row (currently ~1.2k px) sets the nav's scrollWidth and the overflow
+                escapes to <html>, scrolling the whole document sideways on every page. */}
+            <HStack
+                spacing={1}
+                display={{ base: 'none', lg: 'flex' }}
+                minW={0}
+                overflowX="auto"
+                sx={{ scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}
+            >
                 {chainName && filteredNavItems.map((item) => (
                     <Button
                         key={item.label}
                         as={NextLink}
                         href={`/${chainName}${item.href}`}
                         variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                        color="#ece6d8"
+                        color={SEMANTIC_COLORS.textPrimary}
                         fontWeight="semibold"
-                        borderRadius="full"
+                        borderRadius={0}
                         border="none"
                         px={4}
                         py={2}
-                        bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
-                        _hover={{ bg: 'whiteAlpha.300' }}
+                        bg={router.asPath === `/${chainName}${item.href}` ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                        transition={TRANSITIONS.colors}
+                        _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
+                        _focusVisible={FOCUS_STYLES.ring}
                         fontSize="13px"
                         w={"fit-content"}
+                        /* Never let the label squeeze — the row scrolls instead of colliding. */
+                        flexShrink={0}
                     >
                         {item.label}
                     </Button>
                 ))}
+                {chainName && comingSoon.length > 0 && (
+                    <Menu>
+                        {/* Plain MenuButton, not `as={Button}` — that combination lets emotion's
+                            dev-mode <style> tag render inside the trigger, which poisons the
+                            accessible name (it read as ".css-xl71ch{pointer-" instead of a label). */}
+                        <MenuButton
+                            aria-label="Coming soon pages"
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontWeight="semibold"
+                            borderRadius={0}
+                            px={4}
+                            py={2}
+                            bg={comingSoon.some(d => router.asPath === `/${chainName}${d.href}`) ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                            transition={TRANSITIONS.colors}
+                            _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.textPrimary }}
+                            _focusVisible={FOCUS_STYLES.ring}
+                            fontSize="13px"
+                            flexShrink={0}
+                            whiteSpace="nowrap"
+                            /* Plain MenuButton misses the Button theme, so match its casing here. */
+                            textTransform="uppercase"
+                            letterSpacing="0.08em"
+                        >
+                            <HStack spacing={2} as="span">
+                                <Text as="span">Coming soon</Text>
+                                <FaChevronDown size={10} />
+                            </HStack>
+                        </MenuButton>
+                        <MenuList
+                            bg={SEMANTIC_COLORS.bgSecondary}
+                            border="1px solid"
+                            borderColor={SEMANTIC_COLORS.borderStrong}
+                            borderRadius={0}
+                            minW="200px"
+                            py={0}
+                        >
+                            {comingSoon.map((item) => (
+                                <MenuItem
+                                    key={item.label}
+                                    as={NextLink}
+                                    href={`/${chainName}${item.href}`}
+                                    bg="transparent"
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    fontSize="13px"
+                                    fontWeight="semibold"
+                                    px={4}
+                                    py={2}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
+                                    _focus={{ bg: SEMANTIC_COLORS.bgTertiary }}
+                                >
+                                    {item.label}
+                                </MenuItem>
+                            ))}
+                        </MenuList>
+                    </Menu>
+                )}
                 {chainName && dashboards.length > 0 && (
                     <>
                         <Button
@@ -281,6 +369,45 @@ const HorizontalNav = () => {
                                         {item.label}
                                     </Button>
                                 ))}
+                                {chainName && comingSoon.length > 0 && (
+                                    <>
+                                        <Text
+                                            mt={2}
+                                            px={6}
+                                            fontSize="11px"
+                                            fontWeight="semibold"
+                                            textTransform="uppercase"
+                                            letterSpacing="0.28em"
+                                            color={SEMANTIC_COLORS.textTertiary}
+                                        >
+                                            Coming soon
+                                        </Text>
+                                        {comingSoon.map((item) => (
+                                            <Button
+                                                key={item.label}
+                                                as={NextLink}
+                                                href={`/${chainName}${item.href}`}
+                                                variant="ghost"
+                                                color={SEMANTIC_COLORS.textSecondary}
+                                                fontWeight="semibold"
+                                                borderRadius={0}
+                                                border="none"
+                                                px={6}
+                                                py={4}
+                                                bg={router.asPath === `/${chainName}${item.href}` ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                                                transition={TRANSITIONS.colors}
+                                                _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
+                                                _focusVisible={FOCUS_STYLES.ring}
+                                                fontSize="13px"
+                                                maxW={"fit-content"}
+                                                justifyContent="flex-start"
+                                                onClick={onClose}
+                                            >
+                                                {item.label}
+                                            </Button>
+                                        ))}
+                                    </>
+                                )}
                                 {chainName && dashboards.length > 0 && (
                                     <>
                                         <Button

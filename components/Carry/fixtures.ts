@@ -23,10 +23,40 @@ export const LEV = [2, 3, 5, 7]
 export const ROUTE_SCALE = 12
 
 /**
- * Measured 8h-drawdown tails from the lending scan (~2,950 windows per asset,
- * 2019-2026). Yields are today's, marked as such.
+ * Collateral rows for the picker + ladder.
+ *
+ * ETH and BTC carry REAL drawdown tails, computed from hourly OHLCV over rolling
+ * 8-hour windows. Their `maxLtv` is the median liquidation line actually observed
+ * across real Aave accounts in the Oct 10 2025 window (713 WETH / 160 WBTC
+ * accounts), not an assumed parameter.
+ *
+ * The three yield-bearing stables below are UNVERIFIED. Their p999/worst/n were
+ * inherited from `collateral_rank.json`, which does not exist in this repo, in
+ * membrane-core, or anywhere on disk, and no price history for sUSDS, syrupUSDC
+ * or scrvUSD is available to recompute them. They keep rendering so the page does
+ * not lose its product shape, but they carry no `measured` block and the UI must
+ * not stamp them as measured. The previous stamp claimed a 2019-2026 range; the
+ * oldest price data on disk of any kind begins 2021-03-20.
  */
 export const COLL: Collateral[] = [
+  {
+    sym: 'ETH',
+    yld: 0, // no native yield; directional collateral, not a carry leg
+    p999: 15.18,
+    worst: 28.12,
+    maxLtv: 0.83,
+    n: 22003,
+    measured: { range: '2023-10-30 to 2026-05-04', source: 'hourly OHLCV' },
+  },
+  {
+    sym: 'BTC',
+    yld: 0,
+    p999: 14.79,
+    worst: 25.59,
+    maxLtv: 0.78,
+    n: 43778,
+    measured: { range: '2021-03-20 to 2026-03-19', source: 'hourly OHLCV' },
+  },
   { sym: 'sUSDS', yld: 6.5, p999: 0.41, worst: 6.26, maxLtv: 0.86, n: 2950 },
   { sym: 'syrupUSDC', yld: 7.8, p999: 0.18, worst: 0.2, maxLtv: 0.86, n: 2101 },
   { sym: 'scrvUSD', yld: 9.2, p999: 0.92, worst: 0.92, maxLtv: 0.8, n: 2986 },

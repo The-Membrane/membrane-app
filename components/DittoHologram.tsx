@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { Box, Image } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { DittoPanel } from './DittoSpeechBox/DittoPanel'
 import { usePageActions } from './DittoSpeechBox/hooks/usePageActions'
 import { ActionIndicator } from './DittoSpeechBox/ActionIndicator'
-import { getThemeForRoute, getFallbackImage, DittoTheme } from '@/config/dittoThemes'
+import { getThemeForRoute, getFallbackImage, isDittoSuppressed, DittoTheme } from '@/config/dittoThemes'
 import { SpeechBubble } from '@/components/SpeechBubble'
 import useAppState from '@/persisted-state/useAppState'
 import useDittoSpeechBoxState from './DittoSpeechBox/hooks/useDittoSpeechBoxState'
@@ -18,7 +18,7 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
     const { hasAvailableActions, actionTooltip, availableActions } = usePageActions()
     const { appState } = useAppState()
     const { dittoSpeechBoxState, setDittoSpeechBoxState } = useDittoSpeechBoxState()
-    const [isHovered, setIsHovered] = useState(false)
+    const isHoveredRef = useRef(false)
     const [imageError, setImageError] = useState(false)
     const [isPanelOpen, setIsPanelOpen] = useState(false)
     const [showWelcomeBubble, setShowWelcomeBubble] = useState(false)
@@ -85,6 +85,14 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
     const showBadge = hasAvailableActions
     const badgeCount = availableActions.length
 
+    // Proof surfaces get no Ditto — see `dittoSuppressedRoutes` for the reasoning.
+    // This sits AFTER every hook on purpose: returning earlier (e.g. beside the
+    // useRouter call) would make the hooks below conditional and break the rules of
+    // hooks on every route change into or out of a suppressed page.
+    if (isDittoSuppressed(router.pathname)) {
+        return null
+    }
+
     return (
         <Box
             position="fixed"
@@ -129,11 +137,11 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                     src={imagePath}
                     alt={currentTheme.altText}
                     position="absolute"
-                    bottom="50px"
+                    bottom={currentTheme.imageBottom || '50px'}
                     left="50%"
                     transform="translateX(-50%)"
-                    w="110px"
-                    h="110px"
+                    w={currentTheme.imageSize || '110px'}
+                    h={currentTheme.imageSize || '110px'}
                     objectFit="contain"
                     opacity={stayShown ? 1 : 0}
                     transition="all 0.3s ease-in-out"
@@ -145,8 +153,8 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                         e.stopPropagation()
                         togglePanel()
                     }}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
+                    onMouseEnter={() => { isHoveredRef.current = true }}
+                    onMouseLeave={() => { isHoveredRef.current = false }}
                     onError={() => setImageError(true)}
                     filter={showBadge && !isPanelOpen
                         ? `drop-shadow(0 0 15px ${currentTheme.glowColor})`

@@ -6,14 +6,26 @@ export interface Collateral {
   sym: string
   /** Today's yield %, marked as such (moves in production). */
   yld: number
-  /** Measured 1-in-1000 8-hour drawdown, % (from collateral_rank.json). */
+  /** 1-in-1000 8-hour drawdown, %. Measured only when `measured` is set. */
   p999: number
-  /** Worst-ever 8h drawdown, %. */
+  /** Worst observed 8h drawdown, %. */
   worst: number
   /** Max LTV (draw) the asset is granted. */
   maxLtv: number
-  /** Number of 8-hour windows measured. */
+  /** Number of 8-hour windows behind p999/worst. */
   n: number
+  /**
+   * Provenance of the drawdown tail. Present => p999/worst/n were computed from
+   * real hourly OHLCV and the range is quotable. Absent => the numbers are
+   * inherited from a source dataset that is not on disk and cannot be verified;
+   * the UI must not claim they are measured.
+   */
+  measured?: {
+    /** Inclusive UTC date range actually covered, e.g. '2023-10-30 to 2026-05-04'. */
+    range: string
+    /** Short source label for the stamp. */
+    source: string
+  }
 }
 
 /** A one-decision risk preset. Presets commit a full, named vector. */

@@ -42,11 +42,27 @@ export function rungMetrics(c: Collateral, L: number): RungMetrics {
   return { L, ltv, carry, fall, cover, danger, roomUsed }
 }
 
-/** Provenance line under the ladder. */
+/**
+ * Provenance line under the ladder.
+ *
+ * Only assets carrying a `measured` block may claim measurement, and they quote
+ * the range actually covered. Everything else says plainly that its tail is
+ * unverified — the source dataset (collateral_rank.json) is not on disk and the
+ * numbers cannot be recomputed. `ABSORB` came from that same missing dataset, so
+ * it is only quoted alongside a measured tail.
+ */
 export function ladderStamp(c: Collateral): string {
+  if (!c.measured) {
+    return (
+      `drawdown tail for ${c.sym} is UNVERIFIED — source dataset (collateral_rank.json) ` +
+      `is missing and no ${c.sym} price history is available to recompute it · ` +
+      `survival numbers below inherit that uncertainty · yields are today’s and move`
+    )
+  }
   return (
-    `drawdown tails measured across ${c.n.toLocaleString()} eight-hour windows, 2019-2026 · ` +
-    `window absorption ${ABSORB}% at max draw · yields are today’s and move`
+    `drawdown tail measured across ${c.n.toLocaleString()} rolling eight-hour windows, ` +
+    `${c.measured.range} (${c.measured.source}) · window absorption ${ABSORB}% at max draw ` +
+    `(unverified) · yields are today’s and move`
   )
 }
 

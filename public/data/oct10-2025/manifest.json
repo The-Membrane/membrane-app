@@ -1,0 +1,45 @@
+{
+  "name": "Oct 10 2025 stress window",
+  "windowStartUtc": "2025-10-10T00:00:00Z",
+  "windowEndUtc": "2025-10-11T23:59:00Z",
+  "windowStartTs": 1760054400,
+  "resolution": "1 minute",
+  "generatedAt": "2026-08-31T17:47:09.533Z",
+  "generatedBy": "scripts/build-oct10-dataset.ts",
+  "sourceDirectory": "~/Downloads/oct10_data (not committed)",
+  "sources": [
+    {
+      "series": "ethOracle / btcOracle / stethEthOracle",
+      "source": "Chainlink AnswerUpdated logs via public JSON-RPC (Tenderly public gateway)",
+      "file": "chainlink_1m.csv"
+    },
+    {
+      "series": "ethSpot / btcSpot / usdeSpot (+ lows)",
+      "source": "Binance public 1m klines",
+      "file": "binance_1m_48h.csv"
+    },
+    {
+      "series": "usdeOnchain",
+      "source": "Curve USDe/USDC pool quote for a 1 USDe clip, per minute",
+      "file": "usde_curve_depth_1m.csv"
+    },
+    {
+      "series": "protocol params",
+      "source": "on-chain reads at mainnet block 23543615",
+      "file": "protocol_params_oct10.json"
+    },
+    {
+      "series": "measured liquidations",
+      "source": "Aave/Morpho Liquidate event logs, decoded",
+      "file": "aave_repay_distribution.json / morpho_repay_distribution.json"
+    }
+  ],
+  "caveats": [
+    "The feed labelled wstETH/ETH is actually the stETH/ETH feed — its on-chain description() reads 'STETH / ETH'. It is a ~24h-heartbeat feed and is NOT the accruing wstETH rate. Do not use it to price wstETH without first resolving the feed Aave's oracle actually read at that block.",
+    "usdeOnchain is a MARGINAL quote for a 1 USDe clip. It bottomed at $0.99683, but the same pool bottomed at $1.13M USDC of reserves — a 1,000,000 USDe sell realised an average of $0.9759 at the worst minute. \"On-chain never broke $0.997\" is true of the quote, not of exit liquidity at size.",
+    "A prior session recorded the on-chain USDe minimum as $0.9957. That figure is NOT supported by this data: it appears only as a pre-existing assumption in a source-script comment (fetch_curve_depth.py), never as a measured output. The measured minimum is $0.99683 at 2025-10-10 22:56 UTC.",
+    "Nulls are genuine gaps, never forward-filled. The `carried` columns mark minutes where the oracle held its previous round instead of printing a new one.",
+    "Aave's liquidation close factor is documented, not on-chain readable; the measured repay distribution is the honest read of what liquidators actually did.",
+    "Oracle and spot are different series. During the crash the ETH oracle printed 0.70% BELOW the Binance spot trough, while the BTC oracle bottomed 4 minutes late and 1.14% ABOVE it. Keying a liquidation model off spot will fire late for ETH and early for BTC."
+  ]
+}

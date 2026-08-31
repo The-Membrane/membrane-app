@@ -1,5 +1,5 @@
 import { Box, Button, HStack, Image, Stack, Text, Spacer, IconButton, Drawer, DrawerOverlay, DrawerContent, DrawerBody, useDisclosure, VStack, Menu, MenuButton, MenuList, MenuItem, Collapse } from '@chakra-ui/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FaUserCircle, FaBars, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import WallectConnect from './WallectConnect/WalletConnect';
 import NextLink from 'next/link';
@@ -13,8 +13,16 @@ import useAppState from '@/persisted-state/useAppState';
 const navItems = [
     { label: 'About', href: '/about' },
     { label: 'Home', href: '/' },
+    // Proto-port surfaces, depth-ordered per public/proto/flow.html
+    { label: 'Position', href: '/position' },
+    { label: 'Borrow', href: '/borrow' },
+    { label: 'Carry', href: '/carry' },
+    { label: 'Earn', href: '/earn' },
+    { label: 'Liquidate', href: '/liquidate' },
+    { label: 'Defend', href: '/defend' },
+    { label: 'Builder', href: '/builder' },
     { label: 'Mint', href: '/mint' },
-    // { label: 'Portfolio', href: '/portfolio' },
+    { label: 'Portfolio', href: '/portfolio' }, // flow.html marks this replaced by Position — keep until owner removes
     // { label: 'Transmuter', href: '/transmuter' },
     // { label: 'Manic', href: '/manic' },
     { label: 'The Disco', href: '/disco' },
@@ -23,7 +31,6 @@ const navItems = [
 
     // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
     // { label: 'Isolated Markets', href: '/isolated' }, //Remove supplied CDT Trix
-    { label: 'Liquidate', href: '/liquidate' },
     // { label: 'Stake', href: '/stake' },
     // { label: 'Control Room', href: '/control-room' },
 ];
@@ -48,6 +55,12 @@ const getNavItemsForChain = (chainName: string) => {
 
 const HorizontalNav = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
+    // Passed to the Drawer as `finalFocusRef` so closing always returns focus to
+    // the hamburger. Without it Chakra restores focus to whatever was focused
+    // before opening, and WebKit does not focus a <button> on click — so on
+    // iOS/Safari focus was landing back on <body>, stranding keyboard and
+    // screen-reader users at the top of the document.
+    const menuButtonRef = useRef<HTMLButtonElement>(null);
     const [dashboardsOpen, setDashboardsOpen] = useState(false);
     const router = useRouter();
     const { chainName } = useChainRoute();
@@ -180,6 +193,7 @@ const HorizontalNav = () => {
 
             {/* Hamburger for mobile */}
             <IconButton
+                ref={menuButtonRef}
                 aria-label="Open menu"
                 icon={<FaBars />}
                 display={{ base: 'flex', lg: 'none' }}
@@ -199,6 +213,7 @@ const HorizontalNav = () => {
                 <Menu>
                     <MenuButton
                         as={Button}
+                        aria-label="Select chain"
                         w={"fit-content"}
                         rightIcon={<FaChevronDown />}
                         leftIcon={<Image src={currentChain.logo} alt={`${currentChain.displayName} Logo`} boxSize={6} />}
@@ -232,9 +247,12 @@ const HorizontalNav = () => {
                 </Box>
             </HStack>
             {/* Drawer for mobile nav */}
-            <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs">
+            <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs" finalFocusRef={menuButtonRef}>
                 <DrawerOverlay />
-                <DrawerContent bg="#0e0d10">
+                {/* aria-label: the drawer has no DrawerHeader, so without this it
+                    is a dialog with no accessible name — screen readers announce
+                    only "dialog". */}
+                <DrawerContent bg="#0e0d10" aria-label="Site navigation">
                     <DrawerBody p={0} pt={8}>
                         <VStack align="stretch" spacing={1} h="full" justify="space-between">
                             <VStack align="stretch" spacing={1}>
@@ -320,7 +338,7 @@ const HorizontalNav = () => {
                                     textAlign="center"
                                     mb={4}
                                 >
-                                    "DeFy the World Together"
+                                    &quot;DeFy the World Together&quot;
                                 </Text>
                                 <Box display="flex" justifyContent="center">
                                     <WallectConnect />

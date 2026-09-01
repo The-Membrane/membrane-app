@@ -23,7 +23,10 @@ export const supportedChains: ChainConfig[] = [
         name: 'ethereum',
         displayName: 'Ethereum',
         walletChainName: 'ethereum',
-        logo: '/images/Logo.svg',
+        // Casing fix only — the file is lowercase logo.svg. '/images/Logo.svg' resolved on
+        // macOS (case-insensitive) but 404s on Linux in production. Intent unchanged: this
+        // is the CHAIN selector's icon, not a token mark.
+        logo: '/images/logo.svg',
         chainId: 'ethereum',
         // legacy Cosmos field — dead read paths only; the EVM RPC lives in config/evm/chains.ts
         rpcUrl: '',

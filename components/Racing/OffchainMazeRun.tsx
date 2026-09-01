@@ -96,7 +96,7 @@ const DPAD: Array<{ dir: number; glyph: string; area: string }> = [
   { dir: 1, glyph: '↓', area: 'down' },
 ]
 
-const OffchainMazeRun: React.FC = () => {
+const OffchainMazeRun: React.FC<{ onCreatePet?: () => void }> = ({ onCreatePet }) => {
   const { state, createPet, startRace, submitRace } = useOffchainRacing()
   const { isConnected } = useAccount()
   const { openConnectModal } = useConnectModal()
@@ -325,11 +325,13 @@ const OffchainMazeRun: React.FC = () => {
                 colorScheme="phosphor"
                 borderRadius={0}
                 fontFamily={TYPOGRAPHY.fontMono}
-                isDisabled
                 transition={TRANSITIONS.colors}
+                _hover={HOVER_EFFECTS.borderHighlight}
+                _active={ACTIVE_EFFECTS.dim}
                 _focus={FOCUS_STYLES.ring}
+                onClick={() => onCreatePet?.()}
               >
-                Pet creation arrives with the on-chain wiring
+                Create your on-chain pet
               </Button>
             ) : (
               <Button

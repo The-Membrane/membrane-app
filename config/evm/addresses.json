@@ -19,12 +19,15 @@
     "cdpRouter": "0xaa292e8611adf267e563f334ee42320ac96d0463",
     "cdt": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
     "mbrn": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
-    "qracingMintClaim": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
-    "qracingByteToken": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
-    "qracingPetNFT": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
-    "qracingCdt": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
-    "qracingUsdc": "0x8a791620dd6260079bf849dc5567adc3f2fdc318",
-    "qracingWeth": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
-    "qracingRouter": "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e"
+    "qgamePocketGP": "0x4A679253410272dd5232B3Ff7cF5dbB88f295319",
+    "qgamePetNFT": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
+    "qgameBytes": "0xc5a5C42992dECbae36851359345FE25997F5C42d",
+    "qgamePetLens": "0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB",
+    "qgameStandings": "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
+    "qgameDailyMaze": "0xf5059a5D33d5853360D16C683c16e67980206f36",
+    "qgameCdt": "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
+    "qgameUsdc": "0x0355b7b8cb128fa5692729ab3aaa199c1753f726",
+    "qgameWeth": "0x8198f5d8f8cffe8f9c413d98a0a55aeb8ab9fbb7",
+    "qgameRouter": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8"
   }
 }

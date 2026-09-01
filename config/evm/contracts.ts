@@ -30,18 +30,21 @@ export type ContractName =
   | 'collateral'
   | 'frontendLens'
   | 'cdpRouter'
-  // Q-Racing mint bridge (membrane-solidity script/DeployQRacingMint.s.sol, anvil).
-  // These live in the SAME per-chain address book; `pnpm sync-addresses` fills them from
-  // the DeployQRacingMint broadcast when present, else they stay zero placeholders. The
-  // qracing deploy stands up its own mock CDT/USDC/WETH + V2 router, so `qracingCdt` is a
-  // separate key from the protocol `cdt` above (they may differ per deploy).
-  | 'qracingMintClaim'
-  | 'qracingByteToken'
-  | 'qracingPetNFT'
-  | 'qracingCdt'
-  | 'qracingUsdc'
-  | 'qracingWeth'
-  | 'qracingRouter'
+  // On-chain Q-Racing game (membrane-solidity q-racing/script/Deploy.s.sol, anvil).
+  // Filled by `pnpm sync-addresses` from q-racing/ui/deployment.json (the game contract
+  // set) and q-racing/ui/dex.json (the anvil swap venue: USDC/WETH/router). The game
+  // stands up its own mock CDT — `qgameCdt` is a SEPARATE key from the protocol `cdt`
+  // above (they differ per deploy). This replaces the retired `qracing*` mint bridge.
+  | 'qgamePocketGP'
+  | 'qgamePetNFT'
+  | 'qgameBytes'
+  | 'qgamePetLens'
+  | 'qgameStandings'
+  | 'qgameDailyMaze'
+  | 'qgameCdt'
+  | 'qgameUsdc'
+  | 'qgameWeth'
+  | 'qgameRouter'
 
 export type Address = `0x${string}`
 

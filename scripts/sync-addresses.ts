@@ -32,27 +32,36 @@ const DEST = path.resolve(__dirname, '../config/evm/addresses.json')
 const EXTRA_BROADCASTS = ['DeployLocalRouter.s.sol']
 
 /**
- * Q-Racing mint bridge lives in its OWN deploy script (membrane-solidity
- * script/DeployQRacingMint.s.sol) with its own mock CDT/USDC/WETH + V2 router. Its
- * contract names are collected SEPARATELY (see collectQracing below) so its mock
- * `MembraneToken` CDT never collides with the protocol CDT/MBRN ordering in the main
- * collect(). Missing broadcast => the qracing.* keys keep their zero placeholders.
+ * The on-chain Q-Racing game lives in its OWN Foundry project (membrane-solidity
+ * q-racing/) and its deploy (q-racing/script/Deploy.s.sol) writes a plain
+ * address map to q-racing/ui/deployment.json rather than a broadcast we map by
+ * contractName. The anvil swap venue (USDC/WETH/router) is stood up separately and
+ * its addresses land in q-racing/ui/dex.json. Both are read directly here — no
+ * `MembraneToken`-by-order disambiguation needed, and the game's mock CDT (`qgameCdt`)
+ * is its own key, distinct from the protocol `cdt`/`mbrn`. Missing files => the
+ * qgame.* keys keep whatever they had. Replaces the retired `qracing*` mint bridge.
  *
- * To sync after a fresh anvil deploy:
- *   1. MINT_SIGNER=$(MINT_SIGNER_KEY=0x... node scripts/print-mint-signer-address.mjs)
- *   2. MINT_SIGNER=$MINT_SIGNER forge script script/DeployQRacingMint.s.sol --rpc-url ... --broadcast
- *   3. pnpm sync-addresses            (this script picks up both broadcasts)
- * Or paste the deploy's logged addresses straight into config/evm/addresses.json.
+ * To sync after a fresh anvil deploy of the game:
+ *   1. (in q-racing/) forge script script/Deploy.s.sol --rpc-url ... --broadcast   # writes ui/deployment.json
+ *   2. deploy the swap venue (MinimalV2Dex) and write its addresses to ui/dex.json
+ *   3. pnpm sync-addresses            (this script reads both JSON files)
  */
-const QRACING_BROADCAST = 'DeployQRacingMint.s.sol'
-const QRACING_NAME_MAP: Record<string, string> = {
-  MintClaim: 'qracingMintClaim',
-  ByteToken: 'qracingByteToken',
-  PetNFT: 'qracingPetNFT',
-  MembraneToken: 'qracingCdt', // the mock CDT stood up by the qracing deploy
-  MockERC20: 'qracingUsdc',
-  WETH9: 'qracingWeth',
-  MinimalV2Router02: 'qracingRouter',
+const QGAME_ROOT = path.join(SOLIDITY_ROOT, 'q-racing', 'ui')
+/** q-racing/ui/deployment.json key -> address-book key */
+const QGAME_DEPLOYMENT_MAP: Record<string, string> = {
+  game: 'qgamePocketGP',
+  petNFT: 'qgamePetNFT',
+  token: 'qgameBytes',
+  petLens: 'qgamePetLens',
+  standings: 'qgameStandings',
+  dailyMaze: 'qgameDailyMaze',
+  cdt: 'qgameCdt',
+}
+/** q-racing/ui/dex.json key -> address-book key (the anvil swap venue) */
+const QGAME_DEX_MAP: Record<string, string> = {
+  usdc: 'qgameUsdc',
+  weth: 'qgameWeth',
+  router: 'qgameRouter',
 }
 
 /** Foundry contractName -> address-book key (MembraneToken handled by order below) */
@@ -117,22 +126,27 @@ function main() {
 
   const existing = fs.existsSync(DEST) ? JSON.parse(fs.readFileSync(DEST, 'utf8')) : {}
 
-  // Carry forward any existing qracing.* placeholders/values, then overlay a fresh
-  // DeployQRacingMint broadcast on top (kept separate so its mock CDT can't clobber cdt/mbrn).
+  // Carry forward any existing qgame.* values, then overlay fresh q-racing deploy
+  // artifacts on top (kept separate so the game's mock CDT can't clobber cdt/mbrn).
   const prev = (existing[CHAIN_ID] ?? {}) as Record<string, string>
   for (const [k, v] of Object.entries(prev)) {
-    if (k.startsWith('qracing')) addresses[k] = v
+    if (k.startsWith('qgame')) addresses[k] = v
   }
-  const qracingFile = path.join(SOLIDITY_ROOT, 'broadcast', QRACING_BROADCAST, CHAIN_ID, 'run-latest.json')
-  if (fs.existsSync(qracingFile)) {
-    const run = JSON.parse(fs.readFileSync(qracingFile, 'utf8'))
-    for (const tx of run.transactions ?? []) {
-      if (tx.transactionType !== 'CREATE' || !tx.contractAddress) continue
-      const key = QRACING_NAME_MAP[tx.contractName]
-      if (key) addresses[key] = tx.contractAddress
+  const overlayJson = (file: string, map: Record<string, string>, label: string) => {
+    if (!fs.existsSync(file)) {
+      console.warn(`  (skipped: no ${label} at ${file})`)
+      return
     }
-  } else {
-    console.warn(`  (skipped: no broadcast for ${QRACING_BROADCAST} on chain ${CHAIN_ID})`)
+    const doc = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, string>
+    for (const [srcKey, destKey] of Object.entries(map)) {
+      if (doc[srcKey]) addresses[destKey] = doc[srcKey]
+    }
+  }
+  // Only overlay the game set on the game's own chain (anvil). deployment.json carries
+  // no chainId, so gate on CHAIN_ID to avoid stamping anvil addresses onto other chains.
+  if (CHAIN_ID === '31337') {
+    overlayJson(path.join(QGAME_ROOT, 'deployment.json'), QGAME_DEPLOYMENT_MAP, 'q-racing/ui/deployment.json')
+    overlayJson(path.join(QGAME_ROOT, 'dex.json'), QGAME_DEX_MAP, 'q-racing/ui/dex.json')
   }
 
   existing[CHAIN_ID] = addresses

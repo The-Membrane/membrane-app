@@ -10,6 +10,8 @@ import CarPanel from '@/components/Racing/CarPanel'
 import QRacerTicker from '@/components/Racing/QRacerTicker'
 import TournamentBracket from '@/components/Racing/TournamentBracket'
 import OffchainMazeRun from '@/components/Racing/OffchainMazeRun'
+import OnchainGame from '@/components/Racing/OnchainGame'
+import { PET_CREATION_ANCHOR } from '@/components/Racing/PetCreation'
 import Leaderboard from '@/components/Racing/Leaderboard'
 import useWallet from '@/hooks/useWallet'
 import { useOwnedCars } from '@/hooks/useQRacing'
@@ -224,11 +226,23 @@ const QRacer: React.FC = () => {
         )}
         {activeTab === 'race' && (
           <VStack flex="1" align="stretch" spacing={4}>
+            {/* On-chain game: your real pet, sessions, and standings. Visible once connected. */}
+            {address && (
+              <Box p={{ base: 2, md: 4 }}>
+                <OnchainGame />
+              </Box>
+            )}
             {/* Play-first: with no minted car, the offchain maze run is the primary surface.
                 The on-chain spectator viewer stays intact below. */}
             {(!ownedCars || ownedCars.length === 0) && (
               <Box p={{ base: 2, md: 4 }}>
-                <OffchainMazeRun />
+                <OffchainMazeRun
+                  onCreatePet={() => {
+                    document
+                      .getElementById(PET_CREATION_ANCHOR)
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }}
+                />
               </Box>
             )}
             <Box p={{ base: 2, md: 4 }}>

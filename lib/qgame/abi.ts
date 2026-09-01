@@ -159,6 +159,22 @@ export const pocketGPAbi = [
       { name: 'rank', type: 'uint8', indexed: false },
     ],
   },
+  // GhostChallenge — settleGhost()'s result log, PocketGP.sol:342 / emitted :718. Fires
+  // on every settlement (win or loss), not only wins — lib/game/chainIndexer.ts filters
+  // to won && paidToday before treating a row as a paid ghost-board result. No payout
+  // field is emitted directly; the indexer derives it as stake * multPct / 100.
+  {
+    type: 'event',
+    name: 'GhostChallenge',
+    inputs: [
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'tier', type: 'uint8', indexed: false },
+      { name: 'stake', type: 'uint256', indexed: false },
+      { name: 'multPct', type: 'uint16', indexed: false },
+      { name: 'won', type: 'bool', indexed: false },
+      { name: 'paidToday', type: 'bool', indexed: false },
+    ],
+  },
 ] as const
 
 /**
@@ -270,6 +286,18 @@ export const standingsAbi = [
     outputs: [
       { name: 'who', type: 'address[]' },
       { name: 'steps', type: 'uint16[]' },
+    ],
+  },
+  // NewRecord — Standings.sol:16, emitted by submit() (Standings.sol:34,40) only when a
+  // race IMPROVES a player's personal best on that tier's board — not on every finish.
+  // lib/game/chainIndexer.ts's 'ladder_time' board is sourced from this event.
+  {
+    type: 'event',
+    name: 'NewRecord',
+    inputs: [
+      { name: 'tier', type: 'uint8', indexed: true },
+      { name: 'who', type: 'address', indexed: true },
+      { name: 'steps', type: 'uint16', indexed: false },
     ],
   },
 ] as const

@@ -297,3 +297,21 @@ export const dailyFirsts = pgTable('daily_firsts', {
   occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
   txHash: text('tx_hash'),
 })
+
+// ---------------------------------------------------------------------------
+// indexer_cursor — one row per named on-chain indexer job (today: just 'qgame'),
+// tracking how far lib/game/chainIndexer.ts has scanned and a claim timestamp used to
+// throttle concurrent serverless instances. `block` is the last FULLY scanned block
+// (inclusive); the next run starts at block + 1. `last_run` is a claim stamp: a run
+// atomically claims the row via `INSERT ... ON CONFLICT DO UPDATE ... WHERE last_run
+// is null or stale` before doing any chain work (see claimCursor() in chainIndexer.ts),
+// so a losing concurrent instance sees zero rows returned and skips silently instead of
+// double-running. NOT pushed via `drizzle-kit push` — see chainIndexer.ts's header
+// comment for the DDL applied directly against dev, pending a proper migration.
+// ---------------------------------------------------------------------------
+
+export const indexerCursor = pgTable('indexer_cursor', {
+  key: text('key').primaryKey(),
+  block: bigint('block', { mode: 'bigint' }).notNull().default(0n),
+  lastRun: timestamp('last_run', { withTimezone: true }),
+})

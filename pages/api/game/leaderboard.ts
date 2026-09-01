@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
+import { indexNewEvents } from '@/lib/game/chainIndexer'
 
 // PUBLIC — no requirePlayer(). Plain SQL via db.execute (no DB views) per Phase 5 of
 // docs/OFFCHAIN_QRACING_PLAN.md, keeping `drizzle-kit push` simple.
@@ -257,6 +258,10 @@ export default async function handler(
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' })
   }
+
+  // Best-effort: throttled to ~once/60s inside indexNewEvents, so this is cheap on the
+  // hot path. A failed/slow indexer run must never fail the leaderboard response.
+  await indexNewEvents().catch(() => {})
 
   const board = parseBoard(req.query.board)
   const source = parseSource(req.query.source)

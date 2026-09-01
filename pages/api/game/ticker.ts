@@ -3,6 +3,7 @@ import { desc, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { dailyFirsts } from '@/db/schema'
+import { indexNewEvents } from '@/lib/game/chainIndexer'
 
 // PUBLIC — feeds components/Ticker/DailyFirstTicker.tsx. Two honors per UTC day, both
 // sourced from the daily race:
@@ -33,6 +34,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' })
   }
+
+  // Best-effort: throttled to ~once/60s inside indexNewEvents, so this is cheap on the
+  // hot path. A failed/slow indexer run must never fail the ticker response.
+  await indexNewEvents().catch(() => {})
 
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120')
 

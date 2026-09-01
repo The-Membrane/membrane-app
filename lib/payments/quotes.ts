@@ -1,9 +1,9 @@
-// Client-usable swap quotes for paying the CDT mint fee in a non-CDT asset.
+// Client-usable swap quotes for paying an on-chain CDT fee in a non-CDT asset.
 //
-// The MintClaim fee is always CDT. The mint UI lets a user pay in USDC or ETH by swapping to
-// EXACTLY `mintFee` CDT first (swapTokensForExactTokens / swapETHForExactTokens). A QuoteSource
-// answers "how much of the input asset, at most, will that cost?" so the sheet can show a
-// `pull ≤ X` cap and pass it as amountInMax.
+// The fee (e.g. the createPet fee, 3 CDT) is always denominated in CDT. The payment UI lets a
+// user pay in USDC or ETH by swapping to EXACTLY the CDT fee first (swapTokensForExactTokens /
+// swapETHForExactTokens). A QuoteSource answers "how much of the input asset, at most, will
+// that cost?" so the confirm sheet can show a `pull ≤ X` cap and pass it as amountInMax.
 
 import type { PublicClient } from 'viem'
 import { routerAbi } from './abi'
@@ -38,7 +38,7 @@ export type RouterQuoteConfig = {
 
 /**
  * Quotes against a UniswapV2Router02-compatible pool via `getAmountsIn` (exact-out). On anvil
- * this is the mock CDT/USDC and CDT/WETH pools stood up by DeployQRacingMint.s.sol.
+ * this is the mock CDT/USDC and CDT/WETH pools stood up by the deploy script.
  */
 export class RouterQuoteSource implements QuoteSource {
   constructor(private readonly cfg: RouterQuoteConfig) {}

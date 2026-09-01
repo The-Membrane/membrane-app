@@ -9,6 +9,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Button, Flex, HStack, Input, SimpleGrid, Text, VStack } from '@chakra-ui/react'
+import { useAccount } from 'wagmi'
+import { useConnectModal } from '@rainbow-me/rainbowkit'
 
 import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
 import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
@@ -18,8 +20,6 @@ import { Card } from '@/components/ui/Card'
 import { generateMaze, mazeSizeForDifficulty } from '@/lib/game/maze'
 import { replayPath } from '@/lib/game/replay'
 import useOffchainRacing, { type SubmitRaceResult } from '@/hooks/useOffchainRacing'
-import MintSheet from '@/components/Racing/MintSheet'
-import type { MintKind } from '@/components/Racing/hooks/useMintClaim'
 
 const BYTE_DECIMALS = 6
 
@@ -98,27 +98,19 @@ const DPAD: Array<{ dir: number; glyph: string; area: string }> = [
 
 const OffchainMazeRun: React.FC = () => {
   const { state, createPet, startRace, submitRace } = useOffchainRacing()
+  const { isConnected } = useAccount()
+  const { openConnectModal } = useConnectModal()
 
   const [petName, setPetName] = useState('')
   const [difficulty, setDifficulty] = useState(1)
   const [race, setRace] = useState<ActiveRace | null>(null)
   const [moves, setMoves] = useState<number[]>([])
   const [result, setResult] = useState<SubmitRaceResult | null>(null)
-  const [mintKind, setMintKind] = useState<MintKind | null>(null)
   const submittedRef = useRef<string | null>(null)
 
   const pet = state.data?.pet ?? null
   const energy = state.data?.energy
   const canRace = !!pet && !!energy && energy.value >= 5 && !race
-
-  const byteBalance = state.data?.byteBalance ?? '0'
-  const hasByte = (() => {
-    try {
-      return BigInt(byteBalance) > 0n
-    } catch {
-      return false
-    }
-  })()
 
   const maze = useMemo(
     () => (race ? generateMaze(race.mazeSeed, race.difficulty) : null),
@@ -224,7 +216,7 @@ const OffchainMazeRun: React.FC = () => {
 
   return (
     <VStack align="stretch" spacing={SPACING_PATTERNS.sectionGap} w="100%">
-      {/* Persistent offchain banner (V20 intent-preserving connect target) */}
+      {/* Persistent tutorial banner (V20 intent-preserving connect target) */}
       <Box
         border="1px solid"
         borderColor={SEMANTIC_COLORS.borderStrong}
@@ -233,14 +225,14 @@ const OffchainMazeRun: React.FC = () => {
         py={SPACING.sm}
       >
         <Text {...label} color={SEMANTIC_COLORS.warning}>
-          Offchain — mint to make it permanent
+          Practice circuit — your real pet lives on-chain
         </Text>
       </Box>
 
       {/* Stat row */}
       <SimpleGrid columns={{ base: 3, md: 3 }} spacing={SPACING.md}>
         <Card variant="subtle">
-          <Text {...label}>Byte</Text>
+          <Text {...label}>Practice BYTE</Text>
           <Text {...mono} fontSize={TYPOGRAPHY.h4} color={SEMANTIC_COLORS.primary}>
             {formatByte(state.data?.byteBalance)}
           </Text>
@@ -314,68 +306,48 @@ const OffchainMazeRun: React.FC = () => {
           </Text>
           {result.verified && (
             <Text {...mono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
-              +{formatByte(result.byteAwarded)} BYTE · balance {formatByte(result.newBalance)}
+              +{formatByte(result.byteAwarded)} practice BYTE · balance {formatByte(result.newBalance)} practice BYTE
             </Text>
           )}
         </Box>
       )}
 
-      {/* Mint bridge CTA — make the offchain pet + BYTE permanent (Phase 4). */}
-      {pet && !race && (
+      {/* Post-run nudge: intent-preserving connect toward the real on-chain record. */}
+      {result && !race && (
         <Card variant="default">
           <VStack align="stretch" spacing={SPACING_PATTERNS.stackSpacing}>
-            <Text {...label}>Permanent</Text>
+            <Text {...label}>Ready for the real record</Text>
             <Text {...mono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
-              Mint {pet.name} and {formatByte(byteBalance)} BYTE on-chain. One CDT fee, one signature.
+              You have the hang of it. Create your pet to start your real record.
             </Text>
-            <Button
-              colorScheme="phosphor"
-              borderRadius={0}
-              fontFamily={TYPOGRAPHY.fontMono}
-              transition={TRANSITIONS.colors}
-              _hover={HOVER_EFFECTS.borderHighlight}
-              _active={ACTIVE_EFFECTS.dim}
-              _focus={FOCUS_STYLES.ring}
-              onClick={() => setMintKind('pet_and_byte')}
-            >
-              Mint — make it permanent
-            </Button>
+            {isConnected ? (
+              <Button
+                colorScheme="phosphor"
+                borderRadius={0}
+                fontFamily={TYPOGRAPHY.fontMono}
+                isDisabled
+                transition={TRANSITIONS.colors}
+                _focus={FOCUS_STYLES.ring}
+              >
+                Pet creation arrives with the on-chain wiring
+              </Button>
+            ) : (
+              <Button
+                colorScheme="phosphor"
+                borderRadius={0}
+                fontFamily={TYPOGRAPHY.fontMono}
+                transition={TRANSITIONS.colors}
+                _hover={HOVER_EFFECTS.borderHighlight}
+                _active={ACTIVE_EFFECTS.dim}
+                _focus={FOCUS_STYLES.ring}
+                onClick={() => openConnectModal?.()}
+              >
+                Connect wallet
+              </Button>
+            )}
           </VStack>
         </Card>
       )}
-
-      {/* BYTE-only claim: pet already minted, new BYTE has accrued offchain. */}
-      {!pet && hasByte && !race && (
-        <Card variant="default">
-          <VStack align="stretch" spacing={SPACING_PATTERNS.stackSpacing}>
-            <Text {...label}>Claim BYTE</Text>
-            <Text {...mono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
-              You have {formatByte(byteBalance)} BYTE earned since your last mint. Claim it on-chain.
-            </Text>
-            <Button
-              variant="outline"
-              borderRadius={0}
-              fontFamily={TYPOGRAPHY.fontMono}
-              transition={TRANSITIONS.colors}
-              _hover={HOVER_EFFECTS.borderHighlight}
-              _active={ACTIVE_EFFECTS.dim}
-              _focus={FOCUS_STYLES.ring}
-              onClick={() => setMintKind('byte_only')}
-            >
-              Claim {formatByte(byteBalance)} BYTE
-            </Button>
-          </VStack>
-        </Card>
-      )}
-
-      <MintSheet
-        isOpen={mintKind !== null}
-        onClose={() => setMintKind(null)}
-        kind={mintKind ?? 'pet_and_byte'}
-        petName={pet?.name}
-        petAttributes={pet?.attributes}
-        byteAmountBase={byteBalance}
-      />
 
       {/* Pre-race controls */}
       {pet && !race && (

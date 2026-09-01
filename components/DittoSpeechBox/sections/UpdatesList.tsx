@@ -6,6 +6,10 @@ import { ProtocolUpdate } from '@/persisted-state/useUpdatesState'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 dayjs.extend(relativeTime)
 
 const MotionBox = m(Box)
@@ -46,32 +50,32 @@ const getUpdateIcon = (type: ProtocolUpdate['type']) => {
 const getUpdateColor = (type: ProtocolUpdate['type']) => {
     switch (type) {
         case 'idle-gains':
-            return 'green.400'
+            return SEMANTIC_COLORS.success
         case 'reward':
-            return 'primary.400'
+            return SEMANTIC_COLORS.primary
         case 'feature':
-            return 'secondary.400'
+            return SEMANTIC_COLORS.info
         case 'announcement':
-            return 'yellow.400'
+            return SEMANTIC_COLORS.warning
         case 'maintenance':
-            return 'orange.400'
+            return SEMANTIC_COLORS.warning
         case 'lockdrop-ending':
-            return 'primary.400'
+            return SEMANTIC_COLORS.primary
         case 'lockdrop-claims-ready':
-            return 'green.400'
+            return SEMANTIC_COLORS.success
         case 'intent-fulfilled':
-            return 'secondary.400'
+            return SEMANTIC_COLORS.info
         default:
-            return 'gray.400'
+            return SEMANTIC_COLORS.textSecondary
     }
 }
 
 const getPriorityColor = (priority?: ProtocolUpdate['priority']) => {
     switch (priority) {
         case 'critical':
-            return 'red.400'
+            return SEMANTIC_COLORS.danger
         case 'important':
-            return 'yellow.400'
+            return SEMANTIC_COLORS.warning
         default:
             return undefined
     }
@@ -91,20 +95,27 @@ export const UpdatesList: React.FC<UpdatesListProps> = ({ updates, markAsRead })
                         transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.3) }}
                     >
                         <Box
-                            bg="#1A1D26"
+                            bg={SEMANTIC_COLORS.bgSecondary}
                             border="1px solid"
-                            borderColor={update.read ? '#9bdc4f20' : '#9bdc4f40'}
+                            borderColor={update.read ? SEMANTIC_COLORS.borderSubtle : SEMANTIC_COLORS.borderStrong}
                             borderLeft={update.priority ? '3px solid' : undefined}
                             borderLeftColor={getPriorityColor(update.priority)}
-                            borderRadius="md"
-                            p={3}
+                            borderRadius={0}
+                            p={SPACING.md}
                             cursor="pointer"
-                            transition="all 0.2s"
-                            _hover={{
-                                bg: '#9bdc4f10',
-                                borderColor: '#9bdc4f60',
-                            }}
+                            role="button"
+                            tabIndex={0}
+                            transition={TRANSITIONS.colors}
+                            _hover={HOVER_EFFECTS.borderHighlight}
+                            _focus={FOCUS_STYLES.ring}
+                            _focusVisible={FOCUS_STYLES.ring}
                             onClick={() => markAsRead(update.id)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    markAsRead(update.id)
+                                }
+                            }}
                         >
                             <HStack spacing={3} align="flex-start">
                                 <Icon
@@ -116,7 +127,7 @@ export const UpdatesList: React.FC<UpdatesListProps> = ({ updates, markAsRead })
                                 />
                                 <VStack align="stretch" spacing={1} flex={1}>
                                     <HStack justify="space-between">
-                                        <Text fontSize="sm" fontWeight="medium" color="#ece6d8">
+                                        <Text fontSize="sm" fontWeight="medium" color={SEMANTIC_COLORS.textPrimary}>
                                             {update.title}
                                         </Text>
                                         {!update.read && (
@@ -124,14 +135,14 @@ export const UpdatesList: React.FC<UpdatesListProps> = ({ updates, markAsRead })
                                                 w={2}
                                                 h={2}
                                                 borderRadius="full"
-                                                bg="primary.400"
+                                                bg={SEMANTIC_COLORS.primary}
                                             />
                                         )}
                                     </HStack>
-                                    <Text fontSize="xs" color="#ece6d880" noOfLines={2}>
+                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} noOfLines={2}>
                                         {update.message}
                                     </Text>
-                                    <Text fontSize="xs" color="#ece6d840">
+                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textTertiary}>
                                         {formatRelativeTime(update.timestamp)}
                                     </Text>
                                 </VStack>

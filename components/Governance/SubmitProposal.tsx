@@ -62,7 +62,7 @@ const SubmitProposal = (props: Props) => {
         message: 'Invalid json file',
       },
     })
-  }, [])
+  }, [register])
 
   // validate json file content
   useEffect(() => {
@@ -79,7 +79,7 @@ const SubmitProposal = (props: Props) => {
         })
       }
     }
-  }, [filesContent?.[0]?.content])
+  }, [filesContent, setValue, setError])
 
   const onSubmit = () => {
     submitProposal?.tx.mutate()

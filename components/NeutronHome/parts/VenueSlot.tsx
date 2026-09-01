@@ -1,10 +1,21 @@
 import React from 'react'
 import { VenueSlot as Slot } from '../types'
 
+const PLACEHOLDER_SLOT_STYLE: React.CSSProperties = {
+    height: 140,
+    borderRadius: 12,
+    border: '1px dashed #2b2f47',
+    background: '#0d0f1a',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.6,
+}
+
 export const VenueSlot: React.FC<{ slot: Slot; onDeploy: (id: string) => void; onRetrieve: (id: string) => void; healthPercent?: number }> = ({ slot, onDeploy, onRetrieve, healthPercent }) => {
     if (slot.type === 'placeholder') {
         return (
-            <div data-venue-slot={slot.slot} style={{ height: 140, borderRadius: 12, border: '1px dashed #2b2f47', background: '#0d0f1a', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
+            <div data-venue-slot={slot.slot} style={PLACEHOLDER_SLOT_STYLE}>
                 Coming soon
             </div>
         )
@@ -25,10 +36,10 @@ export const VenueSlot: React.FC<{ slot: Slot; onDeploy: (id: string) => void; o
                 style={{ position: 'absolute', inset: 0, borderRadius: 12, pointerEvents: 'auto' }}
             />
             <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
-                <button onClick={() => onDeploy(slot.venue.id)} disabled={disabled} title={reason} style={{ padding: '6px 10px', borderRadius: 8, background: disabled ? '#1a1f33' : '#1b2140', opacity: disabled ? 0.6 : 1, border: '1px solid #2b2f47' }}>Deploy</button>
-                <button onClick={() => onRetrieve(slot.venue.id)} style={{ padding: '6px 10px', borderRadius: 8, background: '#141a2f', border: '1px solid #2b2f47' }}>Retrieve</button>
+                <button type="button" onClick={() => onDeploy(slot.venue.id)} disabled={disabled} title={reason} style={{ padding: '6px 10px', borderRadius: 8, background: disabled ? '#1a1f33' : '#1b2140', opacity: disabled ? 0.6 : 1, border: '1px solid #2b2f47' }}>Deploy</button>
+                <button type="button" onClick={() => onRetrieve(slot.venue.id)} style={{ padding: '6px 10px', borderRadius: 8, background: '#141a2f', border: '1px solid #2b2f47' }}>Retrieve</button>
             </div>
-            {disabled && <div style={{ marginTop: 6, fontSize: 11, opacity: 0.75 }}>{reason}</div>}
+            {disabled && <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>{reason}</div>}
         </div>
     )
 }

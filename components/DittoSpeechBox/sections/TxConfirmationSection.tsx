@@ -13,6 +13,11 @@ import { useRouter } from 'next/router'
 import LoaderWithIcon from '@/components/LoaderWithIcon'
 import { useUserPoints } from '@/hooks/usePoints'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 const MotionBox = m(Box)
 
 /**
@@ -34,10 +39,10 @@ const TxLoadingView: React.FC<{ isApproved: boolean }> = ({ isApproved }) => {
             <VStack spacing={4} align="center" py={4}>
                 <LoaderWithIcon />
                 <VStack spacing={1}>
-                    <Text fontSize="sm" color="#ece6d8" fontWeight="medium">
+                    <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontWeight="medium">
                         {isApproved ? 'Broadcasting transaction' : `Approve on ${walletName}`}
                     </Text>
-                    <Text fontSize="xs" color="#ece6d880">
+                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                         {isApproved
                             ? 'Waiting for confirmation...'
                             : 'Please confirm in your wallet'}
@@ -69,10 +74,10 @@ const TxConfirmView: React.FC<{
             <VStack spacing={3} align="stretch">
                 {/* Header */}
                 <VStack spacing={1} align="stretch">
-                    <Text fontSize="md" fontWeight="bold" color="#ece6d8">
+                    <Text fontSize="md" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary}>
                         Confirm Transaction
                     </Text>
-                    <Text fontSize="xs" color="#ece6d880">
+                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                         Please review your transaction details.
                     </Text>
                 </VStack>
@@ -81,8 +86,8 @@ const TxConfirmView: React.FC<{
 
                 {/* Transaction Details */}
                 <Box
-                    bg="#1A1D26"
-                    borderRadius="md"
+                    bg={SEMANTIC_COLORS.bgSecondary}
+                    borderRadius={0}
                     p={3}
                     maxH="150px"
                     overflow="auto"
@@ -93,15 +98,15 @@ const TxConfirmView: React.FC<{
                 {/* Error Display */}
                 {error && (
                     <Box
-                        bg="red.900"
+                        bg={SEMANTIC_COLORS.danger}
                         border="1px solid"
-                        borderColor="red.500"
-                        borderRadius="md"
+                        borderColor={SEMANTIC_COLORS.danger}
+                        borderRadius={0}
                         p={3}
                     >
                         <HStack spacing={2} align="flex-start">
-                            <Icon as={AlertTriangle} w={4} h={4} color="red.300" mt={0.5} />
-                            <Text fontSize="xs" color="red.200">
+                            <Icon as={AlertTriangle} w={4} h={4} color={SEMANTIC_COLORS.danger} mt={0.5} />
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.danger}>
                                 {error.message || 'Transaction simulation failed'}
                             </Text>
                         </HStack>
@@ -114,22 +119,34 @@ const TxConfirmView: React.FC<{
                         flex={1}
                         size="sm"
                         variant="ghost"
-                        color="#ece6d880"
+                        color={SEMANTIC_COLORS.textSecondary}
+                        borderRadius={0}
+                        fontFamily={TYPOGRAPHY.fontMono}
                         onClick={onClose}
-                        _hover={{ bg: '#9bdc4f20', color: '#ece6d8' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={{ ...HOVER_EFFECTS.brighten, bg: 'transparent' }}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                     >
                         Cancel
                     </Button>
                     <Button
                         flex={1}
                         size="sm"
-                        bg="#9bdc4f"
-                        color="white"
+                        bg={SEMANTIC_COLORS.primary}
+                        color={SEMANTIC_COLORS.bgPrimary}
+                        borderRadius={0}
+                        fontFamily={TYPOGRAPHY.fontMono}
                         isLoading={isLoading}
                         isDisabled={!canConfirm}
                         onClick={onConfirm}
-                        _hover={{ bg: '#5a38e0' }}
-                        _disabled={{ bg: '#9bdc4f60', cursor: 'not-allowed' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={HOVER_EFFECTS.borderHighlight}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
+                        _disabled={{ opacity: 0.5, cursor: 'not-allowed' }}
                     >
                         Confirm
                     </Button>
@@ -217,13 +234,13 @@ const TxSuccessView: React.FC<{
                             as={isSuccess ? CheckCircle : XCircle}
                             w={12}
                             h={12}
-                            color={isSuccess ? 'green.400' : 'red.400'}
+                            color={isSuccess ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
                         />
                     </MotionBox>
-                    <Text fontSize="md" fontWeight="bold" color="#ece6d8">
+                    <Text fontSize="md" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary}>
                         {isSuccess ? 'Transaction Successful!' : 'Transaction Failed'}
                     </Text>
-                    <Text fontSize="sm" color="#ece6d8" textAlign="center">
+                    <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} textAlign="center">
                         {acknowledgementMessage}
                     </Text>
                     {/* Points Earned Display */}
@@ -231,17 +248,17 @@ const TxSuccessView: React.FC<{
                         <Box
                             bg="linear-gradient(135deg, #9bdc4f20 0%, #46d39a20 100%)"
                             border="1px solid"
-                            borderColor="primary.400"
-                            borderRadius="md"
+                            borderColor={SEMANTIC_COLORS.primary}
+                            borderRadius={0}
                             px={4}
                             py={2}
                             mt={2}
                         >
                             <HStack spacing={2} align="center">
-                                <Text fontSize="xs" color="primary.300">
+                                <Text fontSize="xs" color={SEMANTIC_COLORS.primary}>
                                     Points Earned:
                                 </Text>
-                                <Text fontSize="sm" fontWeight="bold" color="primary.300">
+                                <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.primary}>
                                     +{pointsEarned.toFixed(1)}
                                 </Text>
                             </HStack>
@@ -254,13 +271,13 @@ const TxSuccessView: React.FC<{
                 {/* Transaction Details */}
                 <VStack spacing={2} align="stretch">
                     <HStack justify="space-between">
-                        <Text fontSize="xs" color="#ece6d880">
+                        <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                             Status
                         </Text>
                         <Text
                             fontSize="xs"
                             fontWeight="bold"
-                            color={isSuccess ? 'green.400' : 'red.400'}
+                            color={isSuccess ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
                         >
                             {isSuccess ? 'Success' : 'Failed'}
                         </Text>
@@ -268,16 +285,16 @@ const TxSuccessView: React.FC<{
 
                     {txLink && transactionHash && (
                         <HStack justify="space-between">
-                            <Text fontSize="xs" color="#ece6d880">
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                 Transaction Hash
                             </Text>
                             <Link
                                 href={txLink}
                                 isExternal
-                                color="primary.400"
+                                color={SEMANTIC_COLORS.primary}
                                 fontSize="xs"
                                 fontWeight="medium"
-                                _hover={{ color: 'primary.300' }}
+                                _hover={{ color: SEMANTIC_COLORS.primary }}
                             >
                                 <HStack spacing={1}>
                                     <Text>{`${first4}...${last4}`}</Text>
@@ -289,10 +306,10 @@ const TxSuccessView: React.FC<{
 
                     {gasUsed && (
                         <HStack justify="space-between">
-                            <Text fontSize="xs" color="#ece6d880">
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                 Gas Used
                             </Text>
-                            <Text fontSize="xs" color="#ece6d8">
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary}>
                                 {shiftDigits(gasUsed.toString(), -(osmo?.decimal || 6)).toString()}
                             </Text>
                         </HStack>
@@ -302,10 +319,16 @@ const TxSuccessView: React.FC<{
                 {/* Close Button */}
                 <Button
                     size="sm"
-                    bg="#9bdc4f"
-                    color="white"
+                    bg={SEMANTIC_COLORS.primary}
+                    color={SEMANTIC_COLORS.bgPrimary}
+                    borderRadius={0}
+                    fontFamily={TYPOGRAPHY.fontMono}
                     onClick={onClose}
-                    _hover={{ bg: '#5a38e0' }}
+                    transition={TRANSITIONS.colors}
+                    _hover={HOVER_EFFECTS.borderHighlight}
+                    _active={ACTIVE_EFFECTS.dim}
+                    _focus={FOCUS_STYLES.ring}
+                    _focusVisible={FOCUS_STYLES.ring}
                 >
                     Done
                 </Button>
@@ -332,19 +355,19 @@ const TxErrorView: React.FC<{
             <VStack spacing={4} align="stretch">
                 {/* Error Icon and Message */}
                 <VStack spacing={2} align="center" py={2}>
-                    <Icon as={XCircle} w={12} h={12} color="red.400" />
-                    <Text fontSize="md" fontWeight="bold" color="#ece6d8">
+                    <Icon as={XCircle} w={12} h={12} color={SEMANTIC_COLORS.danger} />
+                    <Text fontSize="md" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary}>
                         Transaction Failed
                     </Text>
                     <Box
-                        bg="red.900"
+                        bg={SEMANTIC_COLORS.danger}
                         border="1px solid"
-                        borderColor="red.500"
-                        borderRadius="md"
+                        borderColor={SEMANTIC_COLORS.danger}
+                        borderRadius={0}
                         p={3}
                         w="100%"
                     >
-                        <Text fontSize="xs" color="red.200" textAlign="center">
+                        <Text fontSize="xs" color={SEMANTIC_COLORS.danger} textAlign="center">
                             {error?.message || 'An error occurred while processing your transaction'}
                         </Text>
                     </Box>
@@ -356,19 +379,31 @@ const TxErrorView: React.FC<{
                         flex={1}
                         size="sm"
                         variant="ghost"
-                        color="#ece6d880"
+                        color={SEMANTIC_COLORS.textSecondary}
+                        borderRadius={0}
+                        fontFamily={TYPOGRAPHY.fontMono}
                         onClick={onClose}
-                        _hover={{ bg: '#9bdc4f20', color: '#ece6d8' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={{ ...HOVER_EFFECTS.brighten, bg: 'transparent' }}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                     >
                         Cancel
                     </Button>
                     <Button
                         flex={1}
                         size="sm"
-                        bg="#9bdc4f"
-                        color="white"
+                        bg={SEMANTIC_COLORS.primary}
+                        color={SEMANTIC_COLORS.bgPrimary}
+                        borderRadius={0}
+                        fontFamily={TYPOGRAPHY.fontMono}
                         onClick={onRetry}
-                        _hover={{ bg: '#5a38e0' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={HOVER_EFFECTS.borderHighlight}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                     >
                         Retry
                     </Button>

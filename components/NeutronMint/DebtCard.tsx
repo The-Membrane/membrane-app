@@ -20,7 +20,7 @@ interface DebtCardProps {
 }
 
 const BORROW_ASSETS: Record<string, { symbol: 'CDT' | 'USDC'; denom: string; logo: string; price: number }> = {
-  CDT: { symbol: 'CDT', denom: 'factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt', logo: '/images/cdt.png', price: 1 },
+  CDT: { symbol: 'CDT', denom: 'factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt', logo: '/images/cdt.svg', price: 1 },
   USDC: { symbol: 'USDC', denom: 'ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4', logo: '/images/usdc.svg', price: 1 },
 }
 
@@ -69,7 +69,7 @@ export const DebtCard = ({
       assets.push({
         symbol: 'CDT',
         subtext: 'Membrane',
-        logo: '/images/cdt.png',
+        logo: '/images/cdt.svg',
         segments: activeCdtSegments,
       })
     }

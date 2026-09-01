@@ -63,11 +63,11 @@ const PreMintGuidance: React.FC<PreMintGuidanceProps> = ({ isOpen, onClose }) =>
                         </Text>
 
                         <Text fontSize="md" color="#b8c1ff" textAlign="center">
-                            Luckily, you have an AI to help you navigate, but its up to you to train them well or they'll have no issue running you headfirst into...more walls.
+                            Luckily, you have an AI to help you navigate, but its up to you to train them well or they&apos;ll have no issue running you headfirst into...more walls.
                         </Text>
 
                         <Text fontSize="md" color="#b8c1ff" textAlign="center">
-                            Build tracks & train your Runner to complete daily mazes & earn $BYTE. In preparation for The Singularity's arrival you need to boost your IQ, will you be ready?
+                            Build tracks & train your Runner to complete daily mazes & earn $BYTE. In preparation for The Singularity&apos;s arrival you need to boost your IQ, will you be ready?
                         </Text>
 
 
@@ -122,7 +122,7 @@ const PreMintGuidance: React.FC<PreMintGuidanceProps> = ({ isOpen, onClose }) =>
                             fontSize="12px"
                             size="lg"
                         >
-                            I'M READY
+                            I&apos;M READY
                         </Button>
                     </VStack>
                 </ModalBody>

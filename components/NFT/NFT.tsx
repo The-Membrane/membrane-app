@@ -6,7 +6,7 @@ import { useLiveAssetAuction, useLiveNFTAuction } from './hooks/useBraneAuction'
 import React from "react"
 import useNFTState from './hooks/useNFTState'
 
-const NFT = React.memo(() => {
+const NFT = React.memo(function NFT() {
     const { data: liveNFTAuction } = useLiveNFTAuction()
     const { data: liveAssetAuction } = useLiveAssetAuction()
     const { NFTState } = useNFTState()

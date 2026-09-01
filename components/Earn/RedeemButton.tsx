@@ -13,7 +13,7 @@ import useCDPRedeem from './hooks/useCDPRedeem'
 // TODO(evm-migration): CDT redemption is stubbed (no user-facing redemption surface in
 // the port — see useCDPRedeem); EvmBasket carries no credit_price (separate getCreditPrice
 // read), so the price hint renders $0 until this section is redesigned or removed.
-export const RedeemButton = React.memo(({ basket }: { basket: EvmBasket | undefined }) => {
+export const RedeemButton = React.memo(function RedeemButton({ basket }: { basket: EvmBasket | undefined }) {
 
     const { earnState, setEarnState } = useEarnState()
     const cdtAsset = useAssetBySymbol('CDT')

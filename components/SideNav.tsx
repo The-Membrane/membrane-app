@@ -155,7 +155,7 @@ function SideNav() {
   // Memoize price display
   const priceDisplay = useMemo(() => (
     <HStack justifyContent={"center"}>
-      <Image src={"/images/cdt.png"} w="18px" h="18px" />
+      <Image src={"/images/cdt.svg"} w="18px" h="18px" />
       <Text variant="title" letterSpacing="unset" textShadow={`0px 0px 8px ${colors.tabBG}`} fontSize={"medium"}>
         {cdtPrice != " " && cdtPrice != "0" ? "$" : null}{cdtPrice}
       </Text>

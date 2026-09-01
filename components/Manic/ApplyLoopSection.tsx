@@ -9,6 +9,10 @@ import {
     Tooltip,
 } from '@chakra-ui/react'
 import { WarningIcon } from '@chakra-ui/icons'
+import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
+import { TRANSITIONS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 interface ApplyLoopSectionProps {
     hasPosition: boolean
@@ -32,9 +36,7 @@ export const ApplyLoopSection: React.FC<ApplyLoopSectionProps> = ({
     isLoading = false,
 }) => {
     // Calculate new net APR at target loop level
-    const targetAPR = useMemo(() => {
-        return baseAPR * targetLoopLevel
-    }, [baseAPR, targetLoopLevel])
+    const targetAPR = baseAPR * targetLoopLevel
 
     // Calculate required capacity
     // Required = collateral × target multiplier (approximately)
@@ -59,12 +61,7 @@ export const ApplyLoopSection: React.FC<ApplyLoopSectionProps> = ({
         return null
     }, [hasPosition, targetLoopLevel, currentLoopLevel, requiredCapacity, transmuterBalance])
 
-    // Don't render if no position
-    if (!hasPosition) {
-        return null
-    }
-
-    // Determine button text
+    // Determine button text (must run before any early return so Hook order is stable)
     const buttonText = useMemo(() => {
         if (targetLoopLevel <= currentLoopLevel) {
             return `Current: ${currentLoopLevel.toFixed(1)}×`
@@ -72,64 +69,104 @@ export const ApplyLoopSection: React.FC<ApplyLoopSectionProps> = ({
         return `Increase Loop to ${targetLoopLevel.toFixed(1)}×`
     }, [targetLoopLevel, currentLoopLevel])
 
+    // Don't render if no position
+    if (!hasPosition) {
+        return null
+    }
+
     return (
         <Card
-            bg="gray.800"
-            borderColor={canApply ? "purple.500" : "gray.600"}
-            borderWidth="2px"
-            p={6}
+            borderRadius={0}
+            borderColor={canApply ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.borderSubtle}
+            p={SPACING_PATTERNS.modalPadding}
             w="100%"
-            boxShadow={canApply ? "0 0 20px rgba(159, 122, 234, 0.15)" : "none"}
-            transition="all 0.3s"
+            transition={TRANSITIONS.colors}
         >
-            <VStack spacing={4} align="stretch">
+            <VStack spacing={SPACING.base} align="stretch">
                 {/* Header */}
                 <Text
-                    fontSize="sm"
-                    color="gray.400"
-                    fontFamily="mono"
+                    fontSize={TYPOGRAPHY.label}
+                    color={SEMANTIC_COLORS.textSecondary}
+                    fontFamily={TYPOGRAPHY.fontMono}
                     textTransform="uppercase"
+                    letterSpacing="0.28em"
                 >
                     Apply Loop Configuration
                 </Text>
 
                 {/* Summary Panel */}
-                <HStack spacing={8} w="100%" justify="space-between" flexWrap="wrap">
+                <HStack spacing={SPACING.xl} w="100%" justify="space-between" flexWrap="wrap">
                     {/* Target Loops */}
-                    <VStack align="start" spacing={0}>
-                        <Text fontSize="xs" color="gray.500" fontFamily="mono">
+                    <VStack align="start" spacing={SPACING.none}>
+                        <Text
+                            fontSize={TYPOGRAPHY.label}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            textTransform="uppercase"
+                            letterSpacing="0.28em"
+                        >
                             Target Loop
                         </Text>
-                        <HStack spacing={2} align="baseline">
-                            <Text fontSize="xl" fontWeight="bold" color="cyan.400" fontFamily="mono">
+                        <HStack spacing={SPACING.sm} align="baseline">
+                            <Text
+                                fontSize={TYPOGRAPHY.h3}
+                                fontWeight={TYPOGRAPHY.bold}
+                                color={SEMANTIC_COLORS.info}
+                                fontFamily={TYPOGRAPHY.fontMono}
+                                sx={{ fontVariantNumeric: 'tabular-nums' }}
+                            >
                                 {targetLoopLevel.toFixed(1)}×
                             </Text>
-                            <Text fontSize="sm" color="gray.500" fontFamily="mono">
+                            <Text
+                                fontSize={TYPOGRAPHY.small}
+                                color={SEMANTIC_COLORS.textTertiary}
+                                fontFamily={TYPOGRAPHY.fontMono}
+                                sx={{ fontVariantNumeric: 'tabular-nums' }}
+                            >
                                 (from {currentLoopLevel.toFixed(1)}×)
                             </Text>
                         </HStack>
                     </VStack>
 
                     {/* New Net APR */}
-                    <VStack align="start" spacing={0}>
-                        <Text fontSize="xs" color="gray.500" fontFamily="mono">
+                    <VStack align="start" spacing={SPACING.none}>
+                        <Text
+                            fontSize={TYPOGRAPHY.label}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            textTransform="uppercase"
+                            letterSpacing="0.28em"
+                        >
                             Projected APR
                         </Text>
-                        <Text fontSize="xl" fontWeight="bold" color="green.400" fontFamily="mono">
+                        <Text
+                            fontSize={TYPOGRAPHY.h3}
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={SEMANTIC_COLORS.success}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
                             {targetAPR.toFixed(2)}%
                         </Text>
                     </VStack>
 
                     {/* Required Capacity */}
-                    <VStack align="start" spacing={0}>
-                        <Text fontSize="xs" color="gray.500" fontFamily="mono">
+                    <VStack align="start" spacing={SPACING.none}>
+                        <Text
+                            fontSize={TYPOGRAPHY.label}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            textTransform="uppercase"
+                            letterSpacing="0.28em"
+                        >
                             Required Capacity
                         </Text>
                         <Text
-                            fontSize="xl"
-                            fontWeight="bold"
-                            color={requiredCapacity <= transmuterBalance ? "white" : "red.400"}
-                            fontFamily="mono"
+                            fontSize={TYPOGRAPHY.h3}
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={requiredCapacity <= transmuterBalance ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.danger}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
                         >
                             {requiredCapacity.toLocaleString(undefined, { maximumFractionDigits: 0 })} USDC
                         </Text>
@@ -140,33 +177,20 @@ export const ApplyLoopSection: React.FC<ApplyLoopSectionProps> = ({
                         <Tooltip
                             label={disabledReason}
                             isDisabled={canApply}
-                            fontSize="xs"
-                            bg="gray.800"
-                            color="#F5F5F5"
-                            border="1px solid"
-                            borderColor="red.500"
-                            borderRadius="md"
-                            p={3}
                             hasArrow
                         >
                             <Button
                                 size="lg"
-                                colorScheme={canApply ? "purple" : "gray"}
-                                bg={canApply ? "purple.500" : "gray.600"}
-                                color="white"
                                 onClick={onApplyLoop}
                                 isDisabled={!canApply}
                                 isLoading={isLoading}
-                                fontFamily="mono"
-                                fontSize="md"
-                                px={8}
+                                px={SPACING.xl}
                                 minW="200px"
-                                _hover={canApply ? {
-                                    bg: 'purple.400',
-                                    transform: 'scale(1.02)',
-                                } : {}}
+                                transition={TRANSITIONS.colors}
+                                _active={ACTIVE_EFFECTS.dim}
+                                _focus={FOCUS_STYLES.ring}
                                 _disabled={{
-                                    opacity: 0.6,
+                                    opacity: 0.4,
                                     cursor: 'not-allowed',
                                 }}
                             >
@@ -178,9 +202,9 @@ export const ApplyLoopSection: React.FC<ApplyLoopSectionProps> = ({
 
                 {/* Inline warning if disabled */}
                 {disabledReason && !canApply && (
-                    <HStack spacing={2} color="gray.500">
+                    <HStack spacing={SPACING.sm} color={SEMANTIC_COLORS.warning}>
                         <WarningIcon boxSize={3} />
-                        <Text fontSize="xs" fontFamily="mono">
+                        <Text fontSize={TYPOGRAPHY.xs} fontFamily={TYPOGRAPHY.fontMono}>
                             {disabledReason}
                         </Text>
                     </HStack>
@@ -189,12 +213,3 @@ export const ApplyLoopSection: React.FC<ApplyLoopSectionProps> = ({
         </Card>
     )
 }
-
-
-
-
-
-
-
-
-

@@ -111,7 +111,7 @@ export const ShareableCard = forwardRef<HTMLDivElement, ShareableCardProps>(
                             opacity={0.9}
                         >
                             <Image
-                                src="/images/membrane-wordmark.png"
+                                src="/images/membrane-wordmark.svg"
                                 alt="Membrane"
                                 maxH="60px"
                                 maxW="120px"

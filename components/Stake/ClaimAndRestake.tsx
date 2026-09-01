@@ -1,12 +1,16 @@
 import { TxButton } from '@/components/TxButton'
 import { shiftDigits } from '@/helpers/math'
 import { isGreaterThanZero, num } from '@/helpers/num'
-import { HStack, Image, Stack, Text, Box, VStack, useColorModeValue } from '@chakra-ui/react'
+import { HStack, Image, Stack, Text, Box, VStack } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import useStakingClaim from './hooks/useStakingClaim'
 import useStaked from './hooks/useStaked'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES } from '@/config/transitions'
 
 type Props = {}
 
@@ -17,7 +21,8 @@ const RestakeButton = (reward: any) => {
     <TxButton
       variant="ghost"
       size="sm"
-      px="2"
+      px={SPACING.sm}
+      _focus={FOCUS_STYLES.ring}
       isDisabled={Number(reward) <= 0}
       isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
       onClick={() => claim?.tx.mutate()}
@@ -62,14 +67,11 @@ export const ClaimAndRestake = (props: Props) => {
     return reward
   }, [rewards])
 
-  const cardBg = useColorModeValue('#181F2A', '#232B3E')
-  const borderColor = useColorModeValue('whiteAlpha.200', 'whiteAlpha.200')
-
   if (!rewards.length)
     return (
-      <Box bg={cardBg} borderRadius="xl" p={6} w="full" border="1px solid" borderColor={borderColor}>
-        <HStack justifyContent="center" mt="5">
-          <Text fontSize="sm" color="gray">
+      <Box bg={SEMANTIC_COLORS.bgSecondary} borderRadius={0} p={SPACING.lg} w="full" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
+        <HStack justifyContent="center" mt={SPACING.lg}>
+          <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
             You have no claimable rewards
           </Text>
         </HStack>
@@ -77,9 +79,9 @@ export const ClaimAndRestake = (props: Props) => {
     )
 
   return (
-    <Box bg={cardBg} borderRadius="xl" p={6} w="full" border="1px solid" borderColor={borderColor}>
-      <VStack gap={8} align="stretch">
-        <VStack gap={4} align="stretch">
+    <Box bg={SEMANTIC_COLORS.bgSecondary} borderRadius={0} p={SPACING.lg} w="full" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
+      <VStack gap={SPACING.xl} align="stretch">
+        <VStack gap={SPACING.base} align="stretch">
           {/* MBRN Claim */}
           {MBRN && mbrnClaims > num(1) && (
             <HStack justifyContent="space-between">
@@ -108,6 +110,7 @@ export const ClaimAndRestake = (props: Props) => {
         </VStack>
         <HStack justifyContent="flex-end">
           <TxButton
+            _focus={FOCUS_STYLES.ring}
             isDisabled={!isGreaterThanZero(cdtClaims.toNumber()) && !isGreaterThanZero(mbrnClaims.toNumber())}
             isLoading={claim?.simulate.isLoading || claim?.tx.isPending}
             onClick={() => claim?.tx.mutate()}

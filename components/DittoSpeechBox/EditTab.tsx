@@ -1,12 +1,24 @@
 import React from 'react'
 import { Box, Text, VStack } from '@chakra-ui/react'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 interface EditTabProps {
     onClick: () => void
     isPanelOpen: boolean
 }
 
 export const EditTab: React.FC<EditTabProps> = ({ onClick, isPanelOpen }) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick()
+        }
+    }
+
     return (
         <Box
             position="absolute"
@@ -15,14 +27,12 @@ export const EditTab: React.FC<EditTabProps> = ({ onClick, isPanelOpen }) => {
             transform="translateY(-50%)"
             w="43px"
             h="88px"
-            bg="#0F1117"
-            borderTopRightRadius="lg"
-            borderBottomRightRadius="lg"
+            bg={SEMANTIC_COLORS.bgSecondary}
+            borderRadius={0}
             borderTop="1px solid"
             borderBottom="1px solid"
             borderRight="1px solid"
-            // borderLeft="1px solid"
-            borderColor="primary.400"
+            borderColor={SEMANTIC_COLORS.borderSubtle}
             cursor="pointer"
             display="flex"
             alignItems="center"
@@ -30,29 +40,37 @@ export const EditTab: React.FC<EditTabProps> = ({ onClick, isPanelOpen }) => {
             zIndex={0}
             opacity={isPanelOpen ? 0 : 1}
             pointerEvents={isPanelOpen ? 'none' : 'auto'}
-            transition="all 0.2s ease-in-out"
-            boxShadow="0 0 0px rgba(0, 191, 255, 0)"
+            transition={TRANSITIONS.colors}
             _hover={{
-                bg: '#101722',
-                borderColor: '#9F7AEA',
-                boxShadow: '0 0 12px #9F7AEA, 0 0 20px #9F7AEA',
+                bg: SEMANTIC_COLORS.bgTertiary,
+                borderColor: SEMANTIC_COLORS.primary,
+                color: SEMANTIC_COLORS.primary,
             }}
+            _focus={FOCUS_STYLES.ring}
+            _focusVisible={FOCUS_STYLES.ring}
+            role="button"
+            tabIndex={isPanelOpen ? -1 : 0}
+            aria-label="Open edit panel"
+            aria-expanded={isPanelOpen}
             onClick={onClick}
+            onKeyDown={handleKeyDown}
         >
-            <VStack spacing={1} transform="rotate(90deg)" transformOrigin="center center">
+            <VStack spacing={SPACING.xs} transform="rotate(90deg)" transformOrigin="center center">
                 <Text
-                    fontSize="xs"
-                    fontWeight="semibold"
-                    color="#A9D8FF"
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.xs}
+                    fontWeight={TYPOGRAPHY.semibold}
+                    color={SEMANTIC_COLORS.textSecondary}
                     lineHeight="1"
                 >
                     ✎
                 </Text>
                 <Text
-                    fontSize="sm"
-                    fontWeight={700}
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.small}
+                    fontWeight={TYPOGRAPHY.bold}
                     letterSpacing="0.1em"
-                    color="#ece6d8"
+                    color={SEMANTIC_COLORS.textPrimary}
                     whiteSpace="nowrap"
                 >
                     EDIT
@@ -61,4 +79,3 @@ export const EditTab: React.FC<EditTabProps> = ({ onClick, isPanelOpen }) => {
         </Box>
     )
 }
-

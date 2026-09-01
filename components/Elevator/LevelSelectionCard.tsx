@@ -1,6 +1,10 @@
 import React from 'react'
 import { Box, Button, Text, VStack, HStack } from '@chakra-ui/react'
 import { Level } from '@/components/Home/CyberpunkHome'
+import { Card } from '@/components/ui/Card'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SPACING } from '@/config/spacing'
 
 interface LevelSelectionCardProps {
     level: Level | null
@@ -10,12 +14,13 @@ interface LevelSelectionCardProps {
 export const LevelSelectionCard: React.FC<LevelSelectionCardProps> = ({ level, onEnter }) => {
     if (!level) {
         return (
-            <Box
-                border="2px solid"
-                borderColor="#6943FF30"
-                borderStyle="dashed"
-                borderRadius="md"
-                p={8}
+            <Card
+                variant="default"
+                borderRadius={0}
+                bg="transparent"
+                border="1px dashed"
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+                p={SPACING.xl}
                 flex={1}
                 display="flex"
                 alignItems="center"
@@ -23,23 +28,23 @@ export const LevelSelectionCard: React.FC<LevelSelectionCardProps> = ({ level, o
             >
                 <VStack spacing={4}>
                     <Text fontSize="6xl" opacity={0.2}>⟐</Text>
-                    <Text color="#8A8A8A">Select a level to begin</Text>
+                    <Text color={SEMANTIC_COLORS.textSecondary}>Select a level to begin</Text>
                 </VStack>
-            </Box>
+            </Card>
         )
     }
 
     return (
-        <Box
-            bgGradient="linear(to-br, #3BE5E510, #0A0A0A)"
-            border="2px solid"
+        <Card
+            variant="default"
+            borderRadius={0}
+            bg={SEMANTIC_COLORS.bgSecondary}
+            border="1px solid"
             borderColor={level.color}
-            borderRadius="md"
-            p={8}
+            p={SPACING.xl}
             flex={1}
             display="flex"
             flexDirection="column"
-            boxShadow={`0 0 30px ${level.color}30`}
         >
             <VStack align="stretch" spacing={6} flex={1}>
                 {/* Title Section */}
@@ -55,7 +60,7 @@ export const LevelSelectionCard: React.FC<LevelSelectionCardProps> = ({ level, o
                     {level.subtitle && (
                         <Text
                             fontSize="sm"
-                            color="#8A8A8A"
+                            color={SEMANTIC_COLORS.textSecondary}
                             letterSpacing="wide"
                         >
                             {level.subtitle}
@@ -70,7 +75,7 @@ export const LevelSelectionCard: React.FC<LevelSelectionCardProps> = ({ level, o
                     pl={4}
                     py={2}
                 >
-                    <Text color="#F5F5F5" fontSize="md" lineHeight="1.6">
+                    <Text color={SEMANTIC_COLORS.textPrimary} fontSize="md" lineHeight="1.6">
                         {level.description}
                     </Text>
                 </Box>
@@ -78,34 +83,34 @@ export const LevelSelectionCard: React.FC<LevelSelectionCardProps> = ({ level, o
                 {/* Basic Metrics */}
                 <Box
                     border="1px solid"
-                    borderColor="#6943FF30"
-                    borderRadius="md"
+                    borderColor={SEMANTIC_COLORS.borderSubtle}
+                    borderRadius={0}
                     p={4}
-                    bg="#0A0A0A80"
+                    bg={SEMANTIC_COLORS.bgTertiary}
                 >
                     <VStack align="stretch" spacing={3}>
                         <HStack justify="space-between">
-                            <Text color="#8A8A8A" fontSize="sm">Status</Text>
+                            <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm">Status</Text>
                             <HStack spacing={2}>
                                 <Box
                                     w="8px"
                                     h="8px"
-                                    bg={level.status === 'unlocked' ? '#3BE5E5' : '#8A8A8A'}
+                                    bg={level.status === 'unlocked' ? SEMANTIC_COLORS.info : SEMANTIC_COLORS.textSecondary}
                                     borderRadius="full"
                                     animation={level.status === 'unlocked' ? 'pulse 2s infinite' : 'none'}
                                 />
-                                <Text color="#F5F5F5" fontSize="sm" textTransform="uppercase">
+                                <Text color={SEMANTIC_COLORS.textPrimary} fontSize="sm" textTransform="uppercase">
                                     {level.status}
                                 </Text>
                             </HStack>
                         </HStack>
                         <HStack justify="space-between">
-                            <Text color="#8A8A8A" fontSize="sm">Access Level</Text>
-                            <Text color="#F5F5F5" fontSize="sm">Level {level.id}</Text>
+                            <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm">Access Level</Text>
+                            <Text color={SEMANTIC_COLORS.textPrimary} fontSize="sm">Level {level.id}</Text>
                         </HStack>
                         <HStack justify="space-between">
-                            <Text color="#8A8A8A" fontSize="sm">Protocol</Text>
-                            <Text color="#F5F5F5" fontSize="sm">Active</Text>
+                            <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm">Protocol</Text>
+                            <Text color={SEMANTIC_COLORS.textPrimary} fontSize="sm">Active</Text>
                         </HStack>
                     </VStack>
                 </Box>
@@ -113,23 +118,23 @@ export const LevelSelectionCard: React.FC<LevelSelectionCardProps> = ({ level, o
                 {/* Enter Button */}
                 <Button
                     onClick={() => onEnter(level)}
-                    bgGradient={`linear(to-r, ${level.color}, ${level.color}80)`}
-                    color="#F5F5F5"
+                    bg={level.color}
+                    color={SEMANTIC_COLORS.bgPrimary}
                     size="lg"
                     fontSize="lg"
                     letterSpacing="wider"
                     fontWeight="bold"
-                    _hover={{
-                        boxShadow: `0 0 30px ${level.color}`,
-                        transform: 'scale(1.02)',
-                    }}
-                    transition="all 0.3s"
+                    borderRadius={0}
+                    border="1px solid"
+                    borderColor={level.color}
+                    transition={TRANSITIONS.colors}
+                    _hover={HOVER_EFFECTS.borderHighlight}
+                    _focus={FOCUS_STYLES.ring}
                     mt="auto"
                 >
                     ENTER
                 </Button>
             </VStack>
-        </Box>
+        </Card>
     )
 }
-

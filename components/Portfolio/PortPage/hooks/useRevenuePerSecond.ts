@@ -7,6 +7,13 @@ import usePortState from '@/persisted-state/usePortState'
  * Uses historical data to calculate accurate RPS
  * Also tracks cumulative revenue counter that accumulates over time
  */
+// Use mock data if metrics not available (these are per-second rates)
+const mockRevenuePerSecondBySource = {
+    disco: 0.0000967,    // ~250.75 / (30 * 24 * 60 * 60)
+    transmuter: 0.0000484, // ~125.50 / (30 * 24 * 60 * 60)
+    manic: 0.0000337,    // ~87.25 / (30 * 24 * 60 * 60)
+}
+
 export const useRevenuePerSecond = () => {
     const { data: metrics } = usePortMetrics()
     const { portState, setPortState } = usePortState()
@@ -78,6 +85,10 @@ export const useRevenuePerSecond = () => {
 
             setPortState({ revenueHistory: updatedHistory })
         }
+        // Intentionally minimal deps: portState.revenueHistory is WRITTEN by this effect
+        // (setPortState above), so adding it as a dep is self-referential and would only be
+        // held back from looping by the timing-based shouldUpdate guard. Keep the metrics-driven
+        // trigger to avoid that fragile re-run cycle.
     }, [metrics?.totalRevenue, setPortState])
 
     // Smooth animation update for RPS
@@ -94,53 +105,35 @@ export const useRevenuePerSecond = () => {
         return () => clearInterval(interval)
     }, [metrics?.revenuePerSecond])
 
-    // Cumulative revenue counter - increments based on RPS
-    // Use requestAnimationFrame for smoother updates that sync with browser repaints
+    // Cumulative revenue counter - updates at 2fps instead of 60fps
     useEffect(() => {
-        let animationFrameId: number
-        let lastFrameTime = Date.now()
+        let lastUpdateTime = Date.now()
 
-        const updateCounter = () => {
+        const interval = setInterval(() => {
             const now = Date.now()
-            const elapsedSeconds = (now - lastFrameTime) / 1000
-            lastFrameTime = now
+            const elapsedSeconds = (now - lastUpdateTime) / 1000
+            lastUpdateTime = now
 
-            // Calculate increment based on current RPS
             const rps = currentRPS || (metrics?.revenuePerSecond || 0)
             const increment = rps * elapsedSeconds
 
             if (increment > 0) {
-                setCumulativeRevenue((prev) => {
-                    const newValue = prev + increment
-                    // Persist to portState periodically (every 5 seconds)
-                    if (now - lastPersistTimeRef.current >= 5000) {
-                        setPortState({ cumulativeRevenue: newValue })
-                        lastPersistTimeRef.current = now
-                    }
-                    return newValue
-                })
+                setCumulativeRevenue((prev) => prev + increment)
             }
+        }, 500) // Update every 500ms (2fps) instead of 60fps
 
-            animationFrameId = requestAnimationFrame(updateCounter)
-        }
-
-        // Initialize lastFrameTime
-        lastFrameTime = Date.now()
-        animationFrameId = requestAnimationFrame(updateCounter)
-
-        return () => {
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId)
-            }
-        }
+        return () => clearInterval(interval)
     }, [currentRPS, metrics?.revenuePerSecond, setPortState])
 
-    // Use mock data if metrics not available (these are per-second rates)
-    const mockRevenuePerSecondBySource = {
-        disco: 0.0000967,    // ~250.75 / (30 * 24 * 60 * 60)
-        transmuter: 0.0000484, // ~125.50 / (30 * 24 * 60 * 60)
-        manic: 0.0000337,    // ~87.25 / (30 * 24 * 60 * 60)
-    }
+    // Persist cumulative revenue to portState, throttled to at most once per 5s.
+    // Kept out of the setCumulativeRevenue updater so the updater stays pure.
+    useEffect(() => {
+        const now = Date.now()
+        if (now - lastPersistTimeRef.current >= 5000) {
+            setPortState({ cumulativeRevenue })
+            lastPersistTimeRef.current = now
+        }
+    }, [cumulativeRevenue, setPortState])
 
     return {
         revenuePerSecond: currentRPS || (metrics?.revenuePerSecond || 0.000179),

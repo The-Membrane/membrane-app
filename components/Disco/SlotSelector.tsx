@@ -2,22 +2,20 @@ import React, { useMemo } from 'react'
 import { Box, VStack, HStack, Text } from '@chakra-ui/react'
 import type { SlotData } from './types'
 import { shiftDigits } from '@/helpers/math'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
+import { riskRgbAtIndex, riskRgba } from './riskRamp'
 
-// Color constants
-const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
+// Phosphor. Was named PRIMARY_PURPLE with an rgb() value: the migration swapped the
+// value to phosphor but left the name, and `${rgb(...)}80` hex-alpha suffixes built
+// on it were invalid CSS that silently did nothing. A hex token makes them valid.
+const PHOSPHOR = SEMANTIC_COLORS.primary
 
-// Cyan-to-purple gradient: highest LTV (index 0) = cyan, lowest LTV (last) = purple
-// Opacity encodes proportional TVL ratio
+// Hue encodes waterfall position; opacity encodes proportional TVL.
 const getSlotColor = (index: number, totalSlots: number, tvlRatio: number, isSelected: boolean) => {
-    const t = totalSlots > 1 ? index / (totalSlots - 1) : 0 // 0 = cyan, 1 = purple
-    const r = Math.round(34 + (166 - 34) * t)
-    const g = Math.round(211 + (146 - 211) * t)
-    const b = Math.round(238 + (255 - 238) * t)
-    // Opacity: base 0.15 for empty, scales up to 0.85 with TVL ratio
-    const baseOpacity = isSelected ? 0.3 : 0.15
-    const maxOpacity = isSelected ? 1 : 0.85
-    const opacity = baseOpacity + (maxOpacity - baseOpacity) * tvlRatio
-    return `rgba(${r}, ${g}, ${b}, ${opacity.toFixed(2)})`
+    const base = isSelected ? 0.3 : 0.15
+    const max = isSelected ? 1 : 0.85
+    return riskRgba(riskRgbAtIndex(index, totalSlots), base + (max - base) * tvlRatio)
 }
 
 const SCROLLBAR_CSS = {
@@ -46,7 +44,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slots, selectedSlot,
             <Text
                 fontSize="xs"
                 fontWeight="bold"
-                color={PRIMARY_PURPLE}
+                color={PHOSPHOR}
                 fontFamily="mono"
                 letterSpacing="1px"
                 textTransform="uppercase"
@@ -70,7 +68,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slots, selectedSlot,
                             : '0'
 
                         const barColor = getSlotColor(idx, totalSlots, tvlRatio, isSelected)
-                        const borderCol = isSelected ? PRIMARY_PURPLE : 'rgba(155, 220, 79, 0.15)'
+                        const borderCol = isSelected ? PHOSPHOR : SEMANTIC_COLORS.borderSubtle
 
                         return (
                             <Box
@@ -78,19 +76,26 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slots, selectedSlot,
                                 position="relative"
                                 px={3}
                                 py={2.5}
-                                borderRadius="md"
+                                borderRadius={0}
                                 cursor="pointer"
                                 border="1px solid"
                                 borderColor={borderCol}
-                                bg="rgba(10, 10, 10, 0.6)"
+                                bg={SEMANTIC_COLORS.bgSecondary}
                                 overflow="hidden"
-                                _hover={{
-                                    borderColor: `${PRIMARY_PURPLE}80`,
-                                    bg: 'rgba(10, 10, 10, 0.8)',
-                                }}
-                                transition="all 0.15s ease"
+                                // Border-only hover: the design system allows colour/border
+                                // transitions and bans lift, scale and glow on interactive UI.
+                                _hover={{ borderColor: `${PHOSPHOR}80` }}
+                                _focusVisible={FOCUS_STYLES.ring}
+                                transition={TRANSITIONS.colors}
                                 onClick={() => onSlotSelect(slot.slot)}
-                                boxShadow={isSelected ? `0 0 12px ${PRIMARY_PURPLE}30` : undefined}
+                                tabIndex={0}
+                                role="button"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        onSlotSelect(slot.slot)
+                                    }
+                                }}
                             >
                                 {/* TVL fill bar (background) */}
                                 <Box

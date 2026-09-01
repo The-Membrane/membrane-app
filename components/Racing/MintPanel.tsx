@@ -2,11 +2,10 @@ import React, { useState } from 'react'
 import { Button, Flex, HStack, Input, Text, VStack, Box, Spinner, useBreakpointValue } from '@chakra-ui/react'
 import { ChevronDownIcon } from '@chakra-ui/icons'
 import useWallet from '@/hooks/useWallet'
-import { useMintCar } from '@/components/Racing/hooks'
 import { usePaymentSelection } from './hooks/usePaymentSelection'
 import PaymentOptionsSheet from './PaymentOptionsSheet'
-import ConfirmModal from '../ConfirmModal'
-import { useTutorial } from './Guidance'
+import MintCarConfirmButton from './MintCarConfirmButton'
+import { useTutorial } from './Guidance/useTutorial'
 
 const MintPanel: React.FC = () => {
   const { address } = useWallet()
@@ -28,36 +27,6 @@ const MintPanel: React.FC = () => {
     executePayment,
     quickMint
   } = usePaymentSelection()
-
-  // Create actions for each payment option ahead of time
-  const paymentActions: Record<string, any> = {}
-
-  paymentOptions.forEach(option => {
-    const key = `${option.denom}-${option.amount}`
-
-    if (option.denom && option.amount !== '0') {
-      // Paid option
-      paymentActions[key] = useMintCar({
-        owner: address,
-        name: name,
-        paymentOption: {
-          denom: option.denom,
-          amount: option.amount
-        },
-        onSuccess: triggerTutorialAfterMint
-      }).action
-    } else {
-      // Free option
-      paymentActions[key] = useMintCar({
-        owner: address,
-        name: name,
-        paymentOption: null,
-        onSuccess: triggerTutorialAfterMint
-      }).action
-    }
-  })
-
-
 
   return (
     <VStack align="start" spacing={4} p={{ base: 3, md: 4 }} border="2px solid #0033ff" bg="#0b0e17" borderRadius={6} w={{ base: "100%", lg: "30vw" }}>
@@ -115,10 +84,15 @@ const MintPanel: React.FC = () => {
           onSelectOption={() => { }}
           isLoading={isLoading}
           lastUsedPaymentMethod={lastUsedPaymentMethod}
-          getActionForOption={(option) => {
-            const key = `${option.denom}-${option.amount}`
-            return paymentActions[key]
-          }}
+          renderOptionAction={(option) => (
+            <MintCarConfirmButton
+              option={option}
+              name={name}
+              owner={address}
+              isLoading={isLoading}
+              onSuccess={triggerTutorialAfterMint}
+            />
+          )}
         />
       </Box>
 

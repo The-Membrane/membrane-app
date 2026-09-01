@@ -3,6 +3,9 @@ import { num } from '@/helpers/num'
 import { Asset } from '@chain-registry/types'
 import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import useStakeState from './hooks/useStakeState'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { SPACING } from '@/config/spacing'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -16,10 +19,10 @@ const SummaryItem = ({ label, amount = 0, badge, showBadge = true, logo }: Summa
   <HStack
     key={label}
     justifyContent="space-between"
-    pb="1"
-    my="1"
+    pb={SPACING.xs}
+    my={SPACING.xs}
     borderBottom="1px solid"
-    borderColor="whiteAlpha.200"
+    borderColor={SEMANTIC_COLORS.borderSubtle}
   >
     <HStack>
       <HStack>
@@ -30,7 +33,7 @@ const SummaryItem = ({ label, amount = 0, badge, showBadge = true, logo }: Summa
       </HStack>
 
       {showBadge && (
-        <Badge fontSize="10px" colorScheme="green">
+        <Badge fontSize={TYPOGRAPHY.label} colorScheme="green">
           {badge}
         </Badge>
       )}

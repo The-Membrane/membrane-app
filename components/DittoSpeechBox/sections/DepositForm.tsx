@@ -13,6 +13,11 @@ import {
     SliderThumb,
 } from '@chakra-ui/react'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 interface DepositFormProps {
     depositType: 'staking' | 'disco'
     minLockDays?: number // Minimum lock days based on existing deposit
@@ -63,14 +68,28 @@ export const DepositForm: React.FC<DepositFormProps> = ({ depositType, minLockDa
     const effectiveMinLockDays = minLockDays
 
     return (
-        <VStack align="stretch" spacing={4} w="100%" h="100%" pb="50px" overflowY="auto">
-            <Text fontSize="xs" color="#ece6d880" fontWeight="bold" textTransform="uppercase">
+        <VStack align="stretch" spacing={SPACING.base} w="100%" h="100%" pb="50px" overflowY="auto">
+            <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.label}
+                color={SEMANTIC_COLORS.textSecondary}
+                fontWeight={TYPOGRAPHY.bold}
+                textTransform="uppercase"
+                letterSpacing="0.28em"
+            >
                 {isStaking ? 'Stake MBRN' : 'Deposit to LTV Disco'}
             </Text>
 
             {/* Amount Input */}
             <Box>
-                <Text fontSize="xs" color="#ece6d880" mb={2}>
+                <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.label}
+                    color={SEMANTIC_COLORS.textSecondary}
+                    textTransform="uppercase"
+                    letterSpacing="0.28em"
+                    mb={SPACING.sm}
+                >
                     Amount (MBRN)
                 </Text>
                 <NumberInput
@@ -79,13 +98,18 @@ export const DepositForm: React.FC<DepositFormProps> = ({ depositType, minLockDa
                     min={0}
                 >
                     <NumberInputField
-                        bg="#1A1D26"
+                        bg={SEMANTIC_COLORS.bgTertiary}
                         border="1px solid"
-                        borderColor="#9bdc4f30"
-                        color="#ece6d8"
-                        fontSize="sm"
-                        _hover={{ borderColor: '#9bdc4f60' }}
-                        _focus={{ borderColor: '#9F7AEA', boxShadow: '0 0 0 1px #9F7AEA' }}
+                        borderRadius={0}
+                        borderColor={SEMANTIC_COLORS.borderSubtle}
+                        color={SEMANTIC_COLORS.textPrimary}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.small}
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={HOVER_EFFECTS.borderHighlight}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                         placeholder="0.00"
                     />
                 </NumberInput>
@@ -93,11 +117,23 @@ export const DepositForm: React.FC<DepositFormProps> = ({ depositType, minLockDa
 
             {/* Lock Days Slider */}
             <Box>
-                <HStack justify="space-between" mb={2}>
-                    <Text fontSize="xs" color="#ece6d880">
+                <HStack justify="space-between" mb={SPACING.sm}>
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.label}
+                        color={SEMANTIC_COLORS.textSecondary}
+                        textTransform="uppercase"
+                        letterSpacing="0.28em"
+                    >
                         Lock Duration
                     </Text>
-                    <Text fontSize="xs" color="primary.300" fontWeight="bold">
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.xs}
+                        color={SEMANTIC_COLORS.primary}
+                        fontWeight={TYPOGRAPHY.bold}
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                    >
                         {lockDays} days
                     </Text>
                 </HStack>
@@ -108,59 +144,95 @@ export const DepositForm: React.FC<DepositFormProps> = ({ depositType, minLockDa
                     max={maxLockDays}
                     step={1}
                 >
-                    <SliderTrack bg="#1A1D26" h="6px" borderRadius="full">
-                        <SliderFilledTrack bg="primary.400" />
+                    <SliderTrack bg={SEMANTIC_COLORS.bgTertiary} h="6px" borderRadius={0}>
+                        <SliderFilledTrack bg={SEMANTIC_COLORS.primary} />
                     </SliderTrack>
                     <SliderThumb
                         boxSize={4}
-                        bg="primary.400"
+                        bg={SEMANTIC_COLORS.primary}
                         border="2px solid"
-                        borderColor="white"
-                        _focus={{ boxShadow: '0 0 10px rgba(159, 122, 234, 0.5)' }}
+                        borderColor={SEMANTIC_COLORS.bgPrimary}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                     />
                 </Slider>
-                <HStack justify="space-between" mt={1}>
-                    <Text fontSize="2xs" color="#ece6d850">{effectiveMinLockDays}</Text>
-                    <Text fontSize="2xs" color="#ece6d850">{maxLockDays}</Text>
+                <HStack justify="space-between" mt={SPACING.xs}>
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.xs}
+                        color={SEMANTIC_COLORS.textTertiary}
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                    >
+                        {effectiveMinLockDays}
+                    </Text>
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.xs}
+                        color={SEMANTIC_COLORS.textTertiary}
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                    >
+                        {maxLockDays}
+                    </Text>
                 </HStack>
             </Box>
 
             {/* Boost Preview */}
             <Box
-                bg="#1A1D26"
+                bg={SEMANTIC_COLORS.bgTertiary}
                 border="1px solid"
-                borderColor="#9bdc4f30"
-                borderRadius="md"
-                p={3}
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+                borderRadius={0}
+                p={SPACING.md}
             >
                 <HStack justify="space-between">
-                    <Text fontSize="xs" color="#ece6d880">
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.label}
+                        color={SEMANTIC_COLORS.textSecondary}
+                        textTransform="uppercase"
+                        letterSpacing="0.28em"
+                    >
                         Effective MBRN Boost
                     </Text>
-                    <Text fontSize="xs" color="secondary.300" fontWeight="bold">
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.xs}
+                        color={SEMANTIC_COLORS.info}
+                        fontWeight={TYPOGRAPHY.bold}
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                    >
                         {(lockDays + 1).toFixed(1)}x
                     </Text>
                 </HStack>
             </Box>
 
             {/* Info Text */}
-            <Text fontSize="2xs" color="#ece6d850">
+            <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.xs}
+                color={SEMANTIC_COLORS.textTertiary}
+            >
                 Note: The lock period applies from the deposit time.
             </Text>
 
             {/* Submit Button */}
             <Button
-
                 position={"fixed"}
                 bottom={0}
                 left={0}
                 right={0}
                 size="sm"
-                bg="primary.500"
-                color="white"
+                borderRadius={0}
+                bg={SEMANTIC_COLORS.primary}
+                color={SEMANTIC_COLORS.bgPrimary}
+                fontFamily={TYPOGRAPHY.fontMono}
                 onClick={handleSubmit}
                 isDisabled={!amount || parseFloat(amount) <= 0}
-                _hover={{ bg: 'primary.400', boxShadow: '0 0 15px rgba(159, 122, 234, 0.4)' }}
+                transition={TRANSITIONS.colors}
+                _hover={HOVER_EFFECTS.borderHighlight}
+                _active={ACTIVE_EFFECTS.dim}
+                _focus={FOCUS_STYLES.ring}
+                _focusVisible={FOCUS_STYLES.ring}
                 _disabled={{ opacity: 0.5, cursor: 'not-allowed' }}
                 mt="auto"
             >

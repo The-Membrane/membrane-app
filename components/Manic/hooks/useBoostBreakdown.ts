@@ -99,12 +99,16 @@ export const useBoostBreakdown = () => {
             let stakingTotalEffectiveMBRN = '0'
 
             try {
-                const stakerResponse = await getStaked(address, stakingClient)
-                const stakingConfig = await getConfig(stakingClient)
-                const rewards = await stakingClient.userRewards({ user: address }).catch(() => ({
-                    accrued_interest: '0',
-                    claimables: [],
-                }))
+                // Independent reads — fan out concurrently. `rewards` keeps its own
+                // .catch() fallback so a failure there doesn't reject the other two.
+                const [stakerResponse, stakingConfig, rewards] = await Promise.all([
+                    getStaked(address, stakingClient),
+                    getConfig(stakingClient),
+                    stakingClient.userRewards({ user: address }).catch(() => ({
+                        accrued_interest: '0',
+                        claimables: [],
+                    })),
+                ])
 
                 // Base MBRN: total_staked + accrued_interest
                 const baseMBRN = num(stakerResponse.total_staked)
@@ -114,25 +118,26 @@ export const useBoostBreakdown = () => {
                 // Process locked deposits
                 let totalBoosted = baseMBRN
                 for (const deposit of stakerResponse.deposit_list || []) {
-                    if (deposit.locked && deposit.locked.locked_until > currentTime) {
+                    const locked = deposit.locked
+                    if (locked && locked.locked_until > currentTime) {
                         const boostedAmount = calculateLockedBoost(
                             deposit.amount,
-                            deposit.locked.locked_until,
+                            locked.locked_until,
                             deposit.stake_time,
                             currentTime,
                             stakingConfig.lock_duration_ceiling,
-                            deposit.locked.perpetual_lock
+                            locked.perpetual_lock
                         )
 
                         const boostAmount = num(boostedAmount).minus(deposit.amount)
                         const daysRemaining = Math.floor(
-                            (deposit.locked.locked_until - currentTime) / SECONDS_PER_DAY
+                            (locked.locked_until - currentTime) / SECONDS_PER_DAY
                         )
 
 
                         stakingLockedDeposits.push({
                             amount: deposit.amount,
-                            lockedUntil: deposit.locked.locked_until,
+                            lockedUntil: locked.locked_until,
                             boostAmount: boostAmount.toString(),
                             daysRemaining,
                         })
@@ -169,11 +174,23 @@ export const useBoostBreakdown = () => {
                             config: {},
                         })
 
-                        let totalBoosted = num(discoBaseMBRN)
+                        // Each vault_token_conversion query is independent (no iteration reads
+                        // a prior iteration's result), so fan them out concurrently instead of
+                        // one-at-a-time. Promise.all preserves input order in the resolved
+                        // array, so the push order and running total below are unaffected by
+                        // which query actually resolves first.
+                        const activeLockedDeposits = lockedDepositsResponse.locked_deposits.filter(
+                            (lockedDeposit: any) => {
+                                const locked = lockedDeposit.deposit.locked
+                                return locked && locked.locked_until > currentTime
+                            }
+                        )
 
-                        for (const lockedDeposit of lockedDepositsResponse.locked_deposits) {
-                            const deposit = lockedDeposit.deposit
-                            if (deposit.locked && deposit.locked.locked_until > currentTime) {
+                        const computedDeposits = await Promise.all(
+                            activeLockedDeposits.map(async (lockedDeposit: any) => {
+                                const deposit = lockedDeposit.deposit
+                                const locked = deposit.locked
+
                                 // Convert vault tokens to deposit tokens
                                 let depositTokens: string
                                 try {
@@ -193,27 +210,34 @@ export const useBoostBreakdown = () => {
 
                                 const boostedAmount = calculateLockedBoost(
                                     depositTokens,
-                                    deposit.locked.locked_until,
+                                    locked.locked_until,
                                     deposit.start_time,
                                     currentTime,
                                     discoConfig.lock_duration_ceiling,
-                                    deposit.locked.perpetual_lock
+                                    locked.perpetual_lock
                                 )
 
                                 const boostAmount = num(boostedAmount).minus(depositTokens)
                                 const daysRemaining = Math.floor(
-                                    (deposit.locked.locked_until - currentTime) / SECONDS_PER_DAY
+                                    (locked.locked_until - currentTime) / SECONDS_PER_DAY
                                 )
 
-                                discoLockedDeposits.push({
-                                    amount: depositTokens,
-                                    lockedUntil: deposit.locked.locked_until,
-                                    boostAmount: boostAmount.toString(),
-                                    daysRemaining,
-                                })
+                                return {
+                                    depositRecord: {
+                                        amount: depositTokens,
+                                        lockedUntil: locked.locked_until,
+                                        boostAmount: boostAmount.toString(),
+                                        daysRemaining,
+                                    },
+                                    boostAmount,
+                                }
+                            })
+                        )
 
-                                totalBoosted = totalBoosted.plus(boostAmount)
-                            }
+                        let totalBoosted = num(discoBaseMBRN)
+                        for (const { depositRecord, boostAmount } of computedDeposits) {
+                            discoLockedDeposits.push(depositRecord)
+                            totalBoosted = totalBoosted.plus(boostAmount)
                         }
 
                         discoTotalEffectiveMBRN = totalBoosted.toString()

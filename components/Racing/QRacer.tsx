@@ -22,6 +22,7 @@ import {
 } from '@/components/Racing/Guidance'
 import useRacingCampaign from '@/persisted-state/useRacingCampaign'
 import campaignConfig from '@/components/Racing/campaignConfig'
+import { FOCUS_STYLES } from '@/config/transitions'
 
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -34,6 +35,8 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
       borderBottom={active ? '3px solid #00ffea' : '3px solid transparent'}
       borderRadius={0}
       _hover={{ color: '#ffffff', bg: 'transparent' }}
+      _focus={FOCUS_STYLES.ring}
+      _focusVisible={FOCUS_STYLES.ring}
       minH={{ base: '44px', md: 'auto' }}
       px={{ base: 2, md: 4 }}
       flex="1"
@@ -141,6 +144,9 @@ const QRacer: React.FC = () => {
       }, 400)
       return () => clearTimeout(timer)
     }
+    // exhaustive-deps: only `router.query?.tab` is depended on deliberately. Adding the whole
+    // `router.query` (and router.replace/pathname) would re-run this effect on every unrelated
+    // query change, tearing down and re-arming the 400ms auto-start timer mid-countdown.
   }, [appState.hasMintedFirstCar, progress.autoStartEnabled, progress.active, router.query?.tab, startCampaign])
 
   useEffect(() => {
@@ -249,6 +255,8 @@ const QRacer: React.FC = () => {
               size="sm"
               color="#b8c1ff"
               _hover={{ color: '#00ffea' }}
+              _focus={FOCUS_STYLES.ring}
+              _focusVisible={FOCUS_STYLES.ring}
               fontFamily='"Press Start 2P", monospace'
               fontSize="10px"
               px={2}
@@ -261,6 +269,8 @@ const QRacer: React.FC = () => {
               size="sm"
               color="#b8c1ff"
               _hover={{ color: '#00ffea' }}
+              _focus={FOCUS_STYLES.ring}
+              _focusVisible={FOCUS_STYLES.ring}
               fontFamily='"Press Start 2P", monospace'
               fontSize="10px"
               px={2}

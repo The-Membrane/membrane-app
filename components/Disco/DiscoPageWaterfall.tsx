@@ -30,10 +30,9 @@ export const DiscoPageWaterfall: React.FC<DiscoPageWaterfallProps> = ({
         <Box
             bg="rgba(10, 10, 10, 0.8)"
             p={4}
-            borderRadius="md"
+            borderRadius={0}
             border="2px solid"
             borderColor={PRIMARY_PURPLE}
-            boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
         >
             <VStack spacing={2} align="stretch" w="100%">
                 <Text

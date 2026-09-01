@@ -4,7 +4,7 @@ import Deposit from './Deposit'
 
 // export const FOUR_WEEK_TREASURY_YIELD = 0.0529;
 
-const Earn = React.memo(() => {
+const Earn = React.memo(function Earn() {
   return (
     <HStack display={"inline"}>
       <Deposit />

@@ -2,6 +2,9 @@ import React from 'react'
 import { Box, Text, VStack } from '@chakra-ui/react'
 import { lazyChart } from '@/components/ui/lazyChart'
 
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 export interface CumulativeChartDataPoint {
     timestamp: number
     volume: number
@@ -36,17 +39,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         const date = new Date(data.timestamp * 1000)
         return (
             <Box
-                bg="#23252B"
+                bg={SEMANTIC_COLORS.bgTertiary}
                 border="1px solid"
-                borderColor="secondary.500"
-                borderRadius="md"
-                p={2}
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+                borderRadius={0}
+                p={SPACING.sm}
                 fontSize="xs"
             >
-                <Text color="secondary.400" fontWeight="bold" mb={1}>
+                <Text color={SEMANTIC_COLORS.info} fontWeight="bold" mb={1}>
                     {date.toLocaleDateString()} {date.toLocaleTimeString()}
                 </Text>
-                <Text color="#ece6d8">
+                <Text color={SEMANTIC_COLORS.textPrimary}>
                     Volume: ${data.volume.toFixed(2)}
                 </Text>
             </Box>
@@ -65,13 +68,13 @@ const CumulativeLineChart = lazyChart<{ data: CumulativeChartDataPoint[] }>(
                         <XAxis
                             dataKey="timestamp"
                             tickFormatter={formatDate}
-                            tick={{ fontSize: 10, fill: '#ece6d880' }}
+                            tick={{ fontSize: 10, fill: SEMANTIC_COLORS.textSecondary }}
                             axisLine={{ stroke: '#9bdc4f40' }}
                             tickLine={{ stroke: '#9bdc4f40' }}
                         />
                         <YAxis
                             tickFormatter={formatVolume}
-                            tick={{ fontSize: 10, fill: '#ece6d880' }}
+                            tick={{ fontSize: 10, fill: SEMANTIC_COLORS.textSecondary }}
                             axisLine={{ stroke: '#9bdc4f40' }}
                             tickLine={{ stroke: '#9bdc4f40' }}
                         />
@@ -79,10 +82,10 @@ const CumulativeLineChart = lazyChart<{ data: CumulativeChartDataPoint[] }>(
                         <Line
                             type="monotone"
                             dataKey="volume"
-                            stroke="#00BFFF"
+                            stroke={SEMANTIC_COLORS.info}
                             strokeWidth={2}
                             dot={false}
-                            activeDot={{ r: 4, fill: '#00BFFF' }}
+                            activeDot={{ r: 4, fill: SEMANTIC_COLORS.info }}
                         />
                     </LineChart>
                 </ResponsiveContainer>
@@ -106,7 +109,7 @@ export const CumulativeChart: React.FC<CumulativeChartProps> = ({
     if (isLoading) {
         return (
             <Box h="200px" display="flex" alignItems="center" justifyContent="center">
-                <Text color="#ece6d880" fontSize="sm">
+                <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm">
                     Loading chart data...
                 </Text>
             </Box>
@@ -118,10 +121,10 @@ export const CumulativeChart: React.FC<CumulativeChartProps> = ({
         return (
             <Box h="200px" display="flex" alignItems="center" justifyContent="center">
                 <VStack spacing={2}>
-                    <Text color="#ece6d880" fontSize="sm">
+                    <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm">
                         No volume data available
                     </Text>
-                    <Text color="#ece6d840" fontSize="xs">
+                    <Text color={SEMANTIC_COLORS.textTertiary} fontSize="xs">
                         Volume data will appear here over time
                     </Text>
                 </VStack>

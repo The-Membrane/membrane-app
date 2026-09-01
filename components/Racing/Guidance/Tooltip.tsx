@@ -33,7 +33,7 @@ const Tooltip: React.FC<TooltipProps> = ({
             boxShadow: '0 0 10px rgba(0, 51, 255, 0.2)',
             fontSize: 'xs',
             color: '#e6e6e6',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'var(--font-inter), sans-serif',
         }
 
         switch (position) {

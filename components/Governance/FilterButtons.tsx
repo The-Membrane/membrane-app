@@ -49,9 +49,9 @@ const RadioCard = (props: CardProps) => {
   )
 }
 
-export const FilterButtons = ({ setFilter, isSearch }: FilterButtonsProps) => {
-  const options = ['active', 'pending', 'completed', 'executed']
+const options = ['active', 'pending', 'completed', 'executed']
 
+export const FilterButtons = ({ setFilter, isSearch }: FilterButtonsProps) => {
   const { getRootProps, getRadioProps } = useRadioGroup({
     name: 'filter',
     defaultValue: 'active',

@@ -1,6 +1,6 @@
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import { Card, Stack, Text } from '@chakra-ui/react'
+import { Box, Stack, Text } from '@chakra-ui/react'
 import React, { useMemo, useState } from 'react'
 import { TxButton } from '../TxButton'
 import TxError from '../TxError'
@@ -8,6 +8,10 @@ import Balance from './Balance'
 import { StakeInput } from './StakeInput'
 import useStaked from './hooks/useStaked'
 import useUnstake from './hooks/useUnstake'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES } from '@/config/transitions'
 
 const Unstake = () => {
   const { data: staked } = useStaked(true)
@@ -26,8 +30,21 @@ const Unstake = () => {
   }
 
   return (
-    <Card w="full" p="8" alignItems="center" gap={5} h="full" justifyContent="space-between">
-      <Text variant="title" fontSize="24px">
+    <Box
+      w="full"
+      p={SPACING.xl}
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      gap={SPACING.lg}
+      h="full"
+      justifyContent="space-between"
+      bg={SEMANTIC_COLORS.bgSecondary}
+      borderRadius={0}
+      border="1px solid"
+      borderColor={SEMANTIC_COLORS.borderSubtle}
+    >
+      <Text fontFamily="heading" fontSize={TYPOGRAPHY.h2} color={SEMANTIC_COLORS.textPrimary}>
         Unstake
       </Text>
 
@@ -42,6 +59,7 @@ const Unstake = () => {
 
       <TxButton
         maxW="200px"
+        _focus={FOCUS_STYLES.ring}
         isLoading={unstake.simulate.isLoading || unstake.tx.isPending}
         isDisabled={unstake.simulate.isError || Number(unstakeAmount) <= 0}
         onClick={() => unstake.tx.mutate()}
@@ -49,7 +67,7 @@ const Unstake = () => {
         Unstake
       </TxButton>
       <TxError action={unstake} />
-    </Card>
+    </Box>
   )
 }
 

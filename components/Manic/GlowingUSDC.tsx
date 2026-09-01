@@ -1,7 +1,12 @@
 import React from 'react'
 import { Box, VStack } from '@chakra-ui/react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
+// Living Typeface: this sits inside the Loop Capacity card (app chrome), not a
+// hero, so the old bloom/drop-shadow treatment is gone. What remains is the part
+// that carries data — the circular fill ring — drawn in phosphor/teal with a
+// bone hairline track. `borderGlow` now toggles a hairline ring, not a bloom.
 interface GlowingUSDCProps {
     fillRatio: number // 0 to 1
     isAnimating?: boolean
@@ -12,7 +17,7 @@ interface GlowingUSDCProps {
 export const GlowingUSDC: React.FC<GlowingUSDCProps> = ({
     fillRatio,
     isAnimating = false,
-    borderColor = "#00BFFF",
+    borderColor = SEMANTIC_COLORS.info,
     borderGlow = true,
 }) => {
     // Calculate sizes - fixed pixel values to fit in 20% width container
@@ -46,22 +51,16 @@ export const GlowingUSDC: React.FC<GlowingUSDCProps> = ({
                     alignItems="center"
                     justifyContent="center"
                 >
-                    {/* Outer glow ring */}
+                    {/* Outer hairline ring (was a glow bloom) */}
                     {borderGlow && (
-                        <motion.div
-                            animate={{
-                                boxShadow: isAnimating
-                                    ? `0 0 120px ${borderColor}, 0 0 240px ${borderColor}`
-                                    : `0 0 60px ${borderColor}`
-                            }}
-                            transition={{ duration: 0.3 }}
-                            style={{
-                                position: 'absolute',
-                                width: '100%',
-                                height: '100%',
-                                borderRadius: '50%',
-                                pointerEvents: 'none',
-                            }}
+                        <Box
+                            position="absolute"
+                            width="100%"
+                            height="100%"
+                            borderRadius="50%"
+                            border="1px solid"
+                            borderColor={SEMANTIC_COLORS.borderSubtle}
+                            pointerEvents="none"
                         />
                     )}
 
@@ -80,30 +79,22 @@ export const GlowingUSDC: React.FC<GlowingUSDCProps> = ({
                     >
                         <defs>
                             <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#00BFFF" />
-                                <stop offset="50%" stopColor="#3182CE" />
-                                <stop offset="100%" stopColor="#00BFFF" />
+                                <stop offset="0%" stopColor={SEMANTIC_COLORS.primary} />
+                                <stop offset="50%" stopColor={SEMANTIC_COLORS.info} />
+                                <stop offset="100%" stopColor={SEMANTIC_COLORS.primary} />
                             </linearGradient>
-
-                            <filter id="glow">
-                                <feGaussianBlur stdDeviation="12" result="coloredBlur" />
-                                <feMerge>
-                                    <feMergeNode in="coloredBlur" />
-                                    <feMergeNode in="SourceGraphic" />
-                                </feMerge>
-                            </filter>
                         </defs>
-                        {/* Background circle */}
+                        {/* Background circle — bone hairline track */}
                         <circle
                             cx="360"
                             cy="360"
                             r={radius}
                             fill="none"
-                            stroke="rgba(113, 128, 150, 0.2)"
+                            stroke={SEMANTIC_COLORS.borderStrong}
                             strokeWidth={borderWidthNum}
                         />
                         {/* Animated progress circle */}
-                        <motion.circle
+                        <m.circle
                             cx="360"
                             cy="360"
                             r={radius}
@@ -125,7 +116,7 @@ export const GlowingUSDC: React.FC<GlowingUSDCProps> = ({
 
                     {/* Cycling glow effect - separate rotating SVG */}
                     {isAnimating && (
-                        <motion.div
+                        <m.div
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -170,13 +161,10 @@ export const GlowingUSDC: React.FC<GlowingUSDCProps> = ({
                                     strokeWidth={borderWidthNum + 10}
                                     strokeLinecap="round"
                                     strokeDasharray={`${circumference * 0.3} ${circumference * 0.7}`}
-                                    style={{
-                                        filter: `drop-shadow(0 0 60px ${borderColor})`,
-                                        opacity: 1
-                                    }}
+                                    style={{ opacity: 1 }}
                                 />
                             </svg>
-                        </motion.div>
+                        </m.div>
                     )}
 
                     {/* USDC Image */}
@@ -186,9 +174,9 @@ export const GlowingUSDC: React.FC<GlowingUSDCProps> = ({
                         height={imageSize}
                         borderRadius="50%"
                         overflow="hidden"
-                        bg="gray.800"
+                        bg={SEMANTIC_COLORS.bgTertiary}
                         border="6px solid"
-                        borderColor="gray.700"
+                        borderColor={SEMANTIC_COLORS.bgTertiary}
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
@@ -202,8 +190,6 @@ export const GlowingUSDC: React.FC<GlowingUSDCProps> = ({
                             backgroundSize="contain"
                             backgroundRepeat="no-repeat"
                             backgroundPosition="center"
-                            filter={isAnimating ? 'brightness(1.2)' : 'brightness(1)'}
-                            transition="filter 0.3s"
                             pointerEvents="none"
                             style={{
                                 imageRendering: '-webkit-optimize-contrast',
@@ -212,7 +198,6 @@ export const GlowingUSDC: React.FC<GlowingUSDCProps> = ({
                                 backfaceVisibility: 'hidden',
                                 transform: 'translateZ(0)',
                                 WebkitFontSmoothing: 'antialiased',
-                                willChange: 'auto',
                             }}
                         />
                     </Box>

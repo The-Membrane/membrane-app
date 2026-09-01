@@ -14,6 +14,11 @@ import type { EvmCall } from '@/services/chain/types'
  * Solidity contract (rangeboundLP is absent from config/evm/contracts.ts). Msg building is
  * stubbed until an RBLP-vault service exists.
  */
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+  queryClient.invalidateQueries({ queryKey: ['positions'] })
+}
+
 const useFulfillIntents = ({ run, skipIDs }: { run: boolean; skipIDs: number[] }) => {
   const { address } = useWallet()
   const router = useRouter()
@@ -28,11 +33,6 @@ const useFulfillIntents = ({ run, skipIDs }: { run: boolean; skipIDs: number[] }
   })
 
   const msgs = queryData?.msgs
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

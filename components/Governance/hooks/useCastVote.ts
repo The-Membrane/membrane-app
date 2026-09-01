@@ -28,6 +28,12 @@ type CastVoteParams = {
   votingPower?: string | number | bigint
 }
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['proposal'] })
+  queryClient.invalidateQueries({ queryKey: ['user voting power'] })
+  queryClient.invalidateQueries({ queryKey: ['proposals'] })
+}
+
 const useCastVote = ({ proposalId, vote, votingPower }: CastVoteParams) => {
   const { address, chain } = useWallet()
 
@@ -54,12 +60,6 @@ const useCastVote = ({ proposalId, vote, votingPower }: CastVoteParams) => {
     },
     enabled: !!address && !!vote,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['proposal'] })
-    queryClient.invalidateQueries({ queryKey: ['user voting power'] })
-    queryClient.invalidateQueries({ queryKey: ['proposals'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

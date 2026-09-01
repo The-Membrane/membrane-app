@@ -17,6 +17,11 @@ import useEarnState from './useEarnState'
  * that does not exist yet. Msgs are stubbed to undefined until that router lands; the CTA stays
  * disabled (enabled: !!msgs).
  */
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['useVaultInfo'] })
+  queryClient.invalidateQueries({ queryKey: ['earn_page_management_loop_sim'] })
+}
+
 const useEarnLoop = () => {
   const { address } = useWallet()
   const { earnState } = useEarnState()
@@ -34,11 +39,6 @@ const useEarnLoop = () => {
   })
 
   const { msgs } = useMemo(() => queryData ?? { msgs: undefined }, [queryData])
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['useVaultInfo'] })
-    queryClient.invalidateQueries({ queryKey: ['earn_page_management_loop_sim'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

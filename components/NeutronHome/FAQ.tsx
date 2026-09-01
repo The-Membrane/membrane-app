@@ -13,31 +13,25 @@ const FAQ: React.FC = () => {
             clearTimeout(timeoutRef.current);
         }
 
-        setOpenFaqItems(prev => {
-            const newSet = new Set<number>();
+        // If clicking on the same item that's open, close it
+        if (openFaqItems.has(index)) {
+            setOpenFaqItems(new Set<number>());
+            return;
+        }
 
-            // If clicking on the same item that's open, close it
-            if (prev.has(index)) {
-                return newSet;
-            }
+        // If there's an item currently open, close it first
+        if (openFaqItems.size > 0) {
+            // Start closing animation immediately
+            setOpenFaqItems(new Set<number>());
 
-            // If there's an item currently open, close it first
-            if (prev.size > 0) {
-                // Start closing animation immediately
-                setOpenFaqItems(new Set<number>());
-
-                // After closing animation completes, open the new item
-                timeoutRef.current = setTimeout(() => {
-                    setOpenFaqItems(new Set([index]));
-                }, 200); // Match the Collapse transition duration
-
-                return prev; // Return current state for immediate close
-            } else {
-                // No item is open, open the clicked item immediately
-                newSet.add(index);
-                return newSet;
-            }
-        });
+            // After closing animation completes, open the new item
+            timeoutRef.current = setTimeout(() => {
+                setOpenFaqItems(new Set([index]));
+            }, 200); // Match the Collapse transition duration
+        } else {
+            // No item is open, open the clicked item immediately
+            setOpenFaqItems(new Set([index]));
+        }
     };
 
     // Cleanup timeout on unmount
@@ -113,7 +107,7 @@ const FAQ: React.FC = () => {
                         <Collapse in={openFaqItems.has(1)}>
                             <Box p={4} pt={0}>
                                 <Text color="whiteAlpha.700" fontSize="sm" lineHeight="1.6">
-                                    The main risk is liquidation, which is your collateral value dropping below the minimum health factor. In normal situations for Mycelium, liquidation risk is non-existent. But in the event that Mycelium's retraction fails to cover the debt, your collateral will be liquidated instead of simply retriving the deployed CDT.
+                                    The main risk is liquidation, which is your collateral value dropping below the minimum health factor. In normal situations for Mycelium, liquidation risk is non-existent. But in the event that Mycelium&apos;s retraction fails to cover the debt, your collateral will be liquidated instead of simply retriving the deployed CDT.
                                     <br />
                                     <br />
                                     The debt retrieval can fail if the transmuter that is used to convert from CDT {'<>'} USDC is low on CDT due to withdrawals.

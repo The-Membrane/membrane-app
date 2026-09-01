@@ -6,6 +6,9 @@ import { DiscoWithdrawForm } from './DiscoWithdrawForm'
 import { getSlotLabel } from '@/components/Disco/types'
 import { DiscoSectionData } from './DiscoSection.hooks'
 
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 type DiscoSectionDepositCarouselProps = Pick<
     DiscoSectionData,
     | 'depositCarouselData'
@@ -44,45 +47,45 @@ export const DiscoSectionDepositCarousel: React.FC<DiscoSectionDepositCarouselPr
 }) => {
     return (
         <Box>
-            <Text fontSize="sm" color="#ece6d880" mb={2}>
+            <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} mb={2}>
                 Deposits ({depositCarouselData.length})
             </Text>
 
             <Box
-                bg="gray.800"
+                bg={SEMANTIC_COLORS.bgSecondary}
                 border="1px solid"
-                borderColor="primary.500"
-                borderRadius="md"
-                p={4}
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+                borderRadius={0}
+                p={SPACING.base}
                 minH="200px"
             >
                 <VStack spacing={3} align="stretch">
                     <HStack justify="space-between">
-                        <Text fontSize="sm" color="#ece6d880">
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary}>
                             Asset
                         </Text>
-                        <Text fontSize="md" color="#ece6d8" fontWeight="bold">
+                        <Text fontSize="md" color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">
                             {currentDeposit?.asset || '—'}
                         </Text>
                     </HStack>
                     <HStack justify="space-between">
-                        <Text fontSize="sm" color="#ece6d880">
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary}>
                             Slot
                         </Text>
-                        <Text fontSize="md" color="primary.300" fontWeight="bold">
+                        <Text fontSize="md" color={SEMANTIC_COLORS.primary} fontWeight="bold">
                             {currentDeposit?.slot ? `${getSlotLabel(currentDeposit?.slot || 0)}` : '—'}
                         </Text>
                     </HStack>
                     <HStack justify="space-between">
-                        <Text fontSize="sm" color="#ece6d880">
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary}>
                             Amount
                         </Text>
-                        <Text fontSize="md" color="#ece6d8">
+                        <Text fontSize="md" color={SEMANTIC_COLORS.textPrimary}>
                             {currentDeposit?.amount.toFixed(2) || '0.00'} MBRN
                         </Text>
                     </HStack>
                     <HStack justify="space-between">
-                        <Text fontSize="sm" color="#ece6d880">
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary}>
                             Lifetime
                         </Text>
                         <Text fontSize="md" fontWeight="bold">
@@ -90,7 +93,7 @@ export const DiscoSectionDepositCarousel: React.FC<DiscoSectionDepositCarouselPr
                         </Text>
                     </HStack>
                     <HStack justify="space-between">
-                        <Text fontSize="sm" color="#ece6d880">
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary}>
                             Current APR
                         </Text>
                         <Text fontSize="md" fontWeight="bold">
@@ -98,10 +101,10 @@ export const DiscoSectionDepositCarousel: React.FC<DiscoSectionDepositCarouselPr
                         </Text>
                     </HStack>
                     <HStack justify="space-between">
-                        <Text fontSize="sm" color="#ece6d880">
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary}>
                             Claimable
                         </Text>
-                        <Text fontSize="md" color="green.400" fontWeight="bold">
+                        <Text fontSize="md" color={SEMANTIC_COLORS.success} fontWeight="bold">
                             +{currentDeposit?.claimable.toFixed(2) || '0.00'} CDT
                         </Text>
                     </HStack>
@@ -122,9 +125,9 @@ export const DiscoSectionDepositCarousel: React.FC<DiscoSectionDepositCarouselPr
                                 w="100%"
                                 size="sm"
                                 variant="outline"
-                                borderColor="red.500"
-                                color="red.400"
-                                _hover={{ bg: 'red.500', color: 'white' }}
+                                borderColor={SEMANTIC_COLORS.danger}
+                                color={SEMANTIC_COLORS.danger}
+                                _hover={{ bg: SEMANTIC_COLORS.danger, color: SEMANTIC_COLORS.textPrimary }}
                                 onClick={() => setShowUnstakeForm(true)}
                             >
                                 Request Unstake
@@ -169,9 +172,9 @@ export const DiscoSectionDepositCarousel: React.FC<DiscoSectionDepositCarouselPr
                         icon={<ChevronLeftIcon />}
                         size="sm"
                         variant="ghost"
-                        color="#ece6d8"
+                        color={SEMANTIC_COLORS.textPrimary}
                         onClick={handlePrevDeposit}
-                        _hover={{ bg: 'gray.700' }}
+                        _hover={{ bg: SEMANTIC_COLORS.bgTertiary }}
                     />
 
                     {/* Pagination dots */}
@@ -184,8 +187,8 @@ export const DiscoSectionDepositCarousel: React.FC<DiscoSectionDepositCarouselPr
                                 h="8px"
                                 p={0}
                                 borderRadius="full"
-                                bg={index === currentDepositIndex ? "primary.500" : "gray.600"}
-                                _hover={{ bg: index === currentDepositIndex ? "primary.400" : "gray.500" }}
+                                bg={index === currentDepositIndex ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.textTertiary}
+                                _hover={{ bg: index === currentDepositIndex ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.textSecondary }}
                                 onClick={() => handlePageClick(index)}
                                 aria-label={`Go to deposit ${index + 1}`}
                             />
@@ -197,9 +200,9 @@ export const DiscoSectionDepositCarousel: React.FC<DiscoSectionDepositCarouselPr
                         icon={<ChevronRightIcon />}
                         size="sm"
                         variant="ghost"
-                        color="#ece6d8"
+                        color={SEMANTIC_COLORS.textPrimary}
                         onClick={handleNextDeposit}
-                        _hover={{ bg: 'gray.700' }}
+                        _hover={{ bg: SEMANTIC_COLORS.bgTertiary }}
                     />
                 </HStack>
             )}

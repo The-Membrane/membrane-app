@@ -10,6 +10,16 @@ interface BoostCardProps {
 
 const MAX_MBRN = 100_000_000 // 100M MBRN
 
+// Format MBRN for display
+const formatMBRN = (amount: number): string => {
+    if (amount >= 1_000_000) {
+        return `${(amount / 1_000_000).toFixed(2)}M`
+    } else if (amount >= 1_000) {
+        return `${(amount / 1_000).toFixed(2)}K`
+    }
+    return amount.toFixed(0)
+}
+
 /**
  * Boost level achievement card for sharing
  * Displays boost percentage, MBRN locked, and progress
@@ -17,16 +27,6 @@ const MAX_MBRN = 100_000_000 // 100M MBRN
  */
 export const BoostCard: React.FC<BoostCardProps> = ({ data, cardRef }) => {
     const { boostPercentage = 0, mbrnAmount = 0, nextMilestone = 0 } = data
-
-    // Format MBRN for display
-    const formatMBRN = (amount: number): string => {
-        if (amount >= 1_000_000) {
-            return `${(amount / 1_000_000).toFixed(2)}M`
-        } else if (amount >= 1_000) {
-            return `${(amount / 1_000).toFixed(2)}K`
-        }
-        return amount.toFixed(0)
-    }
 
     const progress = Math.min(100, (mbrnAmount / MAX_MBRN) * 100)
     const mbrnNeeded = Math.max(0, nextMilestone - mbrnAmount)

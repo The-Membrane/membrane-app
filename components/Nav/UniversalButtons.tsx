@@ -47,7 +47,7 @@ function UniversalButtons({ enabled, setEnabled }: { enabled: boolean, setEnable
                 }
             }, 7000);
         }
-    }, [claimsDisabled, liquidateDisabled, enabled])
+    }, [claimsDisabled, liquidateDisabled, enabled, setEnabled])
 
     return (
         <Stack as={"uniButtons" as any} gap="1">

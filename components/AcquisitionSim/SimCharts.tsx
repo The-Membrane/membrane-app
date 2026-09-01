@@ -1,17 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { Box, SimpleGrid, Text } from '@chakra-ui/react'
-import {
-  AreaChart,
-  Area,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ReferenceLine,
-  ResponsiveContainer,
-} from 'recharts'
+import { lazyChart } from '@/components/ui/lazyChart'
 import { SPACING } from '@/config/spacing'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TYPOGRAPHY } from '@/helpers/typography'
@@ -84,17 +73,18 @@ const ChartTooltip: React.FC<ChartTooltipProps> = ({
   if (!active || !payload?.length) return null
   return (
     <Box
-      bg="rgba(10, 10, 10, 0.95)"
-      border="1px solid rgba(255, 255, 255, 0.2)"
-      borderRadius="8px"
+      bg={SEMANTIC_COLORS.bgSecondary}
+      border="1px solid"
+      borderColor={SEMANTIC_COLORS.borderStrong}
+      borderRadius={0}
       px={SPACING.sm}
       py={SPACING.xs}
     >
       <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary} mb="2px">
         Day {label?.toFixed(1)}
       </Text>
-      {payload.map((entry, i) => (
-        <Text key={i} fontSize={TYPOGRAPHY.xs} color={entry.color}>
+      {payload.map((entry) => (
+        <Text key={entry.name} fontSize={TYPOGRAPHY.xs} color={entry.color}>
           {entry.name}:{' '}
           {formatter ? formatter(entry.value, entry.name) : entry.value?.toFixed(2)}
         </Text>
@@ -124,52 +114,25 @@ const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
   </Card>
 )
 
-// ─── Main Component ───────────────────────────────────────────────────────
+// ─── Chart Subtrees (lazy-loaded) ────────────────────────────────────────
 
-interface SimChartsProps {
-  ticks: SimTick[]
-  config: SimConfig
-  onCursorChange: (day: number | null) => void
+type ChartMouseHandlers = {
+  data: SimTick[]
+  onMouseMove: (state: any) => void
+  onMouseLeave: () => void
 }
 
-export const SimCharts: React.FC<SimChartsProps> = ({
-  ticks,
-  config,
-  onCursorChange,
-}) => {
-  const data = useMemo(() => downsample(ticks), [ticks])
-
-  const handleMouseMove = useCallback(
-    (state: any) => {
-      if (state?.activeLabel != null) {
-        onCursorChange(state.activeLabel)
-      }
-    },
-    [onCursorChange]
-  )
-
-  const handleMouseLeave = useCallback(() => {
-    onCursorChange(null)
-  }, [onCursorChange])
-
-  const maxRate = useMemo(
-    () => config.maxMbrnEmission / (config.depositPeriodDays * 86400),
-    [config]
-  )
-
-  if (data.length === 0) return null
-
-  return (
-    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={SPACING.md}>
-      {/* ── 1. Pool Accrual ── */}
-      <ChartCard title="Pool Accrual (uMBRN)">
+const PoolAccrualChart = lazyChart<ChartMouseHandlers & { maxMbrnEmission: number }>(
+  ({ AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer }) =>
+    function PoolAccrualChart({ data, onMouseMove, onMouseLeave, maxMbrnEmission }) {
+      return (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
             syncId={SYNC_ID}
             margin={CHART_MARGINS}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            onMouseMove={onMouseMove}
+            onMouseLeave={onMouseLeave}
           >
             <CartesianGrid {...CHART_THEME.grid} />
             <XAxis
@@ -189,11 +152,11 @@ export const SimCharts: React.FC<SimChartsProps> = ({
               }
             />
             <ReferenceLine
-              y={config.maxMbrnEmission}
+              y={maxMbrnEmission}
               {...REFERENCE_STYLES.liquidation}
               label={{
                 ...REFERENCE_STYLES.liquidation.label,
-                value: `Max: ${formatCompact(config.maxMbrnEmission)}`,
+                value: `Max: ${formatCompact(maxMbrnEmission)}`,
               }}
             />
             <defs>
@@ -212,17 +175,22 @@ export const SimCharts: React.FC<SimChartsProps> = ({
             />
           </AreaChart>
         </ResponsiveContainer>
-      </ChartCard>
+      )
+    },
+  CHART_HEIGHT,
+)
 
-      {/* ── 2. Emission Rate ── */}
-      <ChartCard title="Emission Rate (uMBRN/sec)">
+const EmissionRateChart = lazyChart<ChartMouseHandlers & { baseAcquisitionRate: number; maxRate: number }>(
+  ({ LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer }) =>
+    function EmissionRateChart({ data, onMouseMove, onMouseLeave, baseAcquisitionRate, maxRate }) {
+      return (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
             syncId={SYNC_ID}
             margin={CHART_MARGINS}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            onMouseMove={onMouseMove}
+            onMouseLeave={onMouseLeave}
           >
             <CartesianGrid {...CHART_THEME.grid} />
             <XAxis
@@ -242,7 +210,7 @@ export const SimCharts: React.FC<SimChartsProps> = ({
               }
             />
             <ReferenceLine
-              y={config.baseAcquisitionRate}
+              y={baseAcquisitionRate}
               stroke={COLORS.target}
               strokeDasharray="3 3"
               strokeWidth={1}
@@ -270,17 +238,22 @@ export const SimCharts: React.FC<SimChartsProps> = ({
             />
           </LineChart>
         </ResponsiveContainer>
-      </ChartCard>
+      )
+    },
+  CHART_HEIGHT,
+)
 
-      {/* ── 3. Utilization ── */}
-      <ChartCard title="Utilization">
+const UtilizationChart = lazyChart<ChartMouseHandlers & { targetUtilization: number }>(
+  ({ AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer }) =>
+    function UtilizationChart({ data, onMouseMove, onMouseLeave, targetUtilization }) {
+      return (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
             syncId={SYNC_ID}
             margin={CHART_MARGINS}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            onMouseMove={onMouseMove}
+            onMouseLeave={onMouseLeave}
           >
             <CartesianGrid {...CHART_THEME.grid} />
             <XAxis
@@ -301,11 +274,11 @@ export const SimCharts: React.FC<SimChartsProps> = ({
               }
             />
             <ReferenceLine
-              y={config.targetUtilization}
+              y={targetUtilization}
               {...REFERENCE_STYLES.target}
               label={{
                 ...REFERENCE_STYLES.target.label,
-                value: `Target: ${(config.targetUtilization * 100).toFixed(0)}%`,
+                value: `Target: ${(targetUtilization * 100).toFixed(0)}%`,
               }}
             />
             <defs>
@@ -324,17 +297,22 @@ export const SimCharts: React.FC<SimChartsProps> = ({
             />
           </AreaChart>
         </ResponsiveContainer>
-      </ChartCard>
+      )
+    },
+  CHART_HEIGHT,
+)
 
-      {/* ── 4. Bump Rate + CDP Impact ── */}
-      <ChartCard title="Bump Rate & CDP Impact">
+const BumpCdpImpactChart = lazyChart<ChartMouseHandlers>(
+  ({ LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer }) =>
+    function BumpCdpImpactChart({ data, onMouseMove, onMouseLeave }) {
+      return (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
             syncId={SYNC_ID}
             margin={CHART_MARGINS}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            onMouseMove={onMouseMove}
+            onMouseLeave={onMouseLeave}
           >
             <CartesianGrid {...CHART_THEME.grid} />
             <XAxis
@@ -383,17 +361,22 @@ export const SimCharts: React.FC<SimChartsProps> = ({
             />
           </LineChart>
         </ResponsiveContainer>
-      </ChartCard>
+      )
+    },
+  CHART_HEIGHT,
+)
 
-      {/* ── 5. Efficiency ── */}
-      <ChartCard title="Efficiency (Deposits / Pool)">
+const EfficiencyChart = lazyChart<ChartMouseHandlers>(
+  ({ LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer }) =>
+    function EfficiencyChart({ data, onMouseMove, onMouseLeave }) {
+      return (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
             syncId={SYNC_ID}
             margin={CHART_MARGINS}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            onMouseMove={onMouseMove}
+            onMouseLeave={onMouseLeave}
           >
             <CartesianGrid {...CHART_THEME.grid} />
             <XAxis
@@ -421,17 +404,22 @@ export const SimCharts: React.FC<SimChartsProps> = ({
             />
           </LineChart>
         </ResponsiveContainer>
-      </ChartCard>
+      )
+    },
+  CHART_HEIGHT,
+)
 
-      {/* ── 6. Deposits ── */}
-      <ChartCard title="Cumulative Deposits (uCDT)">
+const DepositsChart = lazyChart<ChartMouseHandlers>(
+  ({ AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer }) =>
+    function DepositsChart({ data, onMouseMove, onMouseLeave }) {
+      return (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
             syncId={SYNC_ID}
             margin={CHART_MARGINS}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            onMouseMove={onMouseMove}
+            onMouseLeave={onMouseLeave}
           >
             <CartesianGrid {...CHART_THEME.grid} />
             <XAxis
@@ -474,6 +462,104 @@ export const SimCharts: React.FC<SimChartsProps> = ({
             />
           </AreaChart>
         </ResponsiveContainer>
+      )
+    },
+  CHART_HEIGHT,
+)
+
+// ─── Main Component ───────────────────────────────────────────────────────
+
+interface SimChartsProps {
+  ticks: SimTick[]
+  config: SimConfig
+  onCursorChange: (day: number | null) => void
+}
+
+export const SimCharts: React.FC<SimChartsProps> = ({
+  ticks,
+  config,
+  onCursorChange,
+}) => {
+  const data = useMemo(() => downsample(ticks), [ticks])
+
+  const handleMouseMove = useCallback(
+    (state: any) => {
+      if (state?.activeLabel != null) {
+        onCursorChange(state.activeLabel)
+      }
+    },
+    [onCursorChange]
+  )
+
+  const handleMouseLeave = useCallback(() => {
+    onCursorChange(null)
+  }, [onCursorChange])
+
+  const maxRate = useMemo(
+    () => config.maxMbrnEmission / (config.depositPeriodDays * 86400),
+    [config]
+  )
+
+  if (data.length === 0) return null
+
+  return (
+    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={SPACING.md}>
+      {/* ── 1. Pool Accrual ── */}
+      <ChartCard title="Pool Accrual (uMBRN)">
+        <PoolAccrualChart
+          data={data}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          maxMbrnEmission={config.maxMbrnEmission}
+        />
+      </ChartCard>
+
+      {/* ── 2. Emission Rate ── */}
+      <ChartCard title="Emission Rate (uMBRN/sec)">
+        <EmissionRateChart
+          data={data}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          baseAcquisitionRate={config.baseAcquisitionRate}
+          maxRate={maxRate}
+        />
+      </ChartCard>
+
+      {/* ── 3. Utilization ── */}
+      <ChartCard title="Utilization">
+        <UtilizationChart
+          data={data}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          targetUtilization={config.targetUtilization}
+        />
+      </ChartCard>
+
+      {/* ── 4. Bump Rate + CDP Impact ── */}
+      <ChartCard title="Bump Rate & CDP Impact">
+        <BumpCdpImpactChart
+          data={data}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        />
+      </ChartCard>
+
+      {/* ── 5. Efficiency ── */}
+      <ChartCard title="Efficiency (Deposits / Pool)">
+        <EfficiencyChart
+          data={data}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        />
+      </ChartCard>
+
+      {/* ── 6. Deposits ── */}
+      <ChartCard title="Cumulative Deposits (uCDT)">
+        <DepositsChart
+          data={data}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        />
       </ChartCard>
     </SimpleGrid>
   )

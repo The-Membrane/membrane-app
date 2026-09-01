@@ -15,6 +15,16 @@ type QueryData = {
   liquidating_positions: Liq[]
 }
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+  queryClient.invalidateQueries({ queryKey: ['msg_liquidations'] })
+  queryClient.invalidateQueries({ queryKey: ['protocol_liquidation_sim'] })
+  //Reset points queries
+  queryClient.invalidateQueries({ queryKey: ['all users points'] })
+  queryClient.invalidateQueries({ queryKey: ['one users points'] })
+  queryClient.invalidateQueries({ queryKey: ['one users level'] })
+}
+
 /**
  * TODO(evm-migration): protocol-wide keeper liquidations are stubbed. The Cosmos flow
  * scanned ALL positions (useBasketPositions) and risk-scored them client-side
@@ -38,16 +48,6 @@ const useProtocolLiquidations = ({ run }: { run: boolean }) => {
     else return queryData
   }, [queryData])
 
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    queryClient.invalidateQueries({ queryKey: ['msg_liquidations'] })
-    queryClient.invalidateQueries({ queryKey: ['protocol_liquidation_sim'] })
-    //Reset points queries
-    queryClient.invalidateQueries({ queryKey: ['all users points'] })
-    queryClient.invalidateQueries({ queryKey: ['one users points'] })
-    queryClient.invalidateQueries({ queryKey: ['one users level'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

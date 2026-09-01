@@ -12,14 +12,14 @@ import useDelegateState from './useDelegateState'
  * (disabled) pipeline so the {simulate, tx} shape ConfirmModal consumes is
  * preserved without faking a governance mapping.
  */
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['delegations'] })
+  queryClient.invalidateQueries({ queryKey: ['delegator'] })
+}
+
 const useUpdateDelegation = () => {
   // Kept so the delegate UI state wiring stays intact for the eventual re-impl.
   useDelegateState()
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['delegations'] })
-    queryClient.invalidateQueries({ queryKey: ['delegator'] })
-  }
 
   return useSimulateAndBroadcast({
     msgs: undefined,

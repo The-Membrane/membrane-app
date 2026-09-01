@@ -6,6 +6,9 @@ import { useActivityDetection, formatIdleTime } from './hooks/useActivityDetecti
 import { useDittoSpeechBox } from './hooks/useDittoSpeechBox'
 import { useProtocolUpdates } from './hooks/useProtocolUpdates'
 
+import { FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 const MotionBox = m(Box)
 
 const waveKeyframes = keyframes`
@@ -70,6 +73,20 @@ export const ReturnWelcome: React.FC<ReturnWelcomeProps> = ({ onDismiss }) => {
         return `Welcome back! 👋`
     }
 
+    // The welcome bubble is a real control (it opens Ditto), so it must be
+    // operable from the keyboard as well as the mouse.
+    const handleActivate = () => {
+        setShowMessage(false)
+        toggleSpeechBox()
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleActivate()
+        }
+    }
+
     return (
         <AnimatePresence>
             {showMessage && !isOpen && (
@@ -83,19 +100,22 @@ export const ReturnWelcome: React.FC<ReturnWelcomeProps> = ({ onDismiss }) => {
                     left="20px"
                     zIndex={10001}
                     cursor="pointer"
-                    onClick={() => {
-                        setShowMessage(false)
-                        toggleSpeechBox()
-                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Open Ditto"
+                    onClick={handleActivate}
+                    onKeyDown={handleKeyDown}
+                    _focus={FOCUS_STYLES.ring}
+                    _focusVisible={FOCUS_STYLES.ring}
                 >
                     <Box
-                        bg="#23252B"
+                        bg={SEMANTIC_COLORS.bgTertiary}
                         border="1px solid"
-                        borderColor="#9bdc4f40"
-                        borderRadius="lg"
+                        borderColor={SEMANTIC_COLORS.borderStrong}
+                        borderRadius={0}
                         p={3}
                         maxW="260px"
-                        boxShadow="0 4px 20px rgba(0,0,0,0.4), 0 0 30px rgba(155, 220, 79, 0.2)"
+                        
                     >
                         <HStack spacing={3} align="flex-start">
                             <Box
@@ -106,10 +126,10 @@ export const ReturnWelcome: React.FC<ReturnWelcomeProps> = ({ onDismiss }) => {
                                 👋
                             </Box>
                             <VStack align="stretch" spacing={1} flex={1}>
-                                <Text fontSize="sm" color="#ece6d8" fontWeight="medium">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontWeight="medium">
                                     {getMessage()}
                                 </Text>
-                                <Text fontSize="xs" color="#ece6d880">
+                                <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                     Click to open Ditto
                                 </Text>
                             </VStack>
@@ -122,7 +142,7 @@ export const ReturnWelcome: React.FC<ReturnWelcomeProps> = ({ onDismiss }) => {
                             left={0}
                             right={0}
                             h="2px"
-                            borderBottomRadius="lg"
+                            borderRadius={0}
                             overflow="hidden"
                         >
                             {/* Countdown bar: animate scaleX (GPU-composited) instead of
@@ -136,7 +156,7 @@ export const ReturnWelcome: React.FC<ReturnWelcomeProps> = ({ onDismiss }) => {
                                 w="100%"
                                 h="100%"
                                 transformOrigin="left"
-                                bg="linear-gradient(to right, #9bdc4f, #46d39a)"
+                                bg={`linear-gradient(to right, ${SEMANTIC_COLORS.primary}, ${SEMANTIC_COLORS.info})`}
                             />
                         </Box>
                     </Box>
@@ -150,7 +170,7 @@ export const ReturnWelcome: React.FC<ReturnWelcomeProps> = ({ onDismiss }) => {
                         height={0}
                         borderLeft="8px solid transparent"
                         borderRight="8px solid transparent"
-                        borderTop="8px solid #23252B"
+                        borderTop={`8px solid ${SEMANTIC_COLORS.bgTertiary}`}
                     />
                 </MotionBox>
             )}
@@ -181,7 +201,7 @@ export const IdleIndicator: React.FC = () => {
                 left="20px"
                 zIndex={9998}
             >
-                <Text fontSize="xs" color="#ece6d840" fontStyle="italic">
+                <Text fontSize="xs" color={SEMANTIC_COLORS.textTertiary} fontStyle="italic">
                     💤 Idle for {formatIdleTime(idleTime)}
                 </Text>
             </MotionBox>

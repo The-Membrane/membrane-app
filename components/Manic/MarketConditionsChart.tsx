@@ -1,16 +1,19 @@
 import React, { useMemo, useState } from 'react'
 import { Box, Text, HStack, Checkbox } from '@chakra-ui/react'
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    ResponsiveContainer,
-    Tooltip as RechartsTooltip,
-    CartesianGrid,
-    Legend,
-} from 'recharts'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { CHART_THEME } from '@/config/chartTheme'
+import { lazyChart } from '@/components/ui/lazyChart'
 import { MarketConditions } from '@/services/manic'
+
+// Living Typeface series colors for this chart: phosphor = vault APR (the
+// positive/organic series), cyber teal = net base APR (machine-side), blood =
+// vault cost (the drag). No legacy cyan or purple in this chart.
+const SERIES_VAULT_APR = SEMANTIC_COLORS.success
+const SERIES_NET_APR = SEMANTIC_COLORS.info
+const SERIES_VAULT_COST = SEMANTIC_COLORS.danger
 
 interface MarketConditionsChartProps {
     data: MarketConditions[]
@@ -27,23 +30,25 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
         return (
             <Box
-                bg="#23252B"
+                bg={SEMANTIC_COLORS.bgSecondary}
                 border="1px solid"
-                borderColor="cyan.500"
-                borderRadius="md"
-                p={2}
-                fontSize="xs"
+                borderColor={SEMANTIC_COLORS.borderStrong}
+                borderRadius={0}
+                p={SPACING.sm}
+                fontSize={TYPOGRAPHY.xs}
+                fontFamily={TYPOGRAPHY.fontMono}
+                sx={{ fontVariantNumeric: 'tabular-nums' }}
             >
-                <Text color="#F5F5F5" fontWeight="bold" mb={1}>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight={TYPOGRAPHY.bold} mb={SPACING.xs}>
                     {date.toLocaleDateString()} {date.toLocaleTimeString()}
                 </Text>
-                <Text color="green.400">
+                <Text color={SERIES_VAULT_APR}>
                     Vault APR: {vaultAPR.toFixed(2)}%
                 </Text>
-                <Text color="#00D9FF" fontSize="xs">
+                <Text color={SERIES_NET_APR} fontSize={TYPOGRAPHY.xs}>
                     Net Base APR: {netAPR.toFixed(2)}%
                 </Text>
-                <Text color="#FF6B6B" fontSize="xs">
+                <Text color={SERIES_VAULT_COST} fontSize={TYPOGRAPHY.xs}>
                     Vault Cost: {vaultCost.toFixed(2)}%
                 </Text>
             </Box>
@@ -51,6 +56,79 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     }
     return null
 }
+
+type MarketConditionsPoint = {
+    timestamp: number
+    date: string
+    vaultAPR: number
+    vaultCost: number
+    netAPR: number
+}
+
+const MarketConditionsLineChart = lazyChart<{ chartData: MarketConditionsPoint[]; showNetOnly: boolean }>(
+    ({ LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip: RechartsTooltip, CartesianGrid, Legend }) =>
+        function MarketConditionsLineChart({ chartData, showNetOnly }) {
+            return (
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_THEME.grid.stroke} />
+                        <XAxis
+                            dataKey="date"
+                            tick={{ fill: SEMANTIC_COLORS.textSecondary, fontSize: 10 }}
+                            interval="preserveStartEnd"
+                        />
+                        <YAxis
+                            tick={{ fill: SEMANTIC_COLORS.textSecondary, fontSize: 10 }}
+                            label={{ value: 'APR (%)', angle: -90, position: 'insideLeft', fill: SEMANTIC_COLORS.textSecondary }}
+                        />
+                        <RechartsTooltip content={<CustomTooltip />} />
+                        <Legend
+                            wrapperStyle={{ fontSize: '10px', color: SEMANTIC_COLORS.textSecondary }}
+                        />
+
+                        {!showNetOnly ? (
+                            <>
+                                <Line
+                                    type="monotone"
+                                    stroke={SERIES_VAULT_APR}
+                                    dataKey="vaultAPR"
+                                    strokeWidth={2}
+                                    dot={false}
+                                    name="Vault APR"
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="netAPR"
+                                    stroke={SERIES_NET_APR}
+                                    strokeWidth={2}
+                                    dot={false}
+                                    name="Net Base APR"
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="vaultCost"
+                                    stroke={SERIES_VAULT_COST}
+                                    strokeWidth={2}
+                                    dot={false}
+                                    name="Vault Cost"
+                                />
+                            </>
+                        ) : (
+                            <Line
+                                type="monotone"
+                                dataKey="netAPR"
+                                stroke={SERIES_NET_APR}
+                                strokeWidth={2}
+                                dot={false}
+                                name="Net Base APR"
+                            />
+                        )}
+                    </LineChart>
+                </ResponsiveContainer>
+            )
+        },
+    '200px',
+)
 
 export const MarketConditionsChart: React.FC<MarketConditionsChartProps> = ({ data, isLoading }) => {
     const [showNetOnly, setShowNetOnly] = useState(false)
@@ -73,7 +151,7 @@ export const MarketConditionsChart: React.FC<MarketConditionsChartProps> = ({ da
 
                 return {
                     timestamp: mc.timestamp,
-                    date: new Date(mc.timestamp * 1000).toLocaleDateString(),
+                    date: new Date(mc.timestamp * 1000).toLocaleDateString('en-US', { timeZone: 'UTC' }),
                     vaultAPR,
                     vaultCost,
                     netAPR,
@@ -86,7 +164,13 @@ export const MarketConditionsChart: React.FC<MarketConditionsChartProps> = ({ da
     if (isLoading) {
         return (
             <Box h="200px" display="flex" alignItems="center" justifyContent="center">
-                <Text fontSize="xs" color="#F5F5F540">Loading market conditions...</Text>
+                <Text
+                    fontSize={TYPOGRAPHY.xs}
+                    color={SEMANTIC_COLORS.textTertiary}
+                    fontFamily={TYPOGRAPHY.fontMono}
+                >
+                    Loading market conditions...
+                </Text>
             </Box>
         )
     }
@@ -94,7 +178,13 @@ export const MarketConditionsChart: React.FC<MarketConditionsChartProps> = ({ da
     if (chartData.length === 0) {
         return (
             <Box h="200px" display="flex" alignItems="center" justifyContent="center">
-                <Text fontSize="xs" color="#F5F5F540">No market conditions data available</Text>
+                <Text
+                    fontSize={TYPOGRAPHY.xs}
+                    color={SEMANTIC_COLORS.textTertiary}
+                    fontFamily={TYPOGRAPHY.fontMono}
+                >
+                    No market conditions data available
+                </Text>
             </Box>
         )
     }
@@ -102,78 +192,38 @@ export const MarketConditionsChart: React.FC<MarketConditionsChartProps> = ({ da
     return (
         <Box>
             {/* Radio Button Toggle */}
-            <HStack justify="flex-end" mb={2}>
+            <HStack justify="flex-end" mb={SPACING.sm}>
                 <Checkbox
                     isChecked={showNetOnly}
                     onChange={(e) => setShowNetOnly(e.target.checked)}
-                    colorScheme="cyan"
                     size="sm"
+                    transition={TRANSITIONS.colors}
+                    _focus={FOCUS_STYLES.ring}
+                    sx={{
+                        '& .chakra-checkbox__control': {
+                            borderRadius: 0,
+                            borderColor: SEMANTIC_COLORS.borderStrong,
+                        },
+                        '& .chakra-checkbox__control[data-checked]': {
+                            bg: SEMANTIC_COLORS.primary,
+                            borderColor: SEMANTIC_COLORS.primary,
+                            color: SEMANTIC_COLORS.bgPrimary,
+                        },
+                    }}
                 >
-                    <Text fontSize="xs" color="#F5F5F580" fontFamily="mono">
+                    <Text
+                        fontSize={TYPOGRAPHY.xs}
+                        color={SEMANTIC_COLORS.textSecondary}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                    >
                         Net Base APR only
                     </Text>
                 </Checkbox>
             </HStack>
 
             <Box h="200px" w="100%">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#6943FF20" />
-                        <XAxis
-                            dataKey="date"
-                            tick={{ fill: '#F5F5F580', fontSize: 10 }}
-                            interval="preserveStartEnd"
-                        />
-                        <YAxis
-                            tick={{ fill: '#F5F5F580', fontSize: 10 }}
-                            label={{ value: 'APR (%)', angle: -90, position: 'insideLeft', fill: '#F5F5F580' }}
-                        />
-                        <RechartsTooltip content={<CustomTooltip />} />
-                        <Legend
-                            wrapperStyle={{ fontSize: '10px', color: '#F5F5F580' }}
-                        />
-
-                        {!showNetOnly ? (
-                            <>
-                                <Line
-                                    type="monotone"
-                                    stroke="#48BB78"
-                                    dataKey="vaultAPR"
-                                    strokeWidth={2}
-                                    dot={false}
-                                    name="Vault APR"
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="netAPR"
-                                    stroke="#00D9FF"
-                                    strokeWidth={2}
-                                    dot={false}
-                                    name="Net Base APR"
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="vaultCost"
-                                    stroke="#FF6B6B"
-                                    strokeWidth={2}
-                                    dot={false}
-                                    name="Vault Cost"
-                                />
-                            </>
-                        ) : (
-                            <Line
-                                type="monotone"
-                                dataKey="netAPR"
-                                stroke="#00D9FF"
-                                strokeWidth={2}
-                                dot={false}
-                                name="Net Base APR"
-                            />
-                        )}
-                    </LineChart>
-                </ResponsiveContainer>
+                <MarketConditionsLineChart chartData={chartData} showNetOnly={showNetOnly} />
             </Box>
         </Box>
     )
 }
-

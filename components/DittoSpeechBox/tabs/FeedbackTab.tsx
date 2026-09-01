@@ -22,11 +22,11 @@ const FEATURE_AREAS = ['disco', 'mint', 'transmuter', 'portfolio', 'swap', 'othe
 const inputStyles = {
   bg: 'rgba(10, 10, 10, 0.8)',
   borderColor: 'rgba(155, 220, 79, 0.25)',
-  color: '#ece6d8',
+  color: SEMANTIC_COLORS.textPrimary,
   fontSize: TYPOGRAPHY.small,
   _hover: { borderColor: 'rgba(155, 220, 79, 0.4)' },
   _focus: FOCUS_STYLES.ring,
-  _placeholder: { color: '#ece6d850' },
+  _placeholder: { color: SEMANTIC_COLORS.textTertiary },
 }
 
 export const FeedbackTab: React.FC = () => {
@@ -72,10 +72,10 @@ export const FeedbackTab: React.FC = () => {
     return (
       <VStack spacing={SPACING_PATTERNS.stackSpacing} align="stretch" p={3} h="100%" justify="center">
         <Box
-          bg="rgba(34, 211, 238, 0.1)"
+          bg={SEMANTIC_COLORS.bgSecondary}
           border="1px solid"
           borderColor={SEMANTIC_COLORS.success}
-          borderRadius="md"
+          borderRadius={0}
           p={SPACING_PATTERNS.cardPadding}
           textAlign="center"
         >
@@ -103,7 +103,7 @@ export const FeedbackTab: React.FC = () => {
 
   return (
     <VStack spacing={SPACING_PATTERNS.formFieldGap} align="stretch" p={3} h="100%" overflowY="auto">
-      <Text fontSize={TYPOGRAPHY.xs} color="#ece6d880" fontWeight="medium" textTransform="uppercase" letterSpacing="wide">
+      <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary} fontWeight="medium" textTransform="uppercase" letterSpacing="wide">
         Share Feedback
       </Text>
 
@@ -137,7 +137,7 @@ export const FeedbackTab: React.FC = () => {
           {...inputStyles}
         >
           {CATEGORIES.map((c) => (
-            <option key={c} value={c} style={{ background: '#15171E' }}>
+            <option key={c} value={c} style={{ background: SEMANTIC_COLORS.bgSecondary }}>
               {c}
             </option>
           ))}
@@ -159,7 +159,7 @@ export const FeedbackTab: React.FC = () => {
           {...inputStyles}
         >
           {FEATURE_AREAS.map((f) => (
-            <option key={f} value={f} style={{ background: '#15171E' }}>
+            <option key={f} value={f} style={{ background: SEMANTIC_COLORS.bgSecondary }}>
               {f}
             </option>
           ))}
@@ -172,10 +172,10 @@ export const FeedbackTab: React.FC = () => {
       {/* Error message */}
       {result && !result.success && (
         <Box
-          bg="rgba(239, 68, 68, 0.1)"
+          bg={SEMANTIC_COLORS.bgSecondary}
           border="1px solid"
           borderColor={SEMANTIC_COLORS.danger}
-          borderRadius="md"
+          borderRadius={0}
           p={2}
         >
           <Text color={SEMANTIC_COLORS.danger} fontSize={TYPOGRAPHY.xs}>
@@ -187,14 +187,16 @@ export const FeedbackTab: React.FC = () => {
       {/* Submit */}
       <Button
         bg={SEMANTIC_COLORS.primary}
-        color="white"
+        color={SEMANTIC_COLORS.bgPrimary}
         size="sm"
         isLoading={isSubmitting}
         loadingText="Submitting"
         onClick={handleSubmit}
-        transition={TRANSITIONS.transformAndShadow}
-        _hover={HOVER_EFFECTS.lift}
-        _active={ACTIVE_EFFECTS.press}
+        borderRadius={0}
+        fontFamily={TYPOGRAPHY.fontMono}
+        transition={TRANSITIONS.colors}
+        _hover={HOVER_EFFECTS.borderHighlight}
+        _active={ACTIVE_EFFECTS.dim}
         _focus={FOCUS_STYLES.ring}
       >
         Submit Feedback

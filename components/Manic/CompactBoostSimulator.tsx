@@ -1,7 +1,11 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { Box, VStack, HStack, Text, Slider, SliderTrack, SliderFilledTrack, SliderThumb, IconButton, Tooltip } from '@chakra-ui/react'
 import { InfoIcon } from '@chakra-ui/icons'
 import { Card } from '@chakra-ui/react'
+import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 interface CompactBoostSimulatorProps {
     baseAPR: number
@@ -21,40 +25,29 @@ export const CompactBoostSimulator: React.FC<CompactBoostSimulatorProps> = ({
     }
 
     // Calculate boosted APR
-    const boostedAPR = useMemo(() => {
-        return baseAPR * boostMultiplier
-    }, [baseAPR, boostMultiplier])
+    const boostedAPR = baseAPR * boostMultiplier
 
     return (
         <Card
             width="100%"
-            bg="gray.800"
-            borderColor="purple.500"
-            borderWidth="2px"
-            p={4}
-            boxShadow="0 0 20px rgba(159, 122, 234, 0.2)"
+            borderRadius={0}
+            p={SPACING_PATTERNS.cardPadding}
         >
-            <VStack spacing={3} align="stretch">
+            <VStack spacing={SPACING.md} align="stretch">
                 <HStack justify="space-between" align="center" w="100%">
-                    <HStack spacing={2} align="center">
+                    <HStack spacing={SPACING.sm} align="center">
                         <Text
-                            fontSize="xs"
-                            color="gray.400"
-                            fontFamily="mono"
+                            fontSize={TYPOGRAPHY.label}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             textTransform="uppercase"
+                            letterSpacing="0.28em"
                             whiteSpace="nowrap"
                         >
                             Boost Simulator
                         </Text>
                         <Tooltip
                             label="Simulate the boosted APR for a given multiplier. The multiplier represents how much base APR is amplified through looping at 90% LTV."
-                            fontSize="xs"
-                            bg="gray.800"
-                            color="#F5F5F5"
-                            border="1px solid"
-                            borderColor="purple.500"
-                            borderRadius="md"
-                            p={3}
                             hasArrow
                         >
                             <IconButton
@@ -62,8 +55,11 @@ export const CompactBoostSimulator: React.FC<CompactBoostSimulatorProps> = ({
                                 icon={<InfoIcon />}
                                 size="xs"
                                 variant="ghost"
-                                color="gray.400"
-                                _hover={{ color: "cyan.400" }}
+                                color={SEMANTIC_COLORS.textSecondary}
+                                transition={TRANSITIONS.colors}
+                                _hover={HOVER_EFFECTS.brighten}
+                                _active={ACTIVE_EFFECTS.dim}
+                                _focus={FOCUS_STYLES.ring}
                                 minW="auto"
                                 w="auto"
                                 h="auto"
@@ -71,11 +67,12 @@ export const CompactBoostSimulator: React.FC<CompactBoostSimulatorProps> = ({
                         </Tooltip>
                     </HStack>
                     <Text
-                        fontSize="lg"
-                        fontWeight="bold"
-                        color="cyan.400"
-                        fontFamily="mono"
+                        fontSize={TYPOGRAPHY.h4}
+                        fontWeight={TYPOGRAPHY.bold}
+                        color={SEMANTIC_COLORS.info}
+                        fontFamily={TYPOGRAPHY.fontMono}
                         whiteSpace="nowrap"
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
                     >
                         {boostMultiplier.toFixed(1)}x
                     </Text>
@@ -87,34 +84,51 @@ export const CompactBoostSimulator: React.FC<CompactBoostSimulatorProps> = ({
                     min={1}
                     max={10}
                     step={0.1}
-                    colorScheme="cyan"
                     size="sm"
+                    aria-label="Boost multiplier"
                 >
-                    <SliderTrack bg="gray.700">
-                        <SliderFilledTrack bg="cyan.500" />
+                    <SliderTrack bg={SEMANTIC_COLORS.bgTertiary} borderRadius={0}>
+                        <SliderFilledTrack bg={SEMANTIC_COLORS.info} />
                     </SliderTrack>
-                    <SliderThumb />
+                    <SliderThumb borderRadius={0} _focus={FOCUS_STYLES.ring} />
                 </Slider>
 
-                <HStack justify="space-between" fontSize="xs" color="#F5F5F580" fontFamily="mono">
+                <HStack
+                    justify="space-between"
+                    fontSize={TYPOGRAPHY.xs}
+                    color={SEMANTIC_COLORS.textTertiary}
+                    fontFamily={TYPOGRAPHY.fontMono}
+                >
                     <Text>1x</Text>
                     <Text>10x</Text>
                 </HStack>
 
-                <VStack spacing={1} align="stretch" mt={2}>
+                <VStack spacing={SPACING.xs} align="stretch" mt={SPACING.sm}>
                     <HStack justify="space-between">
-                        <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                        <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                             Base APR:
                         </Text>
-                        <Text fontSize="xs" color="#F5F5F5" fontFamily="mono" fontWeight="bold">
+                        <Text
+                            fontSize={TYPOGRAPHY.xs}
+                            color={SEMANTIC_COLORS.textPrimary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            fontWeight={TYPOGRAPHY.bold}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
                             {baseAPR.toFixed(2)}%
                         </Text>
                     </HStack>
                     <HStack justify="space-between">
-                        <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                        <Text fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                             Projected:
                         </Text>
-                        <Text fontSize="sm" color="cyan.400" fontFamily="mono" fontWeight="bold">
+                        <Text
+                            fontSize={TYPOGRAPHY.small}
+                            color={SEMANTIC_COLORS.info}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            fontWeight={TYPOGRAPHY.bold}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
                             {boostedAPR.toFixed(2)}%
                         </Text>
                     </HStack>
@@ -123,12 +137,3 @@ export const CompactBoostSimulator: React.FC<CompactBoostSimulatorProps> = ({
         </Card>
     )
 }
-
-
-
-
-
-
-
-
-

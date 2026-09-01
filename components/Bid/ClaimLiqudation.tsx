@@ -5,6 +5,8 @@ import useClaimLiquidation from './hooks/useClaimLiquidation'
 import { claimstoCoins } from '@/services/liquidation'
 import { Coin } from '@cosmjs/stargate'
 import { useCheckClaims, useCheckSPClaims } from '@/hooks/useLiquidations'
+import { SPACING } from '@/config/spacing'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 const ClaimLiqudation = () => {
   const { data: claims } = useCheckClaims(true)
@@ -14,7 +16,6 @@ const ClaimLiqudation = () => {
   var claim_coins: Coin[] = claimstoCoins(claims)
   if (SP_claims) {
     claim_coins = claim_coins.concat(SP_claims.claims)
-
   }
 
   const isClaimDisabled = claim_coins?.filter((claim) => num(claim.amount).gt(0))
@@ -23,13 +24,13 @@ const ClaimLiqudation = () => {
     <ConfirmModal
       label="Claim"
       buttonProps={{
-        borderRadius: '24px',
+        borderRadius: '8px',
         justifySelf: 'end',
         w: '90px',
-        px: '4',
+        px: SPACING.base,
         size: 'sm',
-        fontWeight: 'normal',
-        mr: '1',
+        fontWeight: TYPOGRAPHY.normal,
+        mr: SPACING.xs,
       }}
       action={claimLiqudation}
       isDisabled={!isClaimDisabled?.length}

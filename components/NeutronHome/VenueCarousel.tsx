@@ -21,30 +21,52 @@ const VenueCarousel: React.FC<VenueCarouselProps> = ({ venues, onVenueSelect, se
     const isMobile = useBreakpointValue({ base: true, lg: false });
     const maxIndex = Math.max(0, venues.length - cardsPerView);
 
+    // Latest-value refs so navigateToIndex/getShowAllState (below) can read
+    // current state without closing over it, giving them stable identities
+    // across renders instead of being recreated on every showAll/maxIndex change.
+    const showAllRef = useRef(showAll);
+    const maxIndexRef = useRef(maxIndex);
+    // Update latest-value refs in an effect, not during render (no-ref-current-in-render).
+    // Consumer callbacks run post-commit (user interaction), so they still read fresh values.
+    useEffect(() => {
+        showAllRef.current = showAll;
+        maxIndexRef.current = maxIndex;
+    }, [showAll, maxIndex]);
+
     // Create a stable navigation function
     const navigateToIndex = useCallback((index: number) => {
-        const clampedIndex = Math.max(0, Math.min(index, maxIndex));
-        console.log('VenueCarousel: navigating to index:', clampedIndex, 'maxIndex:', maxIndex, 'showAll:', showAll);
+        const clampedIndex = Math.max(0, Math.min(index, maxIndexRef.current));
+        console.log('VenueCarousel: navigating to index:', clampedIndex, 'maxIndex:', maxIndexRef.current, 'showAll:', showAllRef.current);
 
         // If not in show all view, navigate to carousel page
-        if (!showAll) {
+        if (!showAllRef.current) {
             setCurrentIndex(clampedIndex);
             setShowAll(true); // Open Show All view
         }
         // If already in show all view, do nothing (venue is already highlighted)
-    }, [maxIndex, showAll]);
+    }, []);
 
     // Function to get current showAll state
-    const getShowAllState = useCallback(() => {
-        return showAll;
-    }, [showAll]);
+    const getShowAllState = useCallback(() => showAllRef.current, []);
 
-    // Expose navigation function to parent
+    // Expose the (now-stable) navigation handles to the parent once on mount.
+    // Read through a ref so the effect's dependency array stays empty:
+    // navigateToIndex/getShowAllState never change identity after creation
+    // (they read current state via the refs above), so a single registration
+    // is enough — the parent no longer gets re-registered on every internal
+    // showAll/maxIndex change, it just always gets called with a stable
+    // handle whose *behavior* stays current via the refs.
+    const registrationRef = useRef({ onNavigateToVenue, navigateToIndex, getShowAllState });
     useEffect(() => {
-        if (onNavigateToVenue) {
-            onNavigateToVenue(navigateToIndex, getShowAllState);
-        }
+        registrationRef.current = { onNavigateToVenue, navigateToIndex, getShowAllState };
     }, [onNavigateToVenue, navigateToIndex, getShowAllState]);
+
+    useEffect(() => {
+        registrationRef.current.onNavigateToVenue?.(
+            registrationRef.current.navigateToIndex,
+            registrationRef.current.getShowAllState
+        );
+    }, []);
 
     const handlePrev = () => {
         if (currentIndex === 0) {
@@ -98,12 +120,13 @@ const VenueCarousel: React.FC<VenueCarouselProps> = ({ venues, onVenueSelect, se
     useEffect(() => {
         if (showAll && selectedVenueId && selectedVenueRef.current) {
             // Small delay to ensure DOM is rendered
-            setTimeout(() => {
+            const id = setTimeout(() => {
                 selectedVenueRef.current?.scrollIntoView({
                     behavior: 'smooth',
                     block: 'center',
                 });
             }, 100);
+            return () => clearTimeout(id);
         }
     }, [showAll, selectedVenueId]);
 

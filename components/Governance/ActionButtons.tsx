@@ -11,6 +11,9 @@ import EndProposalButton from './EndProposalButton'
 
 type Props = {
   proposal: ProposalResponse
+  // FP (no-many-boolean-props): each flag independently gates a different child
+  // button (remove/execute/vote) from an unrelated permission or proposal-state
+  // check (submitter identity, badge, status) — not a mutually-exclusive variant.
   isRemoveAllowed: boolean
   isExecuteAllowed: boolean
   isVoteAllowed: boolean

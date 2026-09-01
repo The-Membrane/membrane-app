@@ -264,7 +264,7 @@ export const BorrowModalPositionPreview: React.FC<BorrowModalPositionPreviewProp
                     >
                         <HStack spacing={2}>
                             <Image
-                                src="/images/cdt.png"
+                                src="/images/cdt.svg"
                                 alt="CDT"
                                 w="20px"
                                 h="20px"

@@ -33,7 +33,7 @@ const getCDTPrice = (prices: Price[] | null | undefined, cdt: Asset) => {
     return parseFloat((price.price)).toFixed(4)
 }
 
-const AssetAuction = React.memo(({ currentBid, auctionAmount, auctionEndTime, assetBidAmount }: Prop) => {
+const AssetAuction = React.memo(function AssetAuction({ currentBid, auctionAmount, auctionEndTime, assetBidAmount }: Prop) {
     console.log("AssetAuction rerender")
 
     const { setNFTState } = useNFTState()
@@ -47,15 +47,20 @@ const AssetAuction = React.memo(({ currentBid, auctionAmount, auctionEndTime, as
     const { chainName } = useChainRoute()
     const CDT = getAssetBySymbol('CDT', chainName)
     const MBRN = getAssetBySymbol('MBRN', chainName)
-    const [cdtPrice, setcdtPrice] = useState('0')
-    const [mbrnPrice, setmbrnPrice] = useState('0')
+    const [tokenPrices, setTokenPrices] = useState({ cdtPrice: '0', mbrnPrice: '0' })
+    const { cdtPrice, mbrnPrice } = tokenPrices
     useEffect(() => {
-        const CDTprice = getCDTPrice(prices, CDT!)
-        if (CDTprice != cdtPrice && CDTprice != '0') setcdtPrice(CDTprice)
-
-        const MBRNprice = getMBRNPrice(prices, MBRN!)
-        if (MBRNprice != mbrnPrice && MBRNprice != '0') setmbrnPrice(MBRNprice)
-
+        // Consolidated into one functional update (instead of two setState calls whose
+        // own state was also in the deps below) so the effect no longer re-fires on the
+        // state it just wrote. "Keep last non-zero price" behavior is unchanged.
+        setTokenPrices(prev => {
+            const CDTprice = getCDTPrice(prices, CDT!)
+            const MBRNprice = getMBRNPrice(prices, MBRN!)
+            const next = { ...prev }
+            if (CDTprice != prev.cdtPrice && CDTprice != '0') next.cdtPrice = CDTprice
+            if (MBRNprice != prev.mbrnPrice && MBRNprice != '0') next.mbrnPrice = MBRNprice
+            return next.cdtPrice === prev.cdtPrice && next.mbrnPrice === prev.mbrnPrice ? prev : next
+        })
     }, [prices, CDT, MBRN])
 
     const onBidChange = (value: number) => {

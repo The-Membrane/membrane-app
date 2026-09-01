@@ -5,6 +5,8 @@ import { useTransmuterData, useTransmuterVolumeHistory } from '@/hooks/useTransm
 import { transformVolumeHistoryToChartData } from '@/services/transmuter'
 import { CumulativeChart } from './CumulativeChart'
 
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 export const TransmuterSection: React.FC<SectionComponentProps & { tabIndex?: number; hideCharts?: boolean }> = ({ onBack, tabIndex = 0, hideCharts = false }) => {
     const { tvl, apr, isLoading } = useTransmuterData()
     const { data: volumeHistory } = useTransmuterVolumeHistory(100)
@@ -30,19 +32,19 @@ export const TransmuterSection: React.FC<SectionComponentProps & { tabIndex?: nu
                 <Box>
                     <HStack spacing={4} align="flex-start" wrap="wrap" justifyContent={"center"}>
                         <VStack>
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                 TVL
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="#ece6d8" mb={3}>
+                            <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary} mb={3}>
                                 {tvl > 0 ? `${tvl.toFixed(2)} USDC` : '—'}
                             </Text>
                         </VStack>
 
                         <VStack>
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                 30D APR
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="secondary.400" mb={3}>
+                            <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.info} mb={3}>
                                 {apr !== null ? `${apr.toFixed(2)}%` : '—'}
                             </Text>
                         </VStack>
@@ -53,7 +55,7 @@ export const TransmuterSection: React.FC<SectionComponentProps & { tabIndex?: nu
                     <>
                         <Divider mb={4} mt={4} />
                         <Box>
-                            <Text fontSize="xs" color="#ece6d880" mb={2}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={2}>
                                 All-Time Volume
                             </Text>
                             <CumulativeChart data={volumeChartData} isLoading={false} />
@@ -68,7 +70,7 @@ export const TransmuterSection: React.FC<SectionComponentProps & { tabIndex?: nu
     if (tabIndex === 1) {
         return (
             <Box>
-                <Text fontSize="xs" color="#ece6d880" mb={2}>
+                <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={2}>
                     No metrics available
                 </Text>
             </Box>
@@ -78,7 +80,7 @@ export const TransmuterSection: React.FC<SectionComponentProps & { tabIndex?: nu
     // Actions Tab (index 2)
     return (
         <Box>
-            <Text fontSize="xs" color="#ece6d880" mb={2}>
+            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={2}>
                 Navigate to Transmuter page for actions
             </Text>
         </Box>

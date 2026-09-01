@@ -15,6 +15,13 @@ export type UseChangeNameParams = {
  * the Solidity port. This CTA hook returns no msgs so the "change car name" action
  * stays inert until/if racing contracts are ported. Return shape preserved.
  */
+const onInitialSuccess = () => {
+    // Refresh car-related queries
+    queryClient.invalidateQueries({ queryKey: ['q-racing', 'owned_cars'] })
+    queryClient.invalidateQueries({ queryKey: ['car_metadata'] })
+    queryClient.invalidateQueries({ queryKey: ['car_name'] })
+}
+
 const useChangeName = (params: UseChangeNameParams) => {
     const { address } = useWallet()
     const { appState } = useAppState()
@@ -30,13 +37,6 @@ const useChangeName = (params: UseChangeNameParams) => {
         queryFn: () => [] as EvmCall[],
         enabled: !!address,
     })
-
-    const onInitialSuccess = () => {
-        // Refresh car-related queries
-        queryClient.invalidateQueries({ queryKey: ['q-racing', 'owned_cars'] })
-        queryClient.invalidateQueries({ queryKey: ['car_metadata'] })
-        queryClient.invalidateQueries({ queryKey: ['car_name'] })
-    }
 
     console.log('msgs', !!msgs?.length)
 

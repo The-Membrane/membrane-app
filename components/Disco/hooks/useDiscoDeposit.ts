@@ -7,59 +7,58 @@ import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import contracts from '@/config/contracts.json'
 import { shiftDigits } from '@/helpers/math'
+import useAppState from '@/persisted-state/useAppState'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { coin } from '@cosmjs/stargate'
 
 /**
- * Parameters for depositing to LTV Disco
+ * Parameters for depositing to Disco
  */
 interface UseDiscoDepositParams {
-  /** The asset denom being deposited (backing asset for LTV tier) */
+  /** The asset denom being insured */
   asset: string
-  /** Maximum LTV for the deposit tier (e.g., "0.75") */
-  maxLtv: string
-  /** Maximum borrow LTV for the deposit tier (e.g., "0.70") */
-  maxBorrowLtv: string
+  /** Slot number (1-9) */
+  slot: number
   /** Amount of MBRN to deposit (human-readable) */
   amount: string
+  /** Optional deposit_id to top up an existing deposit (auto-claims first) */
+  depositId?: string
   /** Optional callback on successful transaction */
   txSuccess?: () => void
 }
 
 /**
- * Hook to deposit MBRN tokens to LTV Disco at a selected LTV pair.
- * 
+ * Hook to deposit MBRN tokens to a Disco slot.
+ *
  * @example
  * ```typescript
  * const deposit = useDiscoDeposit({
- *   asset: 'factory/osmo.../CDT',
- *   maxLtv: '0.75',
- *   maxBorrowLtv: '0.70',
+ *   asset: 'ibc/...',
+ *   slot: 3,
  *   amount: '100',
  *   txSuccess: () => console.log('Deposit successful!'),
  * })
- * 
- * // Use with Ditto confirmation
- * openConfirmation(deposit.action, <Details />, { label: 'Deposit', actionType: 'deposit' })
  * ```
  */
 const useDiscoDeposit = ({
   asset,
-  maxLtv,
-  maxBorrowLtv,
+  slot,
   amount,
+  depositId,
   txSuccess,
 }: UseDiscoDepositParams) => {
   const { address } = useWallet()
+  const { appState } = useAppState()
   const mbrnAsset = useAssetBySymbol('MBRN')
   const discoContract = (contracts as any).ltv_disco
 
   type QueryData = { msgs: MsgExecuteContractEncodeObject[] | undefined }
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['disco_deposit', 'msgs', address, asset, maxLtv, maxBorrowLtv, amount],
+    queryKey: ['disco_deposit', 'msgs', address, asset, slot, amount, depositId, appState.rpcUrl],
+    staleTime: 1000 * 60 * 5,
     queryFn: () => {
-      if (!address || !asset || !maxLtv || !maxBorrowLtv || !amount || !mbrnAsset) {
+      if (!address || !asset || !slot || !amount || !mbrnAsset) {
         return { msgs: undefined }
       }
       if (!discoContract || discoContract === '') {
@@ -69,39 +68,41 @@ const useDiscoDeposit = ({
       const microAmount = shiftDigits(amount, 6).dp(0).toString()
       const funds = [coin(microAmount, mbrnAsset.base)]
 
+      const executeMsg: any = {
+        submit_deposit: {
+          deposit_input: { asset, slot },
+        }
+      }
+      if (depositId) {
+        executeMsg.submit_deposit.deposit_id = depositId
+      }
+
       const msg: MsgExecuteContractEncodeObject = {
         typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
         value: MsgExecuteContract.fromPartial({
           sender: address,
           contract: discoContract,
-          msg: toUtf8(JSON.stringify({
-            deposit: {
-              asset,
-              max_ltv: maxLtv,
-              max_borrow_ltv: maxBorrowLtv,
-            }
-          })),
+          msg: toUtf8(JSON.stringify(executeMsg)),
           funds,
         }),
       }
 
       return { msgs: [msg] }
     },
-    enabled: !!address && !!asset && !!maxLtv && !!maxBorrowLtv && !!amount && !!mbrnAsset,
+    enabled: !!address && !!asset && slot >= 1 && slot <= 9 && !!amount && !!mbrnAsset,
   })
 
   const msgs = queryData?.msgs ?? []
 
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['disco_user_deposits'] })
-    queryClient.invalidateQueries({ queryKey: ['disco_ltv_queue'] })
+    queryClient.invalidateQueries({ queryKey: ['disco'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
     txSuccess?.()
   }
 
   const action = useSimulateAndBroadcast({
     msgs,
-    queryKey: ['disco_deposit_sim', (msgs?.toString() ?? '0')],
+    queryKey: ['disco_deposit_sim', address, asset, slot, amount, depositId],
     amount,
     enabled: !!msgs?.length,
     onSuccess,
@@ -114,29 +115,3 @@ const useDiscoDeposit = ({
 }
 
 export default useDiscoDeposit
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

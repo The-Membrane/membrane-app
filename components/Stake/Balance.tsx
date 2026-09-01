@@ -1,5 +1,8 @@
 import React from 'react'
 import { Button, HStack, Text } from '@chakra-ui/react'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES } from '@/config/transitions'
 
 type Props = {
   label: string
@@ -8,9 +11,9 @@ type Props = {
 }
 const Balance = ({ label, value = 0, onMaxClick }: Props) => {
   return (
-    <HStack ml={3} w="full" gap="1">
-      <Text fontSize="sm">{label}:</Text>
-      <Button variant="link" fontSize="sm" onClick={onMaxClick}>
+    <HStack ml={SPACING.md} w="full" gap={SPACING.xs}>
+      <Text fontSize={TYPOGRAPHY.small}>{label}:</Text>
+      <Button variant="link" fontSize={TYPOGRAPHY.small} onClick={onMaxClick} _focus={FOCUS_STYLES.ring}>
         {value}
       </Button>
     </HStack>

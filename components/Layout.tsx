@@ -3,11 +3,11 @@ import HorizontalNav from './HorizontalNav'
 import ChainLayout from './ChainLayout'
 import { RulesModal } from './MembersRules/RulesModal'
 import useMembersRulesState from './MembersRules/useRules'
-import { useEffect } from 'react'
 import RPCStatus from './RPCStatus'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import useAppState from '@/persisted-state/useAppState'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 // Lazy load DittoHologram since it's conditionally rendered and contains heavy dependencies
 const DittoHologram = dynamic(() => import('./DittoHologram').then(m => ({ default: m.DittoHologram })), {
@@ -23,51 +23,15 @@ export default function Layout({ children }: LayoutProps) {
   // const { rulesState } = useMembersRulesState()
   // const { isOpen, onOpen, onClose } = useDisclosure()
 
-  // Check if we're on the home page
-  const isHomePage = (router.pathname === '/[chain]' || router.pathname === '/[chain]/index') && (!router.query.view || router.query.view === 'storefront')
-
   const { appState } = useAppState()
   const username = appState.setCookie && appState.username ? appState.username : ''
 
-  // Set body/html background to match the page background on home page
-  useEffect(() => {
-    const styleId = 'home-page-bg'
-
-    const applyStyle = () => {
-      let styleElement = document.getElementById(styleId) as HTMLStyleElement
-
-      if (isHomePage) {
-        if (!styleElement) {
-          styleElement = document.createElement('style')
-          styleElement.id = styleId
-          // Append at the end of head to ensure it overrides other styles
-          document.head.appendChild(styleElement)
-        }
-        styleElement.textContent = `
-          html, body, #__next {
-            background-color: #0A0A0A !important;
-            background: #0A0A0A !important;
-          }
-        `
-      } else {
-        const element = document.getElementById(styleId)
-        if (element) {
-          element.remove()
-        }
-      }
-    }
-
-    // Apply using requestAnimationFrame to ensure it runs after Chakra styles
-    const rafId = requestAnimationFrame(applyStyle)
-
-    return () => {
-      cancelAnimationFrame(rafId)
-      const element = document.getElementById(styleId)
-      if (element) {
-        element.remove()
-      }
-    }
-  }, [isHomePage])
+  // The page background used to be an allowlist: Home and Disco got a hardcoded
+  // #0A0A0A, injected as an !important <style> tag on every render, and every
+  // other route fell through to Chakra's gray.900 — which is #171923, a navy.
+  // Since the whole app is Living Typeface (bone on near-black), the allowlist,
+  // the raw hex and the runtime style injection are all gone; the background now
+  // comes from SEMANTIC_COLORS.bgPrimary alone, matching the theme's html/body.
 
   // useMemo(() => {
   //   if (!rulesState.show && rulesState.show !== undefined) {
@@ -79,7 +43,7 @@ export default function Layout({ children }: LayoutProps) {
   // }, [rulesState.show])
 
   return (
-    <Box minH="100vh" bg={isHomePage ? "#0A0A0A" : "gray.900"}>
+    <Box minH="100vh" bg={SEMANTIC_COLORS.bgPrimary}>
       <HorizontalNav />
       <ChainLayout>
         <Box

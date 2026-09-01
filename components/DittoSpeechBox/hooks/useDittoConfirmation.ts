@@ -113,6 +113,8 @@ export const useDittoConfirmation = () => {
             setState({ view: 'confirm' })
         }
     }, [
+        state.action,
+        state.action?.tx,
         state.action?.tx.isPending,
         state.action?.tx.isSuccess,
         state.action?.tx.isError,

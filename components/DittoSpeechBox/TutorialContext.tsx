@@ -18,15 +18,19 @@ interface TutorialContextValue {
 const TutorialContext = createContext<TutorialContextValue | null>(null)
 
 export const useTutorialContext = () => {
-    // Try to get from context first (for page-specific providers)
+    // Both Hooks must run unconditionally every render (Rules of Hooks): call them up
+    // front, then branch on the values. useTutorialStore just subscribes to the store,
+    // so calling it even when a context provider is present is harmless.
     const context = useContext(TutorialContext)
+    const store = useTutorialStore()
+
+    // Prefer a page-specific provider when present.
     if (context) {
         return context
     }
-    
+
     // Fallback to global store (read-only for DittoSpeechBox)
     // Note: Actions should be called through the hook, not directly from store
-    const store = useTutorialStore()
     return {
         steps: store.steps,
         faq: store.faq,

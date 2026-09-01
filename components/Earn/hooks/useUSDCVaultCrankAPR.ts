@@ -18,6 +18,11 @@ import { queryClient } from '@/pages/_app'
  * Two separate signatures (EvmCall[] is not atomic — see services/chain/types.ts), which is fine:
  * each crank is independent and idempotent.
  */
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['useEarnUSDCRealizedAPR'] })
+  queryClient.invalidateQueries({ queryKey: ['useEarnUSDCEstimatedAPR'] })
+}
+
 const useUSDCVaultCrankAPR = () => {
   const { address, chain } = useWallet()
   const transmuterAddr = chain ? getContractAddress(chain.id, 'transmuter') : undefined
@@ -46,11 +51,6 @@ const useUSDCVaultCrankAPR = () => {
   })
 
   const { msgs } = useMemo(() => queryData ?? { msgs: undefined }, [queryData])
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['useEarnUSDCRealizedAPR'] })
-    queryClient.invalidateQueries({ queryKey: ['useEarnUSDCEstimatedAPR'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

@@ -160,6 +160,12 @@ export const ACTIVE_EFFECTS = {
     borderColor: '#9bdc4f',
     color: '#9bdc4f',
   },
+
+  // Canonical Living Typeface press feedback: opacity dips slightly, no translate/scale.
+  dim: {
+    transition: TRANSITIONS.colors,
+    opacity: 0.85,
+  },
 } as const
 
 // ============================================

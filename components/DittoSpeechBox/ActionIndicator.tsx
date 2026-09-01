@@ -3,28 +3,21 @@ import { Box, Text, Tooltip } from '@chakra-ui/react'
 import { keyframes } from '@emotion/react'
 import { m } from 'framer-motion'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 const MotionBox = m(Box)
 
-const pulseGlow = keyframes`
-    0% {
-        box-shadow: 0 0 0 0 rgba(155, 220, 79, 0.6);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(155, 220, 79, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(155, 220, 79, 0);
-    }
-`
-
+// Living Typeface: attention is signalled by an opacity breath, never by a
+// scale pulse or a box-shadow glow ring.
 const breathe = keyframes`
     0%, 100% {
-        transform: scale(1);
         opacity: 1;
     }
     50% {
-        transform: scale(1.05);
-        opacity: 0.9;
+        opacity: 0.6;
     }
 `
 
@@ -42,11 +35,11 @@ interface ActionIndicatorProps {
 // Static icon element hoisted to module scope so it isn't reallocated on every render.
 const ACTION_ICON = (
     <Text
-        fontSize="14px"
-        fontWeight="black"
-        color="white"
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize={TYPOGRAPHY.xs}
+        fontWeight={TYPOGRAPHY.bold}
+        color={SEMANTIC_COLORS.bgPrimary}
         lineHeight="1"
-        textShadow="0 1px 2px rgba(0,0,0,0.3)"
     >
         !
     </Text>
@@ -62,54 +55,55 @@ export const ActionIndicator: React.FC<ActionIndicatorProps> = ({
 
     const displayTooltip = tooltip || 'Actions available'
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (!onClick) return
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick()
+        }
+    }
+
     return (
         <Tooltip
             label={displayTooltip}
             placement="top"
             hasArrow
-            bg="#23252B"
-            color="#ece6d8"
-            fontSize="xs"
-            px={3}
-            py={2}
-            borderRadius="md"
+            bg={SEMANTIC_COLORS.bgTertiary}
+            color={SEMANTIC_COLORS.textPrimary}
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+            px={SPACING.md}
+            py={SPACING.sm}
+            borderRadius={0}
             border="1px solid"
-            borderColor="#9bdc4f40"
+            borderColor={SEMANTIC_COLORS.borderStrong}
         >
             <Box
                 position="relative"
                 zIndex={10}
                 cursor={onClick ? 'pointer' : 'default'}
                 onClick={onClick}
-                transition="transform 0.2s ease-in-out"
-                _hover={{
-                    transform: 'scale(1.3)',
-                }}
+                onKeyDown={onClick ? handleKeyDown : undefined}
+                role={onClick ? 'button' : undefined}
+                tabIndex={onClick ? 0 : undefined}
+                aria-label={onClick ? displayTooltip : undefined}
+                transition={TRANSITIONS.colors}
+                _hover={onClick ? HOVER_EFFECTS.brighten : undefined}
+                _focus={onClick ? FOCUS_STYLES.ring : undefined}
+                _focusVisible={onClick ? FOCUS_STYLES.ring : undefined}
             >
-                {/* Outer glow ring */}
-                <Box
-                    position="absolute"
-                    w="24px"
-                    h="24px"
-                    borderRadius="full"
-                    animation={`${pulseGlow} 2s ease-in-out infinite`}
-                    top="50%"
-                    left="50%"
-                    transform="translate(-50%, -50%)"
-                />
-
-                {/* Inner badge */}
+                {/* Badge */}
                 <Box
                     w="22px"
                     h="22px"
                     borderRadius="full"
-                    bg="linear-gradient(135deg, #9bdc4f 0%, #46d39a 100%)"
-                    border="2px solid #23252B"
+                    bg={SEMANTIC_COLORS.primary}
+                    border="2px solid"
+                    borderColor={SEMANTIC_COLORS.bgPrimary}
                     animation={`${breathe} 2s ease-in-out infinite`}
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    boxShadow="0 0 12px rgba(155, 220, 79, 0.6)"
                 >
                     {ACTION_ICON}
                 </Box>

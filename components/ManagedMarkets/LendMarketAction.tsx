@@ -477,7 +477,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
     const vaultTokenAsset = {
         base: vaultTokenDenom,
         symbol: lendState.isJunior ? 'jvCDT' : 'vCDT',
-        logo: '/images/cdt.png',
+        logo: '/images/cdt.svg',
         decimal: 12,
         isLP: false,
         name: lendState.isJunior ? 'Junior Vault CDT' : 'Vault CDT',

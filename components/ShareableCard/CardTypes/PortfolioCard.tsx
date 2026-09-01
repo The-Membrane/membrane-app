@@ -8,6 +8,24 @@ interface PortfolioCardProps {
     cardRef?: React.RefObject<HTMLDivElement>
 }
 
+// Format revenue display
+const formatRevenue = (value: number): string => {
+    if (value >= 1000000) {
+        return `$${(value / 1000000).toFixed(1)}M`
+    } else if (value >= 1000) {
+        return `$${(value / 1000).toFixed(1)}K`
+    }
+    return `$${value.toFixed(2)}`
+}
+
+// Format points
+const formatPoints = (points: number): string => {
+    if (points >= 1000) {
+        return `${(points / 1000).toFixed(1)}K`
+    }
+    return points.toFixed(0)
+}
+
 /**
  * Combined portfolio card for sharing
  * Displays all major metrics: revenue, boost, contribution, and points
@@ -20,24 +38,6 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ data, cardRef }) =
         totalPoints = 0,
         level = 1,
     } = data
-
-    // Format revenue display
-    const formatRevenue = (value: number): string => {
-        if (value >= 1000000) {
-            return `$${(value / 1000000).toFixed(1)}M`
-        } else if (value >= 1000) {
-            return `$${(value / 1000).toFixed(1)}K`
-        }
-        return `$${value.toFixed(2)}`
-    }
-
-    // Format points
-    const formatPoints = (points: number): string => {
-        if (points >= 1000) {
-            return `${(points / 1000).toFixed(1)}K`
-        }
-        return points.toFixed(0)
-    }
 
     return (
         <ShareableCard title="MY MEMBRANE PORTFOLIO" subtitle="Protocol Overview" cardRef={cardRef}>

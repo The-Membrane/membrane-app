@@ -4,6 +4,7 @@ import { ChevronDownIcon, ChevronUpIcon, TimeIcon } from '@chakra-ui/icons'
 import { shiftDigits } from '@/helpers/math'
 import { getSlotLabel } from './types'
 import type { DiscoPageState } from './hooks/useDiscoPage'
+import { riskRgbAtIndex } from './riskRamp'
 
 interface DiscoPageWaterfallRowProps {
     slot: number
@@ -36,10 +37,7 @@ export const DiscoPageWaterfallRow: React.FC<DiscoPageWaterfallRowProps> = ({
     const fillPct = userSlotDeposits.maxAmount > 0 ? (amount / userSlotDeposits.maxAmount) * 100 : 0
     const tvlRatio = userSlotDeposits.maxAmount > 0 ? amount / userSlotDeposits.maxAmount : 0
     const totalUserSlots = userSlotDeposits.slots.length
-    const t = totalUserSlots > 1 ? idx / (totalUserSlots - 1) : 0
-    const r = Math.round(34 + (166 - 34) * t)
-    const g = Math.round(211 + (146 - 211) * t)
-    const b = Math.round(238 + (255 - 238) * t)
+    const { r, g, b } = riskRgbAtIndex(idx, totalUserSlots)
 
     // Unstaking data for this slot
     const slotUnstakes = (unstakeData?.requests || []).filter((req: any) => req.slot === slot)

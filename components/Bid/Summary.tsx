@@ -4,6 +4,9 @@ import { Badge, HStack, Image, Stack, Text } from '@chakra-ui/react'
 import { Asset, getAssetLogo } from '@/helpers/chain'
 import useBidState from './hooks/useBidState'
 import { colors } from '@/config/defaults'
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 type SummaryItemProps = Partial<Asset> & {
   label: string
@@ -24,14 +27,14 @@ const SummaryItem = ({
   selectedAsset,
   premium,
 }: SummaryItemProps) => (
-  <Stack gap="10">
+  <Stack gap={SPACING.xl}>
     <Stack alignSelf="center">
-      <Text variant="value" textTransform="unset" fontSize="md">
+      <Text textTransform="unset" fontSize={TYPOGRAPHY.body} color={SEMANTIC_COLORS.textPrimary}>
         Bidding on {premium === 10 ? 'All Assets' : null}
       </Text>
       <HStack>
         {premium !== 10 ? <><Image src={selectedAsset?.logo} w="30px" h="30px" />
-          <Text variant="value" textTransform="unset">
+          <Text textTransform="unset" fontSize={TYPOGRAPHY.body} color={SEMANTIC_COLORS.textPrimary}>
             {selectedAsset?.symbol}
           </Text></>
           : null}
@@ -41,28 +44,30 @@ const SummaryItem = ({
     <HStack
       key={label}
       justifyContent="space-between"
-      pb="1"
-      my="1"
+      pb={SPACING.xs}
+      my={SPACING.xs}
       borderBottom="1px solid"
-      borderColor="whiteAlpha.200"
+      borderColor={SEMANTIC_COLORS.borderMedium}
     >
       <HStack>
         <HStack>
           <Image src={logo} w="20px" h="20px" />
-          <Text variant="value" textTransform="unset">
+          <Text textTransform="unset" fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary}>
             {label}
           </Text>
         </HStack>
 
-        <Badge fontSize="10px" colorScheme={colors.summaryScheme}>
+        <Badge fontSize={TYPOGRAPHY.label} colorScheme={colors.summaryScheme}>
           {badge}
         </Badge>
-        <Text variant="value" textTransform="unset">
+        <Text textTransform="unset" fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
           with {premium}% premium
         </Text>
       </HStack>
       <HStack>
-        <Text>{num(amount).abs().toString()}</Text>
+        <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary}>
+          {num(amount).abs().toString()}
+        </Text>
       </HStack>
     </HStack>
   </Stack>

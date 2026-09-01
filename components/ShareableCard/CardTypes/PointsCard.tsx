@@ -8,6 +8,16 @@ interface PointsCardProps {
     cardRef?: React.RefObject<HTMLDivElement>
 }
 
+// Format points
+const formatPoints = (points: number): string => {
+    if (points >= 1000000) {
+        return `${(points / 1000000).toFixed(2)}M`
+    } else if (points >= 1000) {
+        return `${(points / 1000).toFixed(2)}K`
+    }
+    return points.toFixed(0)
+}
+
 /**
  * Points/leaderboard achievement card for sharing
  * Displays rank, total points, level, and progress
@@ -35,16 +45,6 @@ export const PointsCard: React.FC<PointsCardProps> = ({ data, cardRef }) => {
     }
 
     const rankTier = getRankTier()
-
-    // Format points
-    const formatPoints = (points: number): string => {
-        if (points >= 1000000) {
-            return `${(points / 1000000).toFixed(2)}M`
-        } else if (points >= 1000) {
-            return `${(points / 1000).toFixed(2)}K`
-        }
-        return points.toFixed(0)
-    }
 
     return (
         <ShareableCard title="LEADERBOARD STATUS" subtitle="Points & Ranking" cardRef={cardRef}>

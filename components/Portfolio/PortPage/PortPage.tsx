@@ -9,12 +9,14 @@ import {
     useBreakpointValue,
 } from '@chakra-ui/react'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { BoostBreakdown } from '@/components/Manic/BoostBreakdown'
 import { RevenuePerSecond } from './RevenuePerSecond'
 import { RevenueChart } from './RevenueChart'
 import { BoostLevelBar } from './BoostLevelBar'
 import { ContributionMeter } from './ContributionMeter'
-import { TransmuterLockdropInfo } from './TransmuterLockdropInfo'
+import { AcquisitionInfo } from './AcquisitionInfo'
 import { ActionReward, useActionReward } from './ActionReward'
 import { AirdropEvent, useAirdropEvent } from './AirdropEvent'
 import usePortState from '@/persisted-state/usePortState'
@@ -45,7 +47,7 @@ export const PortPage: React.FC = () => {
         if (!portState.sessionStartTime) {
             setPortState({ sessionStartTime: Date.now() })
         }
-    }, []) // Only run once on mount
+    }, [portState.sessionStartTime, setPortState]) // guard makes this set-once; setPortState is a stable zustand action
 
     // Update revenue tracking
     useEffect(() => {
@@ -56,7 +58,7 @@ export const PortPage: React.FC = () => {
             prevLifetimeRevenueRef.current = metrics.totalRevenue
             setPortState({ lifetimeRevenue: metrics.totalRevenue })
         }
-    }, [metrics?.totalRevenue, setPortState])
+    }, [metrics, setPortState])
 
     // Check for airdrop on page load
     useEffect(() => {
@@ -65,7 +67,9 @@ export const PortPage: React.FC = () => {
         }, 2000) // Check after 2 seconds
 
         return () => clearTimeout(timer)
-    }, []) // Only run once on mount
+        // Intentionally mount-only: checkAirdrop is a non-memoized fn from useAirdropEvent,
+        // so adding it would re-arm this 2s timer every render and it would never fire.
+    }, [])
 
     // =====================
     // DITTO INTEGRATION
@@ -79,10 +83,10 @@ export const PortPage: React.FC = () => {
         return Math.floor(diff / (1000 * 60 * 60 * 24))
     }, [portState.lastVisitTime])
     
-    // Ditto page integration
-    const ditto = useDittoPage({
-        contract: portfolioContract,
-        facts: {
+    // Memoized so the facts object identity is stable across renders; it feeds Hook
+    // deps inside useDittoPage (prevFacts effect + shortcut filtering). Recomputes
+    // only when an input value changes, preserving the same values as before.
+    const dittoFacts = useMemo(() => ({
             // Aggregate facts
             totalValue: metrics?.totalRevenue || 0,
             totalEarnings: portState.lifetimeRevenue || 0,
@@ -101,7 +105,7 @@ export const PortPage: React.FC = () => {
             discoBoost: 1,
             
             // Transmuter position (would need actual data)
-            hasTransmuterLockdrop: false,
+            hasAcquisition: false,
             lockdropValue: 0,
             lockdropMBRN: 0,
             
@@ -120,7 +124,12 @@ export const PortPage: React.FC = () => {
             // Connection
             isConnected: !!address,
             hasAnyPosition: false, // Would check all positions
-        },
+    }), [metrics?.totalRevenue, portState.lifetimeRevenue, metrics?.dailyRevenue, claimEnabled, portState.lastVisitTime, daysSinceLastVisit, address])
+
+    // Ditto page integration
+    const ditto = useDittoPage({
+        contract: portfolioContract,
+        facts: dittoFacts,
         onShortcut: (shortcutId: string, action: string) => {
             switch (action) {
                 case 'claimAllRewards':
@@ -139,29 +148,28 @@ export const PortPage: React.FC = () => {
     // Update last visit time
     useEffect(() => {
         setPortState({ lastVisitTime: Date.now() })
-    }, [])
+    }, [setPortState])
 
     return (
-        <Container maxW="container.xl" py={8}>
-            <VStack spacing={8} align="stretch">
+        <Container maxW="container.xl" py={SPACING.xl}>
+            <VStack spacing={SPACING.xl} align="stretch">
                 {/* Header */}
                 <HStack justify="space-between" align="center">
                     <Box>
                         <Text
+                            as="h1"
                             fontSize={TYPOGRAPHY.h1}
                             fontWeight={TYPOGRAPHY.bold}
-                            color="white"
-                            fontFamily="mono"
-                            textTransform="uppercase"
-                            letterSpacing="wide"
-                            mb={2}
+                            color={SEMANTIC_COLORS.textPrimary}
+                            fontFamily={TYPOGRAPHY.fontDisplay}
+                            mb={SPACING.sm}
                         >
-                            PORTFOLIO
+                            Portfolio
                         </Text>
                         <Text
                             fontSize="sm"
-                            color="gray.400"
-                            fontFamily="mono"
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
                         >
                             Real-time revenue tracking and boost progression
                         </Text>
@@ -170,12 +178,13 @@ export const PortPage: React.FC = () => {
                 </HStack>
 
                 {/* Points Progress Card - Under the title, full width */}
-                <Box w="66%" mb={8} alignSelf="center">
+                <Box w="66%" mb={SPACING.xl} alignSelf="center">
                     <Text
-                        color="white"
-                        mt={2}
-                        mb={4}
-                        fontWeight="bold"
+                        color={SEMANTIC_COLORS.textPrimary}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        mt={SPACING.sm}
+                        mb={SPACING.base}
+                        fontWeight={TYPOGRAPHY.bold}
                         justifySelf="center"
                     >
                         Keep earning points towards HIGHER yield
@@ -184,7 +193,7 @@ export const PortPage: React.FC = () => {
                 </Box>
 
                 {/* Main Metrics Grid */}
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={SPACING.lg}>
                     <RevenuePerSecond alwaysShowBreakdown={isSideBySide} />
                     <BoostLevelBar />
                 </SimpleGrid>
@@ -192,8 +201,8 @@ export const PortPage: React.FC = () => {
                 {/* Revenue Chart */}
                 <RevenueChart />
 
-                {/* Transmuter Lockdrop Info */}
-                <TransmuterLockdropInfo />
+                {/* Acquisition Info */}
+                <AcquisitionInfo />
 
                 {/* Contribution Meter */}
                 {/* <ContributionMeter /> */}

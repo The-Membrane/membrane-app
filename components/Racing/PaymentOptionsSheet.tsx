@@ -36,6 +36,13 @@ interface PaymentOptionsSheetProps {
     lastUsedPaymentMethod?: { denom: string; amount: string } | null
     dropdownWidth?: 'full' | 'default'
     getActionForOption?: (option: PaymentOption) => any
+    /**
+     * Optional render-prop for the per-option action button. When provided it fully
+     * replaces the built-in ConfirmModal for each option — used when building the action
+     * requires a Hook per option (which must live inside a component, not a loop). Existing
+     * consumers that pass `getActionForOption` are unaffected.
+     */
+    renderOptionAction?: (option: PaymentOption) => React.ReactNode
 }
 
 const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
@@ -46,7 +53,8 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
     isLoading,
     lastUsedPaymentMethod,
     dropdownWidth = 'default',
-    getActionForOption
+    getActionForOption,
+    renderOptionAction
 }) => {
     const isMobile = useBreakpointValue({ base: true, md: false })
     const dropdownRef = useRef<HTMLDivElement>(null)
@@ -88,7 +96,7 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
 
         return (
             <Box
-                key={`${option.denom}-${option.amount}-${index}`}
+                key={`${option.denom}-${option.amount}`}
                 w="100%"
                 p={4}
                 bg={option.isAvailable ? '#1a1f2e' : '#0f141f'}
@@ -142,27 +150,32 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
                         </Text>
                     )}
 
-                    {/* ConfirmModal Button */}
-                    <ConfirmModal
-                        label={option.label}
-                        action={action}
-                        isDisabled={!option.isAvailable || isLoading}
-                        isLoading={isLoading}
-                        executeDirectly={true}
-                        buttonProps={{
-                            w: "100%",
-                            bg: option.isAvailable ? '#274bff' : '#1a1f2e',
-                            color: "white",
-                            _hover: option.isAvailable ? { bg: '#1a3bff' } : {},
-                            _active: option.isAvailable ? { bg: '#0f2bff' } : {},
-                            borderRadius: "md",
-                            size: "sm",
-                            fontFamily: '"Press Start 2P", monospace',
-                            fontSize: "10px",
-                            minH: "32px",
-                            cursor: option.isAvailable ? 'pointer' : 'not-allowed',
-                        }}
-                    />
+                    {/* Per-option action button: a render-prop child (which may own its
+                        own Hook) takes precedence; otherwise the built-in ConfirmModal. */}
+                    {renderOptionAction ? (
+                        renderOptionAction(option)
+                    ) : (
+                        <ConfirmModal
+                            label={option.label}
+                            action={action}
+                            isDisabled={!option.isAvailable || isLoading}
+                            isLoading={isLoading}
+                            executeDirectly={true}
+                            buttonProps={{
+                                w: "100%",
+                                bg: option.isAvailable ? '#274bff' : '#1a1f2e',
+                                color: "white",
+                                _hover: option.isAvailable ? { bg: '#1a3bff' } : {},
+                                _active: option.isAvailable ? { bg: '#0f2bff' } : {},
+                                borderRadius: "md",
+                                size: "sm",
+                                fontFamily: '"Press Start 2P", monospace',
+                                fontSize: "10px",
+                                minH: "32px",
+                                cursor: option.isAvailable ? 'pointer' : 'not-allowed',
+                            }}
+                        />
+                    )}
                 </VStack>
             </Box>
         )
@@ -209,7 +222,7 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
                     <DrawerBody p={4}>
                         <VStack spacing={3} align="stretch">
                             {paymentOptions.map((option, index) => (
-                                <React.Fragment key={index}>
+                                <React.Fragment key={`${option.denom}-${option.amount}`}>
                                     {renderOption(option, index)}
                                     {index < paymentOptions.length - 1 && (
                                         <Divider borderColor="#1d2333" />
@@ -245,7 +258,7 @@ const PaymentOptionsSheet: React.FC<PaymentOptionsSheetProps> = ({
                 >
                     <HStack spacing={3} align="stretch" justify="center">
                         {paymentOptions.map((option, index) => (
-                            <React.Fragment key={index}>
+                            <React.Fragment key={`${option.denom}-${option.amount}`}>
                                 <Box minW="200px" flex="0 0 auto">
                                     {renderOption(option, index)}
                                 </Box>

@@ -1,7 +1,11 @@
 import React from 'react'
 import { Box, Button, Text, VStack, HStack, Icon } from '@chakra-ui/react'
 import { Lock, Unlock } from 'lucide-react'
-import { levels, Level } from '@/components/Home/CyberpunkHome'
+import { levels, Level } from '@/components/Home/CyberpunkLevelsData'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { SPACING } from '@/config/spacing'
 
 interface ControlPanelProps {
     selectedLevel: number | null
@@ -11,18 +15,24 @@ interface ControlPanelProps {
 export const ControlPanel: React.FC<ControlPanelProps> = ({ selectedLevel, onLevelClick }) => {
     return (
         <Box
-            bgGradient="linear(to-br, #6943FF10, #0A0A0A)"
-            border="2px solid"
-            borderColor="#6943FF"
-            borderRadius="md"
-            p={6}
-            boxShadow="0 0 30px #6943FF30"
+            bg={SEMANTIC_COLORS.bgSecondary}
+            border="1px solid"
+            borderColor={SEMANTIC_COLORS.borderSubtle}
+            borderRadius={0}
+            p={SPACING.lg}
             flex={1}
             display="flex"
             flexDirection="column"
         >
-            <Text color="#F5F5F5" fontSize="xl" letterSpacing="wider" mb={6}>
-                CONTROL PANEL
+            <Text
+                fontFamily="mono"
+                fontSize={TYPOGRAPHY.label}
+                textTransform="uppercase"
+                letterSpacing="0.28em"
+                color={SEMANTIC_COLORS.textSecondary}
+                mb={6}
+            >
+                Control Panel
             </Text>
 
             {/* Level Buttons */}
@@ -34,55 +44,51 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ selectedLevel, onLev
                         isDisabled={level.status === 'locked'}
                         w="100%"
                         p={4}
-                        border="2px solid"
-                        borderRadius="md"
-                        transition="all 0.3s"
+                        border="1px solid"
+                        borderRadius={0}
+                        transition={TRANSITIONS.colors}
                         bg={
                             selectedLevel === level.id
-                                ? `linear-gradient(to right, ${level.color}30, ${level.color}20)`
+                                ? SEMANTIC_COLORS.bgTertiary
                                 : 'transparent'
                         }
                         borderColor={
                             selectedLevel === level.id
-                                ? '#3BE5E5'
+                                ? SEMANTIC_COLORS.info
                                 : level.status === 'locked'
-                                    ? '#8A8A8A30'
-                                    : '#6943FF50'
+                                    ? SEMANTIC_COLORS.borderSubtle
+                                    : SEMANTIC_COLORS.borderStrong
                         }
                         opacity={level.status === 'locked' ? 0.5 : 1}
                         cursor={level.status === 'locked' ? 'not-allowed' : 'pointer'}
                         _hover={
                             level.status === 'unlocked'
                                 ? {
-                                      borderColor: '#A692FF',
-                                      bg: '#6943FF10',
+                                      borderColor: SEMANTIC_COLORS.borderStrong,
+                                      bg: SEMANTIC_COLORS.bgTertiary,
                                   }
                                 : {}
                         }
-                        boxShadow={
-                            selectedLevel === level.id && level.status === 'unlocked'
-                                ? `0 0 20px ${level.color}`
-                                : 'none'
-                        }
+                        _focus={FOCUS_STYLES.ring}
                     >
                         <HStack spacing={2} w="100%">
                             <Icon
                                 as={level.status === 'unlocked' ? Unlock : Lock}
                                 w={4}
                                 h={4}
-                                color={level.status === 'unlocked' ? level.color : '#8A8A8A'}
+                                color={level.status === 'unlocked' ? level.color : SEMANTIC_COLORS.textSecondary}
                             />
                             <VStack align="start" spacing={0}>
                                 <Text
                                     letterSpacing="wider"
-                                    color={level.status === 'unlocked' ? level.color : '#8A8A8A'}
+                                    color={level.status === 'unlocked' ? level.color : SEMANTIC_COLORS.textSecondary}
                                 >
                                     {level.name}
                                 </Text>
                                 {level.subtitle && (
                                     <Text
                                         fontSize="xs"
-                                        color="#8A8A8A"
+                                        color={SEMANTIC_COLORS.textSecondary}
                                         letterSpacing="wide"
                                     >
                                         {level.subtitle}
@@ -96,4 +102,3 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ selectedLevel, onLev
         </Box>
     )
 }
-

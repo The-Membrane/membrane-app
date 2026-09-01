@@ -29,6 +29,12 @@ export const useLiveFeeAuction = () => {
   })
 }
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['live fee auction'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+  queryClient.invalidateQueries({ queryKey: ['msg auction swap'] })
+}
+
 /**
  * Fee-auction buy CTA.
  *
@@ -74,12 +80,6 @@ export const useAuction = () => {
     },
     enabled: !!address && !!auctionAddr && !!cdtAddr && !!cdt && !!denom,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['live fee auction'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-    queryClient.invalidateQueries({ queryKey: ['msg auction swap'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

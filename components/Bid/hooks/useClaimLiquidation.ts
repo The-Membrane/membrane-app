@@ -12,6 +12,18 @@ import { getContractAddress } from '@/config/evm/contracts'
 import { assetKey, getUserBids } from '@/services/chain/liquidation'
 import { getPublicClient } from '@/services/chain/client'
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })
+  queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
+  queryClient.invalidateQueries({ queryKey: ['user bids'] })
+  queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+  //Reset points queries
+  queryClient.invalidateQueries({ queryKey: ['all users points'] })
+  queryClient.invalidateQueries({ queryKey: ['one users points'] })
+  queryClient.invalidateQueries({ queryKey: ['one users level'] })
+
+}
+
 const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsResponse | undefined, run: boolean) => {
   const { address, chain } = useWallet()
   const claimKeys = claims.map((claim) => claim.bid_for)
@@ -29,22 +41,24 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
       // LiqQueue.claimLiquidations(asset, bidIds) needs the user's bid ids, which the
       // service reconstructs from BidSubmitted events.
       const client = getPublicClient()
-      const calls: EvmCall[] = []
-      for (const claim of claims) {
-        if (!num(claim.pending_liquidated_collateral).gt(0)) continue
-        const asset = assetKey(claim.bid_for)
-        const bids = await getUserBids(client, asset, address)
-        const bidIds = (bids ?? [])
-          .filter((b) => b.pendingLiquidatedCollateral > 0n)
-          .map((b) => b.id)
-        if (bidIds.length === 0) continue
-        calls.push({
-          address: liqQueue,
-          abi: liqQueueAbi,
-          functionName: 'claimLiquidations',
-          args: [asset, bidIds],
-        })
-      }
+      // Each claim queries an independent asset's user bids — fan out, then keep the
+      // resolved calls in claim order (Promise.all preserves map order).
+      const maybeCalls = await Promise.all(
+        claims.map(async (claim): Promise<EvmCall | null> => {
+          if (!num(claim.pending_liquidated_collateral).gt(0)) return null
+          const asset = assetKey(claim.bid_for)
+          const bids = await getUserBids(client, asset, address)
+          const bidIds = (bids ?? []).flatMap((b) => (b.pendingLiquidatedCollateral > 0n ? [b.id] : []))
+          if (bidIds.length === 0) return null
+          return {
+            address: liqQueue,
+            abi: liqQueueAbi,
+            functionName: 'claimLiquidations',
+            args: [asset, bidIds],
+          }
+        }),
+      )
+      const calls: EvmCall[] = maybeCalls.filter((c): c is EvmCall => c !== null)
 
       // TODO(evm-migration): sp_claims dropped — the Solidity port has no stability pool
       // (LiquidationEngine/LtvDisco replace it by design). Points bracketing (checkClaims/
@@ -55,18 +69,6 @@ const useClaimLiquidation = (claims: ClaimsResponse[] = [], sp_claims: SPClaimsR
     },
     enabled: !!address,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })
-    queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
-    queryClient.invalidateQueries({ queryKey: ['user bids'] })
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-    //Reset points queries
-    queryClient.invalidateQueries({ queryKey: ['all users points'] })
-    queryClient.invalidateQueries({ queryKey: ['one users points'] })
-    queryClient.invalidateQueries({ queryKey: ['one users level'] })
-
-  }
 
   return {
     action: useSimulateAndBroadcast({

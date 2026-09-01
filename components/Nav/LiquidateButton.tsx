@@ -30,7 +30,7 @@ function LiquidateButton({ enabled, setEnabled }: { enabled: boolean, setEnabled
                 }
             }, 7000);
         }
-    }, [liquidateDisabled, enabled]);
+    }, [liquidateDisabled, enabled, setEnabled]);
 
     return (
         <Stack gap="1">

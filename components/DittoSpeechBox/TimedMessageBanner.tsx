@@ -4,6 +4,9 @@ import { keyframes } from '@emotion/react'
 import { CloseIcon } from '@chakra-ui/icons'
 import { m, AnimatePresence } from 'framer-motion'
 
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 const MotionBox = m(Box)
 
 const pulseKeyframes = keyframes`
@@ -37,15 +40,15 @@ export const TimedMessageBanner: React.FC<TimedMessageBannerProps> = ({
                     top={-12}
                     left="50%"
                     transform="translateX(-50%)"
-                    bg="#23252B"
+                    bg={SEMANTIC_COLORS.bgTertiary}
                     border="1px solid"
-                    borderColor="#9bdc4f60"
-                    borderRadius="full"
+                    borderColor={SEMANTIC_COLORS.borderStrong}
+                    borderRadius={0}
                     px={4}
                     py={2}
                     zIndex={10001}
                     maxW="280px"
-                    boxShadow="0 4px 12px rgba(0,0,0,0.3), 0 0 20px rgba(155, 220, 79, 0.2)"
+                    
                     animation={`${pulseKeyframes} 2s infinite`}
                     _before={{
                         content: '""',
@@ -57,13 +60,13 @@ export const TimedMessageBanner: React.FC<TimedMessageBannerProps> = ({
                         height: 0,
                         borderLeft: '6px solid transparent',
                         borderRight: '6px solid transparent',
-                        borderTop: '6px solid #23252B',
+                        borderTop: `6px solid ${SEMANTIC_COLORS.bgTertiary}`,
                     }}
                 >
                     <HStack spacing={2} align="center">
                         <Text
                             fontSize="xs"
-                            color="#ece6d8"
+                            color={SEMANTIC_COLORS.textPrimary}
                             fontWeight="medium"
                             whiteSpace="nowrap"
                             overflow="hidden"
@@ -76,8 +79,12 @@ export const TimedMessageBanner: React.FC<TimedMessageBannerProps> = ({
                             icon={<CloseIcon boxSize={2} />}
                             size="xs"
                             variant="ghost"
-                            color="#ece6d880"
-                            _hover={{ color: '#ece6d8', bg: 'transparent' }}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            transition={TRANSITIONS.colors}
+                                _hover={{ ...HOVER_EFFECTS.brighten, bg: 'transparent' }}
+                                _focus={FOCUS_STYLES.ring}
+                                _focusVisible={FOCUS_STYLES.ring}
+                                borderRadius={0}
                             onClick={onDismiss}
                             minW="auto"
                             h="auto"
@@ -119,14 +126,14 @@ export const TimedMessageInline: React.FC<TimedMessageBannerProps> = ({
                 >
                     <Box minH={0} overflow="hidden">
                     <Box
-                        bg="linear-gradient(135deg, #9bdc4f20 0%, #46d39a20 100%)"
+                        bg={SEMANTIC_COLORS.bgSecondary}
                         border="1px solid"
-                        borderColor="#9bdc4f40"
-                        borderRadius="md"
+                        borderColor={SEMANTIC_COLORS.borderSubtle}
+                        borderRadius={0}
                         p={3}
                     >
                         <HStack justify="space-between" align="flex-start">
-                            <Text fontSize="sm" color="#ece6d8" flex={1}>
+                            <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} flex={1}>
                                 {message}
                             </Text>
                             <IconButton
@@ -134,8 +141,12 @@ export const TimedMessageInline: React.FC<TimedMessageBannerProps> = ({
                                 icon={<CloseIcon boxSize={2} />}
                                 size="xs"
                                 variant="ghost"
-                                color="#ece6d880"
-                                _hover={{ color: '#ece6d8', bg: 'transparent' }}
+                                color={SEMANTIC_COLORS.textSecondary}
+                                transition={TRANSITIONS.colors}
+                                _hover={{ ...HOVER_EFFECTS.brighten, bg: 'transparent' }}
+                                _focus={FOCUS_STYLES.ring}
+                                _focusVisible={FOCUS_STYLES.ring}
+                                borderRadius={0}
                                 onClick={onDismiss}
                                 minW="auto"
                                 h="auto"

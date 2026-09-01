@@ -8,32 +8,32 @@ interface RevenueCardProps {
     cardRef?: React.RefObject<HTMLDivElement>
 }
 
+// Format revenue display
+const formatRevenue = (value: number): string => {
+    if (value >= 1000000) {
+        return `$${(value / 1000000).toFixed(2)}M`
+    } else if (value >= 1000) {
+        return `$${(value / 1000).toFixed(2)}K`
+    }
+    return `$${value.toFixed(2)}`
+}
+
+// Format milestone value
+const formatMilestone = (value: number): string => {
+    if (value >= 1000000) {
+        return `$${value / 1000000}M`
+    } else if (value >= 1000) {
+        return `$${value / 1000}K`
+    }
+    return `$${value}`
+}
+
 /**
  * Revenue achievement card for sharing
  * Displays lifetime revenue, milestones, and earnings rate
  */
 export const RevenueCard: React.FC<RevenueCardProps> = ({ data, cardRef }) => {
     const { totalRevenue = 0, revenuePerSecond = 0, milestones = [] } = data
-
-    // Format revenue display
-    const formatRevenue = (value: number): string => {
-        if (value >= 1000000) {
-            return `$${(value / 1000000).toFixed(2)}M`
-        } else if (value >= 1000) {
-            return `$${(value / 1000).toFixed(2)}K`
-        }
-        return `$${value.toFixed(2)}`
-    }
-
-    // Format milestone value
-    const formatMilestone = (value: number): string => {
-        if (value >= 1000000) {
-            return `$${value / 1000000}M`
-        } else if (value >= 1000) {
-            return `$${value / 1000}K`
-        }
-        return `$${value}`
-    }
 
     // Calculate progress to next milestone
     const achievedMilestones = milestones.filter((m) => m.achieved)

@@ -7,6 +7,95 @@ interface ComponentSelectorProps {
     onComponentSelect: (component: TrackComponent, x: number, y: number, rotation: number, mirrored: boolean) => void
 }
 
+const rotate90 = (layout: any[][]): any[][] => {
+    const height = layout.length
+    const width = layout[0]?.length ?? 0
+    const rotated: any[][] = []
+
+    for (let x = 0; x < width; x++) {
+        rotated[x] = []
+        for (let y = height - 1; y >= 0; y--) {
+            rotated[x][height - 1 - y] = layout[y][x]
+        }
+    }
+
+    return rotated
+}
+
+const mirrorHorizontal = (layout: any[][]): any[][] => {
+    return layout.map(row => row.slice().reverse())
+}
+
+const categories = [
+    { key: 'all', label: 'All Components' },
+    { key: 'corner', label: 'Corners' },
+    { key: 'straight', label: 'Straights' },
+    { key: 'obstacle', label: 'Obstacles' },
+    { key: 'power-up', label: 'Power-ups' },
+    { key: 'hazard', label: 'Hazards' },
+    { key: 'start-finish', label: 'Start/Finish' }
+]
+
+const renderComponentPreview = (component: TrackComponent, rot: number = 0, mirror: boolean = false) => {
+    const cellSize = 6
+    const maxWidth = 60
+    const maxHeight = 60
+
+    let displayLayout = component.layout
+
+    // Apply rotation
+    for (let i = 0; i < rot; i++) {
+        displayLayout = rotate90(displayLayout)
+    }
+
+    // Apply mirroring
+    if (mirror) {
+        displayLayout = mirrorHorizontal(displayLayout)
+    }
+
+    const scaleX = Math.min(maxWidth / component.width, maxHeight / component.height)
+    const scaleY = scaleX
+    const displayWidth = Math.floor(component.width * scaleX)
+    const displayHeight = Math.floor(component.height * scaleY)
+
+    return (
+        <Box
+            w={`${displayWidth}px`}
+            h={`${displayHeight}px`}
+            border="1px solid #2a3550"
+            bg="#0b0e17"
+            display="inline-block"
+        >
+            <Grid
+                templateColumns={`repeat(${displayLayout[0]?.length || 0}, ${cellSize}px)`}
+                gap="1px"
+                bg="#1d2333"
+                transform={`scale(${scaleX}, ${scaleY})`}
+                transformOrigin="top left"
+            >
+                {displayLayout.map((row, y) =>
+                    row.map((tile, x) => {
+                        const color = tile.blocks_movement ? '#0033ff'
+                            : tile.is_finish ? '#00ff00'
+                                : tile.is_start ? 'red'
+                                    : tile.skip_next_turn ? '#555555'
+                                        : tile.speed_modifier > 1 ? '#ffdd00'
+                                            : '#111111'
+                        return (
+                            <GridItem
+                                key={`${x}-${y}`}
+                                w={`${cellSize}px`}
+                                h={`${cellSize}px`}
+                                bg={color}
+                            />
+                        )
+                    })
+                )}
+            </Grid>
+        </Box>
+    )
+}
+
 const ComponentSelector: React.FC<ComponentSelectorProps> = ({ onComponentSelect }) => {
     const { isOpen, onOpen, onClose } = useDisclosure()
     const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -14,98 +103,9 @@ const ComponentSelector: React.FC<ComponentSelectorProps> = ({ onComponentSelect
     const [rotation, setRotation] = useState<number>(0)
     const [mirrored, setMirrored] = useState<boolean>(false)
 
-    const categories = [
-        { key: 'all', label: 'All Components' },
-        { key: 'corner', label: 'Corners' },
-        { key: 'straight', label: 'Straights' },
-        { key: 'obstacle', label: 'Obstacles' },
-        { key: 'power-up', label: 'Power-ups' },
-        { key: 'hazard', label: 'Hazards' },
-        { key: 'start-finish', label: 'Start/Finish' }
-    ]
-
     const filteredComponents = selectedCategory === 'all'
         ? trackComponents
         : trackComponents.filter(c => c.category === selectedCategory)
-
-    const renderComponentPreview = (component: TrackComponent, rot: number = 0, mirror: boolean = false) => {
-        const cellSize = 6
-        const maxWidth = 60
-        const maxHeight = 60
-
-        let displayLayout = component.layout
-
-        // Apply rotation
-        for (let i = 0; i < rot; i++) {
-            displayLayout = rotate90(displayLayout)
-        }
-
-        // Apply mirroring
-        if (mirror) {
-            displayLayout = mirrorHorizontal(displayLayout)
-        }
-
-        const scaleX = Math.min(maxWidth / component.width, maxHeight / component.height)
-        const scaleY = scaleX
-        const displayWidth = Math.floor(component.width * scaleX)
-        const displayHeight = Math.floor(component.height * scaleY)
-
-        return (
-            <Box
-                w={`${displayWidth}px`}
-                h={`${displayHeight}px`}
-                border="1px solid #2a3550"
-                bg="#0b0e17"
-                display="inline-block"
-            >
-                <Grid
-                    templateColumns={`repeat(${displayLayout[0]?.length || 0}, ${cellSize}px)`}
-                    gap="1px"
-                    bg="#1d2333"
-                    transform={`scale(${scaleX}, ${scaleY})`}
-                    transformOrigin="top left"
-                >
-                    {displayLayout.map((row, y) =>
-                        row.map((tile, x) => {
-                            const color = tile.blocks_movement ? '#0033ff'
-                                : tile.is_finish ? '#00ff00'
-                                    : tile.is_start ? 'red'
-                                        : tile.skip_next_turn ? '#555555'
-                                            : tile.speed_modifier > 1 ? '#ffdd00'
-                                                : '#111111'
-                            return (
-                                <GridItem
-                                    key={`${x}-${y}`}
-                                    w={`${cellSize}px`}
-                                    h={`${cellSize}px`}
-                                    bg={color}
-                                />
-                            )
-                        })
-                    )}
-                </Grid>
-            </Box>
-        )
-    }
-
-    const rotate90 = (layout: any[][]): any[][] => {
-        const height = layout.length
-        const width = layout[0]?.length ?? 0
-        const rotated: any[][] = []
-
-        for (let x = 0; x < width; x++) {
-            rotated[x] = []
-            for (let y = height - 1; y >= 0; y--) {
-                rotated[x][height - 1 - y] = layout[y][x]
-            }
-        }
-
-        return rotated
-    }
-
-    const mirrorHorizontal = (layout: any[][]): any[][] => {
-        return layout.map(row => row.slice().reverse())
-    }
 
     const handleComponentPlacement = () => {
         if (selectedComponent) {

@@ -25,6 +25,7 @@ export const NeutronHome = () => {
         onRetrievalSuccess,
     } = useNeutronHomeData()
 
+    // react-doctor(rerender-state-only-in-handlers) FP: feeds the aria-live region in the commented-out return (~L71). Keep useState so screen-reader updates re-render; useRef would break it on re-enable.
     const [liveAnnounce, setLiveAnnounce] = useState('')
     const [depositAmount, setDepositAmount] = useState<number>(10)
 

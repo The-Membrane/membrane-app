@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useManicData } from '@/hooks/useManic'
 import { useDiscoUserMetrics } from '@/hooks/useDiscoData'
@@ -10,6 +10,23 @@ export interface PageAction {
     description: string
     available: boolean
     type: 'deposit' | 'withdraw' | 'loop' | 'swap' | 'lock' | 'claim' | 'stake'
+}
+
+/**
+ * Validates that a PageAction has the minimum required fields (label and description)
+ * before it can be used in the suggestion -> confirmation flow.
+ */
+export const validatePageAction = (action: PageAction): { valid: boolean; errors: string[] } => {
+    const errors: string[] = []
+
+    if (!action.label || action.label.trim().length === 0) {
+        errors.push('Action title (label) is required')
+    }
+    if (!action.description || action.description.trim().length === 0) {
+        errors.push('Action description is required')
+    }
+
+    return { valid: errors.length === 0, errors }
 }
 
 interface PageActionsConfig {
@@ -149,12 +166,36 @@ export const usePageActions = () => {
         return "I can help you deposit"
     }, [availableActions])
 
+    /**
+     * Trigger a suggested action after validating it has title and description.
+     * Returns the validation result so the caller can handle errors.
+     */
+    const triggerSuggestedAction = useCallback((actionId: string): {
+        valid: boolean
+        action: PageAction | null
+        errors: string[]
+    } => {
+        const action = currentPageActions.find(a => a.id === actionId)
+        if (!action) {
+            return { valid: false, action: null, errors: ['Action not found'] }
+        }
+
+        const validation = validatePageAction(action)
+        if (!validation.valid) {
+            return { valid: false, action, errors: validation.errors }
+        }
+
+        return { valid: true, action, errors: [] }
+    }, [currentPageActions])
+
     return {
         actions: currentPageActions,
         availableActions,
         hasAvailableActions,
         actionTooltip,
         context,
+        triggerSuggestedAction,
+        validatePageAction,
     }
 }
 

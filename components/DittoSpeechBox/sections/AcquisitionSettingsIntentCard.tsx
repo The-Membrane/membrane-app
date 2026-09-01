@@ -18,6 +18,10 @@ import { useDiscoAssets } from '@/hooks/useDiscoData'
 import { getSlotLabel } from '@/components/Disco/types'
 import type { IntentConfig } from './AcquisitionSettingsTypes'
 
+import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 interface AcquisitionSettingsIntentCardProps {
     intent: IntentConfig
     index: number
@@ -42,14 +46,14 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
     // const boostPercent = ...
 
     return (
-        <Box p={3} bg="gray.800" borderRadius="md" border="1px solid" borderColor="gray.700">
+        <Box p={SPACING.md} bg={SEMANTIC_COLORS.bgSecondary} borderRadius={0} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
             <HStack justify="space-between" mb={2}>
                 <Checkbox
                     isChecked={intent.enabled}
                     onChange={() => toggleIntent(index)}
                     colorScheme="primary"
                 >
-                    <Text fontSize="xs" color="#ece6d8">
+                    <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary}>
                         {isStake && 'Stake MBRN'}
                         {isDeposit && 'Deposit to Disco'}
                         {isSend && 'Send to Address'}
@@ -69,7 +73,7 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                         >
                             <NumberInputField />
                         </NumberInput>
-                        <Text fontSize="xs" color="#ece6d880">%</Text>
+                        <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>%</Text>
                     </HStack>
                 )}
             </HStack>
@@ -80,10 +84,10 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                     {(isStake || isDeposit) && (
                         <Box>
                             <HStack justify="space-between" mb={2}>
-                                <Text fontSize="xs" color="#ece6d880">
+                                <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                     Lock Duration
                                 </Text>
-                                <Text fontSize="xs" color="primary.300" fontWeight="bold">
+                                <Text fontSize="xs" color={SEMANTIC_COLORS.primary} fontWeight="bold">
                                     {intent.lockDays} days
                                 </Text>
                             </HStack>
@@ -94,10 +98,17 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                                 max={365}
                                 step={1}
                             >
-                                <SliderTrack bg="#1A1D26" h="6px" borderRadius="full">
-                                    <SliderFilledTrack bg="primary.400" />
+                                <SliderTrack bg={SEMANTIC_COLORS.bgSecondary} h="6px" borderRadius={0}>
+                                    <SliderFilledTrack bg={SEMANTIC_COLORS.primary} />
                                 </SliderTrack>
-                                <SliderThumb boxSize={4} bg="primary.400" border="2px solid" borderColor="white" />
+                                <SliderThumb
+                                    boxSize={4}
+                                    bg={SEMANTIC_COLORS.primary}
+                                    border="2px solid"
+                                    borderColor={SEMANTIC_COLORS.bgPrimary}
+                                    _focus={FOCUS_STYLES.ring}
+                                    _focusVisible={FOCUS_STYLES.ring}
+                                />
                             </Slider>
                         </Box>
                     )}
@@ -106,14 +117,14 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                     {isDeposit && (
                         <>
                             <Box>
-                                <Text fontSize="xs" color="#ece6d880" mb={1}>
+                                <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                     Asset
                                 </Text>
                                 <Select
                                     size="xs"
                                     value={intent.asset || ''}
                                     onChange={(e) => updateIntent(index, { asset: e.target.value })}
-                                    bg="#1A1D26"
+                                    bg={SEMANTIC_COLORS.bgSecondary}
                                     borderColor="#9bdc4f30"
                                 >
                                     <option value="">Select asset</option>
@@ -125,14 +136,14 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                                 </Select>
                             </Box>
                             <Box>
-                                <Text fontSize="xs" color="#ece6d880" mb={1}>
+                                <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                     Insurance Slot
                                 </Text>
                                 <Select
                                     size="xs"
                                     value={intent.slot || 5}
                                     onChange={(e) => updateIntent(index, { slot: parseInt(e.target.value) })}
-                                    bg="#1A1D26"
+                                    bg={SEMANTIC_COLORS.bgSecondary}
                                     borderColor="#9bdc4f30"
                                 >
                                     {[90, 85, 80, 75, 70, 65, 60, 55, 50].map((slot) => (
@@ -148,7 +159,7 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                     {/* Send-specific fields */}
                     {isSend && (
                         <Box>
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                 Address
                             </Text>
                             <Input
@@ -156,7 +167,7 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                                 value={intent.address || ''}
                                 onChange={(e) => updateIntent(index, { address: e.target.value })}
                                 placeholder="osmo1..."
-                                bg="#1A1D26"
+                                bg={SEMANTIC_COLORS.bgSecondary}
                                 borderColor="#9bdc4f30"
                             />
                         </Box>

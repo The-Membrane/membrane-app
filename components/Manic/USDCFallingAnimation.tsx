@@ -1,10 +1,22 @@
 import React from 'react'
 import { Box, Image } from '@chakra-ui/react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 
 interface USDCFallingAnimationProps {
     isAnimating: boolean
     onAnimationComplete?: () => void
+}
+
+const GLOW_STYLE: React.CSSProperties = {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    transform: 'translate(-50%, -50%)',
+    width: '60px',
+    height: '60px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(0, 191, 255, 0.6) 0%, rgba(0, 191, 255, 0) 70%)',
+    filter: 'blur(10px)'
 }
 
 export const USDCFallingAnimation: React.FC<USDCFallingAnimationProps> = ({
@@ -24,7 +36,7 @@ export const USDCFallingAnimation: React.FC<USDCFallingAnimationProps> = ({
                     zIndex={10}
                 >
                     {/* Falling USDC token */}
-                    <motion.div
+                    <m.div
                         initial={{
                             x: '50%',
                             y: '60%',
@@ -67,10 +79,10 @@ export const USDCFallingAnimation: React.FC<USDCFallingAnimationProps> = ({
                             height="100%"
                             filter="drop-shadow(0 0 10px rgba(0, 191, 255, 0.8))"
                         />
-                    </motion.div>
+                    </m.div>
 
                     {/* Glow effect */}
-                    <motion.div
+                    <m.div
                         initial={{
                             x: '50%',
                             y: '60%',
@@ -87,17 +99,7 @@ export const USDCFallingAnimation: React.FC<USDCFallingAnimationProps> = ({
                             duration: 1.5,
                             ease: [0.16, 1, 0.3, 1]
                         }}
-                        style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            transform: 'translate(-50%, -50%)',
-                            width: '60px',
-                            height: '60px',
-                            borderRadius: '50%',
-                            background: 'radial-gradient(circle, rgba(0, 191, 255, 0.6) 0%, rgba(0, 191, 255, 0) 70%)',
-                            filter: 'blur(10px)'
-                        }}
+                        style={GLOW_STYLE}
                     />
                 </Box>
             )}

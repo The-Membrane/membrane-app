@@ -118,7 +118,7 @@ import useAppState from '@/persisted-state/useAppState'
 // }
 
 
-const ActSlider = React.memo(() => {
+const ActSlider = React.memo(function ActSlider() {
   const { earnState, setEarnState } = useEarnState()
   const { chainName } = useChainRoute()
   const { data: vaultInfo } = useVaultInfo()
@@ -134,13 +134,11 @@ const ActSlider = React.memo(() => {
   const { action: earn } = useEarn()
 
   //Find exit fee ratio (i.e. fee of 1% = 0.99)
-  const exitFeeRatio = useMemo(() => {
-    return 1
-    // if (!basket) return 0
-    // const pegRatio = num(cdtPrice).dividedBy(basket?.credit_price.price)
-    // const exitFee = pegRatio > num(0.99) ? pegRatio.minus(0.99) : 0
-    // return num(1).minus(exitFee)
-  }, [cdtPrice, basket])
+  const exitFeeRatio = 1
+  // if (!basket) return 0
+  // const pegRatio = num(cdtPrice).dividedBy(basket?.credit_price.price)
+  // const exitFee = pegRatio > num(0.99) ? pegRatio.minus(0.99) : 0
+  // return num(1).minus(exitFee)
 
   //Set withdraw slider max to the total USDC deposit, not the looped VT deposit
   const { data } = useUSDCVaultTokenUnderlying(shiftDigits(earnUSDCBalance, 6).toFixed(0))
@@ -267,7 +265,7 @@ const Deposit = () => {
   const userTVL = useMemo(() => {
     if (underlyingUSDC == "0" || !usdcPrice || !usdcAsset) return 0
     return (shiftDigits(underlyingUSDC, -(usdcAsset?.decimal)).toNumber() * usdcPrice).toFixed(2)
-  }, [underlyingUSDC, usdcPrice])
+  }, [underlyingUSDC, usdcPrice, usdcAsset])
 
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -318,18 +316,18 @@ const Deposit = () => {
 
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>Who is the Yield?</Text>
               <Text variant="body" mb={1}>
-                This vault <a style={{ fontWeight: "bold", color: colors.textHighlight }}>supplies USDC on Mars Protocol</a> and loops it by collateralizing the Mars position to mint CDT,
+                This vault <span style={{ fontWeight: "bold", color: colors.textHighlight }}>supplies USDC on Mars Protocol</span> and loops it by collateralizing the Mars position to mint CDT,
                 swap it for USDC & deposit it back to the Mars USDC market. The Mars USDC market only distributes yield as borrowers repay so even if the APR is 100%, this Manic vault earns nothing until Mars borrowers repay.
-                Due to this, we can't offer a recommended deposit time to recoup the entry fee.
+                Due to this, we can&apos;t offer a recommended deposit time to recoup the entry fee.
               </Text>
-              <Text variant="body" mb={1}> The vault's collateral position is open for <a style={{ fontWeight: "bold", color: colors.textHighlight }}>profitable debt redemptions</a> that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT's peg tight.</Text>
-              <Text variant="body" mb={1}>On top of that, there is a <a style={{ fontWeight: "bold", color: colors.textHighlight }}>0.5% entry fee</a> that is pure profit. The "catch" is that this is a yield cushion because depositors <a style={{ fontWeight: "bold", color: colors.textHighlight }}>are responsible for their unlooping costs</a>.
+              <Text variant="body" mb={1}> The vault&apos;s collateral position is open for <span style={{ fontWeight: "bold", color: colors.textHighlight }}>profitable debt redemptions</span> that act as downside liquidity for CDT which adds additional yield to depositors while keeping CDT&apos;s peg tight.</Text>
+              <Text variant="body" mb={1}>On top of that, there is a <span style={{ fontWeight: "bold", color: colors.textHighlight }}>0.5% entry fee</span> that is pure profit. The &quot;catch&quot; is that this is a yield cushion because depositors <span style={{ fontWeight: "bold", color: colors.textHighlight }}>are responsible for their unlooping costs</span>.
                 So if you decide to unloop at a bad conversion rate, above 99%, you will lose some capital on the trade out, on top of slippage (max: 0.5%).
               </Text>
               <Text variant="title" fontSize={"md"} letterSpacing={"1px"} mb={1} textDecoration={"underline"}>{'\n'} Why does my TVL fluctuate?</Text>
-              <Text variant="body" mb={1}>Your TVL represents a portion of the vault's TVL. The vault's TVL may temporary decrease as <a style={{ fontWeight: "bold", color: colors.textHighlight }}>it takes $1 of CDT in protocol debt and sells it on the market</a>,
-                the lowest conversion rate being $0.99. This difference will be recouped as the vault's CDP position gets redeemed against & from the entry fee of any deposits.
-                Redemptions can be profitable if our loop conversion rate is above 99% & at least even at the 99% floor. This makes any TVL fluctuations temporary & part of the vault's normal functionality.
+              <Text variant="body" mb={1}>Your TVL represents a portion of the vault&apos;s TVL. The vault&apos;s TVL may temporary decrease as <span style={{ fontWeight: "bold", color: colors.textHighlight }}>it takes $1 of CDT in protocol debt and sells it on the market</span>,
+                the lowest conversion rate being $0.99. This difference will be recouped as the vault&apos;s CDP position gets redeemed against & from the entry fee of any deposits.
+                Redemptions can be profitable if our loop conversion rate is above 99% & at least even at the 99% floor. This makes any TVL fluctuations temporary & part of the vault&apos;s normal functionality.
               </Text>
             </Card>
           </Stack>

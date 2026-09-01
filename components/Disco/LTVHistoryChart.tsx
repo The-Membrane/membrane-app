@@ -143,7 +143,7 @@ export const LTVHistoryChart: React.FC<LTVHistoryChartProps> = ({ asset, assetSy
     )
 
     // Process raw chart data
-    const rawChartData = useMemo(() => {
+    const rawChartData = useMemo<{ timestamp: number; deposits: number }[]>(() => {
         if (!dailyDepositsToUse || dailyDepositsToUse.length === 0) return []
 
         return dailyDepositsToUse.map((entry: any) => {

@@ -1,5 +1,8 @@
 import React from 'react'
 import { Box, HStack, Button } from '@chakra-ui/react'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
 
 interface BoostActionBarProps {
     hasSelection: boolean
@@ -22,54 +25,53 @@ export const BoostActionBar: React.FC<BoostActionBarProps> = ({
             bottom={0}
             left={0}
             right={0}
-            bg="#23252B"
+            bg={SEMANTIC_COLORS.bgSecondary}
             borderTop="1px solid"
-            borderColor={hasSelection ? '#9F7AEA' : '#9bdc4f30'}
-            pt={3}
-            px={1}
-            pb={hasSelection ? 3 : 1}
-            transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
-            boxShadow={hasSelection ? '0 -4px 20px rgba(159, 122, 234, 0.3)' : 'none'}
+            borderColor={hasSelection ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.borderSubtle}
+            pt={SPACING.md}
+            px={SPACING.xs}
+            pb={hasSelection ? SPACING.md : SPACING.xs}
+            transition={TRANSITIONS.colors}
             zIndex={10}
         >
-            <HStack spacing={2} w="100%">
+            <HStack spacing={SPACING.sm} w="100%">
                 <Button
                     size="sm"
                     variant="outline"
-                    borderColor={hasSelection ? 'primary.400' : '#9bdc4f30'}
-                    color={hasSelection ? 'primary.300' : '#ece6d850'}
+                    borderRadius={0}
+                    borderColor={hasSelection ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.borderSubtle}
+                    color={hasSelection ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.textTertiary}
                     onClick={onDeposit}
                     isDisabled={!hasSelection}
-                    _hover={hasSelection ? {
-                        bg: '#9bdc4f20',
-                        boxShadow: '0 0 10px rgba(159, 122, 234, 0.3)',
-                    } : {}}
+                    transition={TRANSITIONS.colors}
+                    _hover={hasSelection ? { borderColor: SEMANTIC_COLORS.primary } : {}}
+                    _active={ACTIVE_EFFECTS.dim}
+                    _focus={FOCUS_STYLES.ring}
                     _disabled={{
                         opacity: 0.5,
                         cursor: 'not-allowed',
                     }}
                     flex={1}
-                    transition="all 0.2s"
                 >
                     Deposit
                 </Button>
                 <Button
                     size="sm"
                     variant="outline"
-                    borderColor={hasSelection && !isLocked ? 'secondary.400' : '#9bdc4f30'}
-                    color={hasSelection && !isLocked ? 'secondary.300' : '#ece6d850'}
+                    borderRadius={0}
+                    borderColor={hasSelection && !isLocked ? SEMANTIC_COLORS.secondary : SEMANTIC_COLORS.borderSubtle}
+                    color={hasSelection && !isLocked ? SEMANTIC_COLORS.secondary : SEMANTIC_COLORS.textTertiary}
                     onClick={onWithdraw}
                     isDisabled={!hasSelection || isLocked}
-                    _hover={hasSelection && !isLocked ? {
-                        bg: '#38B2AC20',
-                        boxShadow: '0 0 10px rgba(56, 178, 172, 0.3)',
-                    } : {}}
+                    transition={TRANSITIONS.colors}
+                    _hover={hasSelection && !isLocked ? { borderColor: SEMANTIC_COLORS.secondary } : {}}
+                    _active={ACTIVE_EFFECTS.dim}
+                    _focus={FOCUS_STYLES.ringCyan}
                     _disabled={{
                         opacity: 0.5,
                         cursor: 'not-allowed',
                     }}
                     flex={1}
-                    transition="all 0.2s"
                     title={isLocked ? 'Cannot withdraw locked deposits' : ''}
                 >
                     Withdraw
@@ -77,20 +79,20 @@ export const BoostActionBar: React.FC<BoostActionBarProps> = ({
                 <Button
                     size="sm"
                     variant="outline"
-                    borderColor={hasSelection ? 'blue.400' : '#9bdc4f30'}
-                    color={hasSelection ? 'blue.300' : '#ece6d850'}
+                    borderRadius={0}
+                    borderColor={hasSelection ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.borderSubtle}
+                    color={hasSelection ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.textTertiary}
                     onClick={onEditLock}
                     isDisabled={!hasSelection}
-                    _hover={hasSelection ? {
-                        bg: '#4299E120',
-                        boxShadow: '0 0 10px rgba(66, 153, 225, 0.3)',
-                    } : {}}
+                    transition={TRANSITIONS.colors}
+                    _hover={hasSelection ? { borderColor: SEMANTIC_COLORS.warning } : {}}
+                    _active={ACTIVE_EFFECTS.dim}
+                    _focus={FOCUS_STYLES.ring}
                     _disabled={{
                         opacity: 0.5,
                         cursor: 'not-allowed',
                     }}
                     flex={1}
-                    transition="all 0.2s"
                 >
                     Extend
                 </Button>

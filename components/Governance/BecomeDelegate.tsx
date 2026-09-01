@@ -19,6 +19,15 @@ import { useForm } from 'react-hook-form'
 
 type Props = {}
 
+const onSubmit = (values: unknown) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      alert(JSON.stringify(values, null, 2))
+      resolve(true)
+    }, 3000)
+  })
+}
+
 export const TextField = ({ register, errors, name }: any) => {
   return (
     <FormControl isInvalid={!!errors?.[name]}>
@@ -55,15 +64,6 @@ const BecomeDelegate = (props: Props) => {
       msgs: {},
     },
   })
-
-  const onSubmit = (values: unknown) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        alert(JSON.stringify(values, null, 2))
-        resolve(true)
-      }, 3000)
-    })
-  }
 
   const onModalClose = () => {
     reset()

@@ -106,7 +106,7 @@ export const useNeutronHomeData = () => {
         })
         setTotalDebtCdt(d => d + amountCdt)
         _deployPulse(venueId, amountCdt)
-    }, [])
+    }, [_deployPulse])
 
     const onRetrievalSuccess = useCallback((venueId: string, amountCdt: number) => {
         setDeployedTo(prev => {
@@ -118,7 +118,7 @@ export const useNeutronHomeData = () => {
         })
         setTotalDebtCdt(d => Math.max(0, d - amountCdt))
         _retrievalPulse(venueId, amountCdt)
-    }, [])
+    }, [_retrievalPulse])
 
     return {
         healthPercent,

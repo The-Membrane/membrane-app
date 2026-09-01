@@ -3,6 +3,9 @@ import { Box, Text, VStack } from '@chakra-ui/react'
 import { lazyChart } from '@/components/ui/lazyChart'
 import { ChartDataPoint } from '@/services/manic'
 
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 interface ProfitChartProps {
     data: ChartDataPoint[]
     isLoading?: boolean
@@ -20,31 +23,31 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         const date = new Date(data.timestamp * 1000)
         return (
             <Box
-                bg="#23252B"
+                bg={SEMANTIC_COLORS.bgTertiary}
                 border="1px solid"
-                borderColor="secondary.500"
-                borderRadius="md"
-                p={2}
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+                borderRadius={0}
+                p={SPACING.sm}
                 fontSize="xs"
             >
-                <Text color="secondary.400" fontWeight="bold" mb={1}>
+                <Text color={SEMANTIC_COLORS.info} fontWeight="bold" mb={1}>
                     {date.toLocaleDateString()} {date.toLocaleTimeString()}
                 </Text>
-                <Text color="#ece6d8">
+                <Text color={SEMANTIC_COLORS.textPrimary}>
                     Profit: ${data.profit.toFixed(2)}
                 </Text>
                 {data.apr !== undefined && (
-                    <Text color="green.400" fontSize="xs">
+                    <Text color={SEMANTIC_COLORS.success} fontSize="xs">
                         APR: {data.apr.toFixed(2)}%
                     </Text>
                 )}
                 {data.collateralValue !== undefined && (
-                    <Text color="#ece6d880" fontSize="xs">
+                    <Text color={SEMANTIC_COLORS.textSecondary} fontSize="xs">
                         Collateral: ${data.collateralValue.toFixed(2)}
                     </Text>
                 )}
                 {data.debt !== undefined && (
-                    <Text color="#ece6d880" fontSize="xs">
+                    <Text color={SEMANTIC_COLORS.textSecondary} fontSize="xs">
                         Debt: ${data.debt.toFixed(2)}
                     </Text>
                 )}
@@ -64,13 +67,13 @@ const ProfitLineChart = lazyChart<{ data: ChartDataPoint[] }>(
                         <XAxis
                             dataKey="timestamp"
                             tickFormatter={formatDate}
-                            tick={{ fontSize: 10, fill: '#ece6d880' }}
+                            tick={{ fontSize: 10, fill: SEMANTIC_COLORS.textSecondary }}
                             axisLine={{ stroke: '#9bdc4f40' }}
                             tickLine={{ stroke: '#9bdc4f40' }}
                         />
                         <YAxis
                             tickFormatter={(value) => `$${value.toFixed(0)}`}
-                            tick={{ fontSize: 10, fill: '#ece6d880' }}
+                            tick={{ fontSize: 10, fill: SEMANTIC_COLORS.textSecondary }}
                             axisLine={{ stroke: '#9bdc4f40' }}
                             tickLine={{ stroke: '#9bdc4f40' }}
                         />
@@ -78,10 +81,10 @@ const ProfitLineChart = lazyChart<{ data: ChartDataPoint[] }>(
                         <Line
                             type="monotone"
                             dataKey="profit"
-                            stroke="#00BFFF"
+                            stroke={SEMANTIC_COLORS.info}
                             strokeWidth={2}
                             dot={false}
-                            activeDot={{ r: 4, fill: '#00BFFF' }}
+                            activeDot={{ r: 4, fill: SEMANTIC_COLORS.info }}
                         />
                     </LineChart>
                 </ResponsiveContainer>
@@ -94,7 +97,7 @@ export const ProfitChart: React.FC<ProfitChartProps> = ({ data, isLoading }) => 
     if (isLoading) {
         return (
             <Box h="200px" display="flex" alignItems="center" justifyContent="center">
-                <Text color="#ece6d880" fontSize="sm">
+                <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm">
                     Loading chart data...
                 </Text>
             </Box>
@@ -105,10 +108,10 @@ export const ProfitChart: React.FC<ProfitChartProps> = ({ data, isLoading }) => 
         return (
             <Box h="200px" display="flex" alignItems="center" justifyContent="center">
                 <VStack spacing={2}>
-                    <Text color="#ece6d880" fontSize="sm">
+                    <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm">
                         No profit data available
                     </Text>
-                    <Text color="#ece6d840" fontSize="xs">
+                    <Text color={SEMANTIC_COLORS.textTertiary} fontSize="xs">
                         Start looping to see your profit over time
                     </Text>
                 </VStack>

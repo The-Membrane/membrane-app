@@ -7,6 +7,11 @@ import useAppState from '@/persisted-state/useAppState'
 import { shiftDigits } from '@/helpers/math'
 import { getSlotLabel } from '@/components/Disco/types'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 interface DiscoDepositFormProps {
     deposit: {
         asset: string
@@ -126,40 +131,60 @@ export const DiscoDepositForm: React.FC<DiscoDepositFormProps> = ({
     }, [amount, slotQueueData.data, revenueData.data])
 
     return (
-        <VStack spacing={4} align="stretch">
+        <VStack spacing={SPACING.base} align="stretch">
             {/* Section Details Display */}
             <Box
-                bg="rgba(155, 220, 79, 0.1)"
-                p={3}
-                borderRadius="md"
+                bg={SEMANTIC_COLORS.bgTertiary}
+                p={SPACING.md}
+                borderRadius={0}
                 border="1px solid"
-                borderColor="rgba(155, 220, 79, 0.25)"
+                borderColor={SEMANTIC_COLORS.borderSubtle}
             >
                 <Text
-                    fontSize="sm"
-                    fontWeight="bold"
-                    color="rgb(155, 220, 79)"
-                    fontFamily="mono"
-                    letterSpacing="1px"
-                    mb={2}
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.label}
+                    fontWeight={TYPOGRAPHY.bold}
+                    color={SEMANTIC_COLORS.textSecondary}
+                    letterSpacing="0.28em"
+                    mb={SPACING.sm}
                     textTransform="uppercase"
                 >
                     Slot Details
                 </Text>
-                <VStack spacing={1.5} align="stretch">
+                <VStack spacing={SPACING.sm} align="stretch">
                     <HStack justify="space-between">
-                        <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono">
+                        <Text
+                            fontSize={TYPOGRAPHY.xs}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                        >
                             Risk Slot
                         </Text>
-                        <Text fontSize="xs" fontWeight="bold" color="rgb(155, 220, 79)" fontFamily="mono">
+                        <Text
+                            fontSize={TYPOGRAPHY.xs}
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={SEMANTIC_COLORS.textPrimary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
                             {deposit.slot ? `Slot ${getSlotLabel(deposit.slot || 0)}` : 'N/A'}
                         </Text>
                     </HStack>
                     <HStack justify="space-between">
-                        <Text fontSize="xs" color="whiteAlpha.600" fontFamily="mono">
+                        <Text
+                            fontSize={TYPOGRAPHY.xs}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                        >
                             APR
                         </Text>
-                        <Text fontSize="xs" fontWeight="bold" color={deposit.apr ? "secondary.400" : "whiteAlpha.500"} fontFamily="mono">
+                        <Text
+                            fontSize={TYPOGRAPHY.xs}
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={deposit.apr ? SEMANTIC_COLORS.info : SEMANTIC_COLORS.textTertiary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
                             {deposit.apr ? `${deposit.apr.toFixed(2)}%` : 'N/A'}
                         </Text>
                     </HStack>
@@ -168,25 +193,30 @@ export const DiscoDepositForm: React.FC<DiscoDepositFormProps> = ({
 
             {/* Amount Input */}
             <Box>
-                <HStack justify="space-between" mb={2}>
+                <HStack justify="space-between" mb={SPACING.sm}>
                     <Text
-                        fontSize="xs"
-                        color="whiteAlpha.600"
-                        fontFamily="mono"
-                        letterSpacing="0.5px"
+                        fontSize={TYPOGRAPHY.label}
+                        color={SEMANTIC_COLORS.textSecondary}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        textTransform="uppercase"
+                        letterSpacing="0.28em"
                     >
                         Amount (MBRN)
                     </Text>
                     <Text
-                        fontSize="xs"
-                        color="rgb(155, 220, 79)"
-                        fontFamily="mono"
-                        letterSpacing="0.5px"
+                        as="button"
+                        type="button"
+                        fontSize={TYPOGRAPHY.xs}
+                        color={SEMANTIC_COLORS.primary}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        letterSpacing="0.05em"
                         cursor="pointer"
-                        _hover={{
-                            color: 'rgb(186, 166, 255)',
-                            textDecoration: 'underline'
-                        }}
+                        aria-label="Use full wallet balance"
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={{ textDecoration: 'underline' }}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                         onClick={handleMaxClick}
                     >
                         Wallet: {parseFloat(walletBalanceMBRN || '0').toLocaleString('en-US')}
@@ -199,17 +229,18 @@ export const DiscoDepositForm: React.FC<DiscoDepositFormProps> = ({
                     max={parseFloat(walletBalanceMBRN || '0')}
                 >
                     <NumberInputField
-                        bg="rgba(10, 10, 10, 0.8)"
+                        bg={SEMANTIC_COLORS.bgSecondary}
                         border="1px solid"
-                        borderColor="rgba(155, 220, 79, 0.25)"
-                        color="white"
-                        fontFamily="mono"
-                        fontSize="sm"
-                        _hover={{ borderColor: 'rgba(155, 220, 79, 0.4)' }}
-                        _focus={{
-                            borderColor: 'rgb(155, 220, 79)',
-                            boxShadow: '0 0 0 1px rgba(155, 220, 79, 0.25)'
-                        }}
+                        borderRadius={0}
+                        borderColor={SEMANTIC_COLORS.borderSubtle}
+                        color={SEMANTIC_COLORS.textPrimary}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.small}
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={HOVER_EFFECTS.borderHighlight}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                         placeholder="0.00"
                         autoFocus
                     />
@@ -217,29 +248,32 @@ export const DiscoDepositForm: React.FC<DiscoDepositFormProps> = ({
             </Box>
 
             {/* Revenue per Day and Action Buttons */}
-            <VStack spacing={2} align="stretch">
+            <VStack spacing={SPACING.sm} align="stretch">
                 <Text
-                    fontSize="xs"
-                    color={revenuePerDay > 0 ? "green.400" : "whiteAlpha.400"}
-                    fontFamily="mono"
-                    letterSpacing="0.5px"
+                    fontSize={TYPOGRAPHY.xs}
+                    color={revenuePerDay > 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textTertiary}
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    letterSpacing="0.05em"
                     textAlign="center"
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
                 >
                     +{revenuePerDay.toFixed(4)} CDT/day
                 </Text>
-                <HStack spacing={2}>
+                <HStack spacing={SPACING.sm}>
                     <Button
                         flex={1}
                         size="sm"
                         variant="outline"
-                        borderColor="rgba(155, 220, 79, 0.25)"
-                        color="whiteAlpha.700"
-                        fontFamily="mono"
-                        fontSize="xs"
-                        _hover={{
-                            borderColor: 'rgb(155, 220, 79)',
-                            color: 'white'
-                        }}
+                        borderRadius={0}
+                        borderColor={SEMANTIC_COLORS.borderSubtle}
+                        color={SEMANTIC_COLORS.textSecondary}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.xs}
+                        transition={TRANSITIONS.colors}
+                        _hover={HOVER_EFFECTS.borderHighlight}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                         onClick={onCancel}
                     >
                         Cancel
@@ -247,15 +281,17 @@ export const DiscoDepositForm: React.FC<DiscoDepositFormProps> = ({
                     <Button
                         flex={1}
                         size="sm"
-                        bg="rgb(155, 220, 79)"
-                        color="white"
-                        fontFamily="mono"
-                        fontSize="xs"
-                        fontWeight="bold"
-                        _hover={{
-                            bg: 'rgb(186, 166, 255)',
-                            boxShadow: '0 0 15px rgba(155, 220, 79, 0.4)'
-                        }}
+                        borderRadius={0}
+                        bg={SEMANTIC_COLORS.primary}
+                        color={SEMANTIC_COLORS.bgPrimary}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.xs}
+                        fontWeight={TYPOGRAPHY.bold}
+                        transition={TRANSITIONS.colors}
+                        _hover={HOVER_EFFECTS.borderHighlight}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                         isDisabled={!amount || parseFloat(amount) <= 0}
                         onClick={handleSubmit}
                     >

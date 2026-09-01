@@ -69,27 +69,28 @@ type Props = {
 }
 
 export const ClaimSummary = ({ claims = [] }: Props) => {
+  // Hoisted out of the .map below: route info is the same for every claim, and a Hook
+  // must not be called inside a loop/callback (Rules of Hooks).
+  const { chainName } = useChainRoute()
   return (
     <Stack h="max-content" overflow="auto" w="full">
-      {claims
-        .filter((a) => num(a.amount).isGreaterThan(0))
-        .map((claim) => {
-          const { chainName } = useChainRoute()
-          const asset = getAssetByDenom(claim.denom, chainName)
-          const amount = shiftDigits(
-            claim.amount,
-            -asset?.decimal!,
-          ).toNumber()
-          return (
-            <SummaryItem
-              key={claim.denom}
-              label={asset?.symbol!}
-              amount={amount}
-              badge="Claim"
-              asset={asset}
-            />
-          )
-        })}
+      {claims.flatMap((claim) => {
+        if (!num(claim.amount).isGreaterThan(0)) return []
+        const asset = getAssetByDenom(claim.denom, chainName)
+        const amount = shiftDigits(
+          claim.amount,
+          -asset?.decimal!,
+        ).toNumber()
+        return [
+          <SummaryItem
+            key={claim.denom}
+            label={asset?.symbol!}
+            amount={amount}
+            badge="Claim"
+            asset={asset}
+          />,
+        ]
+      })}
     </Stack>
   )
 }

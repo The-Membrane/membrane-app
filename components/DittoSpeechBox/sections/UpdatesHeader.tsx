@@ -2,6 +2,8 @@ import React from 'react'
 import { HStack, Text, Button, Icon, Badge } from '@chakra-ui/react'
 import { Check } from 'lucide-react'
 
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 interface UpdatesHeaderProps {
     unreadCount: number
     markAllAsRead: () => void
@@ -11,7 +13,7 @@ export const UpdatesHeader: React.FC<UpdatesHeaderProps> = ({ unreadCount, markA
     return (
         <HStack justify="space-between" align="center" mb={1}>
             <HStack spacing={2}>
-                <Text fontSize="sm" fontWeight="bold" color="#ece6d8">
+                <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary}>
                     Updates
                 </Text>
                 {unreadCount > 0 && (
@@ -29,10 +31,10 @@ export const UpdatesHeader: React.FC<UpdatesHeaderProps> = ({ unreadCount, markA
                 <Button
                     size="xs"
                     variant="ghost"
-                    color="#ece6d880"
+                    color={SEMANTIC_COLORS.textSecondary}
                     leftIcon={<Icon as={Check} w={3} h={3} />}
                     onClick={markAllAsRead}
-                    _hover={{ color: '#ece6d8', bg: '#9bdc4f20' }}
+                    _hover={{ color: SEMANTIC_COLORS.textPrimary, bg: '#9bdc4f20' }}
                 >
                     Mark all read
                 </Button>

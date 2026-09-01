@@ -15,6 +15,12 @@ type Props = {
  * Was a seam bypass (built its own SigningCosmWasmClient); now builds an
  * EvmCall[] fed through the standard simulate → broadcast pipeline.
  */
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['proposal'] })
+  queryClient.invalidateQueries({ queryKey: ['user voting power'] })
+  queryClient.invalidateQueries({ queryKey: ['proposals'] })
+}
+
 const useRemoveProposal = ({ proposalId }: Props) => {
   const { address, chain } = useWallet()
 
@@ -34,12 +40,6 @@ const useRemoveProposal = ({ proposalId }: Props) => {
     },
     enabled: !!address && !!proposalId,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['proposal'] })
-    queryClient.invalidateQueries({ queryKey: ['user voting power'] })
-    queryClient.invalidateQueries({ queryKey: ['proposals'] })
-  }
 
   return useSimulateAndBroadcast({
     msgs,

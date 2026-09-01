@@ -12,6 +12,11 @@ type UseUnstake = {
   amount: string
 }
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['staked'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 /** Mark deposits for unbonding. EVM rewire (was StakingMsgComposer.unstake). */
 const useUnstake = ({ amount }: UseUnstake) => {
   const { address, chain } = useWallet()
@@ -35,11 +40,6 @@ const useUnstake = ({ amount }: UseUnstake) => {
     },
     enabled: !!address && !!mbrnAsset && !!stakingAddr && Number(amount) > 0,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   const { simulate, tx } = useSimulateAndBroadcast({
     msgs: unstakeMsgs,

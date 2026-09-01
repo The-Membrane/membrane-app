@@ -30,7 +30,7 @@ function ClaimButton({ enabled, setEnabled }: { enabled: boolean, setEnabled: an
                 }
             }, 7000);
         }
-    }, [claimsDisabled, enabled]);
+    }, [claimsDisabled, enabled, setEnabled]);
 
     return (
         <Stack gap="1" alignSelf="flex-start">

@@ -57,6 +57,10 @@ export const useIdleGains = () => {
         })
 
         hasCheckedRef.current = true
+        // Intentionally minimal deps. This is an init-once effect gated by hasCheckedRef,
+        // and lastSessionTime/lastSessionRevenue are WRITTEN by this effect via setPortState.
+        // Adding them (or setPortState) as deps would be self-referential; the ref-latch
+        // makes any re-run a no-op, so we keep the deliberate metrics-only trigger.
     }, [metrics?.totalRevenue]) // Only depend on metrics, not portState
 
     const closeModal = () => {

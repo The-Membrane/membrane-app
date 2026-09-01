@@ -5,7 +5,7 @@ import { queryClient } from '@/pages/_app'
 import useClaimLiquidation from '@/components/Bid/hooks/useClaimLiquidation'
 import { useStakingClaim } from '@/components/Stake/hooks/useStakingClaim'
 import useStaked from '@/components/Stake/hooks/useStaked'
-import { getTimeLeft } from '@/components/Stake/Unstaking'
+import { getTimeLeft } from '@/components/Stake/unstakingUtils'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useMemo } from 'react'
 import { num } from '@/helpers/num'
@@ -54,6 +54,14 @@ const emptySummary = (): ClaimsSummary => ({
   staking: [],
   vesting: [],
 })
+
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['protocol_claim_sim'] })
+  queryClient.invalidateQueries({ queryKey: ['msg_all_protocol_claims'] })
+  queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })
+  queryClient.invalidateQueries({ queryKey: ['staked'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
 
 const useProtocolClaims = ({ run }: { run: boolean }) => {
   const { address, chain } = useWallet()
@@ -166,14 +174,6 @@ const useProtocolClaims = ({ run }: { run: boolean }) => {
     if (!queryData) return { msgs: [] as EvmCall[], claims: emptySummary() }
     return queryData
   }, [queryData])
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['protocol_claim_sim'] })
-    queryClient.invalidateQueries({ queryKey: ['msg_all_protocol_claims'] })
-    queryClient.invalidateQueries({ queryKey: ['liquidation claims'] })
-    queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   // Transform claim summary to a single list of Coin, aggregating same-denom entries.
   const claims_summ = Object.values(queryClaimsSummary).reduce(

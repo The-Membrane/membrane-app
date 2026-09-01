@@ -4,6 +4,10 @@ import { ChevronDown } from 'lucide-react'
 import { useBoostBreakdown } from '@/components/Manic/hooks/useBoostBreakdown'
 import { num } from '@/helpers/num'
 import { useDittoSpeechBox } from './hooks/useDittoSpeechBox'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 export const BoostBadge: React.FC = () => {
     const { data: breakdown } = useBoostBreakdown()
@@ -17,36 +21,48 @@ export const BoostBadge: React.FC = () => {
         openSection('boost')
     }
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleClick()
+        }
+    }
+
     return (
         <Box
             cursor="pointer"
-            px={2}
-            py={1}
+            role="button"
+            tabIndex={0}
+            aria-label="Open boost breakdown"
+            px={SPACING.sm}
+            py={SPACING.xs}
             border="1px solid"
-            borderColor="primary.400"
-            borderRadius="md"
-            bg="gray.800"
+            borderColor={SEMANTIC_COLORS.primary}
+            borderRadius={0}
+            bg={SEMANTIC_COLORS.bgSecondary}
             onClick={handleClick}
+            onKeyDown={handleKeyDown}
             _hover={{
-                borderColor: 'primary.300',
-                boxShadow: '0 0 10px rgba(155, 220, 79, 0.2)',
+                borderColor: SEMANTIC_COLORS.primary,
             }}
-            transition="all 0.2s"
+            _focus={FOCUS_STYLES.ring}
+            transition={TRANSITIONS.colors}
         >
-            <HStack spacing={1}>
+            <HStack spacing={SPACING.xs}>
                 <Text
                     fontSize="xs"
                     fontWeight="bold"
                     bgGradient="linear(to-r, primary.400, secondary.400)"
                     bgClip="text"
-                    fontFamily="mono"
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
                 >
                     {boostPercent}%
                 </Text>
-                <Text fontSize="xs" color="gray.400" fontFamily="mono" textTransform="uppercase">
+                <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono} textTransform="uppercase">
                     BOOST
                 </Text>
-                <Icon as={ChevronDown} w={3} h={3} color="gray.400" />
+                <Icon as={ChevronDown} w={3} h={3} color={SEMANTIC_COLORS.textSecondary} />
             </HStack>
         </Box>
     )

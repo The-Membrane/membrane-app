@@ -11,12 +11,14 @@ type Props = {
     currentBid: any, 
     auctionEndTime: number
 }
-const NFTBid = React.memo(({ currentBid, auctionEndTime }: Props) => {
+const NFTBid = React.memo(function NFTBid({ currentBid, auctionEndTime }: Props) {
     const conclude = useConcludeAuction()
 
-    const currentTime = dayjs()
     const [remainingTime, setremainingTime] = useState(0)
     useEffect(() => {
+        // dayjs() is captured inside the effect (runs on mount / when auctionEndTime
+        // changes) rather than at render, so there is no unstable `currentTime` dep.
+        const currentTime = dayjs()
         const endTime = dayjs.unix(auctionEndTime)
         setremainingTime(endTime.diff(currentTime, 'second'))
 

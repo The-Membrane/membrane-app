@@ -1,6 +1,7 @@
 import React from 'react'
 import { Box, BoxProps } from '@chakra-ui/react'
-import { TRANSITIONS, HOVER_EFFECTS } from '@/config/transitions'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 export interface CardProps extends BoxProps {
   /**
@@ -37,51 +38,87 @@ export interface CardProps extends BoxProps {
  * </Card>
  * ```
  */
+// Living Typeface: sharp corners, bone hairline borders, near-black card surface.
+// No rounded corners, no glass blur, no drop shadow.
+const variants = {
+  default: {
+    bg: SEMANTIC_COLORS.bgSecondary,
+    borderRadius: 0,
+    p: 6,
+    border: '1px solid',
+    borderColor: SEMANTIC_COLORS.borderMedium,
+  },
+  elevated: {
+    bg: SEMANTIC_COLORS.bgSecondary,
+    borderRadius: 0,
+    p: 6,
+    border: '1px solid',
+    borderColor: SEMANTIC_COLORS.borderStrong,
+  },
+  subtle: {
+    bg: SEMANTIC_COLORS.bgSecondary,
+    borderRadius: 0,
+    p: 6,
+    border: '1px solid',
+    borderColor: SEMANTIC_COLORS.borderSubtle,
+  },
+}
+
 export const Card: React.FC<CardProps> = ({
   children,
   variant = 'default',
   interactive = false,
   ...props
 }) => {
-  const variants = {
-    default: {
-      bg: 'rgba(10, 10, 10, 0.8)',
-      borderRadius: '24px',
-      p: 6,
-      border: '1px solid',
-      borderColor: 'rgba(255, 255, 255, 0.2)',
-    },
-    elevated: {
-      bg: 'rgba(10, 10, 10, 0.95)',
-      borderRadius: '24px',
-      p: 6,
-      border: '1px solid',
-      borderColor: 'rgba(255, 255, 255, 0.3)',
-      boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)',
-    },
-    subtle: {
-      bg: 'rgba(10, 10, 10, 0.6)',
-      borderRadius: '24px',
-      p: 6,
-      border: '1px solid',
-      borderColor: 'rgba(255, 255, 255, 0.1)',
-    },
-  }
+  const { onClick, onKeyDown } = props
 
-  // Add interactive styles if card is clickable
+  // Keyboard activation for interactive cards. A clickable Card is a real
+  // control, so it must be reachable and operable from the keyboard — Enter
+  // and Space fire the same onClick a mouse would.
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      onKeyDown?.(event)
+      if (event.defaultPrevented) return
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      event.preventDefault()
+      onClick?.(event as unknown as React.MouseEvent<HTMLDivElement>)
+    },
+    [onClick, onKeyDown]
+  )
+
+  // Add interactive styles if card is clickable — Living Typeface: hairline
+  // brightens on hover, slight dim on press, crisp phosphor outline on focus.
+  // No scale, no lift, no glow.
   const interactiveStyles = interactive
     ? {
         cursor: 'pointer',
-        transition: TRANSITIONS.transformAndShadow,
-        _hover: HOVER_EFFECTS.scale,
+        transition: TRANSITIONS.colors,
+        _hover: HOVER_EFFECTS.borderHighlight,
         _active: {
-          transform: 'scale(0.98)',
+          opacity: 0.9,
         },
+        _focus: FOCUS_STYLES.ring,
+        _focusVisible: FOCUS_STYLES.ring,
       }
     : {}
 
+  // Only a Card that actually handles a click gets button semantics.
+  const keyboardProps =
+    interactive && onClick
+      ? {
+          role: 'button' as const,
+          tabIndex: 0,
+        }
+      : {}
+
   return (
-    <Box {...variants[variant]} {...interactiveStyles} {...props}>
+    <Box
+      {...variants[variant]}
+      {...interactiveStyles}
+      {...keyboardProps}
+      {...props}
+      onKeyDown={interactive && onClick ? handleKeyDown : onKeyDown}
+    >
       {children}
     </Box>
   )

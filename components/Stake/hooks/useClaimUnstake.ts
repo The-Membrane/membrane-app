@@ -7,6 +7,11 @@ import type { EvmCall } from '@/services/chain/types'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/router'
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['staked'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 /**
  * Withdraw matured unbonding deposits. EVM rewire: the CosmWasm flow re-sent
  * `unstake({ mbrnAmount: '0' })` to finalize; Staking.sol splits mark/finalize, so the
@@ -42,11 +47,6 @@ export const useClaimUnstake = ({
     },
     enabled: !!address && !!stakingAddr,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

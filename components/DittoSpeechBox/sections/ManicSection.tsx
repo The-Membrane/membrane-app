@@ -12,6 +12,11 @@ import { DepositCard, WithdrawCard } from '@/components/Manic/DepositModal'
 import useManicDeposit from '@/components/Manic/hooks/useManicDeposit'
 import useManicWithdraw from '@/components/Manic/hooks/useManicWithdraw'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 const handleNavigate = () => {
     // router.push(`/${chainName}/manic`)
 }
@@ -177,10 +182,10 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                     <HStack spacing={4} align="flex-start" wrap="wrap" justifyContent={"center"}>
 
                         <VStack>
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                 TVL
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="#ece6d8" mb={3}>
+                            <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary} mb={3}>
                                 {tvl > 0 ? `${tvl.toFixed(2)} USDC` : '—'}
                             </Text>
                         </VStack>
@@ -188,36 +193,36 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                         {/* {hasPosition && usdcPosition && (
                             <>
                                 <Box flex={1}>
-                                    <Text fontSize="xs" color="#ece6d880" mb={1}>
+                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                         Collateral
                                     </Text>
-                                    <Text fontSize="sm" color="#ece6d8">
+                                    <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary}>
                                         {usdcPosition.collateralAmount.toFixed(2)} USDC
                                     </Text>
                                 </Box>
                                 <Box flex={1}>
-                                    <Text fontSize="xs" color="#ece6d880" mb={1}>
+                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                         Debt
                                     </Text>
-                                    <Text fontSize="sm" color="#ece6d8">
+                                    <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary}>
                                         {usdcPosition.debtAmount.toFixed(2)} USDC
                                     </Text>
                                 </Box>
                             </>
                         )} */}
                         <VStack >
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                 Current APR
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="secondary.400">
+                            <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.info}>
                                 {aprMetrics.userAPR.toFixed(2)}%
                             </Text>
                         </VStack>
                         <VStack >
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                 Avg Historical APR
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="green.400">
+                            <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.success}>
                                 {averageHistoricalAPR?.toFixed(2) || '—'}%
                             </Text>
                         </VStack>
@@ -246,7 +251,7 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                         <Box key="normal-view" mb={4}>
                             {!hideCharts && (
                                 <Box mt={4}>
-                                    <Text fontSize="xs" color="#ece6d880" mb={2}>
+                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={2}>
                                         Profit Over Time
                                     </Text>
                                     <ProfitChart data={profitData || []} isLoading={isLoadingProfit} />
@@ -259,8 +264,15 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                                 <Button
                                     size="sm"
                                     // colorScheme="secondary"
-                                    // bg="secondary.500"
-                                    color="white"
+                                    // bg={SEMANTIC_COLORS.info}
+                                    color={SEMANTIC_COLORS.textPrimary}
+                                    borderRadius={0}
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={HOVER_EFFECTS.borderHighlight}
+                                    _active={ACTIVE_EFFECTS.dim}
+                                    _focus={FOCUS_STYLES.ring}
+                                    _focusVisible={FOCUS_STYLES.ring}
                                     onClick={handleDepositClick}
                                 >
                                     Deposit
@@ -269,8 +281,15 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                                     <Button
                                         size="sm"
                                         // colorScheme="secondary"
-                                        // bg="secondary.500"
-                                        color="white"
+                                        // bg={SEMANTIC_COLORS.info}
+                                        color={SEMANTIC_COLORS.textPrimary}
+                                        borderRadius={0}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        transition={TRANSITIONS.colors}
+                                        _hover={HOVER_EFFECTS.borderHighlight}
+                                        _active={ACTIVE_EFFECTS.dim}
+                                        _focus={FOCUS_STYLES.ring}
+                                        _focusVisible={FOCUS_STYLES.ring}
                                         onClick={handleWithdrawClick}
                                     >
                                         Withdraw
@@ -278,8 +297,15 @@ export const ManicSection: React.FC<SectionComponentProps & { tabIndex?: number;
                                     <Button
                                         size="sm"
                                         // colorScheme="secondary"
-                                        // bg="secondary.500"
-                                        color="white"
+                                        // bg={SEMANTIC_COLORS.info}
+                                        color={SEMANTIC_COLORS.textPrimary}
+                                        borderRadius={0}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        transition={TRANSITIONS.colors}
+                                        _hover={HOVER_EFFECTS.borderHighlight}
+                                        _active={ACTIVE_EFFECTS.dim}
+                                        _focus={FOCUS_STYLES.ring}
+                                        _focusVisible={FOCUS_STYLES.ring}
                                         onClick={handleLoop}
                                     // isLoading={isLooping || fulfillIntent?.tx?.isPending}
                                     // isDisabled={!fulfillIntent?.simulate?.data || isLooping}

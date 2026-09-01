@@ -4,7 +4,10 @@ import { SectionInfoCard } from './SectionInfoCard'
 import { SlotSelector } from './SlotSelector'
 import { EpochRevenueCard } from './EpochRevenueCard'
 import { DiscoPageAssetMenu } from './DiscoPageAssetMenu'
-import { PRIMARY_PURPLE } from './DiscoPageConstants'
+import { PRIMARY_PURPLE, PHOSPHOR } from './DiscoPageConstants'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TRANSITIONS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import type { DiscoPageState } from './hooks/useDiscoPage'
 
 interface DiscoPageGlobalSectionProps {
@@ -93,15 +96,19 @@ export const DiscoPageGlobalSection: React.FC<DiscoPageGlobalSectionProps> = ({
                         <Button
                             w="100%"
                             size="md"
-                            bg="#7A5CCE"
-                            color="white"
-                            fontFamily="mono"
+                            // Was bg="#7A5CCE" — a banned purple — hue-jumping to a raw-hex
+                            // green on hover with a glow. Now a phosphor fill with page-dark
+                            // ink, and an opacity-step hover instead of a glow.
+                            bg={PHOSPHOR}
+                            color={SEMANTIC_COLORS.bgPrimary}
+                            borderRadius={0}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             fontSize="sm"
                             fontWeight="bold"
-                            _hover={{
-                                bg: '#7ab534',
-                                boxShadow: '0 0 15px rgba(155, 220, 79, 0.4)'
-                            }}
+                            transition={TRANSITIONS.colors}
+                            _hover={{ opacity: 0.8 }}
+                            _active={ACTIVE_EFFECTS.dim}
+                            _focusVisible={FOCUS_STYLES.ring}
                             onClick={() => setDepositModalSlot(selectedSlot)}
                         >
                             Insure to Earn

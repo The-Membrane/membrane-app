@@ -9,8 +9,11 @@ import {
     Button,
     IconButton
 } from '@chakra-ui/react'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useChainRoute } from '@/hooks/useChainRoute'
@@ -50,6 +53,13 @@ export const DepositCard: React.FC<DepositCardProps> = ({
         setAmount(usdcBalance.toString())
     }
 
+    const handleMaxKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleMaxClick()
+        }
+    }
+
     const handleDeposit = () => {
         if (amount && parseFloat(amount) > 0) {
             onDeposit(amount)
@@ -62,7 +72,7 @@ export const DepositCard: React.FC<DepositCardProps> = ({
     const usdValue = num(amount || 0).times(usdcPrice).toFixed(2)
 
     return (
-        <motion.div
+        <m.div
             key="deposit-card"
             initial={{ opacity: 0, scale: inline ? 1 : 0.3 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -81,68 +91,100 @@ export const DepositCard: React.FC<DepositCardProps> = ({
             }}
         >
             <Box
-                bg="gray.800"
-                border="2px solid"
-                borderColor="cyan.500"
-                borderRadius="xl"
-                boxShadow="0 0 40px rgba(0, 191, 255, 0.3)"
-                p={6}
+                bg={SEMANTIC_COLORS.bgSecondary}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderStrong}
+                borderRadius={0}
+                p={SPACING.lg}
                 position="relative"
             >
                 {/* Close button */}
-                <Box position="absolute" top={4} right={4} width="15%" display="flex" justifyContent="flex-end">
+                <Box position="absolute" top={SPACING.base} right={SPACING.base} width="15%" display="flex" justifyContent="flex-end">
                     <IconButton
                         aria-label="Close"
                         icon={<CloseIcon />}
                         size="sm"
                         variant="ghost"
-                        color="white"
+                        color={SEMANTIC_COLORS.textSecondary}
                         onClick={onClose}
-                        _hover={{ bg: 'gray.700' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={HOVER_EFFECTS.brighten}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
                     />
                 </Box>
 
-                <VStack spacing={6} align="stretch">
+                <VStack spacing={SPACING.lg} align="stretch">
                     {/* Header */}
                     <Text
                         fontSize={TYPOGRAPHY.h3}
                         fontWeight={TYPOGRAPHY.bold}
-                        bgGradient="linear(to-r, cyan.400, blue.500)"
-                        bgClip="text"
-                        fontFamily="mono"
+                        color={SEMANTIC_COLORS.textPrimary}
+                        fontFamily={TYPOGRAPHY.fontDisplay}
                     >
                         Deposit USDC
                     </Text>
 
                     {/* Amount input section */}
-                    <Box w="100%" bg="#11161e" borderRadius="lg" p={5}>
+                    <Box
+                        w="100%"
+                        bg={SEMANTIC_COLORS.bgTertiary}
+                        border="1px solid"
+                        borderColor={SEMANTIC_COLORS.borderSubtle}
+                        borderRadius={0}
+                        p={SPACING.base}
+                    >
                         <HStack justify="space-between" align="flex-start" w="100%">
-                            <VStack align="flex-start" spacing={1} flex={1}>
-                                <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium">
+                            <VStack align="flex-start" spacing={SPACING.xs} flex={1}>
+                                <Text
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    fontSize={TYPOGRAPHY.label}
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    fontWeight={TYPOGRAPHY.medium}
+                                    textTransform="uppercase"
+                                    letterSpacing="0.28em"
+                                >
                                     Deposit Amount
                                 </Text>
                                 <Input
                                     variant="unstyled"
                                     fontSize="3xl"
-                                    fontWeight="bold"
-                                    color="white"
+                                    fontWeight={TYPOGRAPHY.bold}
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    color={SEMANTIC_COLORS.textPrimary}
+                                    sx={{ fontVariantNumeric: 'tabular-nums' }}
                                     value={amount}
                                     onChange={handleAmountChange}
                                     type="text"
                                     placeholder="0"
                                     w="100%"
-                                    _placeholder={{ color: 'whiteAlpha.400' }}
+                                    borderRadius={0}
+                                    _placeholder={{ color: SEMANTIC_COLORS.textTertiary }}
+                                    _focus={FOCUS_STYLES.ring}
                                     paddingInlineEnd="3"
                                     autoFocus
                                 />
                                 {!hideUsdValue && (
-                                    <Text color="whiteAlpha.600" fontSize="md">
+                                    <Text
+                                        color={SEMANTIC_COLORS.textSecondary}
+                                        fontSize={TYPOGRAPHY.small}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                                    >
                                         ~ ${usdValue}
                                     </Text>
                                 )}
                             </VStack>
-                            <VStack align="flex-end" spacing={2}>
-                                <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
+                            <VStack align="flex-end" spacing={SPACING.sm}>
+                                <HStack
+                                    bg={SEMANTIC_COLORS.bgSecondary}
+                                    border="1px solid"
+                                    borderColor={SEMANTIC_COLORS.borderSubtle}
+                                    borderRadius="full"
+                                    px={SPACING.md}
+                                    py={SPACING.xs}
+                                    spacing={SPACING.sm}
+                                >
                                     {usdcAsset?.logo && (
                                         <Image
                                             src={usdcAsset.logo}
@@ -150,24 +192,45 @@ export const DepositCard: React.FC<DepositCardProps> = ({
                                             boxSize="24px"
                                         />
                                     )}
-                                    <Text color="white" fontWeight="bold">
+                                    <Text
+                                        color={SEMANTIC_COLORS.textPrimary}
+                                        fontWeight={TYPOGRAPHY.bold}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                    >
                                         USDC
                                     </Text>
                                 </HStack>
                                 <VStack
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label="Use full wallet balance"
                                     cursor="pointer"
                                     onClick={handleMaxClick}
+                                    onKeyDown={handleMaxKeyDown}
+                                    transition={TRANSITIONS.colors}
+                                    _focus={FOCUS_STYLES.ring}
                                     sx={{
                                         '&:hover > .wallet-hover-text': {
                                             textDecoration: 'underline',
-                                            color: 'blue.300',
+                                            color: SEMANTIC_COLORS.primary,
                                         },
                                     }}
                                 >
-                                    <Text className="wallet-hover-text" color="whiteAlpha.700" fontSize="md">
+                                    <Text
+                                        className="wallet-hover-text"
+                                        color={SEMANTIC_COLORS.textSecondary}
+                                        fontSize={TYPOGRAPHY.small}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                    >
                                         Wallet
                                     </Text>
-                                    <Text className="wallet-hover-text" color="whiteAlpha.700" fontSize="md">
+                                    <Text
+                                        className="wallet-hover-text"
+                                        color={SEMANTIC_COLORS.textSecondary}
+                                        fontSize={TYPOGRAPHY.small}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                                    >
                                         {Formatter.toNearestNonZero(usdcBalance)}
                                     </Text>
                                 </VStack>
@@ -178,22 +241,17 @@ export const DepositCard: React.FC<DepositCardProps> = ({
                     {/* Deposit button */}
                     <Button
                         size="lg"
-                        colorScheme="cyan"
-                        bg="cyan.500"
-                        color="white"
                         isDisabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > Number(usdcBalance)}
                         onClick={handleDeposit}
-                        _hover={{
-                            bg: 'cyan.400',
-                        }}
-                        fontFamily="mono"
-                        fontSize="lg"
+                        transition={TRANSITIONS.colors}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
                     >
                         Deposit
                     </Button>
                 </VStack>
             </Box>
-        </motion.div>
+        </m.div>
     )
 }
 
@@ -228,6 +286,13 @@ export const WithdrawCard: React.FC<WithdrawCardProps> = ({
         setAmount(tvlAmount.toString())
     }
 
+    const handleMaxKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleMaxClick()
+        }
+    }
+
     const handleWithdraw = () => {
         if (amount && parseFloat(amount) > 0) {
             onWithdraw(amount)
@@ -240,7 +305,7 @@ export const WithdrawCard: React.FC<WithdrawCardProps> = ({
     const usdValue = num(amount || 0).times(usdcPrice).toFixed(2)
 
     return (
-        <motion.div
+        <m.div
             key="withdraw-card"
             initial={{ opacity: 0, scale: inline ? 1 : 0.3 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -259,66 +324,98 @@ export const WithdrawCard: React.FC<WithdrawCardProps> = ({
             }}
         >
             <Box
-                bg="gray.800"
-                border="2px solid"
-                borderColor="cyan.500"
-                borderRadius="xl"
-                boxShadow="0 0 40px rgba(0, 191, 255, 0.3)"
-                p={6}
+                bg={SEMANTIC_COLORS.bgSecondary}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderStrong}
+                borderRadius={0}
+                p={SPACING.lg}
                 position="relative"
             >
                 {/* Close button */}
-                <Box position="absolute" top={4} right={4} width="15%" display="flex" justifyContent="flex-end">
+                <Box position="absolute" top={SPACING.base} right={SPACING.base} width="15%" display="flex" justifyContent="flex-end">
                     <IconButton
                         aria-label="Close"
                         icon={<CloseIcon />}
                         size="sm"
                         variant="ghost"
-                        color="white"
+                        color={SEMANTIC_COLORS.textSecondary}
                         onClick={onClose}
-                        _hover={{ bg: 'gray.700' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={HOVER_EFFECTS.brighten}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
                     />
                 </Box>
 
-                <VStack spacing={6} align="stretch">
+                <VStack spacing={SPACING.lg} align="stretch">
                     {/* Header */}
                     <Text
                         fontSize={TYPOGRAPHY.h3}
                         fontWeight={TYPOGRAPHY.bold}
-                        bgGradient="linear(to-r, cyan.400, blue.500)"
-                        bgClip="text"
-                        fontFamily="mono"
+                        color={SEMANTIC_COLORS.textPrimary}
+                        fontFamily={TYPOGRAPHY.fontDisplay}
                     >
                         Withdraw USDC
                     </Text>
 
                     {/* Amount input section */}
-                    <Box w="100%" bg="#11161e" borderRadius="lg" p={5}>
+                    <Box
+                        w="100%"
+                        bg={SEMANTIC_COLORS.bgTertiary}
+                        border="1px solid"
+                        borderColor={SEMANTIC_COLORS.borderSubtle}
+                        borderRadius={0}
+                        p={SPACING.base}
+                    >
                         <HStack justify="space-between" align="flex-start" w="100%">
-                            <VStack align="flex-start" spacing={1} flex={1}>
-                                <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium">
+                            <VStack align="flex-start" spacing={SPACING.xs} flex={1}>
+                                <Text
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    fontSize={TYPOGRAPHY.label}
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    fontWeight={TYPOGRAPHY.medium}
+                                    textTransform="uppercase"
+                                    letterSpacing="0.28em"
+                                >
                                     Withdraw Amount
                                 </Text>
                                 <Input
                                     variant="unstyled"
                                     fontSize="3xl"
-                                    fontWeight="bold"
-                                    color="white"
+                                    fontWeight={TYPOGRAPHY.bold}
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    color={SEMANTIC_COLORS.textPrimary}
+                                    sx={{ fontVariantNumeric: 'tabular-nums' }}
                                     value={amount}
                                     onChange={handleAmountChange}
                                     type="text"
                                     placeholder="0"
                                     w="100%"
-                                    _placeholder={{ color: 'whiteAlpha.400' }}
+                                    borderRadius={0}
+                                    _placeholder={{ color: SEMANTIC_COLORS.textTertiary }}
+                                    _focus={FOCUS_STYLES.ring}
                                     paddingInlineEnd="3"
                                     autoFocus
                                 />
-                                <Text color="whiteAlpha.600" fontSize="md">
+                                <Text
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    fontSize={TYPOGRAPHY.small}
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    sx={{ fontVariantNumeric: 'tabular-nums' }}
+                                >
                                     ~ ${usdValue}
                                 </Text>
                             </VStack>
-                            <VStack align="flex-end" spacing={2}>
-                                <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
+                            <VStack align="flex-end" spacing={SPACING.sm}>
+                                <HStack
+                                    bg={SEMANTIC_COLORS.bgSecondary}
+                                    border="1px solid"
+                                    borderColor={SEMANTIC_COLORS.borderSubtle}
+                                    borderRadius="full"
+                                    px={SPACING.md}
+                                    py={SPACING.xs}
+                                    spacing={SPACING.sm}
+                                >
                                     {usdcAsset?.logo && (
                                         <Image
                                             src={usdcAsset.logo}
@@ -326,24 +423,45 @@ export const WithdrawCard: React.FC<WithdrawCardProps> = ({
                                             boxSize="24px"
                                         />
                                     )}
-                                    <Text color="white" fontWeight="bold">
+                                    <Text
+                                        color={SEMANTIC_COLORS.textPrimary}
+                                        fontWeight={TYPOGRAPHY.bold}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                    >
                                         USDC
                                     </Text>
                                 </HStack>
                                 <VStack
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label="Use full TVL amount"
                                     cursor="pointer"
                                     onClick={handleMaxClick}
+                                    onKeyDown={handleMaxKeyDown}
+                                    transition={TRANSITIONS.colors}
+                                    _focus={FOCUS_STYLES.ring}
                                     sx={{
                                         '&:hover > .tvl-hover-text': {
                                             textDecoration: 'underline',
-                                            color: 'blue.300',
+                                            color: SEMANTIC_COLORS.primary,
                                         },
                                     }}
                                 >
-                                    <Text className="tvl-hover-text" color="whiteAlpha.700" fontSize="md">
+                                    <Text
+                                        className="tvl-hover-text"
+                                        color={SEMANTIC_COLORS.textSecondary}
+                                        fontSize={TYPOGRAPHY.small}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                    >
                                         TVL
                                     </Text>
-                                    <Text className="tvl-hover-text" color="whiteAlpha.700" fontSize="md">
+                                    <Text
+                                        className="tvl-hover-text"
+                                        color={SEMANTIC_COLORS.textSecondary}
+                                        fontSize={TYPOGRAPHY.small}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                                    >
                                         {Formatter.toNearestNonZero(tvlAmount)}
                                     </Text>
                                 </VStack>
@@ -354,22 +472,16 @@ export const WithdrawCard: React.FC<WithdrawCardProps> = ({
                     {/* Withdraw button */}
                     <Button
                         size="lg"
-                        colorScheme="cyan"
-                        bg="cyan.500"
-                        color="white"
                         isDisabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > tvlAmount}
                         onClick={handleWithdraw}
-                        _hover={{
-                            bg: 'cyan.400',
-                        }}
-                        fontFamily="mono"
-                        fontSize="lg"
+                        transition={TRANSITIONS.colors}
+                        _active={ACTIVE_EFFECTS.dim}
+                        _focus={FOCUS_STYLES.ring}
                     >
                         Withdraw
                     </Button>
                 </VStack>
             </Box>
-        </motion.div>
+        </m.div>
     )
 }
-

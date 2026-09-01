@@ -50,12 +50,11 @@ export const useVolatileWindowAlert = () => {
         }
 
         const debt = shiftDigits(firstPosition.credit_amount, -6).toNumber()
-        const collateralDenoms = firstPosition.collateral_assets
-            .map((cAsset) => {
-                //@ts-ignore
-                return cAsset.asset?.info?.native_token?.denom || cAsset.asset?.info?.denom
-            })
-            .filter(Boolean) as string[]
+        const collateralDenoms = firstPosition.collateral_assets.flatMap((cAsset) => {
+            //@ts-ignore
+            const denom = cAsset.asset?.info?.native_token?.denom || cAsset.asset?.info?.denom
+            return denom ? [denom] : []
+        })
 
         return { hasDebt: debt > 0, collateralDenoms }
     }, [userPositions])

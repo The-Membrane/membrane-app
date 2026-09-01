@@ -67,7 +67,7 @@ export const CheckLiquidations = () => {
   )
 }
 
-const Bid = React.memo(() => {
+const Bid = React.memo(function Bid() {
   return (
     <Box w="full" position="relative" minH="100vh">
       <HexagonBackground />
@@ -83,18 +83,18 @@ const Bid = React.memo(() => {
           <HStack w="full" justifyContent="space-between" alignItems="flex-start">
             <VStack align="flex-start" spacing={SPACING.sm}>
               <Text
-                fontSize={{ base: 'lg', md: '4xl' }}
-                fontWeight="bold"
-                bgGradient="linear(to-r, primary.400, secondary.400)"
-                bgClip="text"
-                fontFamily="'Neon Tubes', mono"
+                as="h1"
+                fontSize={TYPOGRAPHY.h1}
+                fontWeight={TYPOGRAPHY.bold}
+                color={SEMANTIC_COLORS.textPrimary}
+                fontFamily={TYPOGRAPHY.fontDisplay}
               >
                 Liquidations
               </Text>
               <Text
-                fontSize="md"
-                color="whiteAlpha.600"
-                fontFamily="mono"
+                fontSize={TYPOGRAPHY.body}
+                color={SEMANTIC_COLORS.textSecondary}
+                fontFamily={TYPOGRAPHY.fontMono}
                 maxW="420px"
               >
                 Bid for liquidated collateral at a premium

@@ -21,6 +21,11 @@ const NO_LOCK = {
   isLocked: false,
 } as const
 
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['staked'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 const useStakeing = ({ }: UseStake) => {
   const { address, chain } = useWallet()
   const mbrnAsset = useAssetBySymbol('MBRN')
@@ -78,11 +83,6 @@ const useStakeing = ({ }: UseStake) => {
   })
 
   const finalMsgs = useMemo(() => msgs, [msgs])
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

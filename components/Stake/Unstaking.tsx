@@ -1,29 +1,19 @@
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
-import { Stack, HStack, Image, Text, Box, VStack, useColorModeValue } from '@chakra-ui/react'
+import { Stack, HStack, Image, Text, Box, VStack } from '@chakra-ui/react'
 import React, { useEffect, useMemo } from 'react'
 import useStaked from './hooks/useStaked'
 import { TxButton } from '../TxButton'
-import dayjs from 'dayjs'
 import useClaimUnstake from './hooks/useClaimUnstake'
 import useWallet from '@/hooks/useWallet'
-import { colors } from '@/config/defaults'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import { getTimeLeft } from './unstakingUtils'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES } from '@/config/transitions'
 
 type Props = {}
-
-export const getTimeLeft = (unstakeStartDate: number) => {
-  const unstakingDate = dayjs.unix(unstakeStartDate).add(4, 'day')
-  const daysLeft = unstakingDate.diff(dayjs(), 'day')
-  const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
-  const minutesLeft = unstakingDate.diff(dayjs(), 'minute')
-
-  return {
-    daysLeft,
-    hoursLeft,
-    minutesLeft,
-  }
-}
 
 const DaysLeft = ({ unstakeStartDate }: { unstakeStartDate: number }) => {
   const { daysLeft, hoursLeft, minutesLeft } = getTimeLeft(unstakeStartDate)
@@ -53,7 +43,8 @@ const ClaimButton = ({ unstakeStartDate, action }: { unstakeStartDate: number, a
       w="fit-content"
       variant="ghost"
       size="sm"
-      px="2"
+      px={SPACING.sm}
+      _focus={FOCUS_STYLES.ring}
       isLoading={action.simulate.isLoading || action.tx.isPending}
       isDisabled={action.simulate.isError || !isReadyToClaim}
       onClick={() => action.tx.mutate()}
@@ -70,16 +61,14 @@ const Unstaking = (props: Props) => {
   const { unstaking } = useMemo(() => data || { unstaking: [] }, [data])
   const { address } = useWallet(chainName)
   const { action: claim } = useClaimUnstake({ address: address, sim: true, run: true })
-  const cardBg = useColorModeValue('#181F2A', '#232B3E')
-  const borderColor = useColorModeValue('whiteAlpha.200', 'whiteAlpha.200')
 
   console.log("unstaking", data)
 
   if (!unstaking?.length)
     return (
-      <Box bg={cardBg} borderRadius="xl" p={6} w="full" border="1px solid" borderColor={borderColor}>
-        <HStack justifyContent="center" mt="5">
-          <Text fontSize="sm" color={colors.noState}>
+      <Box bg={SEMANTIC_COLORS.bgSecondary} borderRadius={0} p={SPACING.lg} w="full" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
+        <HStack justifyContent="center" mt={SPACING.lg}>
+          <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
             You have no unstaking assets
           </Text>
         </HStack>
@@ -87,14 +76,14 @@ const Unstaking = (props: Props) => {
     )
 
   return (
-    <Box bg={cardBg} borderRadius="xl" p={6} w="full" border="1px solid" borderColor={borderColor}>
-      <VStack pt={2} gap={4} align="stretch">
-        <HStack mb={3}>
+    <Box bg={SEMANTIC_COLORS.bgSecondary} borderRadius={0} p={SPACING.lg} w="full" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
+      <VStack pt={SPACING.sm} gap={SPACING.base} align="stretch">
+        <HStack mb={SPACING.md}>
           <Image src={mbrn?.logo} w="40px" h="40px" />
-          <Text fontWeight="bold">{mbrn?.symbol}</Text>
+          <Text fontWeight={TYPOGRAPHY.bold}>{mbrn?.symbol}</Text>
         </HStack>
         {unstaking?.map((unstake: any, index: number) => (
-          <HStack key={'unstake' + index} justifyContent="space-between" py={2} borderBottom={index !== unstaking.length - 1 ? '1px solid' : undefined} borderColor={borderColor}>
+          <HStack key={'unstake' + index} justifyContent="space-between" py={SPACING.sm} borderBottom={index !== unstaking.length - 1 ? '1px solid' : undefined} borderColor={SEMANTIC_COLORS.borderSubtle}>
             <Text w="full">{shiftDigits(unstake?.amount || 0, -6).toString()}</Text>
             <DaysLeft unstakeStartDate={unstake?.unstake_start_time} />
             <ClaimButton unstakeStartDate={unstake?.unstake_start_time} action={claim} />

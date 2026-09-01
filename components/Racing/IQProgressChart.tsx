@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react'
 import { Box, HStack, Text, VStack, Flex, Icon, Tooltip as ChakraTooltip } from '@chakra-ui/react'
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { BrainCircuit } from 'lucide-react'
 import { JsonBrainProgressEntry } from '@/services/q-racing'
+import { lazyChart } from '@/components/ui/lazyChart'
 
 interface IQProgressChartProps {
     entries: JsonBrainProgressEntry[]
@@ -18,6 +18,69 @@ interface ChartDataPoint {
     wallCollisions: number
     confidence: number
 }
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload as ChartDataPoint
+        return (
+            <Box
+                bg="#0a0f1e"
+                border="1px solid #2a3550"
+                borderRadius="4px"
+                p={2}
+                fontFamily='"Press Start 2P", monospace'
+                fontSize="10px"
+            >
+                <Text color="#00ffea">Entry {data.entry}</Text>
+                <Text color="#b8c1ff">IQ: {data.percentage.toFixed(1)}%</Text>
+                <Text color="#ff6b6b">Confidence: {((data.confidence / 127) * 100).toFixed(1)}%</Text>
+                <Text color="#b8c1ff">States: {data.statesSeen}</Text>
+                <Text color="#b8c1ff">Walls: {data.wallCollisions}</Text>
+            </Box>
+        )
+    }
+    return null
+}
+
+interface IQLineChartProps {
+    chartData: ChartDataPoint[]
+    yAxisDomain: number[]
+}
+
+const IQLineChart = lazyChart<IQLineChartProps>(
+    ({ LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip }) =>
+        function IQLineChart({ chartData, yAxisDomain }) {
+            return (
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                        <XAxis
+                            dataKey="entry"
+                            tick={{ fontSize: 8, fill: '#b8c1ff', fontFamily: '"Press Start 2P", monospace' }}
+                            axisLine={{ stroke: '#2a3550' }}
+                            tickLine={{ stroke: '#2a3550' }}
+                        />
+                        <YAxis
+                            domain={yAxisDomain}
+                            tick={{ fontSize: 8, fill: '#b8c1ff', fontFamily: '"Press Start 2P", monospace' }}
+                            axisLine={{ stroke: '#2a3550' }}
+                            tickLine={{ stroke: '#2a3550' }}
+                            tickFormatter={(value) => `${value.toFixed(1)}%`}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Line
+                            type="monotone"
+                            dataKey="percentage"
+                            stroke="#00ffea"
+                            strokeWidth={2}
+                            dot={false}
+                            activeDot={false}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            )
+        },
+    200,
+)
 
 const IQProgressChart: React.FC<IQProgressChartProps> = ({
     entries,
@@ -73,29 +136,6 @@ const IQProgressChart: React.FC<IQProgressChartProps> = ({
     }, [chartData])
 
     const brainFillPercentage = currentPercentage / 100
-
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload as ChartDataPoint
-            return (
-                <Box
-                    bg="#0a0f1e"
-                    border="1px solid #2a3550"
-                    borderRadius="4px"
-                    p={2}
-                    fontFamily='"Press Start 2P", monospace'
-                    fontSize="10px"
-                >
-                    <Text color="#00ffea">Entry {data.entry}</Text>
-                    <Text color="#b8c1ff">IQ: {data.percentage.toFixed(1)}%</Text>
-                    <Text color="#ff6b6b">Confidence: {((data.confidence / 127) * 100).toFixed(1)}%</Text>
-                    <Text color="#b8c1ff">States: {data.statesSeen}</Text>
-                    <Text color="#b8c1ff">Walls: {data.wallCollisions}</Text>
-                </Box>
-            )
-        }
-        return null
-    }
 
     return (
         <VStack align="stretch" spacing={3} h="100%">
@@ -176,32 +216,7 @@ const IQProgressChart: React.FC<IQProgressChartProps> = ({
             {/* Chart */}
             <Box flex="1" minH="200px" w="100%">
                 {chartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                            <XAxis
-                                dataKey="entry"
-                                tick={{ fontSize: 8, fill: '#b8c1ff', fontFamily: '"Press Start 2P", monospace' }}
-                                axisLine={{ stroke: '#2a3550' }}
-                                tickLine={{ stroke: '#2a3550' }}
-                            />
-                            <YAxis
-                                domain={yAxisDomain}
-                                tick={{ fontSize: 8, fill: '#b8c1ff', fontFamily: '"Press Start 2P", monospace' }}
-                                axisLine={{ stroke: '#2a3550' }}
-                                tickLine={{ stroke: '#2a3550' }}
-                                tickFormatter={(value) => `${value.toFixed(1)}%`}
-                            />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Line
-                                type="monotone"
-                                dataKey="percentage"
-                                stroke="#00ffea"
-                                strokeWidth={2}
-                                dot={false}
-                                activeDot={false}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    <IQLineChart chartData={chartData} yAxisDomain={yAxisDomain} />
                 ) : (
                     <Flex
                         align="center"

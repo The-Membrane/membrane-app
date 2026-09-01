@@ -3,6 +3,8 @@ import { HStack } from '@chakra-ui/react'
 import { VenueSlotsMap } from '../types'
 import { VenueSlot } from './VenueSlot'
 
+const order = [1, 3, 5] as const
+
 export const VenueRail = ({
     slots,
     onDeploySuccess,
@@ -16,7 +18,6 @@ export const VenueRail = ({
     healthPercent?: number
     defaultAmount?: number
 }) => {
-    const order = [1, 3, 5] as const
     return (
         <HStack spacing={28} align="stretch" justify="center">
             {order.map((i) => {

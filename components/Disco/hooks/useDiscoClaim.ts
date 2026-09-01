@@ -6,70 +6,64 @@ import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import useWallet from '@/hooks/useWallet'
 import { queryClient } from '@/pages/_app'
 import contracts from '@/config/contracts.json'
+import useAppState from '@/persisted-state/useAppState'
 
 /**
- * Parameters for claiming revenue from LTV Disco
+ * Parameters for claiming revenue from Disco
  */
 interface UseDiscoClaimParams {
   /** The asset denom to claim revenue for */
   asset: string
-  /** Maximum LTV for the deposit tier */
-  maxLtv: string
-  /** Maximum borrow LTV for the deposit tier */
-  maxBorrowLtv: string
   /** Optional callback on successful transaction */
   txSuccess?: () => void
 }
 
 /**
  * Hook to claim pending CDT revenue from Disco deposits.
- * 
- * Claims are not affected by emissions voting, so no sandwich logic is needed.
- * 
+ * Routes through the points contract's ClaimDiscoRevenueAndGivePoints to earn points.
+ * The points contract wraps the disco claim as a submessage and awards disco_revenue points.
+ *
  * @example
  * ```typescript
  * const claim = useDiscoClaim({
- *   asset: 'factory/osmo.../CDT',
- *   maxLtv: '0.75',
- *   maxBorrowLtv: '0.70',
+ *   asset: 'ibc/...',
  *   txSuccess: () => console.log('Claim successful!'),
  * })
- * 
- * // Use with Ditto confirmation
- * openConfirmation(claim.action, <Details />, { label: 'Claim', actionType: 'withdraw' })
  * ```
  */
 const useDiscoClaim = ({
   asset,
-  maxLtv,
-  maxBorrowLtv,
   txSuccess,
 }: UseDiscoClaimParams) => {
   const { address } = useWallet()
-  const discoContract = (contracts as any).ltv_disco
+  const { appState } = useAppState()
+  const pointsContract = contracts.points
 
   type QueryData = { msgs: MsgExecuteContractEncodeObject[] | undefined }
 
   const { data: queryData } = useQuery<QueryData>({
-    queryKey: ['disco_claim', 'msgs', address, asset, maxLtv, maxBorrowLtv],
+    queryKey: ['disco_claim', 'msgs', address, asset, appState.rpcUrl],
+    staleTime: 1000 * 60 * 5,
     queryFn: () => {
-      if (!address || !asset || !maxLtv || !maxBorrowLtv) {
+      if (!address || !asset) {
         return { msgs: undefined }
       }
-      if (!discoContract || discoContract === '') {
+      if (!pointsContract || pointsContract === '') {
         return { msgs: undefined }
       }
 
+      // Route through points contract to earn disco_revenue points.
+      // The points contract forwards claim_revenue_for_user to the disco contract
+      // as a submessage and awards points based on the revenue_claimed reply attribute.
       const msg: MsgExecuteContractEncodeObject = {
         typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
         value: MsgExecuteContract.fromPartial({
           sender: address,
-          contract: discoContract,
+          contract: pointsContract,
           msg: toUtf8(JSON.stringify({
-            claim: {
+            claim_disco_revenue_and_give_points: {
+              user: address,
               asset,
-              max_ltv: maxLtv,
-              max_borrow_ltv: maxBorrowLtv,
             }
           })),
           funds: [],
@@ -78,21 +72,24 @@ const useDiscoClaim = ({
 
       return { msgs: [msg] }
     },
-    enabled: !!address && !!asset && !!maxLtv && !!maxBorrowLtv,
+    enabled: !!address && !!asset,
   })
 
   const msgs = queryData?.msgs ?? []
 
   const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['disco_pending_claims'] })
-    queryClient.invalidateQueries({ queryKey: ['disco_user_revenue'] })
+    queryClient.invalidateQueries({ queryKey: ['disco'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
+    // Invalidate points queries after earning disco_revenue points
+    queryClient.invalidateQueries({ queryKey: ['all users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users points'] })
+    queryClient.invalidateQueries({ queryKey: ['one users level'] })
     txSuccess?.()
   }
 
   const action = useSimulateAndBroadcast({
     msgs,
-    queryKey: ['disco_claim_sim', (msgs?.toString() ?? '0')],
+    queryKey: ['disco_claim_sim', address, asset],
     enabled: !!msgs?.length,
     onSuccess,
   })
@@ -104,29 +101,3 @@ const useDiscoClaim = ({
 }
 
 export default useDiscoClaim
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

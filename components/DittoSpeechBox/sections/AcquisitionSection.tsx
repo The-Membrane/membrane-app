@@ -8,6 +8,9 @@ import { shiftDigits } from '@/helpers/math'
 import { ProfitChart } from './ProfitChart'
 import { AcquisitionClaimCard } from '@/components/acquisition/AcquisitionClaimCard'
 
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 interface ChartDataPoint {
     timestamp: number
     profit: number
@@ -50,7 +53,9 @@ export const AcquisitionSection: React.FC<SectionComponentProps & { tabIndex?: n
         if (!userDeposits?.deposits || userDeposits.deposits.length === 0 || !totalPoints || totalPoints === 0) return 0
 
         // Calculate user's total points
-        const userPoints = userDeposits.deposits.reduce((sum, deposit) => {
+        // `userDeposits` is the raw acquisition-contract query response, which is untyped;
+        // rows carry `amount` (Uint128 string) and `intended_lock_days`.
+        const userPoints = userDeposits.deposits.reduce((sum: number, deposit: any) => {
             const amount = typeof deposit.amount === 'string' ? parseFloat(deposit.amount) : deposit.amount
             const lockDays = deposit.intended_lock_days || 0
             const points = amount * (1 + lockDays / 365) // Simplified points calculation
@@ -74,7 +79,7 @@ export const AcquisitionSection: React.FC<SectionComponentProps & { tabIndex?: n
                 timestamp: entry.time || 0,
                 profit: shiftDigits(String(runningTotalClaims), -6).toNumber(), // Use running_total_claims as MBRN claims
             }
-        }).sort((a, b) => a.timestamp - b.timestamp)
+        }).sort((a: ChartDataPoint, b: ChartDataPoint) => a.timestamp - b.timestamp)
     }, [userHistory])
 
     // Data Tab (index 0)
@@ -84,28 +89,28 @@ export const AcquisitionSection: React.FC<SectionComponentProps & { tabIndex?: n
                 <Box>
                     <HStack spacing={4} align="flex-start" wrap="wrap" justifyContent={"center"}>
                         <VStack>
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                 Pending Locked TVL
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="#ece6d8" mb={3}>
+                            <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary} mb={3}>
                                 {pendingLockedTVL > 0 ? `${pendingLockedTVL.toFixed(2)} USDC` : '—'}
                             </Text>
                         </VStack>
 
                         <VStack>
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                 Pending Claim Amount
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="green.400" mb={3}>
+                            <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.success} mb={3}>
                                 {pendingClaimAmount > 0 ? `${pendingClaimAmount.toFixed(2)} MBRN` : '—'}
                             </Text>
                         </VStack>
 
                         <VStack>
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={1}>
                                 Your Pending Share
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="secondary.400">
+                            <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.info}>
                                 {userPendingShare > 0 ? `${(userPendingShare * 100).toFixed(2)}%` : '—'}
                             </Text>
                         </VStack>
@@ -116,7 +121,7 @@ export const AcquisitionSection: React.FC<SectionComponentProps & { tabIndex?: n
                     <>
                         <Divider mb={4} />
                         <Box>
-                            <Text fontSize="xs" color="#ece6d880" mb={2}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={2}>
                                 Locked Deposits ({userDeposits.deposits.length})
                             </Text>
 
@@ -139,35 +144,35 @@ export const AcquisitionSection: React.FC<SectionComponentProps & { tabIndex?: n
                                     return (
                                         <Box
                                             key={deposit.deposit_time}
-                                            bg="gray.800"
+                                            bg={SEMANTIC_COLORS.bgSecondary}
                                             border="1px solid"
-                                            borderColor="primary.500"
-                                            borderRadius="md"
-                                            p={3}
+                                            borderColor={SEMANTIC_COLORS.borderSubtle}
+                                            borderRadius={0}
+                                            p={SPACING.md}
                                         >
                                             <VStack spacing={1} align="stretch">
                                                 <HStack justify="space-between">
-                                                    <Text fontSize="xs" color="#ece6d880">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                                         Amount
                                                     </Text>
-                                                    <Text fontSize="xs" color="#ece6d8">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary}>
                                                         {amountValue.toFixed(2)} USDC
                                                     </Text>
                                                 </HStack>
                                                 <HStack justify="space-between">
-                                                    <Text fontSize="xs" color="#ece6d880">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                                         Lock Days
                                                     </Text>
-                                                    <Text fontSize="xs" color="#ece6d8">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary}>
                                                         {lockDays}
                                                     </Text>
                                                 </HStack>
                                                 {allocation && (
                                                     <HStack justify="space-between">
-                                                        <Text fontSize="xs" color="#ece6d880">
+                                                        <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                                             Claim Amount
                                                         </Text>
-                                                        <Text fontSize="xs" color="green.400" fontWeight="bold">
+                                                        <Text fontSize="xs" color={SEMANTIC_COLORS.success} fontWeight="bold">
                                                             {claimAmount > 0 ? `${claimAmount.toFixed(2)} MBRN` : '—'}
                                                         </Text>
                                                     </HStack>
@@ -185,7 +190,7 @@ export const AcquisitionSection: React.FC<SectionComponentProps & { tabIndex?: n
                     <>
                         <Divider mb={4} mt={4} />
                         <Box>
-                            <Text fontSize="xs" color="#ece6d880" mb={2}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={2}>
                                 All-Time MBRN Claims
                             </Text>
                             <ProfitChart data={chartData} isLoading={false} />
@@ -195,7 +200,7 @@ export const AcquisitionSection: React.FC<SectionComponentProps & { tabIndex?: n
 
                 {userDeposits?.deposits && userDeposits.deposits.length === 0 && (
                     <Box>
-                        <Text fontSize="xs" color="#ece6d840" textAlign="center">
+                        <Text fontSize="xs" color={SEMANTIC_COLORS.textTertiary} textAlign="center">
                             No locked deposits found
                         </Text>
                     </Box>
@@ -218,7 +223,7 @@ export const AcquisitionSection: React.FC<SectionComponentProps & { tabIndex?: n
     if (tabIndex === 1) {
         return (
             <Box>
-                <Text fontSize="xs" color="#ece6d880" mb={2}>
+                <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={2}>
                     No metrics available
                 </Text>
             </Box>

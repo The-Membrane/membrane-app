@@ -5,6 +5,10 @@ import { useRouter } from 'next/router'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { ChevronLeftIcon } from '@chakra-ui/icons'
 
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 interface EditPanelProps {
     isOpen: boolean
     onClose: () => void
@@ -52,12 +56,12 @@ export const EditPanel: React.FC<EditPanelProps> = ({ isOpen, onClose, currentVi
                         zIndex={-1}
                         w="fit-content"
                         h="100%"
-                        bg="#23252B"
+                        bg={SEMANTIC_COLORS.bgTertiary}
                         border="1px solid"
                         borderColor="#9bdc4f40"
                         borderLeft="none"
-                        borderRadius="0 md md 0"
-                        boxShadow="0 4px 12px rgba(0,0,0,0.5), 0 0 20px rgba(155, 220, 79, 0.3)"
+                        borderRadius={0}
+                        
                         // boxShadowLeft="none"
                         p={4}
                         pl={0}
@@ -76,7 +80,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({ isOpen, onClose, currentVi
                                 icon={<ChevronLeftIcon />}
                                 size="sm"
                                 variant="ghost"
-                                color="#ece6d8"
+                                color={SEMANTIC_COLORS.textPrimary}
                                 onClick={onClose}
                                 _hover={{ bg: undefined, color: undefined }}
                                 _active={{ bg: undefined, color: undefined }}
@@ -86,36 +90,48 @@ export const EditPanel: React.FC<EditPanelProps> = ({ isOpen, onClose, currentVi
                                 <Button
                                     size="sm"
                                     colorScheme="secondary"
-                                    bg="secondary.500"
-                                    color="white"
+                                    bg={SEMANTIC_COLORS.info}
+                                    color={SEMANTIC_COLORS.bgPrimary}
+                                    borderRadius={0}
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                     onClick={handleDeposit}
-                                    _hover={{
-                                        bg: 'secondary.400',
-                                    }}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={HOVER_EFFECTS.borderHighlight}
+                                    _active={ACTIVE_EFFECTS.dim}
+                                    _focus={FOCUS_STYLES.ring}
+                                    _focusVisible={FOCUS_STYLES.ring}
                                 >
                                     Deposit
                                 </Button>
                                 <Button
                                     size="sm"
                                     colorScheme="secondary"
-                                    bg="secondary.500"
-                                    color="white"
+                                    bg={SEMANTIC_COLORS.info}
+                                    color={SEMANTIC_COLORS.bgPrimary}
+                                    borderRadius={0}
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                     onClick={handleWithdraw}
-                                    _hover={{
-                                        bg: 'secondary.400',
-                                    }}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={HOVER_EFFECTS.borderHighlight}
+                                    _active={ACTIVE_EFFECTS.dim}
+                                    _focus={FOCUS_STYLES.ring}
+                                    _focusVisible={FOCUS_STYLES.ring}
                                 >
                                     Withdraw
                                 </Button>
                                 <Button
                                     size="sm"
                                     colorScheme="secondary"
-                                    bg="secondary.500"
-                                    color="white"
+                                    bg={SEMANTIC_COLORS.info}
+                                    color={SEMANTIC_COLORS.bgPrimary}
+                                    borderRadius={0}
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                     onClick={handleLoop}
-                                    _hover={{
-                                        bg: 'secondary.400',
-                                    }}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={HOVER_EFFECTS.borderHighlight}
+                                    _active={ACTIVE_EFFECTS.dim}
+                                    _focus={FOCUS_STYLES.ring}
+                                    _focusVisible={FOCUS_STYLES.ring}
                                 >
                                     Loop
                                 </Button>

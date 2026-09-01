@@ -291,6 +291,9 @@ const ManagedTable = () => {
                                                 >
                                                     All
                                                 </Checkbox>
+                                                {/* js-set-map-lookups FP: filteredOptions/selectedDeposits derive from the
+                                                    hardcoded 6-item `depositOptions` example list — well under the ~10-item
+                                                    threshold where a Set would pay off. */}
                                                 {filteredOptions.map(opt => (
                                                     <Checkbox
                                                         key={opt}
@@ -349,9 +352,9 @@ const ManagedTable = () => {
                                 </Tr>
                             </Thead>
                             <Tbody>
-                                {sortedRows.map((row, idx) => (
+                                {sortedRows.map((row) => (
                                     <Tr
-                                        key={idx}
+                                        key={row.vaultName}
                                         _hover={{
                                             bg: '#2D3748',
                                             boxShadow: '0 4px 16px 0 rgba(0,0,0,0.25)',

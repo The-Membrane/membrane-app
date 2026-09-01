@@ -14,7 +14,7 @@ const Logo = ({ height = '32px' }: { height?: string }) => {
     <Box alignItems="center" display="flex" justifyContent="center">
       <Image
         data-testid="logo"
-        src="/images/membrane-wordmark.png"
+        src="/images/membrane-wordmark.svg"
         alt="Membrane"
         height={height}
         width="auto"

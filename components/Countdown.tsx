@@ -11,7 +11,7 @@ type Props = {
   fontWeight?: string | number
 } & Omit<TextProps, 'fontSize' | 'color' | 'fontFamily' | 'fontWeight'>
 
-const Countdown = memo(({
+const Countdown = memo(function Countdown({
   timestamp,
   showLabel = false,
   fontSize = "16px",
@@ -19,7 +19,7 @@ const Countdown = memo(({
   fontFamily,
   fontWeight = "700",
   ...textProps
-}: Props) => {
+}: Props) {
   const timeLeft = useCountdown(timestamp).timeString
 
   return (

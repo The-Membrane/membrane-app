@@ -8,6 +8,8 @@ import { UpdatesIdleGainsCard } from './UpdatesIdleGainsCard'
 import { UpdatesList } from './UpdatesList'
 import { UpdatesEmptyState } from './UpdatesEmptyState'
 
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 export const UpdatesSection: React.FC<SectionComponentProps> = ({ onBack }) => {
     const {
         updates,
@@ -47,8 +49,8 @@ export const UpdatesSection: React.FC<SectionComponentProps> = ({ onBack }) => {
             )}
 
             {/* Footer */}
-            <Text fontSize="xs" color="#ece6d840" textAlign="center" mt={2}>
-                Updates are automatically tracked while you're away
+            <Text fontSize="xs" color={SEMANTIC_COLORS.textTertiary} textAlign="center" mt={2}>
+                Updates are automatically tracked while you&apos;re away
             </Text>
         </VStack>
     )

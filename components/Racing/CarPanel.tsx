@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Box, HStack, Select, Text, VStack, Flex, Input, Switch, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Tooltip, Collapse } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import useWallet from '@/hooks/useWallet'
@@ -96,7 +96,7 @@ const CarPanel: React.FC = () => {
     const [isTraitsExpanded, setIsTraitsExpanded] = useState(false)
     const router = useRouter()
 
-    const updateRouteCarId = (id?: string) => {
+    const updateRouteCarId = useCallback((id?: string) => {
         console.log('🔧 CarPanel updateRouteCarId called with:', id);
         console.log('🔧 CarPanel router state:', {
             asPath: router.asPath,
@@ -138,7 +138,7 @@ const CarPanel: React.FC = () => {
         } catch (error) {
             console.error('❌ CarPanel route update failed:', error);
         }
-    }
+    }, [router])
 
     const [isEditing, setIsEditing] = useState(false)
     const [newName, setNewName] = useState('')
@@ -153,20 +153,20 @@ const CarPanel: React.FC = () => {
 
     const qValues = useMemo(() => q?.q_values ?? [], [q])
 
-    // Sync selection from URL when present
+    // Sync selection: prefer an explicit URL carId, otherwise auto-select the first
+    // car (or clear selection when none remain). Combined into a single effect —
+    // splitting URL-adoption and auto-select across two effects chained on carId
+    // caused an extra render each time the URL changed.
     useEffect(() => {
         const qCar = (router.query?.carId as string) || ''
         if (qCar && qCar !== carId) {
             // Only adopt if it's a valid car (or cars not loaded yet)
             if (!cars || cars.some((c) => c.id === qCar)) {
                 setCarId(qCar)
+                return
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [router.query?.carId, cars])
 
-    // Auto-select the first car if available, or clear selection if none
-    useEffect(() => {
         if (cars && cars.length > 0) {
             if (!carId || !cars.some((c) => c.id === carId)) {
                 const firstId = cars[0].id
@@ -177,7 +177,8 @@ const CarPanel: React.FC = () => {
             setCarId('')
             updateRouteCarId(undefined)
         }
-    }, [cars, carId])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [router.query?.carId, cars, carId, updateRouteCarId])
 
     const options = useMemo(() => {
         if (!cars) return []
@@ -324,7 +325,7 @@ const CarPanel: React.FC = () => {
                                 const showSwatch = isColorTrait(t.trait_type)
                                 const hex = showSwatch ? extractColorHex(t.value) : null
                                 return (
-                                    <HStack key={`${t.trait_type}-${i}`} justify="space-between">
+                                    <HStack key={t.trait_type} justify="space-between">
                                         <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">{t.trait_type}</Text>
                                         {showSwatch && hex ? (
                                             <Box w="14px" h="14px" borderRadius={2} border="1px solid #2a3550" style={{ background: hex }} />
@@ -364,6 +365,54 @@ const CarPanel: React.FC = () => {
     )
 }
 
+const sliderInput = (label: string, value: number, min: number, max: number, onChange: (n: number) => void, help?: string) => (
+    <VStack align="stretch" spacing={1}>
+        <HStack justify="space-between">
+            <HStack spacing={2}>
+                <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">{label}</Text>
+                {help && (
+                    <Tooltip label={help} hasArrow placement="top" openDelay={200}>
+                        <span>
+                            <InfoIcon boxSize={3} color="#b8c1ff" />
+                        </span>
+                    </Tooltip>
+                )}
+            </HStack>
+            <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#00ffea">{value}</Text>
+        </HStack>
+        <Slider value={value} min={min} max={max} step={1} onChange={onChange}>
+            <SliderTrack bg="#142042">
+                <SliderFilledTrack bg="#274bff" />
+            </SliderTrack>
+            <SliderThumb boxSize={3} />
+        </Slider>
+    </VStack>
+)
+
+const sliderNegativeInput = (label: string, currentNegative: number, onChangeNegative: (n: number) => void, help?: string) => (
+    <VStack align="stretch" spacing={1}>
+        <HStack justify="space-between">
+            <HStack spacing={2}>
+                <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">{label}</Text>
+                {help && (
+                    <Tooltip label={help} hasArrow placement="top" openDelay={200}>
+                        <span>
+                            <InfoIcon boxSize={3} color="#b8c1ff" />
+                        </span>
+                    </Tooltip>
+                )}
+            </HStack>
+            <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#00ffea">{currentNegative}</Text>
+        </HStack>
+        <Slider value={Math.abs(currentNegative)} min={0} max={100} step={1} onChange={(n) => onChangeNegative(-n)}>
+            <SliderTrack bg="#142042">
+                <SliderFilledTrack bg="#274bff" />
+            </SliderTrack>
+            <SliderThumb boxSize={3} />
+        </Slider>
+    </VStack>
+)
+
 const RewardConfigPanel: React.FC = () => {
     const { racingState, setRacingState } = useRacingState()
     const [isExpanded, setIsExpanded] = useState(false)
@@ -379,54 +428,6 @@ const RewardConfigPanel: React.FC = () => {
 
     const setCfg = (next: typeof cfg) => setRacingState({ rewardConfig: next })
     console.log('cfg', cfg)
-
-    const sliderInput = (label: string, value: number, min: number, max: number, onChange: (n: number) => void, help?: string) => (
-        <VStack align="stretch" spacing={1}>
-            <HStack justify="space-between">
-                <HStack spacing={2}>
-                    <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">{label}</Text>
-                    {help && (
-                        <Tooltip label={help} hasArrow placement="top" openDelay={200}>
-                            <span>
-                                <InfoIcon boxSize={3} color="#b8c1ff" />
-                            </span>
-                        </Tooltip>
-                    )}
-                </HStack>
-                <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#00ffea">{value}</Text>
-            </HStack>
-            <Slider value={value} min={min} max={max} step={1} onChange={onChange}>
-                <SliderTrack bg="#142042">
-                    <SliderFilledTrack bg="#274bff" />
-                </SliderTrack>
-                <SliderThumb boxSize={3} />
-            </Slider>
-        </VStack>
-    )
-
-    const sliderNegativeInput = (label: string, currentNegative: number, onChangeNegative: (n: number) => void, help?: string) => (
-        <VStack align="stretch" spacing={1}>
-            <HStack justify="space-between">
-                <HStack spacing={2}>
-                    <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#b8c1ff">{label}</Text>
-                    {help && (
-                        <Tooltip label={help} hasArrow placement="top" openDelay={200}>
-                            <span>
-                                <InfoIcon boxSize={3} color="#b8c1ff" />
-                            </span>
-                        </Tooltip>
-                    )}
-                </HStack>
-                <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#00ffea">{currentNegative}</Text>
-            </HStack>
-            <Slider value={Math.abs(currentNegative)} min={0} max={100} step={1} onChange={(n) => onChangeNegative(-n)}>
-                <SliderTrack bg="#142042">
-                    <SliderFilledTrack bg="#274bff" />
-                </SliderTrack>
-                <SliderThumb boxSize={3} />
-            </Slider>
-        </VStack>
-    )
 
     return (
         <Box p={3} border="2px solid #0033ff" bg="#0b0e17" borderRadius={6}>

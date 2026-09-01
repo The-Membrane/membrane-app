@@ -14,6 +14,10 @@ import type { EvmCall } from '@/services/chain/types'
  * is absent from config/evm/contracts.ts). Msg building is stubbed until an RBLP-vault
  * service exists.
  */
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 const useBoundedManage = () => {
   const { address } = useWallet()
   const router = useRouter()
@@ -28,10 +32,6 @@ const useBoundedManage = () => {
   })
 
   const { msgs } = useMemo(() => queryData ?? { msgs: undefined }, [queryData])
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

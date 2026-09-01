@@ -3,7 +3,7 @@ import ProposalsTable from './ProposalsTable'
 import SubmitProposal from './SubmitProposal'
 import React from "react"
 
-const Governance = React.memo(() => {
+const Governance = React.memo(function Governance() {
   return (
     <Stack w="full">
       <HStack justifyContent="space-between" w="full">

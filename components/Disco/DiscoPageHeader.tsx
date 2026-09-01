@@ -1,5 +1,7 @@
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 /** Title and subtitle header for the Disco page. */
 export const DiscoPageHeader: React.FC = () => {
@@ -14,19 +16,19 @@ export const DiscoPageHeader: React.FC = () => {
             alignItems="center"
         >
             <Text
-                fontSize={{ base: 'lg', md: 'xl' }}
-                fontWeight="bold"
-                bgGradient="linear(to-r, primary.400, secondary.400)"
-                bgClip="text"
-                fontFamily="'Neon Tubes', mono"
+                as="h1"
+                fontSize={TYPOGRAPHY.h1}
+                fontWeight={TYPOGRAPHY.bold}
+                color={SEMANTIC_COLORS.textPrimary}
+                fontFamily={TYPOGRAPHY.fontDisplay}
                 mb={2}
             >
                 MBRN Insurance Discovery
             </Text>
             <Text
-                fontSize="sm"
-                color="whiteAlpha.600"
-                fontFamily="mono"
+                fontSize={TYPOGRAPHY.small}
+                color={SEMANTIC_COLORS.textSecondary}
+                fontFamily={TYPOGRAPHY.fontMono}
                 maxW="600px"
             >
                 Get paid CDT while standing on the frontline for absorbing bad debt. Choose your risk slot and join the layered Guardians of Solvency!

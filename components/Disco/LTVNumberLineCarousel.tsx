@@ -1,11 +1,10 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react'
-import { Box, HStack, Text, IconButton, Tooltip } from '@chakra-ui/react'
-import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons'
-import { motion, AnimatePresence } from 'framer-motion'
-
-// Color constants
-const PRIMARY_PURPLE = 'rgb(166, 146, 255)'
-const CURRENT_LTV_COLOR = 'rgb(255, 215, 0)' // Gold/yellow for current LTV
+import React, { useRef, useState, useMemo } from 'react'
+import { Box, HStack, Text } from '@chakra-ui/react'
+import { LTVCarouselArrow } from './LTVCarouselArrow'
+import { LTVCarouselNotch } from './LTVCarouselNotch'
+import { LTVCarouselSelectedFrame } from './LTVCarouselSelectedFrame'
+import { PRIMARY_PURPLE, LTV_MIN, LTV_MAX } from './LTVCarouselConstants'
+import { useLTVCarouselKeyboardNav, useLTVCarouselScrollToCenter } from './hooks/useLTVCarousel'
 
 export interface IndividualLTVData {
     ltv: number // e.g., 0.75 for 75% (liquidation LTV)
@@ -26,9 +25,14 @@ interface LTVNumberLineCarouselProps {
     isLiquidationLTV?: boolean // true if this is liquidation LTV, false if borrow LTV
 }
 
-const LTV_MIN = 0.60 // 60%
-const LTV_MAX = 0.90 // 90%
-const LTV_STEP = 0.01 // 1% increments
+// Determine which values to show labels for (min and max only)
+const shouldShowLabel = (ltv: number): boolean => {
+    const percent = Math.round(ltv * 100)
+    return (
+        percent === 60 || // Min
+        percent === 90 // Max
+    )
+}
 
 export const LTVNumberLineCarousel: React.FC<LTVNumberLineCarouselProps> = ({
     label,
@@ -61,15 +65,6 @@ export const LTVNumberLineCarousel: React.FC<LTVNumberLineCarouselProps> = ({
         })
         return map
     }, [ltvValues])
-
-    // Determine which values to show labels for (min and max only)
-    const shouldShowLabel = (ltv: number): boolean => {
-        const percent = Math.round(ltv * 100)
-        return (
-            percent === 60 || // Min
-            percent === 90 // Max
-        )
-    }
 
     const handleNotchClick = (ltv: number) => {
         onLTVSelect(ltv)
@@ -151,64 +146,10 @@ export const LTVNumberLineCarousel: React.FC<LTVNumberLineCarouselProps> = ({
     }
 
     // Keyboard navigation
-    useEffect(() => {
-        const handleKeyPress = (e: KeyboardEvent) => {
-            // Only handle if not typing in an input
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-                return
-            }
-
-            if (e.key === 'ArrowLeft') {
-                e.preventDefault()
-                if (selectedLTV === null) {
-                    const targetLTV = currentLTV !== null ? currentLTV : (ltvValues.length > 0 ? ltvValues[0].ltv : allLTVValues[0])
-                    onLTVSelect(targetLTV)
-                } else {
-                    const currentIndex = allLTVValues.findIndex((v) => Math.abs(v - selectedLTV) < 0.001)
-                    if (currentIndex > 0) {
-                        onLTVSelect(allLTVValues[currentIndex - 1])
-                    }
-                }
-            } else if (e.key === 'ArrowRight') {
-                e.preventDefault()
-                if (selectedLTV === null) {
-                    const targetLTV = currentLTV !== null ? currentLTV : (ltvValues.length > 0 ? ltvValues[0].ltv : allLTVValues[0])
-                    onLTVSelect(targetLTV)
-                } else {
-                    const currentIndex = allLTVValues.findIndex((v) => Math.abs(v - selectedLTV) < 0.001)
-                    if (currentIndex >= 0 && currentIndex < allLTVValues.length - 1) {
-                        onLTVSelect(allLTVValues[currentIndex + 1])
-                    }
-                }
-            }
-        }
-
-        window.addEventListener('keydown', handleKeyPress)
-        return () => window.removeEventListener('keydown', handleKeyPress)
-    }, [selectedLTV, currentLTV, ltvValues, allLTVValues, onLTVSelect])
+    useLTVCarouselKeyboardNav({ selectedLTV, currentLTV, ltvValues, allLTVValues, onLTVSelect })
 
     // Scroll selected LTV to center under fixed frame
-    useEffect(() => {
-        if (selectedLTV && containerRef.current) {
-            const notchElement = containerRef.current.querySelector(
-                `[data-ltv="${selectedLTV}"]`
-            ) as HTMLElement
-            if (notchElement && containerRef.current) {
-                const container = containerRef.current
-                const containerRect = container.getBoundingClientRect()
-                const notchRect = notchElement.getBoundingClientRect()
-                const scrollLeft = container.scrollLeft
-                const notchOffset = notchRect.left - containerRect.left + scrollLeft
-                const containerCenter = containerRect.width / 2
-                const targetScroll = notchOffset - containerCenter
-
-                container.scrollTo({
-                    left: targetScroll,
-                    behavior: 'smooth'
-                })
-            }
-        }
-    }, [selectedLTV])
+    useLTVCarouselScrollToCenter(selectedLTV, containerRef)
 
     const getNotchState = (ltv: number) => {
         const isSelected = selectedLTV !== null && Math.abs(ltv - selectedLTV) < 0.001
@@ -264,206 +205,27 @@ export const LTVNumberLineCarousel: React.FC<LTVNumberLineCarouselProps> = ({
                         pointerEvents="none"
                     >
                         {/* Left Arrow */}
-                        {(() => {
-                            const isAtMin = selectedLTV <= LTV_MIN
-                            const isConstraintViolation = !canMove.left && otherLTV !== null && otherLTV !== undefined && !isAtMin
-
-                            return (
-                                <Tooltip
-                                    label={
-                                        isConstraintViolation
-                                            ? isLiquidationLTV
-                                                ? `Liquidation LTV must be greater than Borrow LTV (${Math.round(otherLTV * 100)}%)`
-                                                : `Borrow LTV must be less than Liquidation LTV (${Math.round(otherLTV * 100)}%)`
-                                            : isAtMin
-                                                ? 'Minimum LTV reached'
-                                                : 'Previous LTV'
-                                    }
-                                    placement="top"
-                                    hasArrow
-                                    isDisabled={!isConstraintViolation && !isAtMin}
-                                    openDelay={300}
-                                    bg="rgba(10, 10, 10, 0.95)"
-                                    color="white"
-                                    border="2px solid"
-                                    borderColor={PRIMARY_PURPLE}
-                                    borderRadius="md"
-                                    boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
-                                    backdropFilter="blur(10px)"
-                                    fontSize="xs"
-                                    fontFamily="mono"
-                                    px={3}
-                                    py={2}
-                                    maxW="200px"
-                                    minW="164px"
-                                >
-                                    <Box
-                                        as="button"
-                                        onClick={(e: React.MouseEvent) => {
-                                            e.stopPropagation()
-                                            if (canMove.left && !isAtMin) {
-                                                handleArrowClick('left')
-                                            }
-                                        }}
-                                        bg="transparent"
-                                        border="none"
-                                        cursor={isAtMin || isConstraintViolation ? "not-allowed" : "pointer"}
-                                        p={2}
-                                        _hover={!isAtMin && !isConstraintViolation ? { opacity: 0.8 } : {}}
-                                        display="flex"
-                                        flexDirection="column"
-                                        alignItems="center"
-                                        aria-label="Previous LTV"
-                                        pointerEvents="auto"
-                                        opacity={isConstraintViolation ? 0.3 : (isAtMin ? 0.5 : 1)}
-                                        position="relative"
-                                    >
-                                        <ChevronLeftIcon
-                                            color={isConstraintViolation ? "red.400" : PRIMARY_PURPLE}
-                                            boxSize={6}
-                                            style={{
-                                                filter: isConstraintViolation
-                                                    ? 'drop-shadow(0 0 8px rgba(248, 113, 113, 0.4))'
-                                                    : 'drop-shadow(0 0 8px rgba(166, 146, 255, 0.6))',
-                                            }}
-                                        />
-                                        {/* Warning icon for constraint violation only */}
-                                        {isConstraintViolation && (
-                                            <Box
-                                                position="absolute"
-                                                top="-4px"
-                                                right="-4px"
-                                                bg="red.500"
-                                                borderRadius="full"
-                                                w="12px"
-                                                h="12px"
-                                                display="flex"
-                                                alignItems="center"
-                                                justifyContent="center"
-                                                border="2px solid"
-                                                borderColor="rgba(10, 10, 10, 0.95)"
-                                            >
-                                                <Text fontSize="8px" color="white" fontWeight="bold">!</Text>
-                                            </Box>
-                                        )}
-                                    </Box>
-                                </Tooltip>
-                            )
-                        })()}
+                        <LTVCarouselArrow
+                            direction="left"
+                            selectedLTV={selectedLTV}
+                            canMove={canMove}
+                            otherLTV={otherLTV}
+                            isLiquidationLTV={isLiquidationLTV}
+                            onArrowClick={handleArrowClick}
+                        />
 
                         {/* Selected Frame */}
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.2 }}
-                            style={{
-                                width: '80px',
-                                height: '60px',
-                                border: `2px solid ${PRIMARY_PURPLE}`,
-                                borderRadius: '8px',
-                                background: 'rgba(10, 10, 10, 0.95)',
-                                boxShadow: `0 0 20px ${PRIMARY_PURPLE}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <Text
-                                fontSize="xl"
-                                fontWeight="bold"
-                                color={PRIMARY_PURPLE}
-                                fontFamily="mono"
-                            >
-                                {Math.round(selectedLTV * 100)}%
-                            </Text>
-                        </motion.div>
+                        <LTVCarouselSelectedFrame selectedLTV={selectedLTV} />
 
                         {/* Right Arrow */}
-                        {(() => {
-                            const isAtMax = selectedLTV >= LTV_MAX
-                            const isConstraintViolation = !canMove.right && otherLTV !== null && otherLTV !== undefined && !isAtMax
-
-                            return (
-                                <Tooltip
-                                    label={
-                                        isConstraintViolation
-                                            ? isLiquidationLTV
-                                                ? `Liquidation LTV must be greater than Borrow LTV (${Math.round(otherLTV * 100)}%)`
-                                                : `Borrow LTV must be less than Liquidation LTV (${Math.round(otherLTV * 100)}%)`
-                                            : isAtMax
-                                                ? 'Maximum LTV reached'
-                                                : 'Next LTV'
-                                    }
-                                    placement="top"
-                                    hasArrow
-                                    isDisabled={!isConstraintViolation && !isAtMax}
-                                    openDelay={300}
-                                    bg="rgba(10, 10, 10, 0.95)"
-                                    color="white"
-                                    border="2px solid"
-                                    borderColor={PRIMARY_PURPLE}
-                                    borderRadius="md"
-                                    boxShadow={`0 0 20px ${PRIMARY_PURPLE}40`}
-                                    backdropFilter="blur(10px)"
-                                    fontSize="xs"
-                                    fontFamily="mono"
-                                    px={3}
-                                    py={2}
-                                    maxW="200px"
-                                >
-                                    <Box
-                                        as="button"
-                                        onClick={(e: React.MouseEvent) => {
-                                            e.stopPropagation()
-                                            if (canMove.right && !isAtMax) {
-                                                handleArrowClick('right')
-                                            }
-                                        }}
-                                        bg="transparent"
-                                        border="none"
-                                        cursor={isAtMax || isConstraintViolation ? "not-allowed" : "pointer"}
-                                        p={2}
-                                        _hover={!isAtMax && !isConstraintViolation ? { opacity: 0.8 } : {}}
-                                        display="flex"
-                                        flexDirection="column"
-                                        alignItems="center"
-                                        aria-label="Next LTV"
-                                        pointerEvents="auto"
-                                        opacity={isConstraintViolation ? 0.3 : (isAtMax ? 0.5 : 1)}
-                                        position="relative"
-                                    >
-                                        <ChevronRightIcon
-                                            color={isConstraintViolation ? "red.400" : PRIMARY_PURPLE}
-                                            boxSize={6}
-                                            style={{
-                                                filter: isConstraintViolation
-                                                    ? 'drop-shadow(0 0 8px rgba(248, 113, 113, 0.4))'
-                                                    : 'drop-shadow(0 0 8px rgba(166, 146, 255, 0.6))',
-                                            }}
-                                        />
-                                        {/* Warning icon for constraint violation only */}
-                                        {isConstraintViolation && (
-                                            <Box
-                                                position="absolute"
-                                                top="-4px"
-                                                left="-4px"
-                                                bg="red.500"
-                                                borderRadius="full"
-                                                w="12px"
-                                                h="12px"
-                                                display="flex"
-                                                alignItems="center"
-                                                justifyContent="center"
-                                                border="2px solid"
-                                                borderColor="rgba(10, 10, 10, 0.95)"
-                                            >
-                                                <Text fontSize="8px" color="white" fontWeight="bold">!</Text>
-                                            </Box>
-                                        )}
-                                    </Box>
-                                </Tooltip>
-                            )
-                        })()}
+                        <LTVCarouselArrow
+                            direction="right"
+                            selectedLTV={selectedLTV}
+                            canMove={canMove}
+                            otherLTV={otherLTV}
+                            isLiquidationLTV={isLiquidationLTV}
+                            onArrowClick={handleArrowClick}
+                        />
                     </Box>
                 )}
 
@@ -489,91 +251,20 @@ export const LTVNumberLineCarousel: React.FC<LTVNumberLineCarouselProps> = ({
                     >
                         {allLTVValues.map((ltv) => {
                             const { isSelected, isCurrent, isHovered, hasData } = getNotchState(ltv)
-                            const percent = Math.round(ltv * 100)
                             const showLabel = shouldShowLabel(ltv)
 
-                            // Calculate notch height based on state
-                            let notchHeight = 8
-                            if (isSelected) notchHeight = 40
-                            else if (isHovered) notchHeight = 20
-                            else if (isCurrent) notchHeight = 16
-                            else if (hasData) notchHeight = 12
-
-                            // Determine colors
-                            let notchColor = PRIMARY_PURPLE
-                            let glowColor = PRIMARY_PURPLE
-                            if (isCurrent) {
-                                notchColor = CURRENT_LTV_COLOR
-                                glowColor = CURRENT_LTV_COLOR
-                            } else if (isSelected) {
-                                notchColor = PRIMARY_PURPLE
-                                glowColor = PRIMARY_PURPLE
-                            } else if (isHovered) {
-                                notchColor = PRIMARY_PURPLE
-                                glowColor = PRIMARY_PURPLE
-                            } else if (!hasData) {
-                                notchColor = 'rgba(166, 146, 255, 0.3)'
-                                glowColor = 'transparent'
-                            }
-
                             return (
-                                <Box
+                                <LTVCarouselNotch
                                     key={ltv}
-                                    data-ltv={ltv}
-                                    position="relative"
-                                    flex={1}
-                                    display="flex"
-                                    flexDirection="column"
-                                    alignItems="center"
-                                    cursor="pointer"
-                                    onClick={() => handleNotchClick(ltv)}
-                                    onMouseEnter={() => handleNotchHover(ltv)}
-                                    onMouseLeave={() => handleNotchHover(null)}
-                                    style={{ minWidth: '2px' }}
-                                >
-                                    {/* Notch */}
-                                    <motion.div
-                                        animate={{
-                                            height: `${notchHeight}px`,
-                                            opacity: hasData ? 1 : 0.5,
-                                        }}
-                                        transition={{ duration: 0.2 }}
-                                        style={{
-                                            width: '2px',
-                                            backgroundColor: notchColor,
-                                            boxShadow: isSelected || isHovered || isCurrent
-                                                ? `0 0 ${isSelected ? '15px' : '8px'} ${glowColor}`
-                                                : 'none',
-                                            borderRadius: '1px',
-                                            position: 'relative',
-                                        }}
-                                    />
-
-                                    {/* Label */}
-                                    {showLabel && (
-                                        <Text
-                                            display={{ base: 'none', md: 'undefined' }}
-                                            fontSize="xs"
-                                            color={
-                                                isCurrent
-                                                    ? CURRENT_LTV_COLOR
-                                                    : isSelected || isHovered
-                                                        ? PRIMARY_PURPLE
-                                                        : 'whiteAlpha.600'
-                                            }
-                                            fontFamily="mono"
-                                            fontWeight={isCurrent || isSelected ? 'bold' : 'normal'}
-                                            mt={1}
-                                            textShadow={
-                                                isCurrent || isSelected
-                                                    ? `0 0 8px ${isCurrent ? CURRENT_LTV_COLOR : PRIMARY_PURPLE}`
-                                                    : undefined
-                                            }
-                                        >
-                                            {percent}%
-                                        </Text>
-                                    )}
-                                </Box>
+                                    ltv={ltv}
+                                    isSelected={isSelected}
+                                    isCurrent={isCurrent}
+                                    isHovered={isHovered}
+                                    hasData={hasData}
+                                    showLabel={showLabel}
+                                    onSelect={handleNotchClick}
+                                    onHover={handleNotchHover}
+                                />
                             )
                         })}
                     </HStack>
@@ -582,4 +273,3 @@ export const LTVNumberLineCarousel: React.FC<LTVNumberLineCarouselProps> = ({
         </Box>
     )
 }
-

@@ -8,9 +8,13 @@ import {
     useToast,
 } from '@chakra-ui/react'
 import { CloseIcon } from '@chakra-ui/icons'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
-const MotionBox = motion(Box)
+const MotionBox = m(Box)
 
 export interface ActionRewardData {
     points: number
@@ -62,33 +66,21 @@ export const ActionReward: React.FC<ActionRewardProps> = ({ reward, onClose }) =
                     transition={{ duration: 0.3, type: 'spring' }}
                 >
                     <Box
-                        bg="gray.800"
-                        border="2px solid"
-                        borderColor="cyan.500"
-                        borderRadius="lg"
-                        p={6}
+                        bg={SEMANTIC_COLORS.bgSecondary}
+                        border="1px solid"
+                        borderColor={SEMANTIC_COLORS.borderMedium}
+                        borderRadius={0}
+                        p={SPACING.lg}
                         minW="320px"
-                        boxShadow="0 0 20px rgba(111, 255, 194, 0.3)"
                         position="relative"
-                        _before={{
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: 'linear-gradient(135deg, rgba(111, 255, 194, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%)',
-                            borderRadius: 'lg',
-                            pointerEvents: 'none',
-                        }}
                     >
-                        <VStack spacing={4} align="stretch" position="relative" zIndex={1}>
+                        <VStack spacing={SPACING.base} align="stretch" position="relative" zIndex={1}>
                             <HStack justify="space-between" align="flex-start">
-                                <VStack spacing={1} align="flex-start" flex={1}>
+                                <VStack spacing={SPACING.xs} align="flex-start" flex={1}>
                                     <Text
                                         fontSize="xs"
-                                        color="gray.400"
-                                        fontFamily="mono"
+                                        color={SEMANTIC_COLORS.textSecondary}
+                                        fontFamily={TYPOGRAPHY.fontMono}
                                         textTransform="uppercase"
                                         letterSpacing="wide"
                                     >
@@ -96,10 +88,10 @@ export const ActionReward: React.FC<ActionRewardProps> = ({ reward, onClose }) =
                                     </Text>
                                     <Text
                                         fontSize="3xl"
-                                        fontWeight="bold"
-                                        color="cyan.400"
-                                        fontFamily="mono"
-                                        textShadow="0 0 10px rgba(111, 255, 194, 0.5)"
+                                        fontWeight={TYPOGRAPHY.bold}
+                                        color={SEMANTIC_COLORS.info}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        sx={{ fontVariantNumeric: 'tabular-nums' }}
                                     >
                                         +{reward.points.toFixed(1)} Points
                                     </Text>
@@ -109,8 +101,10 @@ export const ActionReward: React.FC<ActionRewardProps> = ({ reward, onClose }) =
                                     icon={<CloseIcon />}
                                     size="sm"
                                     variant="ghost"
-                                    color="gray.400"
-                                    _hover={{ color: 'cyan.400' }}
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={HOVER_EFFECTS.brighten}
+                                    _focus={FOCUS_STYLES.ring}
                                     onClick={() => {
                                         setIsVisible(false)
                                         setTimeout(onClose, 300)
@@ -119,16 +113,16 @@ export const ActionReward: React.FC<ActionRewardProps> = ({ reward, onClose }) =
                             </HStack>
 
                             <Box
-                                p={3}
-                                bg="gray.700"
-                                borderRadius="md"
+                                p={SPACING.md}
+                                bg={SEMANTIC_COLORS.bgTertiary}
+                                borderRadius={0}
                                 border="1px solid"
-                                borderColor="gray.600"
+                                borderColor={SEMANTIC_COLORS.borderMedium}
                             >
                                 <Text
                                     fontSize="sm"
-                                    color="gray.300"
-                                    fontFamily="mono"
+                                    color={SEMANTIC_COLORS.textPrimary}
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                     lineHeight="1.6"
                                 >
                                     {reward.narrative}
@@ -137,20 +131,21 @@ export const ActionReward: React.FC<ActionRewardProps> = ({ reward, onClose }) =
 
                             {reward.yieldIncrease && reward.yieldIncrease > 0 && (
                                 <HStack
-                                    p={3}
-                                    bg="green.900"
-                                    borderRadius="md"
+                                    p={SPACING.md}
+                                    bg={SEMANTIC_COLORS.bgTertiary}
+                                    borderRadius={0}
                                     border="1px solid"
-                                    borderColor="green.500"
+                                    borderColor={SEMANTIC_COLORS.success}
                                 >
-                                    <Text fontSize="sm" color="green.400" fontFamily="mono">
+                                    <Text fontSize="sm" color={SEMANTIC_COLORS.success} fontFamily={TYPOGRAPHY.fontMono}>
                                         Yield Increase:
                                     </Text>
                                     <Text
                                         fontSize="lg"
-                                        fontWeight="bold"
-                                        color="green.300"
-                                        fontFamily="mono"
+                                        fontWeight={TYPOGRAPHY.bold}
+                                        color={SEMANTIC_COLORS.success}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        sx={{ fontVariantNumeric: 'tabular-nums' }}
                                     >
                                         +{reward.yieldIncrease.toFixed(2)}%
                                     </Text>

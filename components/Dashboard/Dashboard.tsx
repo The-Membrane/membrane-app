@@ -1,11 +1,16 @@
 import {
-    Text, Stack, Slider, Card, SliderFilledTrack, SliderTrack, Modal,
+    Text, Stack, Slider, SliderFilledTrack, SliderTrack, Modal,
     ModalBody, Button,
     ModalContent,
-    ModalOverlay, useDisclosure, Box, VStack, useColorModeValue
+    ModalOverlay, useDisclosure, Box, VStack
 } from '@chakra-ui/react'
 
 import React, { useMemo, useState } from "react"
+import { Card } from '@/components/ui/Card'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { FOCUS_STYLES } from '@/config/transitions'
 import { useBasket } from '@/hooks/useCDP'
 import { shiftDigits } from '@/helpers/math'
 import { useRBLPCDTBalance } from '../../hooks/useEarnQueries'
@@ -22,7 +27,6 @@ import { Price } from '@/services/oracle'
 import { num } from '@/helpers/num'
 import { useOraclePrice } from '@/hooks/useOracle'
 import AssetPieChart from './PieChart'
-import { colors } from '@/config/defaults'
 import { OracleHealth } from './OracleHealth'
 import useGiveRBLPPoints from './hooks/useGiveRBLPPoints'
 import { SupplyCaps } from './SupplyCaps'
@@ -30,7 +34,7 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import { CheckLiquidations } from '../Bid/Bid'
 import useAppState from '@/persisted-state/useAppState'
 
-const ManagementCard = React.memo(({ basket }: { basket: any }) => {
+const ManagementCard = React.memo(function ManagementCard({ basket }: { basket: any }) {
     const [idSkips, setSkips] = useState([] as number[])
 
     const { action: manage } = useBoundedManage()
@@ -55,17 +59,21 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
             }
         }
         return fulfill?.simulate.isError || !fulfill?.simulate.data
-    }, [fulfill?.simulate.isError, fulfill?.simulate.data])
+    }, [fulfill?.simulate.isError, fulfill?.simulate.data, fulfill?.simulate.error?.message, idSkips])
     // if (isFulfillDisabled) console.log("isFulfillDisabled", fulfill?.simulate, fulfill?.simulate.isError, !fulfill?.simulate)
-    const cardBg = useColorModeValue('#181F2A', '#232B3E')
-    const borderColor = useColorModeValue('whiteAlpha.200', 'whiteAlpha.200')
     return (
-        <VStack align="stretch" spacing={6} w="full">
-            <Text fontWeight="bold" fontSize="xl" color={colors.earnText} letterSpacing="1px">
+        <VStack align="stretch" spacing={SPACING.lg} w="full">
+            <Text
+                as="h1"
+                fontFamily={TYPOGRAPHY.fontDisplay}
+                fontSize={TYPOGRAPHY.h1}
+                fontWeight={TYPOGRAPHY.bold}
+                color={SEMANTIC_COLORS.textPrimary}
+            >
                 Product Management
             </Text>
-            <Box bg={cardBg} borderRadius="2xl" boxShadow="lg" p={6} border="1px solid" borderColor={borderColor}>
-                <VStack spacing={6} align="stretch">
+            <Card>
+                <VStack spacing={SPACING.lg} align="stretch">
                     <TxButton
                         maxW="100%"
                         isLoading={fulfill?.simulate.isLoading || fulfill?.tx.isPending}
@@ -99,7 +107,7 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
                         value={percentToDistribution}
                     >
                         <SliderTrack h="1.5">
-                            <SliderFilledTrack bg={'#20d6ff'} />
+                            <SliderFilledTrack bg={SEMANTIC_COLORS.success} />
                         </SliderTrack>
                     </Slider>
                     <TxButton
@@ -113,7 +121,7 @@ const ManagementCard = React.memo(({ basket }: { basket: any }) => {
                         {isManageDisabled && percentToDistribution >= 1 ? "Next Repayment Pays to LPs" : "Manage Vault"}
                     </TxButton>
                 </VStack>
-            </Box>
+            </Card>
         </VStack>
     )
 })
@@ -169,12 +177,9 @@ const Dashboard = () => {
         }
     }, [modalHasOpened, onOpen])
 
-    const cardBg = useColorModeValue('#181F2A', '#232B3E')
-    const borderColor = useColorModeValue('whiteAlpha.200', 'whiteAlpha.200')
-
     return (
         <Box w="full" px={{ base: 2, md: 8 }} py={{ base: 4, md: 8 }}>
-            <VStack align="stretch" spacing={8} w="full" maxW="1200px" mx="auto">
+            <VStack align="stretch" spacing={SPACING.xl} w="full" maxW="1200px" mx="auto">
                 <StatsTitle />
                 <Divider mx="0" mb="5" />
                 {/* Responsive layout for charts */}
@@ -184,28 +189,12 @@ const Dashboard = () => {
                     spacing={8}
                     w="full"
                 >
-                    <Box
-                        bg={cardBg}
-                        borderRadius="2xl"
-                        boxShadow="lg"
-                        p={6}
-                        border="1px solid"
-                        borderColor={borderColor}
-                        w={{ base: "100%", md: "50%" }}
-                    >
+                    <Card w={{ base: "100%", md: "50%" }}>
                         <AssetPieChart data={assetData} />
-                    </Box>
-                    <Box
-                        bg={cardBg}
-                        borderRadius="2xl"
-                        boxShadow="lg"
-                        p={6}
-                        border="1px solid"
-                        borderColor={borderColor}
-                        w={{ base: "100%", md: "50%" }}
-                    >
+                    </Card>
+                    <Card w={{ base: "100%", md: "50%" }}>
                         <OracleHealth />
-                    </Box>
+                    </Card>
                 </Stack>
                 <Stack
                     direction={{ base: "column", md: "row" }}
@@ -216,17 +205,9 @@ const Dashboard = () => {
                     <Box w={{ base: "100%", md: "50%" }}>
                         <ManagementCard basket={basket} />
                     </Box>
-                    <Box
-                        bg={cardBg}
-                        borderRadius="2xl"
-                        boxShadow="lg"
-                        p={6}
-                        border="1px solid"
-                        borderColor={borderColor}
-                        w={{ base: "100%", md: "50%" }}
-                    >
+                    <Card w={{ base: "100%", md: "50%" }}>
                         <SupplyCaps />
-                    </Box>
+                    </Card>
                 </Stack>
             </VStack>
 
@@ -237,21 +218,32 @@ const Dashboard = () => {
                 <ModalContent
                     h={"fit-content"}
                     w="fit-content"
-                    borderWidth={"2px"}
-                    borderColor={colors.tabBG}
+                    bg={SEMANTIC_COLORS.bgSecondary}
+                    borderRadius={0}
+                    border="1px solid"
+                    borderColor={SEMANTIC_COLORS.borderMedium}
                     padding="0"
                     textAlign="center"
                 >
-                    <ModalBody p="1rem" position="relative" zIndex={1}>
+                    <ModalBody p={SPACING.base} pb={SPACING_PATTERNS.modalPadding} position="relative" zIndex={1}>
                         <Stack h="full">
                             <Text
-                                fontSize="24px"
+                                fontFamily={TYPOGRAPHY.fontDisplay}
+                                fontSize={TYPOGRAPHY.h2}
+                                color={SEMANTIC_COLORS.textPrimary}
                                 alignSelf="center"
-                                paddingTop="1rem"
+                                paddingTop={SPACING.base}
                             >
                                 This is where the experiments are monitored, are you prepared to see behind the veil?
                             </Text>
-                            <Button onClick={onClose} w="fit-content" alignSelf="center" mt={4}>
+                            <Button
+                                onClick={onClose}
+                                w="fit-content"
+                                alignSelf="center"
+                                mt={SPACING.base}
+                                borderRadius={0}
+                                _focus={FOCUS_STYLES.ring}
+                            >
                                 Peek
                             </Button>
                         </Stack>

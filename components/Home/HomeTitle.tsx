@@ -125,7 +125,7 @@ const HomeHeader = React.memo(function HomeHeader() {
       >
         Power the Indestructible Evolution of Money
       </Text>
-      <Image src="/images/cdt.png" w={{ base: '50px', md: '65px' }} h={{ base: '70px', md: '90px' }} alignSelf="center" />
+      <Image src="/images/cdt.svg" w={{ base: '50px', md: '65px' }} h={{ base: '70px', md: '90px' }} alignSelf="center" />
     </Stack>
   )
 })

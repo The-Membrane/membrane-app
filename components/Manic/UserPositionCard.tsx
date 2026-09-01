@@ -11,12 +11,16 @@ import {
     IconButton,
 } from '@chakra-ui/react'
 import { InfoIcon } from '@chakra-ui/icons'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
+import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import { DepositCard } from './DepositModal'
 import { BoostBreakdown } from './BoostBreakdown'
 
-const MotionBox = motion(Box)
-const MotionVStack = motion(VStack)
+const MotionBox = m(Box)
+const MotionVStack = m(VStack)
 
 interface UserPositionCardProps {
     hasPosition: boolean
@@ -55,11 +59,11 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
         return (debtAmount / collateralAmount) * 100
     }, [hasPosition, collateralAmount, debtAmount])
 
-    // Health indicator: Green < 60%, Yellow 60-80%, Red > 80%
+    // Health indicator: Phosphor < 60%, Gold 60-80%, Blood > 80%
     const healthColor = useMemo(() => {
-        if (currentLTV < 60) return 'green.400'
-        if (currentLTV < 80) return 'yellow.400'
-        return 'red.400'
+        if (currentLTV < 60) return SEMANTIC_COLORS.success
+        if (currentLTV < 80) return SEMANTIC_COLORS.warning
+        return SEMANTIC_COLORS.danger
     }, [currentLTV])
 
     const healthLabel = useMemo(() => {
@@ -76,44 +80,51 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
                 transition={{ duration: 0.3, ease: "easeInOut" }}
             >
                 <Card
-                    bg="gray.800"
-                    borderColor="gray.600"
-                    borderWidth="2px"
-                    p={8}
+                    borderRadius={0}
+                    p={SPACING.xl}
                     w="100%"
                     overflow="hidden"
                 >
-                    <MotionVStack 
-                        spacing={6} 
+                    <MotionVStack
+                        spacing={SPACING.lg}
                         align="center"
                         layout
                         transition={{ duration: 0.3, ease: "easeInOut" }}
                     >
-                        <VStack spacing={2}>
+                        <VStack spacing={SPACING.sm}>
                             <AnimatePresence mode="wait">
                                 {!isDepositOpen && (
                                     <MotionBox
                                         key="title"
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
+                                        // Auto-height reveal: scaleY would squash the text,
+                                        // so animate grid-template-rows 0fr→1fr — the grid row
+                                        // drives the reveal (no per-frame box layout) and the
+                                        // content clips instead of distorting (react.doctor
+                                        // Case C recipe for unknown-size reveals).
+                                        initial={{ opacity: 0, gridTemplateRows: '0fr' }}
+                                        animate={{ opacity: 1, gridTemplateRows: '1fr' }}
+                                        exit={{ opacity: 0, gridTemplateRows: '0fr' }}
                                         transition={{ duration: 0.2 }}
+                                        display="grid"
+                                        overflow="hidden"
                                     >
+                                        <Box minH={0} overflow="hidden">
                                         <Text
-                                            fontSize="xl"
-                                            fontWeight="bold"
-                                            color="gray.400"
-                                            fontFamily="mono"
+                                            fontSize={TYPOGRAPHY.h3}
+                                            fontWeight={TYPOGRAPHY.bold}
+                                            color={SEMANTIC_COLORS.textSecondary}
+                                            fontFamily={TYPOGRAPHY.fontDisplay}
                                         >
                                             No Position Found
                                         </Text>
+                                        </Box>
                                     </MotionBox>
                                 )}
                             </AnimatePresence>
                             <Text
-                                fontSize="sm"
-                                color="gray.500"
-                                fontFamily="mono"
+                                fontSize={TYPOGRAPHY.small}
+                                color={SEMANTIC_COLORS.textTertiary}
+                                fontFamily={TYPOGRAPHY.fontMono}
                                 textAlign="center"
                             >
                                 Deposit USDC to enable looping
@@ -122,15 +133,22 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
 
                         <AnimatePresence mode="wait">
                             {isDepositOpen ? (
-                                <MotionBox 
+                                <MotionBox
                                     key="deposit-form"
-                                    w="100%" 
+                                    w="100%"
                                     maxW="500px"
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: "auto" }}
-                                    exit={{ opacity: 0, height: 0 }}
+                                    // Auto-height reveal of a form: scaleY would squash the
+                                    // inputs, so animate grid-template-rows 0fr→1fr — the grid
+                                    // row drives the reveal (no per-frame box layout) and the
+                                    // form clips instead of distorting (react.doctor Case C).
+                                    initial={{ opacity: 0, gridTemplateRows: '0fr' }}
+                                    animate={{ opacity: 1, gridTemplateRows: '1fr' }}
+                                    exit={{ opacity: 0, gridTemplateRows: '0fr' }}
                                     transition={{ duration: 0.3, ease: "easeInOut" }}
+                                    display="grid"
+                                    overflow="hidden"
                                 >
+                                    <Box minH={0} overflow="hidden">
                                     <DepositCard
                                         isOpen={isDepositOpen}
                                         onClose={onCloseDeposit}
@@ -138,6 +156,7 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
                                         inline={true}
                                         hideUsdValue={true}
                                     />
+                                    </Box>
                                 </MotionBox>
                             ) : (
                                 <MotionBox
@@ -149,18 +168,12 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
                                 >
                                     <Button
                                         size="lg"
-                                        colorScheme="cyan"
-                                        bg="cyan.500"
-                                        color="white"
                                         onClick={onDepositClick}
-                                        fontFamily="mono"
-                                        fontSize="lg"
                                         w="20%"
                                         minW="150px"
-                                        _hover={{
-                                            bg: 'cyan.400',
-                                            transform: 'scale(1.02)',
-                                        }}
+                                        transition={TRANSITIONS.colors}
+                                        _active={ACTIVE_EFFECTS.dim}
+                                        _focus={FOCUS_STYLES.ring}
                                     >
                                         Deposit USDC
                                     </Button>
@@ -176,35 +189,26 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
     // Has position - show position details
     return (
         <Card
-            bg="gray.800"
-            borderColor="cyan.600"
-            borderWidth="2px"
-            p={6}
+            borderRadius={0}
+            p={SPACING_PATTERNS.modalPadding}
             w="100%"
-            boxShadow="0 0 20px rgba(0, 191, 255, 0.15)"
         >
-            <VStack spacing={6} align="stretch">
+            <VStack spacing={SPACING.lg} align="stretch">
                 {/* Header */}
                 <HStack justify="space-between" align="center">
-                    <HStack spacing={2}>
+                    <HStack spacing={SPACING.sm}>
                         <Text
-                            fontSize="lg"
-                            fontWeight="bold"
-                            color="white"
-                            fontFamily="mono"
+                            fontSize={TYPOGRAPHY.h4}
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={SEMANTIC_COLORS.textPrimary}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             textTransform="uppercase"
+                            letterSpacing="0.12em"
                         >
                             Your Position
                         </Text>
                         <Tooltip
                             label="Your current USDC looping position. Loop level shows how leveraged your position is."
-                            fontSize="xs"
-                            bg="gray.800"
-                            color="#F5F5F5"
-                            border="1px solid"
-                            borderColor="cyan.500"
-                            borderRadius="md"
-                            p={3}
                             hasArrow
                         >
                             <IconButton
@@ -212,8 +216,11 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
                                 icon={<InfoIcon />}
                                 size="xs"
                                 variant="ghost"
-                                color="gray.400"
-                                _hover={{ color: "cyan.400" }}
+                                color={SEMANTIC_COLORS.textSecondary}
+                                transition={TRANSITIONS.colors}
+                                _hover={HOVER_EFFECTS.brighten}
+                                _active={ACTIVE_EFFECTS.dim}
+                                _focus={FOCUS_STYLES.ring}
                                 minW="auto"
                                 w="auto"
                                 h="auto"
@@ -224,91 +231,99 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
                 </HStack>
 
                 {/* Position Stats Grid */}
-                <HStack spacing={6} w="100%" justify="space-between">
+                <HStack spacing={SPACING.lg} w="100%" justify="space-between">
                     {/* Deposited Amount */}
-                    <VStack align="start" spacing={1} flex={1}>
+                    <VStack align="start" spacing={SPACING.xs} flex={1}>
                         <Text
-                            fontSize="xs"
-                            color="gray.400"
-                            fontFamily="mono"
+                            fontSize={TYPOGRAPHY.label}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             textTransform="uppercase"
+                            letterSpacing="0.28em"
                         >
                             Deposited
                         </Text>
                         <Text
                             fontSize="2xl"
-                            fontWeight="bold"
-                            color="white"
-                            fontFamily="mono"
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={SEMANTIC_COLORS.textPrimary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
                         >
                             {collateralAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC
                         </Text>
                     </VStack>
 
                     {/* Current Loop Level */}
-                    <VStack align="start" spacing={1} flex={1}>
+                    <VStack align="start" spacing={SPACING.xs} flex={1}>
                         <Text
-                            fontSize="xs"
-                            color="gray.400"
-                            fontFamily="mono"
+                            fontSize={TYPOGRAPHY.label}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             textTransform="uppercase"
+                            letterSpacing="0.28em"
                         >
                             Loop Level
                         </Text>
                         <Text
                             fontSize="2xl"
-                            fontWeight="bold"
-                            color="cyan.400"
-                            fontFamily="mono"
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={SEMANTIC_COLORS.info}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
                         >
                             {currentLoopLevel.toFixed(1)}x
                         </Text>
                     </VStack>
 
                     {/* Current Net APR */}
-                    <VStack align="start" spacing={1} flex={1}>
+                    <VStack align="start" spacing={SPACING.xs} flex={1}>
                         <Text
-                            fontSize="xs"
-                            color="gray.400"
-                            fontFamily="mono"
+                            fontSize={TYPOGRAPHY.label}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             textTransform="uppercase"
+                            letterSpacing="0.28em"
                         >
                             Net APR
                         </Text>
                         <Text
                             fontSize="2xl"
-                            fontWeight="bold"
-                            color="green.400"
-                            fontFamily="mono"
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={SEMANTIC_COLORS.success}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
                         >
                             {userAPR.toFixed(2)}%
                         </Text>
                     </VStack>
 
                     {/* Health Indicator */}
-                    <VStack align="start" spacing={1} flex={1}>
+                    <VStack align="start" spacing={SPACING.xs} flex={1}>
                         <Text
-                            fontSize="xs"
-                            color="gray.400"
-                            fontFamily="mono"
+                            fontSize={TYPOGRAPHY.label}
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             textTransform="uppercase"
+                            letterSpacing="0.28em"
                         >
                             Health
                         </Text>
-                        <VStack align="start" spacing={1} w="100%">
-                            <HStack spacing={2}>
+                        <VStack align="start" spacing={SPACING.xs} w="100%">
+                            <HStack spacing={SPACING.sm}>
                                 <Text
-                                    fontSize="lg"
-                                    fontWeight="bold"
+                                    fontSize={TYPOGRAPHY.h4}
+                                    fontWeight={TYPOGRAPHY.bold}
                                     color={healthColor}
-                                    fontFamily="mono"
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                 >
                                     {healthLabel}
                                 </Text>
                                 <Text
-                                    fontSize="sm"
-                                    color="gray.500"
-                                    fontFamily="mono"
+                                    fontSize={TYPOGRAPHY.small}
+                                    color={SEMANTIC_COLORS.textTertiary}
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    sx={{ fontVariantNumeric: 'tabular-nums' }}
                                 >
                                     ({currentLTV.toFixed(0)}% LTV)
                                 </Text>
@@ -317,10 +332,10 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
                                 value={currentLTV}
                                 max={100}
                                 size="xs"
-                                colorScheme={currentLTV < 60 ? 'green' : currentLTV < 80 ? 'yellow' : 'red'}
-                                bg="gray.700"
-                                borderRadius="full"
+                                bg={SEMANTIC_COLORS.bgTertiary}
+                                borderRadius={0}
                                 w="100%"
+                                sx={{ '& > div': { backgroundColor: healthColor } }}
                             />
                         </VStack>
                     </VStack>
@@ -329,4 +344,3 @@ export const UserPositionCard: React.FC<UserPositionCardProps> = ({
         </Card>
     )
 }
-

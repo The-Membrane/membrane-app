@@ -109,6 +109,8 @@ const TraitList: React.FC<TraitListProps> = ({ attributes }) => {
 
   const grouped = useMemo(() => {
     const byLabel = new Map(items.map((a) => [a.trait_type, a.value]))
+    // js-combine-iterations FP: sectionToTraits[section] is a hardcoded 3-6 item literal
+    // array (7 sections total) — the extra pass over this fixed trait config is negligible.
     const tuples: Array<[SectionKey, Array<{ label: string; value: string }>]> = sectionOrder.map((section) => [
       section,
       sectionToTraits[section]

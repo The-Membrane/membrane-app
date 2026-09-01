@@ -36,6 +36,7 @@ export const LiqSummary = ({ liquidations }: Props) => {
         .map((liq) => {
           return (
             <SummaryItem
+              key={liq.position_id}
               id={liq.position_id}
               fee={Number(liq.position_fee)}
             />

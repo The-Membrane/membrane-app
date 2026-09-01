@@ -29,7 +29,7 @@ type Props = {
     setInputAmount: (value: number) => void
   }
   
-  export const SliderWithInputBox = React.memo(({ max, inputBoxWidth = "38%", NFTState, setNFTState, onMenuChange, inputAmount, setInputAmount}: SliderWithInputProps) => {
+  export const SliderWithInputBox = React.memo(function SliderWithInputBox({ max, inputBoxWidth = "38%", NFTState, setNFTState, onMenuChange, inputAmount, setInputAmount}: SliderWithInputProps) {
         const onSliderChange = (value: number) => {      
         if (inputAmount != value) setInputAmount(value)
 
@@ -50,6 +50,10 @@ type Props = {
         }, delayTime);  
       }
   
+      // Intentionally keyed only on sliderValue: this is a one-way sync (slider -> input).
+      // `inputAmount` is read only to diff against; adding it as a dep would fire this on
+      // every keystroke and revert the user's typed value before the debounced slider
+      // update lands, so it is deliberately excluded (behavior-preserving).
       useEffect(() => {
         //If the selected asset has a different slider value than the inputAmount, set the inputAmount to the slider value
         if (NFTState?.selectedAsset?.sliderValue != inputAmount) {

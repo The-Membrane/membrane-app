@@ -1,7 +1,7 @@
 import { TxButton } from '@/components/TxButton'
 import { isGreaterThanZero, num, shiftDigits } from '@/helpers/num'
 import { Card, HStack, Stack, Text } from '@chakra-ui/react'
-import { Cell, Label, Pie, PieChart } from 'recharts'
+import { lazyChart } from '@/components/ui/lazyChart'
 import useClaim from './hooks/useClaim'
 import {
   useIncentives,
@@ -15,6 +15,38 @@ import { useMemo, useState } from 'react'
 const data = [{ name: 'Group A', value: 400 }]
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
 const SECONDS_IN_DAY = 86400
+
+const LockdropPie = lazyChart<{ pieValue: number }>(
+  ({ PieChart, Pie, Cell, Label }) =>
+    function LockdropPie({ pieValue }) {
+      return (
+        <PieChart width={300} height={300}>
+          <Pie
+            data={data}
+            cx={140}
+            cy={145}
+            innerRadius={110}
+            outerRadius={140}
+            fill="#8884d8"
+            dataKey="value"
+            startAngle={90}
+            endAngle={90 - 360 * pieValue}
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+            <Label
+              value={(pieValue * 100).toFixed(0) + '%'}
+              position="center"
+              fill="#fff"
+              fontSize="24px"
+            />
+          </Pie>
+        </PieChart>
+      )
+    },
+  300,
+)
 
 const Chart = () => {
   const { data: lockdrop } = useLockdrop()
@@ -51,29 +83,7 @@ const Chart = () => {
 
   return (
     <Stack w="full" alignItems="center">
-      <PieChart width={300} height={300}>
-        <Pie
-          data={data}
-          cx={140}
-          cy={145}
-          innerRadius={110}
-          outerRadius={140}
-          fill="#8884d8"
-          dataKey="value"
-          startAngle={90}
-          endAngle={90 - 360 * pieValue}
-        >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-          ))}
-          <Label
-            value={(pieValue * 100).toFixed(0) + '%'}
-            position="center"
-            fill="#fff"
-            fontSize="24px"
-          />
-        </Pie>
-      </PieChart>
+      <LockdropPie pieValue={pieValue} />
     </Stack>
   )
 }

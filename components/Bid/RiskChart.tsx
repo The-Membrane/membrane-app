@@ -10,7 +10,10 @@ import { SPACING } from '@/config/spacing'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TYPOGRAPHY } from '@/helpers/typography'
 
-const CustomTooltip = ({ active, payload, label }) => {
+// recharts injects these props at render time. `payload` stays `any` because the
+// recharts module is lazy-loaded here (see lazyChart), so its Payload type is not
+// statically importable; each row carries the chart datum under `.payload`.
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any; label?: number }) => {
   const { tvl, premium, capitalAheadAmount } = payload[0]?.payload || {}
 
   if (active && payload && payload.length) {
@@ -62,7 +65,19 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null
 }
 
-const CustomTick = ({ x, y, payload, bidState, onClick }) => {
+const CustomTick = ({
+  x,
+  y,
+  payload,
+  bidState,
+  onClick,
+}: {
+  x: number
+  y: number
+  payload: { value: number }
+  bidState: { placeBid: { premium: number } }
+  onClick: (value: number) => void
+}) => {
   const isSpecialTick = payload.value === 10
   const isSelected = payload.value === bidState.placeBid.premium
 

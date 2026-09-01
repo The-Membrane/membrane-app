@@ -7,7 +7,12 @@ import {
     Button,
     ButtonGroup,
 } from '@chakra-ui/react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { Card } from '@/components/ui/Card'
+import { lazyChart } from '@/components/ui/lazyChart'
 import { usePortMetrics } from './hooks/usePortMetrics'
 import { useRevenuePerSecond } from './hooks/useRevenuePerSecond'
 import usePortState from '@/persisted-state/usePortState'
@@ -15,6 +20,69 @@ import dayjs from 'dayjs'
 import { ShareButton } from '@/components/ShareableCard/ShareButton'
 
 type TimeRange = 'lifetime' | 'today' | 'session'
+
+type RevenuePoint = { time: string; revenue: number }
+
+const RevenueLineChart = lazyChart<{ chartData: RevenuePoint[] }>(
+    ({ LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer }) =>
+        function RevenueLineChart({ chartData }) {
+            return (
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                        <defs>
+                            <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={SEMANTIC_COLORS.info} stopOpacity={0.8} />
+                                <stop offset="100%" stopColor={SEMANTIC_COLORS.info} stopOpacity={0.1} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(70, 211, 154, 0.12)" />
+                        <XAxis
+                            dataKey="time"
+                            stroke="rgba(70, 211, 154, 0.5)"
+                            style={{ fontSize: '12px' }}
+                        />
+                        <YAxis
+                            stroke="rgba(70, 211, 154, 0.5)"
+                            style={{ fontSize: '12px' }}
+                            tickFormatter={(value) => `$${value.toFixed(2)}`}
+                        />
+                        <Tooltip
+                            contentStyle={{
+                                backgroundColor: SEMANTIC_COLORS.bgSecondary,
+                                border: `1px solid ${SEMANTIC_COLORS.info}`,
+                                borderRadius: '0',
+                                color: SEMANTIC_COLORS.info,
+                            }}
+                            formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="revenue"
+                            stroke={SEMANTIC_COLORS.info}
+                            strokeWidth={2}
+                            dot={{ fill: SEMANTIC_COLORS.info, r: 3 }}
+                            activeDot={{ r: 5, fill: SEMANTIC_COLORS.info }}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            )
+        },
+    '100%',
+)
+
+// Format milestone value for display
+const formatMilestone = (value: number): string => {
+    if (value >= 1000000) {
+        const millions = value / 1000000
+        // If it's a whole number, don't show decimals (e.g., 1M not 1.0M)
+        return millions % 1 === 0 ? `$${millions}M` : `$${millions.toFixed(1)}M`
+    } else if (value >= 1000) {
+        const thousands = value / 1000
+        // If it's a whole number, don't show decimals (e.g., 100K not 100.0K)
+        return thousands % 1 === 0 ? `$${thousands}K` : `$${thousands.toFixed(1)}K`
+    }
+    return `$${value}`
+}
 
 export const RevenueChart: React.FC = () => {
     const { data: metrics } = usePortMetrics()
@@ -154,20 +222,6 @@ export const RevenueChart: React.FC = () => {
     // Calculate milestones and current revenue
     const currentRevenue = cumulativeRevenue || metrics?.totalRevenue || portState.lifetimeRevenue || 463.50 // Use cumulative revenue counter value
 
-    // Format milestone value for display
-    const formatMilestone = (value: number): string => {
-        if (value >= 1000000) {
-            const millions = value / 1000000
-            // If it's a whole number, don't show decimals (e.g., 1M not 1.0M)
-            return millions % 1 === 0 ? `$${millions}M` : `$${millions.toFixed(1)}M`
-        } else if (value >= 1000) {
-            const thousands = value / 1000
-            // If it's a whole number, don't show decimals (e.g., 100K not 100.0K)
-            return thousands % 1 === 0 ? `$${thousands}K` : `$${thousands.toFixed(1)}K`
-        }
-        return `$${value}`
-    }
-
     const milestones = useMemo(() => {
         const milestoneValues = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000]
         return milestoneValues.map((m) => ({
@@ -177,35 +231,19 @@ export const RevenueChart: React.FC = () => {
     }, [currentRevenue])
 
     return (
-        <Box
-            bg="gray.800"
-            border="1px solid"
-            borderColor="purple.500"
-            borderRadius="md"
-            p={6}
-            position="relative"
-            overflow="hidden"
-            _before={{
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundImage: `
-                    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(111, 255, 194, 0.03) 2px, rgba(111, 255, 194, 0.03) 4px),
-                    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(111, 255, 194, 0.03) 2px, rgba(111, 255, 194, 0.03) 4px)
-                `,
-                pointerEvents: 'none',
-            }}
+        <Card
+            bg={SEMANTIC_COLORS.bgSecondary}
+            borderColor={SEMANTIC_COLORS.borderMedium}
+            borderRadius={0}
+            p={SPACING.lg}
         >
-            <VStack spacing={4} align="stretch" position="relative" zIndex={1}>
+            <VStack spacing={SPACING.base} align="stretch">
                 <HStack justify="space-between" align="center">
-                    <HStack spacing={2}>
+                    <HStack spacing={SPACING.sm}>
                         <Text
                             fontSize="sm"
-                            color="gray.400"
-                            fontFamily="mono"
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             textTransform="uppercase"
                             letterSpacing="wide"
                         >
@@ -217,24 +255,30 @@ export const RevenueChart: React.FC = () => {
                         <Button
                             onClick={() => setTimeRange('lifetime')}
                             isActive={timeRange === 'lifetime'}
-                            colorScheme={timeRange === 'lifetime' ? 'cyan' : 'gray'}
-                            _active={{ bg: 'cyan.500', color: 'white' }}
+                            colorScheme={timeRange === 'lifetime' ? 'phosphor' : 'gray'}
+                            borderRadius={0}
+                            _active={{ bg: SEMANTIC_COLORS.primary, color: SEMANTIC_COLORS.bgPrimary }}
+                            _focus={FOCUS_STYLES.ring}
                         >
                             Lifetime
                         </Button>
                         <Button
                             onClick={() => setTimeRange('today')}
                             isActive={timeRange === 'today'}
-                            colorScheme={timeRange === 'today' ? 'cyan' : 'gray'}
-                            _active={{ bg: 'cyan.500', color: 'white' }}
+                            colorScheme={timeRange === 'today' ? 'phosphor' : 'gray'}
+                            borderRadius={0}
+                            _active={{ bg: SEMANTIC_COLORS.primary, color: SEMANTIC_COLORS.bgPrimary }}
+                            _focus={FOCUS_STYLES.ring}
                         >
                             Today
                         </Button>
                         <Button
                             onClick={() => setTimeRange('session')}
                             isActive={timeRange === 'session'}
-                            colorScheme={timeRange === 'session' ? 'cyan' : 'gray'}
-                            _active={{ bg: 'cyan.500', color: 'white' }}
+                            colorScheme={timeRange === 'session' ? 'phosphor' : 'gray'}
+                            borderRadius={0}
+                            _active={{ bg: SEMANTIC_COLORS.primary, color: SEMANTIC_COLORS.bgPrimary }}
+                            _focus={FOCUS_STYLES.ring}
                         >
                             Session
                         </Button>
@@ -242,65 +286,31 @@ export const RevenueChart: React.FC = () => {
                 </HStack>
 
                 <Box h="300px" w="100%">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData}>
-                            <defs>
-                                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#6FFFC2" stopOpacity={0.8} />
-                                    <stop offset="100%" stopColor="#6FFFC2" stopOpacity={0.1} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(111, 255, 194, 0.1)" />
-                            <XAxis
-                                dataKey="time"
-                                stroke="rgba(111, 255, 194, 0.5)"
-                                style={{ fontSize: '12px' }}
-                            />
-                            <YAxis
-                                stroke="rgba(111, 255, 194, 0.5)"
-                                style={{ fontSize: '12px' }}
-                                tickFormatter={(value) => `$${value.toFixed(2)}`}
-                            />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: '#1a2330',
-                                    border: '1px solid #6FFFC2',
-                                    borderRadius: '4px',
-                                    color: '#6FFFC2',
-                                }}
-                                formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
-                            />
-                            <Line
-                                type="monotone"
-                                dataKey="revenue"
-                                stroke="#6FFFC2"
-                                strokeWidth={2}
-                                dot={{ fill: '#6FFFC2', r: 3 }}
-                                activeDot={{ r: 5, fill: '#6FFFC2' }}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    <RevenueLineChart chartData={chartData} />
                 </Box>
 
-                <HStack spacing={4} flexWrap="wrap">
-                    <Text fontSize="lg" fontWeight="bold" color="cyan.400" fontFamily="mono">
+                <HStack spacing={SPACING.base} flexWrap="wrap">
+                    <Text fontSize="lg" fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.info} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                         ${currentRevenue.toFixed(2)}
                     </Text>
                     {milestones.length > 0 && (
-                        <HStack spacing={2}>
-                            <Text fontSize="xs" color="gray.500" fontFamily="mono">
+                        <HStack spacing={SPACING.sm}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textTertiary} fontFamily={TYPOGRAPHY.fontMono}>
                                 Milestones:
                             </Text>
                             {milestones.map((milestone) => (
                                 <Box
                                     key={milestone.value}
-                                    px={2}
-                                    py={1}
-                                    bg={milestone.achieved ? "green.500" : "gray.600"}
-                                    borderRadius="sm"
+                                    px={SPACING.sm}
+                                    py={SPACING.xs}
+                                    bg={milestone.achieved ? SEMANTIC_COLORS.bgTertiary : SEMANTIC_COLORS.bgTertiary}
+                                    border="1px solid"
+                                    borderColor={milestone.achieved ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.borderMedium}
+                                    borderRadius={0}
                                     fontSize="xs"
-                                    fontFamily="mono"
-                                    color={milestone.achieved ? "white" : "gray.400"}
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    sx={{ fontVariantNumeric: 'tabular-nums' }}
+                                    color={milestone.achieved ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textTertiary}
                                     opacity={milestone.achieved ? 1 : 0.6}
                                 >
                                     {formatMilestone(milestone.value)}
@@ -310,6 +320,6 @@ export const RevenueChart: React.FC = () => {
                     )}
                 </HStack>
             </VStack>
-        </Box>
+        </Card>
     )
 }

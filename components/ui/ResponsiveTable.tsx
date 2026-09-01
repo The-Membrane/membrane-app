@@ -68,8 +68,8 @@ export const MobileCard: React.FC<MobileCardProps> = ({
       transition="background 0.2s"
     >
       <VStack align="stretch" spacing={3}>
-        {data.map((item, index) => (
-          <HStack key={index} justify="space-between" align="flex-start">
+        {data.map((item) => (
+          <HStack key={item.label} justify="space-between" align="flex-start">
             <Text
               fontSize="sm"
               color="whiteAlpha.600"

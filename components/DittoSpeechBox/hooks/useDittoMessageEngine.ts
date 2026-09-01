@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef } from 'react'
+import { useMemo, useCallback, useRef, useEffect } from 'react'
 import {
     DittoMessage,
     DittoPageContract,
@@ -8,6 +8,7 @@ import {
     DittoSeverity,
 } from '../types/dittoContract'
 import { useDittoStateMachine } from './useDittoStateMachine'
+import { evaluateExpression } from '../utils/expressionEvaluator'
 
 // ============================================================================
 // CONDITION EVALUATION
@@ -58,19 +59,8 @@ const evaluateCondition = (
             .replace(/(\w+)\.changed/g, '$1_changed')
             .replace(/(\w+)\.delta/g, '$1_delta')
 
-        // Build safe evaluation function
-        const keys = Object.keys(context)
-        const values = Object.values(context)
-
-        // Create a function that evaluates the condition
-        // Using Function constructor for dynamic evaluation
-        // eslint-disable-next-line no-new-func
-        const evaluator = new Function(
-            ...keys,
-            `"use strict"; return Boolean(${processedCondition});`
-        )
-
-        return evaluator(...values)
+        // Evaluate against the safe expression evaluator (no runtime code-gen / eval).
+        return Boolean(evaluateExpression(processedCondition, context))
     } catch (error) {
         console.warn('[DittoMessageEngine] Failed to evaluate condition:', condition, error)
         return false
@@ -187,8 +177,10 @@ export const useDittoMessageEngine = ({
         return results
     }, [contract, facts, previousFacts, isMessageOnCooldown])
 
-    // Update previous facts ref
-    prevFactsRef.current = facts
+    // Update previous facts ref after commit — ref writes must not happen during render.
+    useEffect(() => {
+        prevFactsRef.current = facts
+    })
 
     // Filter by type
     const matchingMessages = useMemo(() => 
@@ -273,9 +265,11 @@ export const useFactsWithChangeTracking = (facts: DittoFacts) => {
         return result
     }, [facts])
     
-    // Update ref after computing changes
-    prevFactsRef.current = facts
-    
+    // Update ref after commit — ref writes must not happen during render.
+    useEffect(() => {
+        prevFactsRef.current = facts
+    })
+
     return factsWithChanges
 }
 

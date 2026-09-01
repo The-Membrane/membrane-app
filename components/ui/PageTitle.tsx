@@ -1,6 +1,7 @@
 import React from 'react'
 import { Text, TextProps, VStack } from '@chakra-ui/react'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 export interface PageTitleProps extends Omit<TextProps, 'title'> {
   /**
@@ -14,20 +15,8 @@ export interface PageTitleProps extends Omit<TextProps, 'title'> {
   subtitle?: string
 
   /**
-   * Style variant
-   * @default 'standard'
-   */
-  variant?: 'standard' | 'cyberpunk'
-
-  /**
-   * Optional gradient for text
-   * Example: "linear(to-r, purple.400, blue.400, magenta.400)"
-   */
-  gradient?: string
-
-  /**
    * Optional subtitle color
-   * @default 'gray.400'
+   * @default SEMANTIC_COLORS.textSecondary
    */
   subtitleColor?: string
 }
@@ -35,65 +24,54 @@ export interface PageTitleProps extends Omit<TextProps, 'title'> {
 /**
  * PageTitle Component
  *
- * Standardized page title with consistent styling across the application.
- * Supports both standard and cyberpunk variants.
+ * The ONE canonical page-title treatment: Redaction display serif, normal case,
+ * `SEMANTIC_COLORS.textPrimary`, h1 size. Every page H1 in the app uses this —
+ * no variants, no accent color, no uppercase, no gradient.
+ *
+ * There is deliberately no `variant` / `gradient` / `uppercase` escape hatch: a
+ * mono, uppercased or gradient page title is a violation of the type rule
+ * (CLAUDE.md — page titles are serif, section titles are serif, body/data/labels
+ * are JetBrains Mono), so the component cannot express one. The arcade/minigame
+ * surfaces (tournament, maze-runners) have their own bespoke "Press Start 2P"
+ * headers and do not route through this component.
  *
  * @example
  * ```tsx
- * // Standard title
+ * // Canonical page title
  * <PageTitle title="Portfolio" />
  *
- * // Cyberpunk styled title with subtitle
+ * // With a subtitle
  * <PageTitle
- *   title="BOOSTS"
+ *   title="Boosts"
  *   subtitle="Manage your deposit boost sources"
- *   variant="cyberpunk"
  * />
  *
- * // With custom overrides
+ * // With layout overrides
  * <PageTitle
  *   title="Custom Title"
  *   mb={12}
  *   textAlign="center"
- * />
- *
- * // With gradient
- * <PageTitle
- *   title="VISUALIZATION"
- *   gradient="linear(to-r, purple.400, blue.400)"
- *   variant="cyberpunk"
  * />
  * ```
  */
 export const PageTitle: React.FC<PageTitleProps> = ({
   title,
   subtitle,
-  variant = 'standard',
-  gradient,
-  subtitleColor = 'gray.400',
+  subtitleColor = SEMANTIC_COLORS.textSecondary,
   ...props
 }) => {
   const baseStyles: TextProps = {
+    as: 'h1',
+    // Redaction display serif. A bare <Text> inherits the theme `body` token
+    // (JetBrains Mono), so the display face has to be set explicitly here.
+    fontFamily: TYPOGRAPHY.fontDisplay,
     fontSize: TYPOGRAPHY.h1,
     fontWeight: TYPOGRAPHY.bold,
-    color: gradient ? undefined : 'white',
+    color: SEMANTIC_COLORS.textPrimary,
     mb: subtitle ? 2 : 6,
-    ...(gradient ? { bgGradient: gradient, bgClip: 'text' } : {}),
   }
 
-  const variantStyles: Record<'standard' | 'cyberpunk', TextProps> = {
-    standard: {
-      ...baseStyles,
-    },
-    cyberpunk: {
-      ...baseStyles,
-      fontFamily: 'mono',
-      textTransform: 'uppercase',
-      letterSpacing: 'wide',
-    },
-  }
-
-  const titleStyles = { ...variantStyles[variant], ...props }
+  const titleStyles = { ...baseStyles, ...props }
 
   if (subtitle) {
     return (
@@ -102,7 +80,8 @@ export const PageTitle: React.FC<PageTitleProps> = ({
         <Text
           fontSize="sm"
           color={subtitleColor}
-          fontFamily={variant === 'cyberpunk' ? 'mono' : undefined}
+          // Subtitles are body copy — JetBrains Mono.
+          fontFamily={TYPOGRAPHY.fontMono}
         >
           {subtitle}
         </Text>

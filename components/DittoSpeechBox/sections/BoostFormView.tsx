@@ -5,6 +5,9 @@ import { DepositForm } from './DepositForm'
 import { WithdrawForm } from './WithdrawForm'
 import { EditLockForm } from './EditLockForm'
 import { SelectedDeposit, ActiveForm, BoostDeposit } from './BoostTypes'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 
 interface BoostFormViewProps {
     selectedDeposit: SelectedDeposit
@@ -34,21 +37,23 @@ export const BoostFormView: React.FC<BoostFormViewProps> = ({
             {/* Back Button Header */}
             <Box
                 w="100%"
-                mb={3}
-                pb={2}
+                mb={SPACING.md}
+                pb={SPACING.sm}
                 borderBottom="1px solid"
-                borderColor="#9bdc4f30"
+                borderColor={SEMANTIC_COLORS.borderSubtle}
             >
                 <Button
                     leftIcon={<Icon as={ChevronLeft} w={4} h={4} />}
                     size="sm"
                     variant="ghost"
-                    color="#ece6d880"
+                    color={SEMANTIC_COLORS.textSecondary}
                     onClick={onBack}
-                    _hover={{ bg: '#9bdc4f20', color: '#ece6d8' }}
+                    transition={TRANSITIONS.colors}
+                    _hover={{ color: SEMANTIC_COLORS.textPrimary }}
+                    _focus={FOCUS_STYLES.ring}
                     fontSize="xs"
                     fontWeight="normal"
-                    px={2}
+                    px={SPACING.sm}
                 >
                     Back to Breakdown
                 </Button>
@@ -62,30 +67,29 @@ export const BoostFormView: React.FC<BoostFormViewProps> = ({
                 mb={3}
             >
                 <Box
-                    bg="#1A1D26"
+                    bg={SEMANTIC_COLORS.bgTertiary}
                     border="1px solid"
-                    borderColor={selectedDeposit.index === -1 ? '#38B2AC' : '#9F7AEA'}
-                    borderRadius="md"
-                    p={3}
-                    boxShadow={selectedDeposit.index === -1 ? '0 0 10px rgba(56, 178, 172, 0.3)' : '0 0 10px rgba(159, 122, 234, 0.3)'}
+                    borderColor={selectedDeposit.index === -1 ? SEMANTIC_COLORS.secondary : SEMANTIC_COLORS.primary}
+                    borderRadius={0}
+                    p={SPACING.md}
                 >
-                    <Text fontSize="xs" color="#ece6d880" mb={2} fontWeight="bold" textTransform="uppercase">
+                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={SPACING.sm} fontWeight="bold" textTransform="uppercase">
                         {selectedDeposit.index === -1 ? 'Pending Deposit' : 'Selected Deposit'}
                     </Text>
-                    <VStack align="stretch" spacing={2}>
+                    <VStack align="stretch" spacing={SPACING.sm}>
                         <HStack justify="space-between">
-                            <Text fontSize="xs" color="#ece6d880">
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                 Type
                             </Text>
-                            <Text fontSize="xs" color={selectedDeposit.type === 'staking' ? 'secondary.300' : 'primary.300'} fontWeight="bold">
+                            <Text fontSize="xs" color={selectedDeposit.type === 'staking' ? SEMANTIC_COLORS.info : SEMANTIC_COLORS.primary} fontWeight="bold">
                                 {selectedDeposit.type === 'staking' ? 'Staking' : 'LTV Disco'}
                             </Text>
                         </HStack>
                         <HStack justify="space-between">
-                            <Text fontSize="xs" color="#ece6d880">
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                 Amount
                             </Text>
-                            <Text fontSize="xs" color="#ece6d8" fontWeight="bold">
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">
                                 {selectedDeposit.index === -1
                                     ? (pendingAmount ? `${pendingAmount} MBRN` : '0.00 MBRN')
                                     : `${formatMBRN(selectedDepositData.amount)} MBRN`
@@ -93,10 +97,10 @@ export const BoostFormView: React.FC<BoostFormViewProps> = ({
                             </Text>
                         </HStack>
                         <HStack justify="space-between">
-                            <Text fontSize="xs" color="#ece6d880">
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                 {selectedDeposit.index === -1 ? 'Lock Duration' : 'Lock Remaining'}
                             </Text>
-                            <Text fontSize="xs" color="primary.300">
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.primary}>
                                 {selectedDeposit.index === -1
                                     ? `${pendingLockDays} days`
                                     : `${selectedDepositData.daysRemaining} days`
@@ -107,7 +111,7 @@ export const BoostFormView: React.FC<BoostFormViewProps> = ({
                 </Box>
             </Box>
 
-            <Divider mb={3} borderColor="#9bdc4f30" />
+            <Divider mb={SPACING.md} borderColor={SEMANTIC_COLORS.borderSubtle} />
 
             {/* Bottom 50%: Form */}
             <Box flex={1} minH="45%">

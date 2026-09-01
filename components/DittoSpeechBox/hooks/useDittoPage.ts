@@ -11,6 +11,7 @@ import { useDittoStateMachine } from './useDittoStateMachine'
 import { useDittoMessageEngine } from './useDittoMessageEngine'
 import { useInteractionDetection } from './useInteractionDetection'
 import { getContractForRoute } from '@/contracts'
+import { evaluateExpression } from '../utils/expressionEvaluator'
 
 // ============================================================================
 // TYPES
@@ -161,7 +162,11 @@ export const useDittoPage = ({
         prevFactsRef.current = facts
     }, [facts])
     
-    // Enter page on mount
+    // Enter page on mount / when the page identity changes.
+    // Intentionally keyed only on `contract?.pageId`: enterPage resets the state
+    // machine's page context, so re-running it whenever the `contract` object or the
+    // `stateMachine` reference changes (without the page actually changing) would wipe
+    // Ditto's page state. Keyed on the stable page id to preserve that behavior.
     useEffect(() => {
         if (contract) {
             stateMachine.enterPage(contract.pageId)
@@ -261,15 +266,9 @@ export const useDittoPage = ({
                 // Simple truthy check for 'true' condition
                 if (shortcut.when === 'true') return true
                 
-                // Evaluate condition against facts
-                const keys = Object.keys(facts)
-                const values = Object.values(facts)
-                // eslint-disable-next-line no-new-func
-                const evaluator = new Function(
-                    ...keys,
-                    `"use strict"; return Boolean(${shortcut.when});`
-                )
-                return evaluator(...values)
+                // Evaluate condition against facts via the safe expression evaluator
+                // (no runtime code-gen / eval).
+                return Boolean(evaluateExpression(shortcut.when, facts))
             } catch {
                 return false
             }

@@ -22,9 +22,10 @@ export const Stats = React.memo(({ label, value }: { label: string; value: strin
         </Text>
     </Stack>
 ))
+Stats.displayName = 'Stats'
 
 // Memoize child components
-export const StatsTitle = React.memo(() => {
+export const StatsTitle = React.memo(function StatsTitle() {
     const { chainName } = useChainRoute()
     const { appState } = useAppState()
     const { data: basket } = useBasket(appState.rpcUrl)

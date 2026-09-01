@@ -14,6 +14,10 @@ import type { EvmCall } from '@/services/chain/types'
  * equivalent (PointsSystem.sol exposes awardActionPoints/awardManagementPoints only) and the
  * RangeBound LP vault it references is not deployed on EVM. Msg building is stubbed.
  */
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['dashboard_rblp_give_points'] })
+}
+
 const useGiveRBLPPoints = () => {
   const { address } = useWallet()
   const router = useRouter()
@@ -28,10 +32,6 @@ const useGiveRBLPPoints = () => {
   })
 
   const msgs = queryData?.msgs
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['dashboard_rblp_give_points'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

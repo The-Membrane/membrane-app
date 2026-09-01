@@ -18,6 +18,7 @@ import {
 import { getSlotLabel } from './types'
 import type { SlotData } from './types'
 import { shiftDigits } from '@/helpers/math'
+import { riskRgbForLtv as getSlotRGB } from './riskRamp'
 
 const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
 
@@ -28,13 +29,6 @@ const formatOrdinal = (n: number) => {
     return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
-const getSlotRGB = (slot: number) => {
-    const t = Math.max(0, Math.min(1, (slot - 50) / 40))
-    const r = Math.round(34 + (166 - 34) * (1 - t))
-    const g = Math.round(211 + (146 - 211) * (1 - t))
-    const b = Math.round(238 + (255 - 238) * (1 - t))
-    return { r, g, b }
-}
 
 interface DepositModalProps {
     isOpen: boolean

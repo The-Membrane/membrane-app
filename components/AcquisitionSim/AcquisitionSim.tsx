@@ -54,14 +54,14 @@ export const AcquisitionSim: React.FC = () => {
   const isStacked = useBreakpointValue({ base: true, xl: false })
 
   return (
-    <Box minH="100vh" bg="#0a0a0f" position="relative">
+    <Box minH="100vh" bg={SEMANTIC_COLORS.bgPrimary} position="relative">
       {/* Background gradients */}
       <Box
         position="absolute"
         inset={0}
         pointerEvents="none"
-        bg="radial-gradient(circle at 20% 30%, rgba(166, 146, 255, 0.06) 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, rgba(34, 211, 238, 0.06) 0%, transparent 50%)"
+        bg="radial-gradient(circle at 20% 30%, rgba(155, 220, 79, 0.06) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(70, 211, 154, 0.06) 0%, transparent 50%)"
       />
 
       <Box position="relative" zIndex={1}>
@@ -72,11 +72,9 @@ export const AcquisitionSim: React.FC = () => {
           pb={SPACING.base}
         >
           <PageTitle
-            title="ACQUISITION SIMULATOR"
+            title="Acquisition Simulator"
             subtitle="Control System Simulation"
-            variant="cyberpunk"
-            gradient="linear(to-r, purple.400, cyan.400)"
-            subtitleColor="purple.300"
+            subtitleColor={SEMANTIC_COLORS.textSecondary}
             mb={0}
           />
           <Text
@@ -99,9 +97,10 @@ export const AcquisitionSim: React.FC = () => {
           <Box
             w={sidebarWidth}
             flexShrink={0}
-            bg="rgba(10, 10, 10, 0.6)"
-            borderRadius="16px"
-            border="1px solid rgba(255, 255, 255, 0.1)"
+            bg={SEMANTIC_COLORS.bgSecondary}
+            borderRadius={0}
+            border="1px solid"
+            borderColor={SEMANTIC_COLORS.borderSubtle}
             p={SPACING_PATTERNS.cardPadding}
             maxH={isStacked ? 'none' : 'calc(100vh - 140px)'}
             overflowY="auto"
@@ -109,8 +108,8 @@ export const AcquisitionSim: React.FC = () => {
               '&::-webkit-scrollbar': { width: '6px' },
               '&::-webkit-scrollbar-track': { background: 'transparent' },
               '&::-webkit-scrollbar-thumb': {
-                background: 'rgba(166, 146, 255, 0.3)',
-                borderRadius: '3px',
+                background: 'rgba(236, 230, 216, 0.22)',
+                borderRadius: 0,
               },
             }}
           >

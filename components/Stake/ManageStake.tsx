@@ -1,52 +1,62 @@
-import { Card, Tab, TabIndicator, TabList, TabPanel, TabPanels, Tabs, Box, useColorModeValue } from '@chakra-ui/react'
+import { Tab, TabIndicator, TabList, TabPanel, TabPanels, Tabs, Box } from '@chakra-ui/react'
 import Staking from './Staking'
 import ClaimAndRestake from './ClaimAndRestake'
 import Unstaking from './Unstaking'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 
 const ManageStake = () => {
-  const cardBg = useColorModeValue('#181F2A', '#232B3E')
-  const tabActiveColor = useColorModeValue('blue.400', 'blue.300')
-  const tabInactiveColor = useColorModeValue('gray.400', 'gray.500')
   return (
-    <Card
+    <Box
       w="full"
-      p={{ base: 4, md: 8 }}
+      p={{ base: SPACING.base, md: SPACING.xl }}
+      display="flex"
+      flexDirection="column"
       alignItems="center"
-      gap={6}
+      gap={SPACING.lg}
       h="full"
       justifyContent="space-between"
-      bg={cardBg}
-      borderRadius="2xl"
-      boxShadow="lg"
+      bg={SEMANTIC_COLORS.bgSecondary}
+      borderRadius={0}
+      border="1px solid"
+      borderColor={SEMANTIC_COLORS.borderSubtle}
     >
       <Tabs position="relative" variant="unstyled" w="full" isFitted>
-        <TabList mb={4}>
+        <TabList mb={SPACING.base}>
           <Tab
-            _selected={{ color: tabActiveColor, fontWeight: 'bold' }}
-            color={tabInactiveColor}
-            fontSize={{ base: 'md', md: 'lg' }}
-            py={{ base: 1, md: 2 }}
+            _selected={{ color: SEMANTIC_COLORS.primary, fontWeight: TYPOGRAPHY.bold }}
+            _focus={FOCUS_STYLES.ring}
+            color={SEMANTIC_COLORS.textSecondary}
+            fontSize={{ base: TYPOGRAPHY.small, md: TYPOGRAPHY.h4 }}
+            transition={TRANSITIONS.colors}
+            py={{ base: SPACING.xs, md: SPACING.sm }}
           >
             Manage
           </Tab>
           <Tab
-            _selected={{ color: tabActiveColor, fontWeight: 'bold' }}
-            color={tabInactiveColor}
-            fontSize={{ base: 'md', md: 'lg' }}
-            py={{ base: 1, md: 2 }}
+            _selected={{ color: SEMANTIC_COLORS.primary, fontWeight: TYPOGRAPHY.bold }}
+            _focus={FOCUS_STYLES.ring}
+            color={SEMANTIC_COLORS.textSecondary}
+            fontSize={{ base: TYPOGRAPHY.small, md: TYPOGRAPHY.h4 }}
+            transition={TRANSITIONS.colors}
+            py={{ base: SPACING.xs, md: SPACING.sm }}
           >
             Claim
           </Tab>
           <Tab
-            _selected={{ color: tabActiveColor, fontWeight: 'bold' }}
-            color={tabInactiveColor}
-            fontSize={{ base: 'md', md: 'lg' }}
-            py={{ base: 1, md: 2 }}
+            _selected={{ color: SEMANTIC_COLORS.primary, fontWeight: TYPOGRAPHY.bold }}
+            _focus={FOCUS_STYLES.ring}
+            color={SEMANTIC_COLORS.textSecondary}
+            fontSize={{ base: TYPOGRAPHY.small, md: TYPOGRAPHY.h4 }}
+            transition={TRANSITIONS.colors}
+            py={{ base: SPACING.xs, md: SPACING.sm }}
           >
             Unstaking
           </Tab>
         </TabList>
-        <TabIndicator mt="-1.5px" height="2px" bg={tabActiveColor} borderRadius="1px" />
+        <TabIndicator mt="-1.5px" height="2px" bg={SEMANTIC_COLORS.primary} borderRadius={0} />
         <TabPanels>
           <TabPanel px={0}>
             <Staking />
@@ -59,7 +69,7 @@ const ManageStake = () => {
           </TabPanel>
         </TabPanels>
       </Tabs>
-    </Card>
+    </Box>
   )
 }
 

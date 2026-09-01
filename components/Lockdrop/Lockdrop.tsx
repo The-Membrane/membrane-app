@@ -5,7 +5,7 @@ import LoackdropPane from './LockdropPane'
 import TokenAllocation from '@/components/Lockdrop/TokenAllocation'
 import React from "react"
 
-const Lockdrop = React.memo(() => {
+const Lockdrop = React.memo(function Lockdrop() {
   return (
     <Stack gap="5">
       <Info />

@@ -12,21 +12,25 @@ import {
     Divider,
 } from '@chakra-ui/react'
 import { ChevronDown } from 'lucide-react'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import { useBoostBreakdown } from './hooks/useBoostBreakdown'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
+
+const formatMBRN = (amount: string) => {
+    return shiftDigits(amount, -6).toFixed(2)
+}
 
 export const BoostBreakdown: React.FC = () => {
     const { data: breakdown, isLoading } = useBoostBreakdown()
     const [isOpen, setIsOpen] = useState(false)
 
-    const boostPercent = breakdown 
+    const boostPercent = breakdown
         ? num(breakdown.totalBoost).times(100).toFixed(2)
         : '0.00'
-
-    const formatMBRN = (amount: string) => {
-        return shiftDigits(amount, -6).toFixed(2)
-    }
 
     // Show default breakdown if no data
     const displayBreakdown = breakdown || {
@@ -59,37 +63,35 @@ export const BoostBreakdown: React.FC = () => {
                 <PopoverTrigger>
                     <Box
                         cursor="pointer"
-                        px={4}
-                        py={2}
-                        border="2px solid"
-                        borderColor="purple.400"
-                        borderRadius="md"
-                        bg="gray.800"
+                        px={SPACING.base}
+                        py={SPACING.sm}
+                        border="1px solid"
+                        borderColor={SEMANTIC_COLORS.borderMedium}
+                        borderRadius={0}
+                        bg={SEMANTIC_COLORS.bgSecondary}
                         onClick={() => setIsOpen(!isOpen)}
-                        _hover={{
-                            borderColor: 'purple.300',
-                            boxShadow: '0 0 20px rgba(166, 146, 255, 0.3)',
-                        }}
-                        transition="all 0.3s"
+                        transition={TRANSITIONS.colors}
+                        _hover={HOVER_EFFECTS.borderHighlight}
+                        _focus={FOCUS_STYLES.ring}
                     >
-                    <HStack spacing={2}>
+                    <HStack spacing={SPACING.sm}>
                         <Text
                             fontSize="lg"
-                            fontWeight="bold"
-                            bgGradient="linear(to-r, purple.400, cyan.400)"
-                            bgClip="text"
-                            fontFamily="mono"
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={SEMANTIC_COLORS.primary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
                         >
                             {boostPercent}%
                         </Text>
-                        <Text fontSize="sm" color="gray.400" fontFamily="mono" textTransform="uppercase">
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono} textTransform="uppercase">
                             BOOST
                         </Text>
-                        <Icon 
-                            as={ChevronDown} 
-                            w={4} 
-                            h={4} 
-                            color="gray.400"
+                        <Icon
+                            as={ChevronDown}
+                            w={4}
+                            h={4}
+                            color={SEMANTIC_COLORS.textSecondary}
                             transform={isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
                             transition="transform 0.2s"
                         />
@@ -97,89 +99,88 @@ export const BoostBreakdown: React.FC = () => {
                 </Box>
             </PopoverTrigger>
             <PopoverContent
-                bg="gray.800"
-                border="2px solid"
-                borderColor="purple.400"
-                borderRadius="md"
-                boxShadow="0 0 30px rgba(166, 146, 255, 0.3)"
+                bg={SEMANTIC_COLORS.bgSecondary}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderMedium}
+                borderRadius={0}
                 w="400px"
                 maxH="600px"
                 overflowY="auto"
             >
-                <PopoverBody p={6}>
-                    <VStack align="stretch" spacing={4}>
+                <PopoverBody p={SPACING.lg}>
+                    <VStack align="stretch" spacing={SPACING.base}>
                         {/* Header */}
-                        <VStack align="start" spacing={1}>
+                        <VStack align="start" spacing={SPACING.xs}>
                             <Text
                                 fontSize="xl"
-                                fontWeight="bold"
-                                color="white"
-                                fontFamily="mono"
+                                fontWeight={TYPOGRAPHY.bold}
+                                color={SEMANTIC_COLORS.textPrimary}
+                                fontFamily={TYPOGRAPHY.fontMono}
                                 textTransform="uppercase"
                             >
                                 Boost Breakdown
                             </Text>
-                            <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                            <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                 Total Boost: {boostPercent}%
                             </Text>
                         </VStack>
 
-                        <Divider borderColor="gray.600" />
+                        <Divider borderColor={SEMANTIC_COLORS.borderMedium} />
 
                         {/* Staking Section */}
-                        <VStack align="stretch" spacing={3}>
+                        <VStack align="stretch" spacing={SPACING.md}>
                             <Text
                                 fontSize="sm"
-                                fontWeight="bold"
-                                color="cyan.400"
-                                fontFamily="mono"
+                                fontWeight={TYPOGRAPHY.bold}
+                                color={SEMANTIC_COLORS.info}
+                                fontFamily={TYPOGRAPHY.fontMono}
                                 textTransform="uppercase"
                             >
                                 Staking
                             </Text>
-                            <VStack align="stretch" spacing={2} pl={4}>
+                            <VStack align="stretch" spacing={SPACING.sm} pl={SPACING.base}>
                                 <HStack justify="space-between">
-                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                         Base MBRN
                                     </Text>
-                                        <Text fontSize="xs" color="gray.300" fontFamily="mono">
+                                        <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                             {formatMBRN(displayBreakdown.staking.baseMBRN)} MBRN
                                         </Text>
                                     </HStack>
                                     {displayBreakdown.staking.lockedDeposits.length > 0 && (
                                         <>
-                                            <Text fontSize="xs" color="gray.500" fontFamily="mono" mt={2}>
+                                            <Text fontSize="xs" color={SEMANTIC_COLORS.textTertiary} fontFamily={TYPOGRAPHY.fontMono} mt={SPACING.sm}>
                                                 Locked Deposits:
                                             </Text>
                                             {displayBreakdown.staking.lockedDeposits.map((deposit, idx) => (
                                             <Box
-                                                key={idx}
-                                                pl={2}
-                                                borderLeft="2px solid"
-                                                borderColor="purple.500"
-                                                py={1}
+                                                key={`${deposit.lockedUntil}-${deposit.amount}`}
+                                                pl={SPACING.sm}
+                                                borderLeft="1px solid"
+                                                borderColor={SEMANTIC_COLORS.borderStrong}
+                                                py={SPACING.xs}
                                             >
-                                                <HStack justify="space-between" mb={1}>
-                                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                                                <HStack justify="space-between" mb={SPACING.xs}>
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                                         Deposit
                                                     </Text>
-                                                    <Text fontSize="xs" color="gray.300" fontFamily="mono">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                                         {formatMBRN(deposit.amount)} MBRN
                                                     </Text>
                                                 </HStack>
-                                                <HStack justify="space-between" mb={1}>
-                                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                                                <HStack justify="space-between" mb={SPACING.xs}>
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                                         Lock Duration
                                                     </Text>
-                                                    <Text fontSize="xs" color="purple.300" fontFamily="mono">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.info} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                                         {deposit.daysRemaining} days
                                                     </Text>
                                                 </HStack>
                                                 <HStack justify="space-between">
-                                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                                         Boost Contribution
                                                     </Text>
-                                                    <Text fontSize="xs" color="cyan.300" fontFamily="mono">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.info} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                                         +{formatMBRN(deposit.boostAmount)} MBRN
                                                     </Text>
                                                 </HStack>
@@ -187,74 +188,74 @@ export const BoostBreakdown: React.FC = () => {
                                         ))}
                                     </>
                                 )}
-                                <Divider borderColor="gray.700" mt={2} />
+                                <Divider borderColor={SEMANTIC_COLORS.borderMedium} mt={SPACING.sm} />
                                 <HStack justify="space-between">
-                                    <Text fontSize="xs" fontWeight="bold" color="gray.300" fontFamily="mono">
+                                    <Text fontSize="xs" fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono}>
                                         Total Effective MBRN
                                     </Text>
-                                        <Text fontSize="xs" fontWeight="bold" color="cyan.300" fontFamily="mono">
+                                        <Text fontSize="xs" fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.info} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                             {formatMBRN(displayBreakdown.staking.totalEffectiveMBRN)} MBRN
                                         </Text>
                                     </HStack>
                                 </VStack>
                             </VStack>
 
-                            <Divider borderColor="gray.600" />
+                            <Divider borderColor={SEMANTIC_COLORS.borderMedium} />
 
                             {/* LTV Disco Section */}
-                            <VStack align="stretch" spacing={3}>
+                            <VStack align="stretch" spacing={SPACING.md}>
                                 <Text
                                     fontSize="sm"
-                                    fontWeight="bold"
-                                    color="purple.400"
-                                    fontFamily="mono"
+                                    fontWeight={TYPOGRAPHY.bold}
+                                    color={SEMANTIC_COLORS.primary}
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                     textTransform="uppercase"
                                 >
                                     LTV Disco
                                 </Text>
-                                <VStack align="stretch" spacing={2} pl={4}>
+                                <VStack align="stretch" spacing={SPACING.sm} pl={SPACING.base}>
                                     <HStack justify="space-between">
-                                        <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                                        <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                             Base MBRN
                                         </Text>
-                                        <Text fontSize="xs" color="gray.300" fontFamily="mono">
+                                        <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                             {formatMBRN(displayBreakdown.ltvDisco.baseMBRN)} MBRN
                                         </Text>
                                     </HStack>
                                     {displayBreakdown.ltvDisco.lockedDeposits.length > 0 && (
                                         <>
-                                            <Text fontSize="xs" color="gray.500" fontFamily="mono" mt={2}>
+                                            <Text fontSize="xs" color={SEMANTIC_COLORS.textTertiary} fontFamily={TYPOGRAPHY.fontMono} mt={SPACING.sm}>
                                                 Locked Deposits:
                                             </Text>
                                             {displayBreakdown.ltvDisco.lockedDeposits.map((deposit, idx) => (
                                             <Box
-                                                key={idx}
-                                                pl={2}
-                                                borderLeft="2px solid"
-                                                borderColor="purple.500"
-                                                py={1}
+                                                key={`${deposit.lockedUntil}-${deposit.amount}`}
+                                                pl={SPACING.sm}
+                                                borderLeft="1px solid"
+                                                borderColor={SEMANTIC_COLORS.borderStrong}
+                                                py={SPACING.xs}
                                             >
-                                                <HStack justify="space-between" mb={1}>
-                                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                                                <HStack justify="space-between" mb={SPACING.xs}>
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                                         Deposit
                                                     </Text>
-                                                    <Text fontSize="xs" color="gray.300" fontFamily="mono">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                                         {formatMBRN(deposit.amount)} MBRN
                                                     </Text>
                                                 </HStack>
-                                                <HStack justify="space-between" mb={1}>
-                                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                                                <HStack justify="space-between" mb={SPACING.xs}>
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                                         Lock Duration
                                                     </Text>
-                                                    <Text fontSize="xs" color="purple.300" fontFamily="mono">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.info} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                                         {deposit.daysRemaining} days
                                                     </Text>
                                                 </HStack>
                                                 <HStack justify="space-between">
-                                                    <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                                         Boost Contribution
                                                     </Text>
-                                                    <Text fontSize="xs" color="cyan.300" fontFamily="mono">
+                                                    <Text fontSize="xs" color={SEMANTIC_COLORS.info} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                                         +{formatMBRN(deposit.boostAmount)} MBRN
                                                     </Text>
                                                 </HStack>
@@ -262,12 +263,12 @@ export const BoostBreakdown: React.FC = () => {
                                         ))}
                                     </>
                                 )}
-                                <Divider borderColor="gray.700" mt={2} />
+                                <Divider borderColor={SEMANTIC_COLORS.borderMedium} mt={SPACING.sm} />
                                 <HStack justify="space-between">
-                                    <Text fontSize="xs" fontWeight="bold" color="gray.300" fontFamily="mono">
+                                    <Text fontSize="xs" fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono}>
                                         Total Effective MBRN
                                     </Text>
-                                    <Text fontSize="xs" fontWeight="bold" color="purple.300" fontFamily="mono">
+                                    <Text fontSize="xs" fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.primary} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                         {formatMBRN(displayBreakdown.ltvDisco.totalEffectiveMBRN)} MBRN
                                     </Text>
                                 </HStack>
@@ -280,4 +281,3 @@ export const BoostBreakdown: React.FC = () => {
         </Box>
     )
 }
-

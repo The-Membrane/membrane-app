@@ -2,6 +2,9 @@ import React from 'react'
 import { Button, Icon } from '@chakra-ui/react'
 import { QuestionIcon } from '@chakra-ui/icons'
 
+import { TRANSITIONS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 interface TutorialButtonProps {
     onClick: () => void
     isVisible?: boolean
@@ -20,17 +23,18 @@ export const TutorialButton: React.FC<TutorialButtonProps> = ({
             onClick={onClick}
             variant="ghost"
             size="sm"
-            color="#ece6d8"
-            _hover={{ bg: '#9bdc4f20', color: '#9bdc4f', transform: 'scale(1.05)' }}
-            _active={{ transform: 'scale(0.95)' }}
+            color={SEMANTIC_COLORS.textPrimary}
+            _hover={{ bg: 'transparent', color: SEMANTIC_COLORS.primary }}
+            _active={ACTIVE_EFFECTS.dim}
             fontSize="xs"
             leftIcon={<QuestionIcon />}
             px={3}
             py={2}
-            borderRadius="md"
-            transition="all 0.2s ease"
+            borderRadius={0}
+            transition={TRANSITIONS.colors}
             fontWeight="medium"
-            boxShadow="0 2px 8px rgba(0, 0, 0, 0.2)"
+            _focus={FOCUS_STYLES.ring}
+            _focusVisible={FOCUS_STYLES.ring}
         >
             {label}
         </Button>

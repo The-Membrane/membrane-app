@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { Box, HStack, Text, VStack, Flex, Tooltip as ChakraTooltip } from '@chakra-ui/react'
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { Trophy } from 'lucide-react'
+import { lazyChart } from '@/components/ui/lazyChart'
 interface RpsWinRateChartProps {
     matchHistory: number[] // Array of outcomes: 0=lose, 1=draw, 2=win
     carId?: string
@@ -13,6 +13,67 @@ interface ChartDataPoint {
     wins: number
     total: number
 }
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload as ChartDataPoint
+        return (
+            <Box
+                bg="#0a0f1e"
+                border="1px solid #2a3550"
+                borderRadius="4px"
+                p={2}
+                fontFamily='"Press Start 2P", monospace'
+                fontSize="10px"
+            >
+                <Text color="#00ffea">Tick {data.tick}</Text>
+                <Text color="#b8c1ff">Win Rate: {data.winRate.toFixed(1)}%</Text>
+                <Text color="#b8c1ff">Wins: {data.wins}/{data.total}</Text>
+            </Box>
+        )
+    }
+    return null
+}
+
+interface RpsLineChartProps {
+    chartData: ChartDataPoint[]
+    yAxisDomain: number[]
+}
+
+const RpsLineChart = lazyChart<RpsLineChartProps>(
+    ({ LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip }) =>
+        function RpsLineChart({ chartData, yAxisDomain }) {
+            return (
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                        <XAxis
+                            dataKey="tick"
+                            tick={{ fontSize: 8, fill: '#b8c1ff', fontFamily: '"Press Start 2P", monospace' }}
+                            axisLine={{ stroke: '#2a3550' }}
+                            tickLine={{ stroke: '#2a3550' }}
+                        />
+                        <YAxis
+                            domain={yAxisDomain}
+                            tick={{ fontSize: 8, fill: '#b8c1ff', fontFamily: '"Press Start 2P", monospace' }}
+                            axisLine={{ stroke: '#2a3550' }}
+                            tickLine={{ stroke: '#2a3550' }}
+                            tickFormatter={(value) => `${value.toFixed(1)}%`}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Line
+                            type="monotone"
+                            dataKey="winRate"
+                            stroke="#00ffea"
+                            strokeWidth={2}
+                            dot={false}
+                            activeDot={false}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            )
+        },
+    200,
+)
 
 const RpsWinRateChart: React.FC<RpsWinRateChartProps> = ({
     matchHistory,
@@ -56,27 +117,6 @@ const RpsWinRateChart: React.FC<RpsWinRateChartProps> = ({
 
         return [min, max]
     }, [chartData])
-
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload as ChartDataPoint
-            return (
-                <Box
-                    bg="#0a0f1e"
-                    border="1px solid #2a3550"
-                    borderRadius="4px"
-                    p={2}
-                    fontFamily='"Press Start 2P", monospace'
-                    fontSize="10px"
-                >
-                    <Text color="#00ffea">Tick {data.tick}</Text>
-                    <Text color="#b8c1ff">Win Rate: {data.winRate.toFixed(1)}%</Text>
-                    <Text color="#b8c1ff">Wins: {data.wins}/{data.total}</Text>
-                </Box>
-            )
-        }
-        return null
-    }
 
     return (
         <VStack align="stretch" spacing={3} h="100%">
@@ -145,32 +185,7 @@ const RpsWinRateChart: React.FC<RpsWinRateChartProps> = ({
             {/* Chart */}
             <Box flex="1" minH="200px" w="100%">
                 {chartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                            <XAxis
-                                dataKey="tick"
-                                tick={{ fontSize: 8, fill: '#b8c1ff', fontFamily: '"Press Start 2P", monospace' }}
-                                axisLine={{ stroke: '#2a3550' }}
-                                tickLine={{ stroke: '#2a3550' }}
-                            />
-                            <YAxis
-                                domain={yAxisDomain}
-                                tick={{ fontSize: 8, fill: '#b8c1ff', fontFamily: '"Press Start 2P", monospace' }}
-                                axisLine={{ stroke: '#2a3550' }}
-                                tickLine={{ stroke: '#2a3550' }}
-                                tickFormatter={(value) => `${value.toFixed(1)}%`}
-                            />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Line
-                                type="monotone"
-                                dataKey="winRate"
-                                stroke="#00ffea"
-                                strokeWidth={2}
-                                dot={false}
-                                activeDot={false}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    <RpsLineChart chartData={chartData} yAxisDomain={yAxisDomain} />
                 ) : (
                     <Flex
                         align="center"

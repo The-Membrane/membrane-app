@@ -10,6 +10,9 @@ import { SelectedDeposit, ActiveForm } from './BoostTypes'
 import { BoostDepositGroup } from './BoostDepositGroup'
 import { BoostActionBar } from './BoostActionBar'
 import { BoostFormView } from './BoostFormView'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS } from '@/config/transitions'
 
 // Mock data for UI testing - remove or set USE_MOCK_DATA to false for production
 const USE_MOCK_DATA = true
@@ -162,21 +165,21 @@ export const BoostSection: React.FC<SectionComponentProps> = ({ onBack }) => {
         const otherSelected = hasSelection && !selected
 
         return {
-            bg: '#1A1D26',
+            bg: SEMANTIC_COLORS.bgTertiary,
             border: '1px solid',
-            borderColor: selected ? '#9F7AEA' : otherSelected ? '#9bdc4f10' : '#9bdc4f30',
-            borderRadius: 'md',
-            p: 2,
+            borderColor: selected
+                ? SEMANTIC_COLORS.primary
+                : otherSelected
+                    ? SEMANTIC_COLORS.borderSubtle
+                    : SEMANTIC_COLORS.borderStrong,
+            borderRadius: 0,
+            p: SPACING.sm,
             cursor: 'pointer',
-            transition: 'all 0.2s ease-in-out',
-            transform: selected ? 'scale(1.02)' : 'scale(1)',
+            transition: TRANSITIONS.colors,
             opacity: otherSelected ? 0.5 : 1,
             position: 'relative' as const,
-            boxShadow: selected ? '0 0 8px rgba(159, 122, 234, 0.5)' : 'none',
             _hover: {
-                borderColor: selected ? '#9F7AEA' : '#9bdc4f60',
-                transform: selected ? 'scale(1.02)' : 'scale(1.01)',
-                boxShadow: selected ? '0 0 8px rgba(159, 122, 234, 0.5)' : '0 0 4px rgba(155, 220, 79, 0.3)',
+                borderColor: selected ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.borderStrong,
             },
         }
     }
@@ -191,7 +194,7 @@ export const BoostSection: React.FC<SectionComponentProps> = ({ onBack }) => {
     if (isLoading) {
         return (
             <Box>
-                <Text fontSize="xs" color="#ece6d880">
+                <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                     Loading boost data...
                 </Text>
             </Box>
@@ -229,10 +232,10 @@ export const BoostSection: React.FC<SectionComponentProps> = ({ onBack }) => {
                 <Box>
                     <HStack spacing={4} align="flex-start" wrap="wrap" justifyContent="center">
                         <VStack>
-                            <Text fontSize="xs" color="#ece6d880" mb={1}>
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} mb={SPACING.xs}>
                                 Total Boost
                             </Text>
-                            <Text fontSize="sm" fontWeight="bold" color="secondary.400" mb={3}>
+                            <Text fontSize="sm" fontWeight="bold" color={SEMANTIC_COLORS.secondary} mb={SPACING.md}>
                                 {boostPercent}%
                             </Text>
                         </VStack>
@@ -243,12 +246,12 @@ export const BoostSection: React.FC<SectionComponentProps> = ({ onBack }) => {
 
                 {/* Staking Section */}
                 <BoostDepositGroup
-                    title="STAKING"
+                    title="Staking"
                     type="staking"
                     baseMBRN={displayBreakdown.staking.baseMBRN}
                     lockedDeposits={displayBreakdown.staking.lockedDeposits}
                     totalEffectiveMBRN={displayBreakdown.staking.totalEffectiveMBRN}
-                    totalEffectiveColor="secondary.300"
+                    totalEffectiveColor={SEMANTIC_COLORS.info}
                     formatMBRN={formatMBRN}
                     boostContribution={(deposit) => num(deposit.boostAmount).plus(deposit.amount).shiftedBy(-6).toFixed(2)}
                     onNewDeposit={handleNewDeposit}
@@ -261,12 +264,12 @@ export const BoostSection: React.FC<SectionComponentProps> = ({ onBack }) => {
 
                 {/* LTV Disco Section */}
                 <BoostDepositGroup
-                    title="LTV DISCO"
+                    title="LTV Disco"
                     type="disco"
                     baseMBRN={displayBreakdown.ltvDisco.baseMBRN}
                     lockedDeposits={displayBreakdown.ltvDisco.lockedDeposits}
                     totalEffectiveMBRN={displayBreakdown.ltvDisco.totalEffectiveMBRN}
-                    totalEffectiveColor="primary.300"
+                    totalEffectiveColor={SEMANTIC_COLORS.primary}
                     formatMBRN={formatMBRN}
                     boostContribution={(deposit) => formatMBRN(deposit.boostAmount)}
                     onNewDeposit={handleNewDeposit}

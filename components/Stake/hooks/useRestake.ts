@@ -6,6 +6,11 @@ import { queryClient } from '@/pages/_app'
 import type { EvmCall } from '@/services/chain/types'
 import { useQuery } from '@tanstack/react-query'
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['staked'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 /**
  * Restake — clear the unbonding flag on all the caller's deposits. EVM rewire off the
  * former SigningCosmWasmClient seam bypass and onto the standard EvmCall pipeline.
@@ -32,11 +37,6 @@ const useRestake = (mbrnAmount?: string) => {
     },
     enabled: !!address && !!stakingAddr,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

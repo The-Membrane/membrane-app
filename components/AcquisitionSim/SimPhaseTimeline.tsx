@@ -3,14 +3,15 @@ import { Box, HStack, Text, Tooltip } from '@chakra-ui/react'
 import { SPACING } from '@/config/spacing'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { TRANSITIONS } from '@/config/transitions'
 import type { SimTick, SimPhase } from './engine/types'
 
 const PHASE_COLORS: Record<SimPhase, string> = {
-  awaiting: 'rgba(255, 255, 255, 0.15)',
-  deposit: '#22d3ee',
-  withdrawal: '#fbbf24',
-  'post-withdrawal': '#A692FF',
-  cliff: 'rgba(255, 255, 255, 0.25)',
+  awaiting: SEMANTIC_COLORS.textTertiary,
+  deposit: SEMANTIC_COLORS.info,
+  withdrawal: SEMANTIC_COLORS.warning,
+  'post-withdrawal': SEMANTIC_COLORS.primary,
+  cliff: SEMANTIC_COLORS.textTertiary,
 }
 
 const PHASE_LABELS: Record<SimPhase, string> = {
@@ -65,7 +66,7 @@ export const SimPhaseTimeline: React.FC<SimPhaseTimelineProps> = ({
   return (
     <Box>
       {/* Phase bar */}
-      <HStack spacing={0} h="28px" borderRadius="6px" overflow="hidden">
+      <HStack spacing={0} h="28px" borderRadius={0} overflow="hidden">
         {segments.map((seg, i) => {
           const widthPct =
             ((seg.endDay - seg.startDay) / totalDays) * 100
@@ -73,7 +74,7 @@ export const SimPhaseTimeline: React.FC<SimPhaseTimelineProps> = ({
 
           return (
             <Tooltip
-              key={i}
+              key={seg.startDay}
               label={`${PHASE_LABELS[seg.phase]}: Day ${seg.startDay.toFixed(1)} – ${seg.endDay.toFixed(1)}`}
               placement="top"
               hasArrow
@@ -85,7 +86,7 @@ export const SimPhaseTimeline: React.FC<SimPhaseTimelineProps> = ({
                 opacity={0.6}
                 position="relative"
                 _hover={{ opacity: 0.9 }}
-                transition="opacity 0.15s"
+                transition={TRANSITIONS.colors}
               >
                 {/* Phase label if wide enough */}
                 {widthPct > 12 && (
@@ -118,8 +119,8 @@ export const SimPhaseTimeline: React.FC<SimPhaseTimelineProps> = ({
             top="-2px"
             w="2px"
             h="8px"
-            bg="white"
-            borderRadius="1px"
+            bg={SEMANTIC_COLORS.textPrimary}
+            borderRadius={0}
             transform="translateX(-50%)"
           />
         </Box>

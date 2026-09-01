@@ -7,7 +7,9 @@ import { Price } from '@/services/oracle';
 import { getAssetByDenom, getAssetsByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
 import { Box, Text, Circle, Tooltip, Stack, HStack, Slider, SliderFilledTrack, SliderMark, SliderTrack } from "@chakra-ui/react";
-import { colors } from '@/config/defaults';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { TYPOGRAPHY } from '@/helpers/typography';
+import { SPACING } from '@/config/spacing';
 import { getAssetRatio, getTVL, Positions } from '@/services/cdp';
 import { num } from '@/helpers/num';
 import { useChainRoute } from '@/hooks/useChainRoute';
@@ -16,8 +18,8 @@ import useAppState from '@/persisted-state/useAppState';
 const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
     // Calculate color based on health value
     const getBarColor = () => {
-        if (ratio >= cap) return "red.400";
-        return colors.sliderFilledTrack;
+        if (ratio >= cap) return SEMANTIC_COLORS.danger;
+        return SEMANTIC_COLORS.success;
     };
 
     // // console.log(ratio)
@@ -25,7 +27,7 @@ const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
 
     return (
         <HStack>
-            <Text color="whiteAlpha.700">{label}</Text>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>{label}</Text>
 
             <Slider
                 defaultValue={ratio}
@@ -39,7 +41,7 @@ const CapStatus = ({ ratio = 0, cap = 0, health = 100, label = "N/A" }) => {
                     <SliderFilledTrack bg={getBarColor()} />
                 </SliderTrack>
                 <SliderMark value={cap}>
-                    <Box bg="white" w="0.5" h="4" mt="-2" />
+                    <Box bg={SEMANTIC_COLORS.textPrimary} w="0.5" h="4" mt="-2" />
                 </SliderMark>
             </Slider>
         </HStack>
@@ -193,24 +195,27 @@ export const SupplyCaps = () => {
             return { name: position?.symbol ?? "N/A", ratio: position?.ratio ?? 0, cap: (basket as any)?.collateral_supply_caps[index].supply_cap_ratio ?? "0" }
         })
 
-    }, [(basket as any)?.collateral_supply_caps, prices])
+    }, [(basket as any)?.collateral_supply_caps, prices, basket, chainName])
 
     // // console.log("capData", capData)
 
     return (
         <Stack width="100%">
-            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Supply Caps</Text>
-            <div style={{
-                display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem",
-                backgroundColor: colors.globalBG, // Color the gaps
-                padding: "10px", // Ensures outer gaps are also colored
-                border: "2px solid white",
-            }}>
+            <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h3} display="flex" color={SEMANTIC_COLORS.textPrimary}>Supply Caps</Text>
+            <Box
+                display="grid"
+                gridTemplateColumns="repeat(3, 1fr)"
+                gap={SPACING.sm}
+                bg={SEMANTIC_COLORS.bgPrimary}
+                p={SPACING.md}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderMedium}
+            >
                 {capData.map((data) => (
                     <CapStatus key={data.name} ratio={data.ratio} cap={Number(data.cap)} label={data.name} />
                 ))}
 
-            </div>
+            </Box>
         </Stack>
     )
 

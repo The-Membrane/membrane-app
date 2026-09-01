@@ -142,7 +142,7 @@ export const MetricsSection = React.memo<MetricsSectionProps>(({ globalTotalDepo
     )
 
     // Raw daily TVL chart data
-    const rawTvlData = useMemo(() => {
+    const rawTvlData = useMemo<{ timestamp: number; tvl: number }[]>(() => {
         return dailyTVLToUse.map((entry: any) => {
             const value = shiftDigits(entry.tvl || '0', -6)
             return {

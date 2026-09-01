@@ -95,7 +95,7 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
     // CDT row - always show
     rows.push({
       symbol: 'CDT',
-      logo: cdtAsset?.logo || '/images/cdt.png',
+      logo: cdtAsset?.logo || '/images/cdt.svg',
       denom: getCdtDenom(),
       borrowApy: creditInterest,
       liquidityAvailable: -1, // -1 indicates unlimited/mintable

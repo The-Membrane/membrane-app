@@ -41,13 +41,13 @@ const EnergyBar: React.FC<EnergyBarProps> = ({ tokenId, inline }) => {
         if (data) {
             setRacingState({ energy: data.current_energy })
         }
-    }, [data])
+    }, [data, setRacingState])
 
     const pct = useMemo(() => {
         if (!data) return 0
         if (data.max_energy === 0) return 0
         return Math.min(100, Math.round((racingState.energy / data.max_energy) * 100))
-    }, [data])
+    }, [data, racingState.energy])
 
     const timeToFull = useMemo(() => {
         if (!data) return 0
@@ -55,7 +55,7 @@ const EnergyBar: React.FC<EnergyBarProps> = ({ tokenId, inline }) => {
         if (missing === 0 || data.energy_recovery_hours === 0) return 0
         const fullMs = data.energy_recovery_hours * 60 * 60 * 1000
         return Math.ceil((missing / data.max_energy) * fullMs)
-    }, [data])
+    }, [data, racingState.energy])
 
     const paymentOptions = (data?.training_payment_options ?? []).concat([{ denom: 'uatom', amount: '1000000' }])
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -140,7 +140,7 @@ const EnergyBar: React.FC<EnergyBarProps> = ({ tokenId, inline }) => {
                                 }}
                             >
                                 {paymentOptions.map((opt, idx) => (
-                                    <MenuItemOption key={`${opt.denom}-${idx}`} value={`${opt.denom}:${opt.amount}`}>
+                                    <MenuItemOption key={`${opt.denom}-${opt.amount}`} value={`${opt.denom}:${opt.amount}`}>
                                         <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#e6e6e6">
                                             Pay {opt.amount} {opt.denom}
                                         </Text>

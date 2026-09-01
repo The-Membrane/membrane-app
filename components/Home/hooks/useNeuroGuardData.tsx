@@ -163,7 +163,7 @@ const useNeuroGuardData = () => {
       base: denoms.CDT[0],
       symbol: "CDT",
       decimal: 6,
-      logo: "/images/cdt.png",
+      logo: "/images/cdt.svg",
       combinedUsdValue: 1
     }];
 

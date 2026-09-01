@@ -1,6 +1,7 @@
 import { Button, HStack, Stack, Text } from '@chakra-ui/react'
-import React, { useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import Divider from './Divider'
+import { useTemporaryDisable } from './useTemporaryDisable'
 import { Formatter } from '@/helpers/formatter'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import { useAssetBySymbol } from '@/hooks/useAssets'
@@ -26,17 +27,6 @@ export const Stats = ({ label, value }: { label: string; value: string }) => (
     </Text>
   </Stack>
 )
-
-export function useTemporaryDisable(durationMs: number = 3000) {
-  const [isDisabled, setIsDisabled] = useState(false);
-
-  const triggerDisable = () => {
-    setIsDisabled(true);
-    setTimeout(() => setIsDisabled(false), durationMs);
-  };
-
-  return { isDisabled, triggerDisable };
-}
 
 export const BalanceCard = () => {
   const { chainName } = useChainRoute()

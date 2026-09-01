@@ -27,6 +27,11 @@ export type UsePlaySeriesParams = {
  * the "play series" action stays inert until/if racing contracts are ported.
  * Return shape preserved for consumers.
  */
+const onInitialSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['rps_tick_history'] })
+    queryClient.invalidateQueries({ queryKey: ['rps_history'] })
+}
+
 const usePlaySeries = (params: UsePlaySeriesParams) => {
     const { address } = useWallet()
     const { appState } = useAppState()
@@ -48,11 +53,6 @@ const usePlaySeries = (params: UsePlaySeriesParams) => {
         queryFn: () => [] as EvmCall[],
         enabled: !!address,
     })
-
-    const onInitialSuccess = () => {
-        queryClient.invalidateQueries({ queryKey: ['rps_tick_history'] })
-        queryClient.invalidateQueries({ queryKey: ['rps_history'] })
-    }
 
     // Build a stable signature so simulation reruns when message CONTENT changes (not just count)
     const simulationSignature = [

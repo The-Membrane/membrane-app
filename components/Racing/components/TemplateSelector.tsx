@@ -7,57 +7,57 @@ interface TemplateSelectorProps {
     onTemplateSelect: (template: TrackTemplate) => void
 }
 
+const renderTemplatePreview = (template: TrackTemplate) => {
+    const cellSize = 3
+    const maxWidth = 60
+    const maxHeight = 45
+
+    const scaleX = Math.min(maxWidth / template.width, maxHeight / template.height)
+    const scaleY = scaleX
+    const displayWidth = Math.floor(template.width * scaleX)
+    const displayHeight = Math.floor(template.height * scaleY)
+
+    return (
+        <Box
+            w={`${displayWidth}px`}
+            h={`${displayHeight}px`}
+            border="1px solid #2a3550"
+            bg="#0b0e17"
+            display="inline-block"
+            overflow="hidden"
+        >
+            <Grid
+                templateColumns={`repeat(${template.width}, ${cellSize}px)`}
+                gap="1px"
+                bg="#1d2333"
+                transform={`scale(${scaleX}, ${scaleY})`}
+                transformOrigin="top left"
+            >
+                {template.layout.map((row, y) =>
+                    row.map((tile, x) => {
+                        const color = tile.blocks_movement ? '#0033ff'
+                            : tile.is_finish ? '#00ff00'
+                                : tile.is_start ? 'red'
+                                    : tile.skip_next_turn ? '#555555'
+                                        : tile.speed_modifier > 1 ? '#ffdd00'
+                                            : '#111111'
+                        return (
+                            <GridItem
+                                key={`${x}-${y}`}
+                                w={`${cellSize}px`}
+                                h={`${cellSize}px`}
+                                bg={color}
+                            />
+                        )
+                    })
+                )}
+            </Grid>
+        </Box>
+    )
+}
+
 const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSelect }) => {
     const filteredTemplates = trackTemplates
-
-    const renderTemplatePreview = (template: TrackTemplate) => {
-        const cellSize = 3
-        const maxWidth = 60
-        const maxHeight = 45
-
-        const scaleX = Math.min(maxWidth / template.width, maxHeight / template.height)
-        const scaleY = scaleX
-        const displayWidth = Math.floor(template.width * scaleX)
-        const displayHeight = Math.floor(template.height * scaleY)
-
-        return (
-            <Box
-                w={`${displayWidth}px`}
-                h={`${displayHeight}px`}
-                border="1px solid #2a3550"
-                bg="#0b0e17"
-                display="inline-block"
-                overflow="hidden"
-            >
-                <Grid
-                    templateColumns={`repeat(${template.width}, ${cellSize}px)`}
-                    gap="1px"
-                    bg="#1d2333"
-                    transform={`scale(${scaleX}, ${scaleY})`}
-                    transformOrigin="top left"
-                >
-                    {template.layout.map((row, y) =>
-                        row.map((tile, x) => {
-                            const color = tile.blocks_movement ? '#0033ff'
-                                : tile.is_finish ? '#00ff00'
-                                    : tile.is_start ? 'red'
-                                        : tile.skip_next_turn ? '#555555'
-                                            : tile.speed_modifier > 1 ? '#ffdd00'
-                                                : '#111111'
-                            return (
-                                <GridItem
-                                    key={`${x}-${y}`}
-                                    w={`${cellSize}px`}
-                                    h={`${cellSize}px`}
-                                    bg={color}
-                                />
-                            )
-                        })
-                    )}
-                </Grid>
-            </Box>
-        )
-    }
 
     return (
         <VStack spacing={4} align="stretch">

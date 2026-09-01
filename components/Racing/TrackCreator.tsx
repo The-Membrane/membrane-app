@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react'
-import { Box, Button, Flex, Grid, GridItem, HStack, Input, NumberInput, NumberInputField, Text, VStack } from '@chakra-ui/react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
+import { Box, Button, Flex, Grid, GridItem, HStack, Input, NumberInput, NumberInputField, Text, VStack, useBreakpointValue } from '@chakra-ui/react'
 import { useAddTrack, } from '@/components/Racing/hooks'
 import ConfirmModal from '../ConfirmModal'
 import ToolPanel from './components/ToolPanel'
@@ -82,7 +82,7 @@ const TrackCreator: React.FC = () => {
   const [width, setWidth] = useState<number | undefined>(20)
   const [height, setHeight] = useState<number | undefined>(20)
   const [selected, setSelected] = useState<TileType>('wall')
-  const [isMouseDown, setIsMouseDown] = useState(false)
+  const isMouseDownRef = useRef(false)
   const [isAddTrackFocused, setIsAddTrackFocused] = useState(false)
 
 
@@ -147,7 +147,8 @@ const TrackCreator: React.FC = () => {
     return requirementMet ? '#e6e6e6' : '#ff0000'
   }
 
-  const cellSize = window.innerWidth < 768 ? 12 : 16
+  // SSR-safe responsive size (no direct `window` read during render).
+  const cellSize = useBreakpointValue({ base: 12, md: 16 }) ?? 16
   const gridColumns = layout[0]?.length ?? 0
   const gridTemplate = `repeat(${gridColumns}, ${cellSize}px)`
 
@@ -291,9 +292,9 @@ const TrackCreator: React.FC = () => {
 
         <Flex flex="1" overflow="auto" p={{ base: 2, lg: 4 }} alignItems="flex-start" justifyContent={{ base: 'center', lg: 'flex-start' }}>
           <Box
-            onMouseDown={() => setIsMouseDown(true)}
-            onMouseUp={() => setIsMouseDown(false)}
-            onMouseLeave={() => setIsMouseDown(false)}
+            onMouseDown={() => { isMouseDownRef.current = true }}
+            onMouseUp={() => { isMouseDownRef.current = false }}
+            onMouseLeave={() => { isMouseDownRef.current = false }}
             border="1px solid #1d2333"
             bg="#0b0e17"
             display="inline-block"
@@ -320,7 +321,7 @@ const TrackCreator: React.FC = () => {
                     h={`${cellSize}px`}
                     bg={color}
                     onMouseDown={() => paintAt(x, y)}
-                    onMouseEnter={() => { if (isMouseDown) paintAt(x, y) }}
+                    onMouseEnter={() => { if (isMouseDownRef.current) paintAt(x, y) }}
                   />
                 )
               }))}

@@ -4,6 +4,11 @@ import { ChevronLeftIcon, CloseIcon, QuestionIcon } from '@chakra-ui/icons'
 import { BookOpen, HelpCircle } from 'lucide-react'
 import { useDittoSpeechBox } from './hooks/useDittoSpeechBox'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 interface DittoSpeechBoxSectionProps {
     title: string
     onBack: () => void
@@ -20,7 +25,7 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
     onBack,
     onClose,
     children,
-    titleColor = "#ece6d8",
+    titleColor = SEMANTIC_COLORS.textPrimary,
     showTutorialButton = false,
     onTutorialClick,
     onFAQClick,
@@ -29,17 +34,22 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
 
     return (
         <Box position="relative" w="100%" flex={1} overflow="hidden" display="flex" flexDirection="column">
-            <VStack spacing={3} align="stretch" w="100%" position="relative" zIndex={5} bg="transparent" flex={1} overflow="hidden" minH={0}>
+            <VStack spacing={SPACING.md} align="stretch" w="100%" position="relative" zIndex={5} bg="transparent" flex={1} overflow="hidden" minH={0}>
                 {/* Header with Back, Title, and Close - always visible */}
                 <Box w="100%" flexShrink={0} position="relative" zIndex={5}>
-                    <HStack justify="space-between" align="center" mb={2} w="100%" minH="40px" spacing={2}>
+                    <HStack justify="space-between" align="center" mb={SPACING.sm} w="100%" minH="40px" spacing={SPACING.sm}>
                         <Button
                             size="xs"
                             variant="ghost"
                             leftIcon={<ChevronLeftIcon />}
                             onClick={onBack}
-                            color="#ece6d8"
-                            _hover={{ bg: '#9bdc4f20' }}
+                            color={SEMANTIC_COLORS.textPrimary}
+                            borderRadius={0}
+                            transition={TRANSITIONS.colors}
+                            _hover={HOVER_EFFECTS.brighten}
+                            _active={ACTIVE_EFFECTS.dim}
+                            _focus={FOCUS_STYLES.ring}
+                            _focusVisible={FOCUS_STYLES.ring}
                             flexShrink={0}
                             minW="60px"
                             width="20%"
@@ -58,32 +68,34 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                 zIndex={1}
                             >
                                 <Box
-                                    bgGradient="linear(to-r, primary.400, secondary.400)"
-                                    p="2px"
-                                    borderRadius="md"
+                                    border="1px solid"
+                                    borderColor={SEMANTIC_COLORS.borderStrong}
+                                    borderRadius={0}
                                     display="inline-block"
                                 >
                                     <VStack
-                                        spacing={0}
+                                        spacing={SPACING.none}
                                         align="center"
                                         justify="center"
-                                        bg="#23252B"
-                                        borderRadius="md"
-                                        px={3}
-                                        py={1}
+                                        bg={SEMANTIC_COLORS.bgTertiary}
+                                        borderRadius={0}
+                                        px={SPACING.md}
+                                        py={SPACING.xs}
                                     >
                                         <Text
-                                            fontSize="xl"
-                                            fontWeight="bold"
-                                            color="#ece6d8"
+                                            fontFamily={TYPOGRAPHY.fontDisplay}
+                                            fontSize={TYPOGRAPHY.h3}
+                                            fontWeight={TYPOGRAPHY.semibold}
+                                            color={SEMANTIC_COLORS.textPrimary}
                                             lineHeight="1.2"
                                         >
                                             Boost
                                         </Text>
                                         <Text
-                                            fontSize="xl"
-                                            fontWeight="bold"
-                                            color="#ece6d8"
+                                            fontFamily={TYPOGRAPHY.fontDisplay}
+                                            fontSize={TYPOGRAPHY.h3}
+                                            fontWeight={TYPOGRAPHY.semibold}
+                                            color={SEMANTIC_COLORS.textPrimary}
                                             lineHeight="1.2"
                                         >
                                             Breakdown
@@ -102,20 +114,21 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                 zIndex={1}
                             >
                                 <Box
-                                    bgGradient="linear(to-r, primary.400, secondary.400)"
-                                    p="2px"
-                                    borderRadius="md"
+                                    border="1px solid"
+                                    borderColor={SEMANTIC_COLORS.borderStrong}
+                                    borderRadius={0}
                                     display="inline-block"
                                 >
                                     <Text
-                                        fontSize="xl"
-                                        fontWeight="bold"
-                                        color="#ece6d8"
+                                        fontFamily={TYPOGRAPHY.fontDisplay}
+                                        fontSize={TYPOGRAPHY.h3}
+                                        fontWeight={TYPOGRAPHY.semibold}
+                                        color={titleColor}
                                         textAlign="center"
-                                        px={3}
-                                        py={1}
-                                        bg="#23252B"
-                                        borderRadius="md"
+                                        px={SPACING.md}
+                                        py={SPACING.xs}
+                                        bg={SEMANTIC_COLORS.bgTertiary}
+                                        borderRadius={0}
                                         noOfLines={title === "Acquisition" ? undefined : 1}
                                     >
                                         {title}
@@ -123,20 +136,22 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                 </Box>
                             </Box>
                         )}
-                        <HStack spacing={2} flexShrink={0} minW="auto" justify="flex-end">
+                        <HStack spacing={SPACING.sm} flexShrink={0} minW="auto" justify="flex-end">
                             {showTutorialButton && onTutorialClick && (
                                 <IconButton
                                     aria-label="Tutorial"
                                     icon={<Icon as={BookOpen} w={4} h={4} />}
                                     size="sm"
                                     variant="ghost"
-                                    color="#ece6d8"
+                                    color={SEMANTIC_COLORS.textPrimary}
                                     onClick={onTutorialClick}
-                                    _hover={{ bg: '#9bdc4f20', color: '#9bdc4f', transform: 'scale(1.1)' }}
-                                    _active={{ transform: 'scale(0.95)' }}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={{ bg: 'transparent', color: SEMANTIC_COLORS.primary }}
+                                    _active={ACTIVE_EFFECTS.dim}
+                                    _focus={FOCUS_STYLES.ring}
+                                    _focusVisible={FOCUS_STYLES.ring}
                                     title="Tutorial"
-                                    transition="all 0.2s ease"
-                                    borderRadius="md"
+                                    borderRadius={0}
                                 />
                             )}
                             {onFAQClick && (
@@ -145,13 +160,15 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                     icon={<Icon as={HelpCircle} w={4} h={4} />}
                                     size="sm"
                                     variant="ghost"
-                                    color="#ece6d8"
+                                    color={SEMANTIC_COLORS.textPrimary}
                                     onClick={onFAQClick}
-                                    _hover={{ bg: '#9bdc4f20', color: '#9bdc4f', transform: 'scale(1.1)' }}
-                                    _active={{ transform: 'scale(0.95)' }}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={{ bg: 'transparent', color: SEMANTIC_COLORS.primary }}
+                                    _active={ACTIVE_EFFECTS.dim}
+                                    _focus={FOCUS_STYLES.ring}
+                                    _focusVisible={FOCUS_STYLES.ring}
                                     title="FAQ"
-                                    transition="all 0.2s ease"
-                                    borderRadius="md"
+                                    borderRadius={0}
                                 />
                             )}
                             <IconButton
@@ -159,12 +176,14 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                                 icon={<CloseIcon />}
                                 size="sm"
                                 variant="ghost"
-                                color="#ece6d8"
+                                color={SEMANTIC_COLORS.textPrimary}
                                 onClick={onClose || (() => { })}
-                                _hover={{ bg: '#9bdc4f20', color: '#ece6d8', transform: 'scale(1.1)' }}
-                                _active={{ transform: 'scale(0.95)' }}
-                                transition="all 0.2s ease"
-                                borderRadius="md"
+                                transition={TRANSITIONS.colors}
+                                _hover={{ bg: 'transparent', color: SEMANTIC_COLORS.primary }}
+                                _active={ACTIVE_EFFECTS.dim}
+                                _focus={FOCUS_STYLES.ring}
+                                _focusVisible={FOCUS_STYLES.ring}
+                                borderRadius={0}
                             />
                         </HStack>
                     </HStack>
@@ -183,15 +202,15 @@ export const DittoSpeechBoxSection: React.FC<DittoSpeechBoxSectionProps> = ({
                             width: '6px',
                         },
                         '&::-webkit-scrollbar-track': {
-                            background: '#1a1a1a',
-                            borderRadius: '3px',
+                            background: SEMANTIC_COLORS.bgPrimary,
+                            borderRadius: 0,
                         },
                         '&::-webkit-scrollbar-thumb': {
-                            background: '#9bdc4f60',
-                            borderRadius: '3px',
+                            background: SEMANTIC_COLORS.borderStrong,
+                            borderRadius: 0,
                         },
                         '&::-webkit-scrollbar-thumb:hover': {
-                            background: '#9bdc4f',
+                            background: SEMANTIC_COLORS.primary,
                         },
                     }}
                 >

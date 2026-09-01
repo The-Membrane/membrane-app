@@ -14,6 +14,10 @@ type Props = {
 /** EVM-native proposal message payload: (address target, bytes data). */
 type ProposalMessage = { target: `0x${string}`; data: `0x${string}` }
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['proposals'] })
+}
+
 const useSubmitProposal = ({ values, enabled }: Props) => {
   const { address, chain } = useWallet()
 
@@ -57,10 +61,6 @@ const useSubmitProposal = ({ values, enabled }: Props) => {
     },
     enabled: enabled && !!address,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['proposals'] })
-  }
 
   return useSimulateAndBroadcast({
     msgs,

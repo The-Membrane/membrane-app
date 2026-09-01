@@ -31,6 +31,10 @@ export const PipesCanvas: React.FC<Props> = ({ bundleRef, slots, flowByVenue, he
     // Compute endpoints
     const endpoints = useMemo(() => {
         const list: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = []
+        // Client-only: this reads layout (getBoundingClientRect / document.querySelector) which
+        // doesn't exist during SSR. Guard on `document` specifically since that's the raw global
+        // accessed below; refs are null on the server anyway (covered by the !bundle/!host check).
+        if (typeof document === 'undefined') return list
         const bundle = bundleRef.current?.getBoundingClientRect()
         const host = containerRef.current?.getBoundingClientRect()
         if (!bundle || !host) return list
@@ -44,7 +48,9 @@ export const PipesCanvas: React.FC<Props> = ({ bundleRef, slots, flowByVenue, he
                 list.push({ id: slot.venue.id, from, to })
             })
         return list
-    }, [slots, layoutVersion])
+        // bundleRef is a stable RefObject prop; listing it satisfies exhaustive-deps without
+        // changing recompute frequency.
+    }, [slots, layoutVersion, bundleRef])
 
     // Recompute endpoints when layout changes (resize/scroll)
     useEffect(() => {
@@ -59,11 +65,14 @@ export const PipesCanvas: React.FC<Props> = ({ bundleRef, slots, flowByVenue, he
         window.addEventListener('scroll', onScroll, { passive: true })
         const RO = (window as any).ResizeObserver
         const ro = RO ? new RO(() => schedule()) : undefined
-        if (ro && containerRef.current) ro.observe(containerRef.current as Element)
+        // Capture the node so cleanup unobserves the exact element that was observed
+        // (containerRef.current may be nulled before cleanup runs).
+        const node = containerRef.current
+        if (ro && node) ro.observe(node as Element)
         return () => {
             window.removeEventListener('resize', onResize)
             window.removeEventListener('scroll', onScroll)
-            try { ro && containerRef.current && ro.unobserve(containerRef.current) } catch { }
+            try { ro && node && ro.unobserve(node) } catch { }
             if (raf) cancelAnimationFrame(raf)
         }
     }, [])
@@ -120,7 +129,9 @@ export const PipesCanvas: React.FC<Props> = ({ bundleRef, slots, flowByVenue, he
                 app.ticker?.remove?.(tick)
             } catch { }
         }
-    }, [flowByVenue])
+        // healthIntensity only feeds alpha; re-running swaps the ticker closure. The reset of the
+        // local `t` is imperceptible (rotation amplitude is 1e-5 rad), so adding it is safe.
+    }, [flowByVenue, healthIntensity])
 
     const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (prefersReducedMotion) {

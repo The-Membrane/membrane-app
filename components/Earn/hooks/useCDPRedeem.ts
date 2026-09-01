@@ -19,6 +19,12 @@ import useEarnState from './useEarnState'
  *     so there is no user-callable "redeem CDT" path.
  * Msgs are stubbed to undefined until redemption is ported; the CTA stays disabled (enabled: !!msgs).
  */
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['positions'] })
+  queryClient.invalidateQueries({ queryKey: ['useVaultInfo'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 const useCDPRedeem = () => {
   const { address } = useWallet()
   const { earnState } = useEarnState()
@@ -34,12 +40,6 @@ const useCDPRedeem = () => {
   })
 
   const { msgs } = useMemo(() => queryData ?? { msgs: undefined }, [queryData])
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['useVaultInfo'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

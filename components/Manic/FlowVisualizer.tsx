@@ -1,6 +1,10 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { Box, VStack, HStack, Text, Slider, SliderTrack, SliderFilledTrack, SliderThumb, IconButton, Tooltip } from '@chakra-ui/react'
 import { InfoIcon } from '@chakra-ui/icons'
+import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import { GlowingUSDC } from './GlowingUSDC'
 
 interface FlowVisualizerProps {
@@ -28,35 +32,32 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
     }
 
     // Calculate boosted APR
-    const boostedAPR = useMemo(() => {
-        return baseAPR * boostMultiplier
-    }, [baseAPR, boostMultiplier])
+    const boostedAPR = baseAPR * boostMultiplier
 
     // Calculate required capacity to achieve multiplier on example collateral
     // Required capacity = example collateral × multiplier
-    const requiredCapacity = useMemo(() => {
-        return exampleCollateral * boostMultiplier
-    }, [boostMultiplier])
+    const requiredCapacity = exampleCollateral * boostMultiplier
 
     return (
-        <HStack spacing={4} w="100%" align="flex-start">
+        <HStack spacing={SPACING.base} w="100%" align="flex-start">
             {/* Boost Simulator Card */}
             <Box
-                bg="gray.800"
+                bg={SEMANTIC_COLORS.bgSecondary}
                 border="1px solid"
-                borderColor="purple.500"
-                borderRadius="md"
-                p={4}
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+                borderRadius={0}
+                p={SPACING_PATTERNS.cardPadding}
                 flex={1}
             >
-                <VStack spacing={4} align="stretch">
+                <VStack spacing={SPACING.base} align="stretch">
                     <HStack justify="space-between" align="center" w="100%">
-                        <HStack spacing={2} align="center" flex={1}>
+                        <HStack spacing={SPACING.sm} align="center" flex={1}>
                             <Text
-                                fontSize="sm"
-                                color="gray.400"
-                                fontFamily="mono"
+                                fontSize={TYPOGRAPHY.label}
+                                color={SEMANTIC_COLORS.textSecondary}
+                                fontFamily={TYPOGRAPHY.fontMono}
                                 textTransform="uppercase"
+                                letterSpacing="0.28em"
                                 whiteSpace="nowrap"
                                 lineHeight="1"
                             >
@@ -64,13 +65,6 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
                             </Text>
                             <Tooltip
                                 label="Simulate the boosted APR and required capacity for a given multiplier. The multiplier represents how much base APR is amplified through looping at 90% LTV."
-                                fontSize="xs"
-                                bg="gray.800"
-                                color="#F5F5F5"
-                                border="1px solid"
-                                borderColor="purple.500"
-                                borderRadius="md"
-                                p={3}
                                 hasArrow
                             >
                                 <IconButton
@@ -78,8 +72,11 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
                                     icon={<InfoIcon />}
                                     size="xs"
                                     variant="ghost"
-                                    color="gray.400"
-                                    _hover={{ color: "cyan.400" }}
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={HOVER_EFFECTS.brighten}
+                                    _active={ACTIVE_EFFECTS.dim}
+                                    _focus={FOCUS_STYLES.ring}
                                     minW="auto"
                                     w="auto"
                                     h="auto"
@@ -87,12 +84,13 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
                             </Tooltip>
                         </HStack>
                         <Text
-                            fontSize="lg"
-                            fontWeight="bold"
-                            color="cyan.400"
-                            fontFamily="mono"
+                            fontSize={TYPOGRAPHY.h4}
+                            fontWeight={TYPOGRAPHY.bold}
+                            color={SEMANTIC_COLORS.info}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             lineHeight="1"
                             whiteSpace="nowrap"
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
                         >
                             {boostMultiplier.toFixed(1)}x
                         </Text>
@@ -104,52 +102,87 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
                         min={1}
                         max={10}
                         step={0.1}
-                        colorScheme="cyan"
+                        aria-label="Boost multiplier slider"
                     >
-                        <SliderTrack bg="gray.700">
-                            <SliderFilledTrack bg="cyan.500" />
+                        <SliderTrack bg={SEMANTIC_COLORS.bgTertiary} borderRadius={0}>
+                            <SliderFilledTrack bg={SEMANTIC_COLORS.info} />
                         </SliderTrack>
-                        <SliderThumb />
+                        <SliderThumb borderRadius={0} _focus={FOCUS_STYLES.ring} />
                     </Slider>
 
-                    <HStack justify="space-between" fontSize="xs" color="#F5F5F580" fontFamily="mono">
+                    <HStack
+                        justify="space-between"
+                        fontSize={TYPOGRAPHY.xs}
+                        color={SEMANTIC_COLORS.textTertiary}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                    >
                         <Text>1x</Text>
                         <Text>10x</Text>
                     </HStack>
 
-                    <VStack spacing={2} align="stretch" mt={4}>
+                    <VStack spacing={SPACING.sm} align="stretch" mt={SPACING.base}>
                         <HStack justify="space-between">
-                            <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                            <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                 Example Collateral:
                             </Text>
-                            <Text fontSize="sm" color="#F5F5F5" fontFamily="mono" fontWeight="bold">
+                            <Text
+                                fontSize={TYPOGRAPHY.small}
+                                color={SEMANTIC_COLORS.textPrimary}
+                                fontFamily={TYPOGRAPHY.fontMono}
+                                fontWeight={TYPOGRAPHY.bold}
+                                sx={{ fontVariantNumeric: 'tabular-nums' }}
+                            >
                                 {exampleCollateral.toLocaleString()} USDC
                             </Text>
                         </HStack>
 
                         <HStack justify="space-between">
-                            <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                            <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                 Base APR:
                             </Text>
-                            <Text fontSize="sm" color="#F5F5F5" fontFamily="mono" fontWeight="bold">
+                            <Text
+                                fontSize={TYPOGRAPHY.small}
+                                color={SEMANTIC_COLORS.textPrimary}
+                                fontFamily={TYPOGRAPHY.fontMono}
+                                fontWeight={TYPOGRAPHY.bold}
+                                sx={{ fontVariantNumeric: 'tabular-nums' }}
+                            >
                                 {baseAPR.toFixed(2)}%
                             </Text>
                         </HStack>
 
                         <HStack justify="space-between">
-                            <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                            <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                 Projected APR:
                             </Text>
-                            <Text fontSize="sm" color="cyan.400" fontFamily="mono" fontWeight="bold">
+                            <Text
+                                fontSize={TYPOGRAPHY.small}
+                                color={SEMANTIC_COLORS.info}
+                                fontFamily={TYPOGRAPHY.fontMono}
+                                fontWeight={TYPOGRAPHY.bold}
+                                sx={{ fontVariantNumeric: 'tabular-nums' }}
+                            >
                                 {boostedAPR.toFixed(2)}%
                             </Text>
                         </HStack>
 
-                        <HStack justify="space-between" mt={2} pt={2} borderTop="1px solid" borderColor="gray.700">
-                            <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                        <HStack
+                            justify="space-between"
+                            mt={SPACING.sm}
+                            pt={SPACING.sm}
+                            borderTop="1px solid"
+                            borderColor={SEMANTIC_COLORS.borderSubtle}
+                        >
+                            <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                 Required Capacity:
                             </Text>
-                            <Text fontSize="sm" color="green.400" fontFamily="mono" fontWeight="bold">
+                            <Text
+                                fontSize={TYPOGRAPHY.small}
+                                color={SEMANTIC_COLORS.success}
+                                fontFamily={TYPOGRAPHY.fontMono}
+                                fontWeight={TYPOGRAPHY.bold}
+                                sx={{ fontVariantNumeric: 'tabular-nums' }}
+                            >
                                 {requiredCapacity.toLocaleString()} USDC
                             </Text>
                         </HStack>
@@ -159,7 +192,7 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
 
             {/* Loop Capacity Card with GlowingUSDC - Informational Only */}
             {showLoopCapacity && (
-                <VStack spacing={4} w="20%" align="stretch">
+                <VStack spacing={SPACING.base} w="20%" align="stretch">
                     {/* GlowingUSDC - Decorative */}
                     <Box position="relative" w="100%" display="flex" justifyContent="center">
                         <GlowingUSDC
@@ -169,20 +202,21 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
 
                     {/* Loop Capacity Card - Informational Only */}
                     <Box
-                        bg="gray.800"
+                        bg={SEMANTIC_COLORS.bgSecondary}
                         border="1px solid"
-                        borderColor="purple.500"
-                        borderRadius="md"
-                        p={4}
+                        borderColor={SEMANTIC_COLORS.borderSubtle}
+                        borderRadius={0}
+                        p={SPACING_PATTERNS.cardPadding}
                         w="100%"
                     >
-                        <VStack spacing={4} align="stretch">
-                            <HStack justify="center" align="center" spacing={2}>
+                        <VStack spacing={SPACING.base} align="stretch">
+                            <HStack justify="center" align="center" spacing={SPACING.sm}>
                                 <Text
-                                    fontSize="sm"
-                                    color="gray.400"
-                                    fontFamily="mono"
+                                    fontSize={TYPOGRAPHY.label}
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                     textTransform="uppercase"
+                                    letterSpacing="0.28em"
                                     textAlign="center"
                                     whiteSpace="nowrap"
                                     lineHeight="1"
@@ -191,13 +225,6 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
                                 </Text>
                                 <Tooltip
                                     label="The available USDC balance in the Transmuter that can be consumed by the Manic vault for looping operations."
-                                    fontSize="xs"
-                                    bg="gray.800"
-                                    color="#F5F5F5"
-                                    border="1px solid"
-                                    borderColor="purple.500"
-                                    borderRadius="md"
-                                    p={3}
                                     hasArrow
                                 >
                                     <IconButton
@@ -205,8 +232,11 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
                                         icon={<InfoIcon />}
                                         size="xs"
                                         variant="ghost"
-                                        color="gray.400"
-                                        _hover={{ color: "cyan.400" }}
+                                        color={SEMANTIC_COLORS.textSecondary}
+                                        transition={TRANSITIONS.colors}
+                                        _hover={HOVER_EFFECTS.brighten}
+                                        _active={ACTIVE_EFFECTS.dim}
+                                        _focus={FOCUS_STYLES.ring}
                                         minW="auto"
                                         w="auto"
                                         h="auto"
@@ -215,11 +245,12 @@ export const FlowVisualizer: React.FC<FlowVisualizerProps> = ({
                             </HStack>
 
                             <Text
-                                fontSize="xl"
-                                fontWeight="bold"
-                                color="#F5F5F5"
-                                fontFamily="mono"
+                                fontSize={TYPOGRAPHY.h3}
+                                fontWeight={TYPOGRAPHY.bold}
+                                color={SEMANTIC_COLORS.textPrimary}
+                                fontFamily={TYPOGRAPHY.fontMono}
                                 textAlign="center"
+                                sx={{ fontVariantNumeric: 'tabular-nums' }}
                             >
                                 {transmuterBalance.toFixed(2)} USDC
                             </Text>

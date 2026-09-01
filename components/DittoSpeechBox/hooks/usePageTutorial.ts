@@ -70,16 +70,13 @@ export const usePageTutorial = (config: PageTutorialConfig) => {
     }, [setAppState, completionKey])
 
     const nextStep = useCallback(() => {
-        setCurrentStep((prevStep) => {
-            if (prevStep < config.steps.length - 1) {
-                return prevStep + 1
-            } else {
-                // Tutorial complete
-                finishTutorial()
-                return prevStep
-            }
-        })
-    }, [config.steps.length, finishTutorial])
+        if (currentStep < config.steps.length - 1) {
+            setCurrentStep(currentStep + 1)
+        } else {
+            // Tutorial complete
+            finishTutorial()
+        }
+    }, [currentStep, config.steps.length, finishTutorial])
 
     const previousStep = useCallback(() => {
         setCurrentStep((prevStep) => {

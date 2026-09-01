@@ -141,7 +141,7 @@ export const USDCMintCard = () => {
             <Stack>
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
-                        <Image src={"/images/cdt.png"} w="30px" h="30px" />
+                        <Image src={"/images/cdt.svg"} w="30px" h="30px" />
                         <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                             Borrow CDT
                         </Text>

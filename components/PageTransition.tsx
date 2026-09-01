@@ -1,5 +1,5 @@
 import React from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { useRouter } from 'next/router'
 
 interface PageTransitionProps {
@@ -11,7 +11,7 @@ export const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
 
     return (
         <AnimatePresence mode="wait" initial={true}>
-            <motion.div
+            <m.div
                 key={router.asPath}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -26,7 +26,7 @@ export const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
                 }}
             >
                 {children}
-            </motion.div>
+            </m.div>
         </AnimatePresence>
     )
 }

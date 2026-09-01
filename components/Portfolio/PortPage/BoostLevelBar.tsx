@@ -9,10 +9,25 @@ import {
     IconButton,
 } from '@chakra-ui/react'
 import { InfoIcon } from '@chakra-ui/icons'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { Card } from '@/components/ui/Card'
 import { useUserBoost } from './hooks/useUserBoost'
 import { ShareButton } from '@/components/ShareableCard/ShareButton'
 
 const MAX_MBRN = 100_000_000 // 100M MBRN
+
+// Format MBRN for display
+const formatMBRN = (amount: number): string => {
+    if (amount >= 1_000_000) {
+        return `${(amount / 1_000_000).toFixed(2)}M`
+    } else if (amount >= 1_000) {
+        return `${(amount / 1_000).toFixed(2)}K`
+    }
+    return amount.toFixed(0)
+}
 
 export const BoostLevelBar: React.FC = () => {
     const { data: boostData } = useUserBoost()
@@ -27,9 +42,7 @@ export const BoostLevelBar: React.FC = () => {
     // Calculate MBRN amount from boost percentage
     // boostPercentage = (mbrnAmount / 100M) * 100
     // Therefore: mbrnAmount = (boostPercentage / 100) * 100M
-    const mbrnAmount = useMemo(() => {
-        return (boostPercentage / 100) * MAX_MBRN
-    }, [boostPercentage])
+    const mbrnAmount = (boostPercentage / 100) * MAX_MBRN
 
     // Calculate progress percentage (0-100%)
     const progress = useMemo(() => {
@@ -50,48 +63,23 @@ export const BoostLevelBar: React.FC = () => {
         return Math.max(0, nextMilestone - mbrnAmount)
     }, [nextMilestone, mbrnAmount])
 
-    const nextMilestoneBoost = useMemo(() => {
-        return (nextMilestone / MAX_MBRN) * 100
-    }, [nextMilestone])
-
-    // Format MBRN for display
-    const formatMBRN = (amount: number): string => {
-        if (amount >= 1_000_000) {
-            return `${(amount / 1_000_000).toFixed(2)}M`
-        } else if (amount >= 1_000) {
-            return `${(amount / 1_000).toFixed(2)}K`
-        }
-        return amount.toFixed(0)
-    }
+    const nextMilestoneBoost = (nextMilestone / MAX_MBRN) * 100
 
     return (
-        <Box
-            bg="gray.800"
-            border="1px solid"
-            borderColor="purple.500"
-            borderRadius="md"
-            p={6}
-            position="relative"
-            overflow="hidden"
-            _before={{
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.1) 0%, rgba(111, 255, 194, 0.1) 100%)',
-                pointerEvents: 'none',
-            }}
+        <Card
+            bg={SEMANTIC_COLORS.bgSecondary}
+            borderColor={SEMANTIC_COLORS.borderMedium}
+            borderRadius={0}
+            p={SPACING.lg}
         >
-            <VStack spacing={4} align="stretch" position="relative" zIndex={1}>
+            <VStack spacing={SPACING.base} align="stretch">
                 <HStack justify="space-between" align="center">
                     <VStack align="flex-start" spacing={0}>
-                        <HStack spacing={2} align="flex-start" >
+                        <HStack spacing={SPACING.sm} align="flex-start" >
                             <Text
                                 fontSize="sm"
-                                color="gray.400"
-                                fontFamily="mono"
+                                color={SEMANTIC_COLORS.textSecondary}
+                                fontFamily={TYPOGRAPHY.fontMono}
                                 textTransform="uppercase"
                                 letterSpacing="wide"
                             >
@@ -101,12 +89,12 @@ export const BoostLevelBar: React.FC = () => {
                             <Tooltip
                                 label="Boost increases your Manic Vault yields and MBRN points received based on your total MBRN locked in LTV Disco. The boost percentage equals your MBRN amount as a percentage of 100M MBRN (e.g., 30M MBRN = 30% boost)."
                                 fontSize="xs"
-                                bg="gray.800"
-                                color="#F5F5F5"
+                                bg={SEMANTIC_COLORS.bgSecondary}
+                                color={SEMANTIC_COLORS.textPrimary}
                                 border="1px solid"
-                                borderColor="purple.500"
-                                borderRadius="md"
-                                p={3}
+                                borderColor={SEMANTIC_COLORS.borderMedium}
+                                borderRadius={0}
+                                p={SPACING.md}
                                 hasArrow
                                 maxW="300px"
                             >
@@ -116,9 +104,11 @@ export const BoostLevelBar: React.FC = () => {
                                     pt={"3%"}
                                     size="xs"
                                     variant="ghost"
-                                    color="gray.400"
+                                    color={SEMANTIC_COLORS.textSecondary}
                                     alignItems={"flex-start"}
-                                    _hover={{ color: 'cyan.400' }}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={HOVER_EFFECTS.brighten}
+                                    _focus={FOCUS_STYLES.ring}
                                     minW="auto"
                                     w="auto"
                                     h="auto"
@@ -127,38 +117,38 @@ export const BoostLevelBar: React.FC = () => {
                         </HStack>
                         <Text
                             fontSize="xs"
-                            color="gray.500"
-                            fontFamily="mono"
+                            color={SEMANTIC_COLORS.textTertiary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
                         >
                             {boostPercentage.toFixed(2)}% Boost
                         </Text>
                     </VStack>
                 </HStack>
 
-                <VStack spacing={2} align="stretch">
+                <VStack spacing={SPACING.sm} align="stretch">
                     <HStack justify="space-between">
-                        <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                             MBRN Amount
                         </Text>
-                        <Text fontSize="lg" fontWeight="bold" color="cyan.400" fontFamily="mono">
+                        <Text fontSize="lg" fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.info} fontFamily={TYPOGRAPHY.fontMono} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                             {formatMBRN(mbrnAmount)} / {formatMBRN(MAX_MBRN)} MBRN
                         </Text>
                     </HStack>
 
                     <Progress
                         value={progress}
-                        colorScheme="purple"
                         size="lg"
-                        borderRadius="full"
-                        bg="gray.700"
+                        borderRadius={0}
+                        bg={SEMANTIC_COLORS.bgTertiary}
                         sx={{
                             '& > div': {
-                                background: 'linear-gradient(90deg, #8A2BE2 0%, #6FFFC2 100%)',
+                                background: SEMANTIC_COLORS.info,
                             },
                         }}
                     />
 
-                    <HStack justify="space-between" fontSize="xs" color="gray.500" fontFamily="mono">
+                    <HStack justify="space-between" fontSize="xs" color={SEMANTIC_COLORS.textTertiary} fontFamily={TYPOGRAPHY.fontMono}>
                         <Text>0 MBRN</Text>
                         <Text>{formatMBRN(MAX_MBRN)} MBRN</Text>
                     </HStack>
@@ -166,30 +156,30 @@ export const BoostLevelBar: React.FC = () => {
 
                 {mbrnAmount < MAX_MBRN && (
                     <Box
-                        mt={2}
-                        p={3}
-                        bg="gray.700"
-                        borderRadius="md"
+                        mt={SPACING.sm}
+                        p={SPACING.md}
+                        bg={SEMANTIC_COLORS.bgTertiary}
+                        borderRadius={0}
                         border="1px solid"
-                        borderColor="gray.600"
+                        borderColor={SEMANTIC_COLORS.borderMedium}
                     >
-                        <VStack spacing={1} align="stretch">
-                            <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                        <VStack spacing={SPACING.xs} align="stretch">
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                 Next Milestone
                             </Text>
                             <HStack justify="space-between">
-                                <Text fontSize="sm" color="gray.300" fontFamily="mono">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono}>
                                     Target:
                                 </Text>
-                                <Text fontSize="sm" color="purple.400" fontFamily="mono" fontWeight="bold">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.info} fontFamily={TYPOGRAPHY.fontMono} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                     {formatMBRN(nextMilestone)} MBRN ({nextMilestoneBoost.toFixed(2)}% boost)
                                 </Text>
                             </HStack>
                             <HStack justify="space-between">
-                                <Text fontSize="sm" color="gray.300" fontFamily="mono">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono}>
                                     MBRN Needed:
                                 </Text>
-                                <Text fontSize="sm" color="cyan.400" fontFamily="mono" fontWeight="bold">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.info} fontFamily={TYPOGRAPHY.fontMono} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                     {formatMBRN(mbrnNeeded)} MBRN
                                 </Text>
                             </HStack>
@@ -199,20 +189,20 @@ export const BoostLevelBar: React.FC = () => {
 
                 {mbrnAmount >= MAX_MBRN && (
                     <Box
-                        mt={2}
-                        p={3}
-                        bg="green.900"
-                        borderRadius="md"
+                        mt={SPACING.sm}
+                        p={SPACING.md}
+                        bg={SEMANTIC_COLORS.bgTertiary}
+                        borderRadius={0}
                         border="1px solid"
-                        borderColor="green.500"
+                        borderColor={SEMANTIC_COLORS.success}
                     >
-                        <Text fontSize="sm" color="green.400" fontFamily="mono" textAlign="center">
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.success} fontFamily={TYPOGRAPHY.fontMono} textAlign="center">
                             Maximum Boost Achieved! (100M MBRN = 100% boost)
                         </Text>
                     </Box>
                 )}
 
             </VStack>
-        </Box>
+        </Card>
     )
 }

@@ -10,6 +10,11 @@ import type { EvmCall } from '@/services/chain/types'
  * returns no msgs so the withdraw CTA stays inert; the stability-pool UI it serves is
  * slated for removal/replacement by Disco flows in the component-layer wave.
  */
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
+  queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
+}
+
 export const useWithdrawStabilityPool = (amount: string) => {
   const { address } = useWallet()
 
@@ -18,11 +23,6 @@ export const useWithdrawStabilityPool = (amount: string) => {
     queryFn: () => [] as EvmCall[],
     enabled: !!address,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['stability asset pool'] })
-    queryClient.invalidateQueries({ queryKey: ['osmosis balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

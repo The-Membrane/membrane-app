@@ -86,7 +86,7 @@ export const LendModalRewardPreview: React.FC<LendModalRewardPreviewProps> = ({
                     <HStack justify="space-between">
                         <Text color="whiteAlpha.600" fontSize="sm">Projected MBRN</Text>
                         <HStack spacing={1}>
-                            <Image src="/images/mbrn.png" alt="MBRN" w="16px" h="16px" />
+                            <Image src="/images/mbrn.svg" alt="MBRN" w="16px" h="16px" />
                             <Text color="purple.300" fontSize="md" fontWeight="bold">
                                 {formatMbrn(projectedMbrn)}
                             </Text>

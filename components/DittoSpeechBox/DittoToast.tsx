@@ -2,6 +2,12 @@ import React, { useEffect, useState } from 'react'
 import { Box, Text, HStack, IconButton } from '@chakra-ui/react'
 import { CloseIcon } from '@chakra-ui/icons'
 import { m, AnimatePresence } from 'framer-motion'
+
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 import { DittoMessage, DittoSeverity } from './types/dittoContract'
 
 // ============================================================================
@@ -12,25 +18,22 @@ const getSeverityStyles = (severity: DittoSeverity) => {
     switch (severity) {
         case 'danger':
             return {
-                borderColor: '#FF6B6B',
-                bg: 'rgba(255, 107, 107, 0.1)',
-                iconColor: '#FF6B6B',
-                glowColor: 'rgba(255, 107, 107, 0.2)',
+                borderColor: SEMANTIC_COLORS.danger,
+                bg: SEMANTIC_COLORS.bgSecondary,
+                iconColor: SEMANTIC_COLORS.danger,
             }
         case 'warn':
             return {
-                borderColor: '#FFB86C',
-                bg: 'rgba(255, 184, 108, 0.1)',
-                iconColor: '#FFB86C',
-                glowColor: 'rgba(255, 184, 108, 0.2)',
+                borderColor: SEMANTIC_COLORS.warning,
+                bg: SEMANTIC_COLORS.bgSecondary,
+                iconColor: SEMANTIC_COLORS.warning,
             }
         case 'info':
         default:
             return {
-                borderColor: '#00D9FF',
-                bg: 'rgba(0, 217, 255, 0.1)',
-                iconColor: '#00D9FF',
-                glowColor: 'rgba(0, 217, 255, 0.2)',
+                borderColor: SEMANTIC_COLORS.info,
+                bg: SEMANTIC_COLORS.bgSecondary,
+                iconColor: SEMANTIC_COLORS.info,
             }
     }
 }
@@ -105,6 +108,14 @@ export const DittoToast: React.FC<DittoToastProps> = ({
     const icon = getSeverityIcon(message.severity)
     const bodyText = interpolatedBody || message.body
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (!onClick) return
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick()
+        }
+    }
+
     return (
         <AnimatePresence>
             {isVisible && !isExiting && (
@@ -119,22 +130,23 @@ export const DittoToast: React.FC<DittoToastProps> = ({
                         bg={styles.bg}
                         border="1px solid"
                         borderColor={styles.borderColor}
-                        borderRadius="lg"
-                        px={3}
-                        py={2}
+                        borderRadius={0}
+                        px={SPACING.md}
+                        py={SPACING.sm}
                         maxW="280px"
-                        boxShadow={`0 0 20px ${styles.glowColor}`}
                         cursor={onClick ? 'pointer' : 'default'}
                         onClick={onClick}
-                        _hover={onClick ? {
-                            boxShadow: `0 0 30px ${styles.glowColor}`,
-                            transform: 'translateY(-1px)',
-                        } : undefined}
-                        transition="all 0.2s"
+                        onKeyDown={onClick ? handleKeyDown : undefined}
+                        role={onClick ? 'button' : undefined}
+                        tabIndex={onClick ? 0 : undefined}
+                        _hover={onClick ? HOVER_EFFECTS.borderHighlight : undefined}
+                        _focus={onClick ? FOCUS_STYLES.ring : undefined}
+                        _focusVisible={onClick ? FOCUS_STYLES.ring : undefined}
+                        transition={TRANSITIONS.colors}
                     >
-                        <HStack spacing={2} align="flex-start">
+                        <HStack spacing={SPACING.sm} align="flex-start">
                             {/* Severity Icon */}
-                            <Text fontSize="sm" flexShrink={0}>
+                            <Text fontSize={TYPOGRAPHY.small} flexShrink={0}>
                                 {icon}
                             </Text>
 
@@ -142,19 +154,20 @@ export const DittoToast: React.FC<DittoToastProps> = ({
                             <Box flex={1}>
                                 {message.title && (
                                     <Text
-                                        fontSize="xs"
-                                        fontWeight="bold"
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        fontSize={TYPOGRAPHY.xs}
+                                        fontWeight={TYPOGRAPHY.bold}
                                         color={styles.iconColor}
-                                        mb={0.5}
+                                        mb={SPACING.xs}
                                     >
                                         {message.title}
                                     </Text>
                                 )}
                                 <Text
-                                    fontSize="xs"
-                                    color="#ece6d8"
+                                    fontSize={TYPOGRAPHY.xs}
+                                    color={SEMANTIC_COLORS.textPrimary}
                                     lineHeight="1.4"
-                                    fontFamily="mono"
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                 >
                                     {bodyText}
                                 </Text>
@@ -166,8 +179,12 @@ export const DittoToast: React.FC<DittoToastProps> = ({
                                 icon={<CloseIcon boxSize={2} />}
                                 size="xs"
                                 variant="ghost"
-                                color="#ece6d880"
-                                _hover={{ color: '#ece6d8', bg: 'transparent' }}
+                                borderRadius={0}
+                                color={SEMANTIC_COLORS.textSecondary}
+                                transition={TRANSITIONS.colors}
+                                _hover={{ ...HOVER_EFFECTS.brighten, bg: 'transparent' }}
+                                _focus={FOCUS_STYLES.ring}
+                                _focusVisible={FOCUS_STYLES.ring}
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     setIsExiting(true)
@@ -186,7 +203,7 @@ export const DittoToast: React.FC<DittoToastProps> = ({
                                 right={0}
                                 h="2px"
                                 overflow="hidden"
-                                borderBottomRadius="lg"
+                                borderRadius={0}
                             >
                                 <m.div
                                     initial={{ scaleX: 1 }}

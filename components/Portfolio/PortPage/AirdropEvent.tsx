@@ -8,10 +8,14 @@ import {
     Button,
 } from '@chakra-ui/react'
 import { CloseIcon } from '@chakra-ui/icons'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import usePortState from '@/persisted-state/usePortState'
 
-const MotionBox = motion(Box)
+const MotionBox = m(Box)
 
 interface AirdropEventProps {
     amount: number
@@ -56,40 +60,31 @@ export const AirdropEvent: React.FC<AirdropEventProps> = ({ amount, onClose }) =
                     transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
                 >
                     <Box
-                        bg="gray.900"
-                        border="3px solid"
-                        borderColor="yellow.400"
-                        borderRadius="xl"
-                        p={8}
+                        bg={SEMANTIC_COLORS.bgSecondary}
+                        border="1px solid"
+                        borderColor={SEMANTIC_COLORS.warning}
+                        borderRadius={0}
+                        p={SPACING.xl}
                         minW="400px"
-                        boxShadow="0 0 40px rgba(255, 193, 7, 0.5)"
                         position="relative"
                         overflow="hidden"
-                        _before={{
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: 'radial-gradient(circle, rgba(255, 193, 7, 0.2) 0%, transparent 70%)',
-                            pointerEvents: 'none',
-                        }}
                     >
-                        <VStack spacing={6} align="stretch" position="relative" zIndex={1}>
+                        <VStack spacing={SPACING.lg} align="stretch" position="relative" zIndex={1}>
                             <HStack justify="flex-end">
                                 <IconButton
                                     aria-label="Close"
                                     icon={<CloseIcon />}
                                     size="sm"
                                     variant="ghost"
-                                    color="gray.400"
-                                    _hover={{ color: 'yellow.400' }}
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={HOVER_EFFECTS.brighten}
+                                    _focus={FOCUS_STYLES.ring}
                                     onClick={handleClose}
                                 />
                             </HStack>
 
-                            <VStack spacing={4}>
+                            <VStack spacing={SPACING.base}>
                                 <MotionBox
                                     animate={{
                                         scale: [1, 1.2, 1],
@@ -103,10 +98,9 @@ export const AirdropEvent: React.FC<AirdropEventProps> = ({ amount, onClose }) =
                                 >
                                     <Text
                                         fontSize="6xl"
-                                        fontWeight="bold"
-                                        color="yellow.400"
-                                        textShadow="0 0 20px rgba(255, 193, 7, 0.8)"
-                                        fontFamily="mono"
+                                        fontWeight={TYPOGRAPHY.bold}
+                                        color={SEMANTIC_COLORS.warning}
+                                        fontFamily={TYPOGRAPHY.fontMono}
                                     >
                                         🎁
                                     </Text>
@@ -114,9 +108,9 @@ export const AirdropEvent: React.FC<AirdropEventProps> = ({ amount, onClose }) =
 
                                 <Text
                                     fontSize="2xl"
-                                    fontWeight="bold"
-                                    color="yellow.400"
-                                    fontFamily="mono"
+                                    fontWeight={TYPOGRAPHY.bold}
+                                    color={SEMANTIC_COLORS.warning}
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                     textTransform="uppercase"
                                     letterSpacing="wide"
                                     textAlign="center"
@@ -125,28 +119,28 @@ export const AirdropEvent: React.FC<AirdropEventProps> = ({ amount, onClose }) =
                                 </Text>
 
                                 <Box
-                                    p={6}
-                                    bg="yellow.900"
-                                    borderRadius="lg"
-                                    border="2px solid"
-                                    borderColor="yellow.500"
+                                    p={SPACING.lg}
+                                    bg={SEMANTIC_COLORS.bgTertiary}
+                                    borderRadius={0}
+                                    border="1px solid"
+                                    borderColor={SEMANTIC_COLORS.warning}
                                     minW="100%"
                                 >
-                                    <VStack spacing={2}>
+                                    <VStack spacing={SPACING.sm}>
                                         <Text
                                             fontSize="sm"
-                                            color="yellow.300"
-                                            fontFamily="mono"
+                                            color={SEMANTIC_COLORS.warning}
+                                            fontFamily={TYPOGRAPHY.fontMono}
                                             textTransform="uppercase"
                                         >
                                             You Received
                                         </Text>
                                         <Text
                                             fontSize="4xl"
-                                            fontWeight="bold"
-                                            color="yellow.200"
-                                            fontFamily="mono"
-                                            textShadow="0 0 10px rgba(255, 193, 7, 0.5)"
+                                            fontWeight={TYPOGRAPHY.bold}
+                                            color={SEMANTIC_COLORS.textPrimary}
+                                            fontFamily={TYPOGRAPHY.fontMono}
+                                            sx={{ fontVariantNumeric: 'tabular-nums' }}
                                         >
                                             {amount.toFixed(6)} MBRN
                                         </Text>
@@ -155,8 +149,8 @@ export const AirdropEvent: React.FC<AirdropEventProps> = ({ amount, onClose }) =
 
                                 <Text
                                     fontSize="xs"
-                                    color="gray.400"
-                                    fontFamily="mono"
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                     textAlign="center"
                                     maxW="300px"
                                 >
@@ -164,11 +158,16 @@ export const AirdropEvent: React.FC<AirdropEventProps> = ({ amount, onClose }) =
                                 </Text>
 
                                 <Button
-                                    colorScheme="yellow"
                                     size="lg"
                                     onClick={handleClose}
-                                    fontFamily="mono"
-                                    fontWeight="bold"
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    fontWeight={TYPOGRAPHY.bold}
+                                    bg={SEMANTIC_COLORS.warning}
+                                    color={SEMANTIC_COLORS.bgPrimary}
+                                    borderRadius={0}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={{ opacity: 0.9 }}
+                                    _focus={FOCUS_STYLES.ring}
                                 >
                                     Claim & Continue
                                 </Button>

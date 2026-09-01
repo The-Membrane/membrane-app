@@ -42,6 +42,9 @@ export const PartsTray: React.FC<PartsTrayProps> = ({ slots, vet, onTemplate, on
       display="grid"
       gap={SPACING.sm}
       alignContent="start"
+      /* Scrolls inside the fixed-height board row rather than setting it. */
+      minH={0}
+      overflowY={{ base: 'visible', lg: 'auto' }}
     >
       <Text {...eyebrowPhos}>Templates</Text>
       <Box display="grid" gap={SPACING.xs}>

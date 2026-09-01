@@ -7,11 +7,13 @@ import { isGreaterThanZero } from "@/helpers/num"
 import useAuction, { useLiveFeeAuction } from "./hooks/useAuction"
 import dayjs from "dayjs"
 import ConfirmModal from "../ConfirmModal"
+import { SPACING } from "@/config/spacing"
+import { FOCUS_STYLES } from "@/config/transitions"
 
 const auctionDiscount = 0.01
 const auctionDiscountIncreaseTimeframe = 36
 
-const AuctionClaim = React.memo(() => {
+const AuctionClaim = React.memo(function AuctionClaim() {
   // Auction.sol pulls CDT as the quote asset (AUC-C-01) — gate on CDT, not MBRN
   const cdt = useAssetBySymbol('CDT')
   const CDTBalance = useBalanceByAsset(cdt)
@@ -40,7 +42,8 @@ const AuctionClaim = React.memo(() => {
         // marginTop={"3%"}
         w="full"
         height="64px"
-        px="10"
+        px={SPACING.xl}
+        _focus={FOCUS_STYLES.ring}
         isDisabled={!isGreaterThanZero(CDTBalance) || claim?.simulate.isError || !claim?.simulate.data}
         isLoading={claim.simulate.isPending && !claim.simulate.isError && claim.simulate.data}
         onClick={() => claim.tx.mutate()}

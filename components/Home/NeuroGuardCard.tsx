@@ -208,7 +208,7 @@ const NeuroGuardOpenEntry = React.memo(function NeuroGuardOpenEntry({
 //   const { appState } = useAppState();
 //   //find the asset in the assets array
 //   //@ts-ignore
-//   const asset = neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) || { logo: "/images/cdt.png", symbol: "CDT", balance: 0 }
+//   const asset = neuroStateAssets.find((asset) => asset.base === denoms.CDT[0]) || { logo: "/images/cdt.svg", symbol: "CDT", balance: 0 }
 //   // // console.log("cdtAsset", asset, neuroState.assets)
 
 //   //We need the cookie to be set even if these render before the user has checked the cookie box
@@ -245,7 +245,7 @@ const NeuroGuardOpenEntry = React.memo(function NeuroGuardOpenEntry({
 //     <>
 //       <Card width="fit-content" alignSelf="center" marginBottom="5%" borderWidth={3} padding={4}>
 //         <HStack>
-//           <Image src={"/images/cdt.png"} w="45px" h="45px" />
+//           <Image src={"/images/cdt.svg"} w="45px" h="45px" />
 //           <Text width="fit-content" justifyContent="left" variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
 //             {rblpDeposit.toFixed(2)}&nbsp;CDT earning&nbsp;
 //             {yieldValue}% APR

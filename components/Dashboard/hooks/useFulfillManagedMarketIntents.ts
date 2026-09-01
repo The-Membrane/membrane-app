@@ -15,6 +15,10 @@ import type { EvmCall } from '@/services/chain/types'
  * and services/managed.ts is CosmWasm-only). The whole scan + msg build is stubbed until a
  * managed-market service exists on EVM.
  */
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 export const useFulfillManagedMarketIntents = (run = true) => {
   const { chainName } = useChainRoute()
   const { address } = useWallet(chainName)
@@ -34,10 +38,6 @@ export const useFulfillManagedMarketIntents = (run = true) => {
 
   const msgs = queryData?.msgs
   const status = queryData?.status ?? 'pending'
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

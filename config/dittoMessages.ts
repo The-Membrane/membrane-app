@@ -138,11 +138,11 @@ export const txAcknowledgements: TxAcknowledgement[] = [
     { actionType: 'withdraw', page: '/manic', message: "Withdrawal successful! Your funds are available", priority: 10, severity: 'info' },
     { actionType: 'loop', page: '/manic', message: "Loop complete! Your position has been optimized", priority: 10, severity: 'info' },
     // Disco actions
-    { actionType: 'deposit', page: '/disco', message: "Deposit confirmed! You're now backing LTV tiers", priority: 10, severity: 'info' },
+    { actionType: 'deposit', page: '/disco', message: "Deposit confirmed! You're now backing insurance slots", priority: 10, severity: 'info' },
     { actionType: 'withdraw', page: '/disco', message: "Withdrawal processed! Your MBRN is ready", priority: 10, severity: 'info' },
     { actionType: 'claim', page: '/disco', message: "Claimed! CDT revenue has been sent to your wallet", priority: 10, severity: 'info' },
     { actionType: 'lock', page: '/disco', message: "Lock extended! Your boost multiplier is updated", priority: 10, severity: 'info' },
-    // Transmuter Lockdrop actions
+    // Acquisition actions
     { actionType: 'lock', page: '/transmuter', message: "Lock confirmed! Your USDC is earning MBRN allocation", priority: 10, severity: 'info' },
     { actionType: 'claim', page: '/transmuter', message: "Claimed! Your MBRN allocation has been sent", priority: 10, severity: 'info' },
     { actionType: 'withdraw', page: '/transmuter', message: "Withdrawal successful! Your USDC is available", priority: 10, severity: 'info' },
@@ -168,6 +168,8 @@ export const getAcknowledgement = (actionType: TxAcknowledgement['actionType'], 
         .sort((a, b) => (b.priority || 0) - (a.priority || 0))
 
     if (page) {
+        // js-set-map-lookups FP: `page` is a string (route path); `.includes()` here is
+        // String.prototype substring matching, not array membership — a Set doesn't apply.
         const pageAck = acks.find(ack => ack.page && page.includes(ack.page))
         if (pageAck) {
             return typeof pageAck.message === 'function' ? pageAck.message({}) : pageAck.message
@@ -196,6 +198,8 @@ export const getAcknowledgementMessage = (
     let ack: TxAcknowledgement | undefined
     
     if (page) {
+        // js-set-map-lookups FP: `page` is a string (route path); `.includes()` here is
+        // String.prototype substring matching, not array membership — a Set doesn't apply.
         ack = acks.find(a => a.page && page.includes(a.page))
     }
     

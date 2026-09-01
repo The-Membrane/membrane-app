@@ -78,6 +78,9 @@ export const Readout: React.FC<ReadoutProps> = ({
       display="grid"
       gap={SPACING.md}
       alignContent="start"
+      /* Scrolls inside the fixed-height board row rather than setting it. */
+      minH={0}
+      overflowY={{ base: 'visible', lg: 'auto' }}
     >
       <Text {...eyebrowPhos}>
         Readout <MockStamp ml={SPACING.xs} />

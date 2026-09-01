@@ -2,7 +2,6 @@ import { shiftDigits } from '@/helpers/math'
 import {
   Box,
   Button,
-  Card,
   HStack,
   Image,
   Input,
@@ -10,8 +9,8 @@ import {
   InputLeftElement,
   Stack,
   Text,
-  useColorModeValue,
 } from '@chakra-ui/react'
+import { Card } from '@/components/ui/Card'
 import { TxButton } from '@/components/TxButton'
 import { Deposit } from '@/contracts/codegen/stability_pool/StabilityPool.types'
 import { isGreaterThanZero, num } from '@/helpers/num'
@@ -21,31 +20,20 @@ import { ChangeEvent, useState } from 'react'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWithdrawStabilityPool from './hooks/useWithdrawStabilityPool'
 import useBidState from './hooks/useBidState'
-import dayjs from 'dayjs'
-import { colors } from '@/config/defaults'
+import { getSPTimeLeft } from './StabilityPoolUtils'
 import { useStabilityAssetPool } from '@/hooks/useLiquidations'
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
 
-
-export const getSPTimeLeft = (unstakeStartDate: number) => {
-  const unstakingDate = dayjs.unix(unstakeStartDate).add(1, 'day')
-  const daysLeft = unstakingDate.diff(dayjs(), 'day')
-  const hoursLeft = unstakingDate.diff(dayjs(), 'hour')
-  const minutesLeft = unstakingDate.diff(dayjs(), 'minute')
-
-  return {
-    daysLeft,
-    hoursLeft,
-    minutesLeft,
-  }
-}
 
 const UnstakeButton = ({ amount }: { amount: string }) => {
-  console.log("unstake", amount)
   const withdraw = useWithdrawStabilityPool(amount)
   return (
     <TxButton
       w="150px"
-      px="10"
+      px={SPACING.xl}
       isDisabled={!isGreaterThanZero(amount)}
       isLoading={withdraw.action.simulate.isLoading || withdraw.action.tx.isPending}
       onClick={() => withdraw.action.tx.mutate()}
@@ -60,7 +48,7 @@ const WithdrawButton = ({ amount }: { amount: string }) => {
   return (
     <TxButton
       w="150px"
-      px="10"
+      px={SPACING.xl}
       isDisabled={!isGreaterThanZero(amount)}
       isLoading={withdraw.action.simulate.isLoading || withdraw.action.tx.isPending}
       onClick={() => withdraw.action.tx.mutate()}
@@ -74,14 +62,14 @@ const CountDown = ({ timeString, amount }: { timeString: string; amount: string 
   return (
     <HStack
       alignItems="center"
-      gap="0"
+      gap={SPACING.none}
       bg="blackAlpha.500"
-      py="2"
-      px="4"
+      py={SPACING.sm}
+      px={SPACING.base}
       w="full"
       borderRadius="md"
     >
-      <Text fontSize="sm">
+      <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
         Unstaking {amount} CDT in {timeString}
       </Text>
     </HStack>
@@ -98,7 +86,7 @@ const Action = ({ deposit, amount }: { deposit: Deposit; amount: string }) => {
 
 const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) => {
   const amount = shiftDigits(deposit.amount, -6).toString()
-  const { isEnded, timeString } = useCountdown(deposit.unstake_time ? (deposit.unstake_time + 86400) : undefined)//86400s is the SP's unstake period)
+  const { isEnded, timeString } = useCountdown(deposit.unstake_time ? (deposit.unstake_time + 86400) : undefined)
   const { chainName } = useChainRoute()
   const cdt = useAssetBySymbol('CDT', chainName)
   const [inputAmount, setInputAmount] = useState('')
@@ -112,12 +100,12 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   const onMax = () => {
     setInputAmount(amount)
   }
-  console.log(isEnded, deposit.unstake_time)
+
   if (deposit.unstake_time && getSPTimeLeft(deposit.unstake_time).minutesLeft > 0) {
     return (
-      <HStack alignItems="flex-start" gap="5">
-        <Box bg="blackAlpha.500" borderRadius="md" px="4" py="1" h="full">
-          <Text>{index}</Text>
+      <HStack alignItems="flex-start" gap={SPACING.lg}>
+        <Box bg="blackAlpha.500" borderRadius="md" px={SPACING.base} py={SPACING.xs} h="full">
+          <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary}>{index}</Text>
         </Box>
         <CountDown timeString={timeString} amount={amount} />
       </HStack>
@@ -125,22 +113,34 @@ const DepositAsset = ({ deposit, index }: { deposit: Deposit; index: number }) =
   }
 
   return (
-    <HStack alignItems="flex-start" gap="5">
-      <Box bg="blackAlpha.500" borderRadius="md" px="4" py="1" h="full">
-        <Text>{index}</Text>
+    <HStack alignItems="flex-start" gap={SPACING.lg}>
+      <Box bg="blackAlpha.500" borderRadius="md" px={SPACING.base} py={SPACING.xs} h="full">
+        <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary}>{index}</Text>
       </Box>
-      <Stack alignItems="flex-end" gap="0">
+      <Stack alignItems="flex-end" gap={SPACING.none}>
         <InputGroup alignItems="center">
           <InputLeftElement pointerEvents="none">
             <Image src={cdt?.logo} boxSize="5" />
           </InputLeftElement>
-          <Input placeholder="0.0" value={inputAmount} onChange={handleInputChange} />
+          <Input
+            placeholder="0.0"
+            value={inputAmount}
+            onChange={handleInputChange}
+            transition={TRANSITIONS.all}
+            _focus={FOCUS_STYLES.ring}
+          />
         </InputGroup>
         <HStack justifyContent="space-between" w="full">
-          <Text fontSize="sm" color="gray.200" ml="2">
+          <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} ml={SPACING.sm}>
             Available: {amount} CDT
           </Text>
-          <Button size="xs" variant="link" mr="2" onClick={onMax}>
+          <Button
+            size="xs"
+            variant="link"
+            mr={SPACING.sm}
+            onClick={onMax}
+            _focus={FOCUS_STYLES.ring}
+          >
             MAX
           </Button>
         </HStack>
@@ -165,15 +165,21 @@ const StabilityPool = ({ setActiveTabIndex }: Props) => {
     setActiveTabIndex(0)
   };
 
-  const cardBg = useColorModeValue('#181F2A', '#232B3E')
   if (deposits.length === 0) {
     return (
-      <Card p={8} alignItems="center" gap={8} borderRadius="2xl" boxShadow="lg" w="full" bg={cardBg}>
-        <Text variant="title" fontSize="2xl" fontWeight="bold" color="white">
+      <Card variant="default" display="flex" flexDirection="column" alignItems="center" gap={SPACING.lg} w="full">
+        <Text fontSize={TYPOGRAPHY.h2} fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.textPrimary}>
           My Omni-Bids
         </Text>
-        <Text color={colors.noState}>You don't have any deposits in the omni-asset pool.</Text>
-        <Button onClick={changeTab} variant="solid">
+        <Text color={SEMANTIC_COLORS.textTertiary}>You don&apos;t have any deposits in the omni-asset pool.</Text>
+        <Button
+          onClick={changeTab}
+          variant="solid"
+          transition={TRANSITIONS.transformAndShadow}
+          _hover={HOVER_EFFECTS.lift}
+          _active={ACTIVE_EFFECTS.press}
+          _focus={FOCUS_STYLES.ring}
+        >
           Bid in Omni-Pool - Set Premium to 10%
         </Button>
       </Card>
@@ -181,13 +187,13 @@ const StabilityPool = ({ setActiveTabIndex }: Props) => {
   }
 
   return (
-    <Card p={8} alignItems="center" gap={8} borderRadius="2xl" boxShadow="lg" w="full" bg={cardBg}>
-      <Text variant="title" fontSize="2xl" fontWeight="bold" color="white">
+    <Card variant="default" display="flex" flexDirection="column" alignItems="center" gap={SPACING.lg} w="full">
+      <Text fontSize={TYPOGRAPHY.h2} fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.textPrimary}>
         My Omni-Bids
       </Text>
-      <Stack py={5} w="full" gap={5}>
-        {deposits.map((deposit, index) => (
-          <DepositAsset key={index} deposit={deposit} index={index + 1} />
+      <Stack py={SPACING.lg} w="full" gap={SPACING.lg}>
+        {deposits.map((deposit: Deposit, index: number) => (
+          <DepositAsset key={deposit.deposit_time} deposit={deposit} index={index + 1} />
         ))}
       </Stack>
     </Card>

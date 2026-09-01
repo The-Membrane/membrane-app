@@ -7,6 +7,14 @@ import { getUserPoints, redeemCall, getRedemptionsPaused } from '@/services/chai
 import { getPublicClient } from '@/services/chain/client'
 import type { EvmCall } from '@/services/chain/types'
 
+const onSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['evm balances'] })
+    //Reset points queries
+    // queryClient.invalidateQueries({ queryKey: ['all users points'] })
+    // queryClient.invalidateQueries({ queryKey: ['one users points'] })
+    // queryClient.invalidateQueries({ queryKey: ['one users level'] })
+}
+
 /**
  * Points-claim CTA — EVM. Was Cosmos claimMBRN; the port's equivalent is
  * PointsSystem.redeem(token, points): burns the user's full points balance for MBRN
@@ -37,13 +45,6 @@ const useClaimPoints = () => {
         enabled: !!address,
     })
 
-    const onSuccess = () => {
-        queryClient.invalidateQueries({ queryKey: ['evm balances'] })
-        //Reset points queries
-        // queryClient.invalidateQueries({ queryKey: ['all users points'] })
-        // queryClient.invalidateQueries({ queryKey: ['one users points'] })
-        // queryClient.invalidateQueries({ queryKey: ['one users level'] })
-    }
     return {
         action:
             useSimulateAndBroadcast({

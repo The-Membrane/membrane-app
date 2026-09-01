@@ -1,15 +1,6 @@
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Box, Text, HStack, VStack, Button } from '@chakra-ui/react'
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip as RechartsTooltip,
-    ResponsiveContainer,
-    Cell,
-} from 'recharts'
+import { lazyChart } from '@/components/ui/lazyChart'
 import { getLTVRange, getUserDepositsInLayer, calculateLayerTVL } from './utils'
 import { shiftDigits } from '@/helpers/math'
 
@@ -32,6 +23,9 @@ interface ForcefieldBarriersProps {
     userDeposits?: any[]
     allDeposits?: any[] // All deposits for calculating lock status
 }
+
+// Hoisted to module scope so the default value is referentially stable across renders
+const EMPTY_DEPOSITS: any[] = []
 
 // Lock ceiling: 1 year in seconds
 const LOCK_CEILING_SECONDS = 365 * 24 * 60 * 60 // 31536000 seconds
@@ -138,15 +132,124 @@ const CustomTooltip = ({ active, payload }: any) => {
     return null
 }
 
-export const ForcefieldBarriers = React.memo(({ ltvQueues, userDeposits = [], allDeposits = [] }: ForcefieldBarriersProps) => {
+// Custom bar shape with segments for each deposit/group
+const renderCustomBar = (props: any) => {
+    const { x, y, width, height, payload } = props
+
+    if (!payload) {
+        return <rect x={x} y={y} width={width || 0} height={height} fill="rgba(255, 255, 255, 0.2)" />
+    }
+
+    const { segments = [], tvl = 0 } = payload
+
+    if (!tvl || tvl === 0 || !width || width === 0 || !segments || segments.length === 0) {
+        // Fallback to simple gray bar if no data
+        return <rect x={x} y={y} width={width || 0} height={height} fill="rgba(255, 255, 255, 0.2)" />
+    }
+
+    // Sort segments: unlocked first (gray), then locked by opacity (lightest to darkest)
+    const sortedSegments = [...segments].sort((a, b) => {
+        if (!a.isLocked && b.isLocked) return -1
+        if (a.isLocked && !b.isLocked) return 1
+        if (a.isLocked && b.isLocked) return a.opacity - b.opacity
+        return 0
+    })
+
+    let currentX = x
+    const rectSegments: JSX.Element[] = []
+
+    sortedSegments.forEach((segment, index) => {
+        const segmentWidth = (segment.tvl / tvl) * width
+
+        if (segmentWidth > 0) {
+            const fill = segment.isLocked
+                ? `rgba(96, 165, 250, ${segment.opacity})` // Blue with opacity based on lock duration
+                : 'rgba(255, 255, 255, 0.2)' // Gray for unlocked
+
+            rectSegments.push(
+                <rect
+                    key={`segment-${index}`}
+                    x={currentX}
+                    y={y}
+                    width={segmentWidth}
+                    height={height}
+                    fill={fill}
+                />
+            )
+            currentX += segmentWidth
+        }
+    })
+
+    // If no segments were created, show default gray bar
+    if (rectSegments.length === 0) {
+        return <rect x={x} y={y} width={width} height={height} fill="rgba(255, 255, 255, 0.2)" />
+    }
+
+    return <g>{rectSegments}</g>
+}
+
+// Calculate lock opacity based on lock duration vs lock_ceiling
+const calculateLockOpacity = (locked: any): number => {
+    if (!locked || !locked.locked_until) return 0
+
+    const now = Math.floor(Date.now() / 1000)
+    const lockedUntil = parseInt(locked.locked_until || '0')
+
+    if (lockedUntil <= now) return 0
+
+    const secondsRemaining = lockedUntil - now
+    // Opacity is based on how close to lock_ceiling (1 year)
+    // If locked for 9 months (75% of 1 year), opacity is 0.75
+    const opacity = Math.min(1, secondsRemaining / LOCK_CEILING_SECONDS)
+    return opacity
+}
+
+const ForcefieldBarChart = lazyChart<{ chartData: any[] }>(
+    ({ BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip: RechartsTooltip, ResponsiveContainer, Cell }) =>
+        function ForcefieldBarChart({ chartData }) {
+            return (
+                <ResponsiveContainer width="100%" height={400}>
+                    <BarChart
+                        data={chartData}
+                        layout="vertical"
+                        margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
+                    >
+                        <CartesianGrid strokeDasharray="3 3" stroke="whiteAlpha.200" />
+                        <XAxis
+                            type="number"
+                            hide
+                            domain={[0, 'dataMax']}
+                        />
+                        <YAxis
+                            type="category"
+                            dataKey="range"
+                            stroke="whiteAlpha.600"
+                            tick={{ fill: 'rgba(255, 255, 255, 0.6)' }}
+                            width={70}
+                        />
+                        <RechartsTooltip content={<CustomTooltip />} />
+                        <Bar dataKey="tvl" radius={0} minPointSize={1} shape={renderCustomBar}>
+                            {chartData.map((entry) => (
+                                <Cell key={`cell-${entry.layer}`} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            )
+        },
+    400,
+)
+
+export const ForcefieldBarriers = React.memo(({ ltvQueues, userDeposits = EMPTY_DEPOSITS, allDeposits = EMPTY_DEPOSITS }: ForcefieldBarriersProps) => {
     const [ltvMode, setLtvMode] = useState<'max_ltv' | 'max_borrow_ltv'>('max_ltv')
-    const layers = Array.from({ length: 10 }, (_, i) => i)
+    // Stable reference so the chartData useMemo isn't invalidated every render.
+    const layers = useMemo(() => Array.from({ length: 10 }, (_, i) => i), [])
 
     const hasUserDeposits = (layer: number) => {
         return getUserDepositsInLayer(userDeposits, layer).length > 0
     }
 
-    const getLayerTVL = (layer: number) => {
+    const getLayerTVL = useCallback((layer: number) => {
         // Try to get real TVL from queues
         let hasRealData = false
         if (ltvQueues && ltvQueues.length > 0) {
@@ -168,10 +271,10 @@ export const ForcefieldBarriers = React.memo(({ ltvQueues, userDeposits = [], al
         // Always fall back to mock data if no real data
         const mockValue = mockLayerTVL[layer] || 0
         return mockValue
-    }
+    }, [ltvQueues])
 
     // Get deposits in layer based on selected LTV mode
-    const getDepositsInLayer = (deposits: any[], layer: number) => {
+    const getDepositsInLayer = useCallback((deposits: any[], layer: number) => {
         const { min, max } = getLTVRange(layer)
         return deposits.filter(deposit => {
             const ltvRaw = ltvMode === 'max_ltv'
@@ -182,27 +285,11 @@ export const ForcefieldBarriers = React.memo(({ ltvQueues, userDeposits = [], al
             const ltv = ltvNum < 1 ? ltvNum * 100 : ltvNum
             return ltv >= min && ltv < max
         })
-    }
-
-    // Calculate lock opacity based on lock duration vs lock_ceiling
-    const calculateLockOpacity = (locked: any): number => {
-        if (!locked || !locked.locked_until) return 0
-
-        const now = Math.floor(Date.now() / 1000)
-        const lockedUntil = parseInt(locked.locked_until || '0')
-
-        if (lockedUntil <= now) return 0
-
-        const secondsRemaining = lockedUntil - now
-        // Opacity is based on how close to lock_ceiling (1 year)
-        // If locked for 9 months (75% of 1 year), opacity is 0.75
-        const opacity = Math.min(1, secondsRemaining / LOCK_CEILING_SECONDS)
-        return opacity
-    }
+    }, [ltvMode])
 
     // Calculate segments for each deposit in a layer
     // Each deposit gets its own segment with its own opacity
-    const calculateLayerLockData = (layer: number, totalTVL: number) => {
+    const calculateLayerLockData = useCallback((layer: number, totalTVL: number) => {
         const depositsInLayer = getDepositsInLayer(allDeposits.length > 0 ? allDeposits : userDeposits, layer)
 
         if (depositsInLayer.length === 0 || totalTVL === 0) {
@@ -240,7 +327,7 @@ export const ForcefieldBarriers = React.memo(({ ltvQueues, userDeposits = [], al
 
         // If no deposits match, show full bar as unlocked
         return { segments: [{ tvl: totalTVL, opacity: 0, isLocked: false }] }
-    }
+    }, [getDepositsInLayer, allDeposits, userDeposits])
 
     // Prepare chart data - ordered from highest to lowest (layer 9 to layer 0)
     const chartData = useMemo(() => {
@@ -263,63 +350,7 @@ export const ForcefieldBarriers = React.memo(({ ltvQueues, userDeposits = [], al
         }).reverse() // Reverse to show highest (layer 9) at top, lowest (layer 0) at bottom
 
         return data
-    }, [ltvQueues, userDeposits, allDeposits, layers, ltvMode])
-
-    // Custom bar shape with segments for each deposit/group
-    const renderCustomBar = (props: any) => {
-        const { x, y, width, height, payload } = props
-
-        if (!payload) {
-            return <rect x={x} y={y} width={width || 0} height={height} fill="rgba(255, 255, 255, 0.2)" />
-        }
-
-        const { segments = [], tvl = 0 } = payload
-
-        if (!tvl || tvl === 0 || !width || width === 0 || !segments || segments.length === 0) {
-            // Fallback to simple gray bar if no data
-            return <rect x={x} y={y} width={width || 0} height={height} fill="rgba(255, 255, 255, 0.2)" />
-        }
-
-        // Sort segments: unlocked first (gray), then locked by opacity (lightest to darkest)
-        const sortedSegments = [...segments].sort((a, b) => {
-            if (!a.isLocked && b.isLocked) return -1
-            if (a.isLocked && !b.isLocked) return 1
-            if (a.isLocked && b.isLocked) return a.opacity - b.opacity
-            return 0
-        })
-
-        let currentX = x
-        const rectSegments: JSX.Element[] = []
-
-        sortedSegments.forEach((segment, index) => {
-            const segmentWidth = (segment.tvl / tvl) * width
-
-            if (segmentWidth > 0) {
-                const fill = segment.isLocked
-                    ? `rgba(96, 165, 250, ${segment.opacity})` // Blue with opacity based on lock duration
-                    : 'rgba(255, 255, 255, 0.2)' // Gray for unlocked
-
-                rectSegments.push(
-                    <rect
-                        key={`segment-${index}`}
-                        x={currentX}
-                        y={y}
-                        width={segmentWidth}
-                        height={height}
-                        fill={fill}
-                    />
-                )
-                currentX += segmentWidth
-            }
-        })
-
-        // If no segments were created, show default gray bar
-        if (rectSegments.length === 0) {
-            return <rect x={x} y={y} width={width} height={height} fill="rgba(255, 255, 255, 0.2)" />
-        }
-
-        return <g>{rectSegments}</g>
-    }
+    }, [layers, userDeposits, getLayerTVL, getDepositsInLayer, calculateLayerLockData])
 
     return (
         <Box
@@ -348,33 +379,7 @@ export const ForcefieldBarriers = React.memo(({ ltvQueues, userDeposits = [], al
                 </Button>
             </HStack>
 
-            <ResponsiveContainer width="100%" height={400}>
-                <BarChart
-                    data={chartData}
-                    layout="vertical"
-                    margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
-                >
-                    <CartesianGrid strokeDasharray="3 3" stroke="whiteAlpha.200" />
-                    <XAxis
-                        type="number"
-                        hide
-                        domain={[0, 'dataMax']}
-                    />
-                    <YAxis
-                        type="category"
-                        dataKey="range"
-                        stroke="whiteAlpha.600"
-                        tick={{ fill: 'rgba(255, 255, 255, 0.6)' }}
-                        width={70}
-                    />
-                    <RechartsTooltip content={<CustomTooltip />} />
-                    <Bar dataKey="tvl" radius={0} minPointSize={1} shape={renderCustomBar}>
-                        {chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} />
-                        ))}
-                    </Bar>
-                </BarChart>
-            </ResponsiveContainer>
+            <ForcefieldBarChart chartData={chartData} />
         </Box>
     )
 })

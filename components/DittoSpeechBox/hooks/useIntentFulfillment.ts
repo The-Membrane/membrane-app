@@ -1,12 +1,12 @@
 import { useMemo, useCallback, useRef } from 'react'
 import { useDiscoAssets, useDiscoUserMetrics } from '@/hooks/useDiscoData'
-import { useTransmuterLockdrop, useUserLockdropDeposits, useLockdropConfig } from '@/hooks/useTransmuterLockdrop'
+import { useAcquisition, useUserAcquisitionDeposits, useAcquisitionConfig } from '@/hooks/useAcquisition'
 import useWallet from '@/hooks/useWallet'
 import { shiftDigits } from '@/helpers/math'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import useAppState from '@/persisted-state/useAppState'
 import { useQueries } from '@tanstack/react-query'
-import { getLTVQueue } from '@/services/disco'
+import { getAssetQueue } from '@/services/disco'
 import useSessionTrackingState from '@/persisted-state/useSessionTrackingState'
 
 /**
@@ -24,10 +24,10 @@ export const useIntentFulfillment = () => {
     const { pendingClaims } = useDiscoUserMetrics(testAddress)
     
     // Get lockdrop data
-    const { deposits: lockdropDeposits } = useTransmuterLockdrop()
-    const { data: userLockdropDeposits } = useUserLockdropDeposits(testAddress)
-    const { data: lockdropConfig } = useLockdropConfig()
-    const { totalPoints } = useTransmuterLockdrop()
+    const { deposits: lockdropDeposits } = useAcquisition()
+    const { data: userLockdropDeposits } = useUserAcquisitionDeposits(testAddress)
+    const { data: lockdropConfig } = useAcquisitionConfig()
+    const { totalPoints } = useAcquisition()
 
     // Query LTV queues for all assets to calculate Disco TVL
     const assetsToQuery = assets?.assets && assets.assets.length > 0
@@ -36,8 +36,8 @@ export const useIntentFulfillment = () => {
 
     const ltvQueueQueries = useQueries({
         queries: assetsToQuery.map((asset: string) => ({
-            queryKey: ['disco', 'ltv_queue', asset, appState.rpcUrl],
-            queryFn: () => getLTVQueue(client || null, asset),
+            queryKey: ['disco', 'asset_queue', asset, appState.rpcUrl],
+            queryFn: () => getAssetQueue(client || null, asset),
             enabled: !!asset,
             staleTime: 1000 * 60 * 5,
         }))
@@ -111,13 +111,9 @@ export const useIntentFulfillment = () => {
     }, [userLockdropDeposits, totalPoints, lockdropConfig])
 
     // Calculate total TVL and total claims
-    const currentTotalTVL = useMemo(() => {
-        return currentDiscoTVL + currentLockdropTVL
-    }, [currentDiscoTVL, currentLockdropTVL])
+    const currentTotalTVL = currentDiscoTVL + currentLockdropTVL
 
-    const currentTotalClaims = useMemo(() => {
-        return currentDiscoClaims + currentLockdropClaims
-    }, [currentDiscoClaims, currentLockdropClaims])
+    const currentTotalClaims = currentDiscoClaims + currentLockdropClaims
 
     // Detect intent fulfillment: TVL increased AND claims decreased
     const intentFulfilled = useMemo(() => {

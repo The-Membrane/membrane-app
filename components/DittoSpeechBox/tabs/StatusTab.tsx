@@ -16,6 +16,10 @@ import { generateReferralLink } from '@/helpers/referral'
 import dayjs from 'dayjs'
 import duration from 'dayjs/plugin/duration'
 
+import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 dayjs.extend(duration)
 
 /**
@@ -107,31 +111,39 @@ export const StatusTab: React.FC = () => {
     }, [categorizedUpdates])
 
     return (
-        <VStack spacing={3} align="stretch" p={3} h="100%" overflowY="auto">
+        <VStack spacing={SPACING.md} align="stretch" p={SPACING.md} h="100%" overflowY="auto">
             {/* While You Were Away Section */}
             {hasIdleGains && (
                 <Box>
-                    <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.label}
+                        color={SEMANTIC_COLORS.textSecondary}
+                        fontWeight={TYPOGRAPHY.medium}
+                        mb={SPACING.sm}
+                        textTransform="uppercase"
+                        letterSpacing="0.28em"
+                    >
                         While You Were Away
                     </Text>
                     <StatusCard
                         icon={TrendingUp}
-                        iconColor="green.400"
+                        iconColor={SEMANTIC_COLORS.success}
                         title="Revenue accumulated"
                         subtitle={`$${idleGains.revenueAccumulated.toFixed(2)} over ${formatDuration(idleGains.timeElapsed)}`}
                         subtitleHighlight={`$${idleGains.revenueAccumulated.toFixed(2)}`}
-                        highlightColor="green.400"
+                        highlightColor={SEMANTIC_COLORS.success}
                         onClick={() => navigateTo('/portfolio')}
                     />
                     {idleGains.mbrnEarned > 0 && (
-                        <Box mt={2}>
+                        <Box mt={SPACING.sm}>
                             <StatusCard
                                 icon={Gift}
-                                iconColor="primary.400"
+                                iconColor={SEMANTIC_COLORS.primary}
                                 title="Points earned"
                                 subtitle={`+${idleGains.pointsEarned.toFixed(1)} points (${formatMBRN(idleGains.mbrnEarned)} MBRN)`}
                                 subtitleHighlight={`+${idleGains.pointsEarned.toFixed(1)}`}
-                                highlightColor="primary.400"
+                                highlightColor={SEMANTIC_COLORS.primary}
                                 showChevron={false}
                             />
                         </Box>
@@ -142,31 +154,39 @@ export const StatusTab: React.FC = () => {
             {/* Actionable Status Cards */}
             {(hasPendingCDT || hasLockdropClaims || hasValidActions) && (
                 <Box>
-                    <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.label}
+                        color={SEMANTIC_COLORS.textSecondary}
+                        fontWeight={TYPOGRAPHY.medium}
+                        mb={SPACING.sm}
+                        textTransform="uppercase"
+                        letterSpacing="0.28em"
+                    >
                         Actions Available
                     </Text>
 
                     {hasPendingCDT && (
                         <StatusCard
                             icon={DollarSign}
-                            iconColor="secondary.400"
+                            iconColor={SEMANTIC_COLORS.info}
                             title="Claim available"
                             subtitle={`${pendingCDT.toFixed(2)} CDT ready to claim.`}
                             subtitleHighlight={`${pendingCDT.toFixed(2)} CDT`}
-                            highlightColor="secondary.400"
+                            highlightColor={SEMANTIC_COLORS.info}
                             onClick={() => navigateTo('/disco')}
                         />
                     )}
 
                     {hasLockdropClaims && (
-                        <Box mt={2}>
+                        <Box mt={SPACING.sm}>
                             <StatusCard
                                 icon={Lock}
-                                iconColor="primary.400"
+                                iconColor={SEMANTIC_COLORS.primary}
                                 title="Lockdrop claim ready"
                                 subtitle={`${claimableAmount.toFixed(2)} MBRN available to claim`}
                                 subtitleHighlight={`${claimableAmount.toFixed(2)} MBRN`}
-                                highlightColor="primary.400"
+                                highlightColor={SEMANTIC_COLORS.primary}
                                 onClick={() => navigateTo('/transmuter')}
                             />
                         </Box>
@@ -174,10 +194,10 @@ export const StatusTab: React.FC = () => {
 
                     {/* Validated suggested actions from usePageActions */}
                     {validatedActions.map((action, idx) => (
-                        <Box key={action.id} mt={(hasPendingCDT || hasLockdropClaims || idx > 0) ? 2 : 0}>
+                        <Box key={action.id} mt={(hasPendingCDT || hasLockdropClaims || idx > 0) ? SPACING.sm : SPACING.none}>
                             <StatusCard
                                 icon={ArrowRight}
-                                iconColor="primary.400"
+                                iconColor={SEMANTIC_COLORS.primary}
                                 title={action.label}
                                 subtitle={action.description}
                                 onClick={() => executeSuggestedAction(action.id)}
@@ -189,24 +209,32 @@ export const StatusTab: React.FC = () => {
 
             {/* Opportunities */}
             <Box>
-                <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.label}
+                    color={SEMANTIC_COLORS.textSecondary}
+                    fontWeight={TYPOGRAPHY.medium}
+                    mb={SPACING.sm}
+                    textTransform="uppercase"
+                    letterSpacing="0.28em"
+                >
                     Opportunities
                 </Text>
                 {showVolatileAlert && (
                     <StatusCard
                         icon={Zap}
-                        iconColor="yellow.400"
+                        iconColor={SEMANTIC_COLORS.warning}
                         title="Repay debt for MBRN"
                         subtitle="Management during volatility gets rewarded, repay any amount for +5 MBRN"
                         subtitleHighlight="+5 MBRN"
-                        highlightColor="primary.400"
+                        highlightColor={SEMANTIC_COLORS.primary}
                         onClick={() => setIsRepayModalOpen(true)}
                     />
                 )}
-                <Box mt={showVolatileAlert ? 2 : 0}>
+                <Box mt={showVolatileAlert ? SPACING.sm : SPACING.none}>
                     <StatusCard
                         icon={Link}
-                        iconColor="primary.400"
+                        iconColor={SEMANTIC_COLORS.primary}
                         title={referralTitle}
                         subtitle={referralSubtitle}
                         showChevron={false}
@@ -218,14 +246,22 @@ export const StatusTab: React.FC = () => {
             {/* Protocol Updates */}
             {recentUpdates.length > 0 && (
                 <Box>
-                    <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.label}
+                        color={SEMANTIC_COLORS.textSecondary}
+                        fontWeight={TYPOGRAPHY.medium}
+                        mb={SPACING.sm}
+                        textTransform="uppercase"
+                        letterSpacing="0.28em"
+                    >
                         Updates
                     </Text>
                     {recentUpdates.map((update, idx) => (
-                        <Box key={update.id} mt={idx > 0 ? 2 : 0}>
+                        <Box key={update.id} mt={idx > 0 ? SPACING.sm : SPACING.none}>
                             <StatusCard
                                 icon={Clock}
-                                iconColor="yellow.400"
+                                iconColor={SEMANTIC_COLORS.warning}
                                 title={update.title}
                                 subtitle={update.message}
                                 showChevron={false}
@@ -237,31 +273,39 @@ export const StatusTab: React.FC = () => {
 
             {/* Quick Navigation Shortcuts */}
             <Box>
-                <Text fontSize="xs" color="#ece6d880" fontWeight="medium" mb={2} textTransform="uppercase" letterSpacing="wide">
+                <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.label}
+                    color={SEMANTIC_COLORS.textSecondary}
+                    fontWeight={TYPOGRAPHY.medium}
+                    mb={SPACING.sm}
+                    textTransform="uppercase"
+                    letterSpacing="0.28em"
+                >
                     Quick Access
                 </Text>
 
                 <ShortcutCard
                     label="Jump to Disco"
                     highlightText="Disco"
-                    highlightColor="primary.400"
+                    highlightColor={SEMANTIC_COLORS.primary}
                     onClick={() => navigateTo('/disco')}
                 />
 
-                <Box mt={2}>
+                <Box mt={SPACING.sm}>
                     <ShortcutCard
                         label="Jump to Manic"
                         highlightText="Manic"
-                        highlightColor="secondary.400"
+                        highlightColor={SEMANTIC_COLORS.info}
                         onClick={() => navigateTo('/manic')}
                     />
                 </Box>
 
-                <Box mt={2}>
+                <Box mt={SPACING.sm}>
                     <ShortcutCard
                         label="Jump to Transmuter"
                         highlightText="Transmuter"
-                        highlightColor="blue.400"
+                        highlightColor={SEMANTIC_COLORS.info}
                         onClick={() => navigateTo('/transmuter')}
                     />
                 </Box>
@@ -269,11 +313,20 @@ export const StatusTab: React.FC = () => {
 
             {/* Empty state */}
             {!hasIdleGains && !hasPendingCDT && !hasLockdropClaims && !hasValidActions && !showVolatileAlert && recentUpdates.length === 0 && (
-                <Box textAlign="center" py={6}>
-                    <Text fontSize="sm" color="#ece6d880">
+                <Box textAlign="center" py={SPACING.lg}>
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.small}
+                        color={SEMANTIC_COLORS.textSecondary}
+                    >
                         No new updates
                     </Text>
-                    <Text fontSize="xs" color="#ece6d840" mt={1}>
+                    <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.xs}
+                        color={SEMANTIC_COLORS.textTertiary}
+                        mt={SPACING.xs}
+                    >
                         Check back later for protocol updates and earnings
                     </Text>
                 </Box>

@@ -113,9 +113,9 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
       fontSize="sm"
       mb={4}
     >
-      {segments.map((segment, index) => (
+      {segments.map((segment) => (
         <BreadcrumbItem
-          key={index}
+          key={segment.href || segment.label}
           isCurrentPage={segment.isCurrentPage}
         >
           {segment.href && !segment.isCurrentPage ? (

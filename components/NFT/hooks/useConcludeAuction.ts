@@ -4,6 +4,12 @@ import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import type { EvmCall } from '@/services/chain/types'
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['live nft auction'] })
+  queryClient.invalidateQueries({ queryKey: ['live asset auction'] })
+  queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
+}
+
 /**
  * TODO(evm-migration): the Brane NFT auction (Stargaze) does NOT exist in the Solidity
  * port — no brane_auction contract was ported. This hook returns no msgs so the
@@ -18,12 +24,6 @@ const useConcludeAuction = () => {
     queryFn: () => [] as EvmCall[],
     enabled: !!address,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['live nft auction'] })
-    queryClient.invalidateQueries({ queryKey: ['live asset auction'] })
-    queryClient.invalidateQueries({ queryKey: ['stargaze balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

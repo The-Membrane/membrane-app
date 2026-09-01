@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useTransition } from 'react'
 import useAppState from '@/persisted-state/useAppState'
 import { TrainingPaymentOption } from '@/persisted-state/useAppState'
 import { useBalance } from '@/hooks/useBalance'
@@ -26,7 +26,11 @@ export const usePaymentSelection = (tokenId?: string) => {
     // const { address, chain } = useWallet(chainName)
 
     const [isOptionsOpen, setIsOptionsOpen] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
+    // isLoading tracks a synchronous update: `action` is typed `() => void` and is
+    // called directly (never awaited) below, so any real async work it kicks off
+    // (e.g. a mutation) is tracked by that work's own hook, not by this flag.
+    // useTransition's isPending is the correct primitive for that pending window.
+    const [isPending, startTransition] = useTransition()
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
     const lastUsedPaymentMethod = appState.lastUsedRacingPaymentMethod
@@ -149,38 +153,37 @@ export const usePaymentSelection = (tokenId?: string) => {
     const executePayment = useCallback((option: PaymentOption, action: () => void, onSuccess?: () => void) => {
         if (!option.isAvailable) return
 
-        setIsLoading(true)
-        setStatusMessage('Processing...')
+        startTransition(() => {
+            setStatusMessage('Processing...')
 
-        try {
-            // Execute the action using the provided function
-            action()
+            try {
+                // Execute the action using the provided function
+                action()
 
-            // Set as last used method if it's not the free option
-            if (option.denom && option.amount !== '0') {
-                setLastUsedPaymentMethod({
-                    denom: option.denom,
-                    amount: option.amount
-                })
+                // Set as last used method if it's not the free option
+                if (option.denom && option.amount !== '0') {
+                    setLastUsedPaymentMethod({
+                        denom: option.denom,
+                        amount: option.amount
+                    })
+                }
+
+                setStatusMessage('Complete!')
+
+                // Clear status after 2 seconds
+                setTimeout(() => {
+                    setStatusMessage(null)
+                }, 2000)
+
+                onSuccess?.()
+            } catch (error) {
+                console.error('Action error:', error)
+                setStatusMessage('Failed')
+                setTimeout(() => {
+                    setStatusMessage(null)
+                }, 2000)
             }
-
-            setStatusMessage('Complete!')
-
-            // Clear status after 2 seconds
-            setTimeout(() => {
-                setStatusMessage(null)
-            }, 2000)
-
-            onSuccess?.()
-        } catch (error) {
-            console.error('Action error:', error)
-            setStatusMessage('Failed')
-            setTimeout(() => {
-                setStatusMessage(null)
-            }, 2000)
-        } finally {
-            setIsLoading(false)
-        }
+        })
     }, [setLastUsedPaymentMethod])
 
     const quickRefill = useCallback((refillAction: () => void, onSuccess?: () => void) => {
@@ -219,7 +222,7 @@ export const usePaymentSelection = (tokenId?: string) => {
 
     return {
         isOptionsOpen,
-        isLoading,
+        isLoading: isPending,
         statusMessage,
         lastUsedPaymentMethod,
         paymentOptions,

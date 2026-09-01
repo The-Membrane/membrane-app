@@ -1,6 +1,7 @@
-import { colors } from "@/config/defaults";
 import { Stack, Text } from "@chakra-ui/react";
-import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { lazyChart } from "@/components/ui/lazyChart";
+import { SEMANTIC_COLORS } from "@/config/semanticColors";
+import { TYPOGRAPHY } from "@/helpers/typography";
 
 const getColorFromName = (name: string) => {
     let hash = 0;
@@ -11,10 +12,9 @@ const getColorFromName = (name: string) => {
     return `hsl(${hue}, 10%, 50%)`; // Muted, neutral tones
 };
 
-const AssetPieChart = ({ data }: { data: any[] }) => {
-    return (
-        <Stack width={"55%"}>
-            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Collateral Composition</Text>
+const CompositionPie = lazyChart<{ data: any[] }>(({ PieChart, Pie, Cell, Tooltip }) =>
+    function CompositionPie({ data }) {
+        return (
             <PieChart width={650} height={500}>
                 <Pie
                     data={data}
@@ -33,6 +33,14 @@ const AssetPieChart = ({ data }: { data: any[] }) => {
                 </Pie>
                 <Tooltip formatter={(value, name) => [`Total: $${value}`, `Asset: ${name}`]} />
             </PieChart>
+        );
+    }, 500);
+
+const AssetPieChart = ({ data }: { data: any[] }) => {
+    return (
+        <Stack w="100%" maxW="650px">
+            <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h3} display="flex" color={SEMANTIC_COLORS.textPrimary}>Collateral Composition</Text>
+            <CompositionPie data={data} />
         </Stack>
 
     );

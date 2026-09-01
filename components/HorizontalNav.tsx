@@ -316,7 +316,7 @@ const HorizontalNav = () => {
                         aria-label="Select chain"
                         w={"fit-content"}
                         rightIcon={<FaChevronDown />}
-                        leftIcon={<Image src={currentChain.logo} alt={`${currentChain.displayName} Logo`} boxSize={6} />}
+                        leftIcon={<Image src={currentChain.logo} alt={`${currentChain.displayName} Logo`} boxSize={6} objectFit="contain" />}
                         variant="ghost"
                         border="none"
                         color="#ece6d8"
@@ -335,7 +335,7 @@ const HorizontalNav = () => {
                                 cursor="pointer"
                             >
                                 <HStack>
-                                    <Image src={chain.logo} alt={`${chain.displayName} Logo`} boxSize={6} />
+                                    <Image src={chain.logo} alt={`${chain.displayName} Logo`} boxSize={6} objectFit="contain" />
                                     <Text>{chain.displayName}</Text>
                                 </HStack>
                             </MenuItem>

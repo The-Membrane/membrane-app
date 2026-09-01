@@ -1,6 +1,6 @@
 import React from 'react'
 import { Box, VStack, Text, HStack } from '@chakra-ui/react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 
 interface FunnelAnimationProps {
     deposit: any
@@ -40,7 +40,7 @@ export const FunnelAnimation = React.memo(({ deposit, asset, onClose }: FunnelAn
 
                     {/* Funnel visualization */}
                     <Box w="100%" position="relative" h="200px">
-                        <motion.div
+                        <m.div
                             initial={{ scaleX: 0, originX: 0 }}
                             animate={{ scaleX: 1 }}
                             exit={{ scaleX: 0 }}

@@ -5,24 +5,28 @@ import {
     HStack,
     Text,
     Collapse,
-    IconButton,
     Divider,
 } from '@chakra-ui/react'
 import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons'
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { Card } from '@/components/ui/Card'
 import { useRevenuePerSecond } from './hooks/useRevenuePerSecond'
 
 interface RevenuePerSecondProps {
     alwaysShowBreakdown?: boolean
 }
 
+// Format number with 6 decimal places for per-second rates
+const formatRPS = (value: number): string => {
+    return value.toFixed(6)
+}
+
 export const RevenuePerSecond: React.FC<RevenuePerSecondProps> = ({ alwaysShowBreakdown = false }) => {
     const { revenuePerSecond, cumulativeRevenue, revenuePerSecondBySource } = useRevenuePerSecond()
     const [isExpanded, setIsExpanded] = useState(false)
-
-    // Format number with 6 decimal places for per-second rates
-    const formatRPS = (value: number): string => {
-        return value.toFixed(6)
-    }
 
     // Format cumulative revenue with 6 decimal places - memoized to prevent unnecessary recalculations
     const formattedCumulative = useMemo(() => {
@@ -30,32 +34,19 @@ export const RevenuePerSecond: React.FC<RevenuePerSecondProps> = ({ alwaysShowBr
     }, [cumulativeRevenue])
 
     return (
-        <Box
-            bg="gray.800"
-            border="1px solid"
-            borderColor="purple.500"
-            borderRadius="md"
-            p={6}
-            position="relative"
-            overflow="hidden"
-            _before={{
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'linear-gradient(135deg, rgba(111, 255, 194, 0.05) 0%, rgba(138, 43, 226, 0.05) 100%)',
-                pointerEvents: 'none',
-            }}
+        <Card
+            bg={SEMANTIC_COLORS.bgSecondary}
+            borderColor={SEMANTIC_COLORS.borderMedium}
+            borderRadius={0}
+            p={SPACING.lg}
         >
-            <VStack spacing={4} align="stretch" position="relative" zIndex={1}>
+            <VStack spacing={SPACING.base} align="stretch">
                 <HStack justify="space-between" align="center">
                     <VStack align="flex-start" spacing={0}>
                         <Text
                             fontSize="sm"
-                            color="gray.400"
-                            fontFamily="mono"
+                            color={SEMANTIC_COLORS.textSecondary}
+                            fontFamily={TYPOGRAPHY.fontMono}
                             textTransform="uppercase"
                             letterSpacing="wide"
                         >
@@ -63,40 +54,43 @@ export const RevenuePerSecond: React.FC<RevenuePerSecondProps> = ({ alwaysShowBr
                         </Text>
                         <Text
                             fontSize="xs"
-                            color="gray.500"
-                            fontFamily="mono"
+                            color={SEMANTIC_COLORS.textTertiary}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
                         >
                             {formatRPS(revenuePerSecond)}/sec
                         </Text>
                     </VStack>
                     {!alwaysShowBreakdown && (
                         <HStack
-                            spacing={2}
+                            spacing={SPACING.sm}
                             as="button"
+                            type="button"
                             onClick={() => setIsExpanded(!isExpanded)}
+                            aria-expanded={isExpanded}
+                            aria-label={isExpanded ? 'Collapse breakdown' : 'Expand breakdown'}
                             cursor="pointer"
-                            _hover={{ opacity: 0.8 }}
+                            transition={TRANSITIONS.colors}
+                            _hover={HOVER_EFFECTS.brighten}
+                            _focus={FOCUS_STYLES.ring}
                             align="center"
                         >
                             <Text
                                 fontSize="xs"
-                                color="gray.400"
-                                fontFamily="mono"
-                                _hover={{ color: 'cyan.400' }}
+                                color={SEMANTIC_COLORS.textSecondary}
+                                fontFamily={TYPOGRAPHY.fontMono}
                             >
                                 Breakdown
                             </Text>
-                            <IconButton
-                                aria-label={isExpanded ? 'Collapse' : 'Expand'}
-                                icon={isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                                size="xs"
-                                variant="ghost"
-                                color="gray.400"
-                                _hover={{ color: 'cyan.400' }}
-                                minW="auto"
-                                w="auto"
-                                h="auto"
-                            />
+                            {/*
+                              Plain icon, NOT an IconButton. This whole HStack is already
+                              `as="button"`, and a <button> inside a <button> is invalid
+                              HTML: the parser auto-closes the outer one, so the real DOM
+                              never matches React's tree and hydration fails, forcing the
+                              entire page to re-render client-side. The chevron is
+                              decorative anyway — it had no onClick of its own.
+                            */}
+                            <Box as={isExpanded ? ChevronUpIcon : ChevronDownIcon} color={SEMANTIC_COLORS.textSecondary} aria-hidden="true" />
                         </HStack>
                     )}
                 </HStack>
@@ -111,13 +105,12 @@ export const RevenuePerSecond: React.FC<RevenuePerSecondProps> = ({ alwaysShowBr
                 >
                     <Text
                         fontSize="4xl"
-                        fontWeight="bold"
-                        color="cyan.400"
-                        fontFamily="mono"
-                        textShadow="0 0 10px rgba(111, 255, 194, 0.5)"
+                        fontWeight={TYPOGRAPHY.bold}
+                        color={SEMANTIC_COLORS.info}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
                         letterSpacing="tight"
                         style={{
-                            willChange: 'contents',
                             transform: 'translateZ(0)',
                             backfaceVisibility: 'hidden',
                             WebkitFontSmoothing: 'antialiased',
@@ -129,38 +122,38 @@ export const RevenuePerSecond: React.FC<RevenuePerSecondProps> = ({ alwaysShowBr
                 </Box>
 
                 {alwaysShowBreakdown ? (
-                    <Box mt={4} pt={4} borderTop="1px solid" borderColor="gray.700">
-                        <VStack spacing={3} align="stretch">
+                    <Box mt={SPACING.base} pt={SPACING.base} borderTop="1px solid" borderColor={SEMANTIC_COLORS.borderMedium}>
+                        <VStack spacing={SPACING.md} align="stretch">
                             <Text
                                 fontSize="xs"
-                                color="gray.500"
-                                fontFamily="mono"
+                                color={SEMANTIC_COLORS.textTertiary}
+                                fontFamily={TYPOGRAPHY.fontMono}
                                 textTransform="uppercase"
                                 letterSpacing="wide"
                             >
                                 Revenue Per Second
                             </Text>
                             <HStack justify="space-between">
-                                <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                     Disco
                                 </Text>
-                                <Text fontSize="sm" color="white" fontFamily="mono" fontWeight="bold">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                     ${formatRPS(revenuePerSecondBySource.disco)}/sec
                                 </Text>
                             </HStack>
                             <HStack justify="space-between">
-                                <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                     Transmuter
                                 </Text>
-                                <Text fontSize="sm" color="white" fontFamily="mono" fontWeight="bold">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                     ${formatRPS(revenuePerSecondBySource.transmuter)}/sec
                                 </Text>
                             </HStack>
                             <HStack justify="space-between">
-                                <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                     Manic Vault
                                 </Text>
-                                <Text fontSize="sm" color="white" fontFamily="mono" fontWeight="bold">
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                     ${formatRPS(revenuePerSecondBySource.manic)}/sec
                                 </Text>
                             </HStack>
@@ -168,38 +161,38 @@ export const RevenuePerSecond: React.FC<RevenuePerSecondProps> = ({ alwaysShowBr
                     </Box>
                 ) : (
                     <Collapse in={isExpanded} animateOpacity>
-                        <Box mt={4} pt={4} borderTop="1px solid" borderColor="gray.700">
-                            <VStack spacing={3} align="stretch">
+                        <Box mt={SPACING.base} pt={SPACING.base} borderTop="1px solid" borderColor={SEMANTIC_COLORS.borderMedium}>
+                            <VStack spacing={SPACING.md} align="stretch">
                                 <Text
                                     fontSize="xs"
-                                    color="gray.500"
-                                    fontFamily="mono"
+                                    color={SEMANTIC_COLORS.textTertiary}
+                                    fontFamily={TYPOGRAPHY.fontMono}
                                     textTransform="uppercase"
                                     letterSpacing="wide"
                                 >
                                     Revenue Per Second
                                 </Text>
                                 <HStack justify="space-between">
-                                    <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                                    <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                         Disco
                                     </Text>
-                                    <Text fontSize="sm" color="white" fontFamily="mono" fontWeight="bold">
+                                    <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                         ${formatRPS(revenuePerSecondBySource.disco)}/sec
                                     </Text>
                                 </HStack>
                                 <HStack justify="space-between">
-                                    <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                                    <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                         Transmuter
                                     </Text>
-                                    <Text fontSize="sm" color="white" fontFamily="mono" fontWeight="bold">
+                                    <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                         ${formatRPS(revenuePerSecondBySource.transmuter)}/sec
                                     </Text>
                                 </HStack>
                                 <HStack justify="space-between">
-                                    <Text fontSize="sm" color="gray.400" fontFamily="mono">
+                                    <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary} fontFamily={TYPOGRAPHY.fontMono}>
                                         Manic Vault
                                     </Text>
-                                    <Text fontSize="sm" color="white" fontFamily="mono" fontWeight="bold">
+                                    <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontFamily={TYPOGRAPHY.fontMono} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                         ${formatRPS(revenuePerSecondBySource.manic)}/sec
                                     </Text>
                                 </HStack>
@@ -209,6 +202,6 @@ export const RevenuePerSecond: React.FC<RevenuePerSecondProps> = ({ alwaysShowBr
                 )}
 
             </VStack>
-        </Box>
+        </Card>
     )
 }

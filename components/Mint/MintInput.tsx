@@ -121,7 +121,7 @@ export const MintInput = ({ label = "Borrow CDT" }: MintInputProps) => {
         <Stack paddingInlineStart={4}>
             <HStack width="100%" justifyContent="left">
                 <HStack width="75%">
-                    <Image src={"/images/cdt.png"} w="30px" h="30px" />
+                    <Image src={"/images/cdt.svg"} w="30px" h="30px" />
 
                     <HStack width="100%%">
                         <Tabs position="relative" variant="unstyled" w="full" index={activeTabIndex}>

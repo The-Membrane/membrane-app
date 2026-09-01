@@ -7,16 +7,19 @@ import { Price } from '@/services/oracle';
 import { getAssetByDenom, getAssetsByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
 import { Box, Text, Circle, Tooltip, Stack } from "@chakra-ui/react";
-import { colors } from '@/config/defaults';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { TYPOGRAPHY } from '@/helpers/typography';
+import { SPACING } from '@/config/spacing';
+import { Card } from '@/components/ui/Card';
 import { useChainRoute } from '@/hooks/useChainRoute';
 import useAppState from '@/persisted-state/useAppState';
 
 const HealthStatus = ({ health = 100, label = "N/A" }) => {
     // Calculate color based on health value
     const getHealthColor = () => {
-        if (health >= 70) return "green.500";
-        if (health >= 30) return "yellow.500";
-        return "red.500";
+        if (health >= 70) return SEMANTIC_COLORS.success;
+        if (health >= 30) return SEMANTIC_COLORS.warning;
+        return SEMANTIC_COLORS.danger;
     };
 
     // Get status text based on health
@@ -27,15 +30,15 @@ const HealthStatus = ({ health = 100, label = "N/A" }) => {
     };
 
     return (
-        <Box display="flex" alignItems="center" bg="gray.100" p={4} borderRadius="lg" shadow="sm" w="150px" h="52px">
-            <Tooltip label={`Health: ${health.toFixed(2)}% - ${getStatusText()}`} hasArrow bg="gray.800" color="white">
-                <Circle size="30px" bg={getHealthColor()} border="1px solid" borderColor="gray.400" />
+        <Card display="flex" alignItems="center" p={SPACING.base} w="150px" h="52px">
+            <Tooltip label={`Health: ${health.toFixed(2)}% - ${getStatusText()}`} hasArrow bg={SEMANTIC_COLORS.bgSecondary} color={SEMANTIC_COLORS.textPrimary}>
+                <Circle size="30px" bg={getHealthColor()} border="1px solid" borderColor={SEMANTIC_COLORS.borderStrong} />
             </Tooltip>
 
-            <Text ml={1} fontSize="12px" fontWeight="semibold" color="gray.800">
+            <Text ml={1} fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} fontWeight={TYPOGRAPHY.semibold} color={SEMANTIC_COLORS.textSecondary}>
                 {label}
             </Text>
-        </Box>
+        </Card>
     );
 };
 
@@ -96,11 +99,11 @@ export const OracleHealth = () => {
         // collateral_supply_caps has no faithful EVM equivalent here yet, so read defensively.
         const b = basket as any
         if (!b || !b.collateral_supply_caps) return []
-        return b.collateral_supply_caps
-            .filter((cap: any) => Number(cap.supply_cap_ratio) > 0)
+        return b.collateral_supply_caps.flatMap((cap: any) => {
+            if (!(Number(cap.supply_cap_ratio) > 0)) return []
             //@ts-ignore
-            .map((cap) => (cap.asset_info as AssetInfo),  // Directly assign if you're sure it's always a native_token
-            );
+            return [(cap.asset_info as AssetInfo)] // Directly assign if you're sure it's always a native_token
+        });
     }, [basket])
     //@ts-ignore
     const usedDenoms = usedAssets.map((asset: any) => asset.native_token.denom)
@@ -144,7 +147,7 @@ export const OracleHealth = () => {
             const assetAmount = shiftDigits(cap.current_supply, -assetDecimal);
             return { name: cap.asset_info.native_token.denom, value: assetAmount.times(assetPrice).toNumber() }
         })
-    }, [basket, prices])
+    }, [basket, prices, assetDecimals])
     // console.log("assetValues", assetValues)
 
     //Group pool values by asset
@@ -168,25 +171,28 @@ export const OracleHealth = () => {
             const symbolName = assetObjects.find((asset) => asset.base === name)?.symbol || name
             return { name: symbolName, health }
         })
-    }, [assetValues, poolValuesByAsset])
+    }, [assetValues, poolValuesByAsset, assetObjects])
 
     // console.log("healthData", healthData)
 
     return (
         <Stack>
-            <Text fontWeight="bold" fontFamily="Inter" fontSize={"xl"} letterSpacing={"1px"} display="flex" color={colors.earnText}>Oracle Pool Health</Text>
-            <div style={{
-                display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem",
-                backgroundColor: colors.globalBG, // Color the gaps
-                padding: "10px", // Ensures outer gaps are also colored
-                border: "2px solid white",
-            }}>
+            <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h3} display="flex" color={SEMANTIC_COLORS.textPrimary}>Oracle Pool Health</Text>
+            <Box
+                display="grid"
+                gridTemplateColumns="repeat(3, 1fr)"
+                gap={SPACING.sm}
+                bg={SEMANTIC_COLORS.bgPrimary}
+                p={SPACING.md}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderMedium}
+            >
                 {healthData.filter((entry: any): entry is { name: any; health: number } => entry !== undefined)
                     .map(({ name, health }: { name: any; health: number }) => (
                         <HealthStatus key={name} health={health} label={name} />
                     ))}
 
-            </div>
+            </Box>
         </Stack>
     )
 

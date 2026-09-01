@@ -1,21 +1,21 @@
 import React from 'react'
 
+const hexToRgb = (hex: string) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : { r: 0, g: 0, b: 0 }
+}
+const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) => {
+    const toHex = (v: number) => v.toString(16).padStart(2, '0')
+    return `#${toHex(Math.round(r))}${toHex(Math.round(g))}${toHex(Math.round(b))}`
+}
+const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.max(0, Math.min(1, t))
+const lerpColor = (hexA: string, hexB: string, t: number) => {
+    const A = hexToRgb(hexA); const B = hexToRgb(hexB)
+    return rgbToHex({ r: lerp(A.r, B.r, t), g: lerp(A.g, B.g, t), b: lerp(A.b, B.b, t) })
+}
+
 export const HealthEnergyBar = ({ percent }: { percent: number; color: string }) => {
     const clamped = Math.max(0, Math.min(100, percent || 0))
-
-    const hexToRgb = (hex: string) => {
-        const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-        return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : { r: 0, g: 0, b: 0 }
-    }
-    const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) => {
-        const toHex = (v: number) => v.toString(16).padStart(2, '0')
-        return `#${toHex(Math.round(r))}${toHex(Math.round(g))}${toHex(Math.round(b))}`
-    }
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.max(0, Math.min(1, t))
-    const lerpColor = (hexA: string, hexB: string, t: number) => {
-        const A = hexToRgb(hexA); const B = hexToRgb(hexB)
-        return rgbToHex({ r: lerp(A.r, B.r, t), g: lerp(A.g, B.g, t), b: lerp(A.b, B.b, t) })
-    }
 
     const green = '#52c41a'
     const yellow = '#faad14'

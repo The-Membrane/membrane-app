@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useMemo, useRef } from 'react'
 import { useDittoSpeechBox } from './useDittoSpeechBox'
 import { SpeechBoxView } from '../types'
 
@@ -46,7 +46,7 @@ export const useKeyboardNavigation = () => {
     }, [])
 
     // Define keyboard shortcuts
-    const shortcuts: KeyboardShortcut[] = [
+    const shortcuts: KeyboardShortcut[] = useMemo(() => [
         {
             key: 'd',
             ctrlKey: true,
@@ -106,7 +106,7 @@ export const useKeyboardNavigation = () => {
             action: () => isOpen && openSection('updates'),
             description: 'Open Updates',
         },
-    ]
+    ], [isOpen, currentView, toggleSpeechBox, returnToHub, close, navigateFocus, openSection])
 
     // Handle keyboard events
     const handleKeyDown = useCallback((event: KeyboardEvent) => {

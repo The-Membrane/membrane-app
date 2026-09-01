@@ -24,7 +24,7 @@ const SelectAsset = (props: Props) => {
         selectedAsset: assetsWithOptions?.[0],
       })
     }
-  }, [assetsWithOptions])
+  }, [assetsWithOptions, bidState?.selectedAsset, setBidState])
 
   // The Select option objects are the collateral assets themselves (spread + label/value),
   // so the selected option is a valid Asset. Typed as any at the Select seam because the

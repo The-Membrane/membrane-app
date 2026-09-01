@@ -83,8 +83,8 @@ const TrackUtilities: React.FC<TrackUtilitiesProps> = ({ layout, onLayoutChange 
                                 <AlertIcon />
                                 <Box>
                                     <AlertTitle>Errors</AlertTitle>
-                                    {validation.errors.map((error, index) => (
-                                        <AlertDescription key={index}>{error}</AlertDescription>
+                                    {validation.errors.map((error) => (
+                                        <AlertDescription key={error}>{error}</AlertDescription>
                                     ))}
                                 </Box>
                             </Alert>
@@ -95,8 +95,8 @@ const TrackUtilities: React.FC<TrackUtilitiesProps> = ({ layout, onLayoutChange 
                                 <AlertIcon />
                                 <Box>
                                     <AlertTitle>Warnings</AlertTitle>
-                                    {validation.warnings.map((warning, index) => (
-                                        <AlertDescription key={index}>{warning}</AlertDescription>
+                                    {validation.warnings.map((warning) => (
+                                        <AlertDescription key={warning}>{warning}</AlertDescription>
                                     ))}
                                 </Box>
                             </Alert>
@@ -107,8 +107,8 @@ const TrackUtilities: React.FC<TrackUtilitiesProps> = ({ layout, onLayoutChange 
                                 <AlertIcon />
                                 <Box>
                                     <AlertTitle>Suggestions</AlertTitle>
-                                    {validation.suggestions.map((suggestion, index) => (
-                                        <AlertDescription key={index}>{suggestion}</AlertDescription>
+                                    {validation.suggestions.map((suggestion) => (
+                                        <AlertDescription key={suggestion}>{suggestion}</AlertDescription>
                                     ))}
                                 </Box>
                             </Alert>

@@ -7,11 +7,11 @@ import { Card } from '@/components/ui/Card'
 import type { SimTick, SimPhase } from './engine/types'
 
 const PHASE_BADGE_COLORS: Record<SimPhase, string> = {
-  awaiting: 'gray',
-  deposit: 'cyan',
-  withdrawal: 'yellow',
-  'post-withdrawal': 'purple',
-  cliff: 'gray',
+  awaiting: SEMANTIC_COLORS.textTertiary,
+  deposit: SEMANTIC_COLORS.info,
+  withdrawal: SEMANTIC_COLORS.warning,
+  'post-withdrawal': SEMANTIC_COLORS.primary,
+  cliff: SEMANTIC_COLORS.textTertiary,
 }
 
 const PHASE_LABELS: Record<SimPhase, string> = {
@@ -62,11 +62,14 @@ export const SimStateCards: React.FC<SimStateCardsProps> = ({
       label: 'PHASE',
       value: (
         <Badge
-          colorScheme={PHASE_BADGE_COLORS[tick.phase]}
+          bg={PHASE_BADGE_COLORS[tick.phase]}
+          color={SEMANTIC_COLORS.bgPrimary}
+          fontFamily="mono"
+          textTransform="uppercase"
           fontSize={TYPOGRAPHY.small}
           px={SPACING.sm}
           py={SPACING.xs}
-          borderRadius="6px"
+          borderRadius={0}
         >
           {PHASE_LABELS[tick.phase]}
         </Badge>
@@ -76,7 +79,7 @@ export const SimStateCards: React.FC<SimStateCardsProps> = ({
     {
       label: 'POOL',
       value: `${formatCompact(tick.accruedPool)} uMBRN`,
-      sub: tick.poolMaxed ? 'MAXED' : tick.isAccruing ? 'Accruing' : 'Paused',
+      sub: tick.poolMaxed ? 'Maxed' : tick.isAccruing ? 'Accruing' : 'Paused',
       subColor: tick.poolMaxed
         ? SEMANTIC_COLORS.warning
         : tick.isAccruing

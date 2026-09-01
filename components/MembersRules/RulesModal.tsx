@@ -16,13 +16,7 @@ import {
 import useMembersRulesState from './useRules'
 import { useCallback } from 'react'
 import { colors } from '@/config/defaults'
-
-export const rules = [
-  'Sovereign individuals only',
-  "Your experience is your own responsibility/liability",
-  "If your jurisdiction is banned, don't enter",
-  "Once you're in, you're within",
-]
+import { rules } from './rulesData'
 
 export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const { setRulesState } = useMembersRulesState()
@@ -56,7 +50,7 @@ export const RulesModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
 
               <UnorderedList spacing={1} pl="7">
                 {rules.map((rule, index) => (
-                  <ListItem key={index} fontSize={isMobile ? "sm" : "lg"} fontWeight="bold">
+                  <ListItem key={rule} fontSize={isMobile ? "sm" : "lg"} fontWeight="bold">
                     {rule}
                   </ListItem>
                 ))}

@@ -44,10 +44,10 @@ const ConfirmModal = ({
   // Use Ditto for Osmosis v2 chain, legacy modal for others
   const shouldUseDitto = chainName === 'osmosis-v2' && !useLegacyModal
 
-  const onModalOpen = () => {
+  const onModalOpen = useCallback(() => {
     onOpen()
     setTimeout(() => action?.simulate.refetch(), 0)
-  }
+  }, [onOpen, action])
 
   const onModalClose = () => {
     onClose()
@@ -74,7 +74,7 @@ const ConfirmModal = ({
         onModalOpen()
       }
     }
-  }, [onClick, executeDirectly, action, shouldUseDitto, openConfirmation, children, label, actionType])
+  }, [onClick, executeDirectly, action, shouldUseDitto, openConfirmation, children, label, actionType, onModalOpen])
 
   return (
     <>

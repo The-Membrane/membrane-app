@@ -4,11 +4,16 @@ import { ChevronDownIcon } from '@chakra-ui/icons'
 import { Music, Zap, ArrowLeftRight, Lock, Wallet } from 'lucide-react'
 import { FAQItem } from '../hooks/usePageTutorial'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 // Consolidated FAQs from all pages
 const allFAQs: Record<string, { icon: any; color: string; items: FAQItem[] }> = {
     disco: {
         icon: Music,
-        color: 'primary.400',
+        color: SEMANTIC_COLORS.primary,
         items: [
             {
                 id: 'what-is-disco',
@@ -39,7 +44,7 @@ const allFAQs: Record<string, { icon: any; color: string; items: FAQItem[] }> = 
     },
     manic: {
         icon: Zap,
-        color: 'secondary.400',
+        color: SEMANTIC_COLORS.info,
         items: [
             {
                 id: 'what-is-manic',
@@ -70,7 +75,7 @@ const allFAQs: Record<string, { icon: any; color: string; items: FAQItem[] }> = 
     },
     transmuter: {
         icon: ArrowLeftRight,
-        color: 'blue.400',
+        color: SEMANTIC_COLORS.info,
         items: [
             {
                 id: 'what-is-transmuter',
@@ -91,7 +96,7 @@ const allFAQs: Record<string, { icon: any; color: string; items: FAQItem[] }> = 
     },
     lockdrop: {
         icon: Lock,
-        color: 'primary.400',
+        color: SEMANTIC_COLORS.primary,
         items: [
             {
                 id: 'what-is-lockdrop',
@@ -112,7 +117,7 @@ const allFAQs: Record<string, { icon: any; color: string; items: FAQItem[] }> = 
     },
     portfolio: {
         icon: Wallet,
-        color: 'green.400',
+        color: SEMANTIC_COLORS.success,
         items: [
             {
                 id: 'what-is-portfolio',
@@ -173,20 +178,21 @@ export const LearnTab: React.FC = () => {
                             return (
                                 <Tab
                                     key={category}
-                                    px={3}
-                                    py={1.5}
-                                    borderRadius="md"
-                                    fontSize="xs"
-                                    fontWeight="medium"
+                                    px={SPACING.md}
+                                    py={SPACING.xs}
+                                    borderRadius={0}
+                                    fontFamily={TYPOGRAPHY.fontMono}
+                                    fontSize={TYPOGRAPHY.xs}
+                                    fontWeight={TYPOGRAPHY.medium}
                                     textTransform="capitalize"
-                                    color={isSelected ? config.color : '#ece6d880'}
-                                    bg={isSelected ? `${config.color}20` : 'transparent'}
+                                    color={isSelected ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary}
+                                    bg="transparent"
                                     border="1px solid"
-                                    borderColor={isSelected ? config.color : 'transparent'}
-                                    _hover={{
-                                        bg: isSelected ? undefined : '#9bdc4f10',
-                                    }}
-                                    transition="all 0.2s"
+                                    borderColor={isSelected ? SEMANTIC_COLORS.borderStrong : 'transparent'}
+                                    transition={TRANSITIONS.colors}
+                                    _hover={HOVER_EFFECTS.brighten}
+                                    _focus={FOCUS_STYLES.ring}
+                                    _focusVisible={FOCUS_STYLES.ring}
                                 >
                                     <HStack spacing={1}>
                                         <Icon as={config.icon} w={3} h={3} />
@@ -206,29 +212,41 @@ export const LearnTab: React.FC = () => {
                     return (
                         <Box
                             key={item.id}
-                            bg="#1A1D26"
+                            bg={SEMANTIC_COLORS.bgSecondary}
                             border="1px solid"
-                            borderColor={isOpen ? '#9bdc4f60' : '#9bdc4f20'}
-                            borderRadius="lg"
+                            borderColor={isOpen ? SEMANTIC_COLORS.borderStrong : SEMANTIC_COLORS.borderSubtle}
+                            borderRadius={0}
                             overflow="hidden"
-                            transition="all 0.2s"
+                            transition={TRANSITIONS.colors}
                         >
                             <HStack
-                                p={3}
+                                p={SPACING.md}
                                 justify="space-between"
                                 align="center"
                                 cursor="pointer"
+                                role="button"
+                                tabIndex={0}
+                                aria-expanded={isOpen}
                                 onClick={() => toggleItem(item.id)}
-                                _hover={{ bg: '#1E2130' }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        toggleItem(item.id)
+                                    }
+                                }}
+                                transition={TRANSITIONS.colors}
+                                _hover={HOVER_EFFECTS.brighten}
+                                _focus={FOCUS_STYLES.ring}
+                                _focusVisible={FOCUS_STYLES.ring}
                             >
-                                <Text fontSize="sm" color="#ece6d8" fontWeight="medium" flex={1}>
+                                <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontWeight="medium" flex={1}>
                                     {item.question}
                                 </Text>
                                 <Icon
                                     as={ChevronDownIcon}
                                     w={5}
                                     h={5}
-                                    color="#ece6d840"
+                                    color={SEMANTIC_COLORS.textTertiary}
                                     transform={isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
                                     transition="transform 0.2s"
                                 />
@@ -240,7 +258,7 @@ export const LearnTab: React.FC = () => {
                                     borderTop="1px solid"
                                     borderColor="#9bdc4f20"
                                 >
-                                    <Text fontSize="xs" color="#ece6d880" lineHeight="1.6">
+                                    <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} lineHeight="1.6">
                                         {item.answer}
                                     </Text>
                                 </Box>
@@ -252,7 +270,7 @@ export const LearnTab: React.FC = () => {
 
             {currentFAQs.length === 0 && (
                 <Box textAlign="center" py={6}>
-                    <Text fontSize="sm" color="#ece6d880">
+                    <Text fontSize="sm" color={SEMANTIC_COLORS.textSecondary}>
                         No FAQs available for this category
                     </Text>
                 </Box>

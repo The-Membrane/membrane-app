@@ -82,7 +82,17 @@ export const Builder: React.FC = () => {
       </Box>
 
       {/* board shell: tray / floor / readout */}
-      <Box ref={shellRef} display="grid" gridTemplateColumns={{ base: '1fr', lg: '200px 1fr 240px' }} border="1px solid" borderColor={SEMANTIC_COLORS.borderStrong}>
+      {/* The floor positions its nodes by percentage of this row's height, so the row must
+          own an explicit height. Left to `align-items: stretch` the tall venue tray sets it
+          (~2500px) and the three slots spread ~800px apart — unreachable in one drag. */}
+      <Box
+        ref={shellRef}
+        display="grid"
+        gridTemplateColumns={{ base: '1fr', lg: '200px 1fr 240px' }}
+        h={{ base: 'auto', lg: '560px' }}
+        border="1px solid"
+        borderColor={SEMANTIC_COLORS.borderStrong}
+      >
         <PartsTray slots={view.st.slots} vet={view.vet} onTemplate={actions.applyTemplate} onPlaceFree={actions.placeTileFree} drag={drag} />
         <FactoryFloor slots={view.st.slots} intent={view.st.intent} calc={view.calc} btc={view.st.btc} onRemoveSlot={actions.removeSlot} onIntent={actions.setIntent} />
         <Readout

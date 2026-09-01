@@ -141,7 +141,7 @@ const PaymentDropdown: React.FC<PaymentDropdownProps> = ({
                             onChange={handleOptionChange}
                         >
                             {paymentOptions.map((opt, idx) => (
-                                <MenuItemOption key={`${opt.denom}-${idx}`} value={`${opt.denom}:${opt.amount}`}>
+                                <MenuItemOption key={`${opt.denom}-${opt.amount}`} value={`${opt.denom}:${opt.amount}`}>
                                     <Text fontFamily='"Press Start 2P", monospace' fontSize="10px" color="#e6e6e6">
                                         Pay {opt.amount} {opt.denom}
                                     </Text>

@@ -4,6 +4,14 @@ import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/pages/_app'
 import type { EvmCall } from '@/services/chain/types'
 
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['usdc_looping_position'] })
+  queryClient.invalidateQueries({ queryKey: ['transmuter_usdc_balance'] })
+  queryClient.invalidateQueries({ queryKey: ['positions'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+  queryClient.invalidateQueries({ queryKey: ['basket'] })
+}
+
 /**
  * TODO(evm-migration): the Manic / USDC-looping "Earn" vault does NOT exist in the Solidity
  * port — no earn (margin/looping) contract was ported (looping is out of scope; the
@@ -19,14 +27,6 @@ const useFulfillIntent = (positionId?: string, maxMintAmount?: number) => {
     queryFn: () => [] as EvmCall[],
     enabled: !!address && !!positionId && !!maxMintAmount,
   })
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['usdc_looping_position'] })
-    queryClient.invalidateQueries({ queryKey: ['transmuter_usdc_balance'] })
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-    queryClient.invalidateQueries({ queryKey: ['basket'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

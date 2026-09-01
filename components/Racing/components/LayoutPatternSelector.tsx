@@ -7,74 +7,74 @@ interface LayoutPatternSelectorProps {
     onPatternApply: (pattern: LayoutPattern) => void
 }
 
+const renderPatternPreview = (pattern: LayoutPattern) => {
+    // Create a sample 10x10 layout to demonstrate the pattern
+    const sampleLayout = Array.from({ length: 10 }, () =>
+        Array.from({ length: 10 }, () => ({
+            speed_modifier: 1,
+            blocks_movement: false,
+            skip_next_turn: false,
+            damage: 0,
+            is_finish: false,
+            is_start: false,
+        }))
+    )
+
+    const previewLayout = pattern.apply(sampleLayout)
+    const cellSize = 4
+    const maxSize = 60
+
+    return (
+        <Box
+            w={`${maxSize}px`}
+            h={`${maxSize}px`}
+            border="1px solid #2a3550"
+            bg="#0b0e17"
+            display="inline-block"
+        >
+            <Grid
+                templateColumns={`repeat(10, ${cellSize}px)`}
+                gap="1px"
+                bg="#1d2333"
+            >
+                {previewLayout.map((row, y) =>
+                    row.map((tile, x) => {
+                        const color = tile.blocks_movement ? '#0033ff'
+                            : tile.is_finish ? '#00ff00'
+                                : tile.is_start ? 'red'
+                                    : tile.skip_next_turn ? '#555555'
+                                        : tile.speed_modifier > 1 ? '#ffdd00'
+                                            : '#111111'
+                        return (
+                            <GridItem
+                                key={`${x}-${y}`}
+                                w={`${cellSize}px`}
+                                h={`${cellSize}px`}
+                                bg={color}
+                            />
+                        )
+                    })
+                )}
+            </Grid>
+        </Box>
+    )
+}
+
+const patternTypes = [
+    { key: 'all', label: 'All Patterns' },
+    { key: 'border', label: 'Border Patterns' },
+    { key: 'center', label: 'Center Patterns' },
+    { key: 'grid', label: 'Grid Patterns' },
+    { key: 'spiral', label: 'Spiral Patterns' },
+    { key: 'labyrinth', label: 'Labyrinth Patterns' },
+    { key: 'symmetrical', label: 'Symmetrical Patterns' }
+]
+
 const LayoutPatternSelector: React.FC<LayoutPatternSelectorProps> = ({ onPatternApply }) => {
     const { isOpen, onOpen, onClose } = useDisclosure()
     const [selectedPattern, setSelectedPattern] = useState<LayoutPattern | null>(null)
 
-    const patternTypes = [
-        { key: 'all', label: 'All Patterns' },
-        { key: 'border', label: 'Border Patterns' },
-        { key: 'center', label: 'Center Patterns' },
-        { key: 'grid', label: 'Grid Patterns' },
-        { key: 'spiral', label: 'Spiral Patterns' },
-        { key: 'labyrinth', label: 'Labyrinth Patterns' },
-        { key: 'symmetrical', label: 'Symmetrical Patterns' }
-    ]
-
     const filteredPatterns = selectedPattern ? [selectedPattern] : layoutPatterns
-
-    const renderPatternPreview = (pattern: LayoutPattern) => {
-        // Create a sample 10x10 layout to demonstrate the pattern
-        const sampleLayout = Array.from({ length: 10 }, () =>
-            Array.from({ length: 10 }, () => ({
-                speed_modifier: 1,
-                blocks_movement: false,
-                skip_next_turn: false,
-                damage: 0,
-                is_finish: false,
-                is_start: false,
-            }))
-        )
-
-        const previewLayout = pattern.apply(sampleLayout)
-        const cellSize = 4
-        const maxSize = 60
-
-        return (
-            <Box
-                w={`${maxSize}px`}
-                h={`${maxSize}px`}
-                border="1px solid #2a3550"
-                bg="#0b0e17"
-                display="inline-block"
-            >
-                <Grid
-                    templateColumns={`repeat(10, ${cellSize}px)`}
-                    gap="1px"
-                    bg="#1d2333"
-                >
-                    {previewLayout.map((row, y) =>
-                        row.map((tile, x) => {
-                            const color = tile.blocks_movement ? '#0033ff'
-                                : tile.is_finish ? '#00ff00'
-                                    : tile.is_start ? 'red'
-                                        : tile.skip_next_turn ? '#555555'
-                                            : tile.speed_modifier > 1 ? '#ffdd00'
-                                                : '#111111'
-                            return (
-                                <GridItem
-                                    key={`${x}-${y}`}
-                                    w={`${cellSize}px`}
-                                    h={`${cellSize}px`}
-                                    bg={color}
-                                />
-                            )
-                        })
-                    )}
-                </Grid>
-            </Box>
-        )
-    }
 
     const handlePatternApply = () => {
         if (selectedPattern) {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useCallback, useRef } from 'react'
 import useUpdatesState, { ProtocolUpdate } from '@/persisted-state/useUpdatesState'
 import { useIdleGains } from '@/components/Portfolio/PortPage/hooks/useIdleGains'
-import { useLockdropEnding, useLockdropClaimsReady } from './useLockdropNotifications'
+import { useLockdropEnding, useLockdropClaimsReady } from './useAcquisitionNotifications'
 import { useIntentFulfillment } from './useIntentFulfillment'
 import useSessionTrackingState from '@/persisted-state/useSessionTrackingState'
 
@@ -141,10 +141,13 @@ export const useProtocolUpdates = () => {
                 updateTrackingState()
                 hasUpdatedTrackingRef.current = true
             }, 2000) // Increased delay to ensure intent check completes
-            
+
             return () => clearTimeout(timeout)
         }
-    }, []) // Empty deps - only run on mount
+        // Empty deps - only run on mount. `updateTrackingState` is intentionally excluded:
+        // adding it would restart this timer whenever the callback identity changes,
+        // repeatedly resetting the 2s mount delay so the one-shot update could never fire.
+    }, [])
 
     // Update tracking state periodically (every 5 minutes)
     useEffect(() => {

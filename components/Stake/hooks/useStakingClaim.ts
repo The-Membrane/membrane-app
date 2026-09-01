@@ -8,6 +8,11 @@ import { queryClient } from '@/pages/_app'
 import type { EvmCall } from '@/services/chain/types'
 import { useRouter } from 'next/router'
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['staked'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 /**
  * Claim staking rewards. EVM rewire: Staking.sol `claimRewards(denom, sendTo)` is
  * per-fee-denom, so we emit one call per configured reward denom (MBRN + CDT). This is
@@ -48,11 +53,6 @@ export const useStakingClaim = (
     },
     enabled: !!address && !!stakingAddr,
   })
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['staked'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

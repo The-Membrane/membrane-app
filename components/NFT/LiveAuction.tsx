@@ -38,7 +38,7 @@ interface Prop {
     nftBidAmount: number
 }
 
-const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {    
+const LiveAuction = React.memo(function LiveAuction({ tokenURI, nftBidAmount }: Prop) {
     console.log("LiveAuction rerender")
 
     // const currentNFTIPFS = "ipfs://bafybeib4imygu5ehbgy7frry65ywpekw72kbs7thk5a2zjhyw67wluoy2m/metadata/Ecto Brane"
@@ -66,12 +66,16 @@ const LiveAuction = React.memo(({ tokenURI, nftBidAmount }: Prop) => {
             // setIMGsrc("https://ipfs-gw.stargaze-apis.com/ipfs/bafybeido64nj7ysgmpok7tpo4emos7vehfyq4rrt27cu5urdciick3ytfm")
     }, [liveNFT])
 
-    useMemo(() => {
+    // Preloading an image is a side effect (touches `document`, sets state) — it belongs in
+    // an effect, not a useMemo, so it never runs during server render.
+    useEffect(() => {
+        if (!imgSRC) return;
         const img: HTMLImageElement = document.createElement('img');
         img.src = imgSRC;
         img.onload = () => {
             setIsLoading("");
         };
+        return () => { img.onload = null; };
     }, [imgSRC]);
 
     return (

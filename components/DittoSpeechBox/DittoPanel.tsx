@@ -7,6 +7,11 @@ import { StatusTab } from './tabs/StatusTab'
 import { LearnTab } from './tabs/LearnTab'
 import { FeedbackTab } from './tabs/FeedbackTab'
 
+import { SPACING } from '@/config/spacing'
+import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
 const MotionBox = m(Box)
 
 interface DittoPanelProps {
@@ -34,12 +39,11 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                 w="450px"
                 h="500px"
                 maxH="700px"
-                bg="#15171E"
+                bg={SEMANTIC_COLORS.bgSecondary}
                 border="1px solid"
-                borderColor="#9bdc4f40"
-                borderRadius="xl"
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+                borderRadius={0}
                 overflow="hidden"
-                boxShadow="0 8px 32px rgba(155, 220, 79, 0.15), 0 0 0 1px rgba(155, 220, 79, 0.1)"
                 display="flex"
                 flexDirection="column"
             >
@@ -50,15 +54,19 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                         icon={<CloseIcon w={2} h={2} />}
                         size="xs"
                         variant="ghost"
-                        color="#ece6d880"
+                        color={SEMANTIC_COLORS.textSecondary}
+                        borderRadius={0}
                         position="absolute"
-                        top={1}
-                        right={1}
+                        top={SPACING.xs}
+                        right={SPACING.xs}
                         w="15%"
                         minW="unset"
                         h="24px"
                         zIndex={1}
-                        _hover={{ bg: '#9bdc4f20', color: '#ece6d8' }}
+                        transition={TRANSITIONS.colors}
+                        _hover={{ ...HOVER_EFFECTS.brighten, bg: 'transparent' }}
+                        _focus={FOCUS_STYLES.ring}
+                        _focusVisible={FOCUS_STYLES.ring}
                         onClick={onClose}
                     />
                 </Box>
@@ -74,12 +82,12 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                     overflow="hidden"
                 >
                     <TabList
-                        px={4}
-                        pt={3}
-                        pb={2}
-                        gap={2}
+                        px={SPACING.base}
+                        pt={SPACING.md}
+                        pb={SPACING.sm}
+                        gap={SPACING.sm}
                         borderBottom="1px solid"
-                        borderColor="#9bdc4f10"
+                        borderColor={SEMANTIC_COLORS.borderSubtle}
                         overflowX="auto"
                         overflowY="hidden"
                         flexShrink={0}
@@ -89,56 +97,65 @@ export const DittoPanel: React.FC<DittoPanelProps> = ({ isVisible, onClose }) =>
                         }}
                     >
                         <Tab
-                            px={4}
-                            py={1.5}
-                            borderRadius="md"
-                            fontSize="sm"
-                            fontWeight="medium"
+                            px={SPACING.base}
+                            py={SPACING.xs}
+                            borderRadius={0}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            fontSize={TYPOGRAPHY.small}
+                            fontWeight={TYPOGRAPHY.medium}
                             flexShrink={0}
-                            color={activeTab === 0 ? '#ece6d8' : '#ece6d880'}
-                            bg={activeTab === 0 ? '#9bdc4f30' : 'transparent'}
-                            borderBottom={activeTab === 0 ? '2px solid' : '2px solid transparent'}
-                            borderColor={activeTab === 0 ? 'secondary.400' : 'transparent'}
-                            _hover={{ bg: activeTab === 0 ? undefined : '#9bdc4f10' }}
-                            transition="all 0.2s"
+                            color={activeTab === 0 ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary}
+                            bg="transparent"
+                            borderBottom="2px solid"
+                            borderColor={activeTab === 0 ? SEMANTIC_COLORS.primary : 'transparent'}
+                            transition={TRANSITIONS.colors}
+                            _hover={HOVER_EFFECTS.brighten}
+                            _focus={FOCUS_STYLES.ring}
+                            _focusVisible={FOCUS_STYLES.ring}
                         >
-                            <HStack spacing={2}>
-                                <Icon as={AlertCircle} w={4} h={4} color={activeTab === 0 ? 'secondary.400' : '#ece6d880'} />
+                            <HStack spacing={SPACING.sm}>
+                                <Icon as={AlertCircle} w={4} h={4} color={activeTab === 0 ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.textSecondary} />
                                 <Text>Status</Text>
                             </HStack>
                         </Tab>
                         <Tab
-                            px={4}
-                            py={1.5}
-                            borderRadius="md"
-                            fontSize="sm"
-                            fontWeight="medium"
+                            px={SPACING.base}
+                            py={SPACING.xs}
+                            borderRadius={0}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            fontSize={TYPOGRAPHY.small}
+                            fontWeight={TYPOGRAPHY.medium}
                             flexShrink={0}
-                            color={activeTab === 1 ? '#ece6d8' : '#ece6d880'}
-                            bg={activeTab === 1 ? '#9bdc4f30' : 'transparent'}
-                            borderBottom={activeTab === 1 ? '2px solid' : '2px solid transparent'}
-                            borderColor={activeTab === 1 ? 'primary.400' : 'transparent'}
-                            _hover={{ bg: activeTab === 1 ? undefined : '#9bdc4f10' }}
-                            transition="all 0.2s"
+                            color={activeTab === 1 ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary}
+                            bg="transparent"
+                            borderBottom="2px solid"
+                            borderColor={activeTab === 1 ? SEMANTIC_COLORS.primary : 'transparent'}
+                            transition={TRANSITIONS.colors}
+                            _hover={HOVER_EFFECTS.brighten}
+                            _focus={FOCUS_STYLES.ring}
+                            _focusVisible={FOCUS_STYLES.ring}
                         >
                             Learn
                         </Tab>
                         <Tab
-                            px={4}
-                            py={1.5}
-                            borderRadius="md"
-                            fontSize="sm"
-                            fontWeight="medium"
+                            px={SPACING.base}
+                            py={SPACING.xs}
+                            borderRadius={0}
+                            fontFamily={TYPOGRAPHY.fontMono}
+                            fontSize={TYPOGRAPHY.small}
+                            fontWeight={TYPOGRAPHY.medium}
                             flexShrink={0}
-                            color={activeTab === 2 ? '#ece6d8' : '#ece6d880'}
-                            bg={activeTab === 2 ? '#9bdc4f30' : 'transparent'}
-                            borderBottom={activeTab === 2 ? '2px solid' : '2px solid transparent'}
-                            borderColor={activeTab === 2 ? 'secondary.400' : 'transparent'}
-                            _hover={{ bg: activeTab === 2 ? undefined : '#9bdc4f10' }}
-                            transition="all 0.2s"
+                            color={activeTab === 2 ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary}
+                            bg="transparent"
+                            borderBottom="2px solid"
+                            borderColor={activeTab === 2 ? SEMANTIC_COLORS.primary : 'transparent'}
+                            transition={TRANSITIONS.colors}
+                            _hover={HOVER_EFFECTS.brighten}
+                            _focus={FOCUS_STYLES.ring}
+                            _focusVisible={FOCUS_STYLES.ring}
                         >
-                            <HStack spacing={2}>
-                                <Icon as={MessageSquare} w={4} h={4} color={activeTab === 2 ? 'secondary.400' : '#ece6d880'} />
+                            <HStack spacing={SPACING.sm}>
+                                <Icon as={MessageSquare} w={4} h={4} color={activeTab === 2 ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.textSecondary} />
                                 <Text>Feedback</Text>
                             </HStack>
                         </Tab>

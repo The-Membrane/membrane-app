@@ -62,7 +62,7 @@ export const HomeSummary = ({ tokenOutMinAmount }: { tokenOutMinAmount: number }
                         label="CDT"
                         badge="Deposit"
                         amount={quickActionState.usdcSwapToCDT.toFixed(2)}
-                        logo={"/images/cdt.png"}
+                        logo={"/images/cdt.svg"}
                     />
                     <SummaryItem
                         label="USDC"
@@ -79,7 +79,7 @@ export const HomeSummary = ({ tokenOutMinAmount }: { tokenOutMinAmount: number }
                     label="CDT"
                     badge="Withdraw"
                     amount={quickActionState.rangeBoundLPwithdrawal.toFixed(2)}
-                    logo={"/images/cdt.png"}
+                    logo={"/images/cdt.svg"}
                 />
             )}
         </Stack>

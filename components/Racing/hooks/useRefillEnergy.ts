@@ -22,6 +22,11 @@ export type UseRefillEnergyParams = {
  * NO equivalent in the Solidity port. This CTA hook returns no msgs so the "refill
  * energy" action stays inert until/if racing contracts are ported. Return shape preserved.
  */
+const onInitialSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['car_energy'] })
+    queryClient.invalidateQueries({ queryKey: ['neutron balances'] })
+}
+
 const useRefillEnergy = (params: UseRefillEnergyParams) => {
     const { address } = useWallet()
     const { appState } = useAppState()
@@ -40,10 +45,6 @@ const useRefillEnergy = (params: UseRefillEnergyParams) => {
         enabled: !!address,
     })
 
-    const onInitialSuccess = () => {
-        queryClient.invalidateQueries({ queryKey: ['car_energy'] })
-        queryClient.invalidateQueries({ queryKey: ['neutron balances'] })
-    }
     console.log('energy msgs', msgs)
     // Stable signature based on tokenId, payment, and contract
     const simulationSignature = [

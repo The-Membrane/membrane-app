@@ -24,12 +24,14 @@ const useStaked = (run: boolean) => {
       if (!data) return null
 
       const staking = data.deposits.filter((d) => d.unstakeStartTime === 0n)
-      const unstaking = data.deposits
-        .filter((d) => d.unstakeStartTime !== 0n)
-        .map((d) => ({
-          amount: d.amount.toString(),
-          unstake_start_time: Number(d.unstakeStartTime),
-        }))
+      const unstaking = data.deposits.flatMap((d) =>
+        d.unstakeStartTime !== 0n
+          ? [{
+              amount: d.amount.toString(),
+              unstake_start_time: Number(d.unstakeStartTime),
+            }]
+          : []
+      )
 
       const staked = staking
         .reduce((acc, d) => acc.plus(d.amount.toString()), num(0))

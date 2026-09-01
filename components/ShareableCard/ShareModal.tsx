@@ -44,6 +44,8 @@ const cardTabs: { type: CardType; label: string }[] = [
 ]
 
 export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, initialCardType = 'portfolio' }) => {
+    // rerender-lazy-state-init FP: cardTabs is a fixed 5-item module-level array, so
+    // findIndex is an O(5) scan — not expensive enough to warrant a lazy initializer.
     const [activeTab, setActiveTab] = useState(cardTabs.findIndex(t => t.type === initialCardType) || 0)
     const [isExporting, setIsExporting] = useState(false)
     const [isCopying, setIsCopying] = useState(false)

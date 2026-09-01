@@ -18,11 +18,17 @@ interface ConditionChecks {
     firstVisit: boolean
 }
 
+// client-localstorage-no-version: versioned keys so a future change to the stored shape
+// (currently a JSON array of string ids) can bump the suffix and skip stale entries
+// instead of JSON.parse-ing (or misinterpreting) an old shape.
+const SHOWN_MESSAGES_KEY = 'ditto-shown-messages:v1'
+const VISITED_PAGES_KEY = 'ditto-visited-pages:v1'
+
 // Track shown messages across sessions
 const getShownMessages = (): Set<string> => {
     if (typeof window === 'undefined') return new Set()
     try {
-        const stored = localStorage.getItem('ditto-shown-messages')
+        const stored = localStorage.getItem(SHOWN_MESSAGES_KEY)
         return stored ? new Set(JSON.parse(stored)) : new Set()
     } catch {
         return new Set()
@@ -34,7 +40,7 @@ const saveShownMessage = (messageId: string) => {
     try {
         const shown = getShownMessages()
         shown.add(messageId)
-        localStorage.setItem('ditto-shown-messages', JSON.stringify([...shown]))
+        localStorage.setItem(SHOWN_MESSAGES_KEY, JSON.stringify([...shown]))
     } catch {
         // Ignore storage errors
     }
@@ -44,7 +50,7 @@ const saveShownMessage = (messageId: string) => {
 const getVisitedPages = (): Set<string> => {
     if (typeof window === 'undefined') return new Set()
     try {
-        const stored = localStorage.getItem('ditto-visited-pages')
+        const stored = localStorage.getItem(VISITED_PAGES_KEY)
         return stored ? new Set(JSON.parse(stored)) : new Set()
     } catch {
         return new Set()
@@ -56,7 +62,7 @@ const saveVisitedPage = (page: string) => {
     try {
         const visited = getVisitedPages()
         visited.add(page)
-        localStorage.setItem('ditto-visited-pages', JSON.stringify([...visited]))
+        localStorage.setItem(VISITED_PAGES_KEY, JSON.stringify([...visited]))
     } catch {
         // Ignore storage errors
     }
@@ -77,6 +83,10 @@ export const useTimedMessages = () => {
 
     const timerRef = useRef<NodeJS.Timeout | null>(null)
     const currentPageRef = useRef<string>('')
+    // Mirrors state.isVisible synchronously so the page-change effect below can read
+    // "is a message currently visible" without listing state.isVisible as a dependency —
+    // doing so would make the effect re-fire on its own dismissMessage()/showMessage() writes.
+    const isVisibleRef = useRef(false)
 
     // Check conditions for a message
     const checkConditions = useCallback((message: TimedMessage): boolean => {
@@ -130,6 +140,7 @@ export const useTimedMessages = () => {
             currentMessage: message,
             isVisible: true,
         }))
+        isVisibleRef.current = true
         setDittoSpeechBoxState({ currentTimedMessage: message.message })
 
         // Mark as shown if showOnce
@@ -149,6 +160,7 @@ export const useTimedMessages = () => {
             currentMessage: null,
             isVisible: false,
         }))
+        isVisibleRef.current = false
         setDittoSpeechBoxState({ currentTimedMessage: null, timedMessageDismissed: true })
     }, [setDittoSpeechBoxState])
 
@@ -180,7 +192,7 @@ export const useTimedMessages = () => {
         }
 
         // Dismiss current message on page change
-        if (state.isVisible) {
+        if (isVisibleRef.current) {
             dismissMessage()
         }
 
@@ -194,7 +206,10 @@ export const useTimedMessages = () => {
         if (nextMessage) {
             scheduleMessage(nextMessage)
         }
-    }, [router.pathname, findNextMessage, scheduleMessage, dismissMessage, state.isVisible])
+        // isVisibleRef (not state.isVisible) gates the dismiss above so this effect doesn't
+        // list its own transitive output as a dependency and re-fire itself after
+        // dismissMessage()/showMessage() update state.isVisible.
+    }, [router.pathname, findNextMessage, scheduleMessage, dismissMessage])
 
     // Cleanup on unmount
     useEffect(() => {

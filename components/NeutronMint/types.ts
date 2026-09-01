@@ -179,7 +179,7 @@ export function getLogoFromSymbol(symbol: string): string {
     'stATOM': '/images/statom.svg',
     'stOSMO': '/images/stosmo.svg',
     'INJ': '/images/inj.svg',
-    'CDT': '/images/cdt.png',
+    'CDT': '/images/cdt.svg',
   }
 
   return logoMap[symbol] || '/images/default-token.svg'

@@ -9,6 +9,8 @@ import TraitList from '@/components/Racing/TraitList'
 import CarPanel from '@/components/Racing/CarPanel'
 import QRacerTicker from '@/components/Racing/QRacerTicker'
 import TournamentBracket from '@/components/Racing/TournamentBracket'
+import OffchainMazeRun from '@/components/Racing/OffchainMazeRun'
+import Leaderboard from '@/components/Racing/Leaderboard'
 import useWallet from '@/hooks/useWallet'
 import { useOwnedCars } from '@/hooks/useQRacing'
 import useAppState from '@/persisted-state/useAppState'
@@ -221,9 +223,21 @@ const QRacer: React.FC = () => {
           )
         )}
         {activeTab === 'race' && (
-          <Box flex="1" border="2px solid #0033ff" p={2} bg="#070b15">
-            <RaceViewer />
-          </Box>
+          <VStack flex="1" align="stretch" spacing={4}>
+            {/* Play-first: with no minted car, the offchain maze run is the primary surface.
+                The on-chain spectator viewer stays intact below. */}
+            {(!ownedCars || ownedCars.length === 0) && (
+              <Box p={{ base: 2, md: 4 }}>
+                <OffchainMazeRun />
+              </Box>
+            )}
+            <Box p={{ base: 2, md: 4 }}>
+              <Leaderboard />
+            </Box>
+            <Box flex="1" border="2px solid #0033ff" p={2} bg="#070b15">
+              <RaceViewer />
+            </Box>
+          </VStack>
         )}
         {activeTab === 'pvp' && (
           <Box flex="1" border="2px solid #0033ff" p={2} bg="#070b15">

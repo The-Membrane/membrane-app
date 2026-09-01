@@ -8,11 +8,15 @@ import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import useAppState from '@/persisted-state/useAppState'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { DailyFirstTicker } from '@/components/Ticker/DailyFirstTicker'
 
 // Lazy load DittoHologram since it's conditionally rendered and contains heavy dependencies
-const DittoHologram = dynamic(() => import('./DittoHologram').then(m => ({ default: m.DittoHologram })), {
-  ssr: false,
-})
+const DittoHologram = dynamic(
+  () => import('./DittoHologram').then((m) => ({ default: m.DittoHologram })),
+  {
+    ssr: false,
+  },
+)
 
 interface LayoutProps {
   children: React.ReactNode
@@ -45,12 +49,9 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <Box minH="100vh" bg={SEMANTIC_COLORS.bgPrimary}>
       <HorizontalNav />
+      <DailyFirstTicker />
       <ChainLayout>
-        <Box
-          as="main"
-          justifyContent="center"
-          pb={{ base: "200px", md: "180px", lg: "180px" }}
-        >
+        <Box as="main" justifyContent="center" pb={{ base: '200px', md: '180px', lg: '180px' }}>
           <RPCStatus />
           {children}
         </Box>

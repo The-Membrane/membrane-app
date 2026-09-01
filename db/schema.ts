@@ -246,3 +246,54 @@ export const appSessions = pgTable(
   },
   (table) => [index('app_sessions_player_id_idx').on(table.playerId)],
 )
+
+// ---------------------------------------------------------------------------
+// onchain_results — rows land here from the chain indexer (built later against
+// lib/qgame ABIs), never from a public POST route. See lib/game/indexerSeam.ts for the
+// only write path (ingestOnchainResult). `wallet` is the source of truth identity here —
+// there is no players.id FK because on-chain racers may never have an offchain player
+// row. `board` mirrors the leaderboard board keys used by pages/api/game/leaderboard.ts:
+// 'ladder_time' | 'daily_time' | 'ghost_win' | 'byte_earned'. `value` is board-typed
+// (ticks for the time boards, wins for ghost, raw 6-decimal BYTE for byte_earned) — see
+// the board docs in lib/game/indexerSeam.ts for the exact unit per board. The unique
+// index on (board, tx_hash) is what makes re-running the indexer over the same block
+// range idempotent; tx_hash is nullable only for boards where a single tx can't be the
+// natural key (kept out of the unique constraint's NULLS DISTINCT default, which is fine
+// here since ingestOnchainResult always requires a tx_hash today).
+// ---------------------------------------------------------------------------
+
+export const onchainResults = pgTable(
+  'onchain_results',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    wallet: text('wallet').notNull(),
+    displayName: text('display_name'),
+    board: text('board').notNull(),
+    value: bigint('value', { mode: 'bigint' }).notNull(),
+    meta: jsonb('meta'),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    txHash: text('tx_hash'),
+  },
+  (table) => [
+    uniqueIndex('onchain_results_board_tx_hash_idx').on(table.board, table.txHash),
+    index('onchain_results_board_value_idx').on(table.board, table.value),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// daily_firsts — one row per UTC day, the wallet that reached the day's daily-run
+// finish line first on-chain. Written only by lib/game/indexerSeam.ts's
+// ingestDailyFirst, same indexer-only rule as onchain_results. `display_name` is the
+// raw value the indexer read on-chain (wallet-chosen, unmoderated); `clean_name` is
+// cleanDisplayName(display_name).clean (lib/game/cleanName.ts), computed once at
+// ingest and the ONLY of the two ever served publicly — see GET /api/game/ticker.
+// ---------------------------------------------------------------------------
+
+export const dailyFirsts = pgTable('daily_firsts', {
+  day: text('day').primaryKey(), // YYYY-MM-DD, UTC
+  wallet: text('wallet'),
+  displayName: text('display_name').notNull(),
+  cleanName: text('clean_name').notNull(),
+  occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+  txHash: text('tx_hash'),
+})

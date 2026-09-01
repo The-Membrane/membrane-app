@@ -65,7 +65,7 @@ const LifestyleEquivalence: React.FC = () => {
               {cover.toFixed(1).replace(/\.0$/, '')}× {x.nm}
             </Box>
             {blocks}
-            every month, at the measured rate
+            at the measured rate — paid continuously, not monthly
           </>
         ) : (
           <>
@@ -74,12 +74,12 @@ const LifestyleEquivalence: React.FC = () => {
               {(cover * 100).toFixed(0)}% of {x.nm}
             </Box>
             {blocks}
-            every month, at the measured rate
+            at the measured rate — paid continuously, not monthly
           </>
         )}
       </Text>
       <Text as="span" display="block" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.12em" mt="4px">
-        ${RATE_MO.toFixed(0)}/mo at the last-14-day measured rate · {x.approx ? '≈' : ''}$
+        ${RATE_MO.toFixed(0)}/mo is a RATE, not a payout schedule: revenue has no distribution window — it lands every block as it arrives. Measured over the last 14 days · {x.approx ? '≈' : ''}$
         {x.mo.toLocaleString('en-US')}/mo list price, Aug 2026 · click for the next one · {idx + 1} / {LIFE.length}
       </Text>
     </Box>

@@ -12,6 +12,7 @@ import { usd } from './format'
 import { CohortLens } from './CohortLens'
 import { DebtLens } from './DebtLens'
 import { TimeLens } from './TimeLens'
+import { ForecastGate } from './ForecastGate'
 import { useEvidence } from './useEvidence'
 import { EvidenceDoc, Lens } from './types'
 
@@ -71,6 +72,21 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
   const { doc, error, isLoading } = useEvidence(initialDoc)
 
   const active = LENSES.find((l) => l.id === lens)!
+
+  // One recorded call per browser. Persisted so a reload does not re-ask a question the
+  // user already answered, and so the result can later feed the same Brier pipeline the
+  // Builder uses (components/Builder/utils.ts brier()). Storage failures are swallowed:
+  // a private-mode browser must not break the page over a telemetry nicety.
+  const recordCall = React.useCallback((bandIndex: number, correct: boolean) => {
+    try {
+      window.localStorage.setItem(
+        'membrane.evidence.firstCall',
+        JSON.stringify({ bandIndex, correct }),
+      )
+    } catch {
+      /* storage unavailable — the in-session reveal still works */
+    }
+  }, [])
 
   return (
     <Container maxW="1200px" py={SPACING.xl} px={SPACING_PATTERNS.pagePadding}>
@@ -136,6 +152,16 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
 
         {doc ? (
           <>
+            {/* The first rep. Sits ABOVE the lens strip because the strip leaks the
+                answer in its headline figures — asking after that is not a forecast,
+                it is a reading comprehension test. See ForecastGate for why this is
+                calibration against a settled fact rather than prediction. */}
+            <ForecastGate
+              aaveMedianFrac={doc.debt.aaveMedianFrac}
+              membraneMedianFrac={doc.debt.membraneMedianFrac}
+              onCommit={recordCall}
+            />
+
             {/* Numbered section-opener strip. Each tab shows its own headline figure,
                 so the row reads as a summary before anything is clicked. Selection is
                 a phosphor rule under the active tab — no lift, no glow. */}

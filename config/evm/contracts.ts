@@ -30,6 +30,18 @@ export type ContractName =
   | 'collateral'
   | 'frontendLens'
   | 'cdpRouter'
+  // Q-Racing mint bridge (membrane-solidity script/DeployQRacingMint.s.sol, anvil).
+  // These live in the SAME per-chain address book; `pnpm sync-addresses` fills them from
+  // the DeployQRacingMint broadcast when present, else they stay zero placeholders. The
+  // qracing deploy stands up its own mock CDT/USDC/WETH + V2 router, so `qracingCdt` is a
+  // separate key from the protocol `cdt` above (they may differ per deploy).
+  | 'qracingMintClaim'
+  | 'qracingByteToken'
+  | 'qracingPetNFT'
+  | 'qracingCdt'
+  | 'qracingUsdc'
+  | 'qracingWeth'
+  | 'qracingRouter'
 
 export type Address = `0x${string}`
 

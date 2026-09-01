@@ -129,15 +129,21 @@ const HorizontalNav = () => {
                 commented out. Desktop ONLY: a separate centred logo already renders below
                 at the mobile breakpoint, and without this gate both draw at once and
                 collide with the hamburger. */}
-            <NextLink
+            {/* The DISPLAY GATE MUST BE ON THIS ELEMENT, not on an inner Box. The nav is
+                justify-content:space-between; a wrapper that stays in the flow with zero
+                width still counts as a flex item, so space-between distributed the
+                hamburger into the centre of the bar (measured x=135 on a 390px viewport)
+                where it collided with the absolutely-centred mobile logo. */}
+            <Box
+                as={NextLink}
                 href={`/${chainName}`}
                 aria-label="Membrane home"
-                style={{ display: 'flex', alignItems: 'center' }}
+                display={{ base: 'none', lg: 'flex' }}
+                alignItems="center"
+                flexShrink={0}
             >
-                <Box display={{ base: 'none', lg: 'block' }}>
-                    <Logo height="26px" />
-                </Box>
-            </NextLink>
+                <Logo height="34px" />
+            </Box>
             {/* <Stack spacing={0} alignContent={"start"}> */}
             {/* <Text
                         color={colors.tabBG}
@@ -316,7 +322,7 @@ const HorizontalNav = () => {
                         aria-label="Select chain"
                         w={"fit-content"}
                         rightIcon={<FaChevronDown />}
-                        leftIcon={<Image src={currentChain.logo} alt={`${currentChain.displayName} Logo`} boxSize={6} objectFit="contain" />}
+                        leftIcon={<Image src={currentChain.logo} alt={`${currentChain.displayName} Logo`} boxSize={7} objectFit="contain" />}
                         variant="ghost"
                         border="none"
                         color="#ece6d8"
@@ -335,7 +341,7 @@ const HorizontalNav = () => {
                                 cursor="pointer"
                             >
                                 <HStack>
-                                    <Image src={chain.logo} alt={`${chain.displayName} Logo`} boxSize={6} objectFit="contain" />
+                                    <Image src={chain.logo} alt={`${chain.displayName} Logo`} boxSize={7} objectFit="contain" />
                                     <Text>{chain.displayName}</Text>
                                 </HStack>
                             </MenuItem>
@@ -487,15 +493,30 @@ const HorizontalNav = () => {
                     </DrawerBody>
                 </DrawerContent>
             </Drawer>
-            {/* Centered logo for mobile */}
+            {/* Centered logo for mobile.
+                Absolutely centred on the NAV rather than placed in the flex flow, so it is
+                centred on the viewport instead of on whatever space is left between the
+                hamburger and the wallet controls. pointerEvents is disabled on the wrapper
+                so it never swallows taps meant for the controls it floats over, and
+                re-enabled on the link itself. */}
             <Box
                 position="absolute"
                 left="50%"
                 top="50%"
                 transform="translate(-50%, -50%)"
                 display={{ base: 'block', lg: 'none' }}
+                pointerEvents="none"
+                zIndex={1}
             >
-                <Logo />
+                <Box
+                    as={NextLink}
+                    href={`/${chainName}`}
+                    aria-label="Membrane home"
+                    display="block"
+                    pointerEvents="auto"
+                >
+                    <Logo height="34px" />
+                </Box>
             </Box>
         </Box>
     );

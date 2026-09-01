@@ -1,5 +1,5 @@
 import { Card, CardFooter, CardHeader, Stack, Text } from '@chakra-ui/react'
-import { ConnectButton } from '../WallectConnect'
+import ConnectButton from '../WallectConnect/ConnectButton'
 
 const LockedAccess = () => {
   return (

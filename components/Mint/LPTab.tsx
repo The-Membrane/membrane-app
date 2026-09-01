@@ -22,7 +22,7 @@ export const ErrorMessage = ({ outsidePriceRange = false }: { outsidePriceRange?
 }
 
 
-const LPTab = React.memo(() => {
+const LPTab = React.memo(function LPTab() {
   const cdt = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdt)
   const { LPState, setLPState } = useLPState()

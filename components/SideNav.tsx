@@ -11,9 +11,17 @@ import {
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { BidIcon, EarnIcon, ClaimIcon, HomeIcon, MintIcon, StakeIcon, NFTAuctionIcon, DashboardIcon, AboutIcon } from './Icons'
+import BidIcon from './Icons/BidIcon'
+import EarnIcon from './Icons/EarnIcon'
+import ClaimIcon from './Icons/ClaimIcon'
+import HomeIcon from './Icons/HomeIcon'
+import MintIcon from './Icons/MintIcon'
+import StakeIcon from './Icons/StakeIcon'
+import NFTAuctionIcon from './Icons/NFTAuctionIcon'
+import DashboardIcon from './Icons/DashboardIcon'
+import AboutIcon from './Icons/AboutIcon'
 import Logo from './Logo'
-import WallectConnect from './WallectConnect'
+import WallectConnect from './WallectConnect/WalletConnect'
 import { BalanceCard } from './BalanceCard'
 import { getAssetBySymbol } from '@/helpers/chain'
 import { useOraclePrice } from '@/hooks/useOracle'
@@ -55,15 +63,15 @@ const mobileNavItems: NavItems[] = [
   { label: 'About', href: '/about', ItemIcon: AboutIcon },
 ]
 
+const hoverStyles = {
+  borderRadius: '8px',
+  bg: 'primary.200',
+}
+
 const NavItem = ({ label, href, ItemIcon }: NavItems) => {
   const router = useRouter()
   const isActive = router.asPath === href
   const [isHovered, setIsHovered] = useState(false)
-
-  const hoverStyles = {
-    borderRadius: '8px',
-    bg: 'primary.200',
-  }
 
   return (
     <HStack
@@ -88,7 +96,7 @@ const NavItem = ({ label, href, ItemIcon }: NavItems) => {
   )
 }
 
-const getCDTPrice = () => {
+const useCDTPrice = () => {
   const { chainName } = useChainRoute()
   const cdt = getAssetBySymbol('CDT', chainName)
   const { data: prices } = useOraclePrice()
@@ -111,7 +119,7 @@ function SideNav() {
   const [enable_msgs, setEnableMsgs] = useState(false);
 
   // useEffect(() => {
-  const price = getCDTPrice();
+  const price = useCDTPrice();
   if (price !== cdtPrice && price !== '0') {
     setcdtPrice(price);
   }
@@ -132,22 +140,22 @@ function SideNav() {
 
   // Memoize static nav items
   const memoizedNavItems = useMemo(() =>
-    navItems.map((item, index) => (
-      <MemoizedNavItem key={index} {...item} />
+    navItems.map((item) => (
+      <MemoizedNavItem key={item.href} {...item} />
     ))
     , []);
 
   // Memoize static mobile nav items
   const memoizedMobileNavItems = useMemo(() =>
-    mobileNavItems.map((item, index) => (
-      <MemoizedNavItem key={index} {...item} />
+    mobileNavItems.map((item) => (
+      <MemoizedNavItem key={item.href} {...item} />
     ))
     , []);
 
   // Memoize price display
   const priceDisplay = useMemo(() => (
     <HStack justifyContent={"center"}>
-      <Image src={"/images/cdt.svg"} w="18px" h="18px" />
+      <Image src={"/images/cdt.png"} w="18px" h="18px" />
       <Text variant="title" letterSpacing="unset" textShadow={`0px 0px 8px ${colors.tabBG}`} fontSize={"medium"}>
         {cdtPrice != " " && cdtPrice != "0" ? "$" : null}{cdtPrice}
       </Text>

@@ -108,7 +108,7 @@ const HealthSlider = ({ summary }: { summary: any }) => {
 
 }
 
-const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
+const MintTabsCard = React.memo(function MintTabsCard({ summary }: { summary: any }) {
   const isMobile = useBreakpointValue({ base: true, xxs: true, xs: true, sm: true, md: true, lg: false })
   const { mintState, setMintState } = useMintState()
   const { data: basketPositions } = useUserPositions()
@@ -136,7 +136,7 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
   useEffect(() => {
     const overdraft = ltv > borrowLTV
     setMintState({ overdraft })
-  }, [ltv, borrowLTV])
+  }, [ltv, borrowLTV, setMintState])
 
   const onRest = () => {
     // console.log("onRest LTVS:", initialBorrowLTV, initialLTV)
@@ -232,7 +232,7 @@ const MintTabsCard = React.memo(({ summary }: { summary: any }) => {
   )
 })
 
-const Mint = React.memo(() => {
+const Mint = React.memo(function Mint() {
   const isMobile = useBreakpointValue({ base: true, xxs: true, xs: true, sm: true, md: true, lg: false })
   const { data } = useVaultSummary()
   const { data: basketPositions } = useUserPositions()
@@ -269,7 +269,7 @@ const Mint = React.memo(() => {
     if (rulesState.cdpShow || rulesState.cdpShow === undefined) {
       onOnboardOpen()
     }
-  }, [rulesState.cdpShow])
+  }, [rulesState.cdpShow, onOnboardClose, onOnboardOpen])
 
 
   return (
@@ -285,7 +285,7 @@ const Mint = React.memo(() => {
               onClick={() => { setAdvanced(!useAdvanced) }}
               width={"fit-content"}
               backgroundColor={"transparent"}
-              fontFamily="Inter"
+              fontFamily="var(--font-inter)"
               fontWeight={"500"}
             >
               {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}
@@ -303,7 +303,7 @@ const Mint = React.memo(() => {
                   onClick={() => { setAdvanced(!useAdvanced) }}
                   width={"fit-content"}
                   backgroundColor={"transparent"}
-                  fontFamily="Inter"
+                  fontFamily="var(--font-inter)"
                   fontWeight={"500"}
                 >
                   {useAdvanced ? "Use Simplifed Mode" : "Use Advanced Mode"}

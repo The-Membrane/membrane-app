@@ -235,7 +235,6 @@
 // }
 
 
-import { colors } from '@/config/defaults';
 import { Card, CardBody, CardFooter, CardHeader, Checkbox, FormControl, FormLabel, HStack, Input, Stack, Text } from '@chakra-ui/react';
 import { useEffect, useMemo } from 'react';
 import useManagerState, { LTVRamp, UpdateOverallMarket } from './hooks/useManagerState';
@@ -247,13 +246,56 @@ import { useManagedConfig, useManagedMarket, useMarketCollateralDenoms } from '@
 import useAssets, { useAssetByDenom } from '@/hooks/useAssets';
 import { useRouter } from 'next/router';
 import { DEFAULT_CHAIN } from '@/config/chains';
-import { getMarketName } from '@/services/managed';
+import { useMarketName } from '@/services/managed';
 import useUpdateMarket from './hooks/useUpdateMarket';
 import ConfirmModal from '../ConfirmModal';
 import ManagedMarketSummary from './ManagedMarketSummary';
 import UpdateSummary from './UpdateSummary';
 import useUpdateCollateral from './hooks/useUpdateCollateral';
 import Select from '../Select';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { TYPOGRAPHY } from '@/helpers/typography';
+import { SPACING } from '@/config/spacing';
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions';
+
+// Living Typeface: sharp corners, bone hairlines, mono labels/inputs.
+const MANAGE_CARD = {
+  bg: SEMANTIC_COLORS.bgSecondary,
+  borderRadius: 0,
+  border: '1px solid',
+  borderColor: SEMANTIC_COLORS.borderMedium,
+};
+
+const FIELD_LABEL = {
+  fontFamily: TYPOGRAPHY.fontMono,
+  fontSize: TYPOGRAPHY.label,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.28em',
+  color: SEMANTIC_COLORS.textSecondary,
+};
+
+const FIELD_INPUT = {
+  fontFamily: TYPOGRAPHY.fontMono,
+  bg: SEMANTIC_COLORS.bgTertiary,
+  color: SEMANTIC_COLORS.textPrimary,
+  borderRadius: 0,
+  border: '1px solid',
+  borderColor: SEMANTIC_COLORS.borderSubtle,
+  transition: TRANSITIONS.colors,
+  sx: { fontVariantNumeric: 'tabular-nums' as const },
+  _placeholder: { color: SEMANTIC_COLORS.textTertiary },
+  _hover: HOVER_EFFECTS.borderHighlight,
+  _focus: FOCUS_STYLES.ring,
+};
+
+const ADD_BUTTON = {
+  fontFamily: TYPOGRAPHY.fontMono,
+  borderRadius: 0,
+  transition: TRANSITIONS.colors,
+  _hover: HOVER_EFFECTS.borderHighlight,
+  _active: ACTIVE_EFFECTS.dim,
+  _focus: FOCUS_STYLES.ring,
+};
 
 export function WhitelistedAddressInput({
   value,
@@ -280,7 +322,7 @@ export function WhitelistedAddressInput({
 
   return (
     <Box>
-      <Stack direction="row" mb={2}>
+      <Stack direction="row" mb={SPACING.sm}>
         <Input
           value={input}
           placeholder="Enter address"
@@ -291,20 +333,26 @@ export function WhitelistedAddressInput({
               handleAddAddress();
             }
           }}
+          {...FIELD_INPUT}
         />
-        <Button onClick={handleAddAddress}>Add</Button>
+        <Button onClick={handleAddAddress} {...ADD_BUTTON}>Add</Button>
       </Stack>
 
       <Stack spacing={1}>
         {(value || []).map((addr, idx) => (
-          <Flex key={idx} align="center" justify="space-between" bg="gray.50" p={2} borderRadius="md">
-            <Text fontSize="sm" color="gray.700" isTruncated maxW="80%">
+          <Flex key={addr} align="center" justify="space-between" bg={SEMANTIC_COLORS.bgTertiary} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} p={SPACING.sm} borderRadius={0}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} isTruncated maxW="80%">
               {addr}
             </Text>
             <IconButton
               size="sm"
               variant="ghost"
-              colorScheme="red"
+              color={SEMANTIC_COLORS.danger}
+              borderRadius={0}
+              transition={TRANSITIONS.colors}
+              _hover={{ color: SEMANTIC_COLORS.danger, bg: SEMANTIC_COLORS.bgSecondary }}
+              _active={ACTIVE_EFFECTS.dim}
+              _focus={FOCUS_STYLES.ring}
               aria-label="Remove address"
               icon={<CloseIcon boxSize={8} />}
               justifyContent={'end'}
@@ -339,7 +387,7 @@ export function MarketCard({ title, initialData, marketContract }: MarketCardPro
   //on data change, update the manager state
   useEffect(() => {
     setManagerState({ updateOverallMarket: data });
-  }, [data]);
+  }, [data, setManagerState]);
 
 
   const isDisabled = useMemo(() => {
@@ -347,33 +395,40 @@ export function MarketCard({ title, initialData, marketContract }: MarketCardPro
   }, [initialData, data]);
 
   return (
-    <Card width="400px">
-      <CardHeader fontWeight="bold" fontSize="xl">
+    <Card width="400px" {...MANAGE_CARD}>
+      <CardHeader
+        fontFamily={TYPOGRAPHY.fontDisplay}
+        fontWeight={TYPOGRAPHY.semibold}
+        fontSize={TYPOGRAPHY.h2}
+        color={SEMANTIC_COLORS.textPrimary}
+      >
         {title}
       </CardHeader>
 
       <CardBody>
-        <Stack spacing={4}>
+        <Stack spacing={SPACING.base}>
           <FormControl>
-            <FormLabel>Manager Fee (%)</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Manager Fee (%)</FormLabel>
             <Input
               value={data.manager_fee ?? ''}
               placeholder="Enter manager fee"
               onChange={(e) => handleChange('manager_fee', Number(e.target.value) / 100)}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Debt Supply Cap</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Debt Supply Cap</FormLabel>
             <Input
               value={data.debt_supply_cap ?? ''}
               placeholder="Enter debt supply cap (CDT)"
               onChange={(e) => handleChange('debt_supply_cap', e.target.value)}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Whitelisted Debt Suppliers</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Whitelisted Debt Suppliers</FormLabel>
             <WhitelistedAddressInput
               value={data.whitelisted_debt_suppliers}
               onChange={(newList) => handleChange('whitelisted_debt_suppliers', newList)}
@@ -384,6 +439,20 @@ export function MarketCard({ title, initialData, marketContract }: MarketCardPro
             <Checkbox
               isChecked={data.pause_actions ?? false}
               onChange={(e) => handleChange('pause_actions', e.target.checked)}
+              fontFamily={TYPOGRAPHY.fontMono}
+              transition={TRANSITIONS.colors}
+              _focus={FOCUS_STYLES.ring}
+              sx={{
+                '& .chakra-checkbox__control': {
+                  borderRadius: 0,
+                  borderColor: SEMANTIC_COLORS.borderStrong,
+                },
+                '& .chakra-checkbox__control[data-checked]': {
+                  bg: SEMANTIC_COLORS.primary,
+                  borderColor: SEMANTIC_COLORS.primary,
+                  color: SEMANTIC_COLORS.bgPrimary,
+                },
+              }}
             >
               Pause Actions
             </Checkbox>}
@@ -433,7 +502,7 @@ export function WhitelistedCollateralSupplierInput({
 
   return (
     <Box>
-      <Stack direction="row" mb={2}>
+      <Stack direction="row" mb={SPACING.sm}>
         <Input
           value={input}
           placeholder="Enter collateral supplier address"
@@ -444,20 +513,26 @@ export function WhitelistedCollateralSupplierInput({
               handleAddSupplier();
             }
           }}
+          {...FIELD_INPUT}
         />
-        <Button onClick={handleAddSupplier}>Add</Button>
+        <Button onClick={handleAddSupplier} {...ADD_BUTTON}>Add</Button>
       </Stack>
 
       <Stack spacing={1}>
         {(value || []).map((addr, idx) => (
-          <Flex key={idx} align="center" justify="space-between" bg="gray.50" p={2} borderRadius="md">
-            <Text fontSize="sm" color="gray.700" isTruncated maxW="80%">
+          <Flex key={addr} align="center" justify="space-between" bg={SEMANTIC_COLORS.bgTertiary} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} p={SPACING.sm} borderRadius={0}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} isTruncated maxW="80%">
               {addr}
             </Text>
             <IconButton
               size="sm"
               variant="ghost"
-              colorScheme="red"
+              color={SEMANTIC_COLORS.danger}
+              borderRadius={0}
+              transition={TRANSITIONS.colors}
+              _hover={{ color: SEMANTIC_COLORS.danger, bg: SEMANTIC_COLORS.bgSecondary }}
+              _active={ACTIVE_EFFECTS.dim}
+              _focus={FOCUS_STYLES.ring}
               aria-label="Remove supplier"
               icon={<CloseIcon boxSize={8} />}
               onClick={() => handleRemoveSupplier(idx)}
@@ -525,7 +600,7 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
   // Update manager state when data changes
   useEffect(() => {
     setManagerState({ updateCollateralParams: data });
-  }, [data]);
+  }, [data, setManagerState]);
 
   const isDisabled = useMemo(() => {
     return JSON.stringify(data) === JSON.stringify(initialData);
@@ -541,44 +616,42 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
   }, [asset]);
 
   return (
-    <Card width="400px">
+    <Card width="400px" {...MANAGE_CARD}>
       <CardHeader>
         <FormControl>
-          <FormLabel>Collateral</FormLabel>
-          <div style={{ 
-            width: "fit-content", 
-            alignSelf: "center", 
-            marginTop: "3%" 
-          }}><Select 
-            options={options} 
-            onChange={(opt: CollateralOption | null) => { if (opt) setSelectedCollateral(opt); }} 
+          <FormLabel {...FIELD_LABEL}>Collateral</FormLabel>
+          <Box width="fit-content" alignSelf="center" mt={SPACING.sm}><Select
+            options={options}
+            onChange={(opt: CollateralOption | null) => { if (opt) setSelectedCollateral(opt); }}
             value={selectedCollateral}
-          /></div>
+          /></Box>
         </FormControl>
       </CardHeader>
 
       <CardBody>
-        <Stack spacing={4}>
+        <Stack spacing={SPACING.base}>
           <FormControl>
-            <FormLabel>Max Borrow LTV (as %)</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Max Borrow LTV (as %)</FormLabel>
             <Input
               value={data.max_borrow_LTV !== undefined && data.max_borrow_LTV !== '' ? String(Number(data.max_borrow_LTV) * 100) : ''}
               placeholder="Enter max borrow LTV (as %)"
               onChange={(e) => handleChange('max_borrow_LTV', e.target.value === '' ? '' : String(Number(e.target.value) / 100))}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Borrow Fee (as %)</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Borrow Fee (as %)</FormLabel>
             <Input
               value={data.borrow_fee !== undefined && data.borrow_fee !== '' ? String(Number(data.borrow_fee) * 100) : ''}
               placeholder="Enter borrow fee (as %)"
               onChange={(e) => handleChange('borrow_fee', e.target.value === '' ? '' : String(Number(e.target.value) / 100))}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Whitelisted Collateral Suppliers</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Whitelisted Collateral Suppliers</FormLabel>
             <WhitelistedCollateralSupplierInput
               value={data.whitelisted_collateral_suppliers}
               onChange={(newList) => handleChange('whitelisted_collateral_suppliers', newList)}
@@ -586,43 +659,47 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
           </FormControl>
 
           <FormControl>
-            <FormLabel>Per User Debt Cap</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Per User Debt Cap</FormLabel>
             <Input
               value={data.per_user_debt_cap ?? ''}
               placeholder="Enter per user debt cap (CDT)"
               onChange={(e) => handleChange('per_user_debt_cap', e.target.value)}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Debt Minimum</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Debt Minimum</FormLabel>
             <Input
               value={data.debt_minimum ?? ''}
               placeholder="Enter debt minimum (CDT)"
               onChange={(e) => handleChange('debt_minimum', e.target.value)}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Max Slippage</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Max Slippage</FormLabel>
             <Input
               value={data.max_slippage ?? ''}
               placeholder="Enter max slippage (decimal)"
               onChange={(e) => handleChange('max_slippage', e.target.value)}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Liquidation LTV (as %)</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Liquidation LTV (as %)</FormLabel>
             <Input
               value={data.liquidation_LTV?.end_ltv !== undefined && data.liquidation_LTV?.end_ltv !== '' ? String(Number(data.liquidation_LTV.end_ltv) * 100) : ''}
               placeholder="Enter liquidation LTV (as %)"
               onChange={(e) => handleChange('liquidation_LTV', { end_time: 3, end_ltv: e.target.value === '' ? '' : String(Number(e.target.value) / 100) })}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Rate Params (base_rate, rate_max, [rate_multiplier, kink_starting_point_ratio])</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Rate Params (base_rate, rate_max, [rate_multiplier, kink_starting_point_ratio])</FormLabel>
             <Input
               value={data.rate_params ? [data.rate_params.base_rate, data.rate_params.rate_max, data.rate_params.rate_kink?.rate_mulitplier, data.rate_params.rate_kink?.kink_starting_point_ratio].filter(Boolean).join(',') : ''}
               placeholder="e.g. 0.01,0.2,0.5,0.8"
@@ -637,11 +714,12 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
                 }
                 handleChange('rate_params', Object.keys(rate_params).length ? rate_params : undefined);
               }}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Borrow Cap (fixed_cap, cap_borrows_by_liquidity)</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Borrow Cap (fixed_cap, cap_borrows_by_liquidity)</FormLabel>
             <Input
               value={data.borrow_cap ? [data.borrow_cap.fixed_cap, data.borrow_cap.cap_borrows_by_liquidity].filter(v => v !== undefined).join(',') : ''}
               placeholder="e.g. 1000000,true"
@@ -652,15 +730,17 @@ export function CollateralCard({ options, initialData, marketContract }: Collate
                 if (cap_borrows_by_liquidity !== undefined) borrow_cap.cap_borrows_by_liquidity = cap_borrows_by_liquidity === 'true';
                 handleChange('borrow_cap', Object.keys(borrow_cap).length ? borrow_cap : undefined);
               }}
+              {...FIELD_INPUT}
             />
           </FormControl>
 
           <FormControl>
-            <FormLabel>Pool IDs for Oracle and Liquidations (comma separated)</FormLabel>
+            <FormLabel {...FIELD_LABEL}>Pool IDs for Oracle and Liquidations (comma separated)</FormLabel>
             <Input
               value={data.pool_for_oracle_and_liquidations ? (Array.isArray(data.pool_for_oracle_and_liquidations) ? data.pool_for_oracle_and_liquidations.map((p: any) => p.poolId).join(',') : data.pool_for_oracle_and_liquidations) : ''}
               placeholder="e.g. 1,2,3"
               onChange={(e) => handleChange('pool_for_oracle_and_liquidations', e.target.value)}
+              {...FIELD_INPUT}
             />
           </FormControl>
         </Stack>
@@ -692,6 +772,13 @@ interface ManagePageProps {
   marketAddress?: string;
 }
 
+const defaultUpdateOverallMarket: UpdateOverallMarket = {
+  pause_actions: false,
+  manager_fee: '',
+  whitelisted_debt_suppliers: [],
+  debt_supply_cap: '',
+};
+
 const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
   const router = useRouter();
   const chainName = router.query.chainName as string || DEFAULT_CHAIN;
@@ -705,7 +792,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
   // };
 
   // Get market name
-  const marketName = getMarketName(marketAddress as string);
+  const marketName = useMarketName(marketAddress as string);
   
   // Fetch all assets for the selected chain
   const assets = useAssets(chainName);
@@ -725,16 +812,9 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
   console.log("collateralOptions", collateralOptions);
 
 
-  const defaultUpdateOverallMarket: UpdateOverallMarket = {
-    pause_actions: false,
-    manager_fee: '',
-    whitelisted_debt_suppliers: [],
-    debt_supply_cap: '',
-  };
-
   return (
-    <HStack spacing={4} direction="row" align="stretch">
-      <Box p={8}>
+    <HStack spacing={SPACING.base} direction="row" align="stretch">
+      <Box p={SPACING.xl}>
         <MarketCard
           title={marketName}
           initialData={defaultUpdateOverallMarket}
@@ -742,7 +822,7 @@ const ManagePage: React.FC<ManagePageProps> = ({ marketAddress }) => {
           // onEditCollateral={handleEditCollateral}
         />
       </Box>
-      <Box p={8}>
+      <Box p={SPACING.xl}>
         <CollateralCard
           options={collateralOptions}
           initialData={{ collateral_denom: collateralOptions[0]?.value || '' }}

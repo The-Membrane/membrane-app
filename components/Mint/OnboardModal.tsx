@@ -16,14 +16,7 @@ import {
 import { useCallback } from 'react'
 import { colors } from '@/config/defaults'
 import useMembersRulesState from '../MembersRules/useRules'
-
-export const notes = [
-    "You can add any number of collateral to your bundle",
-    "Individual collateral parameters influence the overall loan parameters",
-    "Interest rates automatically increase when CDT depegs",
-    "Liquidations are partial, ~25% ",
-    "Deposits and withdrawals are limited by supply caps if you have debt"
-]
+import { notes } from './onboardNotes'
 
 export const OnboardModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
     const { setRulesState } = useMembersRulesState()
@@ -57,7 +50,7 @@ export const OnboardModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: ()
 
                             <UnorderedList spacing={1} pl="7">
                                 {notes.map((rule, index) => (
-                                    <ListItem key={index} fontSize={isMobile ? "sm" : "lg"} fontWeight="bold">
+                                    <ListItem key={rule} fontSize={isMobile ? "sm" : "lg"} fontWeight="bold">
                                         {rule}
                                     </ListItem>
                                 ))}

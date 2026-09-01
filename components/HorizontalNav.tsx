@@ -125,8 +125,20 @@ const HorizontalNav = () => {
             zIndex={100}
         >
             {/* Left: Logo, Title, Page Selector or Hamburger */}
+            {/* Restored — the desktop header had rendered no logo at all while this was
+                commented out. Desktop ONLY: a separate centred logo already renders below
+                at the mobile breakpoint, and without this gate both draw at once and
+                collide with the hamburger. */}
+            <NextLink
+                href={`/${chainName}`}
+                aria-label="Membrane home"
+                style={{ display: 'flex', alignItems: 'center' }}
+            >
+                <Box display={{ base: 'none', lg: 'block' }}>
+                    <Logo height="26px" />
+                </Box>
+            </NextLink>
             {/* <Stack spacing={0} alignContent={"start"}> */}
-            {/* <Logo /> */}
             {/* <Text
                         color={colors.tabBG}
                         fontSize="2xs"

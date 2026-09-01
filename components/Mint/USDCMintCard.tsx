@@ -59,7 +59,7 @@ export const USDCMintCard = () => {
             });
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [quickActionState?.usdcMint.deposit, setQuickActionState, depositMaxAmount])
+    }, [quickActionState?.usdcMint.deposit, setQuickActionState, depositMaxAmount, quickActionState?.usdcMint?.mint])
 
 
     //USDC to CDT amount conversion
@@ -106,7 +106,7 @@ export const USDCMintCard = () => {
             });
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [quickActionState?.usdcMint.mint, setQuickActionState, mintMaxAmount])
+    }, [quickActionState?.usdcMint.mint, setQuickActionState, mintMaxAmount, quickActionState?.usdcMint?.deposit])
 
     return (
         <Card boxShadow={"0 0 25px rgba(90, 90, 90, 0.5)"} alignSelf={"center"} mt="3%">
@@ -141,7 +141,7 @@ export const USDCMintCard = () => {
             <Stack>
                 <HStack width="100%" justifyContent="left">
                     <HStack width="75%">
-                        <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+                        <Image src={"/images/cdt.png"} w="30px" h="30px" />
                         <Text variant="title" textTransform={"none"} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                             Borrow CDT
                         </Text>

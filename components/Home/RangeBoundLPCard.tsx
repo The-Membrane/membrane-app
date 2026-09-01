@@ -26,7 +26,7 @@ import YieldCounter from "./YieldCounter"
 import useAppState from "@/persisted-state/useAppState"
 import { useChainRoute } from "@/hooks/useChainRoute"
 
-const ActSlider = React.memo(() => {
+const ActSlider = React.memo(function ActSlider() {
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const { chainName } = useChainRoute()
   const boundCDTAsset = useAssetBySymbol('range-bound-CDT', chainName)

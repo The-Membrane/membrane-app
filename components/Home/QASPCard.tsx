@@ -22,7 +22,7 @@ import { useChainRoute } from "@/hooks/useChainRoute"
 import { colors } from "@/config/defaults"
 import { useColorModeValue } from "@chakra-ui/react"
 
-const ActSlider = React.memo(() => {
+const ActSlider = React.memo(function ActSlider() {
   const { quickActionState, setQuickActionState } = useQuickActionState()
   const { chainName } = useChainRoute()
   const earnCDTAsset = useAssetBySymbol('earnCDT', chainName)
@@ -75,11 +75,11 @@ const ActSlider = React.memo(() => {
   return (
     <Stack gap="0" borderWidth={"1px"} borderColor={colors.earnText} borderRadius={"2rem"}>
       <HStack justifyContent="space-between" padding={"4%"}>
-        <Text fontSize="lg" fontFamily="Inter" variant="lable" textTransform="unset">
+        <Text fontSize="lg" fontFamily="var(--font-inter)" variant="lable" textTransform="unset">
           CDT in Vault
         </Text>
         <HStack>
-          <Text fontFamily="Inter" variant="value">${pendingBalance.toFixed(2)}</Text>
+          <Text fontFamily="var(--font-inter)" variant="value">${pendingBalance.toFixed(2)}</Text>
         </HStack>
       </HStack>
       <SliderWithState
@@ -119,16 +119,16 @@ const SPCard = ({ width = "33%", title = "Liquidate CDT" }: { width?: string, ti
   return (
     <Card width={width} borderRadius="2xl" boxShadow="lg" p={8} bg={cardBg}>
       <Stack>
-        <Text fontFamily="Inter" variant="title" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="white">{title}</Text>
+        <Text fontFamily="var(--font-inter)" variant="title" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color="white">{title}</Text>
         <Stack>
-          <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.slider }}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-          <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.earnText }}>Estimated APR: N/A</a></Text>
+          <Text fontFamily="var(--font-inter)" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><span style={{ fontWeight: "bold", color: colors.slider }}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</span> <span className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</span></Text>
+          <Text fontFamily="var(--font-inter)" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><span style={{ fontWeight: "bold", color: colors.earnText }}>Estimated APR: N/A</span></Text>
         </Stack>
         <Divider marginBottom={"3vh"} />
         <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-          <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: colors.slider }}>Yield:</a> Compounded Liquidations (no longer gets revenue)</ListItem>
-          <ListItem fontFamily="Inter" fontSize="md">Vault won't compound over 10% slippage. Holds assets otherwise.</ListItem>
-          <ListItem fontFamily="Inter" fontSize="md">Minimum Deposit: 6 CDT</ListItem>
+          <ListItem fontFamily="var(--font-inter)" fontSize="md"><span style={{ fontWeight: "bold", color: colors.slider }}>Yield:</span> Compounded Liquidations (no longer gets revenue)</ListItem>
+          <ListItem fontFamily="var(--font-inter)" fontSize="md">Vault won&apos;t compound over 10% slippage. Holds assets otherwise.</ListItem>
+          <ListItem fontFamily="var(--font-inter)" fontSize="md">Minimum Deposit: 6 CDT</ListItem>
         </List>
         <ActSlider />
         <Divider marginTop={"3"} marginBottom={"3"} />

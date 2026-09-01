@@ -14,6 +14,12 @@ import { shiftDigits } from '@/helpers/math';
 import { num } from '@/helpers/num';
 import BigNumber from 'bignumber.js';
 import type { ManagedConfig } from '@/components/ManagedMarkets/hooks/useManagerState';
+import type { LendState } from './hooks/useLendState';
+import type { Action } from '@/types/tx';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { TYPOGRAPHY } from '@/helpers/typography';
+import { SPACING } from '@/config/spacing';
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions';
 
 // Helper to get BigNumber safely
 const bn = (v: any) => num(v || 0);
@@ -151,6 +157,280 @@ const computeTrancheAPRs = (
     return result;
 };
 
+type LendSupplyPanelProps = {
+    lendState: LendState;
+    setLendState: (partial: Partial<LendState>) => void;
+    coreAPR: string | null;
+    growthAPR: string | null;
+    cdtBalance: string;
+    handleSetMax: () => void;
+    handleSupplyAmountChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    lend: Action;
+};
+
+// Inner content of the "Lend" TabPanel. Rendered as a child of the literal
+// <TabPanel> in LendMarketAction so Chakra's TabPanels clone (isSelected/id)
+// still lands on the real TabPanel element.
+const LendSupplyPanel = ({
+    lendState,
+    setLendState,
+    coreAPR,
+    growthAPR,
+    cdtBalance,
+    handleSetMax,
+    handleSupplyAmountChange,
+    lend,
+}: LendSupplyPanelProps) => {
+    return (
+        <>
+                        {/* Tranche Selection for Lend */}
+                        <VStack align="stretch" w="100%" mb={4} p={3} bg={SEMANTIC_COLORS.bgTertiary} borderRadius={0} spacing={3}>
+                            <Text color={SEMANTIC_COLORS.textPrimary} fontSize="sm" fontWeight="medium" mb={2}>Yield Strategy</Text>
+                            <RadioGroup value={lendState.isJunior ? "growth" : "core"} onChange={(value) => setLendState({ isJunior: value === "growth" })}>
+                                <VStack align="stretch" spacing={3}>
+                                    <HStack justify="space-between" align="flex-start" p={2} borderRadius={0} _hover={{ bg: SEMANTIC_COLORS.bgTertiary }}>
+                                        <HStack spacing={2} flex={1}>
+                                            <Radio value="core" colorScheme="teal" />
+                                            <VStack align="flex-start" spacing={1} flex={1}>
+                                                <HStack spacing={2}>
+                                                    <HStack spacing={1} align="center">
+                                                        <Text color={SEMANTIC_COLORS.textPrimary} fontSize="sm" fontWeight="medium">Core</Text>
+                                                        {coreAPR && <Text color={SEMANTIC_COLORS.info} fontSize="xs">{coreAPR}%</Text>}
+                                                    </HStack>
+                                                    <Tooltip
+                                                        label="Core: Stable returns with lower risk exposure. Protected from initial losses but limited upside capture."
+                                                        placement="top"
+                                                        hasArrow
+                                                    >
+                                                        <Icon as={InfoIcon} color={SEMANTIC_COLORS.textSecondary} boxSize={3} cursor="help" />
+                                                    </Tooltip>
+                                                </HStack>
+                                                <Text color={SEMANTIC_COLORS.textSecondary} fontSize="xs">Lower risk, stable returns</Text>
+                                            </VStack>
+                                        </HStack>
+                                    </HStack>
+
+                                    <HStack justify="space-between" align="flex-start" p={2} borderRadius={0} _hover={{ bg: SEMANTIC_COLORS.bgTertiary }}>
+                                        <HStack spacing={2} flex={1}>
+                                            <Radio value="growth" colorScheme="teal" />
+                                            <VStack align="flex-start" spacing={1} flex={1}>
+                                                <HStack spacing={2}>
+                                                    <HStack spacing={1} align="center">
+                                                        <Text color={SEMANTIC_COLORS.textPrimary} fontSize="sm" fontWeight="medium">Growth</Text>
+                                                        {growthAPR && <Text color={SEMANTIC_COLORS.info} fontSize="xs">{growthAPR}%</Text>}
+                                                    </HStack>
+                                                    <Tooltip
+                                                        label="Growth: Higher potential returns but increased risk exposure. First to absorb losses but first to capture upside."
+                                                        placement="top"
+                                                        hasArrow
+                                                    >
+                                                        <Icon as={InfoIcon} color={SEMANTIC_COLORS.textSecondary} boxSize={3} cursor="help" />
+                                                    </Tooltip>
+                                                </HStack>
+                                                <Text color={SEMANTIC_COLORS.textSecondary} fontSize="xs">Higher risk, potentially higher returns</Text>
+                                            </VStack>
+                                        </HStack>
+                                    </HStack>
+                                </VStack>
+                            </RadioGroup>
+                        </VStack>
+
+                        {/* Lend Tab */}
+                        <HStack justify="space-between" align="flex-start" w="100%" mb={4}>
+                            <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm" fontWeight="medium" alignSelf="center" >Supply Amount</Text>
+                            <VStack align="flex-end" spacing={1}>
+                                <HStack bg={SEMANTIC_COLORS.bgTertiary} borderRadius="full" px={3} py={1} spacing={2}>
+                                    <Image src={CDT_ASSET.logo} alt={CDT_ASSET.symbol} boxSize="24px" />
+                                    <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{CDT_ASSET.symbol}</Text>
+                                </HStack>
+                                <Text
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    fontSize="sm"
+                                    cursor="pointer"
+                                    _hover={{ textDecoration: 'underline', color: 'teal.300' }}
+                                    onClick={handleSetMax}
+                                >
+                                    Wallet: {Formatter.toNearestNonZero(cdtBalance)}
+                                </Text>
+                            </VStack>
+                        </HStack>
+
+                        <Input
+                            variant="unstyled"
+                            fontSize="3xl"
+                            fontWeight="bold"
+                            color={SEMANTIC_COLORS.textPrimary}
+                            value={lendState.supplyAmount}
+                            onChange={handleSupplyAmountChange}
+                            type="number"
+                            min={0}
+                            placeholder="0"
+                            w="100%"
+                            _placeholder={{ color: SEMANTIC_COLORS.textTertiary }}
+                            paddingInlineEnd={"3"}
+                        />
+                        <ConfirmModal
+                            label={"LEND"}
+                            action={lend}
+                            isDisabled={!lendState.supplyAmount || Number(lendState.supplyAmount) <= 0}
+                        >
+                            <Card w="100%" bg={SEMANTIC_COLORS.bgTertiary} borderRadius={0} p={6} mt={0} mb={2}>
+                                <Text fontWeight="semibold" mb={2}>Pending Lend:</Text>
+                                <VStack align="stretch" spacing={2} fontSize="xs">
+                                    <HStack justify="space-between">
+                                        <Text color={SEMANTIC_COLORS.textSecondary}>Supply Amount</Text>
+                                        <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{lendState.supplyAmount} CDT</Text>
+                                    </HStack>
+                                    <HStack justify="space-between">
+                                        <Text color={SEMANTIC_COLORS.textSecondary}>Tranche</Text>
+                                        <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">
+                                            {lendState.isJunior ? "Growth" : "Core"}
+                                        </Text>
+                                    </HStack>
+                                </VStack>
+                            </Card>
+                        </ConfirmModal>
+        </>
+    );
+};
+
+type LendWithdrawPanelProps = {
+    lendState: LendState;
+    setLendState: (partial: Partial<LendState>) => void;
+    coreAPR: string | null;
+    growthAPR: string | null;
+    withdrawMax: string;
+    handleSetMaxWithdraw: () => void;
+    handleWithdrawAmountChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    lend: Action;
+};
+
+// Inner content of the "Withdraw" TabPanel. Rendered as a child of the literal
+// <TabPanel> in LendMarketAction so Chakra's TabPanels clone (isSelected/id)
+// still lands on the real TabPanel element.
+const LendWithdrawPanel = ({
+    lendState,
+    setLendState,
+    coreAPR,
+    growthAPR,
+    withdrawMax,
+    handleSetMaxWithdraw,
+    handleWithdrawAmountChange,
+    lend,
+}: LendWithdrawPanelProps) => {
+    return (
+        <>
+                        {/* Tranche Selection for Withdraw */}
+                        <VStack align="stretch" w="100%" mb={4} p={3} bg={SEMANTIC_COLORS.bgTertiary} borderRadius={0} spacing={3}>
+                            <Text color={SEMANTIC_COLORS.textPrimary} fontSize="sm" fontWeight="medium" mb={2}>Withdraw From</Text>
+                            <RadioGroup value={lendState.isJunior ? "growth" : "core"} onChange={(value) => setLendState({ isJunior: value === "growth" })}>
+                                <VStack align="stretch" spacing={3}>
+                                    <HStack justify="space-between" align="flex-start" p={2} borderRadius={0} _hover={{ bg: SEMANTIC_COLORS.bgTertiary }}>
+                                        <HStack spacing={2} flex={1}>
+                                            <Radio value="core" colorScheme="teal" />
+                                            <VStack align="flex-start" spacing={1} flex={1}>
+                                                <HStack spacing={2}>
+                                                    <HStack spacing={1} align="center">
+                                                        <Text color={SEMANTIC_COLORS.textPrimary} fontSize="sm" fontWeight="medium">Core Balance</Text>
+                                                        {coreAPR && <Text color={SEMANTIC_COLORS.info} fontSize="xs">{coreAPR}%</Text>}
+                                                    </HStack>
+                                                    <Tooltip
+                                                        label="Core Balance: Withdraw from your core position (lower risk/stable returns)"
+                                                        placement="top"
+                                                        hasArrow
+                                                    >
+                                                        <Icon as={InfoIcon} color={SEMANTIC_COLORS.textSecondary} boxSize={3} cursor="help" />
+                                                    </Tooltip>
+                                                </HStack>
+                                                <Text color={SEMANTIC_COLORS.textSecondary} fontSize="xs">Withdraw from core position</Text>
+                                            </VStack>
+                                        </HStack>
+                                    </HStack>
+
+                                    <HStack justify="space-between" align="flex-start" p={2} borderRadius={0} _hover={{ bg: SEMANTIC_COLORS.bgTertiary }}>
+                                        <HStack spacing={2} flex={1}>
+                                            <Radio value="growth" colorScheme="teal" />
+                                            <VStack align="flex-start" spacing={1} flex={1}>
+                                                <HStack spacing={2}>
+                                                    <HStack spacing={1} align="center">
+                                                        <Text color={SEMANTIC_COLORS.textPrimary} fontSize="sm" fontWeight="medium">Growth Balance</Text>
+                                                        {growthAPR && <Text color={SEMANTIC_COLORS.info} fontSize="xs">{growthAPR}%</Text>}
+                                                    </HStack>
+                                                    <Tooltip
+                                                        label="Growth Balance: Withdraw from your growth position (higher risk/reward)"
+                                                        placement="top"
+                                                        hasArrow
+                                                    >
+                                                        <Icon as={InfoIcon} color={SEMANTIC_COLORS.textSecondary} boxSize={3} cursor="help" />
+                                                    </Tooltip>
+                                                </HStack>
+                                                <Text color={SEMANTIC_COLORS.textSecondary} fontSize="xs">Withdraw from growth position</Text>
+                                            </VStack>
+                                        </HStack>
+                                    </HStack>
+                                </VStack>
+                            </RadioGroup>
+                        </VStack>
+
+                        {/* Withdraw Tab */}
+                        <HStack justify="space-between" align="flex-start" w="100%" mb={4}>
+                            <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm" fontWeight="medium" alignSelf="center">Withdraw Amount</Text>
+                            <VStack align="flex-end" spacing={1}>
+                                <HStack bg={SEMANTIC_COLORS.bgTertiary} borderRadius="full" px={3} py={1} spacing={2}>
+                                    <Image src={CDT_ASSET.logo} alt={CDT_ASSET.symbol} boxSize="24px" />
+                                    <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{CDT_ASSET.symbol}</Text>
+                                </HStack>
+                                <Text
+                                    color={SEMANTIC_COLORS.textSecondary}
+                                    fontSize="sm"
+                                    cursor="pointer"
+                                    _hover={{ textDecoration: 'underline', color: 'teal.300' }}
+                                    onClick={handleSetMaxWithdraw}
+                                >
+                                    Max: {Formatter.toNearestNonZero(withdrawMax)}
+                                </Text>
+                            </VStack>
+                        </HStack>
+
+                        <Input
+                            variant="unstyled"
+                            fontSize="3xl"
+                            fontWeight="bold"
+                            color={SEMANTIC_COLORS.textPrimary}
+                            value={lendState.withdrawAmount}
+                            onChange={handleWithdrawAmountChange}
+                            type="number"
+                            min={0}
+                            placeholder="0"
+                            w="100%"
+                            _placeholder={{ color: SEMANTIC_COLORS.textTertiary }}
+                            paddingInlineEnd={"3"}
+                        />
+                        <ConfirmModal
+                            label={"WITHDRAW"}
+                            action={lend}
+                            isDisabled={!lendState.withdrawAmount || Number(lendState.withdrawAmount) <= 0}
+                        >
+                            <Card w="100%" bg={SEMANTIC_COLORS.bgTertiary} borderRadius={0} p={6} mt={0} mb={2}>
+                                <Text fontWeight="semibold" mb={2}>Pending Withdraw:</Text>
+                                <VStack align="stretch" spacing={2} fontSize="xs">
+                                    <HStack justify="space-between">
+                                        <Text color={SEMANTIC_COLORS.textSecondary}>Withdraw Amount</Text>
+                                        <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{lendState.withdrawAmount} CDT</Text>
+                                    </HStack>
+                                    <HStack justify="space-between">
+                                        <Text color={SEMANTIC_COLORS.textSecondary}>Tranche</Text>
+                                        <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">
+                                            {lendState.isJunior ? "Growth Balance" : "Core Balance"}
+                                        </Text>
+                                    </HStack>
+                                </VStack>
+                            </Card>
+                        </ConfirmModal>
+        </>
+    );
+};
+
 const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
     const { lendState, setLendState } = useLendState();
 
@@ -197,7 +477,7 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
     const vaultTokenAsset = {
         base: vaultTokenDenom,
         symbol: lendState.isJunior ? 'jvCDT' : 'vCDT',
-        logo: '/images/cdt.svg',
+        logo: '/images/cdt.png',
         decimal: 12,
         isLP: false,
         name: lendState.isJunior ? 'Junior Vault CDT' : 'Vault CDT',
@@ -227,9 +507,9 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
 
     return (
         <Card
-            borderRadius="2xl"
-            border="4px solid #232A3E"
-            bg="#20232C"
+            borderRadius={0}
+            border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}
+            bg={SEMANTIC_COLORS.bgSecondary}
             p={{ base: 4, md: 8 }}
             h="fit-content"
             maxW="600px"
@@ -246,222 +526,28 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
                 </TabList>
                 <TabPanels>
                     <TabPanel px={0}>
-                        {/* Tranche Selection for Lend */}
-                        <VStack align="stretch" w="100%" mb={4} p={3} bg="#1a2330" borderRadius="lg" spacing={3}>
-                            <Text color="white" fontSize="sm" fontWeight="medium" mb={2}>Yield Strategy</Text>
-                            <RadioGroup value={lendState.isJunior ? "growth" : "core"} onChange={(value) => setLendState({ isJunior: value === "growth" })}>
-                                <VStack align="stretch" spacing={3}>
-                                    <HStack justify="space-between" align="flex-start" p={2} borderRadius="md" _hover={{ bg: "whiteAlpha.50" }}>
-                                        <HStack spacing={2} flex={1}>
-                                            <Radio value="core" colorScheme="teal" />
-                                            <VStack align="flex-start" spacing={1} flex={1}>
-                                                <HStack spacing={2}>
-                                                    <HStack spacing={1} align="center">
-                                                        <Text color="white" fontSize="sm" fontWeight="medium">Core</Text>
-                                                        {coreAPR && <Text color="teal.200" fontSize="xs">{coreAPR}%</Text>}
-                                                    </HStack>
-                                                    <Tooltip
-                                                        label="Core: Stable returns with lower risk exposure. Protected from initial losses but limited upside capture."
-                                                        placement="top"
-                                                        hasArrow
-                                                    >
-                                                        <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="help" />
-                                                    </Tooltip>
-                                                </HStack>
-                                                <Text color="whiteAlpha.600" fontSize="xs">Lower risk, stable returns</Text>
-                                            </VStack>
-                                        </HStack>
-                                    </HStack>
-
-                                    <HStack justify="space-between" align="flex-start" p={2} borderRadius="md" _hover={{ bg: "whiteAlpha.50" }}>
-                                        <HStack spacing={2} flex={1}>
-                                            <Radio value="growth" colorScheme="teal" />
-                                            <VStack align="flex-start" spacing={1} flex={1}>
-                                                <HStack spacing={2}>
-                                                    <HStack spacing={1} align="center">
-                                                        <Text color="white" fontSize="sm" fontWeight="medium">Growth</Text>
-                                                        {growthAPR && <Text color="teal.200" fontSize="xs">{growthAPR}%</Text>}
-                                                    </HStack>
-                                                    <Tooltip
-                                                        label="Growth: Higher potential returns but increased risk exposure. First to absorb losses but first to capture upside."
-                                                        placement="top"
-                                                        hasArrow
-                                                    >
-                                                        <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="help" />
-                                                    </Tooltip>
-                                                </HStack>
-                                                <Text color="whiteAlpha.600" fontSize="xs">Higher risk, potentially higher returns</Text>
-                                            </VStack>
-                                        </HStack>
-                                    </HStack>
-                                </VStack>
-                            </RadioGroup>
-                        </VStack>
-
-                        {/* Lend Tab */}
-                        <HStack justify="space-between" align="flex-start" w="100%" mb={4}>
-                            <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium" alignSelf="center" >Supply Amount</Text>
-                            <VStack align="flex-end" spacing={1}>
-                                <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
-                                    <Image src={CDT_ASSET.logo} alt={CDT_ASSET.symbol} boxSize="24px" />
-                                    <Text color="white" fontWeight="bold">{CDT_ASSET.symbol}</Text>
-                                </HStack>
-                                <Text
-                                    color="whiteAlpha.700"
-                                    fontSize="sm"
-                                    cursor="pointer"
-                                    _hover={{ textDecoration: 'underline', color: 'teal.300' }}
-                                    onClick={handleSetMax}
-                                >
-                                    Wallet: {Formatter.toNearestNonZero(cdtBalance)}
-                                </Text>
-                            </VStack>
-                        </HStack>
-
-                        <Input
-                            variant="unstyled"
-                            fontSize="3xl"
-                            fontWeight="bold"
-                            color="white"
-                            value={lendState.supplyAmount}
-                            onChange={handleSupplyAmountChange}
-                            type="number"
-                            min={0}
-                            placeholder="0"
-                            w="100%"
-                            _placeholder={{ color: 'whiteAlpha.400' }}
-                            paddingInlineEnd={"3"}
+                        <LendSupplyPanel
+                            lendState={lendState}
+                            setLendState={setLendState}
+                            coreAPR={coreAPR}
+                            growthAPR={growthAPR}
+                            cdtBalance={cdtBalance}
+                            handleSetMax={handleSetMax}
+                            handleSupplyAmountChange={handleSupplyAmountChange}
+                            lend={lend}
                         />
-                        <ConfirmModal
-                            label={"LEND"}
-                            action={lend}
-                            isDisabled={!lendState.supplyAmount || Number(lendState.supplyAmount) <= 0}
-                        >
-                            <Card w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>
-                                <Text fontWeight="semibold" mb={2}>Pending Lend:</Text>
-                                <VStack align="stretch" spacing={2} fontSize="xs">
-                                    <HStack justify="space-between">
-                                        <Text color="whiteAlpha.700">Supply Amount</Text>
-                                        <Text color="white" fontWeight="bold">{lendState.supplyAmount} CDT</Text>
-                                    </HStack>
-                                    <HStack justify="space-between">
-                                        <Text color="whiteAlpha.700">Tranche</Text>
-                                        <Text color="white" fontWeight="bold">
-                                            {lendState.isJunior ? "Growth" : "Core"}
-                                        </Text>
-                                    </HStack>
-                                </VStack>
-                            </Card>
-                        </ConfirmModal>
                     </TabPanel>
                     <TabPanel px={0}>
-                        {/* Tranche Selection for Withdraw */}
-                        <VStack align="stretch" w="100%" mb={4} p={3} bg="#1a2330" borderRadius="lg" spacing={3}>
-                            <Text color="white" fontSize="sm" fontWeight="medium" mb={2}>Withdraw From</Text>
-                            <RadioGroup value={lendState.isJunior ? "growth" : "core"} onChange={(value) => setLendState({ isJunior: value === "growth" })}>
-                                <VStack align="stretch" spacing={3}>
-                                    <HStack justify="space-between" align="flex-start" p={2} borderRadius="md" _hover={{ bg: "whiteAlpha.50" }}>
-                                        <HStack spacing={2} flex={1}>
-                                            <Radio value="core" colorScheme="teal" />
-                                            <VStack align="flex-start" spacing={1} flex={1}>
-                                                <HStack spacing={2}>
-                                                    <HStack spacing={1} align="center">
-                                                        <Text color="white" fontSize="sm" fontWeight="medium">Core Balance</Text>
-                                                        {coreAPR && <Text color="teal.200" fontSize="xs">{coreAPR}%</Text>}
-                                                    </HStack>
-                                                    <Tooltip
-                                                        label="Core Balance: Withdraw from your core position (lower risk/stable returns)"
-                                                        placement="top"
-                                                        hasArrow
-                                                    >
-                                                        <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="help" />
-                                                    </Tooltip>
-                                                </HStack>
-                                                <Text color="whiteAlpha.600" fontSize="xs">Withdraw from core position</Text>
-                                            </VStack>
-                                        </HStack>
-                                    </HStack>
-
-                                    <HStack justify="space-between" align="flex-start" p={2} borderRadius="md" _hover={{ bg: "whiteAlpha.50" }}>
-                                        <HStack spacing={2} flex={1}>
-                                            <Radio value="growth" colorScheme="teal" />
-                                            <VStack align="flex-start" spacing={1} flex={1}>
-                                                <HStack spacing={2}>
-                                                    <HStack spacing={1} align="center">
-                                                        <Text color="white" fontSize="sm" fontWeight="medium">Growth Balance</Text>
-                                                        {growthAPR && <Text color="teal.200" fontSize="xs">{growthAPR}%</Text>}
-                                                    </HStack>
-                                                    <Tooltip
-                                                        label="Growth Balance: Withdraw from your growth position (higher risk/reward)"
-                                                        placement="top"
-                                                        hasArrow
-                                                    >
-                                                        <Icon as={InfoIcon} color="whiteAlpha.600" boxSize={3} cursor="help" />
-                                                    </Tooltip>
-                                                </HStack>
-                                                <Text color="whiteAlpha.600" fontSize="xs">Withdraw from growth position</Text>
-                                            </VStack>
-                                        </HStack>
-                                    </HStack>
-                                </VStack>
-                            </RadioGroup>
-                        </VStack>
-
-                        {/* Withdraw Tab */}
-                        <HStack justify="space-between" align="flex-start" w="100%" mb={4}>
-                            <Text color="whiteAlpha.700" fontSize="sm" fontWeight="medium" alignSelf="center">Withdraw Amount</Text>
-                            <VStack align="flex-end" spacing={1}>
-                                <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
-                                    <Image src={CDT_ASSET.logo} alt={CDT_ASSET.symbol} boxSize="24px" />
-                                    <Text color="white" fontWeight="bold">{CDT_ASSET.symbol}</Text>
-                                </HStack>
-                                <Text
-                                    color="whiteAlpha.700"
-                                    fontSize="sm"
-                                    cursor="pointer"
-                                    _hover={{ textDecoration: 'underline', color: 'teal.300' }}
-                                    onClick={handleSetMaxWithdraw}
-                                >
-                                    Max: {Formatter.toNearestNonZero(withdrawMax)}
-                                </Text>
-                            </VStack>
-                        </HStack>
-
-                        <Input
-                            variant="unstyled"
-                            fontSize="3xl"
-                            fontWeight="bold"
-                            color="white"
-                            value={lendState.withdrawAmount}
-                            onChange={handleWithdrawAmountChange}
-                            type="number"
-                            min={0}
-                            placeholder="0"
-                            w="100%"
-                            _placeholder={{ color: 'whiteAlpha.400' }}
-                            paddingInlineEnd={"3"}
+                        <LendWithdrawPanel
+                            lendState={lendState}
+                            setLendState={setLendState}
+                            coreAPR={coreAPR}
+                            growthAPR={growthAPR}
+                            withdrawMax={withdrawMax}
+                            handleSetMaxWithdraw={handleSetMaxWithdraw}
+                            handleWithdrawAmountChange={handleWithdrawAmountChange}
+                            lend={lend}
                         />
-                        <ConfirmModal
-                            label={"WITHDRAW"}
-                            action={lend}
-                            isDisabled={!lendState.withdrawAmount || Number(lendState.withdrawAmount) <= 0}
-                        >
-                            <Card w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>
-                                <Text fontWeight="semibold" mb={2}>Pending Withdraw:</Text>
-                                <VStack align="stretch" spacing={2} fontSize="xs">
-                                    <HStack justify="space-between">
-                                        <Text color="whiteAlpha.700">Withdraw Amount</Text>
-                                        <Text color="white" fontWeight="bold">{lendState.withdrawAmount} CDT</Text>
-                                    </HStack>
-                                    <HStack justify="space-between">
-                                        <Text color="whiteAlpha.700">Tranche</Text>
-                                        <Text color="white" fontWeight="bold">
-                                            {lendState.isJunior ? "Growth Balance" : "Core Balance"}
-                                        </Text>
-                                    </HStack>
-                                </VStack>
-                            </Card>
-                        </ConfirmModal>
                     </TabPanel>
                 </TabPanels>
             </Tabs>
@@ -469,4 +555,4 @@ const LendMarketAction = ({ marketAddress }: { marketAddress: any }) => {
     );
 };
 
-export default LendMarketAction; 
+export default LendMarketAction;

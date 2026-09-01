@@ -29,7 +29,7 @@ const DepositingText = ({ selectedAsset, ossifiedDeposits, transactionValue, onA
     return (
         <>
             {assets.map((asset: any, index: number) => (
-                <React.Fragment key={`${asset.symbol}-${index}`}>
+                <React.Fragment key={asset.symbol}>
                     <Text
                         as="span"
                         color="white"
@@ -63,19 +63,18 @@ export const InitialCDPDeposit = () => {
 
     const assetsWithOptions = useMemo(() => {
         return mintState.assets
-            ?.filter((asset) => !ossifiedDeposits.some(a => a.symbol === asset?.symbol))
-            .map((asset) => ({
+            ?.flatMap((asset) => (!ossifiedDeposits.some(a => a.symbol === asset?.symbol) ? [{
                 ...asset,
                 value: asset?.symbol,
                 label: asset?.symbol,
-            }))
+            }] : []))
     }, [mintState.assets, ossifiedDeposits]);
 
     useEffect(() => {
         if (mintState.assets && mintState.assets.length > 0 && assetsWithOptions?.[0] && (!selectedAsset || selectedAsset?.walletsdValue === 0)) {
             setSelectedAsset(assetsWithOptions?.[0]);
         }
-    }, [assetsWithOptions]);
+    }, [assetsWithOptions, mintState.assets, selectedAsset]);
 
     //Handle Reset Button
     useEffect(() => {
@@ -230,7 +229,7 @@ export const InitialCDPDeposit = () => {
                     onClick={() => { setOssifiedDeposits([...ossifiedDeposits, { ...selectedAsset, amountValue: transactionValue, txType: "deposit" }]); setSelectedAsset(undefined); setTransactionValue(""); }}
                     width={"fit-content"}
                     isDisabled={Number(transactionValue) === 0}
-                    fontFamily="Inter"
+                    fontFamily="var(--font-inter)"
                     fontWeight={"500"}
                     background={"transparent"}
                 >

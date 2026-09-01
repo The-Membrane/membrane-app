@@ -117,7 +117,7 @@ export const usePositionOverview = ({ positionIndex = 0 }: { positionIndex: numb
 
   // Extract denoms for price history (always include BTC as vol baseline)
   const denoms = useMemo(() => {
-    const positionDenoms = positions.filter(p => p && num(p.amount).isGreaterThan(0)).map(p => p.denom)
+    const positionDenoms = positions.flatMap(p => (p && num(p.amount).isGreaterThan(0)) ? [p.denom] : [])
     if (!positionDenoms.includes(BTC_DENOM)) {
       positionDenoms.push(BTC_DENOM)
     }

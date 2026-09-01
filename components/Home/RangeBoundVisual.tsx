@@ -1,7 +1,7 @@
 import { useOraclePrice } from "@/hooks/useOracle"
 import { Slider, SliderTrack, SliderThumb, Box, Flex, Text, Stack, Card, HStack, useBreakpointValue, Button } from "@chakra-ui/react"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { getCLPositionsForVault } from "@/services/osmosis"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCLPositionsForVault } from "@/services/osmosis"
 import { colors } from "@/config/defaults"
 import React from "react"
 import useToaster from "@/hooks/useToaster"
@@ -57,9 +57,18 @@ function ToastButton({ isLoading, isDisabled, onClick }) {
   );
 }
 
+// Generate tick marks and labels
+const ticks = [
+  { value: 1.001, label: '1.001' },
+  { value: 0.9999, label: '0.999' },
+  { value: 0.990, label: '0.990' },
+  { value: 0.9889, label: '0.989' },
+  // { value: 0.988, label: '0.988' },
+];
+
 const RangeBoundVisual = () => {
   const toaster = useToaster();
-  const [hasShownToast, setHasShownToast] = useState(false);
+  const hasShownToastRef = useRef(false);
   const { action: set } = useSetUserRBClaims()
 
 
@@ -77,7 +86,7 @@ const RangeBoundVisual = () => {
     // console.log("isDisabled points track", isDisabled, isLoading)
     // console.log("error", set?.simulate.isError, set?.simulate.errorMessage, set?.simulate.data, set?.simulate.error)
 
-    if (!hasShownToast && !isDisabled && !isLoading) {
+    if (!hasShownToastRef.current && !isDisabled && !isLoading) {
       toaster.message({
         title: 'Execute to Set Points Tracker for Range Bound LP',
         message: (
@@ -89,8 +98,8 @@ const RangeBoundVisual = () => {
         ),
         duration: null
       });
-      setHasShownToast(true);
-    } else if (hasShownToast && !isDisabled && isLoading) {
+      hasShownToastRef.current = true;
+    } else if (hasShownToastRef.current && !isDisabled && isLoading) {
       toaster.dismiss();
       toaster.message({
         title: 'Execute to Set Points Tracker for Range Bound LP',
@@ -111,7 +120,7 @@ const RangeBoundVisual = () => {
   const [cSwitch, setCSwitch] = useState(false)
   const [fSwitch, setFSwitch] = useState(false)
 
-  const { data: positions } = getCLPositionsForVault()
+  const { data: positions } = useCLPositionsForVault()
   const { data: prices } = useOraclePrice()
 
   const cdtPrice = useMemo(() => {
@@ -120,15 +129,6 @@ const RangeBoundVisual = () => {
     )?.price
     return parseFloat(price ?? "0")
   }, [prices])
-
-  // Generate tick marks and labels
-  const ticks = [
-    { value: 1.001, label: '1.001' },
-    { value: 0.9999, label: '0.999' },
-    { value: 0.990, label: '0.990' },
-    { value: 0.9889, label: '0.989' },
-    // { value: 0.988, label: '0.988' },
-  ];
 
   const { data: realizedAPR } = useBoundedCDTRealizedAPR()
   const { data: TVL } = useBoundedTVL()
@@ -141,18 +141,18 @@ const RangeBoundVisual = () => {
   return (
     <Card gap={0} width={isMobile ? "100%" : "66%"} maxWidth="720px" borderWidth={3} height={isMobile ? "45vh" : "100%"}>
 
-      <Text alignSelf="center" fontFamily="Inter" fontSize="xl" fontWeight={"bold"} pb="1rem">
-        <a style={{ fontWeight: "bold", color: colors.earnText }}>
+      <Text alignSelf="center" fontFamily="var(--font-inter)" fontSize="xl" fontWeight={"bold"} pb="1rem">
+        <span style={{ fontWeight: "bold", color: colors.earnText }}>
           {realizedAPR?.runningDuration ? realizedAPR?.runningDuration.toFixed(0) + "D" : ""} Realized APY: &nbsp;
-        </a>
-        <a>
+        </span>
+        <span>
           {realizedAPR?.negative ? "(-" : "("}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%)" : "loading...)"}
-        </a>
+        </span>
       </Text>
 
       <HStack justifyContent="center" pb="1rem">
-        <Text alignSelf="center" fontFamily="Inter" fontSize="16px" fontWeight={"bold"}> TVL: ${(num(shiftDigits(TVL ?? "0", -6)).times(cdtPrice).toFixed(2))}</Text>
-        {/* <Text alignSelf="center" fontFamily="Inter" fontSize="16px"> with {Number(shiftDigits(existingBuffer ?? "0", -6)).toFixed(0)} CDT Waiting to Sell High</Text> */}
+        <Text alignSelf="center" fontFamily="var(--font-inter)" fontSize="16px" fontWeight={"bold"}> TVL: ${(num(shiftDigits(TVL ?? "0", -6)).times(cdtPrice).toFixed(2))}</Text>
+        {/* <Text alignSelf="center" fontFamily="var(--font-inter)" fontSize="16px"> with {Number(shiftDigits(existingBuffer ?? "0", -6)).toFixed(0)} CDT Waiting to Sell High</Text> */}
       </HStack>
 
 

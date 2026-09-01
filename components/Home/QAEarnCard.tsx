@@ -21,7 +21,7 @@ import useEarnState from "../Earn/hooks/useEarnState"
 import useEarn from "../Earn/hooks/useEarn"
 import { colors } from "@/config/defaults"
 
-const ActSlider = React.memo(({ isDisabled }: { isDisabled: boolean }) => {
+const ActSlider = React.memo(function ActSlider({ isDisabled }: { isDisabled: boolean }) {
   const { earnState, setEarnState } = useEarnState()
   const earnUSDCAsset = useAssetBySymbol('earnUSDC')
   const earnUSDCBalance = useBalanceByAsset(earnUSDCAsset) ?? "1"
@@ -73,11 +73,11 @@ const ActSlider = React.memo(({ isDisabled }: { isDisabled: boolean }) => {
   return (
     <Stack gap="0" borderWidth={"1px"} borderColor="rgb(226, 216, 218)" borderRadius={"2rem"}>
       <HStack justifyContent="space-between" padding={"4%"}>
-        <Text fontSize="lg" fontFamily="Inter" variant="lable" textTransform="unset">
+        <Text fontSize="lg" fontFamily="var(--font-inter)" variant="lable" textTransform="unset">
           USDC in Vault
         </Text>
         <HStack>
-          <Text fontFamily="Inter" variant="value">${pendingBalance.toFixed(2)}</Text>
+          <Text fontFamily="var(--font-inter)" variant="value">${pendingBalance.toFixed(2)}</Text>
         </HStack>
       </HStack>
       <SliderWithState
@@ -148,16 +148,16 @@ const EarnCard = () => {
   return (
     <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
       <Stack>
-        <Text fontFamily="Inter" variant="title" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Earn USDC</Text>
+        <Text fontFamily="var(--font-inter)" variant="title" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Earn USDC</Text>
         <Stack>
-          <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.slider }}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</a> <a className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</a></Text>
-          <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.earnText }}>Estimated APR: &nbsp;</a> {longestAPR}</Text>
+          <Text fontFamily="var(--font-inter)" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><span style={{ fontWeight: "bold", color: colors.slider }}>{realizedAPR ? `${realizedAPR?.runningDuration.toString()}D` : "Real"} APY: &nbsp;</span> <span className="textShadow">{realizedAPR?.negative ? "-" : ""}{(realizedAPR && realizedAPR.apr) ? num(realizedAPR?.apr).times(100).toFixed(1) + "%" : "loading..."}</span></Text>
+          <Text fontFamily="var(--font-inter)" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><span style={{ fontWeight: "bold", color: colors.earnText }}>Estimated APR: &nbsp;</span> {longestAPR}</Text>
         </Stack>
         <Divider marginBottom={"3vh"} />
         <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-          <ListItem fontFamily="Inter" fontSize="md"><a style={{ fontWeight: "bold", color: colors.slider }}>Yield:</a> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
-          <ListItem fontFamily="Inter" fontSize="md">You <a style={{ fontWeight: "bold", color: colors.alert }}>pay</a> unloop costs to exit</ListItem>
-          <ListItem fontFamily="Inter" fontSize="md">Deposits <a style={isDisabled ? { fontWeight: "bold", color: colors.alert } : {}}>disabled</a> above 200 Debt</ListItem>
+          <ListItem fontFamily="var(--font-inter)" fontSize="md"><span style={{ fontWeight: "bold", color: colors.slider }}>Yield:</span> Looped Mars USDC yield, CDT Redemptions & 0.5% entry fee</ListItem>
+          <ListItem fontFamily="var(--font-inter)" fontSize="md">You <span style={{ fontWeight: "bold", color: colors.alert }}>pay</span> unloop costs to exit</ListItem>
+          <ListItem fontFamily="var(--font-inter)" fontSize="md">Deposits <span style={isDisabled ? { fontWeight: "bold", color: colors.alert } : {}}>disabled</span> above 200 Debt</ListItem>
         </List>
         <ActSlider isDisabled={isDisabled} />
         <Divider marginTop={"3vh"} />

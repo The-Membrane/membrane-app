@@ -12,9 +12,9 @@ type Props = {
  * (docs/audits/01-cosmos-callsite-ledger.md §3.1). Gutted to a no-op that emits no msgs so
  * the export keeps compiling; the component-layer removal comes in a later wave.
  */
-const useLP = ({ txSuccess }: Props) => {
-  const msgs: EvmCall[] = []
+const msgs: EvmCall[] = []
 
+const useLP = ({ txSuccess }: Props) => {
   return useSimulateAndBroadcast({
     msgs,
     queryKey: ['CL_pool_LP', 'evm-stub'],

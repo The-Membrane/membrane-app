@@ -1,8 +1,8 @@
 import { num } from '@/helpers/num'
-import { Box, Button, HStack, Image, Text, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react'
+import { Box, Button, HStack, Image, Text, VStack, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react'
 import { useBasket, useCreditRate, useRates } from '@/hooks/useCDP'
 import useAppState from '@/persisted-state/useAppState'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { BorrowRowData } from './types'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { useAssetBySymbol } from '@/hooks/useAssets'
@@ -10,10 +10,23 @@ import { BorrowModal } from './BorrowModal'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { Card } from '@/components/ui/Card'
 import { ResponsiveTableContainer, MobileCard, MobileCardDataItem } from '@/components/ui/ResponsiveTable'
+import { useTransmuterConfig, useTransmuterVaultInfo } from '@/hooks/useTransmuterData'
 
 interface AvailableToBorrowProps {
   onBorrow?: (denom: string) => void
   positionIndex?: number
+}
+
+/**
+ * A price the oracle did not answer for is UNKNOWN, not $1 and not $0.
+ * See tools/ui-sensory/UNKNOWN-STATE-CONVENTION.md R2 — `$1` is the worst possible
+ * fallback in a CDP app because it is peg-shaped and therefore unreviewable.
+ */
+export const resolveOraclePrice = (raw: unknown): number | null => {
+  if (raw === null || raw === undefined || raw === '') return null
+  const parsed = num(raw as any).toNumber()
+  if (!Number.isFinite(parsed) || parsed <= 0) return null
+  return parsed
 }
 
 export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBorrowProps) => {
@@ -24,13 +37,38 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
   const { data: rates } = useRates(appState.rpcUrl)
   const { data: prices } = useOraclePrice()
 
+  // Transmuter data for mint fee
+  const { data: transmuterConfig } = useTransmuterConfig()
+  const { data: vaultInfo } = useTransmuterVaultInfo()
+
+  // Compute USDC mint fee subtitle
+  const mintFeeSubtitle = useMemo(() => {
+    if (!transmuterConfig || !vaultInfo) return 'Mint Fee: N/A'
+
+    const totalDeposit = parseFloat(vaultInfo.total_deposit_value || '0')
+    const pairedBalance = parseFloat(vaultInfo.paired_asset_balance || '0')
+    const threshold = parseFloat(transmuterConfig.usage_fee_utilization_threshold || '0.8')
+    const usageFee = parseFloat(transmuterConfig.usage_fee || '0')
+
+    if (totalDeposit <= 0) return 'Mint Fee: N/A'
+
+    const utilization = 1 - (pairedBalance / totalDeposit)
+
+    if (utilization >= threshold && usageFee > 0) {
+      return `Mint Fee: ${(usageFee * 100).toFixed(1)}%`
+    }
+
+    return 'Mint Fee: N/A'
+  }, [transmuterConfig, vaultInfo])
+
   // Modal state
   const [borrowModalOpen, setBorrowModalOpen] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<{
     symbol: 'CDT' | 'USDC'
     denom: string
     logo: string
-    price: number
+    /** null = the oracle has not answered for this denom; never substitute a number */
+    price: number | null
   } | null>(null)
 
   // Get asset info for CDT and USDC
@@ -38,11 +76,12 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
   const usdcAsset = useAssetBySymbol('USDC', chainName)
 
   // Helper to safely get denom from AssetInfo union type
-  const getCdtDenom = () => {
+  // Memoized so borrowRows useMemo can depend on a stable reference.
+  const getCdtDenom = useCallback(() => {
     if (!basket?.credit_asset?.info) return cdtAsset?.base || ''
     const info = basket.credit_asset.info as any
     return info.native_token?.denom || info.token?.address || cdtAsset?.base || ''
-  }
+  }, [basket, cdtAsset])
 
   // Available borrow assets (CDT and USDC only)
   const borrowRows = useMemo<BorrowRowData[]>(() => {
@@ -56,7 +95,7 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
     // CDT row - always show
     rows.push({
       symbol: 'CDT',
-      logo: cdtAsset?.logo || '/images/cdt.svg',
+      logo: cdtAsset?.logo || '/images/cdt.png',
       denom: getCdtDenom(),
       borrowApy: creditInterest,
       liquidityAvailable: -1, // -1 indicates unlimited/mintable
@@ -79,27 +118,39 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
       logo: usdcAsset?.logo || '/images/usdc.svg',
       denom: usdcAsset?.base || '',
       borrowApy: pegRate,
-      liquidityAvailable: usdcEnabled ? -1 : 0, // Protocol-Issued when enabled
-      liquidityUsdValue: usdcEnabled ? -1 : 0,
+      liquidityAvailable: usdcEnabled ? -1 : -2, // -1 = Protocol-Issued, -2 = N/A
+      liquidityUsdValue: usdcEnabled ? -1 : -2,
+      subtitle: usdcEnabled ? mintFeeSubtitle : undefined,
     })
 
     return rows
-  }, [basket, creditRate, rates, cdtAsset, usdcAsset])
+  }, [basket, creditRate, rates, cdtAsset, usdcAsset, mintFeeSubtitle, getCdtDenom])
+
+  // Resolved oracle price per row — `null` where the oracle has not answered.
+  // Kept out of handleBorrowClick so the row itself can say so before the user clicks.
+  const priceByRow = useMemo(() => {
+    const byDenom = new Map<string, number | null>()
+    for (const row of borrowRows) {
+      const match = prices?.find(p => p.denom === row.denom)
+      byDenom.set(row.denom || row.symbol, resolveOraclePrice(match?.price))
+    }
+    return byDenom
+  }, [borrowRows, prices])
+
+  const priceFor = useCallback(
+    (row: BorrowRowData) => priceByRow.get(row.denom || row.symbol) ?? null,
+    [priceByRow],
+  )
 
   // Handle borrow click
   const handleBorrowClick = (row: BorrowRowData) => {
-    const assetPrice = prices?.find(p => {
-      // Try to match denom
-      if (p.denom === row.denom) return true
-      // For CDT, might need special handling
-      return false
-    })?.price || 0
-
     setSelectedAsset({
       symbol: row.symbol as 'CDT' | 'USDC',
       denom: row.denom,
       logo: row.logo,
-      price: num(assetPrice).toNumber() || (row.symbol === 'CDT' ? 1 : 1), // Default to 1 if no price
+      // No fallback. An unpriced asset opens the modal in a priced-unknown mode
+      // (USD figures render `—`) rather than being silently valued at $1.
+      price: priceFor(row),
     })
     setBorrowModalOpen(true)
 
@@ -136,12 +187,26 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
       },
       {
         label: 'Available',
-        value: row.liquidityAvailable < 0 ? (
-          <Text color="cyan.400">Protocol-Issued</Text>
-        ) : row.liquidityAvailable > 0 ? (
-          `$${num(row.liquidityUsdValue).toFixed(0)}`
-        ) : (
-          'Coming Soon'
+        value: (
+          <VStack spacing={0} align="flex-end">
+            {row.liquidityAvailable === -1 ? (
+              <Text color="cyan.400">Protocol-Issued</Text>
+            ) : row.liquidityAvailable > 0 ? (
+              <Text>{`$${num(row.liquidityUsdValue).toFixed(0)}`}</Text>
+            ) : (
+              <Text>N/A</Text>
+            )}
+            {row.subtitle && (
+              <Text color="whiteAlpha.500" fontSize="xs">
+                {row.subtitle}
+              </Text>
+            )}
+            {priceFor(row) === null && (
+              <Text color="whiteAlpha.500" fontSize="xs">
+                Price unavailable — USD values will show —
+              </Text>
+            )}
+          </VStack>
         ),
       },
       {
@@ -222,15 +287,25 @@ export const AvailableToBorrow = ({ onBorrow, positionIndex = 0 }: AvailableToBo
                       </Text>
                     </Td>
                     <Td px={2} py={3} isNumeric>
-                      <Text color="whiteAlpha.700" fontSize="sm">
-                        {row.liquidityAvailable < 0 ? (
-                          <Text as="span" color="cyan.400">Protocol-Issued</Text>
-                        ) : row.liquidityAvailable > 0 ? (
-                          `$${num(row.liquidityUsdValue).toFixed(0)}`
-                        ) : (
-                          'Coming Soon'
+                        <Text color="whiteAlpha.700" fontSize="sm">
+                          {row.liquidityAvailable === -1 ? (
+                            <Text as="span" color="cyan.400">Protocol-Issued</Text>
+                          ) : row.liquidityAvailable > 0 ? (
+                            `$${num(row.liquidityUsdValue).toFixed(0)}`
+                          ) : (
+                            'N/A'
+                          )}
+                        </Text>
+                        {row.subtitle && (
+                          <Text color="whiteAlpha.500" fontSize="xs">
+                            {row.subtitle}
+                          </Text>
                         )}
-                      </Text>
+                        {priceFor(row) === null && (
+                          <Text color="whiteAlpha.500" fontSize="xs">
+                            Price unavailable — USD values will show —
+                          </Text>
+                        )}
                     </Td>
                     <Td px={2} py={3}>
                       <Button

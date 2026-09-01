@@ -10,6 +10,10 @@ import useManagedAction from './hooks/useManagedMarketState';
 import useTransformExposure from './hooks/useIncreasedExposureCard';
 import { Asset } from '@/helpers/chain';
 import TransformExposureSummary from './TransformExposureSummary';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { TYPOGRAPHY } from '@/helpers/typography';
+import { SPACING } from '@/config/spacing';
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions';
 
 
 
@@ -83,8 +87,10 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
     const liquidationPrice = currentPrice / bufferLTV;
     
     return liquidationPrice.toFixed(4);
-  }, [maxLTV, price, maxBorrowLTV, managedActionState.multiplier]);
-  const buttonColor = glowColor ? tinycolor(glowColor).toHexString() : '#63b3ed';
+  }, [maxLTV, price, maxBorrowLTV, managedActionState.multiplier, mode]);
+  // Per-asset accent (averaged from the asset logo) is kept as a product
+  // feature; only the fallback moves off the legacy blue onto phosphor.
+  const buttonColor = glowColor ? tinycolor(glowColor).toHexString() : SEMANTIC_COLORS.primary;
   const displayBalance = balance !== undefined ? balance : '1000';
   const displayPrice = price !== undefined ? price : '0.00';
   const value = amount && price ? (parseFloat(amount) * parseFloat(displayPrice)).toFixed(2) : '0.00';
@@ -107,10 +113,10 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
       <VStack>
         <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={large ? 5 : 3} mb={large ? 0 : 0} w="auto" minW="fit-content">
             {logo && <Image src={logo} alt={symbol} boxSize={large ? "48px" : "32px"} flexShrink={0} />}
-            <Text fontWeight="bold" fontSize={large ? "4xl" : "2xl"} color="white" textAlign={{ base: 'center', md: undefined }} whiteSpace={{ base: 'nowrap', md: 'normal' }}>{isMobile ? 'Transform Exposure' : `Transform Exposure to ${symbol}`}</Text>
+            <Text fontWeight="bold" fontSize={large ? "4xl" : "2xl"} color={SEMANTIC_COLORS.textPrimary} textAlign={{ base: 'center', md: undefined }} whiteSpace={{ base: 'nowrap', md: 'normal' }}>{isMobile ? 'Transform Exposure' : `Transform Exposure to ${symbol}`}</Text>
         </Stack>
         {/* Helper text under mode selection */}
-        <Text color="whiteAlpha.700" fontSize="sm" mt={1} mb={-2} display={{ base: 'none', md: 'block' }}>
+        <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm" mt={1} mb={-2} display={{ base: 'none', md: 'block' }}>
             Select whether to <b><i>multiply</i></b> your exposure or <b><i>de-risk</i></b> by taking capital out of {symbol}.
         </Text>
       </VStack>
@@ -120,13 +126,13 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
           <HStack>
             <Radio value="multiply" colorScheme="blue"><Text as="span" fontSize={large ? '2xl' : 'xl'} py={2}>Multiply</Text></Radio>
             <Tooltip label={`Multiply exposure to ${symbol} now at current market prices`} hasArrow>
-              <span><InfoOutlineIcon color="whiteAlpha.600" boxSize={5} style={{ marginLeft: 8, cursor: 'pointer' }} /></span>
+              <span><InfoOutlineIcon color={SEMANTIC_COLORS.textSecondary} boxSize={5} style={{ marginLeft: 8, cursor: 'pointer' }} /></span>
             </Tooltip>
           </HStack>
           <HStack>
             <Radio value="de-risk"><Text as="span" fontSize={large ? '2xl' : 'xl'} py={2}>De-risk</Text></Radio>
             <Tooltip label={`Reduce exposure to ${symbol} by taking capital out`} hasArrow>
-              <span><InfoOutlineIcon color="whiteAlpha.600" boxSize={5} style={{ marginLeft: 8, cursor: 'pointer' }} /></span>
+              <span><InfoOutlineIcon color={SEMANTIC_COLORS.textSecondary} boxSize={5} style={{ marginLeft: 8, cursor: 'pointer' }} /></span>
             </Tooltip>
           </HStack>
         </HStack>
@@ -139,22 +145,22 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
               variant="unstyled"
               fontSize={large ? "3xl" : "2xl"}
               fontWeight="bold"
-              color="white"
+              color={SEMANTIC_COLORS.textPrimary}
               value={amount}
               onChange={e => setAmount(e.target.value)}
               type="number"
               min={0}
               placeholder="0"
               w="100%"
-              _placeholder={{ color: 'whiteAlpha.400' }}
+              _placeholder={{ color: SEMANTIC_COLORS.textTertiary }}
               paddingInlineEnd={"3"}
             />
-            <Text color="whiteAlpha.600" fontSize="md">~ ${value}</Text>
+            <Text color={SEMANTIC_COLORS.textSecondary} fontSize="md">~ ${value}</Text>
           </VStack>
           <VStack align="flex-end" spacing={2}>
-            <HStack bg="#1a2330" borderRadius="full" px={3} py={1} spacing={2}>
+            <HStack bg={SEMANTIC_COLORS.bgTertiary} borderRadius="full" px={3} py={1} spacing={2}>
               {logo && <Image src={logo} alt={symbol} boxSize="24px" />}
-              <Text color="white" fontWeight="bold">{symbol || 'SYM'}</Text>
+              <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{symbol || 'SYM'}</Text>
             </HStack>
             <HStack 
               cursor="pointer"
@@ -162,14 +168,14 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
               sx={{
                 '&:hover > .wallet-hover-text': {
                   textDecoration: 'underline',
-                  color: 'blue.300',
+                  color: SEMANTIC_COLORS.primary,
                 },
               }}
             >
-              <Text className="wallet-hover-text" color="whiteAlpha.700" fontSize="md">
+              <Text className="wallet-hover-text" color={SEMANTIC_COLORS.textSecondary} fontSize="md">
                 Wallet
               </Text>
-              <Text className="wallet-hover-text" color="whiteAlpha.700" fontSize="md">
+              <Text className="wallet-hover-text" color={SEMANTIC_COLORS.textSecondary} fontSize="md">
                 {Formatter.toNearestNonZero(displayBalance)}
               </Text>
             </HStack>
@@ -182,30 +188,30 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
         align="center"
         spacing={2}
         w={{ base: '90vw', md: large ? '420px' : '320px' }}
-        borderRadius="md"
+        borderRadius={0}
         justify={{ base: 'center', md: undefined}}
         
         cursor={mode === 'de-risk' ? 'not-allowed' : 'default'}
-        transition="all 0.2s"
+        transition={TRANSITIONS.colors}
       >
-        {!isMobile && <Text opacity={mode === 'de-risk' ? 0.3 : 1} fontWeight="bold" fontSize={large ? "2xl" : "lg"} color="white" mb={1}>Multiplier:</Text>}
+        {!isMobile && <Text opacity={mode === 'de-risk' ? 0.3 : 1} fontWeight="bold" fontSize={large ? "2xl" : "lg"} color={SEMANTIC_COLORS.textPrimary} mb={1}>Multiplier:</Text>}
         <HStack spacing={6} justify="center">
           <HStack as="label" spacing={2}>
-            <input type="radio" checked={selectedMultiplier === 'conservative'} onChange={() => mode === 'multiply' && setSelectedMultiplier('conservative')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
-            <Text opacity={mode === 'de-risk' ? 0.3 : 1} color="white" fontSize={large ? "lg" : "md"}>{conservativeMultiplier.toFixed(1)}x</Text>
+            <input type="radio" aria-label="Conservative multiplier" checked={selectedMultiplier === 'conservative'} onChange={() => mode === 'multiply' && setSelectedMultiplier('conservative')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
+            <Text opacity={mode === 'de-risk' ? 0.3 : 1} color={SEMANTIC_COLORS.textPrimary} fontSize={large ? "lg" : "md"}>{conservativeMultiplier.toFixed(1)}x</Text>
           </HStack>
           {moderateMultiplier.toFixed(2) !== conservativeMultiplier.toFixed(2) && <HStack as="label" spacing={2}>
-            <input type="radio" checked={selectedMultiplier === 'moderate'} onChange={() => mode === 'multiply' && setSelectedMultiplier('moderate')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
-            <Text opacity={mode === 'de-risk' ? 0.3 : 1} color="white" fontSize={large ? "lg" : "md"}>{moderateMultiplier.toFixed(1) === conservativeMultiplier.toFixed(1) ? moderateMultiplier.toFixed(2) : moderateMultiplier.toFixed(1)}x</Text>
+            <input type="radio" aria-label="Moderate multiplier" checked={selectedMultiplier === 'moderate'} onChange={() => mode === 'multiply' && setSelectedMultiplier('moderate')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
+            <Text opacity={mode === 'de-risk' ? 0.3 : 1} color={SEMANTIC_COLORS.textPrimary} fontSize={large ? "lg" : "md"}>{moderateMultiplier.toFixed(1) === conservativeMultiplier.toFixed(1) ? moderateMultiplier.toFixed(2) : moderateMultiplier.toFixed(1)}x</Text>
           </HStack>}
           <HStack as="label" spacing={2}>
-            <input type="radio" checked={selectedMultiplier === 'max'} onChange={() => mode === 'multiply' && setSelectedMultiplier('max')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
-            <Text opacity={mode === 'de-risk' ? 0.3 : 1} color="white" fontSize={large ? "lg" : "md"}>Max ({maxMultiplier.toFixed(1)}x)</Text>
+            <input type="radio" aria-label="Max multiplier" checked={selectedMultiplier === 'max'} onChange={() => mode === 'multiply' && setSelectedMultiplier('max')} disabled={mode === 'de-risk'} style={{ cursor: mode === 'de-risk' ? 'not-allowed' : 'pointer', opacity: mode === 'de-risk' ? 0.3 : 1 }} />
+            <Text opacity={mode === 'de-risk' ? 0.3 : 1} color={SEMANTIC_COLORS.textPrimary} fontSize={large ? "lg" : "md"}>Max ({maxMultiplier.toFixed(1)}x)</Text>
           </HStack>
         </HStack>
       </HStack>
       {/* Exposure summary */}
-      <Text color="white" fontSize={large ? "lg" : "md"} fontWeight="normal" w={large ? '420px' : '320px'} textAlign="center">
+      <Text color={SEMANTIC_COLORS.textPrimary} fontSize={large ? "lg" : "md"} fontWeight="normal" w={large ? '420px' : '320px'} textAlign="center">
         {mode === 'multiply' ? (
           <>
             Using <b>{amount || '0'} {symbol}</b> to get <b>{amount && !isNaN(Number(amount)) ? (() => {
@@ -231,7 +237,7 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
       {/* Send It button */}
       <Box w={"98%"} maxW={"420px"}>
         <ConfirmModal
-          buttonProps={{ bg: buttonColor, _hover: { bg: glowColor }, w: '100%', textShadow: '0 0 20px rgba(0, 0, 0, 1)' }}
+          buttonProps={{ bg: buttonColor, borderRadius: 0, transition: TRANSITIONS.colors, _hover: { bg: glowColor }, _active: ACTIVE_EFFECTS.dim, _focus: FOCUS_STYLES.ring, w: '100%' }}
           label={mode === 'multiply' ? "Send It" : "Take Capital Out"}
           isDisabled={amount === '0' || Number(managedActionState.collateralAmount) <= 0 }
           action={transformExposure}
@@ -246,7 +252,7 @@ const IncreaseExposureCards: React.FC<AssetProps> = ({ logo, symbol, large, glow
                     maxBorrowLTV={maxBorrowLTV ?? 0}
                 />
         </ConfirmModal>
-        <Text color="gray.400" fontSize="xs" mt={2} alignSelf="flex-end">(liq price ${liqPrice})</Text>
+        <Text color={SEMANTIC_COLORS.textSecondary} fontSize="xs" mt={2} alignSelf="flex-end">(liq price ${liqPrice})</Text>
       </Box>
     </VStack>
   );

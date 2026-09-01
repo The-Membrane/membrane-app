@@ -1,5 +1,9 @@
 import React from 'react';
 import { Box, VStack, HStack, Text } from '@chakra-ui/react';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { TYPOGRAPHY } from '@/helpers/typography';
+import { SPACING } from '@/config/spacing';
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions';
 
 interface MarketCreateSummaryProps {
     collateralAsset: string;
@@ -34,44 +38,44 @@ const MarketCreateSummary: React.FC<MarketCreateSummaryProps> = ({
     enableKink,
     isWhitelistedManager,
 }) => (
-    <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>
+    <Box w="100%" bg={SEMANTIC_COLORS.bgTertiary} borderRadius={0} p={6} mt={0} mb={2}>
         <Text fontWeight="semibold" mb={2}>Market Summary:</Text>
         <VStack align="stretch" spacing={2} fontSize="sm">
             <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Collateral Asset</Text>
-                <Text color="white" fontWeight="bold">{collateralAsset}</Text>
+                <Text color={SEMANTIC_COLORS.textSecondary}>Collateral Asset</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{collateralAsset}</Text>
             </HStack>
             <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Osmosis Pool ID</Text>
-                <Text color="white" fontWeight="bold">{osmosisPoolId}</Text>
+                <Text color={SEMANTIC_COLORS.textSecondary}>Osmosis Pool ID</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{osmosisPoolId}</Text>
             </HStack>
             <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Max Borrow LTV</Text>
-                <Text color="white" fontWeight="bold">{maxBorrowLTV}%</Text>
+                <Text color={SEMANTIC_COLORS.textSecondary}>Max Borrow LTV</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{maxBorrowLTV}%</Text>
             </HStack>
             <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Liquidation LTV</Text>
-                <Text color="white" fontWeight="bold">{liquidationLTV}%</Text>
+                <Text color={SEMANTIC_COLORS.textSecondary}>Liquidation LTV</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{liquidationLTV}%</Text>
             </HStack>
             <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Borrow Fee</Text>
-                <Text color="white" fontWeight="bold">{borrowFee}%</Text>
+                <Text color={SEMANTIC_COLORS.textSecondary}>Borrow Fee</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{borrowFee}%</Text>
             </HStack>
             <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Manager Address</Text>
-                <Text color="white" fontWeight="bold">{managerAddress}</Text>
+                <Text color={SEMANTIC_COLORS.textSecondary}>Manager Address</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{managerAddress}</Text>
             </HStack>
             <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Max Slippage</Text>
-                <Text color="white" fontWeight="bold">{maxSlippage}%</Text>
+                <Text color={SEMANTIC_COLORS.textSecondary}>Max Slippage</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{maxSlippage}%</Text>
             </HStack>
             <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Total Debt Supply Cap</Text>
-                <Text color="white" fontWeight="bold">{totalDebtSupplyCap} CDT</Text>
+                <Text color={SEMANTIC_COLORS.textSecondary}>Total Debt Supply Cap</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">{totalDebtSupplyCap} CDT</Text>
             </HStack>
             <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Interest Rate Model</Text>
-                <Text color="white" fontWeight="bold">
+                <Text color={SEMANTIC_COLORS.textSecondary}>Interest Rate Model</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight="bold">
                     Base: {baseRate}%
                     {enableKink && (
                         <>
@@ -85,7 +89,7 @@ const MarketCreateSummary: React.FC<MarketCreateSummaryProps> = ({
         </VStack>
         {/* Non-whitelisted manager notice */}
         {!isWhitelistedManager && (
-            <Text color="blue.300" fontWeight="bold" mt={6} textAlign="center">
+            <Text color={SEMANTIC_COLORS.warning} fontWeight="bold" mt={6} textAlign="center">
                 Non-whitelisted Managers pay 25 CDT that is supplied to the market
             </Text>
         )}

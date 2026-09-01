@@ -187,7 +187,7 @@ export const denoms = {
   USDY: ["ibc/23104D411A6EB6031FA92FB75F227422B84989969E91DCAD56A535DD7FF0A373", 18]
 };
 
-export const CDT_ASSET = { base: denoms.CDT[0] as string, symbol: 'CDT', logo: '/images/cdt.svg', decimal: 6 };
+export const CDT_ASSET = { base: denoms.CDT[0] as string, symbol: 'CDT', logo: '/images/cdt.png', decimal: 6 };
 
 export const stableSymbols = ["USDC", "USDT", "USDC.axl"];
 export const stableDenoms = ["ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4", "ibc/4ABBEF4C8926DDDB320AE5188CFD63267ABBCEFC0583E4AE05D6E5AA2401DDAB", "ibc/D189335C6E4A68B513C10AB227BF1C1D38C746766278BA3EEB4FB14124F1D858"];

@@ -7,6 +7,11 @@ import { queryClient } from '@/pages/_app'
 import useQuickActionState from './useQuickActionState'
 import type { EvmCall } from '@/services/chain/types'
 
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['positions'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 /**
  * Leverage quick-action: deposit collateral to a new position then loop (mint + swap +
  * re-deposit) up to a target LTV.
@@ -44,11 +49,6 @@ const useQuickAction = ({ borrowLTV }: { borrowLTV: number }) => {
       queryData ?? { msgs: undefined, loop_msgs: undefined, newPositionValue: 0, summary: [] },
     [queryData],
   )
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   const loop = useSimulateAndBroadcast({
     msgs: loop_msgs,

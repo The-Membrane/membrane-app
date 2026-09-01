@@ -4,24 +4,29 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <title>Membrane</title>
-        <meta name="description" content="Life is uncertain, yet we still provide you stability." />
+        {/* Title + meta description moved to <Seo> in _app (per-page, server-rendered).
+            next/document is the wrong place for them — they'd be identical on every
+            route and Next ignores a _document <title> in newer versions anyway. */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png" />
         <link rel="manifest" href="/images/site.webmanifest" />
-        <link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#05071b" />
+        <link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#09090a" />
         <meta name="msapplication-TileColor" content="#da532c" />
-        <meta name="theme-color" content="#05071b" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
-          rel="stylesheet"
-        />
+        <meta name="theme-color" content="#09090a" />
+        {/* Pre-establish connection to Skip API so widget API calls are instant */}
+        <link rel="preconnect" href="https://api.skip.build" />
+        <link rel="dns-prefetch" href="https://api.skip.build" />
+        {/* Inter is now self-hosted via next/font/google (see pages/_app.tsx), so the
+            render-blocking Google Fonts <link> and its fonts.googleapis.com/fonts.gstatic.com
+            preconnects were removed. No other Google font is linked here. */}
       </Head>
-      <body style={{ overflowX: "hidden" }}>
+      {/* No overflowX here: an inline hidden axis on <body> combines with the
+          theme's body sizing to make body the scroll container instead of the
+          document. The horizontal overflow it was hiding is fixed at source in
+          theme/index.ts (width:100% rather than 100vw). */}
+      <body>
         <Main />
         <NextScript />
       </body>

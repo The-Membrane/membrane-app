@@ -10,7 +10,7 @@ import useQuickActionState from './hooks/useQuickActionState'
 
 
 
-export const HomeRedeemButton = React.memo(({ basket, cdtMarketPrice }: { basket: Basket | undefined, cdtMarketPrice: number }) => {
+export const HomeRedeemButton = React.memo(function HomeRedeemButton({ basket, cdtMarketPrice }: { basket: Basket | undefined, cdtMarketPrice: number }) {
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
     const usdcAsset = useAssetBySymbol('USDC')

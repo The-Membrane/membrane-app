@@ -10,27 +10,35 @@ import { Asset, getAssetByDenom } from '@/helpers/chain';
 import { shiftDigits } from '@/helpers/math';
 import { useBalanceByAsset } from '@/hooks/useBalance';
 import ManagePage from './ManagePage';
-import { getMarketName } from '@/services/managed';
+import { useMarketName } from '@/services/managed';
 import useWallet from '@/hooks/useWallet';
 import { num } from '@/helpers/num';
 import IncreaseExposureCards from './IncreaseExposureCards';
 // @ts-ignore
 import { FastAverageColor } from 'fast-average-color';
+import { formatPrice } from './formatPrice';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { TYPOGRAPHY } from '@/helpers/typography';
+import { SPACING } from '@/config/spacing';
+import { FOCUS_STYLES } from '@/config/transitions';
 
 
 
-    // Helper to format price
-    export const formatPrice = (value: string | number | undefined) => {
+    // Format numbers using Formatter.tvlShort
+    const formatNumber = (value: string | number | undefined) => {
         if (value === undefined || value === null || value === '—') return '—';
-        return Formatter.currency(Number(value), 4);
+        if (typeof value === 'string' && value.match(/[^0-9.]/)) return value;
+        return Formatter.tvlShort(Number(value));
+    };
+
+    // Helper to format percent
+    const formatPercent = (value: string | number | undefined) => {
+        if (value === undefined || value === null || value === '—') return '—';
+        return Formatter.percent(Number(value) * 100, 2); // expects 0.05 for 5%
     };
 
 const ManagedMarketPage: React.FC = () => {
     const router = useRouter();
-    // Wait for router to be ready BEFORE any hooks
-    if (!router.isReady) {
-        return <Spinner size="xl" />;
-    }
     const { address } = useWallet();
     const { marketAddress, action, symbol: symbolParam } = router.query;
     //Get chain name from route
@@ -56,7 +64,7 @@ const ManagedMarketPage: React.FC = () => {
     const logo = asset?.logo || '';
     const symbol = asset?.symbol || collateralSymbol;
     // Get market name
-    const marketName = getMarketName(marketAddress as string);
+    const marketName = useMarketName(marketAddress as string);
 
     // Determine tab type from actionType (default to 'collateral')
     const tab = actionType === 'lend' ? 'debt' : 'collateral';
@@ -75,19 +83,6 @@ const ManagedMarketPage: React.FC = () => {
     // Fetch price of the asset
     const assetPrice = priceData?.price || '0';
 
-
-    // Format numbers using Formatter.tvlShort
-    const formatNumber = (value: string | number | undefined) => {
-        if (value === undefined || value === null || value === '—') return '—';
-        if (typeof value === 'string' && value.match(/[^0-9.]/)) return value;
-        return Formatter.tvlShort(Number(value));
-    };
-
-    // Helper to format percent
-    const formatPercent = (value: string | number | undefined) => {
-        if (value === undefined || value === null || value === '—') return '—';
-        return Formatter.percent(Number(value) * 100, 2); // expects 0.05 for 5%
-    };
 
     // Derive info card values
     // TVL: contract's balance of the collateral denom * price
@@ -211,6 +206,13 @@ const ManagedMarketPage: React.FC = () => {
     }, [logo]);
 
     // Only after all hooks, do conditional rendering:
+    // Router-ready guard MUST come after all hooks so hook order stays stable across
+    // renders (moving it above the hooks violated the Rules of Hooks). While the router
+    // is not ready, query params are undefined, the data hooks stay in their loading
+    // state, and we render the same spinner as before.
+    if (!router.isReady) {
+        return <Spinner size="xl" />;
+    }
     if (action === 'manage') {
         return <ManagePage marketAddress={marketAddress as string} />;
     }
@@ -227,13 +229,24 @@ const ManagedMarketPage: React.FC = () => {
                 my={{ base: 4, lg: 0 }}
             >
                 <FormControl display="flex" alignItems="center" justifyContent={{ base: 'center', lg: undefined }}>
-                    <FormLabel htmlFor="advanced-mode-toggle" mb="0" fontWeight="bold" color="white">
+                    <FormLabel
+                        htmlFor="advanced-mode-toggle"
+                        mb="0"
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.label}
+                        textTransform="uppercase"
+                        letterSpacing="0.28em"
+                        color={SEMANTIC_COLORS.textSecondary}
+                    >
                         Advanced mode
                     </FormLabel>
                     <Switch
                         id="advanced-mode-toggle"
                         isChecked={advancedMode}
                         onChange={() => setAdvancedMode((v) => !v)}
+                        colorScheme="phosphor"
+                        sx={{ '& .chakra-switch__track': { borderRadius: 0 }, '& .chakra-switch__thumb': { borderRadius: 0 } }}
+                        _focus={FOCUS_STYLES.ring}
                     />
                 </FormControl>
             </Box>
@@ -243,11 +256,27 @@ const ManagedMarketPage: React.FC = () => {
                         <>
                             <Flex w="100%" justify="flex-end" align="center" direction="column" mb={2}>
                                 {marketName && (
-                                    <Text color="whiteAlpha.700" fontWeight="bold" fontSize="md" mb={1} textAlign="right">{marketName}</Text>
+                                    <Text
+                                        color={SEMANTIC_COLORS.textSecondary}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        fontSize={TYPOGRAPHY.label}
+                                        textTransform="uppercase"
+                                        letterSpacing="0.28em"
+                                        mb={SPACING.xs}
+                                        textAlign="right"
+                                    >
+                                        {marketName}
+                                    </Text>
                                 )}
-                                <HStack spacing={3} justify="flex-end">
+                                <HStack spacing={SPACING.md} justify="flex-end">
                                     {logo && <Image src={logo} alt={symbol} boxSize="60px" />}
-                                    <Text color="white" fontWeight="bold" fontSize="3xl">{symbol}</Text>
+                                    <Text
+                                        color={SEMANTIC_COLORS.textPrimary}
+                                        fontFamily={TYPOGRAPHY.fontDisplay}
+                                        fontSize={TYPOGRAPHY.h1}
+                                    >
+                                        {symbol}
+                                    </Text>
                                 </HStack>
                             </Flex>
                             <ManagedMarketInfo {...infoProps} />

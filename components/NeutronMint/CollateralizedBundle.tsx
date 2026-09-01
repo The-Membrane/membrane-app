@@ -37,9 +37,8 @@ export const CollateralizedBundle = ({
     const positions = getPositions(basketPositions as any, prices, positionIndex, chainName)
     if (!positions || positions.length === 0) return []
 
-    return positions
-      .filter(position => position && num(position.amount).isGreaterThan(0))
-      .map(position => {
+    return positions.flatMap(position => {
+        if (!position || !num(position.amount).isGreaterThan(0)) return []
         const symbol = position.symbol || getSymbolFromDenom(position.denom, basket)
         const logo = position.logo || getLogoFromSymbol(symbol)
         const priceRaw = prices?.find(p => p.denom === position.denom)?.price || 0
@@ -61,7 +60,7 @@ export const CollateralizedBundle = ({
         const maxLTV = basketAsset?.maxLTV || 0
         const maxBorrowLTV = basketAsset?.maxBorrowLTV || 0
 
-        return {
+        return [{
           symbol,
           logo,
           denom: position.denom,
@@ -72,9 +71,9 @@ export const CollateralizedBundle = ({
           maxLTV,
           maxBorrowLTV,
           isDeposited: true,
-        }
+        }]
       })
-  }, [basketPositions, prices, basket, basketAssets, positionIndex, chainName])
+  }, [basketPositions, prices, basket, basketAssets, positionIndex, chainName, rates])
 
   // Calculate totals
   const totalDepositsUsd = useMemo(() => {

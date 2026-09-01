@@ -1,17 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { Box, HStack, VStack, Text, Button, ButtonGroup, useBreakpointValue } from '@chakra-ui/react'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Legend,
-  ReferenceArea,
-  ReferenceLine,
-  CartesianGrid,
-} from 'recharts'
+import { lazyChart } from '@/components/ui/lazyChart'
 import { useUserPositions, useBasket } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
 import { getPositions } from '@/services/cdp'
@@ -26,6 +15,11 @@ import { CHART_THEME, ASSET_COLORS, REFERENCE_STYLES, createCustomLegend } from 
 const CYAN = ASSET_COLORS[0] // Use first color from theme
 const LIQUIDATION_RED = 'rgba(239, 68, 68, 0.3)'
 
+// Hoisted date formatter: reconstructing Intl options on every timestamp (via
+// toLocaleDateString) in the chart-data loop is costly; one reused DateTimeFormat is far faster
+// and produces the identical "Mon D" label.
+const MONTH_DAY_FMT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
+
 // Mock asset config for demo when no position exists
 // Target split: WETH 40%, WBTC 40%, USDC 20%
 const MOCK_ASSET_CONFIG = [
@@ -36,10 +30,117 @@ const MOCK_ASSET_CONFIG = [
 const MOCK_TOTAL_VALUE = 10000 // $10,000 total portfolio value for mock
 const MOCK_LIQUIDATION_VALUE = 8000 // Mock liquidation threshold (80% LTV of $10k)
 
+interface PerformanceLineChartProps {
+  chartData: ChartDataPoint[]
+  yDomain: number[]
+  chartHeight: number
+  liquidationValue: number
+  hasPosition: boolean
+  assets: Array<{ denom: string; symbol: string; amount: number }>
+}
+
+const PerformanceLineChart = lazyChart<PerformanceLineChartProps>(
+  ({ LineChart, Line, XAxis, YAxis, Tooltip: RechartsTooltip, ResponsiveContainer, Legend, ReferenceArea, ReferenceLine, CartesianGrid }) =>
+    function PerformanceLineChart({ chartData, yDomain, chartHeight, liquidationValue, hasPosition, assets }) {
+      return (
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <LineChart data={chartData}>
+            <CartesianGrid {...CHART_THEME.grid} />
+
+            <XAxis
+              {...CHART_THEME.xAxis}
+              dataKey="date"
+              domain={yDomain}
+            />
+
+            <YAxis
+              {...CHART_THEME.yAxis}
+              domain={yDomain}
+              tickFormatter={(value) => `$${num(value).toFixed(0)}`}
+            />
+
+            <RechartsTooltip
+              {...CHART_THEME.tooltip}
+              formatter={(value: number, name: string) => {
+                const displayName = name === 'actual'
+                  ? 'Bundled Value'
+                  : name.replace('hypo_', '100% ')
+                return [`$${num(value).toFixed(2)}`, displayName]
+              }}
+              labelFormatter={(label) => `Date: ${label}`}
+            />
+
+            <Legend
+              content={createCustomLegend((value) => {
+                if (value === 'actual') return 'Bundled Value'
+                return value.replace('hypo_', '100% ')
+              })}
+            />
+
+            {/* Liquidation Zone - red area from liquidation value to bottom */}
+            {(() => {
+              const effectiveLiq = liquidationValue > 0 ? liquidationValue : (!hasPosition ? MOCK_LIQUIDATION_VALUE : 0)
+              if (effectiveLiq <= 0) return null
+              return (
+                <>
+                  <ReferenceArea
+                    y1={effectiveLiq}
+                    y2={yDomain[0]}
+                    fill="rgba(239, 68, 68, 0.3)"
+                    fillOpacity={1}
+                  />
+                  <ReferenceLine
+                    y={effectiveLiq}
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                    label={{
+                      value: 'Liquidation',
+                      fill: '#ef4444',
+                      fontSize: 10,
+                      position: 'right' as const,
+                    }}
+                  />
+                </>
+              )
+            })()}
+
+            {/* Actual position value - solid cyan line */}
+            <Line
+              {...CHART_THEME.line}
+              type="monotone"
+              dataKey="actual"
+              name="actual"
+              stroke={CYAN}
+            />
+
+            {/* Hypothetical lines - dashed, one per asset */}
+            {assets.map((asset, index) => (
+              <Line
+                key={asset.denom}
+                {...CHART_THEME.line}
+                type="monotone"
+                dataKey={`hypo_${asset.symbol}`}
+                name={`hypo_${asset.symbol}`}
+                stroke={ASSET_COLORS[index % ASSET_COLORS.length]}
+                strokeWidth={1.5}
+                strokeDasharray="5 5"
+                activeDot={{ r: 4 }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      )
+    },
+  250,
+)
+
 interface PositionPerformanceChartProps {
   positionIndex?: number
   liquidationValue?: number
 }
+
+// Time range buttons
+const timeRanges: TimeRange[] = [7, 30, 90, 180]
 
 export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> = ({
   positionIndex = 0,
@@ -71,9 +172,7 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
   // Get denoms for price history - use mock if no position
   const denoms = useMemo(() => {
     if (hasPosition) {
-      return positions
-        .filter(p => p && num(p.amount).isGreaterThan(0))
-        .map(p => p.denom)
+      return positions.flatMap(p => (p && num(p.amount).isGreaterThan(0) ? [p.denom] : []))
     }
     // Use mock denoms when no position
     return MOCK_CHART_DENOMS
@@ -100,13 +199,11 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
     let assetsToUse: Array<{ denom: string; symbol: string; amount: number }>
 
     if (hasPosition) {
-      assetsToUse = positions
-        .filter(p => p && num(p.amount).isGreaterThan(0))
-        .map(p => ({
+      assetsToUse = positions.flatMap(p => (p && num(p.amount).isGreaterThan(0) ? [{
           denom: p.denom,
           symbol: p.symbol || getSymbolFromDenom(p.denom, basket),
           amount: p.amount || 0,
-        }))
+        }] : []))
     } else {
       // Calculate mock amounts based on initial prices to maintain 40-40-20 split
       assetsToUse = MOCK_ASSET_CONFIG.map(config => {
@@ -138,11 +235,11 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
     })
 
     // Generate chart data for each timestamp
+    // FP (no-locale-format-in-render): this whole block already runs inside the
+    // useMemo above (deps below), so MONTH_DAY_FMT.format() only re-executes when
+    // priceHistory/positions/basket/liquidationValue/hasPosition actually change.
     timestamps.forEach((timestamp) => {
-      const date = new Date(timestamp).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      })
+      const date = MONTH_DAY_FMT.format(new Date(timestamp))
 
       // Calculate actual position value at this timestamp
       let actualValue = 0
@@ -204,9 +301,6 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
     ]
   }, [minValue, maxValue])
 
-  // Time range buttons
-  const timeRanges: TimeRange[] = [7, 30, 90, 180]
-
   return (
     <Box
       w="100%"
@@ -252,92 +346,14 @@ export const PositionPerformanceChart: React.FC<PositionPerformanceChartProps> =
             <Text color="whiteAlpha.600">No price history available</Text>
           </Box>
         ) : (
-          <ResponsiveContainer width="100%" height={chartHeight}>
-            <LineChart data={chartData}>
-              <CartesianGrid {...CHART_THEME.grid} />
-
-              <XAxis
-                {...CHART_THEME.xAxis}
-                dataKey="date"
-                domain={yDomain}
-              />
-
-              <YAxis
-                {...CHART_THEME.yAxis}
-                domain={yDomain}
-                tickFormatter={(value) => `$${num(value).toFixed(0)}`}
-              />
-
-              <RechartsTooltip
-                {...CHART_THEME.tooltip}
-                formatter={(value: number, name: string) => {
-                  const displayName = name === 'actual'
-                    ? 'Bundled Value'
-                    : name.replace('hypo_', '100% ')
-                  return [`$${num(value).toFixed(2)}`, displayName]
-                }}
-                labelFormatter={(label) => `Date: ${label}`}
-              />
-
-              <Legend
-                content={createCustomLegend((value) => {
-                  if (value === 'actual') return 'Bundled Value'
-                  return value.replace('hypo_', '100% ')
-                })}
-              />
-
-              {/* Liquidation Zone - red area from liquidation value to bottom */}
-              {(() => {
-                const effectiveLiq = liquidationValue > 0 ? liquidationValue : (!hasPosition ? MOCK_LIQUIDATION_VALUE : 0)
-                if (effectiveLiq <= 0) return null
-                return (
-                  <>
-                    <ReferenceArea
-                      y1={effectiveLiq}
-                      y2={yDomain[0]}
-                      fill="rgba(239, 68, 68, 0.3)"
-                      fillOpacity={1}
-                    />
-                    <ReferenceLine
-                      y={effectiveLiq}
-                      stroke="#ef4444"
-                      strokeWidth={2}
-                      label={{
-                        value: 'Liquidation',
-                        fill: '#ef4444',
-                        fontSize: 10,
-                        position: 'right' as const,
-                      }}
-                    />
-                  </>
-                )
-              })()}
-
-              {/* Actual position value - solid cyan line */}
-              <Line
-                {...CHART_THEME.line}
-                type="monotone"
-                dataKey="actual"
-                name="actual"
-                stroke={CYAN}
-              />
-
-              {/* Hypothetical lines - dashed, one per asset */}
-              {assets.map((asset, index) => (
-                <Line
-                  {...CHART_THEME.line}
-                  key={asset.denom}
-                  type="monotone"
-                  dataKey={`hypo_${asset.symbol}`}
-                  name={`hypo_${asset.symbol}`}
-                  stroke={ASSET_COLORS[index % ASSET_COLORS.length]}
-                  strokeWidth={1.5}
-                  strokeDasharray="5 5"
-                  activeDot={{ r: 4 }}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+          <PerformanceLineChart
+            chartData={chartData}
+            yDomain={yDomain}
+            chartHeight={chartHeight}
+            liquidationValue={liquidationValue}
+            hasPosition={hasPosition}
+            assets={assets}
+          />
         )}
       </VStack>
     </Box>

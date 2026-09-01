@@ -1,6 +1,6 @@
 import { num } from '@/helpers/num'
 import { Image } from '@chakra-ui/react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useMemo } from 'react'
 import useMintState from './hooks/useMintState'
 import useVaultSummary from './hooks/useVaultSummary'
@@ -35,7 +35,7 @@ export const BeakerLiquid = () => {
   if (health <= 10) color = 'red'
 
   return (
-    <motion.div
+    <m.div
       style={{
         position: 'absolute',
         // bottom: -17,
@@ -48,12 +48,17 @@ export const BeakerLiquid = () => {
         transformOrigin: 'top',
         // zIndex: 2,
       }}
+      // Accepted exception (react-doctor no-layout-property-animation): liquid-fill gauge.
+      // The box clips a fixed-size SVG via overflow:hidden, so its HEIGHT is the fill level —
+      // growing it reveals more liquid. A scaleY transform would squash the SVG instead of
+      // revealing it (and would fight the existing scale/rotate transform), so the box itself
+      // must resize here. Height animation is required and intentional.
       initial={{ height: 0 }}
       animate={{ height: percent }}
       transition={{ type: 'spring', stiffness: 1000 }}
     >
       <Image src={`/images/beaker_liquid_${color}.svg`} transform="rotate(180deg)" />
-    </motion.div>
+    </m.div>
   )
 }
 

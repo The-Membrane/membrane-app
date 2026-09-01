@@ -7,6 +7,11 @@ import { queryClient } from '@/pages/_app'
 import useQuickActionState from './useQuickActionState'
 import type { EvmCall } from '@/services/chain/types'
 
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['positions'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 /**
  * Buy CDT then redeem collateral at a discount, then withdraw the redeemed vault token.
  *
@@ -30,11 +35,6 @@ const useBuyAndRedeem = () => {
   })
 
   const { msgs } = useMemo(() => queryData ?? { msgs: undefined }, [queryData])
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

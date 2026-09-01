@@ -3,6 +3,9 @@ import { Box, HStack, Stack, Text, Badge, Image, VStack } from '@chakra-ui/react
 import {shiftDigits } from '@/helpers/math';
 import { ManagedActionState } from './hooks/useManagedMarketState';
 import { num } from '@/helpers/num';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { TYPOGRAPHY } from '@/helpers/typography';
+import { SPACING } from '@/config/spacing';
 
 // Types for props
 // managedActionState: { collateralAmount, multiplier, takeProfit, stopLoss }
@@ -33,20 +36,38 @@ const ManagedMarketSummary: React.FC<ManagedMarketSummaryProps> = ({ managedActi
   const health = undefined; // TODO: pass as prop if needed
 
   return (
-    <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>
-      <Text fontWeight="semibold" mb={2}>Pending Position:</Text>
-      <VStack align="stretch" spacing={2} fontSize="xs">
+    <Box
+      w="100%"
+      bg={SEMANTIC_COLORS.bgTertiary}
+      borderRadius={0}
+      border="1px solid"
+      borderColor={SEMANTIC_COLORS.borderSubtle}
+      p={SPACING.lg}
+      mt={SPACING.none}
+      mb={SPACING.sm}
+    >
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize={TYPOGRAPHY.label}
+        textTransform="uppercase"
+        letterSpacing="0.28em"
+        color={SEMANTIC_COLORS.textSecondary}
+        mb={SPACING.sm}
+      >
+        Pending Position:
+      </Text>
+      <VStack align="stretch" spacing={SPACING.sm} fontSize={TYPOGRAPHY.xs}>
         <HStack justify="space-between">
-          <Text color="whiteAlpha.700">Collateral Amount</Text>
-          <Text color="white" fontWeight="bold">{collateralAmount} {collateralAsset?.symbol}</Text>
+          <Text fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textSecondary}>Collateral Amount</Text>
+          <Text fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textPrimary} fontWeight={TYPOGRAPHY.medium} sx={{ fontVariantNumeric: 'tabular-nums' }}>{collateralAmount} {collateralAsset?.symbol}</Text>
         </HStack>
         <HStack justify="space-between">
-          <Text color="whiteAlpha.700">Multiplier</Text>
-          <Text color="white" fontWeight="bold">{multiplier.toFixed(2)}x</Text>
+          <Text fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textSecondary}>Multiplier</Text>
+          <Text fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textPrimary} fontWeight={TYPOGRAPHY.medium} sx={{ fontVariantNumeric: 'tabular-nums' }}>{multiplier.toFixed(2)}x</Text>
         </HStack>
         <HStack justify="space-between">
-          <Text color="whiteAlpha.700">Debt</Text>
-          <Text color="white" fontWeight="bold">{postLoopDebtAmount && Number(postLoopDebtAmount) > 0 ? `$${num(postLoopDebtAmount).toFixed(2)}` : '-'}</Text>
+          <Text fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textSecondary}>Debt</Text>
+          <Text fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textPrimary} fontWeight={TYPOGRAPHY.medium} sx={{ fontVariantNumeric: 'tabular-nums' }}>{postLoopDebtAmount && Number(postLoopDebtAmount) > 0 ? `$${num(postLoopDebtAmount).toFixed(2)}` : '-'}</Text>
         </HStack>
       </VStack>
     </Box>

@@ -6,6 +6,10 @@ import { shiftDigits } from '@/helpers/math';
 import BigNumber from 'bignumber.js';
 import { m } from 'framer-motion';
 import { Formatter } from '@/helpers/formatter';
+import { SEMANTIC_COLORS } from '@/config/semanticColors';
+import { TYPOGRAPHY } from '@/helpers/typography';
+import { SPACING } from '@/config/spacing';
+import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES } from '@/config/transitions';
 
 interface TransformExposureSummaryProps {
   mode: 'multiply' | 'de-risk';
@@ -32,74 +36,113 @@ const TransformExposureSummary: React.FC<TransformExposureSummaryProps> = ({
   const borrowAmountFormatted = Formatter.toNearestNonZero(borrowAmount);
 
   return (
-    <Box w="100%" bg="#181C23" borderRadius="lg" p={6} mt={0} mb={2}>
-      <VStack align="stretch" spacing={4}>
+    <Box
+      w="100%"
+      bg={SEMANTIC_COLORS.bgTertiary}
+      borderRadius={0}
+      border="1px solid"
+      borderColor={SEMANTIC_COLORS.borderSubtle}
+      p={SPACING.lg}
+      mt={0}
+      mb={SPACING.sm}
+    >
+      <VStack align="stretch" spacing={SPACING.base}>
         {/* Header */}
         <Box>
-          <HStack justify="space-between" mb={2}>
-            <Text fontWeight="bold" fontSize="lg">
+          <HStack justify="space-between" mb={SPACING.sm}>
+            <Text
+              fontFamily={TYPOGRAPHY.fontDisplay}
+              fontSize={TYPOGRAPHY.h3}
+              fontWeight={TYPOGRAPHY.semibold}
+              color={SEMANTIC_COLORS.textPrimary}
+            >
               Transform Exposure Summary
             </Text>
-            <Badge 
-              colorScheme={mode === 'multiply' ? 'green' : 'orange'} 
-              variant="solid"
-              fontSize="sm"
+            <Badge
+              variant="outline"
+              borderRadius={0}
+              bg="transparent"
+              boxShadow="none"
+              border="1px solid"
+              borderColor={mode === 'multiply' ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.warning}
+              color={mode === 'multiply' ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.warning}
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.label}
+              textTransform="uppercase"
+              letterSpacing="0.28em"
+              px={SPACING.sm}
             >
               {mode === 'multiply' ? 'MULTIPLY' : 'DE-RISK'}
             </Badge>
           </HStack>
-          <Text color="whiteAlpha.700" fontSize="sm">
-            {mode === 'multiply' 
+          <Text
+            color={SEMANTIC_COLORS.textSecondary}
+            fontSize={TYPOGRAPHY.small}
+            fontFamily={TYPOGRAPHY.fontMono}
+          >
+            {mode === 'multiply'
               ? 'Increase your exposure through looping strategy'
               : 'Reduce your exposure by borrowing against collateral'
             }
           </Text>
         </Box>
 
-        <Divider borderColor="whiteAlpha.300" />
+        <Divider borderColor={SEMANTIC_COLORS.borderSubtle} />
 
         {/* Collateral Details */}
         <Box>
-          <Text fontWeight="semibold" mb={3} color="whiteAlpha.900">
+          <Text
+            fontFamily={TYPOGRAPHY.fontDisplay}
+            fontSize={TYPOGRAPHY.h4}
+            fontWeight={TYPOGRAPHY.semibold}
+            mb={SPACING.md}
+            color={SEMANTIC_COLORS.textPrimary}
+          >
             Collateral Details
           </Text>
-          <VStack align="stretch" spacing={2} fontSize="sm">
+          <VStack align="stretch" spacing={SPACING.sm} fontSize={TYPOGRAPHY.small} fontFamily={TYPOGRAPHY.fontMono}>
             <HStack justify="space-between">
-              <Text color="whiteAlpha.700">Asset</Text>
-              <Text color="white" fontWeight="bold">{asset.symbol}</Text>
+              <Text color={SEMANTIC_COLORS.textSecondary}>Asset</Text>
+              <Text color={SEMANTIC_COLORS.textPrimary} fontWeight={TYPOGRAPHY.bold}>{asset.symbol}</Text>
             </HStack>
             <HStack justify="space-between">
-              <Text color="whiteAlpha.700">Collateral Amount</Text>
-              <Text color="white" fontWeight="bold">
+              <Text color={SEMANTIC_COLORS.textSecondary}>Collateral Amount</Text>
+              <Text color={SEMANTIC_COLORS.textPrimary} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                 {collateralAmountFormatted} {asset.symbol}
               </Text>
             </HStack>
             <HStack justify="space-between">
-              <Text color="whiteAlpha.700">Collateral Value</Text>
-              <Text color="white" fontWeight="bold">${collateralValue.toFixed(2)}</Text>
+              <Text color={SEMANTIC_COLORS.textSecondary}>Collateral Value</Text>
+              <Text color={SEMANTIC_COLORS.textPrimary} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>${collateralValue.toFixed(2)}</Text>
             </HStack>
           </VStack>
         </Box>
 
-        <Divider borderColor="whiteAlpha.300" />
+        <Divider borderColor={SEMANTIC_COLORS.borderSubtle} />
 
         {/* Strategy Details */}
         <Box>
-          <Text fontWeight="semibold" mb={3} color="whiteAlpha.900">
+          <Text
+            fontFamily={TYPOGRAPHY.fontDisplay}
+            fontSize={TYPOGRAPHY.h4}
+            fontWeight={TYPOGRAPHY.semibold}
+            mb={SPACING.md}
+            color={SEMANTIC_COLORS.textPrimary}
+          >
             Strategy Details
           </Text>
-          <VStack align="stretch" spacing={2} fontSize="sm">
-           
+          <VStack align="stretch" spacing={SPACING.sm} fontSize={TYPOGRAPHY.small} fontFamily={TYPOGRAPHY.fontMono}>
+
            {mode === 'multiply' && (
             <HStack justify="space-between">
-              <Text color="whiteAlpha.700">Multiplier</Text>
-              <Text color="white" fontWeight="bold">{multiplier.toFixed(2)}x</Text>
+              <Text color={SEMANTIC_COLORS.textSecondary}>Multiplier</Text>
+              <Text color={SEMANTIC_COLORS.textPrimary} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>{multiplier.toFixed(2)}x</Text>
             </HStack>
            )}
             {mode === 'de-risk' && (
               <HStack justify="space-between">
-                <Text color="whiteAlpha.700">Borrow Amount</Text>
-                <Text color="white" fontWeight="bold">
+                <Text color={SEMANTIC_COLORS.textSecondary}>Borrow Amount</Text>
+                <Text color={SEMANTIC_COLORS.textPrimary} fontWeight={TYPOGRAPHY.bold} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                   {borrowAmountFormatted} CDT
                 </Text>
               </HStack>
@@ -107,37 +150,43 @@ const TransformExposureSummary: React.FC<TransformExposureSummaryProps> = ({
           </VStack>
         </Box>
 
-        <Divider borderColor="whiteAlpha.300" />
+        <Divider borderColor={SEMANTIC_COLORS.borderSubtle} />
 
 
-        <Divider borderColor="whiteAlpha.300" />
+        <Divider borderColor={SEMANTIC_COLORS.borderSubtle} />
 
         {/* Actions to be Performed */}
         <Box>
-          <Text fontWeight="semibold" mb={3} color="whiteAlpha.900">
+          <Text
+            fontFamily={TYPOGRAPHY.fontDisplay}
+            fontSize={TYPOGRAPHY.h4}
+            fontWeight={TYPOGRAPHY.semibold}
+            mb={SPACING.md}
+            color={SEMANTIC_COLORS.textPrimary}
+          >
             Actions to be Performed
           </Text>
-          <VStack align="stretch" spacing={2} fontSize="sm">
+          <VStack align="stretch" spacing={SPACING.sm} fontSize={TYPOGRAPHY.small} fontFamily={TYPOGRAPHY.fontMono}>
             <HStack>
-              <Text color="green.400" fontSize="lg">✓</Text>
-              <Text color="whiteAlpha.700">Deposit {collateralAmountFormatted} {asset.symbol}</Text>
+              <Text color={SEMANTIC_COLORS.success} fontSize={TYPOGRAPHY.body}>✓</Text>
+              <Text color={SEMANTIC_COLORS.textSecondary} sx={{ fontVariantNumeric: 'tabular-nums' }}>Deposit {collateralAmountFormatted} {asset.symbol}</Text>
             </HStack>
-            
+
             {mode === 'multiply' ? (
               <>
                 <HStack>
-                  <Text color="green.400" fontSize="lg">✓</Text>
-                  <Text color="whiteAlpha.700">Configure loop LTV to {(loopLTV * 100).toFixed(2)}%</Text>
+                  <Text color={SEMANTIC_COLORS.success} fontSize={TYPOGRAPHY.body}>✓</Text>
+                  <Text color={SEMANTIC_COLORS.textSecondary} sx={{ fontVariantNumeric: 'tabular-nums' }}>Configure loop LTV to {(loopLTV * 100).toFixed(2)}%</Text>
                 </HStack>
                 <HStack>
-                  <Text color="green.400" fontSize="lg">✓</Text>
-                  <Text color="whiteAlpha.700">Execute loop position</Text>
+                  <Text color={SEMANTIC_COLORS.success} fontSize={TYPOGRAPHY.body}>✓</Text>
+                  <Text color={SEMANTIC_COLORS.textSecondary}>Execute loop position</Text>
                 </HStack>
               </>
             ) : (
               <HStack>
-                <Text color="green.400" fontSize="lg">✓</Text>
-                <Text color="whiteAlpha.700">Borrow {borrowAmountFormatted} CDT</Text>
+                <Text color={SEMANTIC_COLORS.success} fontSize={TYPOGRAPHY.body}>✓</Text>
+                <Text color={SEMANTIC_COLORS.textSecondary} sx={{ fontVariantNumeric: 'tabular-nums' }}>Borrow {borrowAmountFormatted} CDT</Text>
               </HStack>
             )}
           </VStack>
@@ -145,10 +194,10 @@ const TransformExposureSummary: React.FC<TransformExposureSummaryProps> = ({
 
         {/* Market Contract */}
         {/* <Box>
-          <Text fontWeight="semibold" mb={2} color="whiteAlpha.900" fontSize="sm">
+          <Text fontWeight="semibold" mb={2} color={SEMANTIC_COLORS.textPrimary} fontSize="sm">
             Market Contract
           </Text>
-          <Text color="whiteAlpha.600" fontSize="xs" fontFamily="mono">
+          <Text color={SEMANTIC_COLORS.textSecondary} fontSize="xs" fontFamily="mono">
             {marketContract}
           </Text>
         </Box> */}

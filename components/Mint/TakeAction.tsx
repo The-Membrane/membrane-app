@@ -25,7 +25,7 @@ const OverDraftMessage = ({ overdraft = false, minDebt = false, ltvChange = fals
   )
 }
 
-const TakeAction = React.memo(() => {
+const TakeAction = React.memo(function TakeAction() {
   const { mintState, setMintState } = useMintState()
   const combinBalance = useCombinBalance(mintState.positionNumber - 1)
 

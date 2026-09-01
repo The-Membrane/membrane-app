@@ -36,15 +36,16 @@ const PerformanceStats = ({ positionIndex }: Props) => {
     const bp = basketPositions as any
     if (!bp || !bp[0]?.positions?.[positionIndex]) return { position: undefined, positionID: undefined }
     return { position: bp[0].positions[positionIndex], positionID: bp[0].positions[positionIndex].position_id }
-  }, [basketPositions])
+  }, [basketPositions, positionIndex])
 
   //Get the position value saved in le cookie
   const { data: initialTVL } = useCookie("no liq leverage " + positionID)
+  // useChainRoute must run before the early return so Hook order stays stable.
+  const { chainName } = useChainRoute()
   if (initialTVL == null || position == null) return null
 
   //Get the volatile asset being leveraged
   //We know its the first asset bc we deposit the stable second
-  const { chainName } = useChainRoute()
   const levAsset = getAssetByDenom(position.collateral_assets[0].asset.info.native_token.denom, chainName)
 
   //Get performance 

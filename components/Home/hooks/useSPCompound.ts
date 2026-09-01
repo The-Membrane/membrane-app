@@ -6,6 +6,10 @@ import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { queryClient } from '@/pages/_app'
 import type { EvmCall } from '@/services/chain/types'
 
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 /**
  * Auto Stability Pool "compound" CTA.
  *
@@ -27,10 +31,6 @@ const useSPCompound = () => {
   })
 
   const { msgs } = useMemo(() => queryData ?? { msgs: undefined }, [queryData])
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

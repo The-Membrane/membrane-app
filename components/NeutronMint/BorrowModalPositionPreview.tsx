@@ -59,6 +59,14 @@ interface BorrowModalPositionPreviewProps {
     liquidationData: LiquidationData
 }
 
+// Health bar color based on health percentage
+const getHealthColor = (health: number) => {
+    if (health >= 80) return 'green.400'
+    if (health >= 50) return 'yellow.400'
+    if (health >= 20) return 'orange.400'
+    return 'red.400'
+}
+
 export const BorrowModalPositionPreview: React.FC<BorrowModalPositionPreviewProps> = ({
     positionData,
     debtComposition,
@@ -85,14 +93,6 @@ export const BorrowModalPositionPreview: React.FC<BorrowModalPositionPreviewProp
             setDebtCompositionOpen(true)
         }
     }, [debtDelta, debtComposition.length])
-
-    // Health bar color based on health percentage
-    const getHealthColor = (health: number) => {
-        if (health >= 80) return 'green.400'
-        if (health >= 50) return 'yellow.400'
-        if (health >= 20) return 'orange.400'
-        return 'red.400'
-    }
 
     // Calculate collateral power (collateral value * max LTV)
     // For now, using a simplified calculation
@@ -264,7 +264,7 @@ export const BorrowModalPositionPreview: React.FC<BorrowModalPositionPreviewProp
                     >
                         <HStack spacing={2}>
                             <Image
-                                src="/images/cdt.svg"
+                                src="/images/cdt.png"
                                 alt="CDT"
                                 w="20px"
                                 h="20px"
@@ -302,7 +302,7 @@ export const BorrowModalPositionPreview: React.FC<BorrowModalPositionPreviewProp
                             <Tbody>
                                 {debtComposition.length > 0 ? (
                                     debtComposition.map((row, idx) => (
-                                        <Tr key={`debt-comp-${idx}`}>
+                                        <Tr key={row.type}>
                                             <Td px={0} py={2}>
                                                 <Text color="white" fontSize="xs">
                                                     {row.type}

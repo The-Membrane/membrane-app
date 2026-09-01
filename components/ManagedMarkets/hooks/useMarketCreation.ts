@@ -6,6 +6,11 @@ import { Asset } from '@/helpers/chain';
 import { MarketCreateState } from '../ManagedTable';
 import type { EvmCall } from '@/services/chain/types';
 
+const onInitialSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['positions'] });
+  queryClient.invalidateQueries({ queryKey: ['balances'] });
+};
+
 /**
  * TODO(evm-migration): Managed Markets do NOT exist in the Solidity port — no
  * market-manager contract was ported, so there is no instantiate_market to map. This hook
@@ -42,11 +47,6 @@ const useMarketCreation = ({
   });
 
   const msgs = queryMsgs ?? [];
-
-  const onInitialSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['positions'] });
-    queryClient.invalidateQueries({ queryKey: ['balances'] });
-  };
 
   return {
     action: useSimulateAndBroadcast({

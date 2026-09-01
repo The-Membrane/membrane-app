@@ -54,7 +54,7 @@ export const LTVWithSlider = ({ label }: LTVWithSliderProps) => {
   var repay = 0
   var ltvSlider = useMemo(() => {
     return num(debtAmount).times(100).dividedBy(maxMint ?? 1).dp(2).toNumber()
-  }, [debtAmount])
+  }, [debtAmount, maxMint])
 
   const onChange = (value: number) => {
     var newValue = num(value).dp(2).toNumber()

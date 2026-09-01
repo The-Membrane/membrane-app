@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Box, Button, Text, VStack, HStack, Image, Icon, Input, FormControl, FormLabel, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, ModalHeader, useDisclosure } from '@chakra-ui/react'
+import { Box, Button, Text, VStack, HStack, Image, Icon, Input, FormControl, FormLabel, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, ModalHeader, useDisclosure, VisuallyHidden } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { UserCircle, ArrowUp, ArrowLeft, Lock, Unlock, Wifi } from 'lucide-react'
@@ -13,6 +13,8 @@ import { StorefrontPortal } from './StorefrontPortal'
 import { StorefrontTOSModal } from './StorefrontTOSModal'
 import { LevelsControlPanel } from './LevelsControlPanel'
 import { LevelsDisplay } from './LevelsDisplay'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 type View = 'storefront' | 'about' | 'levels'
 
@@ -119,6 +121,12 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                     <rect width="100%" height="100%" fill="url(#hexagonPattern)" />
                 </Box>
             </Box>
+
+            {/* The visible "THE MEMBRANE" wordmark below is built from decorative
+                per-letter tags so it can be styled as a neon sign, and it only
+                renders once the scan completes. This gives the page a single,
+                always-present h1 so it is never heading-less for screen readers. */}
+            <VisuallyHidden as="h1">The Membrane</VisuallyHidden>
 
             {/* Rules Section - At the top */}
             {!scanComplete && (
@@ -738,14 +746,14 @@ const AboutView = ({
                         </Box>
                     </Box>
                     <Text
-                        fontSize={{ base: '2xl', md: '4xl', lg: '6xl' }}
-                        fontFamily="mono"
-                        color="#9bdc4f"
-                        textShadow="0 0 20px #9bdc4f"
-                        letterSpacing="wider"
+                        as="h1"
+                        fontSize={TYPOGRAPHY.h1}
+                        fontWeight={TYPOGRAPHY.bold}
+                        fontFamily={TYPOGRAPHY.fontDisplay}
+                        color={SEMANTIC_COLORS.textPrimary}
                         textAlign="center"
                     >
-                        RECEPTIONIST
+                        Receptionist
                     </Text>
                     <Text color="#8d877b" letterSpacing="widest">
                         NEURAL INTERFACE ACTIVE
@@ -997,14 +1005,14 @@ const LevelsView = ({
                 {/* Header */}
                 <VStack mb={8} spacing={4}>
                     <Text
-                        fontSize={{ base: '2xl', md: '4xl', lg: '6xl' }}
-                        fontFamily="mono"
-                        color="#46d39a"
-                        textShadow="0 0 20px #46d39a, 0 0 40px #46d39a"
-                        letterSpacing="wider"
+                        as="h1"
+                        fontSize={TYPOGRAPHY.h1}
+                        fontWeight={TYPOGRAPHY.bold}
+                        fontFamily={TYPOGRAPHY.fontDisplay}
+                        color={SEMANTIC_COLORS.textPrimary}
                         textAlign="center"
                     >
-                        ELEVATOR ACCESS
+                        Elevator Access
                     </Text>
                     <HStack spacing={2} color="#8d877b">
                         <Icon as={Wifi} w={4} h={4} animation="pulse 2s infinite" />

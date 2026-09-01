@@ -21,9 +21,9 @@ import useUSDCToMint from "./hooks/useUSDCToMint"
 import { useChainRoute } from "@/hooks/useChainRoute"
 
 
-export const RBLPDepositModal = React.memo(({
+export const RBLPDepositModal = React.memo(function RBLPDepositModal({
     isOpen, onClose, cdtAsset, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, cdtAsset: AssetWithBalance }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, cdtAsset: AssetWithBalance }>) {
 
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -62,7 +62,7 @@ export const RBLPDepositModal = React.memo(({
             });
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [quickActionState?.rangeBoundLPdeposit, setQuickActionState, maxAmount])
+    }, [setQuickActionState, maxAmount])
 
 
 
@@ -139,9 +139,9 @@ export const RBLPDepositModal = React.memo(({
     </>)
 })
 
-export const RBLPWithdrawModal = React.memo(({
+export const RBLPWithdrawModal = React.memo(function RBLPWithdrawModal({
     isOpen, onClose, rblpDeposit, cdtMarketPrice, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, rblpDeposit: number, cdtMarketPrice: string }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, rblpDeposit: number, cdtMarketPrice: string }>) {
 
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -179,7 +179,7 @@ export const RBLPWithdrawModal = React.memo(({
                 rangeBoundLPdeposit: 0
             });
         }, INPUT_DELAY); // Delay before updating the state
-    }, [quickActionState?.rangeBoundLPwithdrawal, setQuickActionState, maxAmount]);
+    }, [setQuickActionState, maxAmount]);
 
 
 
@@ -197,7 +197,7 @@ export const RBLPWithdrawModal = React.memo(({
                 <Stack>
                     <HStack width="100%" justifyContent="left">
                         <HStack width="75%">
-                            <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+                            <Image src={"/images/cdt.png"} w="30px" h="30px" />
                             <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                 CDT
                             </Text>
@@ -256,9 +256,9 @@ export const RBLPWithdrawModal = React.memo(({
     </>)
 })
 
-export const NeuroOpenModal = React.memo(({
+export const NeuroOpenModal = React.memo(function NeuroOpenModal({
     isOpen, onClose, asset, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined }>) {
 
 
     const { setNeuroState } = useNeuroState()
@@ -323,7 +323,7 @@ export const NeuroOpenModal = React.memo(({
             // })
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [asset, setNeuroState, maxAmount])
+    }, [maxAmount])
 
     return (<>
         {/* <Button onClick={() => { }} width="25%" variant="unstyled" fontWeight="normal" mb="0">
@@ -403,9 +403,9 @@ export const NeuroOpenModal = React.memo(({
     </>)
 })
 
-export const NeuroDepositModal = React.memo(({
+export const NeuroDepositModal = React.memo(function NeuroDepositModal({
     isOpen, onClose, asset, position_id, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined, position_id: string }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, asset: AssetWithBalance | undefined, position_id: string }>) {
 
     const { setNeuroState } = useNeuroState()
     const { action: existingNeuro } = useExistingNeuroGuard({ position_id, onSuccess: onClose, run: isOpen })
@@ -530,7 +530,7 @@ export const NeuroDepositModal = React.memo(({
     </>)
 })
 
-export const NeuroWithdrawModal = React.memo(({
+export const NeuroWithdrawModal = React.memo(function NeuroWithdrawModal({
     isOpen, onClose, asset, guardedPosition, prices, children
 }: PropsWithChildren<{
     isOpen: boolean, onClose: () => void,
@@ -544,7 +544,7 @@ export const NeuroWithdrawModal = React.memo(({
         cost: number
     },
     prices: any
-}>) => {
+}>) {
     const { setNeuroState } = useNeuroState()
     const { action: sheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: false, run: isOpen })
     const { action: ledgerSheathe } = useNeuroClose({ position: guardedPosition.position, onSuccess: onClose, ledger: true, run: isOpen })
@@ -682,7 +682,7 @@ export const NeuroWithdrawModal = React.memo(({
     </>)
 })
 
-export const NeuroCloseModal = React.memo(({
+export const NeuroCloseModal = React.memo(function NeuroCloseModal({
     isOpen, onClose, position, debtAmount, positionNumber, cdtMarketPrice, children
 }: PropsWithChildren<{
     isOpen: boolean, onClose: () => void,
@@ -690,7 +690,7 @@ export const NeuroCloseModal = React.memo(({
     debtAmount: number
     positionNumber: number
     cdtMarketPrice: string
-}>) => {
+}>) {
     const [inputValue, setInputValue] = useState<number | undefined>(); // Tracks user input
     const [spread, setSpread] = useState<number>(0.01); // close position spread
     // const { neuroState, setNeuroState } = useNeuroState()
@@ -728,7 +728,7 @@ export const NeuroCloseModal = React.memo(({
         //         closeInputValue: num(value).isGreaterThan(maxAmount) ? maxAmount : value
         //     })
         // }, INPUT_DELAY); // Delay before updating the state
-    }, [inputValue, maxAmount])
+    }, [maxAmount])
 
     const onMaxClick = () => {
         setInputValue(maxAmount)
@@ -814,9 +814,9 @@ export const NeuroCloseModal = React.memo(({
     </>)
 })
 
-export const USDCMintModal = React.memo(({
+export const USDCMintModal = React.memo(function USDCMintModal({
     isOpen, onClose, usdcBalance, usdcPrice, expectedAPR, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number, usdcPrice: number, expectedAPR: number }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number, usdcPrice: number, expectedAPR: number }>) {
 
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -858,7 +858,7 @@ export const USDCMintModal = React.memo(({
             });
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [quickActionState?.usdcMint.deposit, setQuickActionState, depositMaxAmount])
+    }, [quickActionState?.usdcMint.deposit, quickActionState?.usdcMint.mint, setQuickActionState, depositMaxAmount])
 
 
     //USDC to CDT amount conversion
@@ -905,7 +905,7 @@ export const USDCMintModal = React.memo(({
             });
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [quickActionState?.usdcMint.mint, setQuickActionState, mintMaxAmount])
+    }, [quickActionState?.usdcMint.mint, quickActionState?.usdcMint.deposit, setQuickActionState, mintMaxAmount])
 
 
 
@@ -948,7 +948,7 @@ export const USDCMintModal = React.memo(({
                 <Stack>
                     <HStack width="100%" justifyContent="left">
                         <HStack width="75%">
-                            <Image src={"/images/cdt.svg"} w="30px" h="30px" />
+                            <Image src={"/images/cdt.png"} w="30px" h="30px" />
                             <Text variant="title" textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
                                 Mint CDT
                             </Text>
@@ -979,7 +979,7 @@ export const USDCMintModal = React.memo(({
                     <Checkbox
                         checked={quickActionState.enterVaultToggle}
                         onChange={() => { setQuickActionState({ enterVaultToggle: !quickActionState.enterVaultToggle }) }}
-                        fontFamily="Inter"
+                        fontFamily="var(--font-inter)"
                     >
                         Deposit to Range Bound LP Vault
                     </Checkbox>
@@ -1021,9 +1021,9 @@ export const USDCMintModal = React.memo(({
 })
 
 
-export const USDCSwapToCDTModal = React.memo(({
+export const USDCSwapToCDTModal = React.memo(function USDCSwapToCDTModal({
     isOpen, onClose, usdcBalance, children
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcBalance: number }>) {
 
 
     const { quickActionState, setQuickActionState } = useQuickActionState()
@@ -1062,7 +1062,7 @@ export const USDCSwapToCDTModal = React.memo(({
             });
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [quickActionState?.usdcSwapToCDT, setQuickActionState, maxAmount])
+    }, [setQuickActionState, maxAmount])
 
 
     return (<>

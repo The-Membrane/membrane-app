@@ -153,6 +153,9 @@ export const useDepositModal = ({ positionIndex = 0, asset }: UseDepositModalPro
             }
         }
 
+        // js-set-map-lookups FP: stableSymbols is a hardcoded 3-item list (config/defaults.ts)
+        // and this branch only ever runs with exactly 2 activePositions — well under the
+        // ~10-item threshold where a Set pays off.
         if (activePositions.length === 2) {
             const volatilePos = activePositions.find(p => !stableSymbols.includes(p.symbol || ''))
             const stablePos = activePositions.find(p => stableSymbols.includes(p.symbol || ''))

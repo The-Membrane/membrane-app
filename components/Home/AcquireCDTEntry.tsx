@@ -86,7 +86,7 @@ const AcquireCDTEntry = ({
             }
         }, INPUT_DELAY); // Delay before updating the state
 
-    }, [quickActionState?.usdcSwapToCDT, setQuickActionState, maxAmount])
+    }, [quickActionState?.usdcSwapToCDT, setQuickActionState, maxAmount, txType])
 
 
     const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -114,15 +114,15 @@ const AcquireCDTEntry = ({
             >
                 <Card width="fit-content" alignSelf="center" borderWidth={3} padding={4} bg="rgb(90, 90, 90, 0.4)" borderColor="rgba(255, 255, 255, 0.16)">
                     <Stack gap="1.5rem">
-                        <Image src={"/images/cdt.svg"} w="65px" h="65px" alignSelf={"center"} />
+                        <Image src={"/images/cdt.png"} w="65px" h="65px" alignSelf={"center"} />
 
                         <Text width="fit-content" justifyContent="center" variant="title" textAlign="center" fontSize="1.7rem" letterSpacing="1px">
-                            Earn &nbsp;<a className="textShadow">{yieldValue}%</a>&nbsp; with CDT
+                            Earn &nbsp;<span className="textShadow">{yieldValue}%</span>&nbsp; with CDT
                         </Text>
                         <List spacing={3} styleType="disc" padding="6" paddingTop="0">
-                            <ListItem fontFamily="Inter" fontSize="md"> All in stablecoins. Sourced from revenue & LP profits.</ListItem>
-                            <ListItem fontFamily="Inter" fontSize="md"> 100% liquid. No lock-in or withdrawal penalty.</ListItem>
-                            <ListItem fontFamily="Inter" fontSize="md"> Earn 100 MBRN for every $1 in yield you earn.</ListItem>
+                            <ListItem fontFamily="var(--font-inter)" fontSize="md"> All in stablecoins. Sourced from revenue & LP profits.</ListItem>
+                            <ListItem fontFamily="var(--font-inter)" fontSize="md"> 100% liquid. No lock-in or withdrawal penalty.</ListItem>
+                            <ListItem fontFamily="var(--font-inter)" fontSize="md"> Earn 100 MBRN for every $1 in yield you earn.</ListItem>
                         </List>
                     </Stack>
 
@@ -160,7 +160,7 @@ const AcquireCDTEntry = ({
                                         </Text>
                                     </>
                                         : <>
-                                            <Image src={"/images/cdt.svg"} w="50px" h="50px" />
+                                            <Image src={"/images/cdt.png"} w="50px" h="50px" />
                                             <Text variant="title" textAlign="center" fontSize="2rem" letterSpacing="1px" display="flex">
                                                 CDT
                                             </Text>

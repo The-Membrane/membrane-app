@@ -10,9 +10,9 @@ import useUSDCRedemptionWithdraw from "./hooks/useUSDCRedemptionWithdraw"
 import { useOraclePrice } from "@/hooks/useOracle"
 import { shiftDigits } from "@/helpers/math"
 
-export const RedemptionDepositModal = React.memo(({
+export const RedemptionDepositModal = React.memo(function RedemptionDepositModal({
     isOpen, onClose, children, usdcAsset
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcAsset: any }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcAsset: any }>) {
 
 
     const { redemptionState, setRedemptionState } = useRedemptionState()
@@ -38,7 +38,7 @@ export const RedemptionDepositModal = React.memo(({
         setRedemptionState({
             deposit: num(value).isGreaterThan(maxAmount) ? maxAmount : value
         })
-    }, [redemptionState.deposit, setRedemptionState])
+    }, [redemptionState.deposit, setRedemptionState, maxAmount])
 
 
     const onSalePriceInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +48,7 @@ export const RedemptionDepositModal = React.memo(({
         setRedemptionState({
             salePrice: num(value).isGreaterThan(99) ? 99 : value
         })
-    }, [redemptionState.salePrice, setRedemptionState])
+    }, [setRedemptionState])
 
 
 
@@ -96,7 +96,7 @@ export const RedemptionDepositModal = React.memo(({
 
                     <Stack>
                         <Text variant="title" paddingTop="3%" textTransform={undefined} textAlign="center" fontSize="lg" letterSpacing="1px" display="flex">
-                            What price did you sell CDT? Set to 1.00 if you haven't sold any.
+                            What price did you sell CDT? Set to 1.00 if you haven&apos;t sold any.
                         </Text>
                         <Input
                             width={"100%"}
@@ -146,9 +146,9 @@ export const RedemptionDepositModal = React.memo(({
     </>)
 })
 
-export const RedemptionWithdrawModal = React.memo(({
+export const RedemptionWithdrawModal = React.memo(function RedemptionWithdrawModal({
     isOpen, onClose, children, usdcDeposit, usdcImage
-}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcDeposit: number, usdcImage: string | undefined }>) => {
+}: PropsWithChildren<{ isOpen: boolean, onClose: () => void, usdcDeposit: number, usdcImage: string | undefined }>) {
 
     const { data: prices } = useOraclePrice()
     const usdcMarketPrice = useMemo(() =>
@@ -177,7 +177,7 @@ export const RedemptionWithdrawModal = React.memo(({
         setRedemptionState({
             withdraw: num(value).isGreaterThan(maxAmount) ? maxAmount : value
         })
-    }, [redemptionState?.withdraw, setRedemptionState])
+    }, [redemptionState?.withdraw, setRedemptionState, maxAmount])
 
 
 

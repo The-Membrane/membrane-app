@@ -54,14 +54,16 @@ export const BorrowRateSelector: React.FC<BorrowRateSelectorProps> = ({
     // Liquidity per rate option. Fixed tranches share the on-chain aggregate cap
     // (fixedRateCapacity); variable CDT minting is unlimited (-1). Indicative fallbacks are
     // used only when the on-chain cap could not be read.
-    const liquidityByRate: Record<BorrowRate, number> = {
+    // Memoized so currentLiquidity useMemo can depend on a stable reference (recomputes only
+    // when fixedRateCapacity changes).
+    const liquidityByRate = useMemo<Record<BorrowRate, number>>(() => ({
         'variable': -1, // Unlimited for CDT
         'fixed-1m': fixedRateCapacity ?? 150000,
         'fixed-3m': fixedRateCapacity ?? 120000,
         'fixed-6m': fixedRateCapacity ?? 90000,
-    }
+    }), [fixedRateCapacity])
 
-    const rateOptions: RateOption[] = [
+    const rateOptions: RateOption[] = useMemo(() => [
         {
             value: 'variable',
             label: 'Variable',
@@ -86,7 +88,7 @@ export const BorrowRateSelector: React.FC<BorrowRateSelectorProps> = ({
             description: 'Longer stability',
             apr: rates.fixed6m,
         },
-    ]
+    ], [rates.variable, rates.fixed1m, rates.fixed3m, rates.fixed6m])
 
     const selectedOption = rateOptions.find(opt => opt.value === selectedRate) || rateOptions[0]
 
@@ -101,7 +103,7 @@ export const BorrowRateSelector: React.FC<BorrowRateSelectorProps> = ({
     const currentLiquidity = useMemo(() => {
         const rateToUse = hoveredRate || selectedRate
         return liquidityByRate[rateToUse] ?? liquidityAvailable
-    }, [hoveredRate, selectedRate, liquidityAvailable, fixedRateCapacity])
+    }, [hoveredRate, selectedRate, liquidityAvailable, liquidityByRate])
 
     // Get current APR based on hover or selection
     const currentApr = useMemo(() => {

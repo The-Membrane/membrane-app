@@ -8,6 +8,8 @@ import type { EvmCall } from '@/services/chain/types'
  * a no-op that emits no msgs so the export keeps compiling; re-implement if/when redemption
  * lands in the port.
  */
+const msgs: EvmCall[] = []
+
 const useUSDCRedemptionWithdraw = ({
   onSuccess,
 }: {
@@ -15,8 +17,6 @@ const useUSDCRedemptionWithdraw = ({
   max: number
   run: boolean
 }) => {
-  const msgs: EvmCall[] = []
-
   return {
     action: useSimulateAndBroadcast({
       msgs,

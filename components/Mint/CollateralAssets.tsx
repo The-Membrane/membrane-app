@@ -1,26 +1,12 @@
-import { num } from '@/helpers/num'
 import { Stack, Checkbox } from '@chakra-ui/react'
 import { AssetWithInput } from './AssetWithInput'
 import useMintState from './hooks/useMintState'
-import useCombinBalance, { AssetWithBalance } from './hooks/useCombinBalance'
+import useCombinBalance from './hooks/useCombinBalance'
 import { useEffect, useState } from 'react'
 import { colors } from '@/config/defaults'
 import { InitialCDPDeposit } from './InitialCDPDeposit'
 import { useUserPositions } from '@/hooks/useCDP'
-
-export const getAssetWithNonZeroValues = (combinBalance: AssetWithBalance[], transactionType: string) => {
-  return combinBalance
-    ?.filter((asset) => {
-      if (!asset) return false
-      return num(transactionType === "deposit" ? asset.walletsdValue : asset.depositUsdValue).isGreaterThan(0.01)
-    })
-    .map((asset) => ({
-      ...asset,
-      sliderValue: asset.depositUsdValue || 0,
-      amount: 0,
-      amountValue: 0,
-    }))
-}
+import { getAssetWithNonZeroValues } from './collateralAssetsUtils'
 
 const CollateralAssets = () => {
   const [toggle, setToggle] = useState<boolean>(false)
@@ -33,22 +19,23 @@ const CollateralAssets = () => {
     const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance, mintState.transactionType)
     // console.log("assetsWithValuesGreaterThanZero", assetsWithValuesGreaterThanZero)
     setMintState({ assets: assetsWithValuesGreaterThanZero })
-  }, [combinBalance])
+  }, [combinBalance, mintState.transactionType, setMintState])
 
   useEffect(() => {
     const assetsWithValuesGreaterThanZero = getAssetWithNonZeroValues(combinBalance, mintState.transactionType)
 
     if (toggle) {
       //Replace assets in combinBalance that are in assetsWithValuesGreaterThanZero
-      const combinedAssets = combinBalance.map((asset) => {
+      const combinedAssets = combinBalance.flatMap((asset) => {
         const assetWithValuesGreaterThanZero = assetsWithValuesGreaterThanZero.find((a) => a.base === asset.base)
-        return assetWithValuesGreaterThanZero || asset
-      }).filter((asset) => asset.symbol !== "OSMO/USDC.axl LP" && asset.symbol !== "ATOM/OSMO LP" && asset.symbol !== "marsUSDC")
+        const resolvedAsset = assetWithValuesGreaterThanZero || asset
+        return resolvedAsset.symbol !== "OSMO/USDC.axl LP" && resolvedAsset.symbol !== "ATOM/OSMO LP" && resolvedAsset.symbol !== "marsUSDC" ? [resolvedAsset] : []
+      })
       setMintState({ assets: combinedAssets })
     } else {
       setMintState({ assets: assetsWithValuesGreaterThanZero })
     }
-  }, [toggle, mintState.transactionType])
+  }, [toggle, mintState.transactionType, combinBalance, setMintState])
 
   // TODO(evm-migration): useUserPositions returns EvmUserPosition[] (flat), not CosmWasm BasketPositions[] with `.positions`.
   const showInitialCDPDeposit = !!basketPositions && basketPositions.length > 0 && mintState.positionNumber <= (((basketPositions as any)[0]?.positions?.length) ?? 0)

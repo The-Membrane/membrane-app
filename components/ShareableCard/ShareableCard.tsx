@@ -1,3 +1,4 @@
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import React, { forwardRef, ReactNode, useCallback } from 'react'
 import { Box, VStack, HStack, Text, Image } from '@chakra-ui/react'
 
@@ -33,17 +34,15 @@ export const ShareableCard = forwardRef<HTMLDivElement, ShareableCardProps>(
                 data-card-element="true"
                 w="600px"
                 h="315px"
-                bg="#1a1a2e"
+                bg={SEMANTIC_COLORS.bgPrimary}
                 position="relative"
                 overflow="visible"
-                borderRadius="xl"
+                borderRadius={0}
                 p={6}
                 boxSizing="border-box"
                 sx={{
-                    border: '2px solid transparent',
-                    backgroundImage: 'linear-gradient(#1a1a2e, #1a1a2e), linear-gradient(135deg, #8A2BE2 0%, #6FFFC2 100%)',
-                    backgroundOrigin: 'border-box',
-                    backgroundClip: 'padding-box, border-box',
+                    // Living Typeface: a hairline border, not a purple->mint gradient frame.
+                    border: `1px solid ${SEMANTIC_COLORS.borderStrong}`,
                 }}
                 _before={{
                     content: '""',
@@ -52,7 +51,7 @@ export const ShareableCard = forwardRef<HTMLDivElement, ShareableCardProps>(
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(111, 255, 194, 0.1) 100%)',
+                    background: 'none',
                     pointerEvents: 'none',
                 }}
                 _after={{
@@ -62,7 +61,7 @@ export const ShareableCard = forwardRef<HTMLDivElement, ShareableCardProps>(
                     right: '-20%',
                     width: '60%',
                     height: '100%',
-                    background: 'radial-gradient(circle, rgba(111, 255, 194, 0.1) 0%, transparent 70%)',
+                    background: 'none',
                     pointerEvents: 'none',
                 }}
             >
@@ -73,7 +72,7 @@ export const ShareableCard = forwardRef<HTMLDivElement, ShareableCardProps>(
                             {title && (
                                 <Text
                                     fontSize="xs"
-                                    color="gray.400"
+                                    color={SEMANTIC_COLORS.textSecondary}
                                     fontFamily="mono"
                                     textTransform="uppercase"
                                     letterSpacing="widest"
@@ -86,7 +85,7 @@ export const ShareableCard = forwardRef<HTMLDivElement, ShareableCardProps>(
                                 <Text
                                     fontSize="2xl"
                                     fontWeight="bold"
-                                    color="white"
+                                    color={SEMANTIC_COLORS.textPrimary}
                                     fontFamily="mono"
                                     lineHeight="1.2"
                                     wordBreak="break-word"
@@ -112,7 +111,7 @@ export const ShareableCard = forwardRef<HTMLDivElement, ShareableCardProps>(
                             opacity={0.9}
                         >
                             <Image
-                                src="/images/Logo_with_both_images.svg"
+                                src="/images/membrane-wordmark.png"
                                 alt="Membrane"
                                 maxH="60px"
                                 maxW="120px"
@@ -120,13 +119,13 @@ export const ShareableCard = forwardRef<HTMLDivElement, ShareableCardProps>(
                                     <Box
                                         w="120px"
                                         h="60px"
-                                        bg="purple.500"
-                                        borderRadius="md"
+                                        bg={SEMANTIC_COLORS.bgSecondary}
+                                        borderRadius={0}
                                         display="flex"
                                         alignItems="center"
                                         justifyContent="center"
                                     >
-                                        <Text fontSize="xs" color="white" fontFamily="mono">
+                                        <Text fontSize="xs" color={SEMANTIC_COLORS.textPrimary} fontFamily="mono">
                                             MBRN
                                         </Text>
                                     </Box>

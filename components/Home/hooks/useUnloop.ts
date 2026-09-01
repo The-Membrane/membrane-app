@@ -6,6 +6,11 @@ import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { queryClient } from '@/pages/_app'
 import type { EvmCall } from '@/services/chain/types'
 
+const onSuccess = () => {
+  queryClient.invalidateQueries({ queryKey: ['positions'] })
+  queryClient.invalidateQueries({ queryKey: ['balances'] })
+}
+
 /**
  * Unwind (deleverage) a looped position by repeatedly repaying + withdrawing + swapping.
  *
@@ -36,11 +41,6 @@ const useUnLoop = (_positionIndex: number, desiredWithdrawal?: number) => {
     () => queryData ?? { msgs: undefined, newPositionValue: 0, newLTV: 0 },
     [queryData],
   )
-
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['positions'] })
-    queryClient.invalidateQueries({ queryKey: ['balances'] })
-  }
 
   return {
     action: useSimulateAndBroadcast({

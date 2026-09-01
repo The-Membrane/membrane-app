@@ -40,35 +40,38 @@ async function fetchPriceHistoryFromCDP(
   const cosmWasmClient = await getCosmWasmClient(rpcUrl)
   const cutoffTimestamp = Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60) // seconds
 
-  // Fetch price history for each denom
-  for (const denom of denoms) {
-    try {
-      const response = await getHistoricalOraclePrices(denom, cosmWasmClient)
+  // Independent per-denom oracle-price queries — fan out; result is keyed by denom
+  // (order-independent) and each query keeps its own try/catch.
+  await Promise.all(
+    denoms.map(async (denom) => {
+      try {
+        const response = await getHistoricalOraclePrices(denom, cosmWasmClient)
       
-      if (!response?.prices || response.prices.length === 0) {
-        continue
-      }
-
-      // Transform CDP response to CoinGecko format
-      // CDP: { price: string, timestamp: u64 (seconds) }[]
-      // CoinGecko: [timestamp (ms), price (number)][]
-      const prices: [number, number][] = response.prices
-        .filter(pt => pt.timestamp >= cutoffTimestamp) // Filter by time range
-        .map((pt): [number, number] => [
-          pt.timestamp * 1000, // Convert seconds to milliseconds
-          parseFloat(pt.price) // Convert string to number
-        ])
-        .sort((a, b) => a[0] - b[0]) // Sort by timestamp
-
-      if (prices.length > 0) {
-        result[denom] = {
-          prices,
+        if (!response?.prices || response.prices.length === 0) {
+          return
         }
+
+        // Transform CDP response to CoinGecko format
+        // CDP: { price: string, timestamp: u64 (seconds) }[]
+        // CoinGecko: [timestamp (ms), price (number)][]
+        const prices: [number, number][] = response.prices
+          .flatMap((pt): [number, number][] =>
+            pt.timestamp >= cutoffTimestamp // Filter by time range
+              ? [[pt.timestamp * 1000, parseFloat(pt.price)]] // seconds→ms, string→number
+              : []
+          )
+          .sort((a, b) => a[0] - b[0]) // Sort by timestamp
+
+        if (prices.length > 0) {
+          result[denom] = {
+            prices,
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching CDP price history for ${denom}:`, error)
       }
-    } catch (error) {
-      console.error(`Error fetching CDP price history for ${denom}:`, error)
-    }
-  }
+    }),
+  )
 
   return result
 }

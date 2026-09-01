@@ -22,10 +22,10 @@ import useEarn from "../Earn/hooks/useEarn"
 import useLPState from "../Mint/hooks/useLPState"
 import { useOraclePrice } from "@/hooks/useOracle"
 import useLP from "../Mint/hooks/useLP"
-import { getBestCLRange } from "@/services/osmosis"
+import { useBestCLRange } from "@/services/osmosis"
 import { colors, LPJoinDate } from "@/config/defaults"
 
-const ActSlider = React.memo(({ range }: { range: string }) => {
+const ActSlider = React.memo(function ActSlider({ range }: { range: string }) {
   const cdt = useAssetBySymbol('CDT')
   const cdtBalance = useBalanceByAsset(cdt)
   const { LPState, setLPState } = useLPState()
@@ -52,11 +52,11 @@ const ActSlider = React.memo(({ range }: { range: string }) => {
   return (
     <Stack gap="0" borderWidth={"1px"} borderColor="rgb(226, 216, 218)" borderRadius={"2rem"}>
       <HStack justifyContent="space-between" padding={"4%"}>
-        <Text fontFamily="Inter" variant="lable" textTransform="unset">
+        <Text fontFamily="var(--font-inter)" variant="lable" textTransform="unset">
           CDT to LP
         </Text>
         <HStack>
-          <Text fontFamily="Inter" variant="value">${LPState.newCDT.toFixed(2)}</Text>
+          <Text fontFamily="var(--font-inter)" variant="value">${LPState.newCDT.toFixed(2)}</Text>
         </HStack>
       </HStack>
       <SliderWithState
@@ -86,7 +86,7 @@ const LPCard = () => {
   const daysSinceDeposit = num(Date.now() - LPJoinDate.getTime()).dividedBy(1000).dividedBy(86400).toNumber()
   console.log("days", (Date.now()), LPJoinDate.getTime())
 
-  const { data: clRewardList } = getBestCLRange()
+  const { data: clRewardList } = useBestCLRange()
   const rangeOptions = useMemo(() => {
     //upperXlower & middle are just for logs rn
     if (!clRewardList) return { lowerAggressive: 0, upperAggressive: 0, middle: 0, upperXlower: 0, fullRange: 0 }
@@ -104,19 +104,19 @@ const LPCard = () => {
     if (rangeOptions.upperAggressive > rangeOptions.lowerAggressive && rangeOptions.upperAggressive > rangeOptions.fullRange) return { apr: rangeOptions.upperAggressive / 1000000 / daysSinceDeposit * 365, range: { lower: -100000, upper: -50000 }, stringRange: "0.99-0.995" }
     return { apr: rangeOptions.lowerAggressive / 1000000 / daysSinceDeposit * 365, range: { lower: -200000, upper: -150000 }, stringRange: "0.98-0.985" }
 
-  }, [rangeOptions])
+  }, [rangeOptions, clRewardList, daysSinceDeposit])
   console.log("highestAPR", highestAPR, rangeOptions, clRewardList)
 
   return (
     <Card width={"33%"} borderColor={""} borderWidth={3} padding={4}>
       <Stack>
-        <Text fontFamily="Inter" variant="title" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Earn BOTH</Text>
+        <Text fontFamily="var(--font-inter)" variant="title" fontSize={"md"} letterSpacing={"1px"} justifyContent={"center"} display="flex" color={colors.earnText}>Earn BOTH</Text>
         <Stack>
-          <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><a style={{ fontWeight: "bold", color: colors.slider }}>{`${daysSinceDeposit.toFixed(0)}D`} APR: &nbsp;</a> <a className="textShadow">{num(highestAPR.apr).times(100).toFixed(1)}%</a></Text>
-          <Text fontFamily="Inter" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex" color={colors.earnText}> Best Range: {highestAPR.stringRange}</Text>
+          <Text fontFamily="var(--font-inter)" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex"><span style={{ fontWeight: "bold", color: colors.slider }}>{`${daysSinceDeposit.toFixed(0)}D`} APR: &nbsp;</span> <span className="textShadow">{num(highestAPR.apr).times(100).toFixed(1)}%</span></Text>
+          <Text fontFamily="var(--font-inter)" variant="title" fontSize={"lg"} letterSpacing={"1px"} display="flex" color={colors.earnText}> Best Range: {highestAPR.stringRange}</Text>
         </Stack>
         <Divider marginBottom={"3vh"} />
-        <Text fontFamily="Inter" marginBottom={"4%"}><a style={{ fontWeight: "bold", color: colors.slider, padding: "6", paddingTop: "0" }}>Yield:</a> LP in the Highest APR range to date</Text>
+        <Text fontFamily="var(--font-inter)" marginBottom={"4%"}><span style={{ fontWeight: "bold", color: colors.slider, padding: "6", paddingTop: "0" }}>Yield:</span> LP in the Highest APR range to date</Text>
         <ActSlider range={highestAPR.stringRange} />
       </Stack>
     </Card>

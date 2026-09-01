@@ -1,3 +1,5 @@
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 export interface Level {
     id: number
     name: string
@@ -16,7 +18,7 @@ export const levels: Level[] = [
         subtitle: 'CDT <> USDC Exchange',
         description: 'Earn MBRN by providing USDC to fuel the transmutation of CDT to USDC.',
         status: 'unlocked',
-        color: '#46d39a',
+        color: SEMANTIC_COLORS.info,
         route: 'transmuter'
     },
     {
@@ -25,7 +27,7 @@ export const levels: Level[] = [
         subtitle: 'Boosted stablecoin yield',
         description: 'Loop USDC supplied on Mars Protocol to boost your stablecoin yield by 10x.',
         status: 'unlocked',
-        color: '#9bdc4f',
+        color: SEMANTIC_COLORS.success,
         route: 'manic'
     },
     {
@@ -34,7 +36,7 @@ export const levels: Level[] = [
         subtitle: 'Revenue-fueled System Backstop',
         description: 'Deposit MBRN to earn protocol revenue in exchange for backstopping the system.',
         status: 'unlocked',
-        color: '#9bdc4f',
+        color: SEMANTIC_COLORS.success,
         route: 'disco'
     },
     {
@@ -43,7 +45,7 @@ export const levels: Level[] = [
         subtitle: 'On-chain AI Racing Game',
         description: 'Train your own AI to traverse mazes, earn $BYTE and reign supreme as the world\'s #1.',
         status: 'unlocked',
-        color: '#9bdc4f',
+        color: SEMANTIC_COLORS.success,
         route: 'maze-runners'
     },
     {
@@ -52,7 +54,7 @@ export const levels: Level[] = [
         subtitle: 'Staking Protocol',
         description: 'Stake MBRN to earn protocol rewards.',
         status: 'unlocked',
-        color: '#9bdc4f',
+        color: SEMANTIC_COLORS.success,
         route: 'stake'
     },
     {
@@ -61,7 +63,7 @@ export const levels: Level[] = [
         subtitle: 'Osmosis -> Neutron MBRN Bridge',
         description: 'Bridge MBRN & transmute MBRN from Osmosis to use on Neutron.',
         status: 'unlocked',
-        color: '#46d39a',
+        color: SEMANTIC_COLORS.info,
         route: 'bridge'
     }
 ]

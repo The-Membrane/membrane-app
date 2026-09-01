@@ -65,7 +65,7 @@ const LifestyleEquivalence: React.FC = () => {
               {cover.toFixed(1).replace(/\.0$/, '')}× {x.nm}
             </Box>
             {blocks}
-            at the measured rate — paid continuously, not monthly
+            at the measured rate paid continuously
           </>
         ) : (
           <>
@@ -74,12 +74,12 @@ const LifestyleEquivalence: React.FC = () => {
               {(cover * 100).toFixed(0)}% of {x.nm}
             </Box>
             {blocks}
-            at the measured rate — paid continuously, not monthly
+            at the measured rate paid continuously
           </>
         )}
       </Text>
       <Text as="span" display="block" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.12em" mt="4px">
-        ${RATE_MO.toFixed(0)}/mo is a RATE, not a payout schedule: revenue has no distribution window — it lands every block as it arrives. Measured over the last 14 days · {x.approx ? '≈' : ''}$
+        ${RATE_MO.toFixed(0)}/mo is a rate measured over the last 14 days. Revenue lands every block as it arrives · {x.approx ? '≈' : ''}$
         {x.mo.toLocaleString('en-US')}/mo list price, Aug 2026 · click for the next one · {idx + 1} / {LIFE.length}
       </Text>
     </Box>
@@ -236,7 +236,7 @@ export const ThroughputHero: React.FC = () => {
           The machine is getting faster.
         </Text>
         <Warm fontFamily={TYPOGRAPHY.fontMono} fontSize="12.5px" color={SEMANTIC_COLORS.textSecondary} maxW="60ch">
-          What arrives is already net — the loan’s interest comes out before the yield reaches you. That
+          What arrives is already net. The loan’s interest comes out before the yield reaches you. That
           subtraction shrinks as the debt shrinks. So each delivery is a little larger than the last, from the
           same venues at the same rates. The machine speeds up by losing overhead.
         </Warm>
@@ -264,7 +264,7 @@ export const ThroughputHero: React.FC = () => {
           <Box as="span" color={SEMANTIC_COLORS.success} fontWeight={400}>
             0.19 BTC ahead
           </Box>
-          , net of exit cost and tax — both measured
+          , net of exit cost and tax, both measured
         </Text>
 
         <LifestyleEquivalence />

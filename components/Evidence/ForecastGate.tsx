@@ -30,9 +30,9 @@ import { pct } from './format'
 /** Coarse bands, not a slider. */
 const BANDS = [
   { lo: 0, hi: 0.2, label: 'under 20%' },
-  { lo: 0.2, hi: 0.4, label: '20 – 40%' },
-  { lo: 0.4, hi: 0.6, label: '40 – 60%' },
-  { lo: 0.6, hi: 0.8, label: '60 – 80%' },
+  { lo: 0.2, hi: 0.4, label: '20-40%' },
+  { lo: 0.4, hi: 0.6, label: '40-60%' },
+  { lo: 0.6, hi: 0.8, label: '60-80%' },
   { lo: 0.8, hi: 1, label: 'over 80%' },
 ] as const
 
@@ -74,7 +74,7 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
       >
         <VStack align="flex-start" spacing={SPACING.sm}>
           <Eyebrow color={right ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.warning}>
-            {right ? 'You called it' : off === 1 ? 'One band off' : 'Not close'}
+            {right ? 'You called it' : off === 1 ? 'One band off' : 'Wide of it'}
           </Eyebrow>
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
@@ -99,8 +99,8 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
             lineHeight="1.7"
           >
             {right
-              ? 'That intuition is the skill this page is about. The lenses below are the evidence behind it — including the 105 accounts where our engine does worse.'
-              : 'Most people guess low, because "liquidation" sounds like a trim rather than most of the loan. That gap is the thing worth internalising — carry it into the lenses below.'}
+              ? 'That intuition is the skill this page teaches. The lenses below carry the evidence, including the 105 accounts where our engine does worse.'
+              : 'Most people guess low. Liquidation sounds like a trim, and it takes most of the loan. Carry that gap into the lenses below.'}
           </Text>
         </VStack>
       </Box>
@@ -151,7 +151,7 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
           fontSize={TYPOGRAPHY.xs}
           color={SEMANTIC_COLORS.textTertiary}
         >
-          Answered on 2,350 real accounts. Skip by scrolling — nothing here is withheld.
+          Answered on 2,350 real accounts. Scroll to skip. Every figure stays on the page.
         </Text>
       </VStack>
     </Box>

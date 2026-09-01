@@ -20,7 +20,11 @@ import { PointsClass } from './types'
  * Points & sacrifice portfolio editor (ported from the `ptrows` script in
  * public/proto/dash.html). Continuous r, no tiers, no cranks: sacrifice boosts
  * land the instant revenue arrives, pending points flush at the next touch.
- * Contract shape: PointsSystem.setSacrifice(Class, rWad); claim(epoch, class).
+ * Contract shape: PointsSystem.setSacrifice(Class, rWad); claim(class).
+ * NOTE: this card is mock. The on-chain PointsSystem.sol has no epoch mechanism, and
+ * RevenueDistributor has no distribution window (the 7-day REVENUE_DISPERSAL_WINDOW_S
+ * was deleted 2026-08-16). Revenue lands every block, so nothing here may imply a
+ * countdown or a numbered epoch.
  */
 
 const ClassRow: React.FC<{ k: PointsClass }> = ({ k }) => {
@@ -37,7 +41,7 @@ const ClassRow: React.FC<{ k: PointsClass }> = ({ k }) => {
           </Text>
         </Box>
         <Text fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textSecondary} lineHeight={1.6}>
-          no weight this epoch — run a policy on{' '}
+          no weight yet. run a policy on{' '}
           <NextLink href={`/${chainName}/defend`} passHref legacyBehavior>
             <Box as="a" color={SEMANTIC_COLORS.success} transition={TRANSITIONS.colors} _hover={{ textDecoration: 'underline' }}>
               Defend
@@ -71,23 +75,23 @@ const ClassRow: React.FC<{ k: PointsClass }> = ({ k }) => {
       </Box>
 
       <Box color={SEMANTIC_COLORS.textSecondary} lineHeight={1.6}>
-        this epoch{' '}
+        pending{' '}
         <Box as="span" color={SEMANTIC_COLORS.textPrimary}>
           ~{k.pend.toFixed(1)} MBRN
         </Box>{' '}
-        est · epoch 2 final{' '}
+        est · settled{' '}
         <Box as="span" color={SEMANTIC_COLORS.textPrimary}>
           {k.closed.toFixed(1)} MBRN
         </Box>
         <ExecButton
           ml={SPACING.sm}
           payload={{
-            title: `Claim epoch 2 — ${k.c}`,
+            title: `Claim ${k.c}`,
             rows: [
-              ['Epoch', '2 · closed · final'],
+              ['Status', 'settled'],
               ['MBRN minted to you', k.closed.toFixed(1)],
             ],
-            note: 'Closed-epoch rewards are final. Open-epoch estimates keep moving until the epoch closes.',
+            note: 'Settled rewards are final. Pending estimates keep moving as others accrue weight.',
             cta: 'Sign & claim',
             done: 'MBRN in wallet',
           }}
@@ -108,7 +112,7 @@ const ClassRow: React.FC<{ k: PointsClass }> = ({ k }) => {
           </Box>
           {outOfSync && (
             <Box as="span" display="block" color={SEMANTIC_COLORS.warning}>
-              Transmuter synced at {k.synced}% — the new {r}% applies at your next deposit or exit there
+              Transmuter synced at {k.synced}%. The new {r}% applies at your next deposit or exit there
             </Box>
           )}
         </Text>
@@ -144,16 +148,16 @@ const ClassRow: React.FC<{ k: PointsClass }> = ({ k }) => {
 
       <ExecButton
         payload={{
-          title: `Set sacrifice — ${k.c}`,
+          title: `Set sacrifice: ${k.c}`,
           rows: [
             ['Class', k.c],
             ['New ratio r', `${r}%`],
-            ['Fees you keep', `${100 - r}% — ${money(k.fee * (1 - r / 100))} of ${money(k.fee)}/mo`],
+            ['Fees you keep', `${100 - r}% · ${money(k.fee * (1 - r / 100))} of ${money(k.fee)}/mo`],
             ['Points weight', `${(1 + r / 100).toFixed(2)}× fee-value`],
-            ['Where forgone fees go', 'your own pool — tranche rate / revenue share'],
+            ['Where forgone fees go', 'your own pool · tranche rate / revenue share'],
           ],
           note:
-            'One transaction to PointsSystem. Immediate and reversible. The Transmuter syncs at your next touch there — until then its cached ratio keeps applying.',
+            'One transaction to PointsSystem. Immediate and reversible. The Transmuter syncs at your next touch there. Until then its cached ratio keeps applying.',
           cta: 'Sign & set',
           done: 'Sacrifice set',
         }}
@@ -168,10 +172,10 @@ export const PointsCard: React.FC = () => (
   <Card mt={SPACING.base} id="ptcard">
     <HStack justify="space-between" align="baseline" spacing={SPACING.md} flexWrap="wrap">
       <Eyebrow>
-        Points · epoch 3, open <MockStamp />
+        Points · open <MockStamp />
       </Eyebrow>
       <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.12em">
-        100,000 MBRN / month · 33,333 per class · closes in 12d 06h
+        100,000 MBRN / month · 33,333 per class · accrues continuously
       </Text>
     </HStack>
     <Box mt={SPACING.sm}>
@@ -180,9 +184,9 @@ export const PointsCard: React.FC = () => (
       ))}
     </Box>
     <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.12em" mt={SPACING.sm} lineHeight={1.6}>
-      open-epoch numbers are estimates — they shrink as others accrue weight; closed epochs are final and
-      claimable · there is no crank anywhere: sacrifice boosts land the instant revenue arrives, and your
-      pending points flush at your next touch · forgone fees boost your own pool, not the protocol’s
+      these numbers are estimates and move as others accrue weight · revenue has no distribution window, so
+      sacrifice boosts land the instant revenue arrives and your pending points flush at your next touch ·
+      forgone fees boost your own pool
     </Text>
   </Card>
 )

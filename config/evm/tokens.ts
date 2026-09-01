@@ -60,7 +60,7 @@ function protocolTokens(chainId: number): EvmToken[] {
   // Was '/images/Logo.svg', which does not exist — only lowercase logo.svg does. macOS is
   // case-insensitive so it resolved locally while 404ing on Linux in production.
   if (cdt) tokens.push({ symbol: 'CDT', name: 'Membrane CDT', address: cdt, decimals: 18, logo: '/images/cdt.png' })
-  if (mbrn) tokens.push({ symbol: 'MBRN', name: 'Membrane MBRN', address: mbrn, decimals: 18, logo: '/images/mbrn.svg' })
+  if (mbrn) tokens.push({ symbol: 'MBRN', name: 'Membrane MBRN', address: mbrn, decimals: 18, logo: '/images/mbrn.png' })
   return tokens
 }
 

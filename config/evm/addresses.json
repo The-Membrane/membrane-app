@@ -19,15 +19,15 @@
     "cdpRouter": "0xaa292e8611adf267e563f334ee42320ac96d0463",
     "cdt": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
     "mbrn": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
-    "qgamePocketGP": "0x4A679253410272dd5232B3Ff7cF5dbB88f295319",
-    "qgamePetNFT": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
-    "qgameBytes": "0xc5a5C42992dECbae36851359345FE25997F5C42d",
-    "qgamePetLens": "0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB",
-    "qgameStandings": "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
-    "qgameDailyMaze": "0xf5059a5D33d5853360D16C683c16e67980206f36",
-    "qgameCdt": "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
-    "qgameUsdc": "0x0355b7b8cb128fa5692729ab3aaa199c1753f726",
-    "qgameWeth": "0x8198f5d8f8cffe8f9c413d98a0a55aeb8ab9fbb7",
-    "qgameRouter": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8"
+    "qgamePocketGP": "0x6B21b3ae41f818Fc91e322b53f8D0773d31eCB75",
+    "qgamePetNFT": "0x6f2E42BB4176e9A7352a8bF8886255Be9F3D2d13",
+    "qgameBytes": "0xF9c0bF1CFAAB883ADb95fed4cfD60133BffaB18a",
+    "qgamePetLens": "0x25A1DF485cFBb93117f12fc673D87D1cddEb845a",
+    "qgameStandings": "0xF45B1CdbA9AACE2e9bbE80bf376CE816bb7E73FB",
+    "qgameDailyMaze": "0x696358bBb1a743052E0E87BeD78AAd9d18f0e1F4",
+    "qgameCdt": "0xA9d0Fb5837f9c42c874e16da96094b14Af0e2784",
+    "qgameUsdc": "0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d",
+    "qgameWeth": "0x3abBB0D6ad848d64c8956edC9Bf6f18aC22E1485",
+    "qgameRouter": "0x2498e8059929e18e2a2cED4e32ef145fa2F4a744"
   }
 }

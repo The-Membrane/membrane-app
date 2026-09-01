@@ -77,6 +77,66 @@ function resizeLayout(layout: TileProperties[][], width: number, height: number)
 
 const MAX = 50
 
+// On-chain publish ceilings (membrane-solidity q-racing/src). This CTA still targets the
+// retired CosmWasm track manager — components/Racing/hooks/useAddTrack.ts's queryFn always
+// resolves an empty msg array (TODO(evm-migration)), so "Add Track" is currently inert and
+// does not call the new Solidity TrackManager.sol/QRaceEngine.sol at all. These constants
+// are declared here anyway so the validation matches the contracts this CTA will call once
+// it's rewired, rather than the app silently accepting a shape the chain would reject.
+/** TrackManager.sol:32 — `width * height` cells; addTrack reverts "track too large" above this. */
+const MAX_TRACK_CELLS = 4096
+/** QRaceEngine.sol:133 — every race is hard-capped at this many ticks regardless of track shape. */
+const MAX_RACE_TICKS_BOUND = 100
+
+/**
+ * Shortest start->finish path length in tiles (BFS over passable tiles, `blocks_movement`
+ * tiles excluded). Not the exact on-chain tick count — speed/sticky modifiers and multi-car
+ * contention can change the real race length — but a shortest path already longer than the
+ * {@link MAX_RACE_TICKS_BOUND}-tick race cap means the track can NEVER be finished on-chain,
+ * since every race is cut off at that tick count regardless of layout. Returns null if there
+ * is no start or no finish tile, or no path exists between any start and any finish.
+ */
+function bfsShortestPath(layout: TileProperties[][]): number | null {
+  const height = layout.length
+  const width = layout[0]?.length ?? 0
+  if (height === 0 || width === 0) return null
+
+  const starts: [number, number][] = []
+  const finishes = new Set<string>()
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (layout[y][x].is_start) starts.push([x, y])
+      if (layout[y][x].is_finish) finishes.add(`${x},${y}`)
+    }
+  }
+  if (starts.length === 0 || finishes.size === 0) return null
+
+  const visited = new Set<string>(starts.map(([x, y]) => `${x},${y}`))
+  let frontier = starts
+  let dist = 0
+  while (frontier.length > 0) {
+    for (const [x, y] of frontier) {
+      if (finishes.has(`${x},${y}`)) return dist
+    }
+    const next: [number, number][] = []
+    for (const [x, y] of frontier) {
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
+        const key = `${nx},${ny}`
+        if (visited.has(key)) continue
+        if (layout[ny][nx].blocks_movement) continue
+        visited.add(key)
+        next.push([nx, ny])
+      }
+    }
+    frontier = next
+    dist++
+  }
+  return null
+}
+
 const TrackCreator: React.FC = () => {
   const [name, setName] = useState('')
   const [width, setWidth] = useState<number | undefined>(20)
@@ -135,8 +195,14 @@ const TrackCreator: React.FC = () => {
   const hasStart = numStartTiles > 0
   const hasFinish = numFinishTiles > 0
 
+  // On-chain publish ceilings (see MAX_TRACK_CELLS / MAX_RACE_TICKS_BOUND above).
+  const cellCount = (width ?? 0) * (height ?? 0)
+  const withinCellCeiling = cellCount <= MAX_TRACK_CELLS
+  const shortestPathLen = useMemo(() => bfsShortestPath(layout), [layout])
+  const withinTickBound = shortestPathLen === null || shortestPathLen <= MAX_RACE_TICKS_BOUND
+
   // Check if any requirements are missing
-  const hasMissingRequirements = !hasTitle || !hasStart || !hasFinish
+  const hasMissingRequirements = !hasTitle || !hasStart || !hasFinish || !withinCellCeiling || !withinTickBound
 
 
   // Determine text color for requirement highlighting
@@ -235,7 +301,20 @@ const TrackCreator: React.FC = () => {
               <Text fontSize={{ base: 'xs', lg: 'sm' }} color={getRequirementColor(hasTitle)}>Set a Title</Text>
               <Text fontSize={{ base: 'xs', lg: 'sm' }} color={getRequirementColor(hasStart)}>Needs a start tile</Text>
               <Text fontSize={{ base: 'xs', lg: 'sm' }} color={getRequirementColor(hasFinish)}>Needs a finish tile</Text>
+              <Text fontSize={{ base: 'xs', lg: 'sm' }} color={getRequirementColor(withinCellCeiling)}>
+                {`Size: ${cellCount} / ${MAX_TRACK_CELLS} cells`}
+              </Text>
+              {shortestPathLen !== null && (
+                <Text fontSize={{ base: 'xs', lg: 'sm' }} color={getRequirementColor(withinTickBound)}>
+                  {`Shortest path: ${shortestPathLen} / ${MAX_RACE_TICKS_BOUND} ticks`}
+                </Text>
+              )}
               <Text fontSize={{ base: 'xs', lg: 'sm' }}>Cars per Race: {numStartTiles}</Text>
+              <Text fontSize="xs" opacity={0.7} mt={1}>
+                Tracks validate on-chain: {MAX_TRACK_CELLS.toLocaleString()} cells is the publish ceiling,
+                and every race is hard-capped at {MAX_RACE_TICKS_BOUND} ticks — a start-to-finish path
+                longer than that can never be completed, win or lose.
+              </Text>
             </VStack>
           </VStack>
         </Box>
@@ -276,7 +355,7 @@ const TrackCreator: React.FC = () => {
               executeDirectly={true}
               label="Add Track"
               action={addTrackTx.action}
-              isDisabled={!name || name.length === 0}
+              isDisabled={!name || name.length === 0 || !withinCellCeiling || !withinTickBound}
               buttonProps={{
                 colorScheme: "blue",
                 bg: "#274bff",

@@ -11,25 +11,23 @@
 // daily-seed internals; event SHAPES below were re-read from source, not assumed):
 //
 //  'ladder_time' <- Standings.NewRecord(uint8 indexed tier, address indexed who, uint16
-//    steps)  [Standings.sol:16, emitted Standings.sol:34/40]. Fires ONLY when a race
-//    improves the player's personal best on that tier's board — not on every finish
-//    (Standings.submit, Standings.sol:26-41). value = steps (uint16; lower is better,
-//    same ORDER BY value ASC convention pages/api/game/leaderboard.ts already uses for
-//    this board).
+//    steps, uint256 petId)  [Standings.sol:19, emitted Standings.sol:34/40]. Fires ONLY
+//    when a race improves the player's personal best on that tier's board — not on every
+//    finish (Standings.submit, Standings.sol:26-41). value = steps (uint16; lower is
+//    better, same ORDER BY value ASC convention pages/api/game/leaderboard.ts already
+//    uses for this board).
 //
 //  'daily_time'  <- PocketGP.DailyRun(address indexed player, uint32 day, bool finished,
-//    uint8 rank)  [PocketGP.sol:345, emitted unconditionally PocketGP.sol:815 — every
-//    attempt, finished or not]. Only finished === true rows are ingested. IMPORTANT
-//    DEVIATION: this event does NOT carry a tick/step count — _runDaily's internal
-//    `steps` local (PocketGP.sol:782,801-802) is computed but never emitted — so `rank`
-//    (uint8, 0 = win/first place) is used as the board value instead of ticks. rank is
-//    still ascending-is-better, so it sorts consistently with ladder_time's steps under
-//    the same "ORDER BY value ASC" the leaderboard route uses. If PocketGP.sol ever
-//    starts emitting a real tick count, swap `rank` for it here.
+//    uint8 rank, uint16 steps, uint256 petId)  [PocketGP.sol:345-348, emitted
+//    unconditionally PocketGP.sol:815 — every attempt, finished or not]. Only
+//    finished === true rows are ingested. `steps` is the pet's real tick count for the
+//    run (finisher's time) and is now the board value — ascending-is-better, same
+//    "ORDER BY value ASC" convention ladder_time and the leaderboard/ticker routes
+//    already use. `rank` is kept in `meta` for reference but no longer drives `value`.
 //
 //  'ghost_win'   <- PocketGP.GhostChallenge(address indexed player, uint8 tier, uint256
-//    stake, uint16 multPct, bool won, bool paidToday)  [PocketGP.sol:342, emitted on
-//    every settleGhost() call PocketGP.sol:718 — win or loss]. Only rows with
+//    stake, uint16 multPct, bool won, bool paidToday, uint256 petId)  [PocketGP.sol:342,
+//    emitted on every settleGhost() call PocketGP.sol:721 — win or loss]. Only rows with
 //    won && paidToday are ingested (a settlement that actually minted a payout — see
 //    PocketGP.sol:708-717; `paidToday` guards the once-a-day payout slot, so a genuine
 //    win can still carry paidToday === false if the day's slot was already spent).
@@ -37,10 +35,13 @@
 //    stake but no precomputed payout figure, so it is derived here exactly as
 //    PocketGP.sol:715 (`token.mint(player, stake * multPct / 100)`) computes it.
 //
-// None of these three events carries a petId (confirmed by reading PocketGP.sol /
-// Standings.sol directly), so the "pet name via PetLens" branch documented in the task
-// is unreachable today — every row's displayName is the short-wallet form (see
-// shortWallet() below) across all boards, including daily_firsts.
+// All three events now carry a petId (DailyRun/GhostChallenge/NewRecord all gained a
+// trailing `uint256 petId` field). Each ingest site resolves it to a pet name via
+// PetLens.getPetCard(petId).name (see resolvePetName() below, cached per-petId
+// in-process since pet names are immutable once set) and passes that name — not the
+// short-wallet form — as displayName, still flowing through cleanDisplayName at ingest
+// (lib/game/indexerSeam.ts). shortWallet() remains the fallback when a petId lookup
+// fails or the PetLens address is unavailable.
 // ---------------------------------------------------------------------------------
 //
 // Cursor + throttle: one row in indexer_cursor (key = 'qgame') tracks the last fully
@@ -66,7 +67,7 @@ import { db } from '@/db'
 import { DEFAULT_EVM_CHAIN } from '@/config/evm/chains'
 import { getContractAddress } from '@/config/evm/contracts'
 import { getPublicClient } from '@/services/chain/client'
-import { pocketGPAbi, standingsAbi } from '@/lib/qgame/abi'
+import { pocketGPAbi, standingsAbi, petLensAbi } from '@/lib/qgame/abi'
 import { ingestOnchainResult, ingestDailyFirst, dailyFirstExists } from '@/lib/game/indexerSeam'
 
 if (typeof window !== 'undefined') {
@@ -78,9 +79,45 @@ const THROTTLE_MS = 60_000
 const WALL_CLOCK_CAP_MS = 3_000
 const DEFAULT_MAX_BLOCKS = 5_000
 
-/** `0x1234…abcd` — the only display name any board can show; see header comment. */
+/** `0x1234…abcd` — fallback display name when a petId can't be resolved to a pet name. */
 export function shortWallet(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`
+}
+
+// petId -> pet name, in-process only. Pet names are immutable once a pet is created
+// (PetLens has no rename path), so this cache never needs invalidation — it just saves a
+// redundant getPetCard read for petIds seen earlier in this warm instance's lifetime.
+const petNameCache = new Map<string, string>()
+
+/**
+ * Resolves a petId to its on-chain pet name via PetLens.getPetCard, falling back to
+ * `fallback` (always the short-wallet form at call sites below) if the PetLens address is
+ * unavailable, the read reverts, the card doesn't exist, or the name is empty.
+ */
+async function resolvePetName(
+  client: ReturnType<typeof getPublicClient>,
+  petLens: `0x${string}` | undefined,
+  petId: bigint,
+  fallback: string,
+): Promise<string> {
+  if (!petLens) return fallback
+  const key = petId.toString()
+  const cached = petNameCache.get(key)
+  if (cached !== undefined) return cached
+
+  try {
+    const card = (await client.readContract({
+      address: petLens,
+      abi: petLensAbi,
+      functionName: 'getPetCard',
+      args: [petId],
+    })) as { exists: boolean; name: string }
+    const name = card.exists && card.name ? card.name : fallback
+    petNameCache.set(key, name)
+    return name
+  } catch {
+    return fallback
+  }
 }
 
 /** PocketGP's `today()` day index (days since epoch) -> 'YYYY-MM-DD' UTC. */
@@ -159,6 +196,9 @@ export async function indexNewEvents(maxBlocks = DEFAULT_MAX_BLOCKS): Promise<In
   if (!pocketGP || !standings) {
     return { skipped: true, reason: 'no-deployment' }
   }
+  // Optional: absence only degrades displayName to the short-wallet fallback via
+  // resolvePetName(), it never blocks indexing.
+  const petLens = getContractAddress(chain.id, 'qgamePetLens')
 
   const cursorBlock = await claimCursor()
   if (cursorBlock === null) {
@@ -231,20 +271,23 @@ export async function indexNewEvents(maxBlocks = DEFAULT_MAX_BLOCKS): Promise<In
     const occurredAt = blockTimestamps.get(log.blockNumber) ?? new Date()
 
     if (log.eventName === 'DailyRun') {
-      const { player, day, finished, rank } = log.args as {
+      const { player, day, finished, rank, steps, petId } = log.args as {
         player: `0x${string}`
         day: number
         finished: boolean
         rank: number
+        steps: number
+        petId: bigint
       }
       if (!finished) continue
 
+      const displayName = await resolvePetName(client, petLens, petId, shortWallet(player))
       await ingestOnchainResult({
         wallet: player,
-        displayName: shortWallet(player),
+        displayName,
         board: 'daily_time',
-        value: BigInt(rank),
-        meta: { day, rank },
+        value: BigInt(steps),
+        meta: { day, rank, steps, petId: petId.toString() },
         occurredAt,
         txHash: log.transactionHash,
       })
@@ -255,43 +298,51 @@ export async function indexNewEvents(maxBlocks = DEFAULT_MAX_BLOCKS): Promise<In
         await ingestDailyFirst({
           day: dayStr,
           wallet: player,
-          displayName: shortWallet(player),
+          displayName,
           occurredAt,
           txHash: log.transactionHash,
         })
         counts.daily_firsts++
       }
     } else if (log.eventName === 'GhostChallenge') {
-      const { player, tier, stake, multPct, won, paidToday } = log.args as {
+      const { player, tier, stake, multPct, won, paidToday, petId } = log.args as {
         player: `0x${string}`
         tier: number
         stake: bigint
         multPct: number
         won: boolean
         paidToday: boolean
+        petId: bigint
       }
       if (!(won && paidToday)) continue
 
+      const displayName = await resolvePetName(client, petLens, petId, shortWallet(player))
       const payout = (stake * BigInt(multPct)) / 100n
       await ingestOnchainResult({
         wallet: player,
-        displayName: shortWallet(player),
+        displayName,
         board: 'ghost_win',
         value: payout,
-        meta: { tier, stake: stake.toString(), multPct },
+        meta: { tier, stake: stake.toString(), multPct, petId: petId.toString() },
         occurredAt,
         txHash: log.transactionHash,
       })
       counts.ghost_win++
     } else if (log.eventName === 'NewRecord') {
-      const { tier, who, steps } = log.args as { tier: number; who: `0x${string}`; steps: number }
+      const { tier, who, steps, petId } = log.args as {
+        tier: number
+        who: `0x${string}`
+        steps: number
+        petId: bigint
+      }
 
+      const displayName = await resolvePetName(client, petLens, petId, shortWallet(who))
       await ingestOnchainResult({
         wallet: who,
-        displayName: shortWallet(who),
+        displayName,
         board: 'ladder_time',
         value: BigInt(steps),
-        meta: { tier },
+        meta: { tier, petId: petId.toString() },
         occurredAt,
         txHash: log.transactionHash,
       })

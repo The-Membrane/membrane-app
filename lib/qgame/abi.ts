@@ -135,6 +135,29 @@ export const pocketGPAbi = [
     inputs: [{ name: 'id', type: 'uint256' }],
     outputs: [{ name: '', type: 'uint8' }],
   },
+  // Ghost commit/reveal — PocketGP.sol:633 (commit) / :665 (permissionless reveal). The
+  // GhostChallenge event fires from settleGhost, not challengeGhost.
+  {
+    type: 'function',
+    name: 'challengeGhost',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'id', type: 'uint256' },
+      { name: 'tierIdx', type: 'uint8' },
+      { name: 'stake', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'settleGhost',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'player', type: 'address' }],
+    outputs: [
+      { name: 'settled', type: 'bool' },
+      { name: 'won', type: 'bool' },
+    ],
+  },
   {
     type: 'event',
     name: 'SessionGranted',
@@ -149,6 +172,9 @@ export const pocketGPAbi = [
     name: 'SessionRevoked',
     inputs: [{ name: 'owner', type: 'address', indexed: true }],
   },
+  // DailyRun — PocketGP.sol:345-348. steps = the pet's tick count this run (finisher's
+  // time when `finished`); petId identifies the racer so the indexer can resolve a pet
+  // name for the "fastest daily" board/ticker instead of a short-wallet fallback.
   {
     type: 'event',
     name: 'DailyRun',
@@ -157,12 +183,15 @@ export const pocketGPAbi = [
       { name: 'day', type: 'uint32', indexed: false },
       { name: 'finished', type: 'bool', indexed: false },
       { name: 'rank', type: 'uint8', indexed: false },
+      { name: 'steps', type: 'uint16', indexed: false },
+      { name: 'petId', type: 'uint256', indexed: false },
     ],
   },
-  // GhostChallenge — settleGhost()'s result log, PocketGP.sol:342 / emitted :718. Fires
+  // GhostChallenge — settleGhost()'s result log, PocketGP.sol:342 / emitted :721. Fires
   // on every settlement (win or loss), not only wins — lib/game/chainIndexer.ts filters
   // to won && paidToday before treating a row as a paid ghost-board result. No payout
-  // field is emitted directly; the indexer derives it as stake * multPct / 100.
+  // field is emitted directly; the indexer derives it as stake * multPct / 100. petId
+  // identifies the racer for pet-name resolution at ingest.
   {
     type: 'event',
     name: 'GhostChallenge',
@@ -173,6 +202,47 @@ export const pocketGPAbi = [
       { name: 'multPct', type: 'uint16', indexed: false },
       { name: 'won', type: 'bool', indexed: false },
       { name: 'paidToday', type: 'bool', indexed: false },
+      { name: 'petId', type: 'uint256', indexed: false },
+    ],
+  },
+] as const
+
+/**
+ * QRaceEngine — replay/race-result reads. getLastRace's tuple mirrors
+ * QRaceEngine.sol:1056-1063 exactly: pbp/rps are no longer SSTORE'd, replaced by
+ * `replayHash` (verify against the RaceReplay event, filtered by `player`).
+ */
+export const engineAbi = [
+  {
+    type: 'function',
+    name: 'getLastRace',
+    stateMutability: 'view',
+    inputs: [{ name: 'player', type: 'address' }],
+    outputs: [
+      { name: 'tierTag', type: 'uint8' },
+      { name: 'training', type: 'bool' },
+      { name: 'ticks', type: 'uint16' },
+      { name: 'numCars', type: 'uint8' },
+      { name: 'subjectRank', type: 'uint8' },
+      { name: 'replayHash', type: 'bytes32' },
+      { name: 'rankIdx', type: 'bytes' },
+      { name: 'steps', type: 'uint16[]' },
+      { name: 'finishedFlags', type: 'bytes' },
+    ],
+  },
+  // RaceReplay — QRaceEngine.sol:219, emitted at :1028. The full play-by-play (pbp) and
+  // rock-paper-scissors tie-break log (rps) for the player's most recent race; getLastRace
+  // only stores a hash of this payload, so a replay UI must filter this event by `player`
+  // and verify the fetched log against `replayHash`.
+  {
+    type: 'event',
+    name: 'RaceReplay',
+    inputs: [
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'ticks', type: 'uint16', indexed: false },
+      { name: 'numCars', type: 'uint8', indexed: false },
+      { name: 'pbp', type: 'bytes', indexed: false },
+      { name: 'rps', type: 'bytes', indexed: false },
     ],
   },
 ] as const
@@ -288,9 +358,10 @@ export const standingsAbi = [
       { name: 'steps', type: 'uint16[]' },
     ],
   },
-  // NewRecord — Standings.sol:16, emitted by submit() (Standings.sol:34,40) only when a
+  // NewRecord — Standings.sol:19, emitted by submit() (Standings.sol:34,40) only when a
   // race IMPROVES a player's personal best on that tier's board — not on every finish.
-  // lib/game/chainIndexer.ts's 'ladder_time' board is sourced from this event.
+  // lib/game/chainIndexer.ts's 'ladder_time' board is sourced from this event. petId
+  // identifies the racer for pet-name resolution at ingest.
   {
     type: 'event',
     name: 'NewRecord',
@@ -298,6 +369,7 @@ export const standingsAbi = [
       { name: 'tier', type: 'uint8', indexed: true },
       { name: 'who', type: 'address', indexed: true },
       { name: 'steps', type: 'uint16', indexed: false },
+      { name: 'petId', type: 'uint256', indexed: false },
     ],
   },
 ] as const

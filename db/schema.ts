@@ -426,3 +426,37 @@ export const venuePredictions = pgTable(
   },
   (table) => [index('venue_predictions_venue_made_idx').on(table.venue, table.madeAt)],
 )
+
+// venue_flows — the REALIZED deposit/withdraw volumes, decoded from on-chain
+// event logs by scripts/record-venue-flows.mjs. Snapshots record CAPACITY (what
+// COULD exit); flows record transacted DEMAND (what DID move). Together they
+// enable the owner's saturation method: when realized outflow over a window ≈
+// the available capacity at that time, demand was likely CENSORED (withdrawers
+// who could not be served). INSERT-ONLY, append-only ledger.
+//
+// PROVENANCE: unlike venue_snapshots there is deliberately NO observed/backfilled
+// split — event logs ARE the on-chain record of past process, so fetching old
+// logs is legitimate history, not reconstruction. Every row is an actual emitted
+// event. assets_raw is the underlying amount in BASE UNITS (raw uint256,
+// unscaled); USD is derived downstream at $1/stable. The unique index on
+// (venue, tx_hash, log_index) makes re-fetch over an already-scanned range
+// idempotent (INSERT ... ON CONFLICT DO NOTHING); the recorder's per-venue
+// cursor is max(block)+1.
+export const venueFlows = pgTable(
+  'venue_flows',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    venue: text('venue').notNull(), // config `name`, e.g. 'sUSDe'
+    block: bigint('block', { mode: 'bigint' }).notNull(),
+    blockTime: timestamp('block_time', { withTimezone: true }).notNull(), // the block's own timestamp
+    direction: text('direction').notNull(), // 'in' (deposit/supply) | 'out' (withdraw)
+    assetsRaw: numeric('assets_raw').notNull(), // underlying base units, raw uint256
+    txHash: text('tx_hash').notNull(),
+    logIndex: integer('log_index').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('venue_flows_venue_tx_log_idx').on(table.venue, table.txHash, table.logIndex),
+    index('venue_flows_venue_block_idx').on(table.venue, table.block),
+  ],
+)

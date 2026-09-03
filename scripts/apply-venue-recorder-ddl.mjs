@@ -1,8 +1,9 @@
 // One-shot, additive DDL for the venue withdrawal-ability recorder (owner-
-// approved). Three tables mirroring the drizzle definitions in db/schema.ts:
+// approved). Four tables mirroring the drizzle definitions in db/schema.ts:
 //   venue_snapshots  — insert-only point-in-time readings of a venue's state
 //   venue_events     — insert-only "news tracker": state CHANGES between snapshots
 //   venue_predictions — insert once, then exactly one scoring UPDATE per row
+//   venue_flows      — insert-only REALIZED deposit/withdraw volumes from logs
 //
 //   node scripts/apply-venue-recorder-ddl.mjs        (from the membrane-app root)
 //
@@ -75,7 +76,37 @@ await sql`CREATE INDEX IF NOT EXISTS venue_predictions_venue_made_idx ON venue_p
 // to find rows whose horizon has elapsed and score them.
 await sql`CREATE INDEX IF NOT EXISTS venue_predictions_unscored_idx ON venue_predictions (venue, made_at) WHERE scored_at IS NULL`
 
+// venue_flows — insert-only REALIZED deposit/withdraw volumes, decoded from
+// on-chain event logs (scripts/record-venue-flows.mjs). Snapshots record
+// CAPACITY (what COULD exit); flows record transacted DEMAND (what DID move).
+// Together they enable the owner's saturation method: realized outflow ≈
+// available capacity ⇒ demand was likely censored (unserved withdrawers).
+//
+// NOTE ON PROVENANCE — there is deliberately no observed/backfilled split here
+// (unlike venue_snapshots). Event logs ARE the on-chain record of past process;
+// fetching old logs is legitimate history, not a reconstruction of state that
+// was never observed. Every row is an actual emitted event.
+//
+// assets_raw is the underlying amount in BASE UNITS (raw uint256, unscaled) —
+// USD is derived downstream at $1/stable. UNIQUE(venue, tx_hash, log_index)
+// makes re-fetch over an already-scanned range idempotent (INSERT ... ON
+// CONFLICT DO NOTHING); the recorder's cursor = max(block)+1 per venue.
+await sql`CREATE TABLE IF NOT EXISTS venue_flows (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue text NOT NULL,
+  block bigint NOT NULL,
+  block_time timestamptz NOT NULL,
+  direction text NOT NULL,
+  assets_raw numeric NOT NULL,
+  tx_hash text NOT NULL,
+  log_index integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+)`
+await sql`CREATE UNIQUE INDEX IF NOT EXISTS venue_flows_venue_tx_log_idx ON venue_flows (venue, tx_hash, log_index)`
+await sql`CREATE INDEX IF NOT EXISTS venue_flows_venue_block_idx ON venue_flows (venue, block)`
+
 const [{ s }] = await sql`SELECT count(*)::int AS s FROM venue_snapshots`
 const [{ e }] = await sql`SELECT count(*)::int AS e FROM venue_events`
 const [{ p }] = await sql`SELECT count(*)::int AS p FROM venue_predictions`
-console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}`)
+const [{ f }] = await sql`SELECT count(*)::int AS f FROM venue_flows`
+console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}`)

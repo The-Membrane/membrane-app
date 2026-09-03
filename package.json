@@ -29,6 +29,7 @@
     "db:studio": "drizzle-kit studio",
     "recorder:ddl": "node scripts/apply-venue-recorder-ddl.mjs",
     "recorder:run": "node scripts/record-venue-liquidity.mjs",
+    "recorder:flows": "node scripts/record-venue-flows.mjs",
     "recorder:backfill": "node scripts/backfill-venue-history.mjs"
   },
   "dependencies": {

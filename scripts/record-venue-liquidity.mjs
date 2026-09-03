@@ -40,6 +40,13 @@ const client = makeClient(rpcUrl)
 // jsonb columns are compared field-by-field; these keys are meta, not state.
 const META_KEYS = new Set(['kind', 'reads', 'instant_note'])
 
+// Continuously-varying metrics drift every block (yield accrual, ordinary
+// flows). Eventing every tick makes the news tracker a noise feed (Badass
+// rule 9) — these only fire an event on a >20% move, like instant_usd.
+// Discrete params (cooldownDuration, silo, …) still event on ANY change.
+const CONTINUOUS_KEYS = new Set(['totalAssets', 'totalSupply', 'underlyingBalance'])
+const CONTINUOUS_SHIFT = 0.2
+
 // Extract the value of a chosen metric from a snapshot row (numeric columns
 // arrive from neon as strings).
 function metricValueOf(row, metric) {
@@ -91,6 +98,12 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
       const a = prev.params?.[k]
       const b = params?.[k]
       if (JSON.stringify(a) === JSON.stringify(b)) continue
+      if (CONTINUOUS_KEYS.has(k)) {
+        const na = Number(a)
+        const nb = Number(b)
+        if (!Number.isFinite(na) || !Number.isFinite(nb) || na === 0) continue
+        if (Math.abs(nb - na) / Math.abs(na) <= CONTINUOUS_SHIFT) continue
+      }
       const kind = k === 'cooldownDuration' ? 'cooldown_duration_changed' : 'param_changed'
       await sql`
         INSERT INTO venue_events (venue, kind, prev, next, note, snapshot_id)

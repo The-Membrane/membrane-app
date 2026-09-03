@@ -132,31 +132,21 @@ export interface TxAcknowledgement {
     severity?: DittoSeverity
 }
 
+// Acknowledgements name the action that landed, nothing more. The celebratory
+// per-page copy ("Loop complete! Your position has been optimized") was removed:
+// it rendered zero numbers, so it told instead of taught (Badass rule 1). The
+// rendered consequence (Points delta, position state) is the teach moment.
 export const txAcknowledgements: TxAcknowledgement[] = [
-    // Manic actions
-    { actionType: 'deposit', page: '/manic', message: "Great! Your position is now earning", priority: 10, severity: 'info' },
-    { actionType: 'withdraw', page: '/manic', message: "Withdrawal successful! Your funds are available", priority: 10, severity: 'info' },
-    { actionType: 'loop', page: '/manic', message: "Loop complete! Your position has been optimized", priority: 10, severity: 'info' },
-    // Disco actions
-    { actionType: 'deposit', page: '/disco', message: "Deposit confirmed! You're now backing insurance slots", priority: 10, severity: 'info' },
-    { actionType: 'withdraw', page: '/disco', message: "Withdrawal processed! Your MBRN is ready", priority: 10, severity: 'info' },
-    { actionType: 'claim', page: '/disco', message: "Claimed! CDT revenue has been sent to your wallet", priority: 10, severity: 'info' },
-    { actionType: 'lock', page: '/disco', message: "Lock extended! Your boost multiplier is updated", priority: 10, severity: 'info' },
-    // Acquisition actions
-    { actionType: 'lock', page: '/transmuter', message: "Lock confirmed! Your USDC is earning MBRN allocation", priority: 10, severity: 'info' },
-    { actionType: 'claim', page: '/transmuter', message: "Claimed! Your MBRN allocation has been sent", priority: 10, severity: 'info' },
-    { actionType: 'withdraw', page: '/transmuter', message: "Withdrawal successful! Your USDC is available", priority: 10, severity: 'info' },
-    { actionType: 'swap', page: '/transmuter', message: "Swap successful! Your assets have been converted", priority: 10, severity: 'info' },
-    { actionType: 'unlock', page: '/transmuter', message: "Unlock complete! Your assets are now available", priority: 10, severity: 'info' },
-    // Generic actions
-    { actionType: 'deposit', message: "Deposit successful!", priority: 1, severity: 'info' },
-    { actionType: 'withdraw', message: "Withdrawal successful!", priority: 1, severity: 'info' },
-    { actionType: 'claim', message: "Claim successful!", priority: 1, severity: 'info' },
-    { actionType: 'stake', message: "Stake confirmed!", priority: 1, severity: 'info' },
-    { actionType: 'unstake', message: "Unstake successful!", priority: 1, severity: 'info' },
-    { actionType: 'mint', message: "Mint successful!", priority: 1, severity: 'info' },
-    { actionType: 'lock', message: "Lock confirmed!", priority: 1, severity: 'info' },
-    { actionType: 'unlock', message: "Unlock successful!", priority: 1, severity: 'info' },
+    { actionType: 'deposit', message: "Deposit landed.", priority: 1, severity: 'info' },
+    { actionType: 'withdraw', message: "Withdrawal landed.", priority: 1, severity: 'info' },
+    { actionType: 'loop', message: "Loop executed.", priority: 1, severity: 'info' },
+    { actionType: 'claim', message: "Claim landed.", priority: 1, severity: 'info' },
+    { actionType: 'stake', message: "Stake landed.", priority: 1, severity: 'info' },
+    { actionType: 'unstake', message: "Unstake landed.", priority: 1, severity: 'info' },
+    { actionType: 'mint', message: "Mint landed.", priority: 1, severity: 'info' },
+    { actionType: 'lock', message: "Lock landed.", priority: 1, severity: 'info' },
+    { actionType: 'unlock', message: "Unlock landed.", priority: 1, severity: 'info' },
+    { actionType: 'swap', message: "Swap landed.", priority: 1, severity: 'info' },
 ]
 
 /**

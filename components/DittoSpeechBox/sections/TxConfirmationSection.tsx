@@ -240,9 +240,13 @@ const TxSuccessView: React.FC<{
                     <Text fontSize="md" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary}>
                         {isSuccess ? 'Transaction Successful!' : 'Transaction Failed'}
                     </Text>
-                    <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} textAlign="center">
-                        {acknowledgementMessage}
-                    </Text>
+                    {/* Acknowledgement only on success — a "Deposit landed." line under a
+                        failure header would soften the failure (Badass rule 5) */}
+                    {isSuccess && (
+                        <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} textAlign="center">
+                            {acknowledgementMessage}
+                        </Text>
+                    )}
                     {/* Points Earned Display */}
                     {isSuccess && pointsEarned !== null && pointsEarned > 0 && (
                         <Box

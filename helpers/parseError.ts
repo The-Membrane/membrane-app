@@ -39,7 +39,7 @@ export const parseError = (error: string, basket?: any, chainName?: string) => {
     { regex: /Maximum position number/i, message: "You've reached the max position number for this wallet" },
     { regex: /big.Int: tx parse error/i, message: "Max amount per deposit for this token is 999, if this error seems wrong, just jiggle the slider." },
     { regex: /invalid Uint128/i, message: "Max amount per deposit for this token is 999, if this error seems wrong, just jiggle the slider." },
-    { regex: /rate assurance failed/i, message: "Depositor safety check failed, operational error." },
+    { regex: /rate assurance failed/i, message: "Blocked: the vault's exchange rate moved mid-transaction, so your deposit was rejected rather than mispriced. Retry, or use a smaller amount if it persists." },
     { regex: / Invalid target_LTV for debt increase/i, message: "Intent failed, are you above the minimum amount?" },
     { regex: / Invalid limit, deposit length:/i, message: "Omni-Pool is empty, deposit the minimum to unblock liquidations." },
     { regex: / Position is solvent and shouldn't be liquidated/i, message: "False positive, position is solvent." },
@@ -57,7 +57,7 @@ export const parseError = (error: string, basket?: any, chainName?: string) => {
     },
     {
       regex: /Unexpected end of JSON input/i,
-      message: 'Success despite error',
+      message: 'The RPC response was cut off, so the outcome is unknown — check your wallet or the explorer for the real result before retrying.',
     },
   ]
 

@@ -56,14 +56,7 @@ export const levels: Level[] = [
         status: 'unlocked',
         color: SEMANTIC_COLORS.success,
         route: 'stake'
-    },
-    {
-        id: 7,
-        name: 'BRIDGE',
-        subtitle: 'Osmosis -> Neutron MBRN Bridge',
-        description: 'Bridge MBRN & transmute MBRN from Osmosis to use on Neutron.',
-        status: 'unlocked',
-        color: SEMANTIC_COLORS.info,
-        route: 'bridge'
     }
+    // BRIDGE (id 7) removed — routed to /bridge, a page that never existed (owner-approved
+    // dead-surface cleanup, 2026-09-02).
 ]

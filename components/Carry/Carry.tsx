@@ -17,6 +17,7 @@ import MarketBoards from './MarketBoards'
 import OracleCard from './OracleCard'
 import RedemptionHistory from './RedemptionHistory'
 import Timeline from './Timeline'
+import VenueLog from './VenueLog'
 import { COLL, DEFAULT_PRESET, LEV, PRESETS } from './fixtures'
 import { boardToPreset, parseAmount, presetExec, rungExec } from './utils'
 import { Board, ExecConfig, Preset } from './types'
@@ -125,6 +126,7 @@ export const Carry: React.FC = () => {
       <RedemptionHistory onOpenOracle={setOracleSym} amountUsd={parseAmount(heroAmount)} />
       <CrossingChart amountUsd={parseAmount(heroAmount)} />
       <Timeline />
+      <VenueLog />
 
       <ExecSheet config={exec} onClose={() => setExec(null)} />
       <OracleCard sym={oracleSym} onClose={() => setOracleSym(null)} />

@@ -144,7 +144,7 @@ export const AcquisitionVisualizer: React.FC = () => {
                 mx="auto"
                 mb={4}
             >
-                Transmuter
+                Transmuter Lockdrop
             </Text>
 
             {/* Volume Chart */}

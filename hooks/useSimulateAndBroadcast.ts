@@ -16,6 +16,9 @@ type Props = {
   /** legacy param, ignored — chain comes from the wagmi account context */
   chain_id?: string
   shrinkMessage?: boolean
+  /** Rendered consequence for the success toast (e.g. "Debt $X→$Y · LTV A%→B%").
+   *  Falls back to the generic 'Transaction Successful' when omitted. */
+  successMessage?: JSX.Element | string
 }
 
 const useSimulateAndBroadcast = ({
@@ -25,6 +28,7 @@ const useSimulateAndBroadcast = ({
   onSuccess,
   enabled = false,
   shrinkMessage = false,
+  successMessage,
 }: Props): SimulateAndBroadcast => {
   const simulate = useSimulate({
     msgs,
@@ -40,6 +44,7 @@ const useSimulateAndBroadcast = ({
     fee,
     onSuccess,
     shrinkMessage,
+    successMessage,
   })
 
   return {

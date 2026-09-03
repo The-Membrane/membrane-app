@@ -64,6 +64,10 @@ export const DepositModal: React.FC<DepositModalProps> = ({
         depositAmount,
         positionIndex,
         enabled: isOpen && depositAmount > 0,
+        // Only values that are real today: the user's own amount and the fact that
+        // deposits never touch debt. LTV delta waits on the Collateral service
+        // (see positionDelta.ts).
+        successMessage: `+${depositAmount.toLocaleString()} ${asset.symbol} collateral · debt unchanged`,
         onSuccess: () => {
             onClose()
             reset()

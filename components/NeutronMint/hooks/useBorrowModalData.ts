@@ -3,6 +3,7 @@ import { num } from '@/helpers/num'
 import { useBorrowModal, type BorrowRate } from './useBorrowModal'
 import { useBorrowRates } from './useBorrowRates'
 import { useBorrowTransaction } from './useBorrowTransaction'
+import { debtDeltaMessage } from '../positionDelta'
 import { useFixedRateCaps, remainingFixedCapacity } from './useFixedRateCaps'
 import { useUserPositions } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
@@ -366,6 +367,9 @@ export const useBorrowModalData = ({
         selectedRate,
         positionIndex,
         enabled: isOpen && borrowAmount > 0 && !exceedsFixedCap,
+        // The delta the user just previewed, restated as the outcome (real values:
+        // debt from vault summary plus their own borrow amount).
+        successMessage: debtDeltaMessage(currentPosition.debtAmount, projectedPosition.debtAmount),
         onSuccess: () => {
             onClose()
             reset()

@@ -10,6 +10,7 @@ import {
 } from '@chakra-ui/react'
 import { useRepayModal } from './hooks/useRepayModal'
 import { useRepayTransaction } from './hooks/useRepayTransaction'
+import { debtDeltaMessage } from './positionDelta'
 import { useRepayLiquidationData } from './hooks/useRepayLiquidationData'
 import { useUserPositions } from '@/hooks/useCDP'
 import { useOraclePrice } from '@/hooks/useOracle'
@@ -97,6 +98,9 @@ export const RepayModal: React.FC<RepayModalProps> = ({
         assetDenom: selectedAsset.denom,
         positionIndex,
         enabled: isOpen && repayAmount > 0,
+        // The delta the user just previewed, restated as the outcome (real values:
+        // debt from vault summary minus their own repay amount).
+        successMessage: debtDeltaMessage(currentDebt, projectedPosition.debtAmount),
         onSuccess: () => {
             onClose()
             reset()

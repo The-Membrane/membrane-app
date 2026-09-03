@@ -21,6 +21,8 @@ interface UseDepositTransactionProps {
     positionIndex?: number
     enabled?: boolean
     onSuccess?: () => void
+    /** Rendered consequence for the success toast (see positionDelta.ts). */
+    successMessage?: string
 }
 
 /**
@@ -39,6 +41,7 @@ export const useDepositTransaction = ({
     positionIndex = 0,
     enabled = true,
     onSuccess,
+    successMessage,
 }: UseDepositTransactionProps) => {
     const { address, chain } = useWallet()
     const { data: positions } = useUserPositions()
@@ -90,5 +93,6 @@ export const useDepositTransaction = ({
         amount: String(depositAmount),
         enabled: enabled && !!msgs && msgs.length > 0,
         onSuccess: handleSuccess,
+        successMessage,
     })
 }

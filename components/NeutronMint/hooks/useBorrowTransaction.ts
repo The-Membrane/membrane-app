@@ -21,6 +21,8 @@ interface UseBorrowTransactionProps {
   positionIndex?: number
   enabled?: boolean
   onSuccess?: () => void
+  /** Rendered consequence for the success toast (see positionDelta.ts). */
+  successMessage?: string
 }
 
 /** DECIMAL_FRACTIONAL — a full 1e18-scaled fraction (== 100%). */
@@ -98,6 +100,7 @@ export const useBorrowTransaction = ({
   positionIndex = 0,
   enabled = true,
   onSuccess,
+  successMessage,
 }: UseBorrowTransactionProps) => {
   const { address, chain } = useWallet()
   const { data: positions } = useUserPositions()
@@ -171,5 +174,6 @@ export const useBorrowTransaction = ({
     amount: String(borrowAmount),
     enabled: enabled && !!msgs && msgs.length > 0,
     onSuccess: handleSuccess,
+    successMessage,
   })
 }

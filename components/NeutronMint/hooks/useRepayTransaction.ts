@@ -18,6 +18,8 @@ interface UseRepayTransactionProps {
   positionIndex?: number
   enabled?: boolean
   onSuccess?: () => void
+  /** Rendered consequence for the success toast (see positionDelta.ts). */
+  successMessage?: string
 }
 
 /**
@@ -37,6 +39,7 @@ export const useRepayTransaction = ({
   positionIndex = 0,
   enabled = true,
   onSuccess,
+  successMessage,
 }: UseRepayTransactionProps) => {
   const { address, chain } = useWallet()
   const { data: positions } = useUserPositions()
@@ -91,5 +94,6 @@ export const useRepayTransaction = ({
     amount: String(repayAmount),
     enabled: enabled && !!msgs && msgs.length > 0,
     onSuccess: handleSuccess,
+    successMessage,
   })
 }

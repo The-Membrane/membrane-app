@@ -26,7 +26,10 @@
     "test:unit:watch": "vitest",
     "test:unit:coverage": "vitest run --coverage",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "recorder:ddl": "node scripts/apply-venue-recorder-ddl.mjs",
+    "recorder:run": "node scripts/record-venue-liquidity.mjs",
+    "recorder:backfill": "node scripts/backfill-venue-history.mjs"
   },
   "dependencies": {
     "@chain-registry/utils": "^1.51.285",

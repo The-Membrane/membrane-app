@@ -1,0 +1,23 @@
+{
+  "_comment": "Venues for the withdrawal-ability recorder (scripts/record-venue-liquidity.mjs). These are EXTERNAL mainnet venues (Ethereum), read via RECORDER_RPC_URL — NOT the local anvil. Entry shape: {name, kind, address, underlying?, decimals, enabled, notes}. Only enabled=true venues are recorded. Never guess an address; leave it empty and enabled=false until verified.",
+  "venues": [
+    {
+      "name": "sUSDe",
+      "kind": "erc4626-cooldown",
+      "address": "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497",
+      "underlying": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+      "decimals": 18,
+      "enabled": true,
+      "notes": "Ethena Staked USDe (mainnet). underlying = USDe. Reads: cooldownDuration() uint24, totalAssets(), totalSupply(), silo() if present. cooling/stranded split is venue-specific and NOT fabricated here — raw params stored, instant_usd left null with a note."
+    },
+    {
+      "name": "aave-v3-usde",
+      "kind": "atoken-liquidity",
+      "address": "",
+      "underlying": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+      "decimals": 18,
+      "enabled": false,
+      "notes": "needs verified aEthUSDe address — instant liquidity = underlying.balanceOf(aToken)"
+    }
+  ]
+}

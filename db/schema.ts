@@ -10,6 +10,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -315,3 +316,113 @@ export const indexerCursor = pgTable('indexer_cursor', {
   block: bigint('block', { mode: 'bigint' }).notNull().default(0n),
   lastRun: timestamp('last_run', { withTimezone: true }),
 })
+
+// ---------------------------------------------------------------------------
+// pet_wraps — player-made car wraps from the on-chain Pocket GP UI (the
+// q-racing/ui build in membrane-solidity, a separate origin with NO app
+// session cookie). One row per (chain_id, token_id): the wrap image itself as
+// a tiny JPEG dataURL (≤ 12KB, client-downscaled to 96×48) plus the distilled
+// trim colors. Writes are EIP-191 signature-verified against the pet's
+// on-chain owner (see pages/api/game/wrap.ts — no requirePlayer, auth IS the
+// signature); reads are public (wraps are shown to rivals by design). NOT
+// pushed via `drizzle-kit push` — applied via manual DDL like indexer_cursor
+// (see the CREATE TABLE in pages/api/game/wrap.ts's header comment).
+// ---------------------------------------------------------------------------
+
+export const petWraps = pgTable(
+  'pet_wraps',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    chainId: integer('chain_id').notNull(),
+    tokenId: text('token_id').notNull(),
+    ownerAddress: text('owner_address').notNull(), // lowercased 0x…
+    skin: text('skin').notNull(), // data:image/jpeg;base64 dataURL
+    body: text('body'),
+    accent: text('accent'),
+    glow: text('glow'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('pet_wraps_chain_token_idx').on(table.chainId, table.tokenId),
+    index('pet_wraps_owner_idx').on(table.ownerAddress),
+  ],
+)
+
+// ===========================================================================
+// Venue withdrawal-ability recorder (owner-approved). Three tables that record
+// external-venue (Ethena/Aave on Ethereum mainnet) withdrawal liquidity over
+// time, so the carry-trader "3-band" capacity signal (instant/cooling/stranded)
+// and a Brier-scored prediction track-record can be built from REALIZED data.
+//
+// ALL THREE are applied by scripts/apply-venue-recorder-ddl.mjs (manual DDL,
+// IF NOT EXISTS), NOT by `drizzle-kit push` — same precedent as pet_wraps /
+// indexer_cursor, so a schema drift elsewhere can't turn these into a
+// destructive diff. These drizzle definitions are the source-of-truth mirror
+// of that DDL; keep them in lockstep.
+// ---------------------------------------------------------------------------
+
+// venue_snapshots — one row per observation of a venue's withdrawal state.
+// INSERT-ONLY: a snapshot is a point-in-time reading, never mutated after write.
+// The recorder writes source='observed'; backfill-venue-history.mjs writes
+// source='backfilled' (reconstructed state at a historical block).
+export const venueSnapshots = pgTable(
+  'venue_snapshots',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    venue: text('venue').notNull(), // config `name`, e.g. 'sUSDe'
+    chain: text('chain').notNull().default('ethereum'),
+    block: bigint('block', { mode: 'bigint' }).notNull(),
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull().defaultNow(),
+    instantUsd: numeric('instant_usd'), // nullable: null = not honestly derivable (see params.instant_note)
+    coolingUsd: numeric('cooling_usd'),
+    strandedUsd: numeric('stranded_usd'),
+    params: jsonb('params').notNull(), // raw reads: cooldownDuration, totalAssets, totalSupply, underlyingBalance, silo, notes…
+    source: text('source').notNull().default('observed'), // 'observed' | 'backfilled'
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('venue_snapshots_venue_observed_idx').on(table.venue, table.observedAt)],
+)
+
+// venue_events — the venue "news tracker": records STATE CHANGES between
+// consecutive observed snapshots (a cooldownDuration change, a >20% instant-
+// liquidity shift), not headlines. INSERT-ONLY, append-only ledger. Written
+// ONLY by the recorder (observed pass); backfill inserts none.
+export const venueEvents = pgTable(
+  'venue_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    venue: text('venue').notNull(),
+    kind: text('kind').notNull(), // e.g. 'cooldown_duration_changed', 'instant_liquidity_shift'
+    prev: jsonb('prev'),
+    next: jsonb('next'),
+    note: text('note'),
+    snapshotId: uuid('snapshot_id'), // the newer snapshot this change was detected on
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('venue_events_venue_observed_idx').on(table.venue, table.observedAt)],
+)
+
+// venue_predictions — the Brier / track-record substrate. Per BADASS_RULESET.md
+// §7.2 / §9.3, confidence may come ONLY from realized outcomes. A row is INSERTED
+// at prediction time with (realized, scored_at, hit) NULL; exactly ONE later
+// scoring UPDATE fills those three columns once the horizon has elapsed
+// (realized = the metric's value at scoring time, hit = band_low <= realized <=
+// band_high). No other mutation is permitted.
+export const venuePredictions = pgTable(
+  'venue_predictions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    venue: text('venue').notNull(),
+    metric: text('metric').notNull(), // 'instant_usd' | 'total_assets'
+    madeAt: timestamp('made_at', { withTimezone: true }).notNull().defaultNow(),
+    horizonHours: integer('horizon_hours').notNull(),
+    bandLow: numeric('band_low').notNull(),
+    bandHigh: numeric('band_high').notNull(),
+    model: text('model').notNull(), // e.g. 'persistence-v0'
+    realized: numeric('realized'), // set once, by the scoring UPDATE
+    scoredAt: timestamp('scored_at', { withTimezone: true }),
+    hit: boolean('hit'),
+  },
+  (table) => [index('venue_predictions_venue_made_idx').on(table.venue, table.madeAt)],
+)

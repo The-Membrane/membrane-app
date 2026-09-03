@@ -23,6 +23,7 @@ import { FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { Card } from '@/components/ui/Card'
 import { mockHistoricalLTVData, MockLTVData } from '@/components/NeutronMint/mockCollateralData'
+import MockStamp from '@/components/demo/MockStamp'
 import useAssets from '@/hooks/useAssets'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
@@ -344,11 +345,16 @@ export const LTVDashboard: React.FC = () => {
         <VStack spacing={SPACING_PATTERNS.sectionGap} align="stretch">
           {/* Title */}
           <VStack spacing={SPACING.xs} align="flex-start">
-            <Text as="h1" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.textPrimary}>
-              Liquidation LTV Updates
-            </Text>
+            <HStack spacing={SPACING.sm} align="baseline">
+              <Text as="h1" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} fontWeight={TYPOGRAPHY.bold} color={SEMANTIC_COLORS.textPrimary}>
+                Liquidation LTV Updates
+              </Text>
+              <MockStamp label="mock — not live" color={SEMANTIC_COLORS.warning} />
+            </HStack>
             <Text fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
-              Pending liquidation LTV changes across all collateral assets
+              Pending liquidation LTV changes across all collateral assets. Every number and
+              countdown below is illustrative until this table is wired to live pending-LTV state —
+              do not time deposits or top-ups off it.
             </Text>
           </VStack>
 

@@ -3,12 +3,10 @@ import { shiftDigits } from '@/helpers/math'
 import { Box, Button, HStack, Image, Stack, Text, Tr, Td, Tooltip, Collapse, Icon, VStack } from '@chakra-ui/react'
 import { Fragment } from 'react'
 import { CollateralRowData } from './types'
-import { mockHistoricalLTVData } from './mockCollateralData'
 import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import { LTVHistoryChart } from './CollateralLTVChart'
 
 // Format large numbers with K/M suffix
 const formatLargeNumber = (value: number): string => {
@@ -21,16 +19,6 @@ const formatLargeNumber = (value: number): string => {
   } else {
     return `$${value.toFixed(0)}`
   }
-}
-
-const formatTimeUntil = (shiftTimestamp: number): string => {
-  const nowSec = Math.floor(Date.now() / 1000)
-  const diffSec = shiftTimestamp - nowSec
-  if (diffSec <= 0) return 'Imminent'
-  const hours = diffSec / 3600
-  if (hours < 1) return `${Math.ceil(diffSec / 60)}m`
-  if (hours < 24) return `${hours.toFixed(1)}h`
-  return `${(hours / 24).toFixed(1)}d`
 }
 
 interface CollateralRowProps {
@@ -172,61 +160,34 @@ export const CollateralRow = ({ row, isExpanded, onToggleExpand, onDeposit }: Co
               borderColor="#46d39a"
             >
               <VStack spacing={3} align="stretch">
-                {/* Stats Row */}
-                {(() => {
-                  const ltvData = mockHistoricalLTVData[row.denom]
-                  return (
-                    <HStack spacing={6} justify="space-around" align="flex-start">
-                      <Stack spacing={0} align="center">
-                        <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
-                          Liquidation LTV
-                        </Text>
-                        <Text color="white" fontSize={TYPOGRAPHY.small} fontWeight={TYPOGRAPHY.bold}>
-                          {num(row.maxLTV || 0).times(100).toFixed(1)}%
-                        </Text>
-                      </Stack>
-                      <Stack spacing={0} align="center">
-                        <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
-                          Target LTV
-                        </Text>
-                        <Text color={SEMANTIC_COLORS.success} fontSize={TYPOGRAPHY.small} fontWeight={TYPOGRAPHY.bold}>
-                          {ltvData ? `${ltvData.pendingLTV.toFixed(1)}%` : `${num(row.maxBorrowLTV || 0).times(100).toFixed(1)}%`}
-                        </Text>
-                        {ltvData && (
-                          <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
-                            in {formatTimeUntil(ltvData.shiftTime)}
-                          </Text>
-                        )}
-                      </Stack>
-                      <Stack spacing={0} align="center">
-                        <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
-                          Oracle Price
-                        </Text>
-                        <Text color="white" fontSize={TYPOGRAPHY.small} fontWeight={TYPOGRAPHY.bold}>
-                          ${row.price.toFixed(2)}
-                        </Text>
-                      </Stack>
-                    </HStack>
-                  )
-                })()}
-
-                {/* Historical LTV Chart */}
-                {(() => {
-                  const ltvData = mockHistoricalLTVData[row.denom]
-                  if (!ltvData) return null
-                  const chartData = ltvData.historicalSnapshots
-                  const maxLTV = num(row.maxLTV || 0).times(100).toNumber()
-
-                  return (
-                    <Box h="140px" bg="rgba(0, 0, 0, 0.2)" borderRadius="md" border="1px solid" borderColor="whiteAlpha.200" pt={2}>
-                      <LTVHistoryChart
-                        chartData={chartData}
-                        maxLTV={maxLTV}
-                        pendingLTV={ltvData.pendingLTV}
-                      />
-                    </Box>
-                  )
-                })()}
+                {/* Stats Row — chain values only; the mock pending-LTV/countdown branch was
+                    removed so nothing fabricated renders in the live mint tree */}
+                <HStack spacing={6} justify="space-around" align="flex-start">
+                  <Stack spacing={0} align="center">
+                    <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
+                      Liquidation LTV
+                    </Text>
+                    <Text color="white" fontSize={TYPOGRAPHY.small} fontWeight={TYPOGRAPHY.bold}>
+                      {num(row.maxLTV || 0).times(100).toFixed(1)}%
+                    </Text>
+                  </Stack>
+                  <Stack spacing={0} align="center">
+                    <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
+                      Target LTV
+                    </Text>
+                    <Text color={SEMANTIC_COLORS.success} fontSize={TYPOGRAPHY.small} fontWeight={TYPOGRAPHY.bold}>
+                      {`${num(row.maxBorrowLTV || 0).times(100).toFixed(1)}%`}
+                    </Text>
+                  </Stack>
+                  <Stack spacing={0} align="center">
+                    <Text color={SEMANTIC_COLORS.textTertiary} fontSize={TYPOGRAPHY.xs}>
+                      Oracle Price
+                    </Text>
+                    <Text color="white" fontSize={TYPOGRAPHY.small} fontWeight={TYPOGRAPHY.bold}>
+                      ${row.price.toFixed(2)}
+                    </Text>
+                  </Stack>
+                </HStack>
               </VStack>
             </Box>
           </Collapse>

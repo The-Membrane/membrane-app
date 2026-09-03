@@ -35,7 +35,9 @@ export const COMPOSITION_STAMP = 'composition measured 2026-08-11 · block 21,88
 /** Sect 02 — withdrawal capacity bands (proto :424-428). Order matters: instant, cooling, stranded — never reordered or folded. */
 export const CAPACITY_BANDS: CapacityBand[] = [
   { key: 'instant', label: 'INSTANT — exits now', amountUsd: 2_950_000 },
-  { key: 'cooling', label: 'COOLING — lands Aug 22, 04:10 UTC', amountUsd: 640_000 },
+  // ETA is banded, not minute-precise: CAPACITY_READS_STAMP below admits it is
+  // reconstructed from a live cooldownDuration() and can be silently wrong.
+  { key: 'cooling', label: 'COOLING — lands ~Aug 22 (reconstructed ETA)', amountUsd: 640_000 },
   { key: 'stranded', label: 'STRANDED — needs an operator crank', amountUsd: 1_570_000 },
 ]
 

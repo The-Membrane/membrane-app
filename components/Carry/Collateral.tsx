@@ -46,8 +46,13 @@ export const Collateral: React.FC<CollateralProps> = ({ selected, onSelect, onOp
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textSecondary}>
             earns {c.yld.toFixed(1)}% while posted · max draw {(c.maxLtv * 100).toFixed(0)}%
           </Text>
+          {/* Unmeasured collaterals (no `measured` provenance block — see fixtures.ts)
+              must not render with the same rigor as measured ones: lower precision,
+              no sample count, explicit stamp on the card itself. */}
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
-            1-in-1000 8h move: −{c.p999.toFixed(2)}% · worst ever: −{c.worst.toFixed(2)}% · n={c.n.toLocaleString()}
+            {c.measured
+              ? <>1-in-1000 8h move: −{c.p999.toFixed(2)}% · worst ever: −{c.worst.toFixed(2)}% · n={c.n.toLocaleString()}</>
+              : <>1-in-1000 8h move: −{c.p999.toFixed(1)}% · worst: −{c.worst.toFixed(1)}% · <Text as="span" color={SEMANTIC_COLORS.warning}>unverified</Text></>}
           </Text>
         </Box>
       ))}

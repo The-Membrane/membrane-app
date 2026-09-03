@@ -11,11 +11,20 @@ import { RH } from './fixtures'
 
 const usd = (n: number) => '$' + Math.round(n / 1000) + 'k'
 
-export interface RedemptionHistoryProps {
-  onOpenOracle: (sym: string) => void
+/** Prong confidence renders as three SEPARATE levels, never blended (§4.3). */
+const CONF_COLOR: Record<'high' | 'med' | 'low', string> = {
+  high: SEMANTIC_COLORS.textPrimary,
+  med: SEMANTIC_COLORS.textSecondary,
+  low: SEMANTIC_COLORS.warning,
 }
 
-export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOracle }) => (
+export interface RedemptionHistoryProps {
+  onOpenOracle: (sym: string) => void
+  /** The user's dialled size — renders their footprint against each venue's 90d served volume. */
+  amountUsd?: number
+}
+
+export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOracle, amountUsd = 0 }) => (
   <Box>
     <SectionHeading
       index="03 /"
@@ -28,6 +37,10 @@ export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOrac
           const fill = (x.srv / x.req) * 100
           const recBad = x.recOk < x.rec
           const slashBad = x.slash > 0
+          // The user's contemplated size against everything this venue served in 90d.
+          const footprint = x.srv > 0 ? (amountUsd / x.srv) * 100 : 0
+          const footprintColor =
+            footprint > 100 ? SEMANTIC_COLORS.danger : footprint > 25 ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.textSecondary
           return (
             <Grid
               key={x.v}
@@ -86,6 +99,34 @@ export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOrac
                     {s.t}
                   </Text>
                 ))}
+                {amountUsd > 0 && (
+                  <>
+                    <br />
+                    <Text as="span" color={footprintColor}>
+                      your {usd(amountUsd)} = {footprint < 1 ? footprint.toFixed(1) : Math.round(footprint)}% of
+                      everything this venue served in 90d
+                    </Text>
+                  </>
+                )}
+                {x.prongs && (
+                  <>
+                    <br />
+                    {x.prongs.map((p, pi) => (
+                      <Text as="span" key={p.label}>
+                        {pi > 0 && ' · '}
+                        <Text as="span" color={SEMANTIC_COLORS.textTertiary} textTransform="uppercase" letterSpacing="0.1em">
+                          {p.label}
+                        </Text>{' '}
+                        <Text as="span" color={CONF_COLOR[p.conf]}>
+                          {p.fact}
+                        </Text>{' '}
+                        <Text as="span" color={SEMANTIC_COLORS.textTertiary}>
+                          [{p.conf}]
+                        </Text>
+                      </Text>
+                    ))}
+                  </>
+                )}
               </Text>
             </Grid>
           )

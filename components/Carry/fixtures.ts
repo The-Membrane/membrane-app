@@ -4,6 +4,7 @@
 import {
   Board,
   Collateral,
+  ExitModelVenue,
   OracleInfo,
   Preset,
   RedemptionVenue,
@@ -191,6 +192,48 @@ export const ROUTES: Route[] = [
 ]
 
 /**
+ * Exit-cost model for the crossing chart (BADASS_RULESET §4, BRAND_CHARTS §6).
+ * The pair is the real decision the Aug 2026 board poses: the thin
+ * top-of-board route (Staked USDat, 11.53% net, 15 positions) against the
+ * crowd's deep route (VaultV2, 3.44% net, 182 positions).
+ *
+ * PROVENANCE: aprPct comes from the measured ROUTES table above. The depth
+ * tiers and cost ranges are a MODEL — VaultV2's instant depth echoes the
+ * EarnPage capacity fixture ($980k instant, buffer self-heals); USDat's
+ * thinness is inferred from its 15-position footprint. Nothing here is an
+ * observed exit. The venue recorder (venue_snapshots) replaces these numbers
+ * with observed withdrawal-ability as history accrues; until then the chart
+ * must render bands, not lines, and carry CROSSING_STAMP.
+ */
+export const EXIT_MODEL: { chosen: ExitModelVenue; alt: ExitModelVenue } = {
+  chosen: {
+    name: 'VaultV2 · 3.44% net',
+    aprPct: 3.44,
+    instantDepthUsd: 980_000,
+    instantCostPct: [0.02, 0.08],
+    coolingDepthUsd: 2_000_000,
+    coolingCostPct: [0.2, 0.6],
+    strandedCostPct: [1.0, 3.0],
+    depthProvenance: 'measured-mock',
+  },
+  alt: {
+    name: 'Staked USDat · 11.53% net',
+    aprPct: 11.53,
+    instantDepthUsd: 150_000,
+    instantCostPct: [0.05, 0.15],
+    coolingDepthUsd: 300_000,
+    coolingCostPct: [0.8, 2.0],
+    strandedCostPct: [3.0, 8.0],
+    depthProvenance: 'modelled',
+  },
+}
+
+export const CROSSING_STAMP =
+  'modelled — route APRs are the measured Aug 2026 table; depth tiers and exit costs are a model, ' +
+  'not a measurement, and the band width is the model’s cost range. The venue recorder replaces ' +
+  'this with observed withdrawal-ability as history accrues.'
+
+/**
  * Redemption history per venue: "if I get liquidated, does this venue give the
  * capital back in time?" Fill = served/requested (VaultServed); VaultSlashed is
  * the strongest negative; VenueRecalled counts real liquidations. Deliberately
@@ -208,6 +251,11 @@ export const RH: RedemptionVenue[] = [
     recOk: 34,
     ban: false,
     noteSegments: [{ t: 'every liquidation recall served in full' }],
+    prongs: [
+      { label: 'composition', fact: 'USDe reserve, readable on-chain', conf: 'high' },
+      { label: 'withdrawal path', fact: 'synchronous recall inside every withdraw', conf: 'med' },
+      { label: 'delivery', fact: '34/34 recalls served — history, not a guarantee', conf: 'low' },
+    ],
   },
   {
     v: 'VaultV2',
@@ -220,6 +268,11 @@ export const RH: RedemptionVenue[] = [
     recOk: 41,
     ban: false,
     noteSegments: [{ t: 'one partial fill re-served next block' }],
+    prongs: [
+      { label: 'composition', fact: 'lending positions, readable on-chain', conf: 'high' },
+      { label: 'withdrawal path', fact: 'buffer self-heals one layer down on withdraw', conf: 'med' },
+      { label: 'delivery', fact: '41/41 served — history, not a guarantee', conf: 'low' },
+    ],
   },
   {
     v: 'sUSDe',
@@ -235,6 +288,11 @@ export const RH: RedemptionVenue[] = [
       { t: '2 recalls fell inside the cooldown', tone: 'gold' },
       { t: ' — served after the liquidation had already closed' },
     ],
+    prongs: [
+      { label: 'composition', fact: 'staked USDe + silo, readable on-chain', conf: 'high' },
+      { label: 'withdrawal path', fact: 'global cooldown; nothing in the exit path starts it', conf: 'med' },
+      { label: 'delivery', fact: '2 recalls landed inside the cooldown window', conf: 'low' },
+    ],
   },
   {
     v: 'PT (fixed maturity)',
@@ -248,6 +306,11 @@ export const RH: RedemptionVenue[] = [
     ban: false,
     oracle: 'PT',
     noteSegments: [{ t: '2 pre-maturity recalls sold at market: full size, −0.9% price' }],
+    prongs: [
+      { label: 'composition', fact: 'fixed-maturity principal token, readable on-chain', conf: 'high' },
+      { label: 'withdrawal path', fact: 'pre-maturity exit is a market sale, not a redemption', conf: 'med' },
+      { label: 'delivery', fact: '2 pre-maturity sales cleared at −0.9%', conf: 'low' },
+    ],
   },
 ]
 

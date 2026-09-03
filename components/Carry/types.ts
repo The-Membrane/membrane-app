@@ -81,6 +81,20 @@ export interface NoteSegment {
   tone?: 'gold'
 }
 
+/**
+ * One prong of the three-prong venue analysis (BADASS_RULESET §6). Confidence
+ * differs per prong BY CONSTRUCTION and must render separately, never blended
+ * (BRAND_CHARTS §4.3): composition is on-chain-verifiable (high), withdrawal
+ * path is mechanistic but assumption-laden (med), delivery is behavioural and
+ * cascade-dependent (low).
+ */
+export interface Prong {
+  label: 'composition' | 'withdrawal path' | 'delivery'
+  /** One short fact, not an explanation. */
+  fact: string
+  conf: 'high' | 'med' | 'low'
+}
+
 /** Per-venue redemption / recall history: liquidation-time liquidity evidence. */
 export interface RedemptionVenue {
   v: string
@@ -100,6 +114,31 @@ export interface RedemptionVenue {
   oracle?: string
   /** Footnote, as coloured segments. */
   noteSegments: NoteSegment[]
+  /** Three-prong analysis with per-prong confidence. */
+  prongs?: Prong[]
+}
+
+/**
+ * Exit-cost model parameters for one venue side of the crossing chart.
+ * Depth tiers fill in order (instant → cooling → stranded-beyond); each carries
+ * a cost RANGE because the model is uncertain — the band on the chart IS this
+ * range (uncertainty as geometry, BRAND_CHARTS §4.1).
+ */
+export interface ExitModelVenue {
+  name: string
+  /** Net carry APR %, from the measured Aug 2026 route table (ROUTES). */
+  aprPct: number
+  /** USD that exits with negligible friction. */
+  instantDepthUsd: number
+  /** Cost applied to the instant portion, % [lo, hi]. */
+  instantCostPct: [number, number]
+  /** USD served after a delay (cooldown / buffer refill). */
+  coolingDepthUsd: number
+  coolingCostPct: [number, number]
+  /** Anything beyond instant+cooling pays the stranded cost. */
+  strandedCostPct: [number, number]
+  /** Provenance of the depth numbers — the apr is measured, depth is modelled. */
+  depthProvenance: 'measured-mock' | 'modelled'
 }
 
 /** A single row in the execution confirm sheet. */

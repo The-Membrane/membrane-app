@@ -1,7 +1,7 @@
 // Pure math + formatters ported from the inline JS in public/proto/carry.html.
 // The DOM-imperative painters (paintColl / paintLadder / paintTimeline /
 // renderRoutes) become the derived values below; React renders from them.
-import { Board, Collateral, ExecConfig, Preset } from './types'
+import { Board, Collateral, ExecConfig, ExitModelVenue, Preset } from './types'
 import { ABSORB, ROUTE_SCALE } from './fixtures'
 
 /** '$12,345' — round then group. */
@@ -126,4 +126,95 @@ export function boardToPreset(b: Board): Preset {
 export function cureLabel(fraction: number): string {
   const mins = Math.round(fraction * 480)
   return `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m of 8h`
+}
+
+// ── Crossing chart math (BADASS_RULESET §4 · BRAND_CHARTS §6) ───────────────
+
+/**
+ * Exit cost for withdrawing `sizeUsd` from a venue, % of principal [lo, hi].
+ * Size fills the depth tiers in order: instant → cooling → stranded-beyond.
+ * The [lo, hi] spread is the model's uncertainty and becomes the band.
+ */
+export function exitCostPctRange(v: ExitModelVenue, sizeUsd: number): [number, number] {
+  if (sizeUsd <= 0) return [0, 0]
+  const instant = Math.min(sizeUsd, v.instantDepthUsd)
+  const cooling = Math.min(Math.max(sizeUsd - v.instantDepthUsd, 0), v.coolingDepthUsd)
+  const stranded = Math.max(sizeUsd - v.instantDepthUsd - v.coolingDepthUsd, 0)
+  const lo = (instant * v.instantCostPct[0] + cooling * v.coolingCostPct[0] + stranded * v.strandedCostPct[0]) / sizeUsd
+  const hi = (instant * v.instantCostPct[1] + cooling * v.coolingCostPct[1] + stranded * v.strandedCostPct[1]) / sizeUsd
+  return [lo, hi]
+}
+
+/** One point of the crossing series: % of principal, net of exit, at day t. */
+const netPct = (v: ExitModelVenue, sizeUsd: number, tDays: number): [number, number, number] => {
+  const grow = (v.aprPct * tDays) / 365
+  const [cLo, cHi] = exitCostPctRange(v, sizeUsd)
+  return [grow - cHi, grow - (cLo + cHi) / 2, grow - cLo] // [lo, mid, hi]
+}
+
+export interface CrossingPoint {
+  t: number
+  // per venue+tier: midline value and [lo, hi] band
+  [key: string]: number | [number, number]
+}
+
+export const CROSSING_TIERS = [1, 10, 100] as const
+
+/**
+ * Series for the crossing chart: both venues at the user's size ×1/×10/×100,
+ * over `horizonDays`, y = realized value net of exit cost, % of principal.
+ */
+export function buildCrossingSeries(
+  chosen: ExitModelVenue,
+  alt: ExitModelVenue,
+  amountUsd: number,
+  horizonDays = 90,
+): CrossingPoint[] {
+  const points: CrossingPoint[] = []
+  for (let t = 0; t <= horizonDays; t += horizonDays / 18) {
+    const p: CrossingPoint = { t: Math.round(t) }
+    CROSSING_TIERS.forEach((mult) => {
+      const size = amountUsd * mult
+      const [aLo, aMid, aHi] = netPct(chosen, size, t)
+      const [bLo, bMid, bHi] = netPct(alt, size, t)
+      p[`chosen${mult}`] = aMid
+      p[`chosenBand${mult}`] = [aLo, aHi]
+      p[`alt${mult}`] = bMid
+      p[`altBand${mult}`] = [bLo, bHi]
+    })
+    points.push(p)
+  }
+  return points
+}
+
+/**
+ * The headline number: the size above which the horizon-end ranking inverts
+ * (mid-model). Binary search over size; returns null if no inversion in range.
+ */
+export function crossingSizeUsd(
+  chosen: ExitModelVenue,
+  alt: ExitModelVenue,
+  horizonDays = 90,
+): number | null {
+  const endDiff = (size: number): number => {
+    const a = netPct(chosen, size, horizonDays)[1]
+    const b = netPct(alt, size, horizonDays)[1]
+    return b - a // alt minus chosen: positive while the high-yield route still wins
+  }
+  let lo = 1_000
+  let hi = 100_000_000
+  if (endDiff(lo) <= 0 || endDiff(hi) >= 0) return null
+  for (let i = 0; i < 60; i++) {
+    const mid = Math.sqrt(lo * hi) // log-space bisection
+    if (endDiff(mid) > 0) lo = mid
+    else hi = mid
+  }
+  return Math.sqrt(lo * hi)
+}
+
+/** Round to two significant figures for the headline (BRAND_CHARTS §4.5). */
+export function twoSigFigs(n: number): number {
+  if (n === 0) return 0
+  const mag = Math.pow(10, Math.floor(Math.log10(Math.abs(n))) - 1)
+  return Math.round(n / mag) * mag
 }

@@ -1,12 +1,15 @@
 import React, { useState } from 'react'
-import { Box } from '@chakra-ui/react'
+import { Box, HStack, Text } from '@chakra-ui/react'
+import NextLink from 'next/link'
 
 import { DemoBanner } from '@/components/demo'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
 import Collateral from './Collateral'
+import CrossingChart from './CrossingChart'
 import ExecSheet from './ExecSheet'
 import Hero from './Hero'
 import Ladder from './Ladder'
@@ -63,6 +66,31 @@ export const Carry: React.FC = () => {
     <Box maxW="1140px" mx="auto" px={SPACING.base} py={SPACING.lg} bg={SEMANTIC_COLORS.bgPrimary} color={SEMANTIC_COLORS.textPrimary}>
       <DemoBanner note="wallet-scoped numbers are a demo wallet · live market data stays live" />
 
+      {/* The carry toolkit, packaged: every standalone decision tool, one row. */}
+      <HStack spacing={SPACING.md} mt={SPACING.sm} flexWrap="wrap">
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.label}
+          textTransform="uppercase"
+          letterSpacing="0.28em"
+          color={SEMANTIC_COLORS.textTertiary}
+        >
+          Carry toolkit
+        </Text>
+        {[
+          { label: 'calculator', href: `/${chainName}/landing` },
+          { label: 'simulator', href: `/${chainName}/simulator` },
+          { label: 'builder', href: `/${chainName}/builder` },
+          { label: 'exit bands', href: `/${chainName}/earn` },
+        ].map((t) => (
+          <NextLink key={t.label} href={t.href} style={{ textDecoration: 'underline' }}>
+            <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
+              {t.label}
+            </Text>
+          </NextLink>
+        ))}
+      </HStack>
+
       <Box mt={SPACING.base}>
         <Hero
           chainName={chainName}
@@ -94,7 +122,8 @@ export const Carry: React.FC = () => {
         </Box>
       )}
 
-      <RedemptionHistory onOpenOracle={setOracleSym} />
+      <RedemptionHistory onOpenOracle={setOracleSym} amountUsd={parseAmount(heroAmount)} />
+      <CrossingChart amountUsd={parseAmount(heroAmount)} />
       <Timeline />
 
       <ExecSheet config={exec} onClose={() => setExec(null)} />

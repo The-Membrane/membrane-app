@@ -51,7 +51,7 @@ export const Timeline: React.FC = () => {
 
   return (
     <Box>
-      <SectionHeading index="04 /" title="Breach, cure window, liquidation" note="the mechanism, in order" />
+      <SectionHeading index="05 /" title="Breach, cure window, liquidation" note="the mechanism, in order" />
       <Card p={SPACING.base}>
         <Box position="relative" h="96px" bg={SEMANTIC_COLORS.bgPrimary} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} mt={SPACING.md} overflow="hidden">
           {/* Healthy band */}

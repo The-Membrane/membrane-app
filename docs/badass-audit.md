@@ -277,6 +277,42 @@ lines, and the dead CyberpunkHome internals (commented LobbyView, unreachable Ab
 `handleReceptionist`, `handleElevator`, the `'about'` view branch — 1172 → 513 lines, verified
 no external importers, typecheck clean).
 
+## Carry toolkit build (owner-directed, 2026-09-02, same day)
+
+Owner ranked the proposed carry-trader tools: crossing chart YES, recorder YES (with
+historical backfill + predictions scored against realized), weekly counterfactual NO
+(it ranks realized yield — certifies the week's luckiest venue), prong-confidence YES,
+cascade replay YES (sequenced after the recorder). Venue "news tracker" ruled in as a
+*state-change* tracker derived from recorder snapshots — consequences to your exposure,
+never headlines. Shipped:
+
+- **The crossing chart** (`Carry/CrossingChart.tsx`, math in `utils.ts`, model in
+  `fixtures.ts EXIT_MODEL`) — BRAND_CHARTS §6 as written: thin top-of-board route
+  (Staked USDat 11.53%) vs the crowd's deep route (VaultV2 3.44%), y = value net of
+  exit cost as % of principal, bands = the model's cost range, tiers at the user's
+  dialled size ×1/×10/×100, gold callout "Above ~$590,000, this ranking inverts — exit
+  depth eats the spread." Stamped modelled; the recorder replaces the depth model with
+  observed data as history accrues.
+- **Three-prong confidence rows** on every RedemptionHistory venue: composition [high] ·
+  withdrawal path [med] · delivery [low], rendered separately, never blended (§4.3).
+- **Size footprint line** per venue, wired to the Hero dial: "your $10k = N% of
+  everything this venue served in 90d" (warning >25%, danger >100%).
+- **Toolkit packaging**: "Carry toolkit — calculator · simulator · builder · exit bands"
+  strip at the top of the Carry page; the depth tool is no longer only on the lender page.
+- **The recorder** (`db/schema.ts` + `scripts/apply-venue-recorder-ddl.mjs`,
+  `record-venue-liquidity.mjs`, `backfill-venue-history.mjs`, `scripts/lib/venue-reads.mjs`,
+  `tools/venue-recorder.config.json`): venue_snapshots (observed|backfilled),
+  venue_events (insert-only state-change diffs — the news tracker substrate),
+  venue_predictions (persistence-v0 bands, scored against realized only — the §7.2
+  track record). Runs standalone via `npm run recorder:ddl / recorder:run /
+  recorder:backfill` with zero app deploy. Honest-derivation rule: sUSDe's
+  instant/cooling/stranded left null (per-user cooldown queues aren't aggregately
+  readable) — raw reads stored instead; the $1-stable assumption is recorded in params,
+  never silent. **Gate: `.env.local` DATABASE_URL is empty and RECORDER_RPC_URL unset —
+  fill both, then `npm run recorder:ddl && npm run recorder:run` starts the corpus.**
+  Backfill inserts no events/predictions: reconstructed state must not masquerade as
+  observed process.
+
 ## Still open (data/backend work, tracked)
 
 1. The §2 event pipeline (price-history sweep → named events → per-user outcomes) — the

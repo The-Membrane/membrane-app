@@ -104,8 +104,11 @@ export const lifeStartIndex = (rateMo: number, items: LifeItem[]): number => {
 // Returns React nodes without JSX so this stays a .ts module.
 export const renderEmphasis = (text: string): React.ReactNode[] => {
   const nodes: React.ReactNode[] = []
+  // Bold wrapped AROUND a neg span (**{neg}…{/neg}**) collapses to the neg span —
+  // otherwise the orphaned ** chunks render literally.
+  const normalized = text.replace(/\*\*(\{neg\}.*?\{\/neg\})\*\*/g, '$1')
   // Split on {neg}…{/neg} first, then on ** … ** inside each chunk.
-  const negParts = text.split(/(\{neg\}.*?\{\/neg\})/g)
+  const negParts = normalized.split(/(\{neg\}.*?\{\/neg\})/g)
   let key = 0
   negParts.forEach((part) => {
     const negMatch = part.match(/^\{neg\}(.*)\{\/neg\}$/)

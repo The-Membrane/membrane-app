@@ -16,6 +16,7 @@ import { RevenuePerSecond } from './RevenuePerSecond'
 import { RevenueChart } from './RevenueChart'
 import { BoostLevelBar } from './BoostLevelBar'
 import { ContributionMeter } from './ContributionMeter'
+import { YourRecord } from './YourRecord'
 import { AcquisitionInfo } from './AcquisitionInfo'
 import { ActionReward, useActionReward } from './ActionReward'
 import { AirdropEvent, useAirdropEvent } from './AirdropEvent'
@@ -176,6 +177,11 @@ export const PortPage: React.FC = () => {
                     </Box>
                     <BoostBreakdown />
                 </HStack>
+
+                {/* Retrospective leads (Badass rule 2): what happened to YOUR positions,
+                    before any forward-looking metric. Demo fixtures under DemoBanner
+                    until the wallet connects; real events once the §2 pipeline lands. */}
+                <YourRecord />
 
                 {/* Points Progress Card - Under the title, full width */}
                 <Box w="66%" mb={SPACING.xl} alignSelf="center">

@@ -1,5 +1,5 @@
-import React from 'react'
-import { Box, Flex, Grid, HStack, Text, VStack, Wrap } from '@chakra-ui/react'
+import React, { useMemo, useState } from 'react'
+import { Box, Flex, Grid, HStack, Input, Text, VStack, Wrap } from '@chakra-ui/react'
 
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
@@ -9,7 +9,7 @@ import { MockStamp } from '@/components/demo'
 
 import { CapacityBandKey, VenueLiquidity } from './types'
 import { CAPACITY_BANDS, CAPACITY_READS_STAMP, VENUE_LIQUIDITY } from './fixtures'
-import { bandSharePercent, buildCapacitySummary, venueSharePercent, venueTotalUsd, usd } from './utils'
+import { bandSharePercent, buildCapacitySummary, parseAmountInput, projectExitBands, venueSharePercent, venueTotalUsd, usd } from './utils'
 
 /** Band → semantic token, ported from the proto's BANDS rgba palette (script :425-427). Order is load-bearing. */
 const BAND_COLOR: Record<CapacityBandKey, string> = {
@@ -41,6 +41,14 @@ const NoteRun: React.FC<{ note: VenueLiquidity['note'] }> = ({ note }) => (
 export const ExitLiquidity: React.FC = () => {
   const bands = CAPACITY_BANDS.filter((b) => b.amountUsd > 0)
 
+  // Size-aware exit check: the trader types a contemplated size and sees which
+  // bands it fills (instant → cooling → stranded), against the same capacity
+  // data the chart above renders. Same mock stamp as the rest of the card.
+  const [sizeRaw, setSizeRaw] = useState('')
+  const sizeUsd = parseAmountInput(sizeRaw)
+  const projection = useMemo(() => projectExitBands(sizeUsd), [sizeUsd])
+  const projectionParts = projection.filter((p) => p.filledUsd > 0)
+
   return (
     <Card variant="default">
       <Flex h="22px" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} overflow="hidden">
@@ -63,6 +71,52 @@ export const ExitLiquidity: React.FC = () => {
       <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textPrimary} letterSpacing="0.03em" mt={SPACING.md}>
         {buildCapacitySummary()}
       </Text>
+
+      <HStack spacing={SPACING.md} mt={SPACING.md} align="center">
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary} whiteSpace="nowrap">
+          Check a size:
+        </Text>
+        <Input
+          value={sizeRaw}
+          onChange={(e) => setSizeRaw(e.target.value)}
+          placeholder="e.g. 2,000,000"
+          size="xs"
+          maxW="160px"
+          fontFamily={TYPOGRAPHY.fontMono}
+          borderRadius={0}
+          borderColor={SEMANTIC_COLORS.borderSubtle}
+          _focus={{ borderColor: SEMANTIC_COLORS.borderStrong }}
+        />
+      </HStack>
+
+      {sizeUsd > 0 && (
+        <Box mt={SPACING.sm}>
+          <Flex h="13px" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} overflow="hidden">
+            {projectionParts.map((p) => (
+              <Box
+                key={p.key}
+                h="100%"
+                w={`${((p.filledUsd / sizeUsd) * 100).toFixed(1)}%`}
+                bg={p.key === 'unserved' ? SEMANTIC_COLORS.bgTertiary : BAND_COLOR[p.key as CapacityBandKey]}
+                opacity={0.75}
+              />
+            ))}
+          </Flex>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.xs}>
+            {projectionParts
+              .map((p) =>
+                p.key === 'instant'
+                  ? `${usd(p.filledUsd)} exits now`
+                  : p.key === 'cooling'
+                    ? `${usd(p.filledUsd)} lands ~Aug 22`
+                    : p.key === 'stranded'
+                      ? `${usd(p.filledUsd)} stranded until an operator cranks`
+                      : `${usd(p.filledUsd)} beyond today's total capacity`,
+              )
+              .join(' · ')}
+          </Text>
+        </Box>
+      )}
 
       <VStack align="stretch" spacing={0} mt={SPACING.lg}>
         {VENUE_LIQUIDITY.map((venue, i) => {

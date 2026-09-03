@@ -56,6 +56,25 @@ export const buildCapacitySummary = (bands: CapacityBand[] = CAPACITY_BANDS): st
   )
 }
 
+/**
+ * Splits a contemplated withdrawal across the capacity bands in fill order
+ * (instant → cooling → stranded); anything beyond total capacity is 'unserved'.
+ * Powers the size-aware exit check: type a size, see where it lands.
+ */
+export const projectExitBands = (
+  amountUsd: number,
+  bands: CapacityBand[] = CAPACITY_BANDS,
+): Array<{ key: CapacityBand['key'] | 'unserved'; filledUsd: number }> => {
+  let remaining = Math.max(0, amountUsd)
+  const filled: Array<{ key: CapacityBand['key'] | 'unserved'; filledUsd: number }> = bands.map((b) => {
+    const take = Math.min(remaining, b.amountUsd)
+    remaining -= take
+    return { key: b.key, filledUsd: take }
+  })
+  if (remaining > 0) filled.push({ key: 'unserved', filledUsd: remaining })
+  return filled
+}
+
 /** Sacrifice-ratio label pair — proto script :387-389 ("boost: give up X% of fees → Yx points"). */
 export const sacrificeMultiplier = (sacrificeRatioPercent: number): string =>
   `${(1 + sacrificeRatioPercent / 100).toFixed(2)}×`

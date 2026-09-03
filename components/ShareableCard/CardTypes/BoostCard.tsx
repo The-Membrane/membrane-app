@@ -32,21 +32,11 @@ export const BoostCard: React.FC<BoostCardProps> = ({ data, cardRef }) => {
     const mbrnNeeded = Math.max(0, nextMilestone - mbrnAmount)
     const nextMilestoneBoost = (nextMilestone / MAX_MBRN) * 100
 
-    // Determine tier based on boost
-    const getTierInfo = () => {
-        if (boostPercentage >= 50) return { tier: 'Legendary', color: 'yellow' }
-        if (boostPercentage >= 25) return { tier: 'Elite', color: 'purple' }
-        if (boostPercentage >= 10) return { tier: 'Advanced', color: 'cyan' }
-        if (boostPercentage >= 1) return { tier: 'Rising', color: 'blue' }
-        return { tier: 'Starter', color: 'gray' }
-    }
-
-    const tierInfo = getTierInfo()
-
     return (
         <ShareableCard title="BOOST LEVEL" subtitle="Manic Vault Multiplier" cardRef={cardRef}>
             <VStack spacing={2} align="stretch" h="100%">
-                {/* Header with boost percentage and tier badge on same line */}
+                {/* Header — boost rate as a plain fact; the tier ladder (Starter→Legendary)
+                    was removed: it badged a capital-locked dial (Badass rule 7) */}
                 <Box display="flex" justifyContent="space-between" alignItems="baseline" mb={1} w="100%">
                     <Text
                         fontSize="sm"
@@ -59,34 +49,6 @@ export const BoostCard: React.FC<BoostCardProps> = ({ data, cardRef }) => {
                     >
                         {boostPercentage.toFixed(2)}% Boost
                     </Text>
-                    {/* <Box
-                        data-tier-badge="true"
-                        px={2.5}
-                        py={0.5}
-                        bg={`${tierInfo.color}.500`}
-                        borderRadius="full"
-                        border="1px solid"
-                        borderColor={`${tierInfo.color}.300`}
-                        display="inline-flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        m={0}
-                        flexShrink={0}
-                        verticalAlign="baseline"
-                    >
-                        <Text
-                            fontSize="xs"
-                            fontWeight="bold"
-                            color="white"
-                            fontFamily="mono"
-                            textTransform="uppercase"
-                            lineHeight="1.2"
-                            m={0}
-                            p={0}
-                        >
-                            {tierInfo.tier}
-                        </Text>
-                    </Box> */}
                 </Box>
 
                 {/* MBRN Amount and Progress */}
@@ -165,7 +127,7 @@ export const BoostCard: React.FC<BoostCardProps> = ({ data, cardRef }) => {
                         style={{ padding: '8px', marginTop: 'auto' }}
                     >
                         <Text fontSize="xs" color="green.400" fontFamily="mono" textAlign="center">
-                            Maximum Boost Achieved! (100M MBRN = 100% boost)
+                            At the boost cap: 100M MBRN locked = 100% boost
                         </Text>
                     </Box>
                 )}

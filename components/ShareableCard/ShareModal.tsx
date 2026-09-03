@@ -105,8 +105,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, initial
             const filename = `membrane-${cardTabs[activeTab].type}-${Date.now()}.png`
             await exportElementAsImage(cardRef.current, filename)
             toast({
-                title: 'Image downloaded!',
-                description: 'Your achievement card has been saved.',
+                title: 'Image downloaded',
+                description: 'Your card has been saved.',
                 status: 'success',
                 duration: 3000,
             })
@@ -233,7 +233,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, initial
                 maxW="800px"
             >
                 <ModalHeader color="white" fontFamily="mono" textTransform="uppercase" letterSpacing="wide">
-                    Share Achievement
+                    Share Your Record
                 </ModalHeader>
                 <ModalCloseButton color="gray.400" />
                 <ModalBody pb={6}>

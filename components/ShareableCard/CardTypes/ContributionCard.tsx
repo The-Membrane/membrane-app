@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, VStack, HStack, Text, Badge } from '@chakra-ui/react'
+import { Box, VStack, HStack, Text } from '@chakra-ui/react'
 import { ShareableCard } from '../ShareableCard'
 import type { ShareableCardData } from '@/services/shareableCard'
 
@@ -8,60 +8,35 @@ interface ContributionCardProps {
     cardRef?: React.RefObject<HTMLDivElement>
 }
 
-const tierConfig: Record<string, { color: string; message: string }> = {
-    Stabilizer: {
-        color: 'gray',
-        message: 'A silent guardian. Your presence maintains the balance.',
-    },
-    Contributor: {
-        color: 'blue',
-        message: "You've carved your mark. The system recognizes your resonance.",
-    },
-    'Top 1% Contributor': {
-        color: 'purple',
-        message: 'You stand among the elite. Your domain expansion echoes.',
-    },
-    'Prime Engineer': {
-        color: 'cyan',
-        message: 'A master architect. You are the foundation of the system.',
-    },
-}
+const GAUGE_COLOR = '#22D3EE'
 
-// Get color value from Chakra color scheme
-const getColorValue = (color: string): string => {
-    const colorMap: Record<string, string> = {
-        gray: '#9CA3AF',
-        blue: '#60A5FA',
-        purple: '#A78BFA',
-        cyan: '#22D3EE',
-    }
-    return colorMap[color] || colorMap.gray
+const formatShare = (value: number): string => {
+    if (value < 0.1) return value.toFixed(4)
+    if (value < 1) return value.toFixed(3)
+    if (value < 10) return value.toFixed(2)
+    return value.toFixed(1)
 }
 
 /**
- * Contribution tier achievement card for sharing
- * Displays tier badge, contribution percentage, and breakdown
+ * System-contribution share card. Renders the user's share of system TVL and
+ * revenue as plain facts — no tier ladder, no composite score. The old
+ * Stabilizer→Prime Engineer tiers graded 80% wealth share + 20% revenue share,
+ * which BADASS_RULESET.md §11 prohibits (progression keyed to capital/returns).
  */
 export const ContributionCard: React.FC<ContributionCardProps> = ({ data, cardRef }) => {
     const {
-        contributionPercentage = 0,
         tvlContribution = 0,
         revenueContribution = 0,
-        tier = 'Stabilizer',
     } = data
 
-    const tierInfo = tierConfig[tier] || tierConfig.Stabilizer
-    const progressValue = Math.min(contributionPercentage, 100)
-    const progressPercent = progressValue
-    const colorValue = getColorValue(tierInfo.color)
-    
-    // Calculate the angle for the progress (0-360 degrees)
+    // Gauge shows the on-chain-verifiable fact: share of system TVL
+    const progressPercent = Math.min(tvlContribution, 100)
     const angle = (progressPercent / 100) * 360
 
     return (
         <ShareableCard title="SYSTEM CONTRIBUTION" subtitle="Protocol Status" cardRef={cardRef}>
                 <HStack spacing={6} h="100%" align="center" style={{ gap: '24px' }}>
-                    {/* Custom circular contribution display */}
+                    {/* Circular TVL-share display */}
                     <Box position="relative" w="140px" h="140px" flexShrink={0}>
                         {/* Background circle */}
                         <Box
@@ -83,7 +58,7 @@ export const ContributionCard: React.FC<ContributionCardProps> = ({ data, cardRe
                             h="140px"
                             borderRadius="50%"
                             style={{
-                                background: `conic-gradient(from -90deg, ${colorValue} 0deg ${angle}deg, transparent ${angle}deg 360deg)`,
+                                background: `conic-gradient(from -90deg, ${GAUGE_COLOR} 0deg ${angle}deg, transparent ${angle}deg 360deg)`,
                                 mask: 'radial-gradient(circle, transparent 60px, black 61px)',
                                 WebkitMask: 'radial-gradient(circle, transparent 60px, black 61px)',
                             }}
@@ -110,43 +85,21 @@ export const ContributionCard: React.FC<ContributionCardProps> = ({ data, cardRe
                                 <Text
                                     fontSize="2xl"
                                     fontWeight="bold"
-                                    color={`${tierInfo.color}.400`}
+                                    color="cyan.400"
                                     fontFamily="mono"
                                     lineHeight="1.2"
                                 >
-                                    {contributionPercentage < 0.1 
-                                        ? contributionPercentage.toFixed(4) 
-                                        : contributionPercentage < 1 
-                                        ? contributionPercentage.toFixed(3) 
-                                        : contributionPercentage < 10 
-                                        ? contributionPercentage.toFixed(2) 
-                                        : contributionPercentage.toFixed(1)}%
+                                    {formatShare(tvlContribution)}%
                                 </Text>
                                 <Text fontSize="xs" color="gray.400" fontFamily="mono" mt={0.5}>
-                                    TOTAL
+                                    OF SYSTEM TVL
                                 </Text>
                             </VStack>
                         </Box>
                     </Box>
 
-                    {/* Stats and tier info */}
+                    {/* Share-of-system facts */}
                     <VStack spacing={3} align="stretch" flex={1}>
-                        {/* Tier badge */}
-                        <Badge
-                            colorScheme={tierInfo.color}
-                            fontSize="sm"
-                            px={4}
-                            py={2}
-                            borderRadius="full"
-                            fontFamily="mono"
-                            textTransform="uppercase"
-                            textAlign="center"
-                            w="fit-content"
-                        >
-                            {tier}
-                        </Badge>
-
-                        {/* Contribution breakdown */}
                         <Box
                             p={3}
                             bg="gray.800"
@@ -158,41 +111,21 @@ export const ContributionCard: React.FC<ContributionCardProps> = ({ data, cardRe
                             <VStack spacing={2} align="stretch">
                                 <HStack justify="space-between">
                                     <Text fontSize="xs" color="gray.400" fontFamily="mono">
-                                        TVL (80%)
+                                        MY DEPOSITS BACK
                                     </Text>
                                     <Text fontSize="sm" color="cyan.400" fontFamily="mono" fontWeight="bold">
-                                        {tvlContribution.toFixed(2)}%
+                                        {formatShare(tvlContribution)}% of TVL
                                     </Text>
                                 </HStack>
                                 <HStack justify="space-between">
                                     <Text fontSize="xs" color="gray.400" fontFamily="mono">
-                                        Revenue (20%)
+                                        MY SHARE OF REVENUE
                                     </Text>
                                     <Text fontSize="sm" color="purple.400" fontFamily="mono" fontWeight="bold">
-                                        {revenueContribution.toFixed(2)}%
+                                        {formatShare(revenueContribution)}%
                                     </Text>
                                 </HStack>
                             </VStack>
-                        </Box>
-
-                        {/* Tier message */}
-                        <Box
-                            p={2}
-                            bg={`${tierInfo.color}.900`}
-                            borderRadius="md"
-                            border="1px solid"
-                            borderColor={`${tierInfo.color}.500`}
-                            style={{ padding: '8px' }}
-                        >
-                            <Text
-                                fontSize="xs"
-                                color={`${tierInfo.color}.200`}
-                                fontFamily="mono"
-                                fontStyle="italic"
-                                textAlign="center"
-                            >
-                                {tierInfo.message}
-                            </Text>
                         </Box>
                     </VStack>
                 </HStack>
@@ -201,5 +134,3 @@ export const ContributionCard: React.FC<ContributionCardProps> = ({ data, cardRe
 }
 
 export default ContributionCard
-
-

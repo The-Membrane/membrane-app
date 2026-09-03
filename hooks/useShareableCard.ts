@@ -30,9 +30,7 @@ export const useShareableCard = (cardType?: CardType) => {
         return parseFloat(boostData.boost) * 100
     }, [boostData])
 
-    const mbrnAmount = useMemo(() => {
-        return (boostPercentage / 100) * MAX_MBRN
-    }, [boostPercentage])
+    const mbrnAmount = (boostPercentage / 100) * MAX_MBRN
 
     // Calculate milestones
     const milestones = useMemo(() => {
@@ -91,14 +89,16 @@ export const useShareableCard = (cardType?: CardType) => {
 
     // Share functions
     const shareOnTwitter = useCallback((customText?: string) => {
+        // Share texts state facts about the user's own account — no tiers, no
+        // achievement framing, no product plugs (Badass rule 7 + share-artifact rule).
         const defaultTexts: Record<CardType, string> = {
-            revenue: `I've earned $${cardData.totalRevenue?.toFixed(2)} on Membrane! 🚀`,
-            boost: `My Membrane boost is at ${cardData.boostPercentage?.toFixed(2)}%! 📈`,
-            contribution: `I'm a ${cardData.tier} on Membrane with ${cardData.contributionPercentage?.toFixed(2)}% contribution! 💪`,
-            points: `Rank #${cardData.rank} on Membrane with ${cardData.totalPoints?.toFixed(0)} points! 🏆`,
-            portfolio: `Check out my Membrane portfolio! 🔥`,
+            revenue: `$${cardData.totalRevenue?.toFixed(2)} of Membrane protocol revenue routed to my account.`,
+            boost: `${((cardData.mbrnAmount ?? 0) / 1_000_000).toFixed(1)}M MBRN locked on Membrane — boost at ${cardData.boostPercentage?.toFixed(2)}%.`,
+            contribution: `My deposits back ${cardData.tvlContribution?.toFixed(2)}% of Membrane's system TVL.`,
+            points: `${cardData.totalPoints?.toFixed(0)} points on Membrane, rank #${cardData.rank}.`,
+            portfolio: `My Membrane positions, on the record.`,
         }
-        const text = customText || (cardType ? defaultTexts[cardType] : 'Check out my Membrane stats!')
+        const text = customText || (cardType ? defaultTexts[cardType] : 'My Membrane account, on the record.')
         window.open(getTwitterShareUrl(text, 'https://membrane.fi'), '_blank')
     }, [cardData, cardType])
 

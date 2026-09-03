@@ -165,7 +165,7 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ data, cardRef }) =
                         mt="auto"
                         lineHeight="1.2"
                     >
-                        Building wealth through decentralized finance
+                        My positions, on the record
                     </Text>
                 </VStack>
             </ShareableCard>

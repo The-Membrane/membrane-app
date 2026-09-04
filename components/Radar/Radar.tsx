@@ -10,6 +10,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { SectionHeading, Stamp } from '@/components/Carry/atoms'
 
 import { fmtDuration, fmtMultiple, fmtPct, fmtUsd, type Verdict } from './radarLogic'
+import { RecapSection } from './RecapSection'
 
 // Carry Radar — paste any mainnet address, see its positions across our four
 // instrumented venues, stressed against our RECORDED capacity + flow corpus.
@@ -369,6 +370,10 @@ export const Radar: React.FC = () => {
 
           {/* Provenance — one stamp per data class. */}
           <Provenance prov={data.provenance} />
+
+          {/* Strat watches + post-event recap — track this address and tell the
+              story of what happened, composed only from chain logs + corpus. */}
+          {address && <RecapSection address={address} />}
         </Box>
       )}
     </Box>

@@ -105,8 +105,22 @@ await sql`CREATE TABLE IF NOT EXISTS venue_flows (
 await sql`CREATE UNIQUE INDEX IF NOT EXISTS venue_flows_venue_tx_log_idx ON venue_flows (venue, tx_hash, log_index)`
 await sql`CREATE INDEX IF NOT EXISTS venue_flows_venue_block_idx ON venue_flows (venue, block)`
 
+// strat_watches — Carry Radar STRAT WATCHES. One row per tracked address with a
+// point-in-time snapshot of its radar positions at watch time (entry baseline
+// for the POST-EVENT RECAP). UPSERT on UNIQUE(address). Mirrors the drizzle
+// definition in db/schema.ts (stratWatches) — keep them in lockstep.
+await sql`CREATE TABLE IF NOT EXISTS strat_watches (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  address text NOT NULL,
+  label text,
+  entry_positions jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+)`
+await sql`CREATE UNIQUE INDEX IF NOT EXISTS strat_watches_address_idx ON strat_watches (address)`
+
 const [{ s }] = await sql`SELECT count(*)::int AS s FROM venue_snapshots`
 const [{ e }] = await sql`SELECT count(*)::int AS e FROM venue_events`
 const [{ p }] = await sql`SELECT count(*)::int AS p FROM venue_predictions`
 const [{ f }] = await sql`SELECT count(*)::int AS f FROM venue_flows`
-console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}`)
+const [{ w }] = await sql`SELECT count(*)::int AS w FROM strat_watches`
+console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}, watches: ${w}`)

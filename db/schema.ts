@@ -460,3 +460,27 @@ export const venueFlows = pgTable(
     index('venue_flows_venue_block_idx').on(table.venue, table.block),
   ],
 )
+
+// strat_watches — Carry Radar STRAT WATCHES (owner-approved). One row per
+// tracked address: a point-in-time snapshot of that address's radar positions
+// taken WHEN the watch was created, so a later POST-EVENT RECAP can tell the
+// "entered $X → now $Y" story against a real entry baseline. UPSERT on the
+// UNIQUE(address) — re-watching an address refreshes label + entry snapshot.
+// entry_positions is the serialized radar positions array (the same shape
+// /api/radar/[address] serves), captured via the shared read path in
+// pages/api/_lib/radarReads.ts so there is NO logic drift from the live radar.
+//
+// Applied by scripts/apply-venue-recorder-ddl.mjs (manual DDL, IF NOT EXISTS) —
+// same precedent as the venue_* tables; this drizzle definition is the
+// source-of-truth mirror of that DDL, keep them in lockstep.
+export const stratWatches = pgTable(
+  'strat_watches',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    address: text('address').notNull(), // checksummed 0x…
+    label: text('label'), // optional reader-facing name for the strat
+    entryPositions: jsonb('entry_positions'), // radar positions snapshot at watch time
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('strat_watches_address_idx').on(table.address)],
+)

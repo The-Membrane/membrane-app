@@ -2,6 +2,7 @@ import { Box, Button, Text, VStack, HStack, Icon } from '@chakra-ui/react'
 import { Lock, Unlock } from 'lucide-react'
 import { levels } from './CyberpunkLevelsData'
 import type { Level } from './CyberpunkLevelsData'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 interface LevelsControlPanelProps {
     selectedLevel: number | null
@@ -13,21 +14,21 @@ export const LevelsControlPanel = ({ selectedLevel, onLevelClick }: LevelsContro
     return (
         <Box flex={1} display="flex" flexDirection="column">
             <Box
-                bgGradient="linear(to-br, #9bdc4f10, #09090a)"
+                bgGradient={`linear(to-br, color-mix(in srgb, var(--m-primary) 6%, transparent), ${SEMANTIC_COLORS.bgPrimary})`}
                 border="2px solid"
-                borderColor="#9bdc4f"
+                borderColor={SEMANTIC_COLORS.primary}
                 borderRadius="md"
                 p={6}
-                boxShadow="0 0 30px #9bdc4f30"
+                boxShadow="0 0 30px color-mix(in srgb, var(--m-primary) 19%, transparent)"
                 flex={1}
                 display="flex"
                 flexDirection="column"
             >
                 <HStack justify="space-between" mb={6}>
-                    <Text color="#ece6d8" fontSize="xl" letterSpacing="wider">
+                    <Text color={SEMANTIC_COLORS.textPrimary} fontSize="xl" letterSpacing="wider">
                         CONTROL PANEL
                     </Text>
-                    {/* <Text color="#46d39a" fontSize="2xl" fontFamily="mono">
+                    {/* <Text color={SEMANTIC_COLORS.secondary} fontSize="2xl" fontFamily="mono">
                                     {currentFloor}
                                 </Text> */}
                 </HStack>
@@ -51,18 +52,18 @@ export const LevelsControlPanel = ({ selectedLevel, onLevelClick }: LevelsContro
                             }
                             borderColor={
                                 selectedLevel === level.id
-                                    ? '#46d39a'
+                                    ? SEMANTIC_COLORS.secondary
                                     : level.status === 'locked'
-                                        ? '#8d877b30'
-                                        : '#9bdc4f50'
+                                        ? 'color-mix(in srgb, var(--m-text-secondary) 19%, transparent)'
+                                        : 'color-mix(in srgb, var(--m-primary) 31%, transparent)'
                             }
                             opacity={level.status === 'locked' ? 0.5 : 1}
                             cursor={level.status === 'locked' ? 'not-allowed' : 'pointer'}
                             _hover={
                                 level.status === 'unlocked'
                                     ? {
-                                        borderColor: '#9bdc4f',
-                                        bg: '#9bdc4f10',
+                                        borderColor: SEMANTIC_COLORS.primary,
+                                        bg: 'color-mix(in srgb, var(--m-primary) 6%, transparent)',
                                     }
                                     : {}
                             }
@@ -79,23 +80,23 @@ export const LevelsControlPanel = ({ selectedLevel, onLevelClick }: LevelsContro
                                             as={level.status === 'unlocked' ? Unlock : Lock}
                                             w={4}
                                             h={4}
-                                            color={level.status === 'unlocked' ? level.color : '#8d877b'}
+                                            color={level.status === 'unlocked' ? level.color : SEMANTIC_COLORS.textSecondary}
                                         />
                                         <Text
                                             letterSpacing="wider"
-                                            color={level.status === 'unlocked' ? level.color : '#8d877b'}
+                                            color={level.status === 'unlocked' ? level.color : SEMANTIC_COLORS.textSecondary}
                                         >
                                             {level.name}
                                         </Text>
                                     </HStack>
-                                    <Text color="#8d877b" fontSize="sm">
+                                    <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm">
                                         {level.description}
                                     </Text>
                                 </VStack>
                                 <Text
                                     fontSize="3xl"
                                     fontFamily="mono"
-                                    color={level.status === 'unlocked' ? level.color : '#8d877b'}
+                                    color={level.status === 'unlocked' ? level.color : SEMANTIC_COLORS.textSecondary}
                                 >
                                     {level.id}
                                 </Text>

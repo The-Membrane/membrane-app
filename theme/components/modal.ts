@@ -13,7 +13,7 @@ export const Modal: ComponentStyleConfig = {
       padding: '6',
     },
     overlay: {
-      bg: 'rgba(9, 9, 10, 0.72)', // near-black scrim
+      bg: 'var(--m-overlay)', // near-black scrim
       backdropFilter: 'blur(10px)',
     },
   },

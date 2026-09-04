@@ -8,13 +8,14 @@ import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import useAppState from '@/persisted-state/useAppState'
 import { shiftDigits } from '@/helpers/math'
 import { getDiscoTotalInsurance } from '@/services/flywheel'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 // Color constants
 const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
-const DARK_BG = '#09090a'
+const DARK_BG = SEMANTIC_COLORS.bgPrimary
 const NEON_BLUE = '#00bfff'
 const WELD_WHITE = '#ffffff'
-const WELD_BLUE = '#46d39a'
+const WELD_BLUE = SEMANTIC_COLORS.secondary
 
 // Hex panel constants
 const HEX_CENTER_X = 400

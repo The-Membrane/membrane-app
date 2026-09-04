@@ -1,5 +1,6 @@
 import React from 'react'
 import { Box, Progress, Stack, Text, ProgressProps } from '@chakra-ui/react'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 export interface ProgressBarProps extends Omit<ProgressProps, 'value'> {
   /**
@@ -44,10 +45,10 @@ export interface ProgressBarProps extends Omit<ProgressProps, 'value'> {
  * - 0-69%:  phosphor (#9bdc4f) — healthy / plenty of room
  */
 const getColor = (percent: number): string => {
-  if (percent >= 100) return '#cf4034'
-  if (percent >= 85) return '#d8b24a'
-  if (percent >= 70) return '#c19a3a'
-  return '#9bdc4f'
+  if (percent >= 100) return SEMANTIC_COLORS.danger
+  if (percent >= 85) return SEMANTIC_COLORS.warning
+  if (percent >= 70) return '#c19a3a' // bespoke gold-dim, no token
+  return SEMANTIC_COLORS.success
 }
 
 /**
@@ -107,7 +108,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   return (
     <Stack spacing={1}>
       {showLabel && (
-        <Text fontSize="sm" color="#ece6d8" fontWeight="medium">
+        <Text fontSize="sm" color={SEMANTIC_COLORS.textPrimary} fontWeight="medium">
           {displayValue} / {displayMax}
         </Text>
       )}
@@ -119,7 +120,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
           left={0}
           right={0}
           height={heights[size]}
-          bg="rgba(236, 230, 216, 0.06)"
+          bg="color-mix(in srgb, var(--m-text-primary) 6%, transparent)"
           borderRadius="3px"
         />
         {/* Progress fill */}

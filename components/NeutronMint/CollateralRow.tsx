@@ -126,12 +126,12 @@ export const CollateralRow = ({ row, isExpanded, onToggleExpand, onDeposit }: Co
                 onClick={() => onDeposit(row.denom)}
                 isDisabled={isSupplyCapReached}
                 cursor={isSupplyCapReached ? 'not-allowed' : 'pointer'}
-                borderColor={isSupplyCapReached ? 'rgba(207, 64, 52, 0.3)' : '#9bdc4f'}
-                color={isSupplyCapReached ? '#56524a' : '#9bdc4f'}
+                borderColor={isSupplyCapReached ? 'rgba(207, 64, 52, 0.3)' : SEMANTIC_COLORS.primary}
+                color={isSupplyCapReached ? SEMANTIC_COLORS.textTertiary : SEMANTIC_COLORS.primary}
                 _hover={!isSupplyCapReached ? {
-                  bg: '#9bdc4f',
-                  color: '#09090a',
-                  borderColor: '#9bdc4f'
+                  bg: SEMANTIC_COLORS.primary,
+                  color: SEMANTIC_COLORS.bgPrimary,
+                  borderColor: SEMANTIC_COLORS.primary
                 } : undefined}
               >
                 {isSupplyCapReached ? 'Full' : 'Deposit'}
@@ -157,7 +157,7 @@ export const CollateralRow = ({ row, isExpanded, onToggleExpand, onDeposit }: Co
               p={3}
               bg="rgba(0, 0, 0, 0.3)"
               borderLeft="2px solid"
-              borderColor="#46d39a"
+              borderColor={SEMANTIC_COLORS.info}
             >
               <VStack spacing={3} align="stretch">
                 {/* Stats Row — chain values only; the mock pending-LTV/countdown branch was

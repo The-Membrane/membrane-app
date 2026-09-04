@@ -125,7 +125,7 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                                     value={intent.asset || ''}
                                     onChange={(e) => updateIntent(index, { asset: e.target.value })}
                                     bg={SEMANTIC_COLORS.bgSecondary}
-                                    borderColor="#9bdc4f30"
+                                    borderColor="color-mix(in srgb, var(--m-primary) 19%, transparent)"
                                 >
                                     <option value="">Select asset</option>
                                     {discoAssets?.assets?.map((asset: string) => (
@@ -144,7 +144,7 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                                     value={intent.slot || 5}
                                     onChange={(e) => updateIntent(index, { slot: parseInt(e.target.value) })}
                                     bg={SEMANTIC_COLORS.bgSecondary}
-                                    borderColor="#9bdc4f30"
+                                    borderColor="color-mix(in srgb, var(--m-primary) 19%, transparent)"
                                 >
                                     {[90, 85, 80, 75, 70, 65, 60, 55, 50].map((slot) => (
                                         <option key={slot} value={slot}>
@@ -168,7 +168,7 @@ export const AcquisitionSettingsIntentCard: React.FC<AcquisitionSettingsIntentCa
                                 onChange={(e) => updateIntent(index, { address: e.target.value })}
                                 placeholder="osmo1..."
                                 bg={SEMANTIC_COLORS.bgSecondary}
-                                borderColor="#9bdc4f30"
+                                borderColor="color-mix(in srgb, var(--m-primary) 19%, transparent)"
                             />
                         </Box>
                     )}

@@ -1,5 +1,6 @@
 import { Box, Text, VStack, HStack } from '@chakra-ui/react'
 import { levels } from './CyberpunkLevelsData'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 interface LevelsDisplayProps {
     selectedLevel: number | null
@@ -12,15 +13,15 @@ export const LevelsDisplay = ({ selectedLevel }: LevelsDisplayProps) => {
         <Box flex={1} display="flex" flexDirection="column">
             {selectedLevel ? (
                 <Box
-                    bgGradient="linear(to-br, #46d39a10, #09090a)"
+                    bgGradient={`linear(to-br, color-mix(in srgb, var(--m-secondary) 6%, transparent), ${SEMANTIC_COLORS.bgPrimary})`}
                     border="2px solid"
-                    borderColor="#46d39a"
+                    borderColor={SEMANTIC_COLORS.secondary}
                     borderRadius="md"
                     p={8}
                     flex={1}
                     display="flex"
                     flexDirection="column"
-                    boxShadow="0 0 30px #46d39a30"
+                    boxShadow="0 0 30px color-mix(in srgb, var(--m-secondary) 19%, transparent)"
                 >
                     <VStack
                         align="center"
@@ -44,7 +45,7 @@ export const LevelsDisplay = ({ selectedLevel }: LevelsDisplayProps) => {
                         >
                             {levels[selectedLevel - 1].name}
                         </Text>
-                        <Text color="#ece6d8" maxW="md">
+                        <Text color={SEMANTIC_COLORS.textPrimary} maxW="md">
                             {levels[selectedLevel - 1].description}
                         </Text>
 
@@ -63,29 +64,29 @@ export const LevelsDisplay = ({ selectedLevel }: LevelsDisplayProps) => {
                                         transition="all 0.3s"
                                         bg={
                                             level.id === selectedLevel
-                                                ? 'linear-gradient(to right, #9bdc4f, #9bdc4f)'
-                                                : '#09090a'
+                                                ? `linear-gradient(to right, ${SEMANTIC_COLORS.primary}, ${SEMANTIC_COLORS.primary})`
+                                                : SEMANTIC_COLORS.bgPrimary
                                         }
                                         borderColor={
                                             level.id === selectedLevel
-                                                ? '#46d39a'
-                                                : '#9bdc4f30'
+                                                ? SEMANTIC_COLORS.secondary
+                                                : 'color-mix(in srgb, var(--m-primary) 19%, transparent)'
                                         }
                                         boxShadow={
                                             level.id === selectedLevel
-                                                ? '0 0 20px #9bdc4f'
+                                                ? `0 0 20px ${SEMANTIC_COLORS.primary}`
                                                 : 'none'
                                         }
                                     >
                                         <HStack justify="space-between" h="100%" px={4}>
-                                            <Text color="#8d877b" fontSize="sm">
+                                            <Text color={SEMANTIC_COLORS.textSecondary} fontSize="sm">
                                                 {level.name}
                                             </Text>
                                             {level.id === selectedLevel && (
                                                 <Box
                                                     w="8px"
                                                     h="8px"
-                                                    bg="#46d39a"
+                                                    bg={SEMANTIC_COLORS.secondary}
                                                     borderRadius="full"
                                                     animation="pulse 2s infinite"
                                                 />
@@ -100,7 +101,7 @@ export const LevelsDisplay = ({ selectedLevel }: LevelsDisplayProps) => {
             ) : (
                 <Box
                     border="2px solid"
-                    borderColor="#9bdc4f30"
+                    borderColor="color-mix(in srgb, var(--m-primary) 19%, transparent)"
                     borderStyle="dashed"
                     borderRadius="md"
                     p={8}
@@ -111,7 +112,7 @@ export const LevelsDisplay = ({ selectedLevel }: LevelsDisplayProps) => {
                 >
                     <VStack spacing={4}>
                         <Text fontSize="6xl" opacity={0.2}>⟐</Text>
-                        <Text color="#8d877b">Select a level to begin</Text>
+                        <Text color={SEMANTIC_COLORS.textSecondary}>Select a level to begin</Text>
                     </VStack>
                 </Box>
             )}

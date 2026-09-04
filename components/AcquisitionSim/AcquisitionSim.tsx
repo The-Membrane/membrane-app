@@ -108,7 +108,7 @@ export const AcquisitionSim: React.FC = () => {
               '&::-webkit-scrollbar': { width: '6px' },
               '&::-webkit-scrollbar-track': { background: 'transparent' },
               '&::-webkit-scrollbar-thumb': {
-                background: 'rgba(236, 230, 216, 0.22)',
+                background: SEMANTIC_COLORS.borderStrong,
                 borderRadius: 0,
               },
             }}

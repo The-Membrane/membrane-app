@@ -305,7 +305,7 @@ const MembraneDashboard: React.FC = () => {
   const isLoading = revenueLoading || rateLoading || liqLoading
 
   return (
-    <Box position="relative" w="100%" minH="100vh" bg="#0A0A0A">
+    <Box position="relative" w="100%" minH="100vh" bg={SEMANTIC_COLORS.bgPrimary}>
       {/* Hexagonal Background Grid — app chrome only, kept barely-there in bone hairline */}
       <Box position="fixed" inset={0} opacity={0.4} zIndex={0} pointerEvents="none">
         <Box as="svg" w="100%" h="100%">
@@ -314,19 +314,19 @@ const MembraneDashboard: React.FC = () => {
               <polygon
                 points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
                 fill="none"
-                stroke="rgba(236, 230, 216, 0.06)"
+                stroke="color-mix(in srgb, var(--m-text-primary) 6%, transparent)"
                 strokeWidth="1"
               />
               <polygon
                 points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
                 fill="none"
-                stroke="rgba(236, 230, 216, 0.06)"
+                stroke="color-mix(in srgb, var(--m-text-primary) 6%, transparent)"
                 strokeWidth="1"
               />
               <polygon
                 points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
                 fill="none"
-                stroke="rgba(236, 230, 216, 0.06)"
+                stroke="color-mix(in srgb, var(--m-text-primary) 6%, transparent)"
                 strokeWidth="1"
               />
             </pattern>
@@ -376,7 +376,7 @@ const MembraneDashboard: React.FC = () => {
             />
             <Box
               h={{ base: '260px', md: '340px' }}
-              bg="rgba(0, 0, 0, 0.5)"
+              bg={SEMANTIC_COLORS.bgSecondary}
               borderRadius={0}
               border="1px solid"
               borderColor={SEMANTIC_COLORS.borderMedium}
@@ -398,7 +398,7 @@ const MembraneDashboard: React.FC = () => {
             />
             <Box
               h={{ base: '260px', md: '340px' }}
-              bg="rgba(0, 0, 0, 0.5)"
+              bg={SEMANTIC_COLORS.bgSecondary}
               borderRadius={0}
               border="1px solid"
               borderColor={SEMANTIC_COLORS.borderMedium}
@@ -420,7 +420,7 @@ const MembraneDashboard: React.FC = () => {
             />
             <Box
               h={{ base: '280px', md: '360px' }}
-              bg="rgba(0, 0, 0, 0.5)"
+              bg={SEMANTIC_COLORS.bgSecondary}
               borderRadius={0}
               border="1px solid"
               borderColor={SEMANTIC_COLORS.borderMedium}

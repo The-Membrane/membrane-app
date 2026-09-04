@@ -82,7 +82,7 @@ const TxConfirmView: React.FC<{
                     </Text>
                 </VStack>
 
-                <Divider borderColor="#9bdc4f30" />
+                <Divider borderColor="color-mix(in srgb, var(--m-primary) 19%, transparent)" />
 
                 {/* Transaction Details */}
                 <Box
@@ -250,7 +250,7 @@ const TxSuccessView: React.FC<{
                     {/* Points Earned Display */}
                     {isSuccess && pointsEarned !== null && pointsEarned > 0 && (
                         <Box
-                            bg="linear-gradient(135deg, #9bdc4f20 0%, #46d39a20 100%)"
+                            bg="linear-gradient(135deg, color-mix(in srgb, var(--m-primary) 12%, transparent) 0%, color-mix(in srgb, var(--m-secondary) 12%, transparent) 100%)"
                             border="1px solid"
                             borderColor={SEMANTIC_COLORS.primary}
                             borderRadius={0}
@@ -270,7 +270,7 @@ const TxSuccessView: React.FC<{
                     )}
                 </VStack>
 
-                <Divider borderColor="#9bdc4f30" />
+                <Divider borderColor="color-mix(in srgb, var(--m-primary) 19%, transparent)" />
 
                 {/* Transaction Details */}
                 <VStack spacing={2} align="stretch">

@@ -32,6 +32,10 @@
   --m-border-subtle: rgba(236, 230, 216, 0.1);
   --m-border-medium: rgba(236, 230, 216, 0.1);
   --m-border-strong: rgba(236, 230, 216, 0.22);
+  /* faint grid/dividers (chart grids, decorative rules) */
+  --m-border-faint: rgba(236, 230, 216, 0.08);
+  /* modal/drawer scrim */
+  --m-overlay: rgba(9, 9, 10, 0.72);
 }
 
 :root[data-membrane-theme='light'] {
@@ -56,4 +60,8 @@
   --m-border-subtle: rgba(67, 51, 31, 0.16);
   --m-border-medium: rgba(67, 51, 31, 0.16);
   --m-border-strong: rgba(67, 51, 31, 0.34);
+  /* faint grid/dividers */
+  --m-border-faint: rgba(67, 51, 31, 0.12);
+  /* scrim stays dark in both themes, lighter pressure on parchment */
+  --m-overlay: rgba(28, 26, 20, 0.5);
 }

@@ -63,19 +63,19 @@ const ProfitLineChart = lazyChart<{ data: ChartDataPoint[] }>(
             return (
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#9bdc4f20" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--m-primary) 12%, transparent)" />
                         <XAxis
                             dataKey="timestamp"
                             tickFormatter={formatDate}
                             tick={{ fontSize: 10, fill: SEMANTIC_COLORS.textSecondary }}
-                            axisLine={{ stroke: '#9bdc4f40' }}
-                            tickLine={{ stroke: '#9bdc4f40' }}
+                            axisLine={{ stroke: 'color-mix(in srgb, var(--m-primary) 25%, transparent)' }}
+                            tickLine={{ stroke: 'color-mix(in srgb, var(--m-primary) 25%, transparent)' }}
                         />
                         <YAxis
                             tickFormatter={(value) => `$${value.toFixed(0)}`}
                             tick={{ fontSize: 10, fill: SEMANTIC_COLORS.textSecondary }}
-                            axisLine={{ stroke: '#9bdc4f40' }}
-                            tickLine={{ stroke: '#9bdc4f40' }}
+                            axisLine={{ stroke: 'color-mix(in srgb, var(--m-primary) 25%, transparent)' }}
+                            tickLine={{ stroke: 'color-mix(in srgb, var(--m-primary) 25%, transparent)' }}
                         />
                         <RechartsTooltip content={<CustomTooltip />} />
                         <Line

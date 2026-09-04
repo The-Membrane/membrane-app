@@ -7,6 +7,8 @@
 
 import { useCallback, useEffect, useReducer, useRef } from 'react'
 
+import { resolveColor } from '@/helpers/resolveToken'
+
 import {
   BORROW,
   BTC_PX,
@@ -789,10 +791,16 @@ export function useBuilderEngine(scroll?: BuilderScroll) {
     const g = cv.getContext('2d')
     if (!g) return
     const MONO = 'Menlo,Consolas,monospace', SERIF = 'Georgia,serif'
-    const BONE = '#ece6d8', DIM = '#8d877b', FAINT = '#56524a', PHOS = '#9bdc4f', GOLD = '#d8b24a', BLOOD = '#cf4034'
-    g.fillStyle = '#09090a'
+    // Resolve at paint time (not module scope) so the card follows the active theme.
+    const BONE = resolveColor('var(--m-text-primary)'), DIM = resolveColor('var(--m-text-secondary)'), FAINT = resolveColor('var(--m-text-tertiary)'), PHOS = resolveColor('var(--m-primary)'), GOLD = resolveColor('var(--m-warning)'), BLOOD = resolveColor('var(--m-danger)')
+    // Bone hairline at a given alpha — BONE is already concrete, so compose rgba directly.
+    const hair = (a: number): string => {
+      if (BONE.startsWith('rgb')) { const [r, g2, b] = BONE.match(/[\d.]+/g) || []; return `rgba(${r},${g2},${b},${a})` }
+      const h = BONE.replace('#', ''); return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${a})`
+    }
+    g.fillStyle = resolveColor('var(--m-bg-primary)')
     g.fillRect(0, 0, W, H)
-    g.strokeStyle = 'rgba(236,230,216,0.10)'
+    g.strokeStyle = hair(0.1)
     g.lineWidth = 2
     g.strokeRect(48, 48, W - 96, H - 96)
     const sd = { id: E.seed.id, isDaily: E.seed.isDaily, dateStr: E.seed.dateStr }
@@ -822,7 +830,7 @@ export function useBuilderEngine(scroll?: BuilderScroll) {
       if (mk === 'dead') { g.fillStyle = BLOOD; g.fillRect(x, y0, size, size) }
       else if (mk === 'hurt') { g.fillStyle = GOLD; g.fillRect(x, y0, size, size) }
       else if (mk === 'clean') { g.fillStyle = PHOS; g.fillRect(x, y0, size, size) }
-      else { g.strokeStyle = 'rgba(236,230,216,0.28)'; g.lineWidth = 2; g.strokeRect(x + 1, y0 + 1, size - 2, size - 2) }
+      else { g.strokeStyle = hair(0.28); g.lineWidth = 2; g.strokeRect(x + 1, y0 + 1, size - 2, size - 2) }
     }
     g.font = '24px ' + MONO
     g.fillStyle = DIM

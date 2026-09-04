@@ -9,6 +9,7 @@ import {
     Image,
 } from '@chakra-ui/react'
 import { num } from '@/helpers/num'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import type { DebtAsset } from './RepayModalConstants'
 
 interface RepaySliderProps {
@@ -88,8 +89,8 @@ const RepaySlider: React.FC<RepaySliderProps> = ({
                                     >
                                         <polygon
                                             points="6,0 10.392,3 10.392,9 6,12 1.608,9 1.608,3"
-                                            fill={isActive ? '#9bdc4f' : 'transparent'}
-                                            stroke={isActive ? '#9bdc4f' : 'rgba(255, 255, 255, 0.4)'}
+                                            fill={isActive ? SEMANTIC_COLORS.primary : 'transparent'}
+                                            stroke={isActive ? SEMANTIC_COLORS.primary : 'rgba(255, 255, 255, 0.4)'}
                                             strokeWidth="1.5"
                                         />
                                     </Box>
@@ -140,8 +141,8 @@ const RepaySlider: React.FC<RepaySliderProps> = ({
                     >
                         <polygon
                             points="6,0 10.392,3 10.392,9 6,12 1.608,9 1.608,3"
-                            fill="#9bdc4f"
-                            stroke="#9bdc4f"
+                            fill={SEMANTIC_COLORS.primary}
+                            stroke={SEMANTIC_COLORS.primary}
                             strokeWidth="2"
                         />
                     </Box>

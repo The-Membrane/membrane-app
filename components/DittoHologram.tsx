@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import { DittoPanel } from './DittoSpeechBox/DittoPanel'
 import { usePageActions } from './DittoSpeechBox/hooks/usePageActions'
 import { ActionIndicator } from './DittoSpeechBox/ActionIndicator'
-import { getThemeForRoute, getFallbackImage, isDittoSuppressed, DittoTheme } from '@/config/dittoThemes'
+import { getThemeForRoute, getFallbackImage, DittoTheme } from '@/config/dittoThemes'
 import { SpeechBubble } from '@/components/SpeechBubble'
 import useAppState from '@/persisted-state/useAppState'
 import useDittoSpeechBoxState from './DittoSpeechBox/hooks/useDittoSpeechBoxState'
@@ -85,19 +85,16 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
     const showBadge = hasAvailableActions
     const badgeCount = availableActions.length
 
-    // Proof surfaces get no Ditto — see `dittoSuppressedRoutes` for the reasoning.
-    // This sits AFTER every hook on purpose: returning earlier (e.g. beside the
-    // useRouter call) would make the hooks below conditional and break the rules of
-    // hooks on every route change into or out of a suppressed page.
-    if (isDittoSuppressed(router.pathname)) {
-        return null
-    }
-
     return (
         <Box
             position="fixed"
-            bottom="16px"
-            left="16px"
+            /* MOBILE: Ditto leans in from off-screen rather than standing on the page.
+               He is pushed past the bottom-left corner so only the head and one arm
+               enter the frame, which keeps a 9999-z sprite off the card corners it
+               used to cover. Desktop is unchanged. The insets are negative on purpose:
+               the sprite is meant to be clipped by the viewport edge. */
+            bottom={{ base: '-16px', md: '16px' }}
+            left={{ base: '-34px', md: '16px' }}
             zIndex={9999}
             pointerEvents="none"
         >
@@ -105,8 +102,12 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
             {stayShown && (
                 <Box
                     position="absolute"
-                    bottom="165px"
-                    left="0"
+                    /* The panel is the "voice", so it starts at the head. On mobile the
+                       head sits higher and further right than the desktop anchor because
+                       of the tilt, and the left offset cancels the wrapper's negative
+                       inset so the panel stays fully on screen. */
+                    bottom={{ base: '104px', md: '165px' }}
+                    left={{ base: '38px', md: '0' }}
                     pointerEvents="auto"
                     zIndex={10000}
                 >
@@ -118,11 +119,26 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
             )}
 
             {/* Container for hologram and Ditto */}
-            <Box position="relative" w="160px" h="140px">
-                {/* Base hologram platform */}
+            <Box position="relative" w={{ base: '124px', md: '160px' }} h={{ base: '112px', md: '140px' }}>
+                {/* TILT LAYER. The rotation wraps the ARTWORK ONLY. The badge and the
+                    speech bubble are siblings below, so they stay upright: a tilted
+                    speech bubble reads as a rendering bug rather than a character
+                    leaning in. Origin is the bottom-left corner so he pivots on the
+                    corner he is leaning around. */}
+                <Box
+                    position="absolute"
+                    inset={0}
+                    transform={{ base: 'rotate(13deg)', md: 'none' }}
+                    transformOrigin="bottom left"
+                >
+                {/* Base hologram platform. Hidden on mobile: a plinth cut in half by the
+                    viewport edge reads as broken, and he is leaning in rather than
+                    standing on anything. */}
                 <Image
                     src="/images/holo-no-ditto.svg"
-                    alt="Holo no ditto"
+                    alt=""
+                    aria-hidden
+                    display={{ base: 'none', md: 'block' }}
                     w="128px"
                     h="128px"
                     objectFit="contain"
@@ -137,11 +153,14 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                     src={imagePath}
                     alt={currentTheme.altText}
                     position="absolute"
-                    bottom={currentTheme.imageBottom || '50px'}
-                    left="50%"
-                    transform="translateX(-50%)"
-                    w={currentTheme.imageSize || '110px'}
-                    h={currentTheme.imageSize || '110px'}
+                    bottom={{ base: '4px', md: currentTheme.imageBottom || '50px' }}
+                    left={{ base: '0', md: '50%' }}
+                    transform={{ base: 'none', md: 'translateX(-50%)' }}
+                    /* HARD CAP on mobile. Themes may set imageSize as large as 220px
+                       (mint), which is 56% of a 390px viewport. The cap ignores the
+                       theme value so no single page can reintroduce the eyesore. */
+                    w={{ base: '104px', md: currentTheme.imageSize || '110px' }}
+                    h={{ base: '104px', md: currentTheme.imageSize || '110px' }}
                     objectFit="contain"
                     opacity={stayShown ? 1 : 0}
                     transition="all 0.3s ease-in-out"
@@ -161,13 +180,18 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                         : "none"}
                     _hover={{
                         filter: `drop-shadow(0 0 20px ${currentTheme.glowColor})`,
-                        transform: "translateX(-50%) scale(1.1)",
                     }}
                 />
+                </Box>
 
                 {/* Action indicator badge */}
                 {stayShown && !isPanelOpen && showBadge && (
-                    <Box position="absolute" bottom="115px" left="115px" pointerEvents="auto">
+                    <Box
+                        position="absolute"
+                        bottom={{ base: '84px', md: '115px' }}
+                        left={{ base: '76px', md: '115px' }}
+                        pointerEvents="auto"
+                    >
                         <ActionIndicator
                             hasActions={hasAvailableActions}
                             tooltip={actionTooltip}
@@ -186,16 +210,20 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                         pointerEvents="auto"
                         zIndex={10001}
                     >
-                        <Box position="relative" w="160px" h="140px">
+                        <Box position="relative" w={{ base: '124px', md: '160px' }} h={{ base: '112px', md: '140px' }}>
                             <SpeechBubble
                                 message={`Welcome ${username}!`}
                                 isVisible={showWelcomeBubble}
+                                /* Anchored to the head in both layouts. On mobile the
+                                   head has swung right and down with the tilt, and the
+                                   left value also has to clear the wrapper's -34px
+                                   inset so the bubble never starts off-screen. */
                                 position={{
                                     bottom: 'calc(35% + 96px + 16px)',
                                     left: '69%',
                                 }}
-                                maxW="280px"
-                                minW="200px"
+                                maxW={{ base: 'calc(100vw - 96px)', md: '280px' }}
+                                minW={{ base: '0', md: '200px' }}
                                 onDismiss={dismissWelcome}
                             />
                         </Box>

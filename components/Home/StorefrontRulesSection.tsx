@@ -1,6 +1,7 @@
 import React from 'react'
 import { Box, VStack, Text, Image } from '@chakra-ui/react'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 interface StorefrontRulesSectionProps {
     scanComplete: boolean
@@ -29,9 +30,9 @@ export const StorefrontRulesSection = ({
     return (
         <VStack spacing={4} position="relative" zIndex={2} mb={8} maxW="800px" w="100%" px={4} mt={8}>
             <Box
-                bg="#09090a"
+                bg={SEMANTIC_COLORS.bgPrimary}
                 border="2px solid"
-                borderColor="#9bdc4f50"
+                borderColor="color-mix(in srgb, var(--m-primary) 31%, transparent)"
                 borderRadius="md"
                 py={24}
                 px={6}
@@ -75,67 +76,67 @@ export const StorefrontRulesSection = ({
                     <VStack spacing={1} align="stretch" position="relative" zIndex={2}>
                         <Text
                             fontSize={{ base: "sm", md: "md" }}
-                            color="#ece6d8"
+                            color={SEMANTIC_COLORS.textPrimary}
                             textAlign="left"
                             lineHeight="1.8"
                             fontFamily="mono"
                             letterSpacing="0.08em"
-                            textShadow="0 0 8px rgba(70, 211, 154, 0.8), 0 0 15px rgba(155, 220, 79, 0.6)"
+                            textShadow={`0 0 8px color-mix(in srgb, var(--m-secondary) 80%, transparent), 0 0 15px color-mix(in srgb, var(--m-primary) 60%, transparent)`}
                         >
                             I approach as a sovereign soul, claiming my own risks and severing foreign ties.
                         </Text>
                         <Text
                             fontSize={{ base: "sm", md: "md" }}
-                            color="#ece6d8"
+                            color={SEMANTIC_COLORS.textPrimary}
                             textAlign="left"
                             lineHeight="1.8"
                             fontFamily="mono"
                             letterSpacing="0.08em"
-                            textShadow="0 0 8px rgba(70, 211, 154, 0.8), 0 0 15px rgba(155, 220, 79, 0.6)"
+                            textShadow={`0 0 8px color-mix(in srgb, var(--m-secondary) 80%, transparent), 0 0 15px color-mix(in srgb, var(--m-primary) 60%, transparent)`}
                         >
                             I accept that every action I take becomes an immutable ripple through time.
                         </Text>
                         <Text
                             fontSize={{ base: "sm", md: "md" }}
-                            color="#ece6d8"
+                            color={SEMANTIC_COLORS.textPrimary}
                             textAlign="left"
                             lineHeight="1.8"
                             fontFamily="mono"
                             letterSpacing="0.08em"
-                            textShadow="0 0 8px rgba(70, 211, 154, 0.8), 0 0 15px rgba(155, 220, 79, 0.6)"
+                            textShadow={`0 0 8px color-mix(in srgb, var(--m-secondary) 80%, transparent), 0 0 15px color-mix(in srgb, var(--m-primary) 60%, transparent)`}
                         >
                             If I break this vow, the consequences fall solely upon me.
                         </Text>
                         <Text
                             fontSize={{ base: "sm", md: "md" }}
-                            color="#ece6d8"
+                            color={SEMANTIC_COLORS.textPrimary}
                             textAlign="left"
                             lineHeight="1.8"
                             fontFamily="mono"
                             letterSpacing="0.08em"
-                            textShadow="0 0 8px rgba(70, 211, 154, 0.8), 0 0 15px rgba(155, 220, 79, 0.6)"
+                            textShadow={`0 0 8px color-mix(in srgb, var(--m-secondary) 80%, transparent), 0 0 15px color-mix(in srgb, var(--m-primary) 60%, transparent)`}
                         >
                             My steps are my fingerprint.
                         </Text>
                         <Text
                             fontSize={{ base: "sm", md: "md" }}
-                            color="#ece6d8"
+                            color={SEMANTIC_COLORS.textPrimary}
                             textAlign="left"
                             lineHeight="1.8"
                             fontFamily="mono"
                             letterSpacing="0.08em"
-                            textShadow="0 0 8px rgba(70, 211, 154, 0.8), 0 0 15px rgba(155, 220, 79, 0.6)"
+                            textShadow={`0 0 8px color-mix(in srgb, var(--m-secondary) 80%, transparent), 0 0 15px color-mix(in srgb, var(--m-primary) 60%, transparent)`}
                         >
                             Once inside, there is no return.
                         </Text>
                         <Text
                             fontSize={{ base: "sm", md: "md" }}
-                            color="#ece6d8"
+                            color={SEMANTIC_COLORS.textPrimary}
                             textAlign="left"
                             lineHeight="1.8"
                             fontFamily="mono"
                             letterSpacing="0.08em"
-                            textShadow="0 0 8px rgba(70, 211, 154, 0.8), 0 0 15px rgba(155, 220, 79, 0.6)"
+                            textShadow={`0 0 8px color-mix(in srgb, var(--m-secondary) 80%, transparent), 0 0 15px color-mix(in srgb, var(--m-primary) 60%, transparent)`}
                         >
                             Within, we are the Membrane.
                         </Text>
@@ -145,7 +146,7 @@ export const StorefrontRulesSection = ({
                     <VStack spacing={0} mt={6}>
                         <Text
                             fontSize={{ base: "md", md: "lg" }}
-                            color="#46d39a"
+                            color={SEMANTIC_COLORS.secondary}
                             textAlign="center"
                             letterSpacing="wider"
                             fontWeight="bold"
@@ -154,12 +155,12 @@ export const StorefrontRulesSection = ({
                             Initiate Scan to Accept the{' '}
                             <Text
                                 as="span"
-                                color="#46d39a"
+                                color={SEMANTIC_COLORS.secondary}
                                 cursor="pointer"
                                 textDecoration="underline"
                                 _hover={{
-                                    color: '#9bdc4f',
-                                    textShadow: '0 0 10px #46d39a',
+                                    color: SEMANTIC_COLORS.primary,
+                                    textShadow: `0 0 10px ${SEMANTIC_COLORS.secondary}`,
                                 }}
                                 onClick={onTOSOpen}
                                 transition="all 0.3s"
@@ -169,7 +170,7 @@ export const StorefrontRulesSection = ({
                         </Text>
                         <Text
                             fontSize={{ base: "xs", md: "sm" }}
-                            color="#8d877b"
+                            color={SEMANTIC_COLORS.textSecondary}
                             fontStyle="italic"
                             textAlign="end"
                         >
@@ -177,7 +178,7 @@ export const StorefrontRulesSection = ({
                         </Text>
                         <Text
                             fontSize={{ base: "xs", md: "sm" }}
-                            color="#8d877b"
+                            color={SEMANTIC_COLORS.textSecondary}
                             fontStyle="italic"
                             textAlign="end"
                         >

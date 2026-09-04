@@ -59,32 +59,32 @@ export const rb_conversion_rates = {
 // The `primary` Chakra color scale (p100..p900) is a phosphor ramp; `link` reads
 // primary.200 (phos) and `linkHover` primary.300. No purple / navy / cyan here.
 export const colors = {
-  globalBG: "#09090a", // page bg (was navy #091326)
-  global: "#ece6d8",   // bone ink (was rgb(229,222,223))
-  tabBG: "#46d39a",    // cyber teal (secondary/machine)
-  rangeBoundBox: "#100f12",  // raised surface
-  rangeBoundBorder: "#09090a",
+  globalBG: "var(--m-bg-primary)", // page bg (was navy #091326)
+  global: "var(--m-text-primary)",   // bone ink (was rgb(229,222,223))
+  tabBG: "#46d39a",    // cyber teal (secondary/machine) — accent, stays literal like the ramp
+  rangeBoundBox: "var(--m-bg-tertiary)",  // raised surface
+  rangeBoundBorder: "var(--m-bg-primary)",
   summaryScheme: "rgb(156, 178, 145)", // mossy sage — left as-is (organic accent)
-  noState: "#8d877b",  // ink dim
+  noState: "var(--m-text-secondary)",  // ink dim
   link: "primary.200",
   linkHover: "primary.300",
-  sliderCardBorder: "rgba(236, 230, 216, 0.22)", // strong hairline (was purple)
-  slider: "#46d39a",
-  alert: "#cf4034",    // blood red
-  textHighlight: "#9bdc4f", // phosphor (was purple)
-  earnText: "#ece6d8",
-  sliderThumb: "#9bdc4f",
-  collateralScrollBG: "#09090a",
-  sliderTrack: "#ece6d8",
-  sliderFilledTrack: "#9bdc4f", // phosphor (was #20d6ff)
-  walletIcon: "#9bdc4f",
-  emptyLoader: "rgba(155, 220, 79, 0.4)", // phos translucent (was pink)
+  sliderCardBorder: "var(--m-border-strong)", // strong hairline (was purple)
+  slider: "#46d39a",  // cyber teal accent — stays literal like the ramp
+  alert: "#cf4034",    // blood red — state accent, stays literal like the ramp
+  textHighlight: "#9bdc4f", // phosphor accent (was purple) — stays literal like the ramp
+  earnText: "var(--m-text-primary)",
+  sliderThumb: "#9bdc4f", // phosphor accent — stays literal like the ramp
+  collateralScrollBG: "var(--m-bg-primary)",
+  sliderTrack: "var(--m-text-primary)",
+  sliderFilledTrack: "#9bdc4f", // phosphor accent (was #20d6ff) — stays literal like the ramp
+  walletIcon: "#9bdc4f", // phosphor accent — stays literal like the ramp
+  emptyLoader: "rgba(155, 220, 79, 0.4)", // phos translucent (was pink) — accent, stays literal
   loader: "primary.500",
-  cardBG: "#0e0d10",   // card surface (was rgb(90,90,90))
-  inputBorder: "rgba(236, 230, 216, 0.22)", // hairline (was purple)
-  inputBG: "#100f12",  // raised (was rgb(12,5,15))
-  modalBG: "#0e0d10",  // card surface (was rgb(22,24,39))
-  textLight: "#8d877b", // ink dim (was rgba(255,255,255,0.6))
+  cardBG: "var(--m-bg-secondary)",   // card surface (was rgb(90,90,90))
+  inputBorder: "var(--m-border-strong)", // hairline (was purple)
+  inputBG: "var(--m-bg-tertiary)",  // raised (was rgb(12,5,15))
+  modalBG: "var(--m-bg-secondary)",  // card surface (was rgb(22,24,39))
+  textLight: "var(--m-text-secondary)", // ink dim (was rgba(255,255,255,0.6))
   // Phosphor-green ramp (light → dark); p200 is the canonical phos accent #9bdc4f,
   // p600 lands on moss-dark #4a8636.
   p100: "#e4f4c9",

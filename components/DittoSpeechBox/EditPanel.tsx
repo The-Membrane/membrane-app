@@ -58,7 +58,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({ isOpen, onClose, currentVi
                         h="100%"
                         bg={SEMANTIC_COLORS.bgTertiary}
                         border="1px solid"
-                        borderColor="#9bdc4f40"
+                        borderColor="color-mix(in srgb, var(--m-primary) 25%, transparent)"
                         borderLeft="none"
                         borderRadius={0}
                         

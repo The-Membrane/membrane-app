@@ -2,6 +2,7 @@ import React from 'react'
 import { Box, VStack, HStack, Text, Table, Thead, Tbody, Tr, Th, Td, Image, Collapse } from '@chakra-ui/react'
 import { num } from '@/helpers/num'
 import { getVenueLabel } from '@/config/venueLabels'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { CapitalRecallResult } from './hooks/useCapitalRecall'
 import { LiqQueueSimulationResult } from './hooks/useLiquidationQueueSimulation'
 import { MarketSaleSimulationResult } from './hooks/useMarketSaleSimulation'
@@ -340,7 +341,7 @@ export const LiquidationSimStageRow: React.FC<LiquidationSimStageRowProps> = ({
           <Box position="relative" w="100%" h="8px" bg="whiteAlpha.100" borderRadius="full" overflow="hidden">
             <Box
               h="100%"
-              bg="#9bdc4f"
+              bg={SEMANTIC_COLORS.primary}
               borderRadius="full"
               w={`${progress}%`}
               opacity={Math.max(0.3, Math.min(1, 0.3 + (progress / 100) * 0.7))}

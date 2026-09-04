@@ -1,5 +1,6 @@
 import { WalletIcon } from '@/components/Icons'
 import { colors } from '@/config/defaults'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { truncate } from '@/helpers/truncate'
 import useWallet from '@/hooks/useWallet'
 import { Button, HStack, Icon, Stack, Text } from '@chakra-ui/react'
@@ -10,7 +11,7 @@ import ConnectButton from './ConnectButton'
 
 const hoverStyles = {
   borderRadius: '8px',
-  border: '1px solid #C445F0',
+  border: `1px solid ${SEMANTIC_COLORS.borderStrong}`,
   color: colors.walletIcon,
 }
 
@@ -33,11 +34,11 @@ const WalletConnect = () => {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onClick={() => disconnect()}
-          leftIcon={<Icon as={FaSignOutAlt} boxSize={5} color={isHovered ? colors.walletIcon : 'white'} />}
-          color={isHovered ? colors.tabBG : 'white'}
+          leftIcon={<Icon as={FaSignOutAlt} boxSize={5} color={isHovered ? colors.walletIcon : SEMANTIC_COLORS.textPrimary} />}
+          color={isHovered ? colors.tabBG : SEMANTIC_COLORS.textPrimary}
           py="6"
           pl="2"
-          bg="whiteAlpha.100"
+          bg="color-mix(in srgb, var(--m-text-primary) 8%, transparent)"
         >
           <Stack gap="-2px" alignItems="flex-start" ml="-6px">
             <Text fontSize="sm">{walletLabel}</Text>

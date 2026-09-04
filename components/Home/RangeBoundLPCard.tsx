@@ -22,6 +22,7 @@ import useBoundedManage from "../Dashboard/hooks/useRangeBoundLPManage"
 import useRangeBoundLP from "./hooks/useRangeBoundLP"
 import { useBestCLRange } from "@/services/osmosis"
 import { colors, LPJoinDate } from "@/config/defaults"
+import { SEMANTIC_COLORS } from "@/config/semanticColors"
 import YieldCounter from "./YieldCounter"
 import useAppState from "@/persisted-state/useAppState"
 import { useChainRoute } from "@/hooks/useChainRoute"
@@ -205,7 +206,7 @@ const RangeBoundLPCard = () => {
           value={percentToDistribution}
         >
           <SliderTrack h="1.5">
-            <SliderFilledTrack bg={'#9bdc4f'} />
+            <SliderFilledTrack bg={SEMANTIC_COLORS.primary} />
           </SliderTrack>
         </Slider>
         <TxButton

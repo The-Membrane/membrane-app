@@ -81,7 +81,7 @@ export const UpdatesIdleGainsCard: React.FC<UpdatesIdleGainsCardProps> = ({ idle
                         The system continued generating value in your absence.
                     </Text>
 
-                    <Divider borderColor="#9bdc4f30" />
+                    <Divider borderColor="color-mix(in srgb, var(--m-primary) 19%, transparent)" />
 
                     {/* Stats */}
                     <VStack spacing={2} align="stretch">
@@ -113,7 +113,7 @@ export const UpdatesIdleGainsCard: React.FC<UpdatesIdleGainsCardProps> = ({ idle
                         variant="ghost"
                         color={SEMANTIC_COLORS.textSecondary}
                         onClick={onDismiss}
-                        _hover={{ color: SEMANTIC_COLORS.textPrimary, bg: '#9bdc4f20' }}
+                        _hover={{ color: SEMANTIC_COLORS.textPrimary, bg: 'color-mix(in srgb, var(--m-primary) 12%, transparent)' }}
                     >
                         Dismiss
                     </Button>

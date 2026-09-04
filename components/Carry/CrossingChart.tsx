@@ -25,8 +25,8 @@ import { CROSSING_TIERS, CrossingPoint, buildCrossingSeries, crossingSizeUsd, fo
 const HORIZON_DAYS = 90
 
 // §6: chosen = phosphor, alternative = cyber teal; tiers by opacity + dash.
-const CHOSEN_COLOR = '#9bdc4f'
-const ALT_COLOR = '#46d39a'
+const CHOSEN_COLOR = SEMANTIC_COLORS.primary
+const ALT_COLOR = SEMANTIC_COLORS.secondary
 const TIER_OPACITY: Record<number, number> = { 1: 1.0, 10: 0.72, 100: 0.5 }
 const TIER_DASH: Record<number, string | undefined> = { 1: undefined, 10: '6 3', 100: '2 3' }
 const BAND_OPACITY = 0.24

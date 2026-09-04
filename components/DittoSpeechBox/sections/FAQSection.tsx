@@ -68,7 +68,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqItems, onBack }) => {
 
     return (
         <VStack spacing={4} align="stretch" w="100%" h="100%" p={3} overflowY="auto">
-            <Text fontSize="md" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary} letterSpacing="0.5px" pb={2} borderBottom="1px solid" borderColor="#9bdc4f20">
+            <Text fontSize="md" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary} letterSpacing="0.5px" pb={2} borderBottom="1px solid" borderColor="color-mix(in srgb, var(--m-primary) 12%, transparent)">
                 Frequently Asked Questions
             </Text>
 
@@ -107,7 +107,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqItems, onBack }) => {
                             </Text>
                             <Icon
                                 as={ChevronDownIcon}
-                                color="#9bdc4f"
+                                color={SEMANTIC_COLORS.primary}
                                 boxSize={5}
                                 transform={openFaqItems.has(item.id) ? 'rotate(180deg)' : 'rotate(0deg)'}
                                 transition="transform 0.3s ease"

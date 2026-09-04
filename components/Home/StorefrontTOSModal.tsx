@@ -1,5 +1,6 @@
 import React from 'react'
 import { Box, Text, VStack, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, ModalHeader } from '@chakra-ui/react'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 interface StorefrontTOSModalProps {
     isOpen: boolean
@@ -14,26 +15,26 @@ export const StorefrontTOSModal = ({ isOpen, onClose, tosContent }: StorefrontTO
         <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
             <ModalOverlay bg="blackAlpha.800" />
             <ModalContent
-                bg="#09090a"
+                bg={SEMANTIC_COLORS.bgPrimary}
                 border="2px solid"
-                borderColor="#9bdc4f"
+                borderColor={SEMANTIC_COLORS.primary}
                 borderRadius="md"
                 minW={{ base: "90%", md: "600px" }}
                 maxW="800px"
                 maxH="70vh"
             >
                 <ModalHeader
-                    color="#9bdc4f"
+                    color={SEMANTIC_COLORS.primary}
                     fontSize={{ base: "xl", md: "2xl" }}
-                    textShadow="0 0 20px #9bdc4f"
+                    textShadow={`0 0 20px ${SEMANTIC_COLORS.primary}`}
                     letterSpacing="wider"
                     borderBottom="1px solid"
-                    borderColor="#9bdc4f50"
+                    borderColor="color-mix(in srgb, var(--m-primary) 31%, transparent)"
                     pb={4}
                 >
                     TERMS OF SERVICE
                 </ModalHeader>
-                <ModalCloseButton color="#8d877b" _hover={{ color: "#46d39a" }} />
+                <ModalCloseButton color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.secondary }} />
                 <ModalBody
                     p={6}
                     overflowY="auto"
@@ -42,14 +43,14 @@ export const StorefrontTOSModal = ({ isOpen, onClose, tosContent }: StorefrontTO
                             width: '8px',
                         },
                         '&::-webkit-scrollbar-track': {
-                            background: '#09090a',
+                            background: SEMANTIC_COLORS.bgPrimary,
                         },
                         '&::-webkit-scrollbar-thumb': {
-                            background: '#9bdc4f',
+                            background: SEMANTIC_COLORS.primary,
                             borderRadius: '4px',
                         },
                         '&::-webkit-scrollbar-thumb:hover': {
-                            background: '#46d39a',
+                            background: SEMANTIC_COLORS.secondary,
                         },
                     }}
                 >
@@ -62,12 +63,12 @@ export const StorefrontTOSModal = ({ isOpen, onClose, tosContent }: StorefrontTO
                                     <React.Fragment key={`h1-${trimmed}`}>
                                         <Text
                                             as="h1"
-                                            color="#9bdc4f"
+                                            color={SEMANTIC_COLORS.primary}
                                             fontSize="1.5em"
                                             fontWeight="bold"
                                             mt={6}
                                             mb={2}
-                                            textShadow="0 0 10px #9bdc4f"
+                                            textShadow={`0 0 10px ${SEMANTIC_COLORS.primary}`}
                                         >
                                             {trimmed.substring(2)}
                                         </Text>
@@ -81,12 +82,12 @@ export const StorefrontTOSModal = ({ isOpen, onClose, tosContent }: StorefrontTO
                                     <React.Fragment key={`h2-${trimmed}`}>
                                         <Text
                                             as="h2"
-                                            color="#46d39a"
+                                            color={SEMANTIC_COLORS.secondary}
                                             fontSize="1.3em"
                                             fontWeight="bold"
                                             mt={5}
                                             mb={2}
-                                            textShadow="0 0 8px #46d39a"
+                                            textShadow={`0 0 8px ${SEMANTIC_COLORS.secondary}`}
                                         >
                                             {trimmed.substring(3)}
                                         </Text>
@@ -103,7 +104,7 @@ export const StorefrontTOSModal = ({ isOpen, onClose, tosContent }: StorefrontTO
                                     <React.Fragment key={index}>
                                         <Box
                                             borderTop="1px solid"
-                                            borderColor="#9bdc4f50"
+                                            borderColor="color-mix(in srgb, var(--m-primary) 31%, transparent)"
                                             my={6}
                                         />
                                         <br />
@@ -118,11 +119,11 @@ export const StorefrontTOSModal = ({ isOpen, onClose, tosContent }: StorefrontTO
                                         <Text
                                             as="li"
                                             ml={6}
-                                            color="#ece6d8"
+                                            color={SEMANTIC_COLORS.textPrimary}
                                         >
                                             {listItem.split(/\*\*(.+?)\*\*/g).map((part, i) =>
                                                 i % 2 === 1 ? (
-                                                    <Text as="span" key={part} color="#46d39a" fontWeight="bold">
+                                                    <Text as="span" key={part} color={SEMANTIC_COLORS.secondary} fontWeight="bold">
                                                         {part}
                                                     </Text>
                                                 ) : (
@@ -150,12 +151,12 @@ export const StorefrontTOSModal = ({ isOpen, onClose, tosContent }: StorefrontTO
                             return (
                                 <React.Fragment key={`p-${trimmed}`}>
                                     <Text
-                                        color="#ece6d8"
+                                        color={SEMANTIC_COLORS.textPrimary}
                                         mb={2}
                                     >
                                         {trimmed.split(/\*\*(.+?)\*\*/g).map((part, i) =>
                                             i % 2 === 1 ? (
-                                                <Text as="span" key={part} color="#46d39a" fontWeight="bold">
+                                                <Text as="span" key={part} color={SEMANTIC_COLORS.secondary} fontWeight="bold">
                                                     {part}
                                                 </Text>
                                             ) : (

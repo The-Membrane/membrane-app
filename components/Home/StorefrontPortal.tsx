@@ -1,4 +1,5 @@
 import { Box, Image } from '@chakra-ui/react'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 interface StorefrontPortalProps {
     scanComplete: boolean
@@ -30,7 +31,7 @@ export const StorefrontPortal = ({ scanComplete, username, onEnter }: Storefront
                         top="-40px"
                         left="50%"
                         transform="translateX(-50%)"
-                        color="#46d39a"
+                        color={SEMANTIC_COLORS.secondary}
                         fontSize="sm"
                         letterSpacing="widest"
                         opacity={0}
@@ -100,14 +101,14 @@ export const StorefrontPortal = ({ scanComplete, username, onEnter }: Storefront
                     overflow="visible"
                     transition="filter 0.3s"
                     _groupHover={username.trim() ? {
-                        filter: 'drop-shadow(0 0 20px #46d39a) drop-shadow(0 0 30px #9bdc4f)',
+                        filter: `drop-shadow(0 0 20px ${SEMANTIC_COLORS.secondary}) drop-shadow(0 0 30px ${SEMANTIC_COLORS.primary})`,
                     } : {}}
                 >
                     <defs>
                         <linearGradient id="hexBorderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#46d39a" />
-                            <stop offset="50%" stopColor="#9bdc4f" />
-                            <stop offset="100%" stopColor="#9bdc4f" />
+                            <stop offset="0%" stopColor={SEMANTIC_COLORS.secondary} />
+                            <stop offset="50%" stopColor={SEMANTIC_COLORS.primary} />
+                            <stop offset="100%" stopColor={SEMANTIC_COLORS.primary} />
                         </linearGradient>
                     </defs>
                     <polygon

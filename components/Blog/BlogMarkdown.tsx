@@ -45,7 +45,7 @@ export const renderInline = (line: string): React.ReactNode[] =>
           fontFamily="mono"
           fontSize="0.9em"
           color={SEMANTIC_COLORS.secondary}
-          bg="rgba(236, 230, 216, 0.06)"
+          bg="color-mix(in srgb, var(--m-text-primary) 6%, transparent)"
         >
           {part.slice(1, -1)}
         </Text>

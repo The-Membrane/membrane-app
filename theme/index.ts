@@ -37,11 +37,22 @@ const global = {
     boxSizing: 'border-box',
   },
   'html, body': {
-    bg: configColors.globalBG, // Living Typeface page bg #09090a
-    color: configColors.global, // bone ink #ece6d8
-    width: '100vw',
-    height: '100vh',
-    overflowX: 'hidden',
+    bg: configColors.globalBG, // Living Typeface page bg var(--m-bg-primary)
+    color: configColors.global, // bone ink var(--m-text-primary)
+    // NOT width:100vw — the viewport unit includes the scrollbar gutter, so it
+    // overflows horizontally by the scrollbar width, which is what the old
+    // overflow-x:hidden was papering over.
+    width: '100%',
+    // NOT height:100vh — a fixed-height body plus a hidden axis makes <body> the
+    // scroll container instead of the document, which silently breaks
+    // window.scrollTo, Next's scroll restoration, window scroll listeners
+    // (components/NeutronHome/pipes/PipesCanvas.tsx) and mobile URL-bar collapse.
+    minHeight: '100vh',
+    // dvh tracks the dynamic viewport so the collapsing mobile URL bar does not
+    // leave a gap; the vh above remains the fallback.
+    '@supports (min-height: 100dvh)': {
+      minHeight: '100dvh',
+    },
   },
   // Make media responsive assets scale correctly
   'img, video': {
@@ -55,11 +66,11 @@ const global = {
   // Custom scrollbar behavior
   'html': {
     scrollbarWidth: 'thin',
-    scrollbarColor: 'rgba(236, 230, 216, 0.22) transparent',
+    scrollbarColor: 'var(--m-border-strong) transparent',
   },
   'body': {
     scrollbarWidth: 'thin',
-    scrollbarColor: 'rgba(236, 230, 216, 0.22) transparent',
+    scrollbarColor: 'var(--m-border-strong) transparent',
   },
   // Webkit scrollbar styles
   '::-webkit-scrollbar': {
@@ -70,11 +81,11 @@ const global = {
     background: 'transparent',
   },
   '::-webkit-scrollbar-thumb': {
-    background: 'rgba(236, 230, 216, 0.22)',
+    background: 'var(--m-border-strong)',
     borderRadius: '0px', // sharp
   },
   '::-webkit-scrollbar-thumb:hover': {
-    background: 'rgba(236, 230, 216, 0.35)',
+    background: 'color-mix(in srgb, var(--m-text-primary) 35%, transparent)',
   },
   '::-webkit-scrollbar-corner': {
     background: 'transparent',

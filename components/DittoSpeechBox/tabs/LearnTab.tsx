@@ -256,7 +256,7 @@ export const LearnTab: React.FC = () => {
                                     p={3}
                                     pt={0}
                                     borderTop="1px solid"
-                                    borderColor="#9bdc4f20"
+                                    borderColor="color-mix(in srgb, var(--m-primary) 12%, transparent)"
                                 >
                                     <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary} lineHeight="1.6">
                                         {item.answer}

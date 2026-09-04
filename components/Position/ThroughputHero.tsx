@@ -136,7 +136,7 @@ const VenueRow: React.FC<{ v: Venue }> = ({ v }) => {
         <Box as="span" className="vn" transition={TRANSITIONS.colors}>
           {v.nm}
         </Box>
-        <Box as="span" position="relative" w="76px" h="5px" alignSelf="center" bg="rgba(236,230,216,0.07)" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
+        <Box as="span" position="relative" w="76px" h="5px" alignSelf="center" bg="color-mix(in srgb, var(--m-text-primary) 7%, transparent)" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
           <Box as="span" position="absolute" left={0} top={0} bottom={0} w={v.share} bg={CLASS_COLOR[v.cls]} />
         </Box>
         <Box as="span" fontSize="10.5px" color={SEMANTIC_COLORS.textSecondary}>

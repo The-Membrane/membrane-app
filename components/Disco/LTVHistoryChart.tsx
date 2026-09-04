@@ -5,6 +5,7 @@ import { lazyChart } from '@/components/ui/lazyChart'
 import { useDailyDeposits } from '@/hooks/useDiscoData'
 import { mockDailyDeposits } from './mockData'
 import { shiftDigits } from '@/helpers/math'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 // Color constants
 const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
@@ -97,7 +98,7 @@ const DepositHistoryChart = lazyChart<{ chartData: any[]; yMax: number }>(
                         <Line
                             type="monotone"
                             dataKey="deposits"
-                            stroke="#46d39a"
+                            stroke={SEMANTIC_COLORS.secondary}
                             strokeWidth={2}
                             name="Deposits"
                             dot={false}
@@ -115,8 +116,8 @@ const DepositHistoryChart = lazyChart<{ chartData: any[]; yMax: number }>(
                                 <Area
                                     type="monotone"
                                     dataKey="deposits"
-                                    stroke="#46d39a"
-                                    fill="#46d39a"
+                                    stroke={SEMANTIC_COLORS.secondary}
+                                    fill={SEMANTIC_COLORS.secondary}
                                     fillOpacity={0.2}
                                     strokeWidth={1}
                                 />

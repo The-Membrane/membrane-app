@@ -4,9 +4,11 @@ import { useRouter } from 'next/router'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import ChainLayout from '@/components/ChainLayout'
 import { Wifi } from 'lucide-react'
-import { levels, Level } from '@/components/Home/CyberpunkHome'
+import { levels, Level } from '@/components/Home/CyberpunkLevelsData'
 import { ControlPanel } from '@/components/Elevator/ControlPanel'
 import { LevelSelectionCard } from '@/components/Elevator/LevelSelectionCard'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
 
 export default function LevelsPage() {
     const router = useRouter()
@@ -30,7 +32,7 @@ export default function LevelsPage() {
             <Box
                 position="relative"
                 minH="100vh"
-                bg="#0A0A0A"
+                bg={SEMANTIC_COLORS.bgPrimary}
                 overflow="hidden"
                 display="flex"
                 justifyContent="center"
@@ -54,21 +56,21 @@ export default function LevelsPage() {
                                 <polygon
                                     points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
                                     fill="none"
-                                    stroke="#6943FF"
+                                    stroke="color-mix(in srgb, var(--m-text-primary) 5%, transparent)"
                                     strokeWidth="1"
                                 />
                                 {/* Right hexagon (offset down) */}
                                 <polygon
                                     points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
                                     fill="none"
-                                    stroke="#6943FF"
+                                    stroke="color-mix(in srgb, var(--m-text-primary) 5%, transparent)"
                                     strokeWidth="1"
                                 />
                                 {/* Top-right continuation for seamless tiling */}
                                 <polygon
                                     points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
                                     fill="none"
-                                    stroke="#6943FF"
+                                    stroke="color-mix(in srgb, var(--m-text-primary) 5%, transparent)"
                                     strokeWidth="1"
                                 />
                             </pattern>
@@ -92,18 +94,18 @@ export default function LevelsPage() {
                     {/* Header */}
                     <VStack mb={8} spacing={4}>
                         <Text
-                            fontSize={{ base: '2xl', md: '4xl', lg: '6xl' }}
-                            fontFamily="mono"
-                            color="#3BE5E5"
-                            textShadow="0 0 20px #3BE5E5, 0 0 40px #3BE5E5"
-                            letterSpacing="wider"
+                            as="h1"
+                            fontSize={TYPOGRAPHY.h1}
+                            fontWeight={TYPOGRAPHY.bold}
+                            fontFamily={TYPOGRAPHY.fontDisplay}
+                            color={SEMANTIC_COLORS.textPrimary}
                             textAlign="center"
                         >
-                            ELEVATOR ACCESS
+                            Elevator Access
                         </Text>
-                        <HStack spacing={2} color="#8A8A8A">
+                        <HStack spacing={2} color={SEMANTIC_COLORS.textSecondary}>
                             <Icon as={Wifi} w={4} h={4} animation="pulse 2s infinite" />
-                            <Text letterSpacing="widest" fontSize="sm">NEURAL LINK STABLE</Text>
+                            <Text fontSize="sm">Neural link stable</Text>
                         </HStack>
                     </VStack>
 

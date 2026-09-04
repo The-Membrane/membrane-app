@@ -75,7 +75,7 @@ function cellPxFor(size: number): number {
 function tileColor(tile: string): string {
   switch (tile) {
     case 'W':
-      return 'rgba(236, 230, 216, 0.06)' // bone hairline structure
+      return 'color-mix(in srgb, var(--m-text-primary) 6%, transparent)' // bone hairline structure
     case 'F':
       return SEMANTIC_COLORS.primary // phosphor finish
     case 'S':
@@ -432,7 +432,7 @@ const OffchainMazeRun: React.FC<{ onCreatePet?: () => void }> = ({ onCreatePet }
                         position="relative"
                         borderRight="1px solid"
                         borderBottom="1px solid"
-                        borderColor="rgba(236, 230, 216, 0.04)"
+                        borderColor="color-mix(in srgb, var(--m-text-primary) 4%, transparent)"
                       >
                         {isPlayer && (
                           <Box

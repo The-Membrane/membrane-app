@@ -16,6 +16,20 @@ import { TINTS, tabular } from './styles'
 import { byId, pct, usd } from './utils'
 import { Calc, Intent } from './types'
 
+// Belt hairline = bone at 0.16 (live) / 0.07 (idle). Canvas can't read var()/color-mix(),
+// so resolve the token and compose rgba in JS. Called inside the rAF draw loop, so it
+// self-heals on a theme flip (resolveColor's cache clears on membrane-theme-change).
+const beltStroke = (live: boolean): string => {
+  const c = resolveColor(SEMANTIC_COLORS.textPrimary)
+  const a = live ? 0.16 : 0.07
+  if (c.startsWith('rgb')) {
+    const [r, g, b] = c.match(/[\d.]+/g) || []
+    return `rgba(${r},${g},${b},${a})`
+  }
+  const h = c.replace('#', '')
+  return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${a})`
+}
+
 const NODES: Record<string, { x: number; y: number }> = {
   btc: { x: 0.1, y: 0.5 },
   cdp: { x: 0.3, y: 0.5 },
@@ -136,7 +150,7 @@ export const FactoryFloor: React.FC<FactoryFloorProps> = ({ slots, intent, calc,
         ctx.beginPath()
         ctx.moveTo(p.a.x, p.a.y)
         ctx.quadraticCurveTo(p.c.x, p.c.y, p.b.x, p.b.y)
-        ctx.strokeStyle = live ? TINTS.boneBeltLive : TINTS.boneBeltIdle
+        ctx.strokeStyle = beltStroke(live)
         ctx.lineWidth = 1
         ctx.setLineDash([3, 5])
         ctx.stroke()

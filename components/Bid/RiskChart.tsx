@@ -88,7 +88,7 @@ const CustomTick = ({
         y={0}
         dy={11}
         textAnchor="middle"
-        fill={isSelected ? SEMANTIC_COLORS.success : isSpecialTick ? SEMANTIC_COLORS.primary : '#ece6d8'}
+        fill={isSelected ? SEMANTIC_COLORS.success : isSpecialTick ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.textPrimary}
         fontSize={16}
         onClick={() => { onClick(payload.value) }}
         cursor="pointer"
@@ -121,18 +121,18 @@ const BidRiskChart = lazyChart<{
           >
             <defs>
               <linearGradient id="colorTVL" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#46d39a" />
-                <stop offset="100%" stopColor="#46d39a" />
+                <stop offset="0%" stopColor={SEMANTIC_COLORS.secondary} />
+                <stop offset="100%" stopColor={SEMANTIC_COLORS.secondary} />
               </linearGradient>
 
               <linearGradient id="goldTVL" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#fbbf24" />
-                <stop offset="100%" stopColor="#46d39a" />
+                <stop offset="100%" stopColor={SEMANTIC_COLORS.secondary} />
               </linearGradient>
 
               <linearGradient id="userTVL" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#fbbf24" />
-                <stop offset="100%" stopColor="#9bdc4f" />
+                <stop offset="100%" stopColor={SEMANTIC_COLORS.primary} />
               </linearGradient>
             </defs>
 
@@ -163,7 +163,7 @@ const BidRiskChart = lazyChart<{
                 <CustomTick x={x} y={y} payload={payload} bidState={bidState} onClick={onPremiumChange} />
               )}
               tickMargin={10}
-              axisLine={{ stroke: '#ece6d8' }}
+              axisLine={{ stroke: SEMANTIC_COLORS.textPrimary }}
               tickLine={false}
               height={50}
               label={{

@@ -70,7 +70,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
         <Box
             position="relative"
             minH="100vh"
-            bg="#09090a"
+            bg={SEMANTIC_COLORS.bgPrimary}
             overflow="hidden"
             display="flex"
             flexDirection="column"
@@ -98,21 +98,21 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                             <polygon
                                 points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
                                 fill="none"
-                                stroke="#9bdc4f"
+                                stroke={SEMANTIC_COLORS.primary}
                                 strokeWidth="1"
                             />
                             {/* Right hexagon (offset down) */}
                             <polygon
                                 points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
                                 fill="none"
-                                stroke="#9bdc4f"
+                                stroke={SEMANTIC_COLORS.primary}
                                 strokeWidth="1"
                             />
                             {/* Top-right continuation for seamless tiling */}
                             <polygon
                                 points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
                                 fill="none"
-                                stroke="#9bdc4f"
+                                stroke={SEMANTIC_COLORS.primary}
                                 strokeWidth="1"
                             />
                         </pattern>
@@ -179,7 +179,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                 <VStack spacing={4} position="relative" zIndex={2} mb={24}>
                     <Text
                         fontSize={{ base: "xs", md: "sm" }}
-                        color="#8d877b"
+                        color={SEMANTIC_COLORS.textSecondary}
                         fontStyle="italic"
                         textAlign="end"
                     >
@@ -190,23 +190,23 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                             // placeholder="Enter username to step within"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            bg="#09090a"
+                            bg={SEMANTIC_COLORS.bgPrimary}
                             border="2px solid"
-                            borderColor="#46d39a50"
-                            color="#ece6d8"
+                            borderColor="color-mix(in srgb, var(--m-secondary) 31%, transparent)"
+                            color={SEMANTIC_COLORS.textPrimary}
                             borderRadius="md"
                             px={4}
                             py={3}
                             _hover={{
-                                borderColor: '#46d39a',
+                                borderColor: SEMANTIC_COLORS.secondary,
                             }}
                             _focus={{
-                                borderColor: '#46d39a',
-                                boxShadow: '0 0 10px #46d39a',
+                                borderColor: SEMANTIC_COLORS.secondary,
+                                boxShadow: `0 0 10px ${SEMANTIC_COLORS.secondary}`,
                                 outline: 'none',
                             }}
                             _placeholder={{
-                                color: '#8d877b',
+                                color: SEMANTIC_COLORS.textSecondary,
                                 letterSpacing: 'widest',
                                 fontSize: 'sm',
                                 textAlign: 'center',
@@ -228,7 +228,7 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
                     top={0}
                     w="75px"
                     h="3px"
-                    bg="#46d39a"
+                    bg={SEMANTIC_COLORS.secondary}
                     pointerEvents="none"
                     zIndex={4}
                     willChange="transform"
@@ -271,10 +271,10 @@ const StorefrontView = ({ onEnter }: { onEnter: (username: string) => void }) =>
 
             {/* Ambient Info */}
             <Box position="absolute" bottom={8} right={8} textAlign="right" zIndex={2}>
-                <Text color="#8d877b" fontSize="xs" letterSpacing="widest">
+                <Text color={SEMANTIC_COLORS.textSecondary} fontSize="xs" letterSpacing="widest">
                     OPEN 24/7
                 </Text>
-                <Text color="#46d39a" fontSize="xs" letterSpacing="widest">
+                <Text color={SEMANTIC_COLORS.secondary} fontSize="xs" letterSpacing="widest">
                     NEURAL_DISTRICT_07
                 </Text>
             </Box>
@@ -310,7 +310,7 @@ const LevelsView = ({
         <Box
             position="relative"
             minH="100vh"
-            bg="#09090a"
+            bg={SEMANTIC_COLORS.bgPrimary}
             overflow="hidden"
             display="flex"
             flexDirection="column"
@@ -336,21 +336,21 @@ const LevelsView = ({
                             <polygon
                                 points="34.64,10 51.96,20 51.96,40 34.64,50 17.32,40 17.32,20"
                                 fill="none"
-                                stroke="#9bdc4f"
+                                stroke={SEMANTIC_COLORS.primary}
                                 strokeWidth="1"
                             />
                             {/* Right hexagon (offset down) */}
                             <polygon
                                 points="86.6,40 103.92,50 103.92,70 86.6,80 69.28,70 69.28,50"
                                 fill="none"
-                                stroke="#9bdc4f"
+                                stroke={SEMANTIC_COLORS.primary}
                                 strokeWidth="1"
                             />
                             {/* Top-right continuation for seamless tiling */}
                             <polygon
                                 points="86.6,-20 103.92,-10 103.92,10 86.6,20 69.28,10 69.28,-10"
                                 fill="none"
-                                stroke="#9bdc4f"
+                                stroke={SEMANTIC_COLORS.primary}
                                 strokeWidth="1"
                             />
                         </pattern>
@@ -373,7 +373,7 @@ const LevelsView = ({
                     >
                         Elevator Access
                     </Text>
-                    <HStack spacing={2} color="#8d877b">
+                    <HStack spacing={2} color={SEMANTIC_COLORS.textSecondary}>
                         <Icon as={Wifi} w={4} h={4} animation="pulse 2s infinite" />
                         <Text letterSpacing="widest" fontSize="sm">NEURAL LINK STABLE</Text>
                     </HStack>
@@ -405,12 +405,12 @@ const LevelsView = ({
                         px={8}
                         py={3}
                         border="2px solid"
-                        borderColor="#8d877b"
-                        color="#8d877b"
+                        borderColor={SEMANTIC_COLORS.textSecondary}
+                        color={SEMANTIC_COLORS.textSecondary}
                         bg="transparent"
                         _hover={{
-                            borderColor: '#ece6d8',
-                            color: '#ece6d8',
+                            borderColor: SEMANTIC_COLORS.textPrimary,
+                            color: SEMANTIC_COLORS.textPrimary,
                         }}
                         transition="all 0.3s"
                         letterSpacing="wider"
@@ -423,12 +423,12 @@ const LevelsView = ({
                         px={8}
                         py={3}
                         border="2px solid"
-                        borderColor="#9bdc4f"
-                        color="#ece6d8"
+                        borderColor={SEMANTIC_COLORS.primary}
+                        color={SEMANTIC_COLORS.textPrimary}
                         bg="transparent"
                         _hover={{
-                            bg: '#9bdc4f20',
-                            boxShadow: '0 0 20px #9bdc4f',
+                            bg: 'color-mix(in srgb, var(--m-primary) 13%, transparent)',
+                            boxShadow: `0 0 20px ${SEMANTIC_COLORS.primary}`,
                         }}
                         transition="all 0.3s"
                         letterSpacing="wider"

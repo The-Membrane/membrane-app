@@ -32,7 +32,7 @@ const RouteRow: React.FC<{ r: Route }> = ({ r }) => {
       <Text gridArea="pos" display={{ base: 'none', md: 'block' }} fontFamily={TYPOGRAPHY.fontMono} textAlign="right" color={SEMANTIC_COLORS.textTertiary} sx={{ fontVariantNumeric: 'tabular-nums' }}>
         {r.pos}
       </Text>
-      <Box gridArea="bar" position="relative" h="8px" bg="rgba(236,230,216,0.05)">
+      <Box gridArea="bar" position="relative" h="8px" bg="color-mix(in srgb, var(--m-text-primary) 5%, transparent)">
         <Box position="absolute" top="-2px" bottom="-2px" left={`${bar.zero}%`} w="1px" bg={SEMANTIC_COLORS.borderStrong} />
         <Box position="absolute" top={0} bottom={0} left={`${bar.left}%`} w={`${bar.fillPct}%`} bg={col} />
       </Box>

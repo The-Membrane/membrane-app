@@ -34,7 +34,7 @@ export const UpdatesHeader: React.FC<UpdatesHeaderProps> = ({ unreadCount, markA
                     color={SEMANTIC_COLORS.textSecondary}
                     leftIcon={<Icon as={Check} w={3} h={3} />}
                     onClick={markAllAsRead}
-                    _hover={{ color: SEMANTIC_COLORS.textPrimary, bg: '#9bdc4f20' }}
+                    _hover={{ color: SEMANTIC_COLORS.textPrimary, bg: 'color-mix(in srgb, var(--m-primary) 12%, transparent)' }}
                 >
                     Mark all read
                 </Button>

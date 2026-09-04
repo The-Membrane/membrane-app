@@ -2,7 +2,7 @@ import React from 'react'
 import { Box } from '@chakra-ui/react'
 
 // Atmosphere layer — subtle bone hairline, not an accent color.
-const HEX_STROKE = 'rgba(236, 230, 216, 0.08)'
+const HEX_STROKE = 'var(--m-border-faint)'
 
 /* ── Hexagonal Background Grid ── */
 export const HexBackground: React.FC = () => (

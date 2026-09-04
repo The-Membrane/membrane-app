@@ -1,22 +1,23 @@
-// Shared text/style fragments for the Builder feature. Alpha tints below are
-// derived from SEMANTIC_COLORS hexes (phosphor/gold/blood/bone) — the proto used
-// the same rgba values; kept here so no raw color leaks into components.
+// Shared text/style fragments for the Builder feature. The alpha tints below are
+// theme-following: color-mix() over the semantic vars, so they invert on Parchment.
+// These are all DOM-consumed (Chakra bg/border/backgroundImage), where CSS resolves
+// var()/color-mix() natively. The former canvas-only belt strokes (boneBeltLive/Idle)
+// moved to FactoryFloor's paint site, which must compose rgba in JS (canvas cannot
+// parse var()/color-mix()).
 
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TYPOGRAPHY } from '@/helpers/typography'
 
 export const TINTS = {
-  phosFaint: 'rgba(155, 220, 79, 0.07)', // slot drop-target wash
-  phosBorder: 'rgba(155, 220, 79, 0.45)', // live machine border
-  phosRow: 'rgba(155, 220, 79, 0.06)', // "you" leaderboard row
-  goldBorder: 'rgba(216, 178, 74, 0.5)', // practice chip border
-  bloodBand: 'rgba(207, 64, 52, 0.20)', // LTV band between cap and line
-  boneDots: 'rgba(236, 230, 216, 0.055)', // factory-floor dot grid
-  boneBar: 'rgba(236, 230, 216, 0.06)', // gauge track
-  boneBeltLive: 'rgba(236, 230, 216, 0.16)',
-  boneBeltIdle: 'rgba(236, 230, 216, 0.07)',
-  sunk: '#070708', // proto --sunk; one step below bgPrimary
-  overlay: 'rgba(7, 7, 8, 0.78)',
+  phosFaint: 'color-mix(in srgb, var(--m-primary) 7%, transparent)', // slot drop-target wash
+  phosBorder: 'color-mix(in srgb, var(--m-primary) 45%, transparent)', // live machine border
+  phosRow: 'color-mix(in srgb, var(--m-primary) 6%, transparent)', // "you" leaderboard row
+  goldBorder: 'color-mix(in srgb, var(--m-warning) 50%, transparent)', // practice chip border
+  bloodBand: 'color-mix(in srgb, var(--m-danger) 20%, transparent)', // LTV band between cap and line
+  boneDots: 'color-mix(in srgb, var(--m-text-primary) 5.5%, transparent)', // factory-floor dot grid
+  boneBar: 'color-mix(in srgb, var(--m-text-primary) 6%, transparent)', // gauge track
+  sunk: 'var(--m-bg-primary)', // proto --sunk (a hair below bgPrimary); no darker token exists, nearest is bg-primary
+  overlay: 'var(--m-overlay)', // modal scrim
 } as const
 
 /** Mono uppercase eyebrow, 9.5–11px tier. */

@@ -6,6 +6,7 @@ import { useDailyTVL } from '@/hooks/useDiscoData'
 import { shiftDigits } from '@/helpers/math'
 import { mockDailyTVL } from './mockData'
 import { LTVHistoryChart } from './LTVHistoryChart'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 // Color constants
 const PRIMARY_PURPLE = 'rgb(155, 220, 79)'
@@ -101,7 +102,7 @@ const GlobalTVLChart = lazyChart<{ tvlChartData: any[] }>(
                             }}
                             labelFormatter={(label) => label}
                         />
-                        <Line type="monotone" dataKey="tvl" stroke="#46d39a" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="tvl" stroke={SEMANTIC_COLORS.secondary} strokeWidth={2} dot={false} />
                         <Brush
                             dataKey="date"
                             height={40}
@@ -114,8 +115,8 @@ const GlobalTVLChart = lazyChart<{ tvlChartData: any[] }>(
                                 <Area
                                     type="monotone"
                                     dataKey="tvl"
-                                    stroke="#46d39a"
-                                    fill="#46d39a"
+                                    stroke={SEMANTIC_COLORS.secondary}
+                                    fill={SEMANTIC_COLORS.secondary}
                                     fillOpacity={0.2}
                                     strokeWidth={1}
                                 />

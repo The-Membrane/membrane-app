@@ -19,7 +19,7 @@
  */
 
 // Color constants — Living Typeface palette (bone on near-black, phosphor accent).
-const GRID_COLOR = 'rgba(236, 230, 216, 0.08)' // faint bone grid (bespoke opacity, not in the shared hairline set — left as literal)
+const GRID_COLOR = 'var(--m-border-faint)' // faint bone grid
 const AXIS_COLOR = 'var(--m-text-primary)'      // bone ink
 const TOOLTIP_BG = 'var(--m-bg-secondary)'      // card surface
 const TOOLTIP_BORDER = 'var(--m-border-strong)' // strong hairline

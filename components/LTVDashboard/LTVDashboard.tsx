@@ -69,7 +69,7 @@ const getDirectionBg = (dir: Direction): string => {
   switch (dir) {
     case 'increasing': return 'rgba(70, 211, 154, 0.12)'  // info teal wash
     case 'decreasing': return 'rgba(207, 64, 52, 0.12)'   // danger wash
-    case 'stable': return 'rgba(236, 230, 216, 0.05)'     // bone hairline wash
+    case 'stable': return 'color-mix(in srgb, var(--m-text-primary) 5%, transparent)'     // bone hairline wash
   }
 }
 
@@ -154,18 +154,18 @@ const LTVLineChart = lazyChart<{ chartData: MockLTVData['historicalSnapshots']; 
       return (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(236,230,216,0.08)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--m-border-faint)" />
             <XAxis
               dataKey="timestamp"
               tickFormatter={(ts: number) => new Date(ts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-              tick={{ fill: 'rgba(236,230,216,0.4)', fontSize: 10 }}
+              tick={{ fill: 'color-mix(in srgb, var(--m-text-primary) 40%, transparent)', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
               minTickGap={50}
             />
             <YAxis
               domain={[(dataMin: number) => Math.floor(dataMin - 3), (dataMax: number) => Math.ceil(dataMax + 5)]}
-              tick={{ fill: 'rgba(236,230,216,0.4)', fontSize: 10 }}
+              tick={{ fill: 'color-mix(in srgb, var(--m-text-primary) 40%, transparent)', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) => `${v.toFixed(0)}%`}

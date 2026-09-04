@@ -1,4 +1,5 @@
 import { Asset, CAsset, Rate, SupplyCap } from '@/contracts/generated/positions/Positions.types'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
 
 // Price history data from CoinGecko
 export interface PriceHistoryData {
@@ -129,8 +130,8 @@ export const DENOM_TO_COINGECKO: Record<string, string> = {
 
 // Chart colors for hypothetical lines
 export const ASSET_COLORS = [
-  '#46d39a', // cyber teal
-  '#9bdc4f', // phosphor
+  SEMANTIC_COLORS.secondary, // cyber teal
+  SEMANTIC_COLORS.primary, // phosphor
   '#34d399', // green
   '#fb923c', // orange
   '#f472b6', // pink

@@ -7,6 +7,8 @@
  * (components/Builder/hooks/useBuilderEngine.ts drawResultCard).
  */
 
+import { resolveColor } from '@/helpers/resolveToken'
+
 import type { Comparison } from './types'
 
 // ------------------------------------------------------------------ url state
@@ -65,15 +67,23 @@ export function shareUrl(state: SimUrlState): string {
 
 // ----------------------------------------------------------------- share card
 
-const BONE = '#ece6d8'
-const DIM = '#8d877b'
-const FAINT = '#56524a'
-const PHOS = '#9bdc4f'
-const BLOOD = '#cf4034'
-const PAGE = '#09090a'
-const HAIRLINE = 'rgba(236,230,216,0.10)'
 const MONO = "'JetBrains Mono',Menlo,Consolas,monospace"
 const SERIF = "'Redaction',Georgia,serif"
+
+/**
+ * rgba() composed from a resolved token. Canvas 2D cannot parse var() or
+ * color-mix(), so for bone-alpha values we resolve the base var and apply the
+ * alpha in JS.
+ */
+const rgbaFrom = (token: string, a: number): string => {
+  const c = resolveColor(token)
+  if (c.startsWith('rgb')) {
+    const [r, g, b] = c.match(/[\d.]+/g) || []
+    return `rgba(${r},${g},${b},${a})`
+  }
+  const h = c.replace('#', '')
+  return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${a})`
+}
 
 const usd = (n: number) => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US')
 
@@ -88,6 +98,17 @@ export function drawShareCard(cmp: Comparison, isDemo: boolean): string | null {
   cv.height = H
   const g = cv.getContext('2d')
   if (!g) return null
+
+  // Resolve at paint time so the card follows the active theme. This generator
+  // only runs in-browser (guarded above), so resolveColor never hits its SSR path.
+  const BONE = resolveColor('var(--m-text-primary)')
+  const DIM = resolveColor('var(--m-text-secondary)')
+  const FAINT = resolveColor('var(--m-text-tertiary)')
+  const PHOS = resolveColor('var(--m-primary)')
+  const BLOOD = resolveColor('var(--m-danger)')
+  const GOLD = resolveColor('var(--m-warning)')
+  const PAGE = resolveColor('var(--m-bg-primary)')
+  const HAIRLINE = rgbaFrom('var(--m-text-primary)', 0.1)
 
   g.fillStyle = PAGE
   g.fillRect(0, 0, W, H)
@@ -104,7 +125,7 @@ export function drawShareCard(cmp: Comparison, isDemo: boolean): string | null {
   g.font = `24px ${MONO}`
   g.fillStyle = DIM
   g.fillText('MEMBRANE · POSITION SIMULATOR', M, 168)
-  g.fillStyle = isDemo ? '#d8b24a' : BONE
+  g.fillStyle = isDemo ? GOLD : BONE
   g.fillText(isDemo ? 'WORKED EXAMPLE · NOT A REAL WALLET' : cmp.position.label.toUpperCase(), M, 212)
   try {
     g.letterSpacing = '0px'

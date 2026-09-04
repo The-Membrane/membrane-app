@@ -1,3 +1,5 @@
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+
 // Colour constants shared across DiscoPage sections.
 
 /**
@@ -18,4 +20,4 @@ export const PHOSPHOR = 'rgb(155, 220, 79)'
 /** @deprecated Misnomer from the pre-Living-Typeface palette — this value is phosphor, not purple. Use PHOSPHOR. */
 export const PRIMARY_PURPLE = PHOSPHOR
 
-export const DARK_BG = '#09090a'
+export const DARK_BG = SEMANTIC_COLORS.bgPrimary

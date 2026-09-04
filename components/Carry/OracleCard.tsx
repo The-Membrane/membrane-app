@@ -6,6 +6,7 @@ import { resolveColor } from '@/helpers/resolveToken'
 import { SPACING } from '@/config/spacing'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { useThemeMode } from '@/hooks/useThemeMode'
 
 import { ORACLE, ORACLE_PROV } from './fixtures'
 import { OraclePtMode } from './types'
@@ -39,10 +40,18 @@ const MODE_CAPTION: Record<OraclePtMode, string> = {
   depeg: 'underlying cut 3% at day 90: proportional, ends at $0.97',
 }
 
-// Bone tints for the grid/reference strokes (derived from #ece6d8) + the
-// knock-out chip background (near-black). Canvas colours mirror the tokens.
-const BONE_35 = 'rgba(236,230,216,0.35)'
-const BONE_55 = 'rgba(236,230,216,0.55)'
+// Bone stroke at a given alpha for the grid/reference lines. Canvas can't parse
+// var()/color-mix(), so resolve the base var and compose rgba in JS — the strokes
+// then follow the active theme (repaint is driven by the themeMode effect dep below).
+const boneAlpha = (a: number): string => {
+  const c = resolveColor(SEMANTIC_COLORS.textPrimary)
+  if (c.startsWith('rgb')) {
+    const [r, g, b] = c.match(/[\d.]+/g) || []
+    return `rgba(${r},${g},${b},${a})`
+  }
+  const h = c.replace('#', '')
+  return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${a})`
+}
 const KNOCKOUT = SEMANTIC_COLORS.bgPrimary
 const DIM = SEMANTIC_COLORS.textSecondary
 const FAINT = SEMANTIC_COLORS.textTertiary
@@ -69,7 +78,7 @@ function drawPtChart(cv: HTMLCanvasElement, mode: OraclePtMode) {
   x.font = '9px ui-monospace,monospace'
 
   // $1.00 par reference line.
-  x.strokeStyle = BONE_35
+  x.strokeStyle = boneAlpha(0.35)
   x.setLineDash([3, 4])
   x.beginPath()
   x.moveTo(P, Y(1))
@@ -78,7 +87,7 @@ function drawPtChart(cv: HTMLCanvasElement, mode: OraclePtMode) {
   x.setLineDash([])
 
   // Fixed 6%/yr discount curve (the oracle's ceiling).
-  x.strokeStyle = BONE_55
+  x.strokeStyle = boneAlpha(0.55)
   x.setLineDash([4, 4])
   x.beginPath()
   for (let d = 0; d <= T; d++) {
@@ -133,9 +142,11 @@ function drawPtChart(cv: HTMLCanvasElement, mode: OraclePtMode) {
 
 const PtChart: React.FC<{ mode: OraclePtMode }> = ({ mode }) => {
   const ref = useRef<HTMLCanvasElement>(null)
+  // Single paint per change (not a rAF loop), so it must repaint on a theme flip.
+  const { mode: themeMode } = useThemeMode()
   useEffect(() => {
     if (ref.current) drawPtChart(ref.current, mode)
-  }, [mode])
+  }, [mode, themeMode])
   return (
     <Box position="relative" h="200px" bg={SEMANTIC_COLORS.bgPrimary} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} mt={SPACING.md} mb={SPACING.sm}>
       <Box as="canvas" ref={ref as never} position="absolute" inset={0} w="100%" h="100%" />

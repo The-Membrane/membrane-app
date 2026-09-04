@@ -25,6 +25,9 @@ const navItems = [
     // Wallet-free personal BTC/LTV calculator (Landing page) — was orphaned from
     // both nav and sitemap despite being the strongest no-commitment decision tool.
     { label: 'Calculator', href: '/landing' },
+    // Wallet-free carry-trader decision tool: paste any address, stress its
+    // positions against our recorded venue capacity + flow corpus.
+    { label: 'Radar', href: '/radar' },
     { label: 'Home', href: '/home' },
     { label: 'Builder', href: '/builder' },
     { label: 'Defend', href: '/defend' },

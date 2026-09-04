@@ -5,6 +5,7 @@ import useToaster from './useToaster'
 import type { EvmCall, EvmFeeEstimate } from '@/services/chain/types'
 import { runEvmCalls, TxRevertedError } from '@/services/chain/txRunner'
 import type { TxResult } from '@/services/chain/txRunner'
+import { getAtomicStatus } from '@/services/chain/atomicBatch'
 
 /**
  * Sign + broadcast — EVM internals behind the same hook shape (was cosmos-kit
@@ -56,7 +57,15 @@ const useTransaction = ({ msgs, onSuccess, fee, shrinkMessage, suppressToaster =
 
       setIsApproved(false)
 
-      const finalMsgs = prepareMsgs ? await prepareMsgs(msgs) : msgs
+      // Ladder order: an atomic 5792 batch keeps the plain exact-approve calls
+      // (one confirmation, nothing dangling), so permit embedding only pays off
+      // when the batch will run on the sequential floor. Detection is cached.
+      const atomicStatus =
+        msgs.length > 1 && typeof (walletClient as any).sendCalls === 'function'
+          ? await getAtomicStatus(walletClient, walletClient.chain?.id)
+          : 'unsupported'
+      const finalMsgs =
+        atomicStatus === 'unsupported' && prepareMsgs ? await prepareMsgs(msgs) : msgs
       if (!finalMsgs.length) throw new Error('Missing transaction parameters')
 
       return runEvmCalls({

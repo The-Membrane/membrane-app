@@ -1,14 +1,23 @@
 # Light Mode ("Parchment") — CSS Variable Migration Scope
 
-**Status:** Phases 0+1 SHIPPED 2026-09-04 (commit 66df17e9) plus the HorizontalNav
-literal-hex swap from Phase 3. Dark stays the default theme; the nav toggle follows
-the user's system preference. Light-mode text scale is espresso (user-approved):
-textPrimary #43331f / #6b5942 / #94836a, espresso hairlines. IMPLEMENTATION NOTE:
-the theme attribute is `data-membrane-theme` (namespaced) — Chakra's
-ColorModeProvider re-stamps plain `[data-theme]` on hydration and clobbers it.
-Phases 2-3 remain: duplicate palettes (typography TEXT_STYLES, transitions.ts,
-theme/*, chartTheme, dittoThemes) and the component long tail (visible today as
-washed-out Connect button, RPC banner, and landing quiz options in light mode).
+**Status:** ALL PHASES SHIPPED 2026-09-04. Phase 0+1: 66df17e9. Phase 2: 7650161f.
+Phase 3: e86c6186 (~250 literals across 50+ files; grep budget for palette literals
+outside comments is zero-equivalent). Phase 4: 040cf7ca (theme e2e spec; theme +
+smoke suites 10/10). Dark stays the default; the nav toggle follows system
+preference. Light text scale is espresso (user-approved): #43331f / #6b5942 /
+#94836a, espresso hairlines. Added tokens: --m-border-faint, --m-overlay.
+
+IMPLEMENTATION NOTES:
+- Theme attribute is `data-membrane-theme` (namespaced) — Chakra's
+  ColorModeProvider re-stamps plain `[data-theme]` on hydration and clobbers it.
+- Canvas can parse neither var() nor color-mix(): canvas values resolve via
+  helpers/resolveToken.ts + JS alpha composition; DOM alpha variants use color-mix.
+- Intentional literals that remain: Chakra phosphor/teal ramps and accent entries
+  in config/defaults.ts (CTA fills stay phosphor both themes), bespoke series
+  tints (NeutronMint ASSET_COLORS rainbow, RiskChart #fbbf24, ProgressBar
+  #c19a3a), RainbowKit accentColor in _app, theme-color maps in
+  _document/useThemeMode, and the legacy cyan neon headline on the storefront
+  TOS page (candidate for a Living Typeface redesign, out of palette scope).
 
 **Strategy:** Keep every `SEMANTIC_COLORS` token name. Change the values from hex
 strings to `var(--m-*)` references. Define both palettes on `:root[data-theme]`.

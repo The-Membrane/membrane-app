@@ -98,6 +98,10 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
       const a = prev.params?.[k]
       const b = params?.[k]
       if (JSON.stringify(a) === JSON.stringify(b)) continue
+      // A missing side means the READ failed on one pass, not that the venue
+      // changed anything — eventing absence↔presence flapped fake
+      // param_changed rows (silo/vaultDecimals) into the public log.
+      if (a === undefined || a === null || b === undefined || b === null) continue
       if (CONTINUOUS_KEYS.has(k)) {
         const na = Number(a)
         const nb = Number(b)

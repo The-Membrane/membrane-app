@@ -4,9 +4,10 @@ import { useQuery } from '@tanstack/react-query'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { queryClient } from '@/pages/_app'
-import { assetKey, erc20ApproveAbi } from '@/services/chain/liquidation'
+import { assetKey } from '@/services/chain/liquidation'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
 import { liqQueueAbi } from '@/contracts/abis/liqQueue'
-import { getContractAddress } from '@/config/evm/contracts'
+import { getContractAddress, type Address } from '@/config/evm/contracts'
 import type { EvmCall } from '@/services/chain/types'
 import useBidState from './useBidState'
 
@@ -31,11 +32,11 @@ const useBid = ({ txSuccess }: Props) => {
   const cdtAsset = useAssetBySymbol('CDT')
   const selectedAsset = bidState?.selectedAsset
   const { premium, cdt } = bidState?.placeBid
-  const { address, chain } = useWallet()
+  const { address, chain, publicClient } = useWallet()
 
   const { data: msgs } = useQuery<EvmCall[] | undefined>({
     queryKey: ['bid', 'msgs', address, selectedAsset?.symbol, premium, cdt],
-    queryFn: () => {
+    queryFn: async () => {
       if (!address || !selectedAsset) return undefined
       const liqQueue = getContractAddress(chain.id, 'liqQueue')
       const cdtToken = getContractAddress(chain.id, 'cdt')
@@ -45,13 +46,14 @@ const useBid = ({ txSuccess }: Props) => {
       const bidAmount = BigInt(shiftDigits(cdt, decimals).dp(0).toString())
       const bidFor = assetKey(selectedAsset.symbol ?? selectedAsset.base)
 
+      // Approve gated on the standing allowance (services/chain/allowance.ts).
       const calls: EvmCall[] = [
-        {
-          address: cdtToken,
-          abi: erc20ApproveAbi,
-          functionName: 'approve',
-          args: [liqQueue, bidAmount],
-        },
+        ...(await buildApproveIfNeeded(publicClient ?? null, {
+          token: cdtToken as Address,
+          owner: address as Address,
+          spender: liqQueue as Address,
+          amount: bidAmount,
+        })),
         {
           address: liqQueue,
           abi: liqQueueAbi,
@@ -68,6 +70,8 @@ const useBid = ({ txSuccess }: Props) => {
     queryClient.invalidateQueries({ queryKey: ['liquidation info'] })
     queryClient.invalidateQueries({ queryKey: ['user bids'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
+    // Allowance read inside the msg builder changed with this tx — rebuild msgs.
+    queryClient.invalidateQueries({ queryKey: ['bid', 'msgs'] })
     txSuccess?.()
   }
 

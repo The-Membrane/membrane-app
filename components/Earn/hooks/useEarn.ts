@@ -1,9 +1,10 @@
-import { erc20Abi, zeroHash } from 'viem'
+import { zeroHash } from 'viem'
 import { useQuery } from '@tanstack/react-query'
 
 import { transmuterAbi } from '@/contracts/abis/transmuter'
 import { assetKey } from '@/services/chain/transmuter'
-import { getContractAddress } from '@/config/evm/contracts'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
+import { getContractAddress, type Address } from '@/config/evm/contracts'
 import type { EvmCall } from '@/services/chain/types'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
@@ -27,7 +28,7 @@ import useEarnState from './useEarnState'
  * denom. There is no `close_c_d_p` equivalent (no per-user CDP behind the vault).
  */
 const useEarn = () => {
-  const { address } = useWallet()
+  const { address, publicClient } = useWallet()
   const { earnState, setEarnState } = useEarnState()
   const usdcAsset = useAssetBySymbol('USDC')
   const earnUSDCAsset = useAssetBySymbol('earnUSDC')
@@ -44,7 +45,7 @@ const useEarn = () => {
       earnState.deposit,
       usdcAsset?.base,
     ],
-    queryFn: () => {
+    queryFn: async () => {
       if (!address || !usdcAsset || !transmuterAddr) return { msgs: [] }
       const msgs: EvmCall[] = []
 
@@ -78,12 +79,15 @@ const useEarn = () => {
         if (microAmount > 0n) {
           // ERC-20 pattern: approve then enterVault. NOT atomic — two wallet signatures
           // (see services/chain/types.ts). enterVault pulls the paired asset via transferFrom.
-          msgs.push({
-            address: pairedErc20,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [transmuterAddr, microAmount],
-          })
+          // Approve gated on the standing allowance (services/chain/allowance.ts).
+          msgs.push(
+            ...(await buildApproveIfNeeded(publicClient ?? null, {
+              token: pairedErc20,
+              owner: address as Address,
+              spender: transmuterAddr as Address,
+              amount: microAmount,
+            })),
+          )
           msgs.push({
             address: transmuterAddr,
             abi: transmuterAbi,
@@ -114,6 +118,8 @@ const useEarn = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
     queryClient.invalidateQueries({ queryKey: ['useVaultInfo'] })
+    // Allowance read inside the msg builder changed with this tx — rebuild msgs.
+    queryClient.invalidateQueries({ queryKey: ['earn_msgs_creation'] })
     setEarnState({ withdraw: 0, deposit: 0 })
   }
 

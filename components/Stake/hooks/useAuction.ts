@@ -1,4 +1,3 @@
-import { erc20Abi } from 'viem'
 import { useQuery } from '@tanstack/react-query'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
 import { queryClient } from '@/pages/_app'
@@ -6,7 +5,8 @@ import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useBalanceByAsset } from '@/hooks/useBalance'
 import useWallet from '@/hooks/useWallet'
 import { shiftDigits } from '@/helpers/math'
-import { getContractAddress } from '@/config/evm/contracts'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
+import { getContractAddress, type Address } from '@/config/evm/contracts'
 import { auctionAbi } from '@/contracts/abis/auction'
 import { getLiveFeeAuctions } from '@/services/chain/auction'
 import type { EvmCall } from '@/services/chain/types'
@@ -47,7 +47,7 @@ const onSuccess = () => {
  * getLiveFeeAuctions ordering.
  */
 export const useAuction = () => {
-  const { address, chain } = useWallet()
+  const { address, chain, publicClient } = useWallet()
   const cdt = useAssetBySymbol('CDT')
   const CDTBalance = useBalanceByAsset(cdt)
   const { data: feeAuctions } = useLiveFeeAuction()
@@ -58,18 +58,19 @@ export const useAuction = () => {
 
   const { data: msgs } = useQuery<EvmCall[] | undefined>({
     queryKey: ['msg auction swap', address, denom, CDTBalance, auctionAddr, cdtAddr],
-    queryFn: () => {
+    queryFn: async () => {
       if (!address || !auctionAddr || !cdtAddr || !cdt || !denom) return undefined
       const paid = BigInt(shiftDigits(CDTBalance, cdt.decimal).dp(0).toString())
       if (paid <= 0n) return undefined
 
+      // Approve gated on the standing allowance (services/chain/allowance.ts).
       return [
-        {
-          address: cdtAddr,
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [auctionAddr, paid],
-        },
+        ...(await buildApproveIfNeeded(publicClient ?? null, {
+          token: cdtAddr as Address,
+          owner: address as Address,
+          spender: auctionAddr as Address,
+          amount: paid,
+        })),
         {
           address: auctionAddr,
           abi: auctionAbi,

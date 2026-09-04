@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { erc20Abi } from 'viem'
 import { cdpAbi } from '@/contracts/abis/cdp'
 import { assetKey } from '@/services/chain/liquidation'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
 import { getContractAddress, type Address } from '@/config/evm/contracts'
 import type { EvmCall } from '@/services/chain/types'
 import useWallet from '@/hooks/useWallet'
@@ -43,7 +43,7 @@ export const useDepositTransaction = ({
     onSuccess,
     successMessage,
 }: UseDepositTransactionProps) => {
-    const { address, chain } = useWallet()
+    const { address, chain, publicClient } = useWallet()
     const { data: positions } = useUserPositions()
     const collateralAsset = useAssetBySymbol(asset.symbol)
 
@@ -63,7 +63,7 @@ export const useDepositTransaction = ({
             positionId.toString(),
         ],
         staleTime: 1000 * 60 * 5,
-        queryFn: () => {
+        queryFn: async () => {
             if (!address || !cdpAddr || !depositAmount || depositAmount <= 0 || !enabled) return undefined
 
             const decimals = asset.decimal ?? collateralAsset?.decimal ?? 18
@@ -72,8 +72,14 @@ export const useDepositTransaction = ({
             const token = (collateralAsset?.base ?? asset.denom) as Address
             const funds = [{ denom: assetKey(asset.symbol), amount }]
 
+            // Approve gated on the standing allowance (services/chain/allowance.ts).
             return [
-                { address: token, abi: erc20Abi, functionName: 'approve', args: [cdpAddr, amount] },
+                ...(await buildApproveIfNeeded(publicClient ?? null, {
+                    token,
+                    owner: address as Address,
+                    spender: cdpAddr as Address,
+                    amount,
+                })),
                 { address: cdpAddr, abi: cdpAbi, functionName: 'deposit', args: [positionId, address, funds] },
             ]
         },
@@ -84,6 +90,8 @@ export const useDepositTransaction = ({
         queryClient.invalidateQueries({ queryKey: ['vault summary'] })
         queryClient.invalidateQueries({ queryKey: ['positions'] })
         queryClient.invalidateQueries({ queryKey: ['balances'] })
+        // Allowance read inside the msg builder changed with this tx — rebuild msgs.
+        queryClient.invalidateQueries({ queryKey: ['deposit_transaction', 'evm'] })
         onSuccess?.()
     }
 

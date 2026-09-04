@@ -19,7 +19,7 @@ import {
   standingsAbi,
   TIER_COUNT,
 } from '@/lib/qgame/abi'
-import { erc20Abi, routerAbi } from '@/lib/payments/abi'
+import { routerAbi } from '@/lib/payments/abi'
 import { RouterQuoteSource, type SellToken } from '@/lib/payments/quotes'
 import {
   readSession,
@@ -40,6 +40,7 @@ import {
   clearBurner,
 } from '@/lib/qgame/burner'
 import { runEvmCalls } from '@/services/chain/txRunner'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
 import type { EvmCall } from '@/services/chain/types'
 
 // ---- address resolution ----
@@ -268,15 +269,6 @@ export function useQGameSession() {
   })
 }
 
-// ---- call builders ----
-
-const approveCall = (token: Address, spender: Address, amount: bigint): EvmCall => ({
-  address: token,
-  abi: erc20Abi as unknown as Abi,
-  functionName: 'approve',
-  args: [spender, amount],
-})
-
 // ---- mutations ----
 
 export type PayWith = 'CDT' | SellToken // 'CDT' | 'USDC' | 'ETH'
@@ -305,7 +297,15 @@ export function useCreatePet() {
       const calls: EvmCall[] = []
 
       if (pay === 'CDT') {
-        calls.push(approveCall(a.cdt, a.pocketGP, petPrice))
+        // Approve gated on the standing allowance (services/chain/allowance.ts).
+        calls.push(
+          ...(await buildApproveIfNeeded(pc, {
+            token: a.cdt,
+            owner: address as Address,
+            spender: a.pocketGP,
+            amount: petPrice,
+          })),
+        )
       } else {
         const quote = await new RouterQuoteSource({
           publicClient: pc,
@@ -315,7 +315,14 @@ export function useCreatePet() {
           weth: a.weth,
         }).quote({ sellToken: pay, cdtOut: petPrice })
         if (pay === 'USDC') {
-          calls.push(approveCall(a.usdc, a.router, quote.pullMax))
+          calls.push(
+            ...(await buildApproveIfNeeded(pc, {
+              token: a.usdc,
+              owner: address as Address,
+              spender: a.router,
+              amount: quote.pullMax,
+            })),
+          )
           calls.push({
             address: a.router,
             abi: routerAbi as unknown as Abi,
@@ -331,7 +338,14 @@ export function useCreatePet() {
             value: quote.pullMax,
           })
         }
-        calls.push(approveCall(a.cdt, a.pocketGP, petPrice))
+        calls.push(
+          ...(await buildApproveIfNeeded(pc, {
+            token: a.cdt,
+            owner: address as Address,
+            spender: a.pocketGP,
+            amount: petPrice,
+          })),
+        )
       }
 
       calls.push({ address: a.pocketGP, abi: pocketGPAbi as unknown as Abi, functionName: 'createPet', args: [name] })

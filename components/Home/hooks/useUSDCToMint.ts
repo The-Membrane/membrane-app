@@ -1,11 +1,11 @@
-import { erc20Abi } from 'viem'
 import { useQuery } from '@tanstack/react-query'
 
 import { cdpAbi } from '@/contracts/abis/cdp'
-import { getContractAddress } from '@/config/evm/contracts'
+import { getContractAddress, type Address } from '@/config/evm/contracts'
 import { getPublicClient } from '@/services/chain/client'
 import { getCurrentPositionId } from '@/services/chain/cdp'
 import { assetKey } from '@/services/chain/liquidation'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
@@ -77,13 +77,14 @@ const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void; run: boolean
       const usdcDenom = assetKey('USDC')
       const cdtDenom = assetKey('CDT')
 
+      // Approve gated on the standing allowance (services/chain/allowance.ts).
       return [
-        {
-          address: usdcAsset.base as `0x${string}`,
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [cdpAddr, depositAmount],
-        },
+        ...(await buildApproveIfNeeded(getPublicClient(), {
+          token: usdcAsset.base as Address,
+          owner: address as Address,
+          spender: cdpAddr as Address,
+          amount: depositAmount,
+        })),
         {
           address: cdpAddr,
           abi: cdpAbi,
@@ -107,6 +108,8 @@ const useUSDCToMint = ({ onSuccess, run }: { onSuccess: () => void; run: boolean
     onSuccess()
     queryClient.invalidateQueries({ queryKey: ['balances'] })
     queryClient.invalidateQueries({ queryKey: ['positions'] })
+    // Allowance read inside the msg builder changed with this tx — rebuild msgs.
+    queryClient.invalidateQueries({ queryKey: ['home_page_mint'] })
   }
 
   return {

@@ -19,6 +19,8 @@ type Props = {
   /** Rendered consequence for the success toast (e.g. "Debt $X→$Y · LTV A%→B%").
    *  Falls back to the generic 'Transaction Successful' when omitted. */
   successMessage?: JSX.Element | string
+  /** Mutation-time batch rewrite (permit embedding) — see useTransaction. */
+  prepareMsgs?: (msgs: EvmCall[]) => Promise<EvmCall[]>
 }
 
 const useSimulateAndBroadcast = ({
@@ -29,6 +31,7 @@ const useSimulateAndBroadcast = ({
   enabled = false,
   shrinkMessage = false,
   successMessage,
+  prepareMsgs,
 }: Props): SimulateAndBroadcast => {
   const simulate = useSimulate({
     msgs,
@@ -45,6 +48,7 @@ const useSimulateAndBroadcast = ({
     onSuccess,
     shrinkMessage,
     successMessage,
+    prepareMsgs,
   })
 
   return {

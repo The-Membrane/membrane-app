@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { erc20Abi } from 'viem'
 import { cdpAbi } from '@/contracts/abis/cdp'
 import { assetKey } from '@/services/chain/liquidation'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
 import { getContractAddress, type Address } from '@/config/evm/contracts'
 import type { EvmCall } from '@/services/chain/types'
 import useWallet from '@/hooks/useWallet'
@@ -41,7 +41,7 @@ export const useRepayTransaction = ({
   onSuccess,
   successMessage,
 }: UseRepayTransactionProps) => {
-  const { address, chain } = useWallet()
+  const { address, chain, publicClient } = useWallet()
   const { data: positions } = useUserPositions()
   const cdtAsset = useAssetBySymbol('CDT')
 
@@ -60,15 +60,21 @@ export const useRepayTransaction = ({
       String(repayAmount),
     ],
     staleTime: 1000 * 60 * 5,
-    queryFn: () => {
+    queryFn: async () => {
       if (!address || !cdpAddr || !cdtAsset || !repayAmount || repayAmount <= 0 || !enabled) return undefined
       // Only CDT repay is supported on EVM (see file-level TODO).
       if (assetSymbol !== 'CDT') return undefined
 
       const amount = BigInt(shiftDigits(repayAmount, cdtAsset.decimal).dp(0).toString())
       const cdtToken = cdtAsset.base as Address
+      // Approve gated on the standing allowance (services/chain/allowance.ts).
       return [
-        { address: cdtToken, abi: erc20Abi, functionName: 'approve', args: [cdpAddr, amount] },
+        ...(await buildApproveIfNeeded(publicClient ?? null, {
+          token: cdtToken,
+          owner: address as Address,
+          spender: cdpAddr as Address,
+          amount,
+        })),
         {
           address: cdpAddr,
           abi: cdpAbi,
@@ -85,6 +91,8 @@ export const useRepayTransaction = ({
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['credit rate'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
+    // Allowance read inside the msg builder changed with this tx — rebuild msgs.
+    queryClient.invalidateQueries({ queryKey: ['repay_transaction', 'evm'] })
     onSuccess?.()
   }
 

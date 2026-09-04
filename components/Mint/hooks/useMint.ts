@@ -1,6 +1,7 @@
-import { erc20Abi } from 'viem'
 import { cdpAbi } from '@/contracts/abis/cdp'
 import { assetKey } from '@/services/chain/liquidation'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
+import { embedRouterPermits } from '@/services/chain/permit'
 import {
   buildDepositAndBorrow,
   buildRepayAndWithdraw,
@@ -50,14 +51,17 @@ import { MAX_CDP_POSITIONS } from '@/config/defaults'
  * approve leg (and the one-time operator approval) are still separate signatures
  * (see services/chain/types.ts).
  *
- * TODO(permit): single-prompt flows. Both router entrypoints accept ERC-2612
- * PermitData (CDT + collateral gained ERC20Permit on the frontend-support-views
- * merge). This pipeline builds msgs ahead of time in useQuery and cannot embed a
- * fresh signature, so every call here emits the ALLOWANCE path (permit deadline 0).
- * Follow-up: sign at mutation time via wagmi signTypedData against the token's
- * ERC20Permit domain, pass the {value,deadline,v,r,s} into buildDepositAndBorrow /
- * buildRepayAndWithdraw, and drop the paired erc20.approve — collapsing each combined
- * flow to a single wallet prompt.
+ * ALLOWANCE GATING: every approve is emitted through buildApproveIfNeeded
+ * (services/chain/allowance.ts) — a standing allowance that covers the amount
+ * skips the approve entirely, so repeat actions cost one signature.
+ *
+ * PERMIT (ERC-2612): msgs are still BUILT on the allowance path (this useQuery
+ * builder runs ahead of time and cannot embed a fresh signature), but at
+ * mutation time prepareMsgs → embedRouterPermits (services/chain/permit.ts)
+ * signs a permit per approve(router) via wallet typed-data, embeds the
+ * {value,deadline,v,r,s} into the router call's permit slots, and drops the
+ * paired approve. A token without permit support (or a failed/rejected
+ * signature) keeps its approve — the permit is an optimization, never a gate.
  *
  * TODO(evm-migration): the CosmWasm flow also emitted Points check/give sandwich msgs
  * around repay (PointsMsgComposer). The EVM Points surface is not wired into the CDP
@@ -73,7 +77,7 @@ type DepositEntry = Fund & { base: Address }
 const useMint = () => {
   const { mintState, setMintState } = useMintState()
   const { summary = [] } = mintState
-  const { address, chain } = useWallet()
+  const { address, chain, walletClient, publicClient } = useWallet()
   const { data: positions } = useUserPositions()
   const cdtAsset = useAssetBySymbol('CDT')
   const { isApproved: operatorApproved, approveOperatorMsg } = usePositionOperator()
@@ -110,8 +114,9 @@ const useMint = () => {
       String(mintState?.mint ?? 0),
       String(mintState?.repay ?? 0),
     ],
-    queryFn: () => {
+    queryFn: async () => {
       if (!address || !cdpAddr) return undefined
+      const owner = address as Address
 
       // Collateral moves: positive amount = deposit (ERC-20 pull → needs approve),
       // negative = withdraw. denom is the bytes32 asset key; base is the ERC-20 addr.
@@ -162,23 +167,27 @@ const useMint = () => {
           withdrawFunds,
         })
         if (call) {
-          repayWithdrawCalls.push({
-            address: cdtAsset.base as Address,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [routerAddr, repayAmount],
-          })
+          repayWithdrawCalls.push(
+            ...(await buildApproveIfNeeded(publicClient ?? null, {
+              token: cdtAsset.base as Address,
+              owner,
+              spender: routerAddr,
+              amount: repayAmount,
+            })),
+          )
           repayWithdrawCalls.push(call)
         }
       } else {
         // repay-only → approve CDT to Cdp then cdp.repay(id, owner, amount, cdtDenom).
         if (hasRepay && cdtAsset) {
-          repayWithdrawCalls.push({
-            address: cdtAsset.base as Address,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [cdpAddr, repayAmount],
-          })
+          repayWithdrawCalls.push(
+            ...(await buildApproveIfNeeded(publicClient ?? null, {
+              token: cdtAsset.base as Address,
+              owner,
+              spender: cdpAddr,
+              amount: repayAmount,
+            })),
+          )
           repayWithdrawCalls.push({
             address: cdpAddr,
             abi: cdpAbi,
@@ -208,27 +217,31 @@ const useMint = () => {
         })
         if (call) {
           // Collateral is pulled by the ROUTER, so approve the router (not Cdp).
-          depositEntries.forEach(({ base, amount }) => {
-            depositBorrowCalls.push({
-              address: base,
-              abi: erc20Abi,
-              functionName: 'approve',
-              args: [routerAddr, amount],
-            })
-          })
+          for (const { base, amount } of depositEntries) {
+            depositBorrowCalls.push(
+              ...(await buildApproveIfNeeded(publicClient ?? null, {
+                token: base,
+                owner,
+                spender: routerAddr,
+                amount,
+              })),
+            )
+          }
           depositBorrowCalls.push(call)
         }
       } else {
         // deposit-only → approve each collateral to Cdp then cdp.deposit.
         if (hasDeposit) {
-          depositEntries.forEach(({ base, amount }) => {
-            depositBorrowCalls.push({
-              address: base,
-              abi: erc20Abi,
-              functionName: 'approve',
-              args: [cdpAddr, amount],
-            })
-          })
+          for (const { base, amount } of depositEntries) {
+            depositBorrowCalls.push(
+              ...(await buildApproveIfNeeded(publicClient ?? null, {
+                token: base,
+                owner,
+                spender: cdpAddr,
+                amount,
+              })),
+            )
+          }
           depositBorrowCalls.push({
             address: cdpAddr,
             abi: cdpAbi,
@@ -261,10 +274,25 @@ const useMint = () => {
 
   const finalMsgs = useMemo(() => msgs, [msgs])
 
+  // Mutation-time permit embedding — see the PERMIT note in the header.
+  const prepareMsgs = useMemo(() => {
+    if (!routerAddr || !address) return undefined
+    return (batch: EvmCall[]) =>
+      embedRouterPermits({
+        msgs: batch,
+        router: routerAddr,
+        owner: address as Address,
+        publicClient: publicClient ?? null,
+        walletClient: walletClient ?? null,
+      })
+  }, [routerAddr, address, publicClient, walletClient])
+
   const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['positions'] })
     queryClient.invalidateQueries({ queryKey: ['balances'] })
     queryClient.invalidateQueries({ queryKey: ['position_operator'] })
+    // Allowances read inside the msg builder changed with this tx — rebuild msgs.
+    queryClient.invalidateQueries({ queryKey: ['mint', 'evm'] })
     setMintState({ positionNumber: 1, mint: 0, repay: 0, summary: [], reset: true })
     queryClient.invalidateQueries({ queryKey: ['all users points'] })
     queryClient.invalidateQueries({ queryKey: ['one users points'] })
@@ -276,6 +304,7 @@ const useMint = () => {
     queryKey: ['mint_msg_sim', finalMsgs?.length ? JSON.stringify(finalMsgs.map((m) => m.functionName)) : '0'],
     onSuccess,
     enabled: !!finalMsgs?.length,
+    prepareMsgs,
   })
 }
 

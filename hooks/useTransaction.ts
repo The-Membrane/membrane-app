@@ -36,9 +36,14 @@ type Transaction = {
   /** Rendered consequence of THIS tx for the success toast (e.g. the position
    *  delta the user just previewed). Falls back to 'Transaction Successful'. */
   successMessage?: JSX.Element | string
+  /** Mutation-time rewrite of the batch, run right before signing. Used to embed
+   *  a fresh ERC-2612 permit signature (services/chain/permit.ts) — something the
+   *  ahead-of-time useQuery msg builders cannot do. Must return the batch to run;
+   *  throwing aborts the mutation. */
+  prepareMsgs?: (msgs: EvmCall[]) => Promise<EvmCall[]>
 }
 
-const useTransaction = ({ msgs, onSuccess, fee, shrinkMessage, suppressToaster = false, successMessage }: Transaction) => {
+const useTransaction = ({ msgs, onSuccess, fee, shrinkMessage, suppressToaster = false, successMessage, prepareMsgs }: Transaction) => {
   const [isApproved, setIsApproved] = useState(false)
   const toaster = useToaster()
 
@@ -51,12 +56,17 @@ const useTransaction = ({ msgs, onSuccess, fee, shrinkMessage, suppressToaster =
 
       setIsApproved(false)
 
+      const finalMsgs = prepareMsgs ? await prepareMsgs(msgs) : msgs
+      if (!finalMsgs.length) throw new Error('Missing transaction parameters')
+
       return runEvmCalls({
-        msgs,
+        msgs: finalMsgs,
         address,
         walletClient,
         publicClient,
-        fee,
+        // Simulation priced the pre-rewrite batch; a rewritten batch (permit
+        // embedded, approve dropped) re-estimates at the wallet instead.
+        fee: finalMsgs === msgs ? fee : undefined,
         onApproved: () => setIsApproved(true),
       })
     },

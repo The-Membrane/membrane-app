@@ -1,9 +1,9 @@
-import { erc20Abi } from 'viem'
 import { useQuery } from '@tanstack/react-query'
 
 import { cdpAbi } from '@/contracts/abis/cdp'
-import { getContractAddress } from '@/config/evm/contracts'
+import { getContractAddress, type Address } from '@/config/evm/contracts'
 import { assetKey } from '@/services/chain/liquidation'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
 import { shiftDigits } from '@/helpers/math'
 import { num } from '@/helpers/num'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
@@ -26,12 +26,12 @@ const useNeuroGuard = ({
   run,
   asset,
 }: { onSuccess: () => void; run: boolean; asset: any }) => {
-  const { address, chain } = useWallet()
+  const { address, chain, publicClient } = useWallet()
   const cdpAddr = chain ? getContractAddress(chain.id, 'cdp') : undefined
 
   const { data: msgs } = useQuery<EvmCall[] | undefined>({
     queryKey: ['neuroGuard_msg_creation', address, cdpAddr, asset, run],
-    queryFn: () => {
+    queryFn: async () => {
       if (!run || !address || !cdpAddr || !asset || num(asset?.sliderValue).isZero()) return undefined
 
       const amount = BigInt(shiftDigits(asset.sliderValue, asset.decimal).dp(0).toString())
@@ -41,13 +41,14 @@ const useNeuroGuard = ({
       // (services/chain/liquidation.ts assetKey); confirm against the deployment.
       const denom = assetKey(asset.symbol)
 
+      // Approve gated on the standing allowance (services/chain/allowance.ts).
       return [
-        {
-          address: asset.base as `0x${string}`,
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [cdpAddr, amount],
-        },
+        ...(await buildApproveIfNeeded(publicClient ?? null, {
+          token: asset.base as Address,
+          owner: address as Address,
+          spender: cdpAddr as Address,
+          amount,
+        })),
         {
           address: cdpAddr,
           abi: cdpAbi,
@@ -66,6 +67,8 @@ const useNeuroGuard = ({
     onSuccess()
     queryClient.invalidateQueries({ queryKey: ['balances'] })
     queryClient.invalidateQueries({ queryKey: ['positions'] })
+    // Allowance read inside the msg builder changed with this tx — rebuild msgs.
+    queryClient.invalidateQueries({ queryKey: ['neuroGuard_msg_creation'] })
   }
 
   return {

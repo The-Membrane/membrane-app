@@ -27,6 +27,24 @@ const USER_ERROR_PATTERNS = [
 const isUserError = (message: string) =>
   USER_ERROR_PATTERNS.some((p) => message.toLowerCase().includes(p))
 
+// Revert reasons that mean "the standing allowance is short" — expected for a
+// call whose approve lands earlier in the SAME batch, since each call is
+// simulated against current chain state (the approve is not applied yet).
+const ALLOWANCE_ERROR_PATTERNS = [
+  'insufficient allowance',
+  'erc20insufficientallowance',
+  'transfer amount exceeds allowance',
+]
+
+const isAllowanceError = (message: string) =>
+  ALLOWANCE_ERROR_PATTERNS.some((p) => message.toLowerCase().includes(p))
+
+// Display-only gas stand-in for a call whose real estimate is blocked by a
+// pending in-batch approve. Never forwarded to the wallet: a batch with an
+// approve has length > 1, and txRunner only forwards gas for single-call
+// batches — the wallet re-estimates each call after the approve has landed.
+const DEPENDENT_CALL_GAS_FALLBACK = 800_000n
+
 type Simulate = {
   msgs: EvmCall[] | undefined | null
   amount: string | undefined
@@ -62,25 +80,64 @@ const useSimulate = ({ msgs, amount, enabled = false, queryKey = [] }: Simulate)
       try {
         setErrorMessage(null)
 
-        // Pre-flight each call (throws with decoded revert reason) and sum gas
+        // Pre-flight each call (throws with decoded revert reason) and sum gas.
+        // Calls are simulated against CURRENT chain state, concurrently — a later
+        // call never sees an earlier call's effect. The one real dependency in our
+        // batches is approve → action: the action's transferFrom reverts in
+        // simulation until the approve lands. That exact case is tolerated below
+        // (allowance revert + an earlier in-batch approve whose spender is the
+        // failing call's target) with a display-only gas fallback; every other
+        // failure still throws. simulateContract runs before estimateContractGas
+        // *within* a call (decoded reason beats a raw estimate error), and results
+        // are walked back in original array order so the first call (by index, not
+        // network timing) wins when more than one would fail.
+        const approveSpenders = new Map<number, string>()
+        msgs.forEach((call, idx) => {
+          if (call.functionName === 'approve' && call.args?.length === 2) {
+            approveSpenders.set(idx, String(call.args[0]).toLowerCase())
+          }
+        })
+        const hasEarlierApproveFor = (target: string, callIdx: number) => {
+          for (const [idx, spender] of approveSpenders) {
+            if (idx < callIdx && spender === target.toLowerCase()) return true
+          }
+          return false
+        }
+
+        const callResults = await Promise.all(
+          msgs.map(async (call, callIdx) => {
+            try {
+              await publicClient.simulateContract({
+                address: call.address,
+                abi: call.abi,
+                functionName: call.functionName,
+                args: call.args as any,
+                value: call.value,
+                account: address,
+              })
+              const gas = await publicClient.estimateContractGas({
+                address: call.address,
+                abi: call.abi,
+                functionName: call.functionName,
+                args: call.args as any,
+                value: call.value,
+                account: address,
+              })
+              return { gas }
+            } catch (err: any) {
+              const msg: string = err?.shortMessage ?? err?.message ?? String(err)
+              if (isAllowanceError(msg) && hasEarlierApproveFor(call.address, callIdx)) {
+                return { gas: DEPENDENT_CALL_GAS_FALLBACK }
+              }
+              return { err }
+            }
+          })
+        )
+
         let totalGas = 0n
-        for (const call of msgs) {
-          await publicClient.simulateContract({
-            address: call.address,
-            abi: call.abi,
-            functionName: call.functionName,
-            args: call.args as any,
-            value: call.value,
-            account: address,
-          })
-          totalGas += await publicClient.estimateContractGas({
-            address: call.address,
-            abi: call.abi,
-            functionName: call.functionName,
-            args: call.args as any,
-            value: call.value,
-            account: address,
-          })
+        for (const result of callResults) {
+          if ('err' in result) throw result.err
+          totalGas += result.gas as bigint
         }
 
         const bufferedGas =

@@ -1,6 +1,7 @@
-import { erc20Abi, zeroAddress } from 'viem'
+import { zeroAddress } from 'viem'
 import { stakingAbi } from '@/contracts/abis/staking'
-import { getContractAddress } from '@/config/evm/contracts'
+import { buildApproveIfNeeded } from '@/services/chain/allowance'
+import { getContractAddress, type Address } from '@/config/evm/contracts'
 import { shiftDigits } from '@/helpers/math'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'
@@ -24,10 +25,12 @@ const NO_LOCK = {
 const onInitialSuccess = () => {
   queryClient.invalidateQueries({ queryKey: ['staked'] })
   queryClient.invalidateQueries({ queryKey: ['balances'] })
+  // Allowance read inside the msg builder changed with this tx — rebuild msgs.
+  queryClient.invalidateQueries({ queryKey: ['staking', 'msg'] })
 }
 
 const useStakeing = ({ }: UseStake) => {
-  const { address, chain } = useWallet()
+  const { address, chain, publicClient } = useWallet()
   const mbrnAsset = useAssetBySymbol('MBRN')
   const { stakeState } = useStakeState()
   const { amount, txType } = stakeState
@@ -37,7 +40,7 @@ const useStakeing = ({ }: UseStake) => {
 
   const { data: msgs } = useQuery<EvmCall[] | undefined>({
     queryKey: ['staking', 'msg', address, stakingAddr, mbrnAddr, amount, txType],
-    queryFn: () => {
+    queryFn: async () => {
       if (!address || !mbrnAsset || !stakingAddr) return undefined
       const microAmount = BigInt(shiftDigits(amount, mbrnAsset.decimal).dp(0).toString())
       if (microAmount <= 0n) return undefined
@@ -46,13 +49,14 @@ const useStakeing = ({ }: UseStake) => {
         if (!mbrnAddr) return undefined
         // ERC-20 pattern: approve then stake. NOT atomic — two wallet signatures
         // (see services/chain/types.ts). Staking.sol.stake pulls MBRN via transferFrom.
+        // Approve gated on the standing allowance (services/chain/allowance.ts).
         return [
-          {
-            address: mbrnAddr,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [stakingAddr, microAmount],
-          },
+          ...(await buildApproveIfNeeded(publicClient ?? null, {
+            token: mbrnAddr as Address,
+            owner: address as Address,
+            spender: stakingAddr as Address,
+            amount: microAmount,
+          })),
           {
             address: stakingAddr,
             abi: stakingAbi,

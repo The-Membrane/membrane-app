@@ -31,11 +31,12 @@ import type { EvmCall } from '@/services/chain/types'
  * (buildSetPositionOperator); the on-chain flag then persists, so the extra prompt
  * disappears on every subsequent flow.
  *
- * PERMIT (single-prompt) is OUT OF SCOPE this round — every builder emits the
- * ALLOWANCE path (collateralPermits = [] / cdtPermit zeroed with deadline 0, which
- * the contract reads as "no permit supplied, use the standard allowance",
- * CdpRouter.sol:236 _tryPermit early-return). See TODO(permit) in
- * components/Mint/hooks/useMint.ts for the mutation-time signTypedData follow-up.
+ * PERMIT (single-prompt): every builder still emits the ALLOWANCE path
+ * (collateralPermits = [] / cdtPermit zeroed with deadline 0, which the contract
+ * reads as "no permit supplied, use the standard allowance", CdpRouter.sol:236
+ * _tryPermit early-return). ERC-2612 permits are embedded at MUTATION time by
+ * services/chain/permit.ts embedRouterPermits — builders stay signature-free so
+ * they remain usable from ahead-of-time useQuery msg builders.
  */
 
 type Bytes32 = `0x${string}`

@@ -20,7 +20,23 @@ import useWallet from '@/hooks/useWallet'
  * of RPC round trips and costs the user zero transactions.
  */
 
-// Every first-party contract any CTA hook approves tokens to.
+// Spender set from the Sep 4 2026 call-site audit of buildApproveIfNeeded
+// usage. LIVE today: cdp (NeutronMint deposit/repay), staking (/stake via the
+// /levels tile), liqQueue (/liquidate bids). STALE-SCAN ONLY (the flows are
+// currently unmounted, but a wallet can still hold a dangling grant from when
+// they ran, which is exactly what this panel exists to surface): cdpRouter +
+// cdp Mint.tsx flows, transmuter (old Earn deposit), auction (commented-out
+// AuctionClaim). Scanning costs nothing — reads are multicall-batched.
+//
+// TABLED until the backend is wired (note per owner, Sep 4 2026):
+//  - ltvDisco: /disco is live UI but its hooks still build Cosmos msgs — add
+//    the key here when the Disco EVM port lands.
+//  - Deployment/curator vaults: no vault-address enumeration source exists in
+//    the app yet (Earn page is mocked). When a vault registry hook exists,
+//    walk it here as a dynamic spender source.
+//  - qgame pairs (qgameCdt→qgamePocketGP, qgameUsdc→qgameRouter): separate
+//    token set outside useAssets; add explicit pairs with on-chain decimals
+//    when the game surfaces graduate from anvil mocks.
 const SPENDERS: { name: ContractName; label: string }[] = [
   { name: 'cdp', label: 'CDP' },
   { name: 'cdpRouter', label: 'CDP Router' },

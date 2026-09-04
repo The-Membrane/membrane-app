@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
+import { queryClient } from '@/pages/_app'
 import useWallet from './useWallet'
 import useToaster from './useToaster'
 import type { EvmCall, EvmFeeEstimate } from '@/services/chain/types'
@@ -50,9 +51,12 @@ const useTransaction = ({ msgs, onSuccess, fee, shrinkMessage, suppressToaster =
 
   const { isWalletConnected, address, walletClient, publicClient } = useWallet()
 
-  const tx = useMutation<TxResult, Error>({
-    mutationFn: async () => {
-      if (!address || !msgs || !msgs.length || !isWalletConnected || !walletClient || !publicClient)
+  const tx = useMutation<TxResult, Error, EvmCall[] | void>({
+    // Optional mutate(msgsOverride) lets one hook instance run parametrized
+    // one-off batches (allowance-panel revokes); omitted → the hook's msgs.
+    mutationFn: async (msgsOverride) => {
+      const active = msgsOverride ?? msgs
+      if (!address || !active || !active.length || !isWalletConnected || !walletClient || !publicClient)
         throw new Error('Missing transaction parameters')
 
       setIsApproved(false)
@@ -61,11 +65,11 @@ const useTransaction = ({ msgs, onSuccess, fee, shrinkMessage, suppressToaster =
       // (one confirmation, nothing dangling), so permit embedding only pays off
       // when the batch will run on the sequential floor. Detection is cached.
       const atomicStatus =
-        msgs.length > 1 && typeof (walletClient as any).sendCalls === 'function'
+        active.length > 1 && typeof (walletClient as any).sendCalls === 'function'
           ? await getAtomicStatus(walletClient, walletClient.chain?.id)
           : 'unsupported'
       const finalMsgs =
-        atomicStatus === 'unsupported' && prepareMsgs ? await prepareMsgs(msgs) : msgs
+        atomicStatus === 'unsupported' && prepareMsgs ? await prepareMsgs(active) : active
       if (!finalMsgs.length) throw new Error('Missing transaction parameters')
 
       return runEvmCalls({
@@ -73,9 +77,9 @@ const useTransaction = ({ msgs, onSuccess, fee, shrinkMessage, suppressToaster =
         address,
         walletClient,
         publicClient,
-        // Simulation priced the pre-rewrite batch; a rewritten batch (permit
-        // embedded, approve dropped) re-estimates at the wallet instead.
-        fee: finalMsgs === msgs ? fee : undefined,
+        // Simulation priced the hook's own pre-rewrite batch; a rewritten batch
+        // (permit embedded) or an override re-estimates at the wallet instead.
+        fee: !msgsOverride && finalMsgs === msgs ? fee : undefined,
         onApproved: () => setIsApproved(true),
       })
     },
@@ -91,6 +95,10 @@ const useTransaction = ({ msgs, onSuccess, fee, shrinkMessage, suppressToaster =
           shrinkMessage: shrinkMessage ?? false,
         })
       }
+
+      // Every landed tx can consume or create allowances — keep the wallet
+      // panel honest without each CTA wiring its own invalidation.
+      queryClient.invalidateQueries({ queryKey: ['allowances'] })
 
       onSuccess?.()
     },

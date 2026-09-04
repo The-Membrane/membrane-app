@@ -5,6 +5,7 @@ import useWallet from '@/hooks/useWallet'
 import { Button, HStack, Icon, Stack, Text } from '@chakra-ui/react'
 import { useMemo, useState } from 'react'
 import { FaSignOutAlt } from 'react-icons/fa'
+import AllowancePanel from './AllowancePanel'
 import ConnectButton from './ConnectButton'
 
 const hoverStyles = {
@@ -22,28 +23,32 @@ const WalletConnect = () => {
 
   if (isWalletConnected) {
     return (
-      <HStack
-        as={Button}
-        variant="unstyled"
-        _hover={hoverStyles}
-        justifyContent={{ base: "center", md: "start" }}
-        fontWeight="normal"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={() => disconnect()}
-        leftIcon={<Icon as={FaSignOutAlt} boxSize={5} color={isHovered ? colors.walletIcon : 'white'} />}
-        color={isHovered ? colors.tabBG : 'white'}
-        py="6"
-        pl="2"
-        bg="whiteAlpha.100"
-      >
-        <Stack gap="-2px" alignItems="flex-start" ml="-6px">
-          <Text fontSize="sm">{walletLabel}</Text>
-          <Text fontSize="xs" color={colors.noState}>
-            {shortAddress}
-          </Text>
-        </Stack>
-      </HStack>
+      <Stack gap={0}>
+        <HStack
+          as={Button}
+          variant="unstyled"
+          _hover={hoverStyles}
+          justifyContent={{ base: "center", md: "start" }}
+          fontWeight="normal"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onClick={() => disconnect()}
+          leftIcon={<Icon as={FaSignOutAlt} boxSize={5} color={isHovered ? colors.walletIcon : 'white'} />}
+          color={isHovered ? colors.tabBG : 'white'}
+          py="6"
+          pl="2"
+          bg="whiteAlpha.100"
+        >
+          <Stack gap="-2px" alignItems="flex-start" ml="-6px">
+            <Text fontSize="sm">{walletLabel}</Text>
+            <Text fontSize="xs" color={colors.noState}>
+              {shortAddress}
+            </Text>
+          </Stack>
+        </HStack>
+        {/* Hidden while every allowance is zero — costs no space in the common case. */}
+        <AllowancePanel />
+      </Stack>
     )
   }
   return <ConnectButton />

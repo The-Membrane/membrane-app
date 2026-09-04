@@ -1,7 +1,14 @@
 # Light Mode ("Parchment") — CSS Variable Migration Scope
 
-**Status:** Scoped 2026-09-04. Dark stays the default theme. Light mode ships behind a
-toggle that follows the user's system preference.
+**Status:** Phases 0+1 SHIPPED 2026-09-04 (commit 66df17e9) plus the HorizontalNav
+literal-hex swap from Phase 3. Dark stays the default theme; the nav toggle follows
+the user's system preference. Light-mode text scale is espresso (user-approved):
+textPrimary #43331f / #6b5942 / #94836a, espresso hairlines. IMPLEMENTATION NOTE:
+the theme attribute is `data-membrane-theme` (namespaced) — Chakra's
+ColorModeProvider re-stamps plain `[data-theme]` on hydration and clobbers it.
+Phases 2-3 remain: duplicate palettes (typography TEXT_STYLES, transitions.ts,
+theme/*, chartTheme, dittoThemes) and the component long tail (visible today as
+washed-out Connect button, RPC banner, and landing quiz options in light mode).
 
 **Strategy:** Keep every `SEMANTIC_COLORS` token name. Change the values from hex
 strings to `var(--m-*)` references. Define both palettes on `:root[data-theme]`.

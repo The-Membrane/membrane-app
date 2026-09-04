@@ -6,7 +6,7 @@
 // External mainnet venues (Ethena/Aave on Ethereum), read via a viem
 // PublicClient over RECORDER_RPC_URL. Standalone: no Next env injection.
 
-import { createPublicClient, http, defineChain } from 'viem'
+import { createPublicClient, http, fallback, defineChain } from 'viem'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -28,15 +28,28 @@ export function loadConfig() {
 }
 
 // Mainnet (chain id 1). The RPC must be a mainnet endpoint; historical reads
-// additionally require an ARCHIVE node.
+// additionally require an ARCHIVE node (list it FIRST — viem's fallback ranks
+// by order and only moves on when an endpoint errors/times out).
+//
+// Accepts a single URL or a comma-separated list. Prefer setting
+// RECORDER_RPC_URLS in .env.local; the free tiers rate-limit after heavy
+// getLogs backfills, and a fallback ring keeps the hourly tick alive.
 export function makeClient(rpcUrl) {
+  const urls = String(rpcUrl)
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean)
   const mainnet = defineChain({
     id: 1,
     name: 'Ethereum',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-    rpcUrls: { default: { http: [rpcUrl] } },
+    rpcUrls: { default: { http: urls } },
   })
-  return createPublicClient({ chain: mainnet, transport: http(rpcUrl) })
+  const transport =
+    urls.length === 1
+      ? http(urls[0])
+      : fallback(urls.map((u) => http(u, { timeout: 15_000 })), { rank: false })
+  return createPublicClient({ chain: mainnet, transport })
 }
 
 // Minimal ABIs — only the reads we need.

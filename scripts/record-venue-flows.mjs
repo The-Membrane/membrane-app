@@ -221,6 +221,11 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     continue
   }
 
+  // Per-venue failures are non-fatal for scheduled runs: an RPC timeout on one
+  // venue must not stop the others, and the cursor makes the lost ground free —
+  // the next tick resumes from max(block)+1.
+  try {
+
   // Verify each stream's signature against a real recent probe before bulk fetch.
   const active = []
   for (const stream of streams) {
@@ -293,6 +298,11 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
       `in=$${(Number(inRaw) / scale).toLocaleString()} out=$${(Number(outRaw) / scale).toLocaleString()}`,
   )
   totals.push({ venue: venue.name, inserted, inRaw, outRaw })
+
+  } catch (e) {
+    console.log(`[${venue.name}] ERRORED mid-fetch (${e?.message ?? e}) — cursor resumes next run`)
+    totals.push({ venue: venue.name, inserted: 0, inRaw: 0n, outRaw: 0n, note: 'errored — resumes from cursor' })
+  }
 }
 
 console.log('\n=== flow recorder summary ===')

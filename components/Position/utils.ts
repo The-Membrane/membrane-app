@@ -5,6 +5,7 @@
 
 import React from 'react'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { resolveColor } from '@/helpers/resolveToken'
 import { LifeItem, VenueClass } from './types'
 
 // ---------- colour helpers ----------
@@ -19,9 +20,15 @@ export const CLASS_COLOR: Record<VenueClass, string> = {
   lst: SEMANTIC_COLORS.info,
 }
 
-/** rgba() from a #rrggbb token + alpha — keeps decorative fills sourced from tokens. */
+/** rgba() from a token + alpha — resolves the token first, then keeps decorative fills sourced from tokens. */
 export const withAlpha = (hex: string, a: number): string => {
-  const h = hex.replace('#', '')
+  const resolved = resolveColor(hex)
+  // Border tokens resolve to rgb()/rgba(); recompose with the requested alpha.
+  if (resolved.startsWith('rgb')) {
+    const [r, g, b] = resolved.match(/[\d.]+/g) || []
+    return `rgba(${r},${g},${b},${a})`
+  }
+  const h = resolved.replace('#', '')
   const r = parseInt(h.slice(0, 2), 16)
   const g = parseInt(h.slice(2, 4), 16)
   const b = parseInt(h.slice(4, 6), 16)
@@ -177,12 +184,12 @@ export const createBeltAnimation = (laneRate: number[]): BeltAnimation => {
     const debtX = w - 26
 
     // The debt bar spans every lane: one loan, three feeders.
-    ctx.fillStyle = debtFlash > 0 ? SEMANTIC_COLORS.danger : withAlpha(SEMANTIC_COLORS.danger, 0.5)
+    ctx.fillStyle = debtFlash > 0 ? resolveColor(SEMANTIC_COLORS.danger) : withAlpha(SEMANTIC_COLORS.danger, 0.5)
     ctx.fillRect(debtX, 6, 14, h - 12)
     ctx.save()
     ctx.translate(debtX + 11, h / 2)
     ctx.rotate(-Math.PI / 2)
-    ctx.fillStyle = SEMANTIC_COLORS.bgPrimary
+    ctx.fillStyle = resolveColor(SEMANTIC_COLORS.bgPrimary)
     ctx.font = '8px ui-monospace,monospace'
     ctx.textAlign = 'center'
     ctx.fillText('DEBT', 0, 0)
@@ -213,7 +220,7 @@ export const createBeltAnimation = (laneRate: number[]): BeltAnimation => {
       const core = r * Math.sqrt(NET)
       ctx.strokeStyle = withAlpha(SEMANTIC_COLORS.textPrimary, 0.25)
       ctx.strokeRect(pk.x - r, y - r, r * 2, r * 2)
-      ctx.fillStyle = CLASS_COLOR[LANE_TONE[pk.lane]]
+      ctx.fillStyle = resolveColor(CLASS_COLOR[LANE_TONE[pk.lane]])
       ctx.fillRect(pk.x - core, y - core, core * 2, core * 2)
     })
     packets = packets.filter((pk) => !pk.dead)
@@ -253,7 +260,7 @@ export const drawChart = (
   ctx.beginPath()
   ctx.moveTo(X(0), Y(d[0]))
   d.forEach((v, i) => ctx.lineTo(X(i), Y(v)))
-  ctx.strokeStyle = SEMANTIC_COLORS.success
+  ctx.strokeStyle = resolveColor(SEMANTIC_COLORS.success)
   ctx.lineWidth = 2
   ctx.stroke()
 
@@ -282,14 +289,14 @@ export const drawChart = (
     ctx.lineTo(X(bs + bl), Y(d[bs]) - 8)
     ctx.stroke()
     ctx.setLineDash([])
-    ctx.fillStyle = SEMANTIC_COLORS.warning
+    ctx.fillStyle = resolveColor(SEMANTIC_COLORS.warning)
     ctx.font = '8.5px ui-monospace,monospace'
     ctx.textAlign = 'center'
     ctx.fillText('cooldown — nothing arrived', X(bs + bl / 2), Y(d[bs]) - 14)
   }
 
   // Endpoint value, mono.
-  ctx.fillStyle = SEMANTIC_COLORS.textPrimary
+  ctx.fillStyle = resolveColor(SEMANTIC_COLORS.textPrimary)
   ctx.font = '11px ui-monospace,monospace'
   ctx.textAlign = 'right'
   ctx.fillText('$' + d[d.length - 1].toLocaleString('en-US'), w - P - 2, Y(d[d.length - 1]) - 6)
@@ -308,7 +315,7 @@ export const drawChart = (
     }
     ctx.stroke()
     ctx.setLineDash([])
-    ctx.fillStyle = SEMANTIC_COLORS.textSecondary
+    ctx.fillStyle = resolveColor(SEMANTIC_COLORS.textSecondary)
     ctx.font = '8.5px ui-monospace,monospace'
     ctx.textAlign = 'left'
     ctx.fillText(

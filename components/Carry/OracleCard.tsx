@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Box, Button, Flex, HStack, Text } from '@chakra-ui/react'
 
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { resolveColor } from '@/helpers/resolveToken'
 import { SPACING } from '@/config/spacing'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
@@ -89,7 +90,7 @@ function drawPtChart(cv: HTMLCanvasElement, mode: OraclePtMode) {
 
   // Scenario path.
   const col = MODE_COLOR[mode]
-  x.strokeStyle = col
+  x.strokeStyle = resolveColor(col)
   x.lineWidth = 2
   x.beginPath()
   for (let d2 = 0; d2 <= T; d2++) {
@@ -118,9 +119,9 @@ function drawPtChart(cv: HTMLCanvasElement, mode: OraclePtMode) {
     x.textAlign = align
     const w = x.measureText(t).width
     const lx = align === 'right' ? px - w : px
-    x.fillStyle = KNOCKOUT
+    x.fillStyle = resolveColor(KNOCKOUT)
     x.fillRect(lx - 3, py - 8, w + 6, 11)
-    x.fillStyle = color
+    x.fillStyle = resolveColor(color)
     x.fillText(t, px, py)
   }
   label('$1.00 par', P + 2, Y(1) - 5, DIM)

@@ -2,10 +2,17 @@
 
 import { CapacityBand, ExecRequest, VenueLiquidity } from './types'
 import { CAPACITY_BANDS, LIST_STAKE_USD, YOUR_MAX_WITHDRAW_USD } from './fixtures'
+import { resolveColor } from '@/helpers/resolveToken'
 
-/** Applies an alpha channel to a `#rrggbb` semantic token, e.g. for the waterfall's tinted segment fills. */
+/** Applies an alpha channel to a semantic token, resolving it first, e.g. for the waterfall's tinted segment fills. */
 export const withAlpha = (hex: string, alpha: number): string => {
-  const clean = hex.replace('#', '')
+  const resolved = resolveColor(hex)
+  // Border tokens resolve to rgb()/rgba(); recompose with the requested alpha.
+  if (resolved.startsWith('rgb')) {
+    const [r, g, b] = resolved.match(/[\d.]+/g) || []
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+  const clean = resolved.replace('#', '')
   const r = parseInt(clean.slice(0, 2), 16)
   const g = parseInt(clean.slice(2, 4), 16)
   const b = parseInt(clean.slice(4, 6), 16)

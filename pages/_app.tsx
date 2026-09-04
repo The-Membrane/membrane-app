@@ -50,6 +50,7 @@ export const queryClient = new QueryClient({
 
 import '../styles/fonts.css';
 import '../styles/global.css';
+import '../styles/themes.css';
 import Seo from '@/components/Seo'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { usePerformanceMetrics } from '@/hooks/usePerformanceMetrics'

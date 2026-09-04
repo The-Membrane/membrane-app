@@ -1,0 +1,59 @@
+/**
+ * Theme palettes — Living Typeface (dark, default) and Parchment (light).
+ *
+ * SEMANTIC_COLORS (config/semanticColors.ts) resolves to these variables, so
+ * every component that imports the tokens follows [data-theme] automatically.
+ * The attribute is stamped pre-paint by the inline script in pages/_document.tsx
+ * (localStorage `membrane.theme`, fallback: prefers-color-scheme, default dark).
+ *
+ * Scope doc: docs/LIGHT_MODE_MIGRATION_SCOPE.md. Canvas code cannot resolve
+ * var() — route canvas colors through helpers/resolveToken.ts.
+ */
+
+:root,
+:root[data-membrane-theme='dark'] {
+  /* state */
+  --m-success: #9bdc4f;
+  --m-warning: #d8b24a;
+  --m-danger: #cf4034;
+  --m-info: #46d39a;
+  /* emphasis */
+  --m-primary: #9bdc4f;
+  --m-secondary: #46d39a;
+  /* text — warm bone, not white */
+  --m-text-primary: #ece6d8;
+  --m-text-secondary: #8d877b;
+  --m-text-tertiary: #56524a;
+  /* backgrounds — near-black, not navy */
+  --m-bg-primary: #09090a;
+  --m-bg-secondary: #0e0d10;
+  --m-bg-tertiary: #100f12;
+  /* bone hairlines */
+  --m-border-subtle: rgba(236, 230, 216, 0.1);
+  --m-border-medium: rgba(236, 230, 216, 0.1);
+  --m-border-strong: rgba(236, 230, 216, 0.22);
+}
+
+:root[data-membrane-theme='light'] {
+  /* state — darker twins; phosphor/teal/gold/blood fail contrast as text on cream */
+  --m-success: #3f7212;
+  --m-warning: #7f651a;
+  --m-danger: #a92e22;
+  --m-info: #0f6b4b;
+  /* emphasis — moss for text/emphasis use; solid CTA fills keep phosphor via the
+     Chakra ramp (unchanged in this phase) with ink text */
+  --m-primary: #3f7212;
+  --m-secondary: #0f6b4b;
+  /* text — espresso ink on parchment (user-approved espresso direction) */
+  --m-text-primary: #43331f;
+  --m-text-secondary: #6b5942;
+  --m-text-tertiary: #94836a;
+  /* backgrounds — warm parchment */
+  --m-bg-primary: #e7dfcc;
+  --m-bg-secondary: #efe9d9;
+  --m-bg-tertiary: #f5f0e3;
+  /* espresso hairlines */
+  --m-border-subtle: rgba(67, 51, 31, 0.16);
+  --m-border-medium: rgba(67, 51, 31, 0.16);
+  --m-border-strong: rgba(67, 51, 31, 0.34);
+}

@@ -3,6 +3,7 @@
 // with public/proto/defend.html so the numbers match exactly.
 
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { resolveColor } from '@/helpers/resolveToken'
 
 import {
   BASE,
@@ -208,12 +209,12 @@ export function drawDecisionSurface(
   const X = (v: number) => PAD + ((W - 2 * PAD) * (v - 0.7)) / 0.3
 
   // axis: LTV from 70% to 100%
-  ctx.strokeStyle = C.hairS
+  ctx.strokeStyle = resolveColor(C.hairS)
   ctx.beginPath()
   ctx.moveTo(PAD, H - 26)
   ctx.lineTo(W - PAD, H - 26)
   ctx.stroke()
-  ctx.fillStyle = C.faint
+  ctx.fillStyle = resolveColor(C.faint)
   ctx.font = '9px ' + MONO
   ctx.textAlign = 'center'
   ;[0.7, 0.8, 0.9, 1.0].forEach((v) => ctx.fillText(fmtPct(v), X(v), H - 12))
@@ -224,7 +225,7 @@ export function drawDecisionSurface(
   const trig = M * 1.04
 
   const band = (a: number, b: number, color: string, alpha: number) => {
-    ctx.fillStyle = color
+    ctx.fillStyle = resolveColor(color)
     ctx.globalAlpha = alpha
     ctx.fillRect(X(a), 44, X(Math.min(b, 1)) - X(a), H - 70)
     ctx.globalAlpha = 1
@@ -235,12 +236,13 @@ export function drawDecisionSurface(
   band(wipe, 1.0, C.blood, 0.22)
 
   const mark = (v: number, label: string, color: string) => {
-    ctx.strokeStyle = color
+    const c = resolveColor(color)
+    ctx.strokeStyle = c
     ctx.beginPath()
     ctx.moveTo(X(v), 40)
     ctx.lineTo(X(v), H - 26)
     ctx.stroke()
-    ctx.fillStyle = color
+    ctx.fillStyle = c
     ctx.textAlign = 'center'
     ctx.fillText(label, Math.min(W - 30, Math.max(30, X(v))), 34)
   }
@@ -251,14 +253,14 @@ export function drawDecisionSurface(
 
   // baselines as small ticks under the axis
   BASE.forEach((b) => {
-    ctx.strokeStyle = C.teal
+    ctx.strokeStyle = resolveColor(C.teal)
     ctx.globalAlpha = 0.8
     ctx.beginPath()
     ctx.moveTo(X(b.m), H - 26)
     ctx.lineTo(X(b.m), H - 32)
     ctx.stroke()
     ctx.globalAlpha = 1
-    ctx.fillStyle = C.teal
+    ctx.fillStyle = resolveColor(C.teal)
     ctx.font = '8px ' + MONO
     ctx.fillText(b.nm, X(b.m), H - 2)
   })
@@ -279,7 +281,7 @@ export function drawDuelPath(
   const X = (i: number) => 8 + ((W - 16) * i) / (out.length - 1)
   const Y = (p: number) => 30 + (H - 44) * (1 - (p - lo) / (hi - lo))
 
-  ctx.strokeStyle = C.ink
+  ctx.strokeStyle = resolveColor(C.ink)
   ctx.lineWidth = 1.5
   ctx.beginPath()
   out.forEach((o, i) => (i ? ctx.lineTo(X(i), Y(o.p)) : ctx.moveTo(X(i), Y(o.p))))
@@ -287,10 +289,10 @@ export function drawDuelPath(
 
   out.forEach((o, i) => {
     if (o.ev === 'liq') {
-      ctx.fillStyle = C.blood
+      ctx.fillStyle = resolveColor(C.blood)
       ctx.fillRect(X(i) - 2, Y(o.p) - 2, 5, 5)
     } else if (o.ev === 'timer') {
-      ctx.fillStyle = C.gold
+      ctx.fillStyle = resolveColor(C.gold)
       ctx.fillRect(X(i) - 1.5, Y(o.p) - 1.5, 3.5, 3.5)
     }
   })
@@ -298,10 +300,10 @@ export function drawDuelPath(
   ctx.font = '8.5px ' + MONO
   ctx.textAlign = 'left'
   if (showTimerLegend) {
-    ctx.fillStyle = C.gold
+    ctx.fillStyle = resolveColor(C.gold)
     ctx.fillText('gold = timer ticking', 10, H - 8)
   }
-  ctx.fillStyle = C.blood
+  ctx.fillStyle = resolveColor(C.blood)
   ctx.fillText('red = liquidation', showTimerLegend ? 130 : 10, H - 8)
 }
 
@@ -327,12 +329,12 @@ export function drawVault(ctx: CanvasRenderingContext2D, W: number, H: number): 
   }
   ctx.closePath()
   ctx.globalAlpha = 0.15
-  ctx.fillStyle = C.teal
+  ctx.fillStyle = resolveColor(C.teal)
   ctx.fill()
   ctx.globalAlpha = 1
 
   // live line, drifting to the band's lower half
-  ctx.strokeStyle = C.ink
+  ctx.strokeStyle = resolveColor(C.ink)
   ctx.lineWidth = 1.5
   ctx.beginPath()
   VAULT_LIVE.forEach((v, i) => {
@@ -342,10 +344,10 @@ export function drawVault(ctx: CanvasRenderingContext2D, W: number, H: number): 
   ctx.stroke()
 
   ctx.font = '8.5px ' + MONO
-  ctx.fillStyle = C.teal
+  ctx.fillStyle = resolveColor(C.teal)
   ctx.fillText('sim expectation band', W - 150, 18)
-  ctx.fillStyle = C.ink
+  ctx.fillStyle = resolveColor(C.ink)
   ctx.fillText('live, 12 weeks', 16, 18)
-  ctx.fillStyle = C.gold
+  ctx.fillStyle = resolveColor(C.gold)
   ctx.fillText('drift: −0.9 vs sim median — shown, not hidden', 16, H - 6)
 }

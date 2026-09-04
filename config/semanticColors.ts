@@ -23,6 +23,14 @@
 
 /**
  * Semantic color tokens for the Membrane application
+ *
+ * Values are CSS custom properties defined per-theme in styles/themes.css
+ * (dark = Living Typeface, light = Parchment; [data-theme] on <html>).
+ * They pass straight through Chakra style props and plain CSS.
+ *
+ * They do NOT resolve in non-CSS contexts (Canvas 2D fillStyle, color-math
+ * libraries, anything that parses hex). There, resolve first:
+ * `resolveColor(SEMANTIC_COLORS.danger)` from helpers/resolveToken.ts.
  */
 export const SEMANTIC_COLORS = {
   // ============================================
@@ -30,30 +38,31 @@ export const SEMANTIC_COLORS = {
   // ============================================
   // Living Typeface: phosphor = up/healthy, blood = down/danger,
   // gold = gates/warnings, cyber teal = machine/info.
+  // Parchment swaps in darker twins that hold WCAG contrast on cream.
 
   /**
    * Success state - positive outcomes, confirmations
    * Used for: Success messages, positive metrics, completion states
    */
-  success: '#9bdc4f', // Phosphor green
+  success: 'var(--m-success)', // Phosphor green / moss
 
   /**
    * Warning state - caution, approaching limits
    * Used for: Warnings, capacity warnings, attention needed
    */
-  warning: '#d8b24a', // Gold
+  warning: 'var(--m-warning)', // Gold / dark gold
 
   /**
    * Danger state - errors, critical issues, destructive actions
    * Used for: Error messages, liquidation warnings, delete actions
    */
-  danger: '#cf4034', // Blood red
+  danger: 'var(--m-danger)', // Blood red / deep blood
 
   /**
    * Info state - informational, neutral information
    * Used for: Info messages, tooltips, helper text
    */
-  info: '#46d39a', // Cyber teal
+  info: 'var(--m-info)', // Cyber teal / deep teal
 
   // ============================================
   // EMPHASIS COLORS
@@ -63,76 +72,76 @@ export const SEMANTIC_COLORS = {
    * Primary action color - main CTAs, important actions
    * Used for: Primary buttons, important links, key actions
    */
-  primary: '#9bdc4f', // Phosphor green
+  primary: 'var(--m-primary)', // Phosphor green / moss
 
   /**
    * Secondary action color - supporting actions
    * Used for: Secondary buttons, alternative actions
    */
-  secondary: '#46d39a', // Cyber teal
+  secondary: 'var(--m-secondary)', // Cyber teal / deep teal
 
   // ============================================
   // TEXT COLORS
   // ============================================
-  // Warm bone ink, NOT white.
+  // Warm bone ink on dark, espresso ink on parchment. NOT white, NOT gray.
 
   /**
    * Primary text - main content, headings
    * High contrast for readability
    */
-  textPrimary: '#ece6d8',
+  textPrimary: 'var(--m-text-primary)',
 
   /**
    * Secondary text - supporting content, descriptions
    * Medium contrast
    */
-  textSecondary: '#8d877b',
+  textSecondary: 'var(--m-text-secondary)',
 
   /**
    * Tertiary text - timestamps, metadata, least important text
    * Lower contrast
    */
-  textTertiary: '#56524a',
+  textTertiary: 'var(--m-text-tertiary)',
 
   // ============================================
   // BACKGROUND COLORS
   // ============================================
-  // Near-black, NOT navy.
+  // Near-black / warm parchment. NOT navy, NOT pure white.
 
   /**
    * Primary background - main app background
    */
-  bgPrimary: '#09090a',
+  bgPrimary: 'var(--m-bg-primary)',
 
   /**
    * Secondary background - cards, panels, elevated surfaces
    */
-  bgSecondary: '#0e0d10', // Card
+  bgSecondary: 'var(--m-bg-secondary)', // Card
 
   /**
    * Tertiary background - nested elements, subtle elevation
    */
-  bgTertiary: '#100f12', // Raised
+  bgTertiary: 'var(--m-bg-tertiary)', // Raised
 
   // ============================================
   // BORDER COLORS
   // ============================================
-  // Bone hairlines.
+  // Bone hairlines on dark, espresso hairlines on parchment.
 
   /**
    * Subtle borders - barely visible, gentle separation
    */
-  borderSubtle: 'rgba(236, 230, 216, 0.10)',
+  borderSubtle: 'var(--m-border-subtle)',
 
   /**
    * Medium borders - standard borders, clear separation
    */
-  borderMedium: 'rgba(236, 230, 216, 0.10)',
+  borderMedium: 'var(--m-border-medium)',
 
   /**
    * Strong borders - emphasized borders, focus states
    */
-  borderStrong: 'rgba(236, 230, 216, 0.22)',
+  borderStrong: 'var(--m-border-strong)',
 } as const
 
 /**

@@ -6,6 +6,7 @@ import React, { useEffect, useRef } from 'react'
 import { Box, Text } from '@chakra-ui/react'
 
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { resolveColor } from '@/helpers/resolveToken'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
@@ -151,7 +152,7 @@ export const FactoryFloor: React.FC<FactoryFloorProps> = ({ slots, intent, calc,
         const pt = at(path(BELTS[q.i]), q.t)
         ctx.beginPath()
         ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2)
-        ctx.fillStyle = q.c
+        ctx.fillStyle = resolveColor(q.c)
         ctx.globalAlpha = 0.9
         ctx.fill()
         ctx.globalAlpha = 1

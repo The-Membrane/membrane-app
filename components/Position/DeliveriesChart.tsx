@@ -6,6 +6,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { useThemeMode } from '@/hooks/useThemeMode'
 
 import { MockStamp } from '@/components/demo'
 
@@ -53,6 +54,7 @@ export const DeliveriesChart: React.FC = () => {
   const [bench, setBench] = useState<BenchMode>('hold')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
+  const { mode } = useThemeMode()
 
   useEffect(() => {
     const host = hostRef.current
@@ -75,7 +77,7 @@ export const DeliveriesChart: React.FC = () => {
     paint()
     window.addEventListener('resize', paint)
     return () => window.removeEventListener('resize', paint)
-  }, [range, bench])
+  }, [range, bench, mode])
 
   const grid = withAlpha(SEMANTIC_COLORS.textPrimary, 0.045)
 

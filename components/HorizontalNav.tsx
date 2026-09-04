@@ -1,12 +1,14 @@
 import { Box, Button, HStack, Image, Stack, Text, Spacer, IconButton, Drawer, DrawerOverlay, DrawerContent, DrawerBody, useDisclosure, VStack, Menu, MenuButton, MenuList, MenuItem, Collapse } from '@chakra-ui/react';
 import React, { useEffect, useRef, useState } from 'react';
-import { FaUserCircle, FaBars, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaUserCircle, FaBars, FaChevronDown, FaChevronUp, FaSun, FaMoon } from 'react-icons/fa';
 import WallectConnect from './WallectConnect/WalletConnect';
 import NextLink from 'next/link';
 import { useRouter } from 'next/router';
 import { colors } from '@/config/defaults';
 import { SEMANTIC_COLORS } from '@/config/semanticColors';
-import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions';
+import { FOCUS_STYLES, TRANSITIONS, HOVER_EFFECTS } from '@/config/transitions';
+import { useThemeMode } from '@/hooks/useThemeMode';
+import { TYPOGRAPHY } from '@/helpers/typography';
 import Logo from './Logo';
 import { supportedChains, getChainConfig } from '@/config/chains';
 import { useChainRoute } from '@/hooks/useChainRoute';
@@ -96,6 +98,7 @@ const HorizontalNav = () => {
     const { chainName } = useChainRoute();
     const currentChain = getChainConfig(chainName);
     const { appState, setAppState } = useAppState();
+    const { mode, toggle } = useThemeMode();
 
     // Sync RPC URL with current chain from route when component renders
     useEffect(() => {
@@ -125,9 +128,9 @@ const HorizontalNav = () => {
             w="full"
             px={{ base: 2, md: 8 }}
             py={2}
-            bg="#0e0d10"
+            bg={SEMANTIC_COLORS.bgSecondary}
             borderBottom="1px solid"
-            borderColor="rgba(236, 230, 216, 0.10)"
+            borderColor={SEMANTIC_COLORS.borderMedium}
             borderRadius={0}
             display="flex"
             alignItems="center"
@@ -267,7 +270,7 @@ const HorizontalNav = () => {
                         <Button
                             rightIcon={dashboardsOpen ? <FaChevronUp /> : <FaChevronDown />}
                             variant="ghost"
-                            color="#ece6d8"
+                            color={SEMANTIC_COLORS.textPrimary}
                             fontWeight="semibold"
                             borderRadius="full"
                             border="none"
@@ -289,7 +292,7 @@ const HorizontalNav = () => {
                                         as={NextLink}
                                         href={`/${chainName}${item.href}`}
                                         variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                                        color="#ece6d8"
+                                        color={SEMANTIC_COLORS.textPrimary}
                                         fontWeight="semibold"
                                         borderRadius="full"
                                         border="none"
@@ -318,7 +321,7 @@ const HorizontalNav = () => {
                 onClick={onOpen}
                 bg="transparent"
                 border="none"
-                color="#ece6d8"
+                color={SEMANTIC_COLORS.textPrimary}
                 fontSize="22px"
                 _hover={{ bg: 'whiteAlpha.200' }}
                 mr={2}
@@ -328,6 +331,19 @@ const HorizontalNav = () => {
 
             {/* Right: Chain Selector & Connect Wallet */}
             <HStack spacing={{ base: 2, md: 4 }} align="center">
+                <IconButton
+                    aria-label={mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                    icon={mode === 'dark' ? <FaSun /> : <FaMoon />}
+                    onClick={toggle}
+                    variant="ghost"
+                    borderRadius={0}
+                    border="none"
+                    color={SEMANTIC_COLORS.textPrimary}
+                    transition={TRANSITIONS.colors}
+                    _hover={HOVER_EFFECTS.borderHighlight}
+                    _focusVisible={FOCUS_STYLES.ring}
+                    w={"fit-content"}
+                />
                 <Menu>
                     <MenuButton
                         as={Button}
@@ -337,19 +353,19 @@ const HorizontalNav = () => {
                         leftIcon={<Image src={currentChain.logo} alt={`${currentChain.displayName} Logo`} boxSize={7} objectFit="contain" />}
                         variant="ghost"
                         border="none"
-                        color="#ece6d8"
+                        color={SEMANTIC_COLORS.textPrimary}
                         _hover={{ bg: 'whiteAlpha.200' }}
                         px={2}
                     >
                     </MenuButton>
-                    <MenuList bg="#0e0d10">
+                    <MenuList bg={SEMANTIC_COLORS.bgSecondary}>
                         {supportedChains.map((chain) => (
                             <MenuItem
                                 key={chain.name}
                                 onClick={() => handleChainChange(chain.name)}
                                 bg={chain.name === currentChain.name ? 'whiteAlpha.200' : 'transparent'}
                                 _hover={{ bg: 'whiteAlpha.300' }}
-                                color="#ece6d8"
+                                color={SEMANTIC_COLORS.textPrimary}
                                 cursor="pointer"
                             >
                                 <HStack>
@@ -370,7 +386,7 @@ const HorizontalNav = () => {
                 {/* aria-label: the drawer has no DrawerHeader, so without this it
                     is a dialog with no accessible name — screen readers announce
                     only "dialog". */}
-                <DrawerContent bg="#0e0d10" aria-label="Site navigation">
+                <DrawerContent bg={SEMANTIC_COLORS.bgSecondary} aria-label="Site navigation">
                     <DrawerBody p={0} pt={8}>
                         <VStack align="stretch" spacing={1} h="full" justify="space-between">
                             <VStack align="stretch" spacing={1}>
@@ -383,7 +399,7 @@ const HorizontalNav = () => {
                                         as={NextLink}
                                         href={`/${chainName}${item.href}`}
                                         variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                                        color="#ece6d8"
+                                        color={SEMANTIC_COLORS.textPrimary}
                                         fontWeight="semibold"
                                         borderRadius="full"
                                         border="none"
@@ -443,7 +459,7 @@ const HorizontalNav = () => {
                                         <Button
                                             rightIcon={dashboardsOpen ? <FaChevronUp /> : <FaChevronDown />}
                                             variant="ghost"
-                                            color="#ece6d8"
+                                            color={SEMANTIC_COLORS.textPrimary}
                                             fontWeight="semibold"
                                             borderRadius="full"
                                             border="none"
@@ -466,7 +482,7 @@ const HorizontalNav = () => {
                                                         as={NextLink}
                                                         href={`/${chainName}${item.href}`}
                                                         variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                                                        color="#ece6d8"
+                                                        color={SEMANTIC_COLORS.textPrimary}
                                                         fontWeight="semibold"
                                                         borderRadius="full"
                                                         border="none"
@@ -488,6 +504,24 @@ const HorizontalNav = () => {
                                 )}
                             </VStack>
                             <Box p={4}>
+                                <Box display="flex" justifyContent="center" mb={4}>
+                                    <Button
+                                        aria-label={mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                                        leftIcon={mode === 'dark' ? <FaSun /> : <FaMoon />}
+                                        onClick={toggle}
+                                        variant="ghost"
+                                        borderRadius={0}
+                                        border="none"
+                                        color={SEMANTIC_COLORS.textPrimary}
+                                        fontFamily={TYPOGRAPHY.fontMono}
+                                        fontSize="13px"
+                                        transition={TRANSITIONS.colors}
+                                        _hover={HOVER_EFFECTS.borderHighlight}
+                                        _focusVisible={FOCUS_STYLES.ring}
+                                    >
+                                        {mode === 'dark' ? 'Light theme' : 'Dark theme'}
+                                    </Button>
+                                </Box>
                                 <Text
                                     color="blue.300"
                                     fontStyle="italic"

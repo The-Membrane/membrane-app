@@ -22,6 +22,29 @@ interface LayoutProps {
   children: React.ReactNode
 }
 
+// Ditto renders ONLY on executable pages (owner ruling 2026-09-04: no mascot
+// chrome on decision-tool/read-only surfaces — it reads as an eyesore next to
+// numbers). Executable = a live contract action exists on the page. Full
+// mobile removal is a separate open question with the Membrane: App session.
+const EXECUTABLE_ROUTES = [
+  '/mint',
+  '/disco',
+  '/transmuter',
+  '/stake',
+  '/manic',
+  '/portfolio',
+  '/earn',
+  '/liquidate',
+  '/lockdrop',
+  '/borrow',
+  '/position',
+  '/boost',
+  '/isolated',
+]
+
+const isExecutableRoute = (pathname: string): boolean =>
+  EXECUTABLE_ROUTES.some((r) => pathname.includes(r))
+
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter()
   // const { rulesState } = useMembersRulesState()
@@ -57,7 +80,7 @@ export default function Layout({ children }: LayoutProps) {
         </Box>
       </ChainLayout>
       {/* <RulesModal isOpen={isOpen} onClose={onClose} /> */}
-      <DittoHologram stayShown={true} />
+      {isExecutableRoute(router.pathname) && <DittoHologram stayShown={true} />}
     </Box>
   )
 }

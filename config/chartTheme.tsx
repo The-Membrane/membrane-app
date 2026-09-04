@@ -19,10 +19,10 @@
  */
 
 // Color constants — Living Typeface palette (bone on near-black, phosphor accent).
-const GRID_COLOR = 'rgba(236, 230, 216, 0.08)' // faint bone grid
-const AXIS_COLOR = '#ece6d8'                    // bone ink
-const TOOLTIP_BG = '#0e0d10'                    // card surface
-const TOOLTIP_BORDER = 'rgba(236, 230, 216, 0.22)' // strong hairline
+const GRID_COLOR = 'rgba(236, 230, 216, 0.08)' // faint bone grid (bespoke opacity, not in the shared hairline set — left as literal)
+const AXIS_COLOR = 'var(--m-text-primary)'      // bone ink
+const TOOLTIP_BG = 'var(--m-bg-secondary)'      // card surface
+const TOOLTIP_BORDER = 'var(--m-border-strong)' // strong hairline
 
 /**
  * Asset colors for multi-line charts
@@ -34,14 +34,14 @@ const TOOLTIP_BORDER = 'rgba(236, 230, 216, 0.22)' // strong hairline
 // directly (the `as const` tuple length is load-bearing). All on the Living
 // Typeface organic/machine spectrum — no purple/cyan.
 export const ASSET_COLORS = [
-  '#9bdc4f', // phosphor green
-  '#46d39a', // cyber teal
-  '#d8b24a', // gold
-  '#cf4034', // blood red
-  '#8d877b', // bone dim
-  '#4a8636', // moss dark
-  '#c8e89a', // pale phosphor
-  '#e0c877', // pale gold
+  'var(--m-primary)', // phosphor green
+  'var(--m-secondary)', // cyber teal
+  'var(--m-warning)', // gold
+  'var(--m-danger)', // blood red
+  'var(--m-text-secondary)', // bone dim
+  '#4a8636', // moss dark — bespoke series tint, not in the shared palette; left literal
+  '#c8e89a', // pale phosphor — bespoke series tint, not in the shared palette; left literal
+  '#e0c877', // pale gold — bespoke series tint, not in the shared palette; left literal
 ] as const
 
 /**
@@ -103,7 +103,7 @@ export const CHART_THEME = {
       color: AXIS_COLOR,
     },
     cursor: {
-      stroke: 'rgba(236, 230, 216, 0.10)',
+      stroke: 'var(--m-border-subtle)',
       strokeWidth: 1,
     },
   },
@@ -114,7 +114,7 @@ export const CHART_THEME = {
   legend: {
     wrapperStyle: {
       fontSize: 12,
-      color: '#8d877b',
+      color: 'var(--m-text-secondary)',
     },
     iconType: 'line' as const,
   },
@@ -194,7 +194,7 @@ export const createCustomLegend = (labelTransform?: (value: string) => string) =
                 />
               </svg>
               {/* Bone-dim text label */}
-              <span style={{ color: '#8d877b', fontSize: '12px' }}>
+              <span style={{ color: 'var(--m-text-secondary)', fontSize: '12px' }}>
                 {displayName}
               </span>
             </div>
@@ -226,21 +226,21 @@ export const CHART_DIMENSIONS = {
  */
 export const REFERENCE_STYLES = {
   liquidation: {
-    stroke: '#cf4034', // blood red, dashed
+    stroke: 'var(--m-danger)', // blood red, dashed
     strokeWidth: 2,
     strokeDasharray: '5 5',
     label: {
-      fill: '#cf4034',
+      fill: 'var(--m-danger)',
       fontSize: 10,
       position: 'right' as const,
     },
   },
   target: {
-    stroke: '#9bdc4f', // phosphor green
+    stroke: 'var(--m-success)', // phosphor green
     strokeWidth: 1,
     strokeDasharray: '3 3',
     label: {
-      fill: '#9bdc4f',
+      fill: 'var(--m-success)',
       fontSize: 10,
       position: 'right' as const,
     },

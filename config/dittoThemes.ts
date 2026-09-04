@@ -20,50 +20,50 @@ export const dittoThemes: Record<string, DittoTheme> = {
         id: 'default',
         imagePath: '/images/ditto.svg',
         altText: 'Ditto',
-        glowColor: 'rgba(70, 211, 154, 0.8)', // cyber teal #46d39a
-        accentColor: '#46d39a',
+        glowColor: 'color-mix(in srgb, var(--m-secondary) 80%, transparent)', // cyber teal, 0.8 alpha preserved
+        accentColor: 'var(--m-secondary)',
     },
     manic: {
         id: 'manic',
         imagePath: '/images/ditto-manic.png',
         altText: 'Ditto with lightning hat',
-        glowColor: 'rgba(70, 211, 154, 0.8)', // cyber teal #46d39a
-        accentColor: '#46d39a',
+        glowColor: 'color-mix(in srgb, var(--m-secondary) 80%, transparent)', // cyber teal, 0.8 alpha preserved
+        accentColor: 'var(--m-secondary)',
     },
     disco: {
         id: 'disco',
         imagePath: '/images/ditto-disco.png',
         altText: 'Ditto with DJ hat',
-        glowColor: 'rgba(155, 220, 79, 0.8)', // phosphor #9bdc4f
-        accentColor: '#9bdc4f',
+        glowColor: 'color-mix(in srgb, var(--m-primary) 80%, transparent)', // phosphor, 0.8 alpha preserved
+        accentColor: 'var(--m-primary)',
     },
     transmuter: {
         id: 'transmuter',
         imagePath: '/images/ditto-transmuter.png',
         altText: 'Ditto with alchemy hat',
-        glowColor: 'rgba(70, 211, 154, 0.8)', // cyber teal #46d39a
-        accentColor: '#46d39a',
+        glowColor: 'color-mix(in srgb, var(--m-secondary) 80%, transparent)', // cyber teal, 0.8 alpha preserved
+        accentColor: 'var(--m-secondary)',
     },
     portfolio: {
         id: 'portfolio',
         imagePath: '/images/ditto-portfolio.png',
         altText: 'Ditto with analyst hat',
-        glowColor: 'rgba(70, 211, 154, 0.8)', // cyber teal #46d39a
-        accentColor: '#46d39a',
+        glowColor: 'color-mix(in srgb, var(--m-secondary) 80%, transparent)', // cyber teal, 0.8 alpha preserved
+        accentColor: 'var(--m-secondary)',
     },
     lockdrop: {
         id: 'lockdrop',
         imagePath: '/images/ditto-lockhead.png',
         altText: 'Ditto with lock hat',
-        glowColor: 'rgba(216, 178, 74, 0.8)', // gold #d8b24a — lockdrop is a gate
-        accentColor: '#d8b24a',
+        glowColor: 'color-mix(in srgb, var(--m-warning) 80%, transparent)', // gold, 0.8 alpha preserved — lockdrop is a gate
+        accentColor: 'var(--m-warning)',
     },
     mint: {
         id: 'mint',
         imagePath: '/images/ditto-printer.png',
         altText: 'Ditto with printer',
-        glowColor: 'rgba(155, 220, 79, 0.8)', // phosphor #9bdc4f
-        accentColor: '#9bdc4f',
+        glowColor: 'color-mix(in srgb, var(--m-primary) 80%, transparent)', // phosphor, 0.8 alpha preserved
+        accentColor: 'var(--m-primary)',
         imageSize: '220px',
         imageBottom: '-5px',
     },
@@ -78,31 +78,6 @@ export const routeThemeMap: Record<string, string> = {
     '/acquisition': 'lockdrop',
     '/mint': 'mint',
 }
-
-/**
- * Routes where Ditto does not appear at all.
- *
- * These are PROOF surfaces. Ditto's four message types (ALERT / UPDATE / INSIGHT /
- * SHORTCUT) are all scoped to the user's own position state — see
- * `.claude/skills/branding-guidelines/references/ditto-character.md`. The evidence
- * page has no user position: it is 2,350 strangers' accounts from October 2025. Ditto
- * would have nothing valid to say there, and anything he did say would have to be
- * invented, which is the one thing a page built to be checked cannot afford
- * (VETERAN_UX_RULESET.md V19: "Trust claims the user can check beat trust claims the
- * user must read").
- *
- * These are Next.js route PATTERNS (`router.pathname`), not URLs — the landing page is
- * `/[chain]`, not `/ethereum`. Matching is EXACT on purpose: a prefix match on
- * `/[chain]` would suppress Ditto on every page in the app.
- */
-export const dittoSuppressedRoutes: string[] = [
-    '/[chain]', // the landing page — renders the Evidence counterfactual tool
-    '/[chain]/evidence', // kept for the legacy route, which 308s to /[chain]
-]
-
-/** True when Ditto should not mount at all for this route pattern. */
-export const isDittoSuppressed = (pathname: string): boolean =>
-    dittoSuppressedRoutes.includes(pathname)
 
 /**
  * Get theme for a given route

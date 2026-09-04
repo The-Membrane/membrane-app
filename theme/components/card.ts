@@ -10,7 +10,7 @@ const baseStyle = definePartsStyle({
     borderRadius: '0', // sharp
     bg: colors.cardBG, // #0e0d10
     border: '1px solid',
-    borderColor: 'rgba(236, 230, 216, 0.10)',
+    borderColor: 'var(--m-border-subtle)',
     boxShadow: 'none',
     padding: '6',
   },

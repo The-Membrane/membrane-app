@@ -41,6 +41,12 @@ export const TYPOGRAPHY = {
   // Labels (mono, uppercase, letter-spaced ~.2em)
   label: '11px', // Form labels, table headers
 
+  // Font families — mirror the Chakra theme tokens in theme/fonts.ts.
+  // fontDisplay → Redaction serif (headings, editorial copy).
+  // fontMono    → JetBrains Mono (body, ALL numbers/data, labels, buttons).
+  fontDisplay: "'Redaction', Georgia, 'Times New Roman', serif",
+  fontMono: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace",
+
   // Font weights (map to JetBrains Mono 400/500/700; 'bold' rounds to 700).
   bold: 700,
   semibold: 600,
@@ -55,25 +61,25 @@ export const TEXT_STYLES = {
   pageTitle: {
     fontSize: TYPOGRAPHY.h1,
     fontWeight: TYPOGRAPHY.bold,
-    color: '#ece6d8',
+    color: 'var(--m-text-primary)',
     mb: 6,
   },
   sectionTitle: {
     fontSize: TYPOGRAPHY.h2,
     fontWeight: TYPOGRAPHY.semibold,
-    color: '#ece6d8',
+    color: 'var(--m-text-primary)',
     mb: 4,
   },
   modalTitle: {
     fontSize: TYPOGRAPHY.h3,
     fontWeight: TYPOGRAPHY.bold,
-    color: '#ece6d8',
+    color: 'var(--m-text-primary)',
     mb: 4,
   },
   cardTitle: {
     fontSize: TYPOGRAPHY.h4,
     fontWeight: TYPOGRAPHY.semibold,
-    color: '#ece6d8',
+    color: 'var(--m-text-primary)',
     mb: 2,
   },
   tableHeader: {
@@ -81,22 +87,22 @@ export const TEXT_STYLES = {
     fontWeight: TYPOGRAPHY.normal,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.2em',
-    color: '#8d877b',
+    color: 'var(--m-text-secondary)',
   },
   body: {
     fontSize: TYPOGRAPHY.body,
     fontWeight: TYPOGRAPHY.normal,
-    color: '#ece6d8',
+    color: 'var(--m-text-primary)',
   },
   bodySecondary: {
     fontSize: TYPOGRAPHY.small,
     fontWeight: TYPOGRAPHY.normal,
-    color: '#8d877b',
+    color: 'var(--m-text-secondary)',
   },
   bodyTertiary: {
     fontSize: TYPOGRAPHY.xs,
     fontWeight: TYPOGRAPHY.normal,
-    color: '#56524a',
+    color: 'var(--m-text-tertiary)',
   },
 } as const
 

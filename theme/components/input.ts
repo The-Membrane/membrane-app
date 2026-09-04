@@ -30,28 +30,28 @@ export const Input: ComponentStyleConfig = {
       field: {
         border: '1px solid',
         borderColor: colors.inputBorder, // bone hairline
-        color: '#ece6d8',
+        color: 'var(--m-text-primary)',
         background: colors.inputBG, // raised #100f12
         // Focus = 1px phosphor border (no blurred ring).
         _focusVisible: {
-          borderColor: '#9bdc4f',
-          boxShadow: '0 0 0 1px #9bdc4f',
+          borderColor: 'var(--m-primary)',
+          boxShadow: '0 0 0 1px var(--m-primary)',
           outline: 'none',
         },
         _hover: {
-          borderColor: 'rgba(236, 230, 216, 0.22)',
+          borderColor: 'var(--m-border-strong)',
         },
         _invalid: {
-          borderColor: '#cf4034',
+          borderColor: 'var(--m-danger)',
           _focusVisible: {
-            borderColor: '#cf4034',
-            boxShadow: '0 0 0 1px #cf4034',
+            borderColor: 'var(--m-danger)',
+            boxShadow: '0 0 0 1px var(--m-danger)',
           },
         },
         _disabled: {
           opacity: 0.6,
           cursor: 'not-allowed',
-          borderColor: 'rgba(236, 230, 216, 0.10)',
+          borderColor: 'var(--m-border-subtle)',
         },
       },
     },
@@ -61,14 +61,14 @@ export const Input: ComponentStyleConfig = {
     filled: {
       field: {
         border: 'none',
-        background: '#100f12',
-        color: '#ece6d8',
+        background: 'var(--m-bg-tertiary)',
+        color: 'var(--m-text-primary)',
         _hover: {
-          background: '#0e0d10',
+          background: 'var(--m-bg-secondary)',
         },
         _focusVisible: {
-          background: '#100f12',
-          borderColor: '#9bdc4f',
+          background: 'var(--m-bg-tertiary)',
+          borderColor: 'var(--m-primary)',
         },
       },
     },

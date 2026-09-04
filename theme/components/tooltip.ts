@@ -5,16 +5,16 @@ import { type ComponentStyleConfig } from '@chakra-ui/react'
 export const Tooltip: ComponentStyleConfig = {
   baseStyle: {
     borderRadius: '0', // sharp
-    bg: '#100f12', // raised
-    color: '#ece6d8', // bone ink
+    bg: 'var(--m-bg-tertiary)', // raised
+    color: 'var(--m-text-primary)', // bone ink
     border: '1px solid',
-    borderColor: 'rgba(236, 230, 216, 0.22)',
+    borderColor: 'var(--m-border-strong)',
     boxShadow: 'none',
     fontFamily: "'JetBrains Mono', ui-monospace, monospace",
     fontSize: '12px',
     px: 3,
     py: 2,
     // Chakra reads `--popper-arrow-bg` for the tooltip arrow fill.
-    '--popper-arrow-bg': '#100f12',
+    '--popper-arrow-bg': 'var(--m-bg-tertiary)',
   },
 }

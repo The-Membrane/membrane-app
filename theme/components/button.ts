@@ -7,12 +7,12 @@ import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 // - hover      → text brightens to full bone, hairline strengthens
 // - active/sel → phosphor border + phosphor text + raised bg
 // - focus      → crisp phosphor outline (FOCUS_STYLES.ring)
-const HAIRLINE = 'rgba(236, 230, 216, 0.10)'
-const HAIRLINE_STRONG = 'rgba(236, 230, 216, 0.22)'
-const INK = '#ece6d8'
-const INK_DIM = '#8d877b'
-const PHOS = '#9bdc4f'
-const RAISED = '#100f12'
+const HAIRLINE = 'var(--m-border-subtle)'
+const HAIRLINE_STRONG = 'var(--m-border-strong)'
+const INK = 'var(--m-text-primary)'
+const INK_DIM = 'var(--m-text-secondary)'
+const PHOS = 'var(--m-primary)'
+const RAISED = 'var(--m-bg-tertiary)'
 
 export const Button: ComponentStyleConfig = {
   baseStyle: {

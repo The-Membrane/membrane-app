@@ -90,47 +90,47 @@ export const HOVER_EFFECTS = {
   // Was "lift" — now a hairline + ink shift (border brightens, text goes to full bone).
   lift: {
     transition: TRANSITIONS.colors,
-    borderColor: 'rgba(236, 230, 216, 0.22)',
-    color: '#ece6d8',
+    borderColor: 'var(--m-border-strong)',
+    color: 'var(--m-text-primary)',
   },
 
   liftSubtle: {
     transition: TRANSITIONS.colors,
-    borderColor: 'rgba(236, 230, 216, 0.22)',
+    borderColor: 'var(--m-border-strong)',
   },
 
   // Was "scale" — now a phosphor border highlight (cards).
   scale: {
     transition: TRANSITIONS.colors,
-    borderColor: '#9bdc4f',
+    borderColor: 'var(--m-primary)',
   },
 
   scaleSubtle: {
     transition: TRANSITIONS.colors,
-    borderColor: 'rgba(236, 230, 216, 0.22)',
+    borderColor: 'var(--m-border-strong)',
   },
 
   // Was "glow" — now a phosphor border (special emphasis), no shadow.
   glow: {
     transition: TRANSITIONS.colors,
-    borderColor: '#9bdc4f',
+    borderColor: 'var(--m-primary)',
   },
 
   glowCyan: {
     transition: TRANSITIONS.colors,
-    borderColor: '#46d39a',
+    borderColor: 'var(--m-secondary)',
   },
 
   // Brightness → ink brighten toward full bone (icon buttons).
   brighten: {
     transition: TRANSITIONS.colors,
-    color: '#ece6d8',
+    color: 'var(--m-text-primary)',
   },
 
   // Border highlight — the canonical Living Typeface hover.
   borderHighlight: {
     transition: TRANSITIONS.colors,
-    borderColor: 'rgba(236, 230, 216, 0.22)',
+    borderColor: 'var(--m-border-strong)',
   },
 } as const
 
@@ -143,22 +143,22 @@ export const HOVER_EFFECTS = {
 export const ACTIVE_EFFECTS = {
   press: {
     transition: TRANSITIONS.colors,
-    borderColor: '#9bdc4f',
-    color: '#9bdc4f',
-    bg: '#100f12',
+    borderColor: 'var(--m-primary)',
+    color: 'var(--m-primary)',
+    bg: 'var(--m-bg-tertiary)',
   },
 
   pressDown: {
     transition: TRANSITIONS.colors,
-    borderColor: '#9bdc4f',
-    color: '#9bdc4f',
-    bg: '#100f12',
+    borderColor: 'var(--m-primary)',
+    color: 'var(--m-primary)',
+    bg: 'var(--m-bg-tertiary)',
   },
 
   scaleDown: {
     transition: TRANSITIONS.colors,
-    borderColor: '#9bdc4f',
-    color: '#9bdc4f',
+    borderColor: 'var(--m-primary)',
+    color: 'var(--m-primary)',
   },
 
   // Canonical Living Typeface press feedback: opacity dips slightly, no translate/scale.
@@ -181,35 +181,35 @@ export const ACTIVE_EFFECTS = {
 export const FOCUS_STYLES = {
   // Default focus indicator (phosphor)
   ring: {
-    outline: '2px solid #9bdc4f',
+    outline: '2px solid var(--m-primary)',
     outlineOffset: '1px',
     boxShadow: 'none',
-    borderColor: '#9bdc4f',
+    borderColor: 'var(--m-primary)',
     transition: TRANSITIONS.colors,
   },
 
   // Alt accent focus (cyber teal)
   ringCyan: {
-    outline: '2px solid #46d39a',
+    outline: '2px solid var(--m-secondary)',
     outlineOffset: '1px',
     boxShadow: 'none',
-    borderColor: '#46d39a',
+    borderColor: 'var(--m-secondary)',
     transition: TRANSITIONS.colors,
   },
 
   // Subtle border highlight (1px phos border, no outline)
   borderHighlight: {
     outline: 'none',
-    borderColor: '#9bdc4f',
+    borderColor: 'var(--m-primary)',
     transition: TRANSITIONS.colors,
   },
 
   // Was "glow" — now identical crisp phosphor outline, no shadow.
   glow: {
-    outline: '2px solid #9bdc4f',
+    outline: '2px solid var(--m-primary)',
     outlineOffset: '1px',
     boxShadow: 'none',
-    borderColor: '#9bdc4f',
+    borderColor: 'var(--m-primary)',
     transition: TRANSITIONS.colors,
   },
 } as const

@@ -8,7 +8,7 @@ export const Modal: ComponentStyleConfig = {
       borderRadius: '0', // sharp
       bg: colors.modalBG, // card surface #0e0d10
       border: '1px solid',
-      borderColor: 'rgba(236, 230, 216, 0.22)',
+      borderColor: 'var(--m-border-strong)',
       boxShadow: 'none',
       padding: '6',
     },

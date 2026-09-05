@@ -1,6 +1,7 @@
 # Brand asset re-export — the Living Typeface migration's raster blockers
 
-**Status:** open design task. Nothing here can be fixed in code.
+**Status:** Ditto sprites DONE (1 Sep 2026, hue remap via scripts/recolor-sprites.py).
+Logo/wordmark rasters remain an open design task.
 **Last audited:** 31 Aug 2026.
 
 The Living Typeface migration replaced the legacy purple/cyan palette everywhere it lives
@@ -23,27 +24,24 @@ Legacy colors being removed: `#6943FF` `#A692FF` `#9333EA` `#A855F7` `#8C79FF` (
 
 ---
 
-## 1. Ditto character art — 6 live PNGs
+## 1. Ditto character art — RESOLVED 1 Sep 2026
 
-**Already done in code:** the glow halo (`glowColor` / `accentColor` in
-`config/dittoThemes.ts`) is migrated to the tokens above.
+Recoloured in place with `scripts/recolor-sprites.py`, a per-pixel hue remap rather
+than a re-draw. The artwork's own hues sat in a narrow 188-248 degree band (cyan
+through violet); that band was remapped onto 157 -> 86 (teal -> phosphor), which keeps
+the internal shading gradient instead of flattening the character to one colour.
 
-**The mismatch this creates:** the halo is now teal/phosphor/gold while the art underneath
-is, by theme intent, still cyan and purple — a cyan lightning hat, a purple DJ hat. Until
-these are re-exported the glow and the character disagree. That is a deliberate, known
-intermediate state, not an oversight.
+Deliberately preserved: near-black linework (below 0.18 saturation is left alone,
+because hue-rotating a desaturated pixel produces mud) and every out-of-band prop.
+Manic's yellow lightning, disco's pink headphones and portfolio's brown cap all keep
+their original hues.
 
-| File | Theme / route | Glow now | Art needs |
-|---|---|---|---|
-| `public/images/ditto-manic.png` | manic · `/manic` | teal `#46d39a` | lightning hat: cyan → teal |
-| `public/images/ditto-disco.png` | disco · `/disco` | phosphor `#9bdc4f` | DJ hat: purple → phosphor |
-| `public/images/ditto-transmuter.png` | transmuter · `/transmuter` | teal `#46d39a` | alchemy hat: cyan → teal |
-| `public/images/ditto-portfolio.png` | portfolio · `/portfolio` | teal `#46d39a` | analyst hat → teal |
-| `public/images/ditto-lockhead.png` | lockdrop · `/acquisition` | gold `#d8b24a` | lock hat: purple → gold |
-| `public/images/ditto-printer.png` | mint · `/mint` | phosphor `#9bdc4f` | printer → phosphor |
+Files recoloured: ditto.svg, holo-no-ditto.svg, ditto-manic.png, ditto-disco.png,
+ditto-transmuter.png, ditto-portfolio.png, ditto-lockhead.png, ditto-printer.png.
 
-Fixed in passing: `dittoThemes.ts` pointed the lockdrop theme at `ditto-lockdrop.png`,
-which does not exist on disk. Corrected to `ditto-lockhead.png`.
+STILL OFF-BRAND: the transmuter wizard hat is violet (hue ~275), outside the remapped
+band, so it survived untouched. It is a costume rather than the character, and moving
+that hue would also catch unrelated pixels. Left for a design call.
 
 ## 2. Raster-in-SVG — look like vectors, are not
 

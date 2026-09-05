@@ -3,33 +3,43 @@ import { Box, VStack } from '@chakra-ui/react'
 import ChainLayout from '@/components/ChainLayout'
 import { BoostSection } from '@/components/DittoSpeechBox/sections/BoostSection'
 import { PageTitle } from '@/components/ui/PageTitle'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { SPACING } from '@/config/spacing'
+import PageSeo from '@/components/PageSeo'
 
 export default function BoostPage() {
     return (
         <ChainLayout>
+            {/* Rule 0 (docs/SEO_RULESET.md): app — wallet-gated boost management tool */}
+            <PageSeo
+                seoClass="app"
+                title="Membrane — Boosts"
+                description="View your boost sources and manage the deposits behind them, with a detailed breakdown of how each source contributes to your total boost multiplier."
+            />
             <Box
                 w="100%"
                 minH="100vh"
-                bg="gray.900"
-                py={8}
-                px={4}
+                bg={SEMANTIC_COLORS.bgPrimary}
+                py={SPACING.xl}
+                px={SPACING.base}
             >
-                <VStack spacing={8} maxW="1400px" mx="auto">
+                <VStack spacing={SPACING.xl} maxW="1400px" mx="auto">
                     <Box w="100%">
                         <PageTitle
-                            title="BOOSTS"
+                            title="Boosts"
                             subtitle="Detailed view of your boost sources and deposit management"
-                            variant="cyberpunk"
                         />
                     </Box>
                     <Box
                         w="100%"
-                        bg="gray.800"
-                        border="2px solid"
-                        borderColor="purple.400"
-                        borderRadius="md"
-                        p={6}
+                        bg={SEMANTIC_COLORS.bgSecondary}
+                        border="1px solid"
+                        borderColor={SEMANTIC_COLORS.borderSubtle}
+                        borderRadius={0}
+                        p={SPACING.lg}
                     >
+                        {/* onBack is intentionally a no-op here: BoostSection renders as a standalone page,
+                            not inside the DittoSpeechBox drawer, so there is no parent view to return to. */}
                         <BoostSection onBack={() => {}} />
                     </Box>
                 </VStack>

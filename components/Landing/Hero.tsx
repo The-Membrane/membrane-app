@@ -143,6 +143,19 @@ export const Hero: React.FC<HeroProps> = ({ st, c, chainName, onBtc, onLtv, onVe
       <Box bg={SEMANTIC_COLORS.bgPrimary} p={{ base: SPACING.lg, md: SPACING.xl }} display="grid" gap={SPACING.lg} alignContent="start">
         <Eyebrow>Your bitcoin, still yours</Eyebrow>
 
+        {/* The page's single h1, aligned with the PageSeo title (SEO_RULESET R9);
+            crawlers previously found zero h1 in this tree (docs/GEO_AUDIT.md P0). */}
+        <Text
+          as="h1"
+          fontFamily={TYPOGRAPHY.fontDisplay}
+          fontSize={TYPOGRAPHY.h1}
+          fontWeight={TYPOGRAPHY.bold}
+          lineHeight="1.15"
+          color={SEMANTIC_COLORS.textPrimary}
+        >
+          Borrow against your bitcoin, keep the bitcoin
+        </Text>
+
         <Box display="grid" gap={SPACING.sm}>
           <Text
             fontFamily={TYPOGRAPHY.fontMono}

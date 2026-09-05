@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { Box, Grid, GridItem, VStack } from '@chakra-ui/react'
+import { Box, Grid, GridItem, Text, VStack } from '@chakra-ui/react'
+import { TYPOGRAPHY } from '@/helpers/typography'
 import { CollateralizedBundle } from './CollateralizedBundle'
 import { AvailableCollateral } from './AvailableCollateral'
 import { AvailableToBorrow } from './AvailableToBorrow'
@@ -166,6 +167,17 @@ export const NeutronMint: React.FC<NeutronMintProps> = ({
       {/* Main Content */}
       <Box w="100%" maxW="1400px" mx="auto" p={4} position="relative" zIndex={1}>
         <VStack spacing={6} align="stretch">
+          {/* The page's single h1, aligned with the page's Seo title — this tree
+              had no page title at all for crawlers (docs/GEO_AUDIT.md P0). */}
+          <Text
+            as="h1"
+            fontFamily={TYPOGRAPHY.fontDisplay}
+            fontSize={TYPOGRAPHY.h1}
+            fontWeight={TYPOGRAPHY.bold}
+            color={SEMANTIC_COLORS.textPrimary}
+          >
+            Mint CDT against your crypto
+          </Text>
           {/* Position Overview - centered */}
           {hasPosition && (
             <Box display="flex" justifyContent="center">

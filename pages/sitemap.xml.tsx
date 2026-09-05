@@ -12,6 +12,8 @@ import { getPostSlugs } from '@/helpers/blog'
  */
 const INDEXABLE_PATHS = [
   `/${DEFAULT_CHAIN}`,
+  `/${DEFAULT_CHAIN}/borrow`,
+  `/${DEFAULT_CHAIN}/home`,
   `/${DEFAULT_CHAIN}/landing`,
   `/${DEFAULT_CHAIN}/mint`,
   `/${DEFAULT_CHAIN}/stake`,

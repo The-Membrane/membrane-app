@@ -7,6 +7,19 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  // R3 (docs/SEO_RULESET.md): routes deleted on the evm-migration branch keep
+  // permanent redirects so old links and index entries land somewhere real.
+  // Running map: docs/REDIRECT_MAP.md. `:chain` is already validated upstream
+  // by middleware.ts (invalid chains 404 or 308 before these run).
+  async redirects() {
+    return [
+      { source: '/:chain/cityscape', destination: '/:chain', permanent: true },
+      { source: '/:chain/flywheel', destination: '/:chain', permanent: true },
+      { source: '/:chain/lockdrop', destination: '/:chain', permanent: true },
+      { source: '/:chain/manic', destination: '/:chain', permanent: true },
+      { source: '/:chain/isolated/:marketAddress/:symbol*', destination: '/:chain/isolated', permanent: true },
+    ]
+  },
   typescript: {
     // !! WARN !!
     // Dangerously allow production builds to successfully complete even if
@@ -18,6 +31,13 @@ const nextConfig = {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
     ignoreDuringBuilds: true
+  },
+  // Blog posts are read from disk at request time (helpers/blog.ts); make sure
+  // the content dir ships with traced serverless output.
+  outputFileTracingIncludes: {
+    '/blog': ['./content/blog/**'],
+    '/blog/[slug]': ['./content/blog/**'],
+    '/sitemap.xml': ['./content/blog/**'],
   },
   webpack: (config, { isServer }) => {
     // Ensure chain-registry is properly resolved

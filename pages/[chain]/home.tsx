@@ -2,7 +2,7 @@ import React from 'react'
 import type { GetServerSideProps } from 'next'
 
 import Home from '@/components/Home/Home'
-import Seo from '@/components/Seo'
+import PageSeo from '@/components/PageSeo'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
 
 // The former landing page. `/[chain]` now renders the Evidence counterfactual tool
@@ -23,9 +23,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 const HomePage = () => {
     return (
         <>
-            <Seo
+            {/* Rule 0 (docs/SEO_RULESET.md): indexable — marketing entry page (former landing content) */}
+            <PageSeo
+                seoClass="indexable"
                 title="Membrane — Borrow Against Crypto with a CDP Stablecoin"
                 description="Deposit crypto collateral, borrow the CDT stablecoin, and keep an 8-hour cure window before any liquidation. Build looped yield positions on Membrane."
+                path={`/${DEFAULT_CHAIN}/home`}
             />
             <Home />
         </>

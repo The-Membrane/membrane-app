@@ -9,6 +9,7 @@ import { ControlPanel } from '@/components/Elevator/ControlPanel'
 import { LevelSelectionCard } from '@/components/Elevator/LevelSelectionCard'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import PageSeo from '@/components/PageSeo'
 
 export default function LevelsPage() {
     const router = useRouter()
@@ -29,6 +30,12 @@ export default function LevelsPage() {
 
     return (
         <ChainLayout>
+            {/* Rule 0 (docs/SEO_RULESET.md): internal — sim/experiment level-select screen */}
+            <PageSeo
+                seoClass="internal"
+                title="Membrane — Levels"
+                description="An elevator-themed level-select screen for navigating between the app's game and experience sections, with a control panel and a level preview card."
+            />
             <Box
                 position="relative"
                 minH="100vh"

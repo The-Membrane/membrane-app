@@ -2,11 +2,37 @@ import fs from 'node:fs'
 import path from 'node:path'
 import React from 'react'
 import type { GetServerSideProps } from 'next'
+import Head from 'next/head'
 
 import PageSeo from '@/components/PageSeo'
+import { SITE_URL } from '@/components/Seo'
 import { Evidence } from '@/components/Evidence'
 import type { EvidenceDoc } from '@/components/Evidence'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
+
+// R8 (docs/SEO_RULESET.md): Organization + WebSite JSON-LD on the landing page
+// only, and conservatively — name/url/logo/description are facts we can stand
+// behind; contactPoint/address are omitted until real ones exist (R14: no
+// invented specifics). Emitted only when the canonical origin is known.
+const structuredData = SITE_URL
+    ? JSON.stringify([
+        {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Membrane',
+            url: SITE_URL,
+            logo: `${SITE_URL}/images/mbrn.svg`,
+            description:
+                'Membrane is a collateralized debt protocol on Ethereum: post crypto collateral, mint the CDT stablecoin, and face partial liquidations that repay to the cap instead of closing the whole loan.',
+        },
+        {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Membrane',
+            url: SITE_URL,
+        },
+    ])
+    : null
 
 // EVM-only: a single chain path (/ethereum). Stale bookmarks (/osmosis, /neutron)
 // land here with an invalid chain — redirect server-side to /ethereum before any HTML
@@ -63,6 +89,15 @@ const IndexPage = ({ summary }: { summary: EvidenceDoc | null }) => {
                 title="Membrane — What Our Engine Would Have Done"
                 description="Every account Aave liquidated on 10 October 2025, replayed through Membrane's liquidation engine on the same measured prices. Aave closed a median 71% of each loan; Membrane's partial repay-to-cap closes 17.8%. Includes the accounts where Membrane does worse."
             />
+            {structuredData && (
+                <Head>
+                    <script
+                        key="ld-org"
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{ __html: structuredData }}
+                    />
+                </Head>
+            )}
             <Evidence initialDoc={summary} />
         </>
     )

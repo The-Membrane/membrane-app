@@ -10,6 +10,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TRANSITIONS, HOVER_EFFECTS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { SPACING } from '@/config/spacing'
+import PageSeo from '@/components/PageSeo'
 
 const features = [
     {
@@ -38,6 +39,12 @@ export default function AboutPage() {
 
     return (
         <ChainLayout>
+            {/* Rule 0 (docs/SEO_RULESET.md): internal — placeholder lore copy, not final protocol content */}
+            <PageSeo
+                seoClass="internal"
+                title="Membrane — About"
+                description="Placeholder lore page for an unreleased sensory-experience narrative: a fictional receptionist introduction that links into the app's levels section."
+            />
             <Box
                 position="relative"
                 minH="100vh"

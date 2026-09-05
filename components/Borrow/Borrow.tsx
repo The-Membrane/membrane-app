@@ -95,7 +95,7 @@ export const Borrow: React.FC = () => {
         >
           Borrow
         </Text>
-        <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} color={SEMANTIC_COLORS.textPrimary} mt={SPACING.xs}>
+        <Text as="h1" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} color={SEMANTIC_COLORS.textPrimary} mt={SPACING.xs}>
           Mint CDT against what you already hold.
         </Text>
         <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xs} lineHeight={1.7} maxW="74ch">

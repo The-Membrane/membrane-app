@@ -96,6 +96,7 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
               competing numbering schemes on one screen read as a mistake. */}
           <Eyebrow>Counterfactual · 10 Oct 2025</Eyebrow>
           <Text
+            as="h1"
             fontFamily={TYPOGRAPHY.fontDisplay}
             fontSize={TYPOGRAPHY.h1}
             fontWeight={TYPOGRAPHY.bold}

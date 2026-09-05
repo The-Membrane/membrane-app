@@ -24,45 +24,32 @@ Legacy colors being removed: `#6943FF` `#A692FF` `#9333EA` `#A855F7` `#8C79FF` (
 
 ---
 
-## 1. Ditto character art — RESOLVED 1 Sep 2026
+## 1. Ditto — REDRAWN 4 Sep 2026, supersedes the recolour plan
 
-Recoloured in place with `scripts/recolor-sprites.py`, a per-pixel hue remap rather
-than a re-draw. The artwork's own hues sat in a narrow 188-248 degree band (cyan
-through violet); that band was remapped onto 157 -> 86 (teal -> phosphor), which keeps
-the internal shading gradient instead of flattening the character to one colour.
+Ditto is no longer the flat-cell character. He is now mossy stone with phosphor light
+running through the seams, standing on a matching hologram plinth. This is a redesign,
+not the like-for-like recolour this document originally planned, so the hue-remap
+approach recorded here is superseded. `scripts/recolor-sprites.py` is kept because the
+method is reusable, not because Ditto still needs it.
 
-Deliberately preserved: near-black linework (below 0.18 saturation is left alone,
-because hue-rotating a desaturated pixel produces mud) and every out-of-band prop.
-Manic's yellow lightning, disco's pink headphones and portfolio's brown cap all keep
-their original hues.
+    public/images/ditto.png        1312x1199, aspect 1.094, real alpha
+    public/images/holo-plinth.png  1536x1024, aspect 1.500, real alpha
 
-Files recoloured: ditto.svg, ditto-manic.png, ditto-disco.png, ditto-transmuter.png,
-ditto-portfolio.png, ditto-lockhead.png, ditto-printer.png.
+Sized in `components/DittoHologram.tsx`: plinth 132x88, Ditto 119x109. Ditto is 90% of
+the plinth's width (owner pick) and sits at bottom:25px, sunk 27% of his height into the
+plate so his base is lost in the glow rather than resting on a surface. Both are set with
+explicit width AND height because neither asset is square and a `boxSize` would distort
+them.
 
-The band is 174-250 degrees. An earlier 188 lower bound stranded a cyan patch on the
-body's lower right, visible once the sprite was rendered large.
+The six hat variants (manic, disco, transmuter, portfolio, lockhead, printer) are
+RETIRED. `config/dittoThemes.ts` is one theme; `routeThemeMap` and per-route theming are
+gone. `glowColor` survives only because DittoHologram interpolates it into the
+drop-shadow when actions are pending.
 
-**The plinth is treated differently.** `holo-no-ditto.svg` is not recoloured to phosphor.
-It gets a warm STONE base (hue 32, low saturation) with phosphor MOSS grown on it: value
-noise, biased to upper surfaces, masked by the plinth's own alpha. The emissive centre
-plate is protected by testing for bright AND desaturated pixels, since that is light
-rather than a surface and moss does not grow on light. Growing moss on the untouched blue
-plinth produced a legacy-blue prop with green speckle, which read as a bug.
-
-STILL OFF-BRAND: the transmuter wizard hat is violet (hue ~275), outside the remapped
-band, so it survived untouched. It is a costume rather than the character, and moving
-that hue would also catch unrelated pixels. Left for a design call.
-
-## 2. Raster-in-SVG — look like vectors, are not
-
-Each of these is a single `<rect fill="url(#pattern)">` wrapping a base64 PNG. There are
-no paths or fills to edit; a find/replace on hex values does nothing.
-
-| File | Referenced from | Note |
-|---|---|---|
-| `public/images/ditto.svg` | `dittoThemes.ts` default theme | the fallback Ditto |
-| `public/images/holo-no-ditto.svg` | `DittoHologram.tsx` | the hologram plinth, always rendered |
-| `public/images/holo-w-ditto.svg` | *(unreferenced)* | orphaned; same palette risk if revived |
+WATCH FOR: every delivered version before the final pair shipped with a BAKED BLACK
+background (0% transparent, corner pixels 0,0,0 at alpha 1). Those render as a black
+rectangle on parchment `#e7dfcc`. The two files now installed have genuine alpha, 32.5%
+and 37.5% transparent. Check `corner alpha` on anything new before installing it.
 
 ## 3. Logo / wordmark
 

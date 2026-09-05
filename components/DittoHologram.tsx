@@ -119,7 +119,7 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
             )}
 
             {/* Container for hologram and Ditto */}
-            <Box position="relative" w={{ base: '124px', md: '160px' }} h={{ base: '112px', md: '140px' }}>
+            <Box position="relative" w={{ base: '124px', md: '150px' }} h={{ base: '112px', md: '140px' }}>
                 {/* TILT LAYER. The rotation wraps the ARTWORK ONLY. The badge and the
                     speech bubble are siblings below, so they stay upright: a tilted
                     speech bubble reads as a rendering bug rather than a character
@@ -134,17 +134,20 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                 {/* Base hologram platform. Hidden on mobile: a plinth cut in half by the
                     viewport edge reads as broken, and he is leaning in rather than
                     standing on anything. */}
+                {/* The emitter. Aspect 1.500 (1536x1024): width and height are set from
+                    that ratio rather than as a square, which would squash it. Hidden on
+                    mobile, where Ditto leans in from off-screen with nothing to stand on. */}
                 <Image
-                    src="/images/holo-no-ditto.svg"
+                    src="/images/holo-plinth.png"
                     alt=""
                     aria-hidden
                     display={{ base: 'none', md: 'block' }}
-                    w="128px"
-                    h="128px"
+                    w="132px"
+                    h="88px"
                     objectFit="contain"
                     position="absolute"
-                    bottom="-14px"
-                    left="16px"
+                    bottom="0"
+                    left="9px"
                 />
 
                 {/* Ditto image - centered on top of hologram */}
@@ -153,14 +156,16 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                     src={imagePath}
                     alt={currentTheme.altText}
                     position="absolute"
-                    bottom={{ base: '4px', md: currentTheme.imageBottom || '50px' }}
+                    bottom={{ base: '4px', md: '25px' }}
                     left={{ base: '0', md: '50%' }}
                     transform={{ base: 'none', md: 'translateX(-50%)' }}
                     /* HARD CAP on mobile. Themes may set imageSize as large as 220px
                        (mint), which is 56% of a 390px viewport. The cap ignores the
                        theme value so no single page can reintroduce the eyesore. */
-                    w={{ base: '104px', md: currentTheme.imageSize || '110px' }}
-                    h={{ base: '104px', md: currentTheme.imageSize || '110px' }}
+                    /* 90% of the plinth's width (owner pick). Height follows the 1.094
+                       aspect: a square box would distort him. Mobile keeps its own cap. */
+                    w={{ base: '104px', md: '119px' }}
+                    h={{ base: '95px', md: '109px' }}
                     objectFit="contain"
                     opacity={stayShown ? 1 : 0}
                     transition="all 0.3s ease-in-out"

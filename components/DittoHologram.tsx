@@ -26,6 +26,60 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
     const username = appState.setCookie && appState.username ? appState.username : ''
     const hasSeenWelcome = dittoSpeechBoxState.hasSeenWelcome
 
+    // ---- DORMANCY -----------------------------------------------------------
+    // ditto-character.md:119 defines a DORMANT state ("collapsed, no badge, no message")
+    // and ditto-character.md:79 says "never interrupt while user is interacting". Neither
+    // was implemented: Ditto rendered permanently, so a bright glowing object competed
+    // with the page for attention on every executable route. He now surfaces only when he
+    // has something to say, and returns to dormant once it has been seen.
+    //
+    // DORMANT_OPACITY is the one knob here. At 0 he is completely invisible when idle,
+    // which is what was asked for, and the panel is then unreachable except when he
+    // speaks. Raise it to ~0.2 to leave a dim affordance that keeps the panel openable.
+    const DORMANT_OPACITY = 0
+    const SPEAK_MS = 9000
+
+    const [dismissed, setDismissed] = useState(false)
+    const [isInteracting, setIsInteracting] = useState(false)
+
+    // Identity of the current thing-to-say. When it changes he has something NEW, so the
+    // previous dismissal no longer applies.
+    const actionKey = useMemo(
+        () => availableActions.map((a: { id?: string }) => a?.id ?? '').join('|'),
+        [availableActions],
+    )
+
+    useEffect(() => {
+        setDismissed(false)
+    }, [actionKey])
+
+    // Auto-return to dormant. He says his piece and gets out of the way rather than
+    // sitting there lit. Hovering or opening the panel holds him.
+    useEffect(() => {
+        if (!hasAvailableActions || dismissed || isPanelOpen) return
+        const t = setTimeout(() => {
+            if (!isHoveredRef.current) setDismissed(true)
+        }, SPEAK_MS)
+        return () => clearTimeout(t)
+    }, [hasAvailableActions, dismissed, isPanelOpen, actionKey])
+
+    // LOCKED: suppressed while the user is mid-action. Typing an amount or signing is
+    // exactly when a glowing animal in the corner is most unwelcome.
+    useEffect(() => {
+        const editable = (t: EventTarget | null) =>
+            t instanceof Element && !!t.closest('input, textarea, select, [contenteditable="true"]')
+        const onIn = (e: FocusEvent) => { if (editable(e.target)) setIsInteracting(true) }
+        const onOut = () => setIsInteracting(false)
+        document.addEventListener('focusin', onIn)
+        document.addEventListener('focusout', onOut)
+        return () => {
+            document.removeEventListener('focusin', onIn)
+            document.removeEventListener('focusout', onOut)
+        }
+    }, [])
+
+    const isAwake = isPanelOpen || (hasAvailableActions && !dismissed && !isInteracting)
+
     // Get current theme based on route
     const currentTheme: DittoTheme = useMemo(() => {
         return getThemeForRoute(router.pathname)
@@ -69,7 +123,12 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
 
     // Toggle panel open/closed
     const togglePanel = () => {
-        setIsPanelOpen(prev => !prev)
+        setIsPanelOpen(prev => {
+            // Closing the panel is an explicit "I am done with you": go dormant rather
+            // than sitting lit until the timer expires.
+            if (prev) setDismissed(true)
+            return !prev
+        })
         // Dismiss welcome bubble when panel opens
         if (showWelcomeBubble) {
             dismissWelcome()
@@ -97,6 +156,13 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
             left={{ base: '-34px', md: '16px' }}
             zIndex={9999}
             pointerEvents="none"
+            /* DORMANT vs AWAKE. Opacity rather than unmount, so the fade can play and the
+               panel's own close animation is not cut off mid-flight. `visibility` follows
+               so a fully transparent Ditto is not a focus target for keyboard users. */
+            opacity={isAwake ? 1 : DORMANT_OPACITY}
+            visibility={isAwake || DORMANT_OPACITY > 0 ? 'visible' : 'hidden'}
+            transition="opacity 0.45s ease-in-out, visibility 0.45s"
+            aria-hidden={!isAwake}
         >
             {/* Ditto Panel - positioned above Ditto */}
             {stayShown && (

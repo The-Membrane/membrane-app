@@ -1,4 +1,6 @@
-"""Ditto palette migration: legacy blue/violet -> Living Typeface phosphor/teal.
+"""Usage: recolor-sprites.py OUTDIR FILE...
+
+Ditto palette migration: legacy blue/violet -> Living Typeface phosphor/teal.
 
 The sprites are rasters, so this is a per-pixel hue remap rather than a token swap.
 Method: the artwork's own hues sit in a narrow 190-245 degree band (cyan -> violet).
@@ -11,7 +13,7 @@ import base64, io, re, sys
 import numpy as np
 from PIL import Image
 
-SRC_LO, SRC_HI = 188.0, 248.0     # measured band in the source art
+SRC_LO, SRC_HI = 174.0, 250.0     # measured band; 188 stranded a cyan patch on the body
 DST_HI, DST_LO = 157.0, 86.0      # teal .. phosphor (note: direction inverted)
 SAT_FLOOR = 0.18                  # below this a pixel is linework, not colour
 
@@ -70,8 +72,13 @@ def save(im, p, wrapper):
         open(p, 'w').write(re.sub(r'base64,[A-Za-z0-9+/=]+', 'base64,' + b64, wrapper))
 
 if __name__ == '__main__':
-    for p in sys.argv[1:]:
+    import os
+    outdir = sys.argv[1]
+    os.makedirs(outdir, exist_ok=True)
+    for p in sys.argv[2:]:
         im, wrapper = load(p)
-        out = p.replace('/images/', '/images_recolored/')
+        out = os.path.join(outdir, os.path.basename(p))
+        if os.path.abspath(out) == os.path.abspath(p):
+            raise SystemExit(f'refusing to overwrite the source: {p}')
         save(remap(im), out, wrapper)
-        print(f'  {p.split("/")[-1]:26} -> {out.split("/")[-1]}')
+        print(f'  {os.path.basename(p):26} -> {out}')

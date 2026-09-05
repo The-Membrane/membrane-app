@@ -36,8 +36,18 @@ because hue-rotating a desaturated pixel produces mud) and every out-of-band pro
 Manic's yellow lightning, disco's pink headphones and portfolio's brown cap all keep
 their original hues.
 
-Files recoloured: ditto.svg, holo-no-ditto.svg, ditto-manic.png, ditto-disco.png,
-ditto-transmuter.png, ditto-portfolio.png, ditto-lockhead.png, ditto-printer.png.
+Files recoloured: ditto.svg, ditto-manic.png, ditto-disco.png, ditto-transmuter.png,
+ditto-portfolio.png, ditto-lockhead.png, ditto-printer.png.
+
+The band is 174-250 degrees. An earlier 188 lower bound stranded a cyan patch on the
+body's lower right, visible once the sprite was rendered large.
+
+**The plinth is treated differently.** `holo-no-ditto.svg` is not recoloured to phosphor.
+It gets a warm STONE base (hue 32, low saturation) with phosphor MOSS grown on it: value
+noise, biased to upper surfaces, masked by the plinth's own alpha. The emissive centre
+plate is protected by testing for bright AND desaturated pixels, since that is light
+rather than a surface and moss does not grow on light. Growing moss on the untouched blue
+plinth produced a legacy-blue prop with green speckle, which read as a bug.
 
 STILL OFF-BRAND: the transmuter wizard hat is violet (hue ~275), outside the remapped
 band, so it survived untouched. It is a costume rather than the character, and moving

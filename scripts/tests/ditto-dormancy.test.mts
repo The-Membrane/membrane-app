@@ -8,12 +8,19 @@
 import assert from 'node:assert'
 
 /** Mirrors the isAwake expression in components/DittoHologram.tsx. */
+const ALWAYS_AWAKE_ROUTES = ['/portfolio']
+const isBrowsable = (pathname: string) => ALWAYS_AWAKE_ROUTES.some((r) => pathname.includes(r))
+
 const isAwake = (s: {
   isPanelOpen: boolean
   hasAvailableActions: boolean
   dismissed: boolean
   isInteracting: boolean
-}) => s.isPanelOpen || (s.hasAvailableActions && !s.dismissed && !s.isInteracting)
+  pathname?: string
+}) =>
+  s.isPanelOpen ||
+  isBrowsable(s.pathname ?? '/[chain]/mint') ||
+  (s.hasAvailableActions && !s.dismissed && !s.isInteracting)
 
 const base = {
   isPanelOpen: false,
@@ -51,6 +58,24 @@ ok(isAwake({ ...base, isPanelOpen: true }), 'open panel stays visible with no ac
 ok(
   isAwake({ ...base, isPanelOpen: true, dismissed: true, isInteracting: true }),
   'open panel outranks both dismissal and interaction: never yank an open panel away',
+)
+
+// --- browsable routes: he is furniture, not an interruption ----------------
+// The panel is the only door to the referral link (tabs/StatusTab.tsx) and the FAQs
+// (tabs/LearnTab.tsx). Hiding him on a dashboard hides the entrance to content people
+// went there to browse.
+ok(isAwake({ ...base, pathname: '/[chain]/portfolio' }), 'portfolio: awake with nothing to say')
+ok(
+  isAwake({ ...base, pathname: '/[chain]/portfolio', dismissed: true }),
+  'portfolio: dismissal does not hide him, he is a destination',
+)
+ok(
+  isAwake({ ...base, pathname: '/[chain]/portfolio', isInteracting: true }),
+  'portfolio: typing does not hide him either — furniture vanishing on focus is worse',
+)
+ok(
+  !isAwake({ ...base, pathname: '/[chain]/mint', dismissed: true, hasAvailableActions: true }),
+  'mint still goes dormant: the exception is scoped, not global',
 )
 
 console.log(`DITTO DORMANCY OK — ${n} assertions passed`)

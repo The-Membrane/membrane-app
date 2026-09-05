@@ -39,6 +39,13 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
     const DORMANT_OPACITY = 0
     const SPEAK_MS = 9000
 
+    // Routes where Ditto is a DESTINATION rather than an interruption. His panel carries
+    // the referral link (tabs/StatusTab.tsx) and the consolidated FAQs
+    // (tabs/LearnTab.tsx), and he is the only door to both. On a dashboard the user came
+    // to browse, so he is furniture and stays put; dormancy would hide the entrance to
+    // content people are looking for. Transactional routes keep the dormant behaviour.
+    const ALWAYS_AWAKE_ROUTES = ['/portfolio']
+
     const [dismissed, setDismissed] = useState(false)
     const [isInteracting, setIsInteracting] = useState(false)
 
@@ -78,7 +85,13 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
         }
     }, [])
 
-    const isAwake = isPanelOpen || (hasAvailableActions && !dismissed && !isInteracting)
+    const isBrowsableRoute = useMemo(
+        () => ALWAYS_AWAKE_ROUTES.some((r) => router.pathname.includes(r)),
+        [router.pathname],
+    )
+
+    const isAwake =
+        isPanelOpen || isBrowsableRoute || (hasAvailableActions && !dismissed && !isInteracting)
 
     // Get current theme based on route
     const currentTheme: DittoTheme = useMemo(() => {

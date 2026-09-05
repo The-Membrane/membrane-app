@@ -52,6 +52,7 @@ import '../styles/fonts.css';
 import '../styles/global.css';
 import '../styles/themes.css';
 import Seo from '@/components/Seo'
+import NeonBootSplash from '@/components/ui/NeonBootSplash'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { usePerformanceMetrics } from '@/hooks/usePerformanceMetrics'
 import { useAffiliateCaptureFromUrl } from '@/hooks/useAffiliate'
@@ -91,6 +92,10 @@ const App = ({ Component, pageProps }: AppProps) => {
           <MotionConfig reducedMotion="user">
             <LazyMotion features={loadMotionFeatures} strict={false}>
               <ChakraProvider resetCSS theme={theme}>
+                {/* Boot splash: SSR-rendered neon sign covering the blank
+                    pre-hydration window; fades ~1.4s after mount. Hard loads
+                    only — see components/ui/NeonBootSplash.tsx. */}
+                <NeonBootSplash />
                 <Layout>
                   <Component {...pageProps} />
                 </Layout>

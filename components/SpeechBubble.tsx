@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, Text } from '@chakra-ui/react'
+import { Box, Text, ResponsiveValue} from '@chakra-ui/react'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { FOCUS_STYLES } from '@/config/transitions'
 
@@ -25,8 +25,8 @@ interface SpeechBubbleProps {
         right?: string
         top?: string
     }
-    maxW?: string
-    minW?: string
+    maxW?: ResponsiveValue<string>
+    minW?: ResponsiveValue<string>
     onDismiss?: () => void
 }
 

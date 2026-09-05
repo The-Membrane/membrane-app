@@ -106,8 +106,8 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                        head sits higher and further right than the desktop anchor because
                        of the tilt, and the left offset cancels the wrapper's negative
                        inset so the panel stays fully on screen. */
-                    bottom={{ base: '104px', md: '165px' }}
-                    left={{ base: '38px', md: '0' }}
+                    bottom={{ base: '124px', md: '165px' }}
+                    left={{ base: '34px', md: '0' }}
                     pointerEvents="auto"
                     zIndex={10000}
                 >
@@ -188,8 +188,8 @@ export const DittoHologram: React.FC<DittoHologramProps> = ({ stayShown = true }
                 {stayShown && !isPanelOpen && showBadge && (
                     <Box
                         position="absolute"
-                        bottom={{ base: '84px', md: '115px' }}
-                        left={{ base: '76px', md: '115px' }}
+                        bottom={{ base: '115px', md: '115px' }}
+                        left={{ base: '49px', md: '115px' }}
                         pointerEvents="auto"
                     >
                         <ActionIndicator

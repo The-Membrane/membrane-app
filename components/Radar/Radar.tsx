@@ -173,9 +173,17 @@ export const Radar: React.FC = () => {
   const [address, setAddress] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // Remember the last-looked-up address (paste-first UX).
+  // Init the input: a ?address= deep-link (from the Carry Strats board) wins and
+  // auto-scans; otherwise fall back to the last-looked-up address (paste-first UX).
   useEffect(() => {
     if (typeof window === 'undefined') return
+    const deepLink = new URLSearchParams(window.location.search).get('address')?.trim()
+    if (deepLink && isAddressish(deepLink)) {
+      setInput(deepLink)
+      window.localStorage.setItem(LS_KEY, deepLink)
+      setAddress(deepLink)
+      return
+    }
     const last = window.localStorage.getItem(LS_KEY)
     if (last) setInput(last)
   }, [])

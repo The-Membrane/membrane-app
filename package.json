@@ -31,6 +31,8 @@
     "recorder:run": "node scripts/record-venue-liquidity.mjs",
     "recorder:flows": "node scripts/record-venue-flows.mjs",
     "recorder:backfill": "node scripts/backfill-venue-history.mjs",
+    "strats:discover": "node scripts/discover-carry-strats.mjs",
+    "strats:refresh": "node scripts/refresh-strat-positions.mjs",
     "news:fetch": "node scripts/fetch-venue-news.mjs"
   },
   "dependencies": {

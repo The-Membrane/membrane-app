@@ -30,6 +30,8 @@ const navItems = [
     // Wallet-free carry-trader decision tool: paste any address, stress its
     // positions against our recorded venue capacity + flow corpus.
     { label: 'Radar', href: '/radar' },
+    // Auto-tracked mainnet carry strats (discovery scan -> watch -> verdicts).
+    { label: 'Strats', href: '/strats' },
     { label: 'Home', href: '/home' },
     { label: 'Builder', href: '/builder' },
     { label: 'Defend', href: '/defend' },

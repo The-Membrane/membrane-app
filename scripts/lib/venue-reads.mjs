@@ -44,6 +44,11 @@ export function makeClient(rpcUrl) {
     name: 'Ethereum',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: { default: { http: urls } },
+    // Multicall3 (canonical mainnet deployment) so client.multicall() works for
+    // the per-address position reader (scripts/lib/position-reads.mjs). viem's
+    // built-in `mainnet` chain carries this; a hand-rolled defineChain must
+    // declare it or multicall throws ChainDoesNotSupportContract.
+    contracts: { multicall3: { address: '0xcA11bde05977b3631167028862bE2a173976CA11', blockCreated: 14353601 } },
   })
   const transport =
     urls.length === 1

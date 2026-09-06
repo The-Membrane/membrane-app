@@ -10,3 +10,6 @@ echo "=== recorder tick $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 # Venue news last (external RSS; upsert-idempotent). Non-fatal — a Google News
 # hiccup must never fail the capacity/flows tick, so swallow its exit code.
 /opt/homebrew/bin/node scripts/fetch-venue-news.mjs || echo "news:fetch failed (non-fatal)"
+# Refresh tracked strat positions (batched multicall reads; the /strats board
+# serves this cache + freshness stamp). Non-fatal.
+/opt/homebrew/bin/node scripts/refresh-strat-positions.mjs || echo "strats:refresh failed (non-fatal)"

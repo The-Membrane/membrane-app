@@ -23,7 +23,7 @@ each claim) + the honesty gates that must clear before any piece ships publicly.
 | Keeper | DeFi Saver: outside bot, 0.3% each fire; Black Thursday zero-bid auctions, 5.67M DAI. Membrane's unwind is in-protocol; the fee comes out of the debt. | Carry timeline (breach→cure→partial) | ✓ live |
 | Collateral | Automation elsewhere de-risks by selling (697 WETH at the low). Membrane's yield sits on the debt; recall pulls back protocol-issued capital. | Evidence cohort data + Portfolio YourRecord ("debt −$X · collateral untouched −$0") | ✓ live |
 | Timer | One bad tick ≠ liquidation: 8-hour window + price band, then only partial. | **Evidence + ForecastGate** — the star witness: 2,350 real accounts replayed | ✓ live |
-| Exit | A stuck venue costs you time, not price; the delay is a delay. | /venue pages + recorder corpus | ⚠ HOLD — see gate 2 |
+| Exit | A stuck venue costs you time, not a penalty (verified wording below). | /venue pages + recorder corpus | ✓ verified vs contracts — see gate 2 |
 
 ## Honesty gates (must clear before public)
 
@@ -32,11 +32,27 @@ each claim) + the honesty gates that must clear before any piece ships publicly.
    true. The collateral dial must say it in one breath: *de-risking* never sells
    your collateral — recall pulls debt-side capital — but *insolvency* still does,
    through the window, partially. Above the fold, not a footnote (owner's own note).
-2. **Verify the exit dial against membrane-solidity** before it ships: "your
-   position doesn't get more expensive while the venue rebuilds capacity" is a
-   claim about fee/interest accrual during a stuck-venue recall delay. Cite the
-   exact contract behavior (cure-window fee mechanics, recall path) or soften the
-   line. UNVERIFIED as of this writing.
+2. **Exit dial — VERIFIED against membrane-solidity, 2026-09-06 (verdict:
+   supported-with-precision).** The delay adds NO venue-induced cost anywhere in
+   the contracts: no waiting fee (over-liquidity withdrawal simply reverts and you
+   take what's liquid — DeploymentVaultBase.sol:330-351), no cure-window premium
+   (the window stores only startTime, nothing accrues — LiquidationEngine.sol:
+   1410-1419), a liquidation fee keyed to LTV crossed, never to time waited
+   (LiquidationEngine.sol:1505-1515), and a cost-free sUSDe cooldown path
+   (DeploymentVaultUSDe.sol:82-95). The port even DELETED the Rust time-based fee
+   on purpose — the code comment says it "would let the delay window mint a hidden
+   base rate" (LiquidationEngine.sol:1496-1497). Marketable in itself.
+   The one precision: ordinary borrow interest (default ~1%/yr, Cdp.sol:875,
+   accrual Cdp.sol:4347-4396) keeps ticking on open debt, identically whether the
+   venue is healthy or stuck, and is stoppable by repaying — which needs no venue.
+   The absolute "doesn't get more expensive" is therefore replaced by this
+   SHIPPING WORDING:
+   > "A stuck venue costs you time, not a penalty. When a venue can't return
+   > capital right away, we don't charge you for waiting — no exit fee, no
+   > cure-window premium, and your liquidation price doesn't ramp just because
+   > the clock is running. The delay is a delay. (Your loan's normal interest
+   > keeps accruing on any debt you leave open, exactly as it always does — and
+   > you can repay to stop it without waiting on the venue.)"
 3. **"Fixed at open vs. can move" ships as a rendered TABLE, not prose** (owner's
    second note, in house teach-don't-tell form): left column what is immutable at
    position-open; right column what still moves (MBRN governance, the autonomous

@@ -14,9 +14,11 @@
 //    rank clause, not a fabricated "1st".
 
 import { fmtUsd, fmtDuration } from './radarLogic'
-import { consequence, type Entry as VenueLogEntry } from '@/components/Carry/venueLogLogic'
+import { alarmConsequence, consequence, type Entry as VenueLogEntry } from '@/components/Carry/venueLogLogic'
 
-export type Provenance = 'observed' | 'reconstructed' | 'chain-read' | 'recorded'
+// 'alarm' joined the venue-log union when the failure-pattern alarm shipped —
+// an alarm open during a hold is legitimate recap material.
+export type Provenance = 'observed' | 'reconstructed' | 'chain-read' | 'recorded' | 'alarm'
 export type BeatKind = 'entered' | 'exit_initiated' | 'exit_landed' | 'venue_param_changed' | 'context'
 
 export type Beat = {
@@ -136,13 +138,16 @@ export function flowToBeats(f: AddressFlow): Beat[] {
 
 /** A hold-window venue state change → a beat, reusing the venue-log consequence copy. */
 export function venueEventToBeat(e: VenueLogEntry): Beat {
-  const c = consequence(e)
+  const isAlarm = e.provenance === 'alarm'
+  const c = isAlarm ? alarmConsequence(e) : consequence(e)
   const paramish = e.kind === 'cooldown_duration_changed' || e.kind === 'instant_liquidity_shift'
   return {
     at: e.at,
     venue: e.venue,
-    kind: paramish ? 'venue_param_changed' : 'context',
-    text: `${e.venue}: ${c.text}`,
+    kind: isAlarm ? 'context' : paramish ? 'venue_param_changed' : 'context',
+    text: isAlarm
+      ? `${e.venue}: failure-pattern flag during your hold — ${c.text}`
+      : `${e.venue}: ${c.text}`,
     provenance: e.provenance,
   }
 }

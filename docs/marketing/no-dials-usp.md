@@ -25,7 +25,30 @@ each claim) + the honesty gates that must clear before any piece ships publicly.
 | Timer | One bad tick ≠ liquidation: 8-hour window + price band, then only partial. | **Evidence + ForecastGate** — the star witness: 2,350 real accounts replayed | ✓ live |
 | Exit | A stuck venue costs you time, not a penalty (verified wording below). | /venue pages + recorder corpus | ✓ verified vs contracts — see gate 2 |
 
-## Owner precision rulings (2026-09-06) — VERIFICATION VERDICT: not yet shipped
+## SPINE UPDATE 2026-09-06 (later): THE CONTRACT WORK LANDED — CLAIMS NOW PRESENT-TENSE
+
+Branch `feat/carry-usp-free-deployed-debt` (d3461f39), 3,696 tests green, 5 Quint
+invariants (incl. inv_no_negative_carry) + Foundry fuzz. Verified by this session
+against the worktree:
+1. **Deployed debt IS free** — Cdp._accruePosition STEP 1b (Cdp.sol:4133-4158)
+   zero-rates debt covered by deployed principal in canonical factory venues.
+   Two honest qualifiers the copy keeps: (a) "canonical venues" = factory-minted
+   wrappers allowlisted pre-renounce; (b) coverage warms up one accrual window
+   (the anti-retro-gaming clamp — "every measurement error lands on the CHARGE
+   side, never the free side", quote the comment). Undeployed debt still pays the
+   base rate — that asymmetry IS the deployment incentive.
+2. **Spread from yield IS live** — the user/protocol/curator split the owner
+   remembered existed: protocol leg un-bricked (CuratorVault.declareProtocolRate
+   :627-630), curator fee 7d-gated (:637-648), split carved from REALIZED GAIN
+   only in settleProtocolPayment (:552-618); principal never charged (HP-30).
+3. **No negative carry — true by construction** for deployed borrowers: accrual
+   = 0 while covered; every charge bounded by realized gain; proven as
+   inv_no_negative_carry (specs/quint/solidity_lift/carry_spine.qnt).
+Enabled toggle: ruled DISPLAY-ONLY BY DESIGN, KNOWN-BY-DESIGN entry recorded.
+**Copy status: the future-flags on rulings 2/3 can come OFF once the branch
+merges to master** (it is committed on the feature branch; merge is the last gate).
+
+## Historical verdict (superseded by the update above) — was: not yet shipped
 
 **The code check (2026-09-06, cited) found rulings 2 and 3 describe the Mycelium
 target design (HP-1 / HP-30 / HP-43 in membrane-solidity's

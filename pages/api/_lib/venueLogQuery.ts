@@ -17,7 +17,11 @@ export type VenueLogEntry = {
   at: string
   prev: Record<string, unknown> | null
   next: Record<string, unknown> | null
-  provenance: 'observed' | 'reconstructed'
+  provenance: 'observed' | 'reconstructed' | 'alarm'
+  /** Only for provenance 'alarm': 'watch' | 'alarm', and whether the alarm has been cleared. */
+  severity?: 'watch' | 'alarm'
+  evidence?: Record<string, unknown> | null
+  cleared?: boolean
 }
 
 export type VenueLogFilter = {
@@ -70,6 +74,39 @@ export async function fetchVenueLogEntries(filter: VenueLogFilter = {}): Promise
     ORDER BY observed_at DESC
     LIMIT ${limit}`)
 
+  // Venue failure-pattern ALARMS (scripts/check-venue-alarms.mjs). Every OPEN
+  // alarm (cleared_at IS NULL) is surfaced as an entry; recently-cleared alarms
+  // are shown too, capped at 10, so the log reads as a live danger feed rather
+  // than a silent one. Bounded to a single venue when requested, but NOT to the
+  // [since, until] window — an open alarm is current regardless of when it fired.
+  const openAlarms = await db.execute(sql`
+    SELECT venue, kind, severity, evidence, fired_at AS at, false AS cleared
+    FROM venue_alarms
+    WHERE cleared_at IS NULL
+      ${venue ? sql`AND venue = ${venue}` : sql``}
+    ORDER BY fired_at DESC
+    LIMIT ${limit}`)
+
+  const clearedAlarms = await db.execute(sql`
+    SELECT venue, kind, severity, evidence, cleared_at AS at, true AS cleared
+    FROM venue_alarms
+    WHERE cleared_at IS NOT NULL
+      ${venue ? sql`AND venue = ${venue}` : sql``}
+    ORDER BY cleared_at DESC
+    LIMIT 10`)
+
+  const mapAlarm = (r: any): VenueLogEntry => ({
+    venue: r.venue as string,
+    kind: r.kind as string,
+    at: new Date(r.at as string).toISOString(),
+    prev: null,
+    next: (r.evidence as Record<string, unknown>) ?? null,
+    provenance: 'alarm' as const,
+    severity: r.severity as 'watch' | 'alarm',
+    evidence: (r.evidence as Record<string, unknown>) ?? null,
+    cleared: !!r.cleared,
+  })
+
   return [
     ...(observed.rows as any[]).map((r) => ({
       venue: r.venue as string,
@@ -87,5 +124,7 @@ export async function fetchVenueLogEntries(filter: VenueLogFilter = {}): Promise
       next: { cooldownDuration: Number(r.cd) },
       provenance: 'reconstructed' as const,
     })),
+    ...(openAlarms.rows as any[]).map(mapAlarm),
+    ...(clearedAlarms.rows as any[]).map(mapAlarm),
   ].sort((a, b) => (a.at < b.at ? 1 : -1))
 }

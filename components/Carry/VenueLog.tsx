@@ -17,7 +17,7 @@ import { SectionHeading, Stamp } from './atoms'
  * (only discrete changes and >20% liquidity moves ever become entries).
  */
 
-import { Entry, consequence } from './venueLogLogic'
+import { Entry, consequence, alarmConsequence, UNCOVERED_FOOTER } from './venueLogLogic'
 
 export const VenueLog: React.FC = () => {
   const { data } = useQuery<{ entries: Entry[] }>({
@@ -50,7 +50,15 @@ export const VenueLog: React.FC = () => {
         ) : (
           <Box>
             {entries.map((e, i) => {
-              const c = consequence(e)
+              const isAlarm = e.provenance === 'alarm'
+              const c = isAlarm ? alarmConsequence(e) : consequence(e)
+              const textColor = isAlarm
+                ? c.tone === 'danger'
+                  ? SEMANTIC_COLORS.danger
+                  : SEMANTIC_COLORS.textTertiary
+                : c.tone === 'warning'
+                  ? SEMANTIC_COLORS.warning
+                  : SEMANTIC_COLORS.textPrimary
               return (
                 <Grid
                   key={`${e.venue}-${e.at}-${e.kind}`}
@@ -64,7 +72,7 @@ export const VenueLog: React.FC = () => {
                   <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
                     {new Date(e.at).toISOString().slice(0, 10)} · {e.venue}
                   </Text>
-                  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={c.tone === 'warning' ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.textPrimary}>
+                  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={textColor}>
                     {c.text}
                   </Text>
                   <Text
@@ -72,7 +80,7 @@ export const VenueLog: React.FC = () => {
                     fontSize="9px"
                     letterSpacing="0.14em"
                     textTransform="uppercase"
-                    color={SEMANTIC_COLORS.textTertiary}
+                    color={isAlarm && !e.cleared ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textTertiary}
                     textAlign={{ base: 'left', md: 'right' }}
                   >
                     {e.provenance}
@@ -82,9 +90,19 @@ export const VenueLog: React.FC = () => {
             })}
           </Box>
         )}
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="10px"
+          color={SEMANTIC_COLORS.textTertiary}
+          mt={SPACING.sm}
+          fontStyle="italic"
+        >
+          {UNCOVERED_FOOTER}
+        </Text>
         <Stamp>
           observed = witnessed live by the hourly recorder · reconstructed = derived from archive
-          state; real transitions the recorder was not yet running to see
+          state; real transitions the recorder was not yet running to see · alarm = a failure-pattern
+          flag (danger); its evidence numbers are in the line
         </Stamp>
       </Card>
     </Box>

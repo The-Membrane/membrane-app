@@ -33,7 +33,8 @@
     "recorder:backfill": "node scripts/backfill-venue-history.mjs",
     "strats:discover": "node scripts/discover-carry-strats.mjs",
     "strats:refresh": "node scripts/refresh-strat-positions.mjs",
-    "news:fetch": "node scripts/fetch-venue-news.mjs"
+    "news:fetch": "node scripts/fetch-venue-news.mjs",
+    "alarms:check": "node scripts/check-venue-alarms.mjs"
   },
   "dependencies": {
     "@chain-registry/utils": "^1.51.285",

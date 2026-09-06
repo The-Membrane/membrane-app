@@ -13,3 +13,7 @@ echo "=== recorder tick $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 # Refresh tracked strat positions (batched multicall reads; the /strats board
 # serves this cache + freshness stamp). Non-fatal.
 /opt/homebrew/bin/node scripts/refresh-strat-positions.mjs || echo "strats:refresh failed (non-fatal)"
+# Venue failure-pattern alarms LAST — evaluates the corpus we just refreshed
+# (no chain reads) and notifies on new flags. Non-fatal: an alarm-check hiccup
+# must never fail the capacity/flows tick.
+/opt/homebrew/bin/node scripts/check-venue-alarms.mjs || echo "alarms:check failed (non-fatal)"

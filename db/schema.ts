@@ -4,6 +4,7 @@
 // Trust rule from the plan: BYTE becomes on-chain money at mint, so byte_ledger is
 // append-only (balance = SUM(delta)) and every credit is server-decided, never client-posted.
 
+import { sql } from 'drizzle-orm'
 import {
   bigint,
   boolean,
@@ -490,6 +491,37 @@ export const venueNews = pgTable(
   (table) => [
     uniqueIndex('venue_news_venue_url_idx').on(table.venue, table.url),
     index('venue_news_venue_published_idx').on(table.venue, table.publishedAt),
+  ],
+)
+
+// venue_alarms — the VENUE FAILURE-PATTERN ALARM. One row per fired condition,
+// each matched to a genre of past carry failure documented in
+// docs/research/worst-carry-venues.md (§2 ranked pattern). Written ONLY by
+// scripts/check-venue-alarms.mjs, which evaluates the corpus (snapshots/flows/
+// events) with NO new chain reads. An alarm is OPEN while cleared_at IS NULL;
+// the checker sets cleared_at when the condition stops holding. severity is
+// 'watch' | 'alarm'; evidence holds the numbers that fired it. The partial
+// unique index (venue, kind) WHERE cleared_at IS NULL enforces the
+// dedupe-while-open rule: never a second open row for the same (venue, kind).
+// The ONLY permitted UPDATEs are cleared_at (once, at clear time) and notified
+// (once, after a channel delivers). Applied by
+// scripts/apply-venue-recorder-ddl.mjs (manual DDL, IF NOT EXISTS) — keep this
+// drizzle mirror in lockstep.
+export const venueAlarms = pgTable(
+  'venue_alarms',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    venue: text('venue').notNull(), // config `name`, e.g. 'sUSDe'
+    kind: text('kind').notNull(), // 'gate_change' | 'drawdown_fast' | 'net_outflow_streak' | 'headroom_thin'
+    severity: text('severity').notNull(), // 'watch' | 'alarm'
+    evidence: jsonb('evidence').notNull(), // the numbers that fired it
+    firedAt: timestamp('fired_at', { withTimezone: true }).notNull().defaultNow(),
+    clearedAt: timestamp('cleared_at', { withTimezone: true }), // null = OPEN
+    notified: boolean('notified').notNull().default(false),
+  },
+  (table) => [
+    uniqueIndex('venue_alarms_open_unique_idx').on(table.venue, table.kind).where(sql`cleared_at IS NULL`),
+    index('venue_alarms_venue_fired_idx').on(table.venue, table.firedAt),
   ],
 )
 

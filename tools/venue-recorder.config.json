@@ -1,5 +1,6 @@
 {
-  "_comment": "Venues for the withdrawal-ability recorder (scripts/record-venue-liquidity.mjs). These are EXTERNAL mainnet venues (Ethereum), read via RECORDER_RPC_URL — NOT the local anvil. Entry shape: {name, kind, address, underlying?, decimals, enabled, newsQuery?, notes}. Only enabled=true venues are recorded. Never guess an address; leave it empty and enabled=false until verified. newsQuery (optional) is the Google News RSS search string for scripts/fetch-venue-news.mjs — a plain-English venue name, NOT a ticker, so headlines are about the protocol, not a random symbol collision.",
+  "_comment": "Venues for the withdrawal-ability recorder (scripts/record-venue-liquidity.mjs). These are EXTERNAL mainnet venues (Ethereum), read via RECORDER_RPC_URL — NOT the local anvil. Entry shape: {name, kind, address, underlying?, decimals, enabled, newsQuery?, notes, depthMarkets?, depthCoveredByInstant?}. Only enabled=true venues are recorded. Never guess an address; leave it empty and enabled=false until verified. newsQuery (optional) is the Google News RSS search string for scripts/fetch-venue-news.mjs — a plain-English venue name, NOT a ticker, so headlines are about the protocol, not a random symbol collision.",
+  "_comment_depth": "depthMarkets (optional) = the DEPTH-VS-BOOK extension (memo P4, docs/research/worst-carry-venues.md §3). Each entry {name, kind:'curve-stableswap'|'uniswap-v3', address, token0, token1, exitFrom, enabled, note}. token0/token1 are the pool's coins(0)/coins(1) (curve) or token0()/token1() (univ3). exitFrom = the token a holder is exiting (venue token, or its UNDERLYING when the venue token itself has no deep pool); the EXITABLE depth the recorder sums is the OTHER side (the tokens you swap INTO). EVERY address is on-chain-verified (coins/token reads) before enabled=true — a candidate that fails verification stays enabled=false with a note, never guessed. depthCoveredByInstant=true (aave) means the venue's instant_usd read already IS its depth, so no pool is needed. A venue with neither an enabled depthMarket nor depthCoveredByInstant keeps 'depth_vs_book' on its uncovered list (silence there is a blind spot, not all-clear).",
   "venues": [
     {
       "name": "sUSDe",
@@ -9,7 +10,19 @@
       "underlying": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
       "decimals": 18,
       "enabled": true,
-      "notes": "Ethena Staked USDe (mainnet). underlying = USDe. Reads: cooldownDuration() uint24, totalAssets(), totalSupply(), silo() if present. cooling/stranded split is venue-specific and NOT fabricated here — raw params stored, instant_usd left null with a note."
+      "notes": "Ethena Staked USDe (mainnet). underlying = USDe. Reads: cooldownDuration() uint24, totalAssets(), totalSupply(), silo() if present. cooling/stranded split is venue-specific and NOT fabricated here — raw params stored, instant_usd left null with a note.",
+      "depthMarkets": [
+        {
+          "name": "DOLA/sUSDe (Curve stableswap-ng)",
+          "kind": "curve-stableswap",
+          "address": "0x744793B5110f6ca9cC7CDfe1CE16677c3Eb192ef",
+          "token0": "0x865377367054516e17014CcdED1e7d814EDC9ce4",
+          "token1": "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497",
+          "exitFrom": "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497",
+          "enabled": true,
+          "note": "VERIFIED on-chain 2026-09-06: coins(0)=DOLA (symbol DOLA, 18dec), coins(1)=sUSDe (symbol sUSDe, 18dec); balances ~$40.8M DOLA / ~$12.4M sUSDe (~$53M TVL). NO deep sUSDe/USDe or sUSDe/USDC Curve or Uni-v3 pool exists on mainnet (Curve registry scan: best sUSDe/USDC is ~$718 dust). This DOLA/sUSDe pool is sUSDe's DEEPEST secondary (instant-exit) market. exitFrom=sUSDe ⇒ exitable depth = the DOLA side (swap sUSDe INTO DOLA), valued $1/stable as a stated assumption (DOLA is Inverse Finance's stablecoin)."
+        }
+      ]
     },
     {
       "name": "aave-v3-usde",
@@ -19,7 +32,8 @@
       "underlying": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
       "decimals": 18,
       "enabled": true,
-      "notes": "aEthUSDe, VERIFIED on-chain 2026-09-02: Aave V3 Pool (0x87870Bca…4fA4E2).getReserveData(USDe) returned this address; it answers symbol()='aEthUSDe' and UNDERLYING_ASSET_ADDRESS()=USDe. instant liquidity = USDe.balanceOf(aToken) at $1/stable (assumption recorded in params)."
+      "depthCoveredByInstant": true,
+      "notes": "aEthUSDe, VERIFIED on-chain 2026-09-02: Aave V3 Pool (0x87870Bca…4fA4E2).getReserveData(USDe) returned this address; it answers symbol()='aEthUSDe' and UNDERLYING_ASSET_ADDRESS()=USDe. instant liquidity = USDe.balanceOf(aToken) at $1/stable (assumption recorded in params). depthCoveredByInstant=true: for an aToken the instant_usd read (underlying held by the aToken) IS the exitable depth, so no secondary pool is needed and 'depth_vs_book' is NOT on this venue's uncovered list."
     },
     {
       "name": "sUSDS",
@@ -29,7 +43,19 @@
       "underlying": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
       "decimals": 18,
       "enabled": true,
-      "notes": "Sky Savings USDS, VERIFIED on-chain 2026-09-02: symbol()='sUSDS', asset()=USDS (0xdC03…384F), totalAssets ~$4.7B at verification. No cooldown method — those reads fail gracefully and raw 4626 state (totalAssets/totalSupply) is what gets recorded."
+      "notes": "Sky Savings USDS, VERIFIED on-chain 2026-09-02: symbol()='sUSDS', asset()=USDS (0xdC03…384F), totalAssets ~$4.7B at verification. No cooldown method — those reads fail gracefully and raw 4626 state (totalAssets/totalSupply) is what gets recorded.",
+      "depthMarkets": [
+        {
+          "name": "USDS/USDC (none deep enough — UNVERIFIED, not enabled)",
+          "kind": "curve-stableswap",
+          "address": "",
+          "token0": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
+          "token1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+          "exitFrom": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
+          "enabled": false,
+          "note": "NO verifiable deep USDS/USDC (or sUSDS) Curve/Uni-v3 pool exists on mainnet (Curve registry + DeFiLlama scan 2026-09-06: best USDS/USDC Curve pool ~$4k dust). Deep USDS DEX liquidity lives in Uniswap v4 (PYUSD-USDS ~$100M, USDT-USDS ~$50M) — a singleton PoolManager the reader cannot address by pool contract — and Sky's PSM (a peg-stability module, not an AMM). Left enabled:false: never guess an address. Consequence: sUSDS keeps 'depth_vs_book' on its uncovered list until a v4-capable reader or a verified curve/univ3 pool is added."
+        }
+      ]
     },
     {
       "name": "scrvUSD",
@@ -39,7 +65,19 @@
       "underlying": "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
       "decimals": 18,
       "enabled": true,
-      "notes": "Curve Savings crvUSD, VERIFIED on-chain 2026-09-02: symbol()='scrvUSD', asset()=crvUSD (0xf939…1b4E), totalAssets ~$15.8M at verification. Same graceful-read behavior as sUSDS."
+      "notes": "Curve Savings crvUSD, VERIFIED on-chain 2026-09-02: symbol()='scrvUSD', asset()=crvUSD (0xf939…1b4E), totalAssets ~$15.8M at verification. Same graceful-read behavior as sUSDS.",
+      "depthMarkets": [
+        {
+          "name": "crvUSD/USDC (Curve stableswap-ng plain, factory-crvusd-0)",
+          "kind": "curve-stableswap",
+          "address": "0x4DEcE678ceceb27446b35C672dC7d61F30bAD69E",
+          "token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+          "token1": "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
+          "exitFrom": "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
+          "enabled": true,
+          "note": "VERIFIED on-chain 2026-09-06: coins(0)=USDC (symbol USDC, 6dec), coins(1)=crvUSD (symbol crvUSD, 18dec); balances ~$14.5M USDC / ~$12.3M crvUSD (~$26.8M TVL). scrvUSD (the venue token) has NO deep secondary pool, so this entry covers the UNDERLYING crvUSD's exit: exitFrom=crvUSD ⇒ exitable depth = the USDC side. A deeper crvUSD/USDT pool (~$37.7M, 0x390f3595bCa2Df7d23783dFd126427CCeb997BF4) exists but is left unverified/not-added here; add later if the extra depth is wanted."
+        }
+      ]
     }
   ]
 }

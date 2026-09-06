@@ -17,7 +17,7 @@
 // injection. If RECORDER_RPC_URL is unset the script exits(1) with the fix.
 
 import { neon } from '@neondatabase/serverless'
-import { readEnv, loadConfig, makeClient, readVenueState, primaryMetric } from './lib/venue-reads.mjs'
+import { readEnv, loadConfig, makeClient, readVenueState, readDepthMarkets, primaryMetric } from './lib/venue-reads.mjs'
 
 const { get } = readEnv()
 const rpcUrl = get('RECORDER_RPC_URL') || process.env.RECORDER_RPC_URL
@@ -38,13 +38,16 @@ const sql = neon(dbUrl)
 const client = makeClient(rpcUrl)
 
 // jsonb columns are compared field-by-field; these keys are meta, not state.
-const META_KEYS = new Set(['kind', 'reads', 'instant_note'])
+// depthMarkets is a structured sub-array whose reserves drift every block — its
+// eventable summary is the top-level depth_usd / depth_skew_pct, so the array
+// itself is meta (diffing it would spam param_changed rows every tick).
+const META_KEYS = new Set(['kind', 'reads', 'instant_note', 'depthMarkets', 'depth_note'])
 
 // Continuously-varying metrics drift every block (yield accrual, ordinary
 // flows). Eventing every tick makes the news tracker a noise feed (Badass
 // rule 9) — these only fire an event on a >20% move, like instant_usd.
 // Discrete params (cooldownDuration, silo, …) still event on ANY change.
-const CONTINUOUS_KEYS = new Set(['totalAssets', 'totalSupply', 'underlyingBalance'])
+const CONTINUOUS_KEYS = new Set(['totalAssets', 'totalSupply', 'underlyingBalance', 'depth_usd', 'depth_skew_pct'])
 const CONTINUOUS_SHIFT = 0.2
 
 // Extract the value of a chosen metric from a snapshot row (numeric columns
@@ -71,9 +74,14 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     continue
   }
 
-  // 1. Read latest state.
+  // 1. Read latest state (+ depth-market extension, memo P4, when configured).
   const block = await client.getBlockNumber()
   const { params, instantUsd, coolingUsd, strandedUsd } = await readVenueState(client, venue)
+  const depth = await readDepthMarkets(client, venue)
+  if (depth) {
+    Object.assign(params, depth)
+    console.log(`  depth_usd=${depth.depth_usd} (exitable) depth_skew_pct=${depth.depth_skew_pct?.toFixed(1) ?? 'null'}%`)
+  }
   console.log(`  block ${block} — instant_usd=${instantUsd ?? 'null'} params=${JSON.stringify(params)}`)
 
   // 3a. Fetch the previous observed snapshot BEFORE inserting the new one.

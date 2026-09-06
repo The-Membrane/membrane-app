@@ -32,6 +32,8 @@ import {
   evalDrawdown,
   evalOutflowStreak,
   evalHeadroom,
+  evalDepthSkew,
+  evalDepthCollapse,
   reconcileAlarms,
   uncoveredFor,
 } from './lib/alarmRules.mjs'
@@ -140,8 +142,34 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     }
   }
 
+  // --- depth_skew: pool one-sidedness of the instant-exit tier (memo P4) ----
+  // Uses the latest snapshot's recorded depth_skew_pct (worst enabled market).
+  const depthSkew = evalDepthSkew(latest?.params?.depth_skew_pct)
+  if (depthSkew.fires) {
+    firing.push({ venue: v, kind: 'depth_skew', severity: depthSkew.severity, evidence: depthSkew.evidence })
+    console.log(`  FIRE depth_skew (${depthSkew.severity}) — ${depthSkew.evidence.skewPct.toFixed(1)}% one-sided`)
+  }
+
+  // --- depth_collapse: exitable depth (depth_usd) falling >35%/>50% over 7d --
+  const depthSnaps = await sql`
+    SELECT observed_at AS at, params FROM venue_snapshots
+    WHERE venue = ${v} AND source = 'observed' AND observed_at > now() - interval '7 days'
+    ORDER BY observed_at ASC`
+  const depthSeries = depthSnaps
+    .map((r) => ({ at: new Date(r.at).toISOString(), value: r.params?.depth_usd }))
+    .filter((p) => p.value !== undefined && p.value !== null)
+  const depthCollapse = evalDepthCollapse(depthSeries)
+  if (depthCollapse.fires) {
+    firing.push({ venue: v, kind: 'depth_collapse', severity: depthCollapse.severity, evidence: depthCollapse.evidence })
+    console.log(`  FIRE depth_collapse (${depthCollapse.severity}) — depth_usd ${depthCollapse.evidence.dropPct.toFixed(1)}% (${depthSeries.length} obs)`)
+  }
+
   // --- coverage honesty: what this venue is BLIND to -----------------------
-  const uncovered = uncoveredFor({ hasInstant })
+  // depth_vs_book leaves the uncovered list only when the venue has >=1 enabled,
+  // on-chain-verified depth market OR its instant_usd read IS the depth (aave).
+  const depthCovered =
+    (venue.depthMarkets ?? []).some((m) => m.enabled) || venue.depthCoveredByInstant === true
+  const uncovered = uncoveredFor({ hasInstant, depthCovered })
   uncoveredByVenue[v] = uncovered
   console.log(`  uncovered (cannot evaluate): ${uncovered.map((u) => u.id).join(', ')}`)
 }

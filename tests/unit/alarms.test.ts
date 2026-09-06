@@ -8,6 +8,8 @@ import {
   evalDrawdown,
   evalOutflowStreak,
   evalHeadroom,
+  evalDepthSkew,
+  evalDepthCollapse,
   reconcileAlarms,
   uncoveredFor,
   UNCOVERED_SIGNALS,
@@ -158,6 +160,67 @@ describe('evalHeadroom (one bad day from gating)', () => {
   })
 })
 
+describe('evalDepthSkew (memo P4 — pool one-sidedness of the instant-exit tier)', () => {
+  it('watch above 80% one-sided (stETH 78:22 genre)', () => {
+    const r = evalDepthSkew(85)
+    expect(r.fires).toBe(true)
+    expect(r.severity).toBe('watch')
+    expect(r.evidence!.skewPct).toBe(85)
+  })
+
+  it('alarm above 90% one-sided (MIM 96% genre)', () => {
+    expect(evalDepthSkew(96).severity).toBe('alarm')
+  })
+
+  it('does NOT fire at exactly 80% (boundary strict)', () => {
+    expect(evalDepthSkew(80).fires).toBe(false)
+  })
+
+  it('does not fire on a balanced pool', () => {
+    expect(evalDepthSkew(54.2).fires).toBe(false)
+  })
+
+  it('is null-safe (no depth reading)', () => {
+    expect(evalDepthSkew(null).fires).toBe(false)
+    expect(evalDepthSkew(undefined).fires).toBe(false)
+  })
+})
+
+describe('evalDepthCollapse (memo P4 — exitable depth falling fast over 7d)', () => {
+  const s = (at: string, value: number) => ({ at, value })
+
+  it('watch when exitable depth falls >35% from the in-window peak', () => {
+    const r = evalDepthCollapse([s('2026-09-01', 100), s('2026-09-06', 60)]) // -40%
+    expect(r.fires).toBe(true)
+    expect(r.severity).toBe('watch')
+    expect(r.evidence!.dropPct).toBeCloseTo(-40, 5)
+    expect(r.evidence!.metric).toBe('depth_usd')
+  })
+
+  it('alarm when it falls >50% (CRV/stETH drain genre)', () => {
+    expect(evalDepthCollapse([s('2026-09-01', 100), s('2026-09-06', 49)]).severity).toBe('alarm')
+  })
+
+  it('does NOT fire at exactly 35% (boundary strict)', () => {
+    expect(evalDepthCollapse([s('2026-09-01', 100), s('2026-09-06', 65)]).fires).toBe(false)
+  })
+
+  it('takes the peak from anywhere in the window, not just the first point', () => {
+    const r = evalDepthCollapse([s('2026-09-01', 80), s('2026-09-03', 120), s('2026-09-06', 70)]) // peak 120 → -41.7%
+    expect(r.fires).toBe(true)
+    expect(r.evidence!.fromValue).toBe(120)
+  })
+
+  it('does not fire on a rising or flat series', () => {
+    expect(evalDepthCollapse([s('2026-09-01', 50), s('2026-09-06', 100)]).fires).toBe(false)
+  })
+
+  it('needs at least two points', () => {
+    expect(evalDepthCollapse([s('2026-09-06', 10)]).fires).toBe(false)
+    expect(evalDepthCollapse([]).fires).toBe(false)
+  })
+})
+
 describe('reconcileAlarms (dedupe-while-open + cleared_at transition)', () => {
   const fire = (venue: string, kind: string, severity = 'alarm') => ({ venue, kind, severity, evidence: {} })
   const open = (id: string, venue: string, kind: string) => ({ id, venue, kind })
@@ -204,5 +267,13 @@ describe('uncoveredFor (silence is not all-clear)', () => {
     const ids = uncoveredFor({ hasInstant: false }).map((u) => u.id)
     expect(ids).toContain('headroom_instant_liquidity')
     expect(uncoveredFor({ hasInstant: true }).map((u) => u.id)).not.toContain('headroom_instant_liquidity')
+  })
+
+  it('drops depth_vs_book once the venue has a verified/covered depth market', () => {
+    // covered (enabled depth market OR covered-by-instant) → depth_vs_book leaves the blind list
+    expect(uncoveredFor({ hasInstant: false, depthCovered: true }).map((u) => u.id)).not.toContain('depth_vs_book')
+    // still blind by default (no depth market, no instant depth) → depth_vs_book stays
+    expect(uncoveredFor({ hasInstant: true, depthCovered: false }).map((u) => u.id)).toContain('depth_vs_book')
+    expect(uncoveredFor({ hasInstant: true }).map((u) => u.id)).toContain('depth_vs_book')
   })
 })

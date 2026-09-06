@@ -69,6 +69,17 @@ const erc20Abi = [
   { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
 ]
+// Depth-market ABIs. Curve stableswap exposes coins(i)/balances(i); Uniswap v3
+// exposes token0()/token1() (no reserve view — pool token balances are read via
+// erc20 balanceOf as an honest raw measure of swappable inventory).
+const curvePoolAbi = [
+  { type: 'function', name: 'coins', stateMutability: 'view', inputs: [{ type: 'uint256' }], outputs: [{ type: 'address' }] },
+  { type: 'function', name: 'balances', stateMutability: 'view', inputs: [{ type: 'uint256' }], outputs: [{ type: 'uint256' }] },
+]
+const univ3PoolAbi = [
+  { type: 'function', name: 'token0', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+  { type: 'function', name: 'token1', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+]
 
 // Every read is wrapped so a single missing method never aborts the snapshot —
 // we store what succeeded (task rule: store-raw, never fabricate).
@@ -142,6 +153,104 @@ export async function readVenueState(client, venue, blockNumber) {
 
   params.instant_note = `unknown kind '${venue.kind}' — no reader; raw params only.`
   return { params, instantUsd: null, coolingUsd: null, strandedUsd: null }
+}
+
+/**
+ * Read the venue's DEPTH MARKET(S) — the secondary-market pools that price the
+ * venue token and form its INSTANT-exit tier (memo P4). Called by the recorder
+ * (latest block) and backfill (historical block) so both read identically.
+ *
+ * Returns null when the venue configures no enabled depth market (the extension
+ * is optional and per-venue). Otherwise returns a partial params object to MERGE
+ * into the snapshot params:
+ *   { depthMarkets: [ {name, kind, address, token0, token1, exitFrom,
+ *                      reserve0Raw, reserve1Raw, reserve0Usd, reserve1Usd,
+ *                      skewPct, exitableUsd, reads} ],
+ *     depth_usd,          // sum of exitableUsd across enabled markets (the
+ *                         // swap-INTO side — NOT the venue-token side)
+ *     depth_skew_pct }    // worst (max) one-sidedness across enabled markets
+ *
+ * HONESTY: every reserve is read via try/catch and stored raw. USD is stated at
+ * $1/stable (priceAssumptionUsd), NOT fetched — the same recorded-assumption
+ * discipline as the aToken reader. A market whose reserve reads all fail is kept
+ * in the list with reads:false and contributes nothing to depth_usd.
+ *
+ * EXITABLE DEPTH is deliberately the OTHER side's reserve: the tokens a holder
+ * can swap INTO when exiting the venue token. The venue-token side is what you
+ * are trying to GET RID OF; its balance is not exit capacity.
+ */
+export async function readDepthMarkets(client, venue, blockNumber) {
+  const at = blockNumber === undefined ? {} : { blockNumber }
+  const markets = (venue.depthMarkets ?? []).filter((m) => m.enabled)
+  if (markets.length === 0) return null
+
+  const decOf = async (token) => {
+    const d = await tryRead(client, { address: token, abi: erc20Abi, functionName: 'decimals', ...at })
+    return d !== undefined ? Number(d) : 18
+  }
+  const balOf = async (token, pool) =>
+    tryRead(client, { address: token, abi: erc20Abi, functionName: 'balanceOf', args: [pool], ...at })
+
+  const out = []
+  let depthUsd = 0
+  let worstSkew = null
+
+  for (const m of markets) {
+    const [dec0, dec1] = [await decOf(m.token0), await decOf(m.token1)]
+
+    // Reserves: curve balances(i) first, ERC20 balanceOf(pool) fallback (and the
+    // only path for uniswap-v3, which has no reserve view). Store what succeeds.
+    let r0, r1
+    if (m.kind === 'curve-stableswap') {
+      r0 = await tryRead(client, { address: m.address, abi: curvePoolAbi, functionName: 'balances', args: [0n], ...at })
+      r1 = await tryRead(client, { address: m.address, abi: curvePoolAbi, functionName: 'balances', args: [1n], ...at })
+    }
+    if (r0 === undefined) r0 = await balOf(m.token0, m.address)
+    if (r1 === undefined) r1 = await balOf(m.token1, m.address)
+
+    const usd0 = r0 !== undefined ? Number(r0) / 10 ** dec0 : null
+    const usd1 = r1 !== undefined ? Number(r1) / 10 ** dec1 : null
+
+    // Skew = one-sidedness of the pool in [0,100] (stETH 78:22 / MIM 96% genre).
+    let skewPct = null
+    if (usd0 !== null && usd1 !== null && usd0 + usd1 > 0) {
+      skewPct = (Math.max(usd0, usd1) / (usd0 + usd1)) * 100
+    }
+
+    // Exitable = the side that is NOT exitFrom (the token you swap INTO). If
+    // exitFrom is token0, the exitable reserve is token1's, and vice-versa.
+    const exitFromIs0 = m.exitFrom && m.token0 && m.exitFrom.toLowerCase() === m.token0.toLowerCase()
+    const exitableUsd = exitFromIs0 ? usd1 : usd0
+
+    if (exitableUsd !== null && Number.isFinite(exitableUsd)) depthUsd += exitableUsd
+    if (skewPct !== null && (worstSkew === null || skewPct > worstSkew)) worstSkew = skewPct
+
+    out.push({
+      name: m.name,
+      kind: m.kind,
+      address: m.address,
+      token0: m.token0,
+      token1: m.token1,
+      exitFrom: m.exitFrom ?? null,
+      reserve0Raw: r0 !== undefined ? s(r0) : null,
+      reserve1Raw: r1 !== undefined ? s(r1) : null,
+      reserve0Usd: usd0,
+      reserve1Usd: usd1,
+      skewPct,
+      exitableUsd,
+      priceAssumptionUsd: 1,
+      note: m.note ?? null,
+      reads: { reserve0: r0 !== undefined, reserve1: r1 !== undefined },
+    })
+  }
+
+  return {
+    depthMarkets: out,
+    depth_usd: depthUsd,
+    depth_skew_pct: worstSkew,
+    depth_note:
+      'depth_usd = EXITABLE side (tokens swappable INTO on exit), summed across enabled verified markets, at $1/stable. depth_skew_pct = worst pool one-sidedness. This is the INSTANT-exit tier only; protocol redemption (cooldown/instant) is a separate exit path.',
+  }
 }
 
 // The metric a prediction/diff tracks for a venue: instant_usd when we have it,

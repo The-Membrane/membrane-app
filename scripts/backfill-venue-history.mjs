@@ -16,7 +16,7 @@
 // from .env.local. tsx/node get no Next env injection.
 
 import { neon } from '@neondatabase/serverless'
-import { readEnv, loadConfig, makeClient, readVenueState } from './lib/venue-reads.mjs'
+import { readEnv, loadConfig, makeClient, readVenueState, readDepthMarkets } from './lib/venue-reads.mjs'
 
 function arg(name) {
   const i = process.argv.indexOf(`--${name}`)
@@ -67,6 +67,9 @@ if (by <= 0n) {
 let count = 0
 for (let b = from; b <= to; b += by) {
   const { params, instantUsd, coolingUsd, strandedUsd } = await readVenueState(client, venue, b)
+  // Depth-market extension at the SAME historical block (memo P4).
+  const depth = await readDepthMarkets(client, venue, b)
+  if (depth) Object.assign(params, depth)
   // observed_at = the block's own timestamp, so backfilled history sorts
   // chronologically alongside observed rows.
   const blk = await client.getBlock({ blockNumber: b })

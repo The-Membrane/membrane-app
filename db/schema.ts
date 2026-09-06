@@ -525,6 +525,31 @@ export const venueAlarms = pgTable(
   ],
 )
 
+// venue_terms — the TERMS-PAGE HASH WATCHER corpus. One row per OBSERVED hash of
+// a venue's official redemption/terms page, written by
+// scripts/watch-venue-terms.mjs. INSERT-ONLY and append-only: a row is written
+// ONLY when the normalized visible-text sha256 differs from the (venue, url)'s
+// latest stored hash, so this is a CHANGE LOG, not a per-tick dump. content_len
+// is the normalized text length (a cheap corroborating signal). On a real change
+// (a prior hash existed and differs) the watcher also inserts a venue_events row
+// of kind 'terms_page_changed', which the alarm gate_change rule treats as
+// alarm-grade. The first-ever observation of a (venue, url) is a BASELINE: stored
+// but emits NO event. Applied by scripts/apply-venue-recorder-ddl.mjs (manual
+// DDL, IF NOT EXISTS) — this drizzle definition is the source-of-truth mirror,
+// keep them in lockstep.
+export const venueTerms = pgTable(
+  'venue_terms',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    venue: text('venue').notNull(), // config `name`, e.g. 'sUSDe'
+    url: text('url').notNull(), // the official terms/redemption page (config termsUrl)
+    contentHash: text('content_hash').notNull(), // sha256 of normalized visible text
+    contentLen: integer('content_len').notNull(), // normalized text length
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('venue_terms_venue_url_fetched_idx').on(table.venue, table.url, table.fetchedAt)],
+)
+
 // user_receipts — CALLED-IT RECEIPTS (owner-approved). One row per WALLET-BOUND
 // probability call on a venue outcome: a user signs the canonical statement
 // (components/Receipts/receiptLogic.ts buildReceiptStatement) with their wallet,

@@ -68,6 +68,7 @@ const erc4626CooldownAbi = [
 const erc20Abi = [
   { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
+  { type: 'function', name: 'totalSupply', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
 ]
 // Depth-market ABIs. Curve stableswap exposes coins(i)/balances(i); Uniswap v3
 // exposes token0()/token1() (no reserve view — pool token balances are read via
@@ -148,6 +149,36 @@ export async function readVenueState(client, venue, blockNumber) {
     params.instant_note = 'atoken-liquidity: instant_usd = underlyingBalance / 10^decimals, valued at $1/stable (priceAssumptionUsd).'
     const instantUsd =
       bal !== undefined ? Number(bal) / 10 ** decimals : null
+
+    // UTILIZATION extension (Fraxlend/Morpho genre: utilization at 100% = lenders
+    // can't exit even though the market is "solvent"). debt = the reserve's
+    // variableDebtToken totalSupply; available = the aToken's underlying balance
+    // (== instant liquidity). utilization_pct = debt/(debt+available)*100. The
+    // variableDebtToken address is config-supplied and on-chain-verified once
+    // (symbol contains 'variableDebt' + UNDERLYING_ASSET_ADDRESS()==underlying) —
+    // the same discipline as the aToken address itself. If it is absent or the
+    // read fails, utilization is simply not recorded (store-raw, never fabricate).
+    if (venue.variableDebtToken) {
+      const debt = await tryRead(client, {
+        address: venue.variableDebtToken,
+        abi: erc20Abi,
+        functionName: 'totalSupply',
+        ...at,
+      })
+      if (debt !== undefined) {
+        params.variableDebt = s(debt)
+        params.variableDebtToken = venue.variableDebtToken
+        if (bal !== undefined) {
+          const d = Number(debt)
+          const a = Number(bal)
+          const denom = d + a
+          params.utilization_pct = denom > 0 ? (d / denom) * 100 : null
+          params.utilization_note =
+            'utilization_pct = variableDebt/(variableDebt+underlyingBalance)*100, both at $1/stable. 100% = lenders cannot exit (Fraxlend/Morpho genre).'
+        }
+      }
+      params.reads = { underlyingBalance: bal !== undefined, variableDebt: debt !== undefined }
+    }
     return { params, instantUsd, coolingUsd: null, strandedUsd: null }
   }
 
@@ -196,6 +227,35 @@ export async function readDepthMarkets(client, venue, blockNumber) {
   let worstSkew = null
 
   for (const m of markets) {
+    // psm-buffer: a peg-stability module (Sky LitePSM), NOT a two-sided AMM. The
+    // exit path is a 1:1 redemption (USDS→USDC) against a single-sided buffer of
+    // the swap-INTO token (USDC) held in a `buffer` address (the PSM's pocket).
+    // Exitable depth = bufferToken.balanceOf(buffer). There is no pool ratio, so
+    // skewPct is null — a draining PSM buffer surfaces in depth_collapse
+    // (depth_usd falling over 7d), never in depth_skew (which is pool
+    // one-sidedness). Every read is try/caught and stored raw; USD is $1/stable.
+    if (m.kind === 'psm-buffer') {
+      const decB = await decOf(m.bufferToken)
+      const bal = await balOf(m.bufferToken, m.buffer)
+      const usd = bal !== undefined ? Number(bal) / 10 ** decB : null
+      if (usd !== null && Number.isFinite(usd)) depthUsd += usd
+      out.push({
+        name: m.name,
+        kind: m.kind,
+        address: m.address, // the PSM contract (provenance; buffer holds the gem)
+        buffer: m.buffer,
+        bufferToken: m.bufferToken,
+        exitFrom: m.exitFrom ?? null,
+        bufferBalanceRaw: bal !== undefined ? s(bal) : null,
+        exitableUsd: usd,
+        skewPct: null, // single-sided buffer: no pool ratio to skew
+        priceAssumptionUsd: 1,
+        note: m.note ?? null,
+        reads: { buffer: bal !== undefined },
+      })
+      continue
+    }
+
     const [dec0, dec1] = [await decOf(m.token0), await decOf(m.token1)]
 
     // Reserves: curve balances(i) first, ERC20 balanceOf(pool) fallback (and the

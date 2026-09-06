@@ -164,6 +164,27 @@ await sql`CREATE TABLE IF NOT EXISTS venue_alarms (
 await sql`CREATE UNIQUE INDEX IF NOT EXISTS venue_alarms_open_unique_idx ON venue_alarms (venue, kind) WHERE cleared_at IS NULL`
 await sql`CREATE INDEX IF NOT EXISTS venue_alarms_venue_fired_idx ON venue_alarms (venue, fired_at)`
 
+// venue_terms — the TERMS-PAGE HASH WATCHER corpus. One row per OBSERVED hash of
+// a venue's official redemption/terms page (scripts/watch-venue-terms.mjs).
+// INSERT-ONLY and append-only: a new row is written ONLY when the normalized
+// visible-text sha256 differs from the (venue, url)'s latest stored hash — so the
+// table is a change log, not a per-tick dump. content_len is the normalized text
+// length (a cheap corroborating signal alongside the hash). On a change (a prior
+// hash existed and differs) the watcher ALSO inserts a venue_events row of kind
+// 'terms_page_changed', which the alarm gate_change rule treats as alarm-grade.
+// First-ever observation of a (venue, url) is a BASELINE: it is stored but emits
+// NO event. Applied by this manual DDL (IF NOT EXISTS); the drizzle mirror lives
+// in db/schema.ts (venueTerms) — keep them in lockstep.
+await sql`CREATE TABLE IF NOT EXISTS venue_terms (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue text NOT NULL,
+  url text NOT NULL,
+  content_hash text NOT NULL,
+  content_len integer NOT NULL,
+  fetched_at timestamptz NOT NULL DEFAULT now()
+)`
+await sql`CREATE INDEX IF NOT EXISTS venue_terms_venue_url_fetched_idx ON venue_terms (venue, url, fetched_at)`
+
 const [{ s }] = await sql`SELECT count(*)::int AS s FROM venue_snapshots`
 const [{ e }] = await sql`SELECT count(*)::int AS e FROM venue_events`
 const [{ p }] = await sql`SELECT count(*)::int AS p FROM venue_predictions`
@@ -171,4 +192,5 @@ const [{ f }] = await sql`SELECT count(*)::int AS f FROM venue_flows`
 const [{ w }] = await sql`SELECT count(*)::int AS w FROM strat_watches`
 const [{ n }] = await sql`SELECT count(*)::int AS n FROM venue_news`
 const [{ a }] = await sql`SELECT count(*)::int AS a FROM venue_alarms`
-console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}, watches: ${w}, news: ${n}, alarms: ${a}`)
+const [{ t }] = await sql`SELECT count(*)::int AS t FROM venue_terms`
+console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}, watches: ${w}, news: ${n}, alarms: ${a}, terms: ${t}`)

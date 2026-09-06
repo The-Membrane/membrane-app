@@ -25,7 +25,12 @@ const DAY_MS = 86_400_000
 // `events`: [{ kind, at }] (at = ISO string or epoch ms). Only the two
 // gate-moving kinds count; the 24h window is applied here so the boundary is
 // tested against the pure fn, not the SQL.
-export const GATE_KINDS = new Set(['cooldown_duration_changed', 'instant_liquidity_shift'])
+// terms_page_changed is ALARM-GRADE: a redemption/terms page edit is a
+// gate-moving act in the same genre as a cooldown change (memo P2 — "the gate
+// moves, or was never there"), so it rides the gate_change rule. The recorder
+// seeds terms baselines silently (no event on first hash); only a SUBSEQUENT
+// hash change emits terms_page_changed, and that is what fires here.
+export const GATE_KINDS = new Set(['cooldown_duration_changed', 'instant_liquidity_shift', 'terms_page_changed'])
 
 export function evalGateChange(events, nowMs = Date.now()) {
   const since = nowMs - DAY_MS
@@ -145,6 +150,23 @@ export function evalHeadroom(instantUsd, worstDayOutflowUsd) {
   }
 }
 
+// --- rule: utilization (watch >90%, alarm >95%) ---------------------------
+// Fraxlend/Morpho genre: a lending reserve at ~100% utilization means the
+// available liquidity is lent out and LENDERS CANNOT EXIT even though the market
+// is nominally solvent (CRV/Egorov near-miss: Fraxlend gated at ~100% util).
+// `utilPct` is the recorded params.utilization_pct = debt/(debt+available)*100
+// of the latest snapshot. Only venues that record utilization (the aToken
+// reader with a configured variableDebtToken) can be judged here.
+export function evalUtilization(utilPct) {
+  const v = Number(utilPct)
+  if (!Number.isFinite(v)) return { fires: false, severity: null, evidence: null }
+  let severity = null
+  if (v > 95) severity = 'alarm'
+  else if (v > 90) severity = 'watch'
+  if (!severity) return { fires: false, severity: null, evidence: null }
+  return { fires: true, severity, evidence: { utilizationPct: v } }
+}
+
 // --- rule: depth_skew (watch >80%, alarm >90% one-sided) ------------------
 // Memo P4 ("book size vs oracle-market depth mismatch") + the pool-composition
 // skew genre (stETH's Curve pool drifting 50:50→78:22; MIM 96% one-sided). The
@@ -233,9 +255,14 @@ export const UNCOVERED_SIGNALS = [
 // has >=1 enabled, on-chain-verified depth market OR its instant_usd read already
 // IS the depth (aave: covered-by-instant). A venue with NO verified depth market
 // keeps depth_vs_book listed: silence there is still a blind spot, not all-clear.
-export function uncoveredFor({ hasInstant, depthCovered } = {}) {
+// `termsCovered` (true) drops 'terms_page_changes' — the venue has a termsUrl
+// the hash watcher (scripts/watch-venue-terms.mjs) tracks, so a redemption/terms
+// edit now surfaces as a terms_page_changed event (alarm-grade via gate_change).
+// A venue with NO termsUrl keeps terms_page_changes listed: still a blind spot.
+export function uncoveredFor({ hasInstant, depthCovered, termsCovered } = {}) {
   let list = [...UNCOVERED_SIGNALS]
   if (depthCovered) list = list.filter((u) => u.id !== 'depth_vs_book')
+  if (termsCovered) list = list.filter((u) => u.id !== 'terms_page_changes')
   if (!hasInstant) {
     list.push({
       id: 'headroom_instant_liquidity',

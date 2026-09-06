@@ -32,6 +32,7 @@ import {
   evalDrawdown,
   evalOutflowStreak,
   evalHeadroom,
+  evalUtilization,
   evalDepthSkew,
   evalDepthCollapse,
   reconcileAlarms,
@@ -84,7 +85,7 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   const gateEvents = await sql`
     SELECT kind, observed_at AS at, prev, next, note FROM venue_events
     WHERE venue = ${v}
-      AND kind IN ('cooldown_duration_changed', 'instant_liquidity_shift')
+      AND kind IN ('cooldown_duration_changed', 'instant_liquidity_shift', 'terms_page_changed')
       AND observed_at > now() - interval '24 hours'
     ORDER BY observed_at DESC`
   const gate = evalGateChange(
@@ -142,6 +143,15 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     }
   }
 
+  // --- utilization: lending reserve utilization (Fraxlend/Morpho genre) -----
+  // Uses the latest snapshot's recorded params.utilization_pct (venues with a
+  // configured variableDebtToken; null-safe for the others).
+  const util = evalUtilization(latest?.params?.utilization_pct)
+  if (util.fires) {
+    firing.push({ venue: v, kind: 'utilization', severity: util.severity, evidence: util.evidence })
+    console.log(`  FIRE utilization (${util.severity}) — ${util.evidence.utilizationPct.toFixed(1)}% utilized`)
+  }
+
   // --- depth_skew: pool one-sidedness of the instant-exit tier (memo P4) ----
   // Uses the latest snapshot's recorded depth_skew_pct (worst enabled market).
   const depthSkew = evalDepthSkew(latest?.params?.depth_skew_pct)
@@ -169,7 +179,10 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   // on-chain-verified depth market OR its instant_usd read IS the depth (aave).
   const depthCovered =
     (venue.depthMarkets ?? []).some((m) => m.enabled) || venue.depthCoveredByInstant === true
-  const uncovered = uncoveredFor({ hasInstant, depthCovered })
+  // terms_page_changes leaves the blind list once the venue has a termsUrl the
+  // hash watcher tracks (baseline seeded on the first tick before this checker).
+  const termsCovered = !!venue.termsUrl
+  const uncovered = uncoveredFor({ hasInstant, depthCovered, termsCovered })
   uncoveredByVenue[v] = uncovered
   console.log(`  uncovered (cannot evaluate): ${uncovered.map((u) => u.id).join(', ')}`)
 }

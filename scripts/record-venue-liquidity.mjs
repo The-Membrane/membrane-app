@@ -41,13 +41,13 @@ const client = makeClient(rpcUrl)
 // depthMarkets is a structured sub-array whose reserves drift every block — its
 // eventable summary is the top-level depth_usd / depth_skew_pct, so the array
 // itself is meta (diffing it would spam param_changed rows every tick).
-const META_KEYS = new Set(['kind', 'reads', 'instant_note', 'depthMarkets', 'depth_note'])
+const META_KEYS = new Set(['kind', 'reads', 'instant_note', 'depthMarkets', 'depth_note', 'utilization_note', 'variableDebtToken'])
 
 // Continuously-varying metrics drift every block (yield accrual, ordinary
 // flows). Eventing every tick makes the news tracker a noise feed (Badass
 // rule 9) — these only fire an event on a >20% move, like instant_usd.
 // Discrete params (cooldownDuration, silo, …) still event on ANY change.
-const CONTINUOUS_KEYS = new Set(['totalAssets', 'totalSupply', 'underlyingBalance', 'depth_usd', 'depth_skew_pct'])
+const CONTINUOUS_KEYS = new Set(['totalAssets', 'totalSupply', 'underlyingBalance', 'depth_usd', 'depth_skew_pct', 'variableDebt', 'utilization_pct'])
 const CONTINUOUS_SHIFT = 0.2
 
 // Extract the value of a chosen metric from a snapshot row (numeric columns

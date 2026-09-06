@@ -8,6 +8,7 @@ import {
   evalDrawdown,
   evalOutflowStreak,
   evalHeadroom,
+  evalUtilization,
   evalDepthSkew,
   evalDepthCollapse,
   reconcileAlarms,
@@ -36,6 +37,17 @@ describe('evalGateChange (memo P2 — the gate moves)', () => {
 
   it('ignores non-gate event kinds', () => {
     expect(evalGateChange([{ kind: 'param_changed', at: hoursAgo(1) }], NOW).fires).toBe(false)
+  })
+
+  it('treats a terms_page_changed event as alarm-grade (gate moves)', () => {
+    const r = evalGateChange([{ kind: 'terms_page_changed', at: hoursAgo(2) }], NOW)
+    expect(r.fires).toBe(true)
+    expect(r.severity).toBe('alarm')
+    expect(r.evidence!.count).toBe(1)
+  })
+
+  it('does NOT fire for a terms_page_changed older than 24h (boundary)', () => {
+    expect(evalGateChange([{ kind: 'terms_page_changed', at: hoursAgo(25) }], NOW).fires).toBe(false)
   })
 
   it('is empty-safe', () => {
@@ -160,6 +172,38 @@ describe('evalHeadroom (one bad day from gating)', () => {
   })
 })
 
+describe('evalUtilization (Fraxlend/Morpho — lenders cannot exit at ~100% util)', () => {
+  it('watch above 90% utilization', () => {
+    const r = evalUtilization(92)
+    expect(r.fires).toBe(true)
+    expect(r.severity).toBe('watch')
+    expect(r.evidence!.utilizationPct).toBe(92)
+  })
+
+  it('alarm above 95% utilization', () => {
+    expect(evalUtilization(97).severity).toBe('alarm')
+  })
+
+  it('does NOT fire at exactly 90% (boundary strict)', () => {
+    expect(evalUtilization(90).fires).toBe(false)
+  })
+
+  it('does NOT fire at exactly 95% — stays watch, not alarm', () => {
+    const r = evalUtilization(95)
+    expect(r.fires).toBe(true)
+    expect(r.severity).toBe('watch')
+  })
+
+  it('does not fire on a healthy reserve (44% genre)', () => {
+    expect(evalUtilization(44.19).fires).toBe(false)
+  })
+
+  it('is null-safe (venue records no utilization)', () => {
+    expect(evalUtilization(null).fires).toBe(false)
+    expect(evalUtilization(undefined).fires).toBe(false)
+  })
+})
+
 describe('evalDepthSkew (memo P4 — pool one-sidedness of the instant-exit tier)', () => {
   it('watch above 80% one-sided (stETH 78:22 genre)', () => {
     const r = evalDepthSkew(85)
@@ -275,5 +319,13 @@ describe('uncoveredFor (silence is not all-clear)', () => {
     // still blind by default (no depth market, no instant depth) → depth_vs_book stays
     expect(uncoveredFor({ hasInstant: true, depthCovered: false }).map((u) => u.id)).toContain('depth_vs_book')
     expect(uncoveredFor({ hasInstant: true }).map((u) => u.id)).toContain('depth_vs_book')
+  })
+
+  it('drops terms_page_changes once the venue has a termsUrl baseline', () => {
+    // termsCovered (a termsUrl the hash watcher tracks) → terms_page_changes leaves the blind list
+    expect(uncoveredFor({ hasInstant: true, termsCovered: true }).map((u) => u.id)).not.toContain('terms_page_changes')
+    // no termsUrl → still blind
+    expect(uncoveredFor({ hasInstant: true, termsCovered: false }).map((u) => u.id)).toContain('terms_page_changes')
+    expect(uncoveredFor({ hasInstant: true }).map((u) => u.id)).toContain('terms_page_changes')
   })
 })

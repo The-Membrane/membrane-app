@@ -25,20 +25,37 @@ each claim) + the honesty gates that must clear before any piece ships publicly.
 | Timer | One bad tick ≠ liquidation: 8-hour window + price band, then only partial. | **Evidence + ForecastGate** — the star witness: 2,350 real accounts replayed | ✓ live |
 | Exit | A stuck venue costs you time, not a penalty (verified wording below). | /venue pages + recorder corpus | ✓ verified vs contracts — see gate 2 |
 
-## Owner precision rulings (2026-09-06, mid-review)
+## Owner precision rulings (2026-09-06) — VERIFICATION VERDICT: not yet shipped
 
-These three sentences are the spine of the fixed-vs-movable story — each under
-code verification before public use:
-1. **"LTVs can move — but delayed."** The cap dial's honest form: the algorithm
-   updates borrow_LTV, and updates reach open positions with a delay, never as an
-   instant cut. (Verification in flight: exact delay mechanics + citation.)
-2. **"The yield can move, but never the % spread."** Cost is taken FROM yield as
-   a share, so the user's spread proportion is structural. Yield level = market's;
-   spread share = nobody's dial. (Verification in flight: where the skim fraction
-   lives + whether governance can touch it.)
-3. **"No negative yield is possible."** Cost ≤ yield by construction — the carry
-   cannot be underwater on cost. (Same verification.) Base interest applies only
-   to UNDEPLOYED debt per owner; being double-checked in code.
+**The code check (2026-09-06, cited) found rulings 2 and 3 describe the Mycelium
+target design (HP-1 / HP-30 / HP-43 in membrane-solidity's
+docs/DEPLOYMENT-VAULT-HONEYPOT-DESIGN.md), NOT the deployed contracts.** What the
+shipped code does today:
+- One rate for ALL debt, deployed or idle — segment rates come from
+  `_positionEffectiveRate` (Cdp.sol:4496-4532; accrual walks every segment
+  unconditionally, Cdp.sol:4347-4396). `deployedTo[]` is explicitly
+  informational (Cdp.sol:336) and never feeds interest.
+- The only yield-linked charge is the user-set keeper fee (≤5%,
+  DeploymentVaultBase.sol:817-896) — vault yield PAYS DOWN the loan (RepayCdp
+  intent), it is not a cost-as-share-of-yield skim. **If venue yield < borrow
+  rate, carry goes negative — nothing in code prevents it.**
+- The base rate is governance-mutable (cdp.base_interest_rate, Cdp.sol:4691-4695)
+  and the avoidance-rate floor moves with the market (CuratorRegistry:808-835,
+  partly shipped) — so today, every rate dial in code moves.
+
+**Consequences for the copy, until the protocol work ships:**
+1. "LTVs move but delayed" — still under verification (gate 3 agent), unaffected.
+2. "Yield moves but never the % spread" + 3. "No negative carry possible" —
+   MUST ship future-flagged (Mycelium model) or not at all. Present-tense use
+   would be false against the deployed contracts.
+   Code-supported interim wording:
+   > "Deployment-vault yield is routed to pay down your loan automatically; the
+   > base borrow rate tracks the calm floor of the deployment market rather
+   > than a spiking utilization curve."
+**Decision open (owner):** ship the copy future-flagged, or build HP-1
+(zero-base-interest cutover) + HP-30 (charge on gains only) + HP-43 (negative
+carry impossible by construction) in membrane-solidity — W1 of the honeypot
+memo, change-control governed — so the USP's spine becomes present-tense true.
 
 ## Honesty gates (must clear before public)
 

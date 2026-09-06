@@ -8,8 +8,8 @@ import { Card } from '@/components/ui/Card'
 import { MockStamp } from '@/components/demo'
 
 import { CapacityBandKey, VenueLiquidity } from './types'
-import { CAPACITY_BANDS, CAPACITY_READS_STAMP, VENUE_LIQUIDITY } from './fixtures'
-import { bandSharePercent, buildCapacitySummary, parseAmountInput, projectExitBands, venueSharePercent, venueTotalUsd, usd } from './utils'
+import { CAPACITY_BANDS, VENUE_LIQUIDITY } from './fixtures'
+import { bandSharePercent, parseAmountInput, projectExitBands, venueSharePercent, venueTotalUsd, usd } from './utils'
 
 /** Band → semantic token, ported from the proto's BANDS rgba palette (script :425-427). Order is load-bearing. */
 const BAND_COLOR: Record<CapacityBandKey, string> = {
@@ -68,10 +68,6 @@ export const ExitLiquidity: React.FC = () => {
         ))}
       </Wrap>
 
-      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textPrimary} letterSpacing="0.03em" mt={SPACING.md}>
-        {buildCapacitySummary()}
-      </Text>
-
       <HStack spacing={SPACING.md} mt={SPACING.md} align="center">
         <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary} whiteSpace="nowrap">
           Check a size:
@@ -102,7 +98,7 @@ export const ExitLiquidity: React.FC = () => {
               />
             ))}
           </Flex>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.xs}>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.xs}>
             {projectionParts
               .map((p) =>
                 p.key === 'instant'
@@ -137,7 +133,7 @@ export const ExitLiquidity: React.FC = () => {
                 </Text>
                 <Text
                   fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="9px"
+                  fontSize="10px"
                   color={SEMANTIC_COLORS.textTertiary}
                   letterSpacing="0.14em"
                   textTransform="uppercase"
@@ -154,7 +150,7 @@ export const ExitLiquidity: React.FC = () => {
 
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="9.5px"
+                fontSize="10px"
                 color={SEMANTIC_COLORS.textSecondary}
                 lineHeight={1.55}
                 textAlign={{ base: 'left', md: 'right' }}
@@ -166,12 +162,9 @@ export const ExitLiquidity: React.FC = () => {
         })}
       </VStack>
 
-      <HStack spacing={SPACING.sm} mt={SPACING.md} align="baseline">
+      <Box mt={SPACING.md}>
         <MockStamp label="mock" />
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.03em">
-          {CAPACITY_READS_STAMP}
-        </Text>
-      </HStack>
+      </Box>
     </Card>
   )
 }

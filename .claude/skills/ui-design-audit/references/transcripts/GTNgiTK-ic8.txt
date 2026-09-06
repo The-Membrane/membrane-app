@@ -1,0 +1,205 @@
+you're starting to work on a new web
+design project yes that's exciting but
+now you've opened up a new file you're
+staring at a blank screen and you have
+no clue what to put on the homepage time
+goes by your clients are calling asking
+when it's going to be ready every minute
+that you procrastinate you are losing
+money this ends right now I'm going to
+explain to you exactly what you need to
+put on the homage of your website and
+because you've wasted enough time as it
+is I challenge myself to teach you The
+Perfect Landing Page structure in 5
+minutes or else my kids are going to
+dump this ice bucket water on my head
+challenge accepted okay I'm going to
+demonstrate this on this figma template
+and if you want to use it to start
+working with you can grab it in the
+description below so I'm going to start
+by talking about the hero section which
+is the first topmost section of the
+website which is called above the fold
+before you have to scroll to anything
+and this is the most important thing
+because if we don't get this right
+people are not going to continue in
+scrolling so the first thing that we
+have is obviously a title and this title
+needs to explain the value that you are
+providing now this doesn't necessarily
+always mean to say what you are doing
+because if you might be doing something
+generic like I sell cars or I build
+websites or your product again might be
+we sell coffee that might be generic so
+you want to explain the value the
+uniqueness of it so that can be the
+problem that you're solving for example
+like I will generate more traffic for
+your business or something something
+like this or our coffee is uniquely made
+by blah blah blah so this is where you
+explain the value or what happens when
+you are going to drink the coffee like
+so this is the value and we want to
+start off with this now below this we
+always have a subtitle and the purpose
+of the subtitle is to actually explain
+how we're how this value is being
+created so here you might say I drive
+more sales to your business by building
+a high converting website or something
+like this and sometimes you might even
+say who is this for right so I do this
+for small businesses or this is good for
+entrepreneurs and so forth and so forth
+so this is the purpose of having a
+subtitle in your hero section the next
+thing that you want to have is some kind
+of a visual and the point of the visual
+is to help them imagine what it is that
+they're buying so obviously if it's a
+product you want to show the product and
+more specifically you might even want to
+show the product in use so they can
+imagine that that's them using it if
+you're a service provider you might want
+to see the experience of working with
+you so if you're freelancer maybe that's
+a photo of you so people can imagine who
+is the person that they are hiring the
+next thing that we have here is called
+social proof and in this example here I
+have 5,000 people like you have
+purchased this product and the point of
+this is to make it believable right now
+we don't always have this sometimes you
+will see maybe logos of companies that
+we've worked with or some kind of
+numbers like X numbers sold uh few years
+in business and so forth but the point
+of this is again to make it credible to
+make your claims credible and next we
+have the call to action which is
+basically a button that tells them what
+to do next should I get started should I
+book a call should I buy this now but
+you want to easily tell people what to
+do next otherwise they might just leave
+the website and be lost so these are the
+uh core elements of a hero section let
+me give you an example here so here's an
+example from stripe really well-designed
+uh website and they're starting with
+payment infrastructure for the internet
+so this is basically what they're doing
+and here they have millions of companies
+of all sizes from startups to fortant
+use stri so they're both doing the
+social proof because millions of
+companies and telling people you know
+the size of the company that is right to
+work with them start now is the call to
+action and they do show here both the
+analytics you'll see as a user but also
+what the customer experience for people
+using their app you know is going to be
+like when they are buying so this is one
+hero section example here's another one
+for a copywriter so she is basically
+saying what it is that she's doing um
+she is showing an image of herself so
+people can visualize oh look she's so
+nice it must be nice to work with her
+and she is showing work completed for so
+that's basically her social proof I did
+work for all of these Brands and she has
+the call to action here although not
+very prominent but still a call to
+action let's see I do have only one
+minute I'll try to go through super fast
+the next stuff you want to talk about is
+features and benefits which is you've
+made a very big claim at the top a big
+promise now how are you're going to
+deliver on this how does this actually
+work now the difference between features
+and benefits I want to give you an
+example from Tesla so features are the
+technical specs of what this is so it
+might be you know 200 miles per hours or
+120 horsepowers this is really technical
+but people usually don't care about the
+technical they want to know what's the
+benefit if I use this what's going to
+happen and you can see it here you will
+you know stay connected or you will have
+immersive sound so these are the
+benefits and you can think about this in
+a metaphor like the Mario game where you
+you take this flower and then you can
+throw Fireballs so the features are we
+have a flower but what this actually
+helps you do the benefit is you'll be
+able to throw Fireballs so that's how
+you think about this and that's what you
+do in the next section it can be short
+it can be long next you want to Show
+additional social proof and in this case
+it's testimonials again this can be
+logos testimonials numbers whatever you
+want ah God damn it so five minutes have
+passed I've got a little bit more but I
+do want you to make sure that you get
+this and that's valuable and useful for
+you so it's going to take probably
+additional minute or so to finish and
+yeah my kid get to throw this on me I'm
+sure they'll be super super happy next
+we have the what's usually called FAQ
+frequently asked questions and the Reas
+reason that we have this is to handle
+objections so you think about a landing
+page as basically a sales presentation
+we're trying to sell some idea some
+products some services and think about
+this when you go to the store there's a
+person there helping you to answer all
+your questions and your questions are
+basically the reasons that you are not
+going to buy these are your objections
+like but wait what happens if this and
+what happens if that so because we don't
+have a live salesperson on our page we
+are going to use the f Q like frequently
+asked questions to predict the
+objections that you know our visitors
+might have so we can tackle them and
+answer them and that's going to increase
+the likelihood that they purchase once
+we've done that basically we're ready to
+make the sale once again before they
+leave so this is not more social proof
+this is last call to action which is
+basically okay now you're convinced now
+you can go ahead and buy now you never
+want to just leave want to leave them at
+the end of the the page without telling
+them once again what they need to do
+right now and usually on the last thing
+on every page is a footer which
+basically tells them what else is on
+this website perhaps subscribe them to a
+newsletter or something like this but
+it's just kind of like uh an
+organizational tool for the end of the
+page so this is the structure uh it's
+going to help you and it's can work for
+almost any business website homepage
+landing page I hope that was valuable
+and and now it's time to take
+responsibility action
+[Music]

@@ -57,7 +57,7 @@ export const Composition: React.FC<CompositionProps> = ({ assets = POOL_COMPOSIT
 
       <HStack spacing={SPACING.sm} mt={SPACING.md} align="baseline">
         <MockStamp label="measured" />
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.03em">
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.03em">
           {COMPOSITION_STAMP}
         </Text>
       </HStack>

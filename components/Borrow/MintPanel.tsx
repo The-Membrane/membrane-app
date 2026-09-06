@@ -76,7 +76,7 @@ export const MintPanel: React.FC<MintPanelProps> = ({
               onClick={onMax}
               color={SEMANTIC_COLORS.success}
               fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="9px"
+              fontSize="10px"
               letterSpacing="0.12em"
               textTransform="uppercase"
               textDecoration="underline"
@@ -104,7 +104,7 @@ export const MintPanel: React.FC<MintPanelProps> = ({
             onChange={(e) => onPostAmountChange(e.target.value)}
             _focus={FOCUS_STYLES.ring}
           />
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xs}>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xs}>
             {fmt(pv)} · you hold {fmtAmount(asset.bal, asset.dp)} {asset.sym}
           </Text>
         </Box>
@@ -145,10 +145,10 @@ export const MintPanel: React.FC<MintPanelProps> = ({
             />
           </Slider>
           <HStack justify="space-between">
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary}>
               light
             </Text>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary}>
               cap {ltvCapPercent}% · line {(asset.M * 100).toFixed(0)}%
             </Text>
           </HStack>
@@ -164,10 +164,10 @@ export const MintPanel: React.FC<MintPanelProps> = ({
           >
             You mint
           </Text>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="26px" color={SEMANTIC_COLORS.textPrimary}>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.h2} color={SEMANTIC_COLORS.textPrimary}>
             {fmt(mint)}
           </Text>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary}>
             CDT · straight to your wallet
           </Text>
         </Box>
@@ -235,11 +235,6 @@ export const MintPanel: React.FC<MintPanelProps> = ({
       >
         Borrow
       </DemoAwareCta>
-
-      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.02em" mt={SPACING.md}>
-        breach odds = probability price touches your liquidation line within 12 months · zero-drift model on
-        realized 12m vol ({(asset.vol * 100).toFixed(1)}%) · recomputed daily with the breach surface
-      </Text>
     </Card>
   )
 }

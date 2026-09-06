@@ -93,6 +93,9 @@ export const LossWaterfall: React.FC = () => {
             bg={stage.bg}
             borderRight={i < stages.length - 1 ? '1px solid' : undefined}
             borderColor={SEMANTIC_COLORS.borderSubtle}
+            // Your seat is stated by the segment itself (inset success line),
+            // so the tint palette cannot misread as the "you" signal.
+            boxShadow={stage.isYou ? `inset 0 0 0 1px ${SEMANTIC_COLORS.success}` : undefined}
           >
             {stage.isYou && (
               <Text
@@ -101,7 +104,7 @@ export const LossWaterfall: React.FC = () => {
                 left="50%"
                 transform="translateX(-50%)"
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="9px"
+                fontSize="10px"
                 letterSpacing="0.16em"
                 textTransform="uppercase"
                 color={SEMANTIC_COLORS.success}
@@ -124,7 +127,7 @@ export const LossWaterfall: React.FC = () => {
                 as="span"
                 display="block"
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="9px"
+                fontSize="10px"
                 letterSpacing="0.16em"
                 textTransform="uppercase"
                 color={SEMANTIC_COLORS.textPrimary}
@@ -140,20 +143,17 @@ export const LossWaterfall: React.FC = () => {
       </Flex>
 
       <HStack justify="space-between" mt={SPACING.sm}>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary}>
           first loss
         </Text>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary}>
           last loss
         </Text>
       </HStack>
 
-      <HStack spacing={SPACING.sm} mt={SPACING.md} align="baseline">
+      <Box mt={SPACING.md}>
         <MockStamp label="mock" />
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.03em">
-          {seat.caption}
-        </Text>
-      </HStack>
+      </Box>
     </Card>
   )
 }

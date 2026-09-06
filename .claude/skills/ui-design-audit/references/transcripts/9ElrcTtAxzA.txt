@@ -1,0 +1,260 @@
+hi welcome back to chainlift let me ask
+you a question how much space should I
+put between this heading in this
+paragraph you might say that it could be
+like just equal to however tall The
+Heading is that would be one unit or
+maybe 1.15 or0 25 but if it gets much
+further away then it stops really
+seeming like they're connected it gets
+absurd right like we know that the
+heading in the paragraph need to stay
+within this sort of comfort zone that's
+straight forward enough right well what
+about when we get a subheading in the
+mix now this is a little bit more
+complicated should this be closer to The
+Heading closer to the paragraph or
+exactly in between what if we put this
+in a card and add an image or an action
+bar Suddenly It's Not So straightforward
+we haven't even talked about other
+factors like the Border radius yet but a
+properly spaced out card should look
+like this when we compare it to what we
+started with you can see that the one on
+the right feels much more balanced but
+is it really let's zoom in and find out
+which one of these has symmetrical
+padding many of you might think that
+it's the one on the right but it's
+actually the one on the left the one on
+the right feels better due to something
+called Optical Corrections and to better
+illustrate what I mean by that let's
+zoom in on the other one you see
+mathematically the padding on this card
+is symmetrical the left and the top
+padding are equal they're the same
+number of pixels but it doesn't really
+feel symmetrical we want it to feel like
+the text would slide perfectly up into
+that top left corner but when the
+padding is actually symmetrical you wind
+up with a little bit too much on top
+there's extra space and if I correct it
+you can see how the extra space would
+bleed over outside of the card now it
+turns out this extra space is actually
+derived from the difference between the
+bounding box height and the actual
+literal rendered pixel height of the
+text shapes themselves they're
+equivalent so when we offset by that
+exact same amount we wind up with
+something symmetrical that answers one
+question mark and this just gives us an
+idea for how complicated spacing can
+really be when you dig into the details
+but what about all these other ones how
+far away should everything be from
+everything else how to find the perfect
+spacing for our purposes there are three
+laws of spacing the first is that every
+element is related to every other
+element even if it's just because
+they're in the same viewport some
+relationships are stronger than others
+though this is where your information
+hierarchy comes from and the stronger
+the relationship is the closer the
+elements should be together generally
+speaking let's talk about relationship
+strength and we'll do it by looking at
+this mockup of Apple's desktop nail app
+by Austin coniff on figma community an
+example of strongly related elements
+would be the heading and subject line
+within each list item here they're part
+of the same informational unit the email
+but by by contrast we would say that
+this specific heading and this sidebar
+menu item have a very weak relationship
+The Heading is tied to the email but the
+sidebar item is tied to the app's
+overall navigation some elements are
+strongly related like this heading and
+subheading and a weekly related pair
+would be the heading and the weather
+icon they're farther apart and they're
+less visually similar we're still just
+looking at Laura msum though if we
+replace this with actual content then we
+add new layer of complexity to the
+environment suddenly the relationships
+have shifted the strong and weak
+relationships are reversed the heading
+and the icon are telling us about the
+weather so now they have something in
+common but the subheading is telling us
+what city we're in to fix this card will
+move the icon to the left and make it a
+little bit
+bigger now looking at them side by side
+you can see how the one on the right
+more accurately reflects the
+relationships between the
+elements how much space do you to use
+and when do we just eyeball it no don't
+eyeball it instead we're going to use
+preset spacing values from a scaling
+system and for this demonstration we're
+going to use the lift kit system here
+we're designing an employee handbook we
+need to break up the spacing to make it
+a little bit easier to read now uh the
+first thing we're going to do is apply
+some color grading to just make it
+easier to spot different levels in this
+type hierarchy now we're going to look
+for relations we'll scan through the
+document and group elements together
+into pairs for example title and
+subtitle that's easy heading and
+subheading still pretty easy but what
+about this paragraph the paragraph
+complicates things but we'll take it one
+step at a time we have three text
+elements here that are technically part
+of the same informational group so it
+really comes down to the one in the
+middle the subtitle is it more closely
+related to the title or to the paragraph
+I think it's more of a subtitle right so
+that relation is stronger meaning they
+are going to be closer together than the
+subtitle in the
+paragraph we're going to go to our list
+of variables and figure out which one of
+our presets we want to choose from and
+we'll apply extra small so when we zoom
+in we do want to remember that the
+margin is always derived from the larger
+text element always apply the margin to
+the bigger
+one now that's one relation taken care
+of and we can move on to the subtitle
+and paragraph the only real rule here is
+that they just need to be farther apart
+than the first two so in this case uh
+I'm going to skip a level I'm applying
+the value of medium so that's an extra
+small space and medium space and now
+we're done with those two and moving on
+to removing the annotations you can see
+that it's a lot cleaner when we go to
+the next pair now we have the same
+paragraph and then the heading that's
+coming right after it now quick contacts
+is an entirely new section in the
+document semantically it really has
+nothing to do with the paragraph that
+comes before it so we can see that if we
+look at spaces a b and c a should be
+bigger than b which should be greater
+than
+C remember when we're picking variables
+to use here we've already used extra
+small and medium so I'm going to choose
+large and the reason I'm not skipping a
+level again is because the spacing scale
+in lift kit is exponential you don't
+really have to skip levels once you get
+past medium but it can be helpful when
+you're dealing with extra small and
+small so we'll go through the whole
+document like this and we will eyeball
+but with parameters the scaling system
+gives us some creative freedom and
+prevents us from making bad decisions
+and at the end of our process all of the
+relational pairs will have their spacing
+assigned and then when we remove the
+annotations we can see how much easier
+it is now to
+read that does leave these padding
+problems in the tab links and the table
+cells which I'm just going to do right
+here because this video is already
+getting kind of long and when we look at
+them side by side you can see how much
+of a difference it makes to apply this
+system here's how you can actually
+implement this there's three ways the
+first way is to just use liftkit it's a
+clonable web flow project that offers a
+lot of benefits I'll get into in a
+second option two is you can DIY you you
+can just learn the math and come up with
+your own system and then the third is
+that you can just pay chain lift to do
+it lift Kit's my favorite suggestion
+because not only is it free but it's
+also super lightweight it's not a
+component Library it's a framework that
+just establishes guard rails for you you
+can also learn it in like a day uh I
+think that a lot of Frameworks that
+require courses to learn are kind of
+unnecessarily complicated lift kit is
+designed to be well designed to have an
+incredibly gentle learning curve
+and there's no math involved you can
+visit chainlift doio liftkit to install
+it again it's a web flow clonable you're
+going to love it option two option two
+is
+DIY and one of the pros of DIY is that
+it's not really that hard there are a
+lot of formulas that inform where these
+spacing units come from but they're not
+difficult to memorize but it does take
+practice it's not as intuitive as
+learning lift kit and uh it may require
+a few days of practice but overall it's
+still not that bad however I can't help
+you if you do go for this route then uh
+chainlift can't really give you any
+support I mean I'm always happy to help
+and answer questions and things like
+that but uh I can't guarantee that I
+will be able to fully wrap my head
+around whatever custom system you buil
+for this I am working on a patreon
+course and I know I just said the
+courses are stupid but not mine because
+it's
+me the last option is you can just hire
+chainlift we'll set it up for you uh
+we'll offer training teach you and your
+staff how to do the whole thing
+implement with your framework make sure
+that it works correctly do QA all of
+that good stuff you know what hiring an
+agency is like and you get free support
+forever which is also pretty cool so
+other than that this has been a glimpse
+into the secret science of perfect
+spacing so if you have questions please
+feel free to leave them in the comments
+I get notifications directly uh because
+the Channel's still pretty small so uh
+there's a chance that you'll hear back
+from me pretty quickly and if you leave
+a comment uh it's the easiest way to get
+in touch you can also email us I think
+there's an email plastered everywhere
+visit my website
+um yeah that's pretty much it so uh
+thank you for watching and we'll see you
+next time

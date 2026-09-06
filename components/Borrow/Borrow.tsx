@@ -98,7 +98,7 @@ export const Borrow: React.FC = () => {
         <Text as="h1" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} color={SEMANTIC_COLORS.textPrimary} mt={SPACING.xs}>
           Mint CDT against what you already hold.
         </Text>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xs} lineHeight={1.7} maxW="74ch">
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xs} lineHeight={1.7} maxW="72ch">
           Plain debt. The CDT arrives in your wallet and does nothing until you spend or deploy it. The version
           where the debt earns its own interest is Carry.
         </Text>

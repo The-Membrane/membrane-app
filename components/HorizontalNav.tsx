@@ -180,10 +180,15 @@ const HorizontalNav = () => {
             {/* Desktop Nav.
                 minW={0} lets this flex child shrink below its content width; without it the
                 item row (currently ~1.2k px) sets the nav's scrollWidth and the overflow
-                escapes to <html>, scrolling the whole document sideways on every page. */}
+                escapes to <html>, scrolling the whole document sideways on every page.
+                Sized to FIT at >=1440px (measured: 992px available, ~950px used at the
+                tight size); below that the row scrolls, and the fade overlay at the right
+                edge shows that items continue — a hidden scrollbar alone read as the nav
+                being truncated mid-word. The fade paints bgSecondary over bgSecondary, so
+                it is invisible whenever the row fits. */}
+            <Box position="relative" minW={0} display={{ base: 'none', lg: 'flex' }}>
             <HStack
-                spacing={1}
-                display={{ base: 'none', lg: 'flex' }}
+                spacing={0}
                 minW={0}
                 overflowX="auto"
                 sx={{ scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}
@@ -198,13 +203,13 @@ const HorizontalNav = () => {
                         fontWeight="semibold"
                         borderRadius={0}
                         border="none"
-                        px={4}
                         py={2}
                         bg={router.asPath === `/${chainName}${item.href}` ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
                         transition={TRANSITIONS.colors}
                         _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                         _focusVisible={FOCUS_STYLES.ring}
-                        fontSize="13px"
+                        fontSize="12px"
+                        px={2}
                         w={"fit-content"}
                         /* Never let the label squeeze — the row scrolls instead of colliding. */
                         flexShrink={0}
@@ -222,13 +227,13 @@ const HorizontalNav = () => {
                             color={SEMANTIC_COLORS.textSecondary}
                             fontWeight="semibold"
                             borderRadius={0}
-                            px={4}
                             py={2}
                             bg={comingSoon.some(d => router.asPath === `/${chainName}${d.href}`) ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
                             transition={TRANSITIONS.colors}
                             _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.textPrimary }}
                             _focusVisible={FOCUS_STYLES.ring}
-                            fontSize="13px"
+                            fontSize="12px"
+                            px={2}
                             flexShrink={0}
                             whiteSpace="nowrap"
                             /* Plain MenuButton misses the Button theme, so match its casing here. */
@@ -315,6 +320,18 @@ const HorizontalNav = () => {
                     </>
                 )}
             </HStack>
+            {/* Overflow affordance: clipped items fade out instead of cutting mid-word. */}
+            <Box
+                aria-hidden="true"
+                position="absolute"
+                top={0}
+                bottom={0}
+                right={0}
+                w="32px"
+                pointerEvents="none"
+                style={{ background: `linear-gradient(to right, transparent, var(--m-bg-secondary))` }}
+            />
+            </Box>
 
             {/* Hamburger for mobile */}
             <IconButton

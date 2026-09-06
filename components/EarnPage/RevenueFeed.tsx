@@ -18,15 +18,20 @@ export const RevenueFeed: React.FC = () => {
     <VStack align="stretch" spacing={SPACING.md}>
       <HStack justify="space-between" wrap="wrap" spacing={SPACING.md}>
         <MockStamp label="realized only" />
+        {/* Quiet outline: the hero deposit CTA is the page's one solid action;
+            claiming is secondary and stays hairline-weight (hierarchy). */}
         <DemoAwareCta
           onAction={() => open(CLAIM_FEES_REQUEST)}
-          bg={SEMANTIC_COLORS.success}
-          color={SEMANTIC_COLORS.bgPrimary}
+          bg="transparent"
+          border="1px solid"
+          borderColor={SEMANTIC_COLORS.borderStrong}
+          color={SEMANTIC_COLORS.success}
+          flexShrink={0}
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize={TYPOGRAPHY.small}
           textTransform="uppercase"
           letterSpacing="0.14em"
-          _hover={{ bg: SEMANTIC_COLORS.success, opacity: 0.85 }}
+          _hover={{ bg: 'transparent', borderColor: SEMANTIC_COLORS.success }}
         >
           {`Claim $${UNCLAIMED_FEES_USD.toFixed(2)}`}
         </DemoAwareCta>

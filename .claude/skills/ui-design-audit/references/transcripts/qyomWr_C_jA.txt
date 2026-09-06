@@ -1,0 +1,298 @@
+in this video you will learn the key
+design principles and practical tips to
+build top tier websites consider this a
+guide to creativity because creativity
+is a process not a moment being creative
+isn't about being the first person to
+think of an idea it's all about
+connecting ideas you don't have to
+create new designs from a blank slate
+top designers take what is already
+present and combine those elements in a
+unique way but to be able to do that you
+need to know the rules of the game rule
+number one good design is as little
+design as possible it means focus on
+essential features and make them better
+and useful for the
+users it also means less colors words
+and clutter on the
+screen here's a common mistake when
+designing a website you start with the
+header and then go down from there or
+you are thinking about the overall
+structure how many sections do I need
+how wide they should be how should I
+design the buttons that that's a lot of
+hows each of these questions will slow
+you down and drain your creativity
+instead ask what's the key functionality
+or the main selling point of this
+website for a lot of websites it could
+be a heading input field and a button
+start from there at this point design as
+little as possible chances are that's
+all you needed anyway don't complicate
+websites by adding too many elements
+that frustrate users and looks ugly as
+well our brain has evolved to simplify
+things and looks for key visual
+information
+only so why not choose the easy way and
+keep things
+simple it's a win-win situation rule
+number two use the law of similarity and
+proximity to simplify the design you can
+use shape size color and spacing to
+group elements gestal Theory emphasizes
+that the whole of something is greater
+than its parts focusing on how our minds
+perceive patterns and holes rather than
+just individual elements our brain first
+processes the information as a whole and
+as we spend more time looking at
+something we start to notice the small
+details as well so your first goal is to
+make the design simple enough to be
+understood as a whole in simple words
+the design should be scannable within
+seconds this ties nicely with the first
+rule as well the law of similarity not
+only makes the design better and
+consistent it's easier to implement as
+well
+the law of proximity on the other hand
+gives you a better understanding of
+layout and
+spacing rule number three elements need
+more spacing than you think when you are
+focused on designing a specific element
+the space might seem too much to you but
+the users scan the whole UI before
+focusing on individual elements so start
+with a lot of spacing and look at the
+design as a whole then start to remove
+it until you are happy with the results
+but doing this manually becomes boring
+and repetitive so you need a system in
+place rule number four use a design
+system especially if you are designing a
+big and complex website or app because
+it's made up of essential elements and
+components there are multiple ways to
+create a design system for a simple
+website you just need to Define key
+Design Elements and you are good to go
+for uis you need more complex and
+detailed design system that covers a lot
+of scenarios
+once you understand the basic design
+principles Behind These systems you
+don't really need a CSS framework to
+style your
+websites let's start with spacing you
+can use this list to get started or
+create your own system just have the
+values that are divisible by four now
+spacing totally depends on the context
+it's a very bad idea to design with
+lauram ipsum or vague data because a
+spacing that is perfect for this card
+can be a disaster for this one the
+system is is just there to help you pick
+a value quickly so you can play with
+different values instead of trying
+random values on the fly in the previous
+example we started with a lot of spacing
+like 40 pixels then bring elements
+closer that belong together to do that
+pick a value from this system let's try
+20 it's still pretty big let's try 12
+perfect but generally we use REM units
+for font size and margins so the design
+can adapt to the user system preference
+to assign REM values just divide the
+pixel value by 16 the new system will
+look something like this a better way is
+to set these values as variables so you
+can play with different values and see
+what works
+best same thing for your fonts and
+colors handpick few values and assign
+them as Global variables you can get
+started by picking any one font and type
+scale that fits your project there is no
+real science in choosing colors so don't
+fall for those tutorials or articles
+that teach you the psychology of colors
+just pick a dark and light color for
+your text and background and two more to
+add some personality just make sure the
+colors are legible and don't overwhelm
+the users for the same reason avoid text
+to line Center especially for paragraphs
+and smaller text size one more point
+line height is inversely proportional to
+the font size that means smaller text
+needs greater line height for better
+legibility
+greater line height also acts as margin
+top on text elements so you don't have
+to assign spacing between all text
+elements it's already done for you now
+that you have your fonts and colors in
+place design the key elements start with
+the links and buttons you generally need
+two types of each one for primary
+actions and one for secondary
+actions once we have a design system in
+place we can start the actual design
+process web design is all about putting
+the right elements at the right place
+with the right sizing that brings us to
+rule number five hierarchy is everything
+we need to emphasize certain elements on
+the page to help users navigate and find
+important actions to emphasize important
+elements we can use size weight and
+color but it's very easy to overdo these
+things so start small you will be
+surprised to see how little changes can
+make a big impact on the overall design
+now to emphasize an element ask yourself
+what's the first thing the user will
+look for I guess it's the title so we
+need to emphasize it let's start with
+the color but white on black has a
+pretty good contrast ratio so let's
+reduce the contrast from the secondary
+information sometimes to emphasize
+something you need to deemphasize other
+competing elements in our case it's not
+enough so let's add more contrast by
+increasing the font weight it's almost
+there but you can go a step further
+further and increase the font size as
+well and when you are done with the
+design zoom out to see if the title
+stands out from the secondary
+information we do this because the users
+will scan and look for key information
+to focus on if the design isn't
+scannable you need to do some
+adjustments it could be choosing
+different font size a darker color or
+simply a bit more spacing do whatever
+you can to emphasize the elements you
+know the users will look for sometimes
+it could be labels and sometimes it
+could be values or maybe an icon it all
+depends on the context not all H1 tags
+will have the same size and margins same
+thing is true for other tags as well
+sometimes the H3 or paragraph tag could
+have a bigger font size than the h2 tag
+it all depends on the context just
+emphasize the most important elements
+and keep the rest of the design as it is
+good design is less design and More
+Design is almost always results in
+uglier design
+but like everything in life there are a
+few exceptions to this rule as well
+introduce depth to add some character
+use colors and shadows to elevate
+important elements Shadows can also be
+used to replace solid borders the closer
+something feels to the user the more it
+will attract their focus speaking of
+Focus use your accent colors to
+highlight important
+elements one easy trick to add a bit of
+excitement is by replacing a solid color
+with a subtle
+gradient you could also work on your
+lists and tables to make them more fun
+and engaging for the users and try using
+cards for Bland
+elements but the question is how do you
+get these ideas in the beginning I said
+creativity is a process not a moment now
+it's time to explain that process step
+one know the basics that we have covered
+already also read these books they have
+some really good practical tips to build
+top tier websites the second step is
+finding a source of inspiration you can
+look at the top tier websites and study
+their style or check out some amazing
+work on figma
+community I personally use mobin to take
+design Inspirations for my projects so I
+asked them to sponsor this video and
+thankfully they agreed say you are
+designing a testimonial section for a
+finance app go to filters and search for
+testimonial section then set the app
+category to finance
+now we have the testimonial section for
+some top tier apps in the world now look
+around and save the ones you like to
+your
+library whether you are designing for
+mobile or a full-blown web app mobin has
+a huge library of tried and tested
+designs so definitely include it in your
+design
+process once you have gathered enough
+Inspirations it's time to work over
+those designs in your mind trust is
+crucial for finance apps so the
+designers Must Have Spent A lot lot of
+time and research on the testimonial
+section let's try to look at these as
+users and make a note of key things you
+like about these designs for me they
+were simple and unique I really like the
+ones with a human face and simple
+language I hate generic testimonial
+sections that have a bunch of reviews
+with no emotions so I have few ideas now
+we need two to three good reviews
+ideally with great images and we need
+big and bold text to emphasize them but
+don't go designing yet
+once you have some Initial Ideas try to
+step away from the problem and do
+something else this is a very important
+step in the creative process this is not
+just limited to design if you are stuck
+with a problem watch few tutorials or
+read some articles then think of these
+potential Solutions in your mind but
+don't act on it just take a break and do
+something else I promise when you
+revisit the problem new ideas will come
+naturally to you if this doesn't work it
+means you are under a lot of stress
+lately or not getting proper sleep so
+work on that first let's say you got
+some new ideas and finished your design
+step five is to not fall in love with it
+we all have personal biases and see
+things in a certain way so first test
+your design by showing it to your
+friends or colleagues if they like it
+test it with your users and always be
+open to adjust the design based on
+feedback sometimes you have to design
+several ter websites just to discover
+that you designed one good pricing
+section in the third design just finish
+something anything stop planning and
+thinking to design and just design it
+doesn't matter how good or how bad it is
+you just need to prove to yourself that
+you have what it takes to produce
+something creativity is not just a
+process it's also a state of mind

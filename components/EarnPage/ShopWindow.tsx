@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { DemoAwareCta, MockStamp } from '@/components/demo'
 
 import { ShopOption } from './types'
-import { SHOP_OPTIONS, SHOP_STAMP } from './fixtures'
+import { SHOP_OPTIONS } from './fixtures'
 import { buildListRequest } from './utils'
 import { useExecutionSheet } from './hooks/useExecutionSheet'
 
@@ -35,7 +35,7 @@ const InfoTip: React.FC<{ tip: string }> = ({ tip }) => (
       w="13px"
       h="13px"
       ml={SPACING.xs}
-      fontSize="9px"
+      fontSize="10px"
       color={SEMANTIC_COLORS.textSecondary}
       border="1px solid"
       borderColor={SEMANTIC_COLORS.borderStrong}
@@ -57,7 +57,7 @@ const ShopCard: React.FC<{ option: ShopOption }> = ({ option }) => {
         {option.sym}
       </Text>
 
-      <HStack justify="space-between" fontSize="10.5px" color={SEMANTIC_COLORS.textSecondary}>
+      <HStack justify="space-between" fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>
         <HStack spacing={0}>
           <Text as="span">1-in-1000 8h move</Text>
           <InfoTip
@@ -69,7 +69,7 @@ const ShopCard: React.FC<{ option: ShopOption }> = ({ option }) => {
         </Text>
       </HStack>
 
-      <HStack justify="space-between" fontSize="10.5px" color={SEMANTIC_COLORS.textSecondary}>
+      <HStack justify="space-between" fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>
         <HStack spacing={0}>
           <Text as="span">market size</Text>
           <InfoTip
@@ -81,7 +81,7 @@ const ShopCard: React.FC<{ option: ShopOption }> = ({ option }) => {
         </Text>
       </HStack>
 
-      <HStack justify="space-between" fontSize="10.5px" color={SEMANTIC_COLORS.textSecondary}>
+      <HStack justify="space-between" fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>
         <HStack spacing={0}>
           <Text as="span">projected revenue</Text>
           <InfoTip
@@ -93,29 +93,20 @@ const ShopCard: React.FC<{ option: ShopOption }> = ({ option }) => {
         </Text>
       </HStack>
 
-      <Text
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="9.5px"
-        color={SEMANTIC_COLORS.textTertiary}
-        lineHeight={1.6}
-        borderTop="1px solid"
-        borderColor={SEMANTIC_COLORS.borderSubtle}
-        pt={SPACING.sm}
-      >
-        Stake to list · 90-day withdraw lock · onboards at 40% LTV · borrow capacity capped to your stake. Your
-        stake takes the junior seat.
-      </Text>
-
+      {/* Outline, one step below the hero's solid CTA (hierarchy: one
+          dominant action per page). */}
       <DemoAwareCta
         onAction={() => open(buildListRequest(option.sym))}
-        bg={SEMANTIC_COLORS.success}
-        color={SEMANTIC_COLORS.bgPrimary}
+        bg="transparent"
+        border="1px solid"
+        borderColor={SEMANTIC_COLORS.borderStrong}
+        color={SEMANTIC_COLORS.textPrimary}
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize={TYPOGRAPHY.small}
         textTransform="uppercase"
         letterSpacing="0.14em"
         transition={TRANSITIONS.colors}
-        _hover={{ bg: SEMANTIC_COLORS.success, opacity: 0.85 }}
+        _hover={{ bg: 'transparent', color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
       >
         Stake to list
       </DemoAwareCta>
@@ -127,7 +118,7 @@ const ShopCard: React.FC<{ option: ShopOption }> = ({ option }) => {
 export const ShopWindow: React.FC = () => {
   return (
     <VStack align="stretch" spacing={SPACING.md}>
-      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} maxW="76ch" lineHeight={1.7}>
+      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} maxW="72ch" lineHeight={1.7}>
         Listing is permissionless: stake a junior tranche on an asset and it onboards at 40% LTV, with borrow
         capacity capped to your stake. Your capital is the underwriting — there is no vote and no committee,
         which is why the lock is long and stated up front.
@@ -139,12 +130,9 @@ export const ShopWindow: React.FC = () => {
         ))}
       </Grid>
 
-      <HStack spacing={SPACING.sm} align="baseline">
+      <Box>
         <MockStamp label="mock" />
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.03em">
-          {SHOP_STAMP}
-        </Text>
-      </HStack>
+      </Box>
     </VStack>
   )
 }

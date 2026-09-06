@@ -1,0 +1,338 @@
+I've designed apps and websites for over
+a decade. And when I look back at my own
+design journey, one thing is clear.
+There are patterns to the kinds of
+mistakes you make as a designer at every
+level of your career. In this video, I
+will highlight those patterns of
+mistakes, what they are, when they
+typically happen, and how to fix them so
+that you can reach your next design
+level faster. Here's how we'll do it. We
+will take a screen from a real client
+project in my agency portfolio and
+redesign it starting from an unpaid
+beginner level, iterating all the way to
+a high ticket senior level. For each
+level, we will call out the biggest
+mistakes while providing resources and
+guidelines so that you can avoid them.
+And then by the end of the video, we'll
+dig into a hidden mistake that even lots
+of senior designers make and a solution
+that can really set you apart in this AI
+era that we're in. Let's get started.
+So, at the beginner level, nothing
+works. However, this isn't a surprise
+since we have less than a year of
+experience and we're not getting paid
+for our work yet. But let's dive into
+why it doesn't work. The first mistake
+in this design is something as simple as
+the copyrightiting. For example, do we
+really need four words to communicate a
+user's rewards? And does it make sense
+for the button to be about earning
+tokens when the action is actually about
+claiming voting rewards? Clarity is key
+in copyrightiting, and we're not really
+nailing it here. Therefore, it's a fail
+on the first principle, which brings us
+to the visuals. Lots of beginners will
+overuse flashy gradients, blur effects,
+and other cool visual techniques like
+that. And to be fair, even mid-level
+designers do this, but the difference is
+that they make it work. More on that
+later. The best quick tip I can give
+here is if you're unsure, opt for
+simplicity instead of flashiness. A
+simple but clear graph will help a user
+much more than a fancy graph that is
+hard to understand. In this case, since
+we went for fancy and we couldn't pull
+it off, it's a fail. But what about the
+colors? First off, we're using too much
+of a very strong red color, which makes
+the UI straight up stressful to look at.
+Everything here is screaming for
+attention and therefore nothing gets
+attention. Not even the things we want
+to highlight in the UI. Now to make
+coloring a bit easier, try the
+603010 approach. 60% of the UI is a
+neutral color like white or light gray.
+30% of the UI is a complimentary color
+like black and 10% of the UI has the
+main brand color in this case red. This
+UI feels more like a reverse at the
+moment. And while that could work here
+it doesn't. Now however it's time to
+count the font sizes. 1 2 3 4 5 6. Six
+different font sizes are used here and
+four different font weights. It's
+impossible to create a greatl looking UI
+with this much variety in the text
+department. So here's the easy fix. Try
+to reduce those numbers that we just
+talked about six and four by at least
+two. So four sizes and two weights. That
+will take you really far. In this case
+though, it's a fail. But we're not done.
+We don't need to look super closely to
+see that things aren't really aligned in
+here. And the things that are aligned
+are spaced out randomly. 11 pixels here,
+25 pixels here, just random numbers. So,
+here's a little trick to improve spacing
+quickly. It's called the eightoint grid
+system. The main idea is that anytime
+you use a number in your design, make it
+divisible by 8 or 4. Instead of 25
+pixels, use 24. Instead of 11, use 12. I
+actually have a full video on this that
+you can check out after this one linked
+down in the description below. Anyways,
+unfortunately, we fail here as well.
+That's six out of six fails. A pretty
+rough start. Surprisingly though, lots
+of progress happens with just one year
+of design obsession. Which brings us to
+the junior designer. But before we go
+there, if you want to learn from even
+more realworld projects, you can check
+out a full case study of this and other
+projects that we've designed at SIPAP in
+the link I've shared down in the
+description below. Now, time for the
+junior designer. Here we have a person
+with one, two, maybe 3 years of
+experience designing apps and websites.
+They're likely either working in-house
+somewhere or making anywhere from a
+hundred to maybe 500 bucks, doing
+smaller design gigs as a freelancer. And
+usually copywriting is still a big issue
+at this level. We still add unnecessary
+words and write labels that don't really
+make sense. For example, commit time
+sounds like we're committing time
+instead of votes. These are small
+details that make a lot of difference if
+we improve it. So, how do we do that?
+The easiest solution nowadays is just to
+take a screenshot of your UI, pop it
+into chat GPT, and then feed it some
+more context on the project, emphasizing
+that you want copy that is clear but
+short. For now, though, it's still a
+fail. But that means that we get a shot
+at redemption for the visuals. And here
+we've actually stepped it up. Now, we
+understand that visuals primarily serve
+a communication purpose, especially if
+it's a graph like in this case. And the
+red dot in contrast to the gray bars
+here communicates to the user, this is a
+thing we want you to focus on. Sadly
+though, we still think visuals
+absolutely need a trendy skumorphic
+effect with 45 layers of shadows. But
+it's fine. We're still learning. So, a
+first half pass and we're back to the
+colors. As juniors, we have enough
+experience to know that mixing colors
+too freely easily turns into a disaster.
+We also understand that overusing a
+color could work against you if you want
+to assign meaning to colors. So, we're
+generally more passive when it comes to
+color usage, which actually is a very
+good thing. And one of the most
+important learnings for creating clean,
+professional interfaces, but it's a
+balance. Here, we went from a UI that
+overused our red main color to a UI that
+now barely uses any of it, which makes
+it a bit dull and therefore just a half
+pass. In terms of font sizes, we still
+have issues. Too big sizes, too small
+sizes, too many sizes. It still happens
+at this level, understandably. So,
+sadly, it's a pretty quick fail here
+that segus into spacing and structure
+again, and we've made progress. But it's
+evident that there's still no calculated
+approach to how we space or structure
+elements. pixel values are still a bit
+random, which tells me that someone
+forgot to study the eightoint grid
+method, so it's a faily fail. That puts
+us at two out of five half passes. And
+while that might not seem great, we're
+moving in the right direction here. The
+design we saw isn't close to be worth
+serious money, but things are about to
+change at our next stage, the mid level.
+Before we jump into that though, I'm
+curious. How would you score your own
+design skills? And how many years of
+experience do you have? Let me know in
+the comments. Now things start to get
+interesting. We have somewhere between 3
+and 6 years of design experience, and we
+can potentially at this point rack in 8
+to 10k USD per month with projects
+likely ranging anywhere from 3 to 6K.
+And this is clearly reflected in the
+design. The copywriting is now even
+clearer. There's a sense of it being
+written for an actual user. It still
+might not be the prettiest, but it
+definitely looks better, which means
+that we have our first half pass on
+copy. But what about the visuals? They
+look good, maybe a bit overworked, which
+is something we usually see with
+mid-level designers. Just like beginners
+would add and add and add to the
+rituals, designers at the mid level can
+sometimes gravitate back towards that
+same behavior. At this point of their
+career though, they have a much more
+trained design eye, which allows them to
+make it work. So, while it's not
+perfect, it's clearly a half pass, which
+means we're stepping into colors with
+momentum. As a mid-level designer, we
+know that UIs don't need all the colors
+of the rainbow to look good. We know how
+to balance the UI by using different
+shades or tints of one color instead of
+multiple different colors. If you want
+pro tips on shading and tinting, check
+out Eric D. Kennedy's article that I
+linked down below. Anyways, it's a good
+old half pass. And we're back at the
+point where the junior still tripped up,
+the font department. But now, for the
+first time, we understand how to use
+fonts in a UI. We have less sizes, have
+less weights, and while some sizes and
+weights might still be a bit off, it's
+starting to look cleaner. Half pass. And
+onto the last point before we reach the
+senior level and the hidden mistake. And
+for spacing and structure, it's looking
+pretty good. Related elements are
+grouped nicely. We've started to use a
+spacing system like the 8oint grid. And
+as a result, the UI feels more
+professional. It's not entirely cooked
+like the young crowd might say, but it's
+definitely a half pass, which brings us
+to five out of five half passes. And the
+final boss. As a senior designer, you
+have at least seven years of experience,
+which means you have designed so many
+websites and apps that you're a safe bet
+for clients that want both beautiful
+design, but also design that actually
+drives business metrics. That's why you
+will see deals all the way from 20K to
+over 100K from senior designers. Sounds
+crazy. Let's dive into how it's
+possible. First of all, the difference
+in copyrightiting here might look
+subtle, but when we actually study the
+words and the length of the words, it
+all just harmonizes so much better
+because as a senior, we find ways to
+communicate better with less. We know
+that we don't need to write last 10
+votes when we have a big label right
+above saying voting or claim um if we
+have a heading saying um rewards. And by
+not repeating the same words, we reduce
+cognitive load and visual clutter
+without sacrificing clarity. And I know
+that might sound like a minor detail,
+but when you scale this across a full
+app is a massive difference. So, we have
+our first full pass and we're ready to
+talk about the visuals again. They are
+now clearly made with careful thought.
+We add emphasis only to what matters and
+we help the user make immediate
+connections between different parts of
+the UI by reusing visual patterns. For
+example, here the commit part of the UI
+gets connected to the current voting
+period in the graph because we're using
+the same pulsing circle. We're achieving
+more with less. It's a full pass. But
+what about the colors? Well, here we
+basically just simplified what the
+mid-level designer did. Instead of
+gradients, just simple flat colors.
+Instead of a button that screams error
+states, we're saving the red color for
+the graph. the rewards icon and the
+commit indicator. It's nicer on the eyes
+while calling attention to the right
+things even more effectively. It's our
+third full pass, which brings us back to
+the fonts. We're finally down to only
+four font sizes and two font weights.
+And you can see here that we introduced
+a monospace version of the font for big
+numbers. And to avoid collision when
+this reward number grows, we reuse the
+heading size from the voting label for
+our decimal fractions. And that's all it
+takes for full passing again as we bring
+out our rulers. And dang, this is what
+we call structure. Elements are grouped
+logically. Spacing is deliberate between
+elements, inside elements, everywhere.
+Those seven plus years of experience are
+becoming really evident. Full freaking
+pass were five out of five full score.
+But what about that hidden mistake that
+even senior designers make? Well, I'm
+glad you brought it up. Let's talk about
+it. This mistake doesn't have anything
+to do with static UI or UX skills
+because as you saw, senior designers are
+capable of creating greatl lookinging,
+well functioning interfaces. But thanks
+to AI, in the coming years, we're going
+to see an exponential increase in the
+amount of apps that are available to us,
+which means that designing memorable
+experiences that connects us with
+technology is going to be the easiest
+way to stand out as a designer. And the
+mistake most designers make, again,
+seniors included, is that we get stuck
+just focusing on static images. But to
+create a true experience, we need to
+treat UI design more like a movie. We
+need to piece static screens together in
+a way that makes the app a pleasure to
+use. That's how we create truly
+delightful apps and as a result also
+drastically increase our price tags as
+designers. Look at Phantom Wallet,
+Airbnb, and even Dual Lingo. Those are
+all great examples of apps that have
+gone that extra mile, which raises the
+question, how do you achieve this? Well,
+that is a topic that is out of scope for
+this video. But luckily, if you're
+interested in a breakdown of these kinds
+of apps and how they create memorable
+experiences, I have a video on that here
+that you can check out. Now, until the
+next one, I want you to have an amazing
+everything and we'll talk

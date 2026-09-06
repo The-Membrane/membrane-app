@@ -1,0 +1,347 @@
+in my recent poll with over 75 000
+responses css topped the list as the
+most painful technology web developers
+have to work with they say it's broken
+chaotic and too damn hard there's even a
+conspiracy that it's bad by design to
+protect the app stores but i think css
+is awesome
+it's definitely bloated and difficult to
+learn comprehensively but that's only
+because it's had to evolve over the last
+25 years
+it came out at a time when netscape was
+the top browser and the idea of a
+responsive layout was more than a decade
+away
+as more browsers hit the market they all
+implemented css in different ways
+leading to code that works in one
+browser but not the other requiring you
+the developer to write a bunch of
+confusing vendor prefixes in your code
+just to make it work across all browsers
+so i totally get why you would hate css
+but today is a therapy session where
+you'll learn how to write clean css
+using modern features
+while avoiding the bad code that you
+shouldn't have to write in 2021
+if you're new here like and subscribe
+and leave your favorite css pro tip in
+the comments
+i'll pick a few of them to win this
+one-of-a-kind t-shirt next week the
+first thing you need to know
+is how to learn css the way not to learn
+css is to use a framework like bootstrap
+or
+tailwind they're sexy tools that can
+help you get a nice looking ui quickly
+but if you use something like tailwind
+in your project
+it's like getting married for one you
+won't learn css fundamentals you'll
+learn tailwind
+and two if you ever change your mind
+you'll have to go through a very nasty
+divorce you want a divorce
+i have wings tally i want to fly
+when you learn basic css you'll have
+more control over your code
+creativity and freedom the best piece of
+advice that i didn't receive until well
+into my web development career was to
+learn the css
+box model because when you understand it
+everything else in the language starts
+to make more sense
+in fact it's so easy i'll just teach you
+the box model right now
+think of every html element as a box
+inside that box you have the content
+which can have a width and height you
+can add padding around that box to
+squeeze the content then you can add a
+border around the outside
+then additional invisible space around
+the border called a margin
+everything in css related to layout and
+position is influenced by the box model
+if you open up chrome dev tools you can
+see how the box model is computed for
+any element on the page
+and that brings me to tip number two
+don't use chrome when debugging css
+instead check out firefox their dev
+tools are generally superior especially
+when it comes to css if i inspect an
+element i have a breakdown of the box
+model like i do in chrome but i can also
+edit properties on it directly
+and firefox gives me a breakdown of all
+the properties that are influencing the
+box model
+it also provides useful annotations in
+the html like when one element is
+causing another element to overflow
+and firefox also provides really nice
+graphics for flex and grid layout
+speaking of which layout or the
+positioning of elements relative to each
+other
+has historically been one of the most
+challenging aspects of css
+like the age-old question of how do i
+center a div both horizontally and
+vertically
+one option is to give the child absolute
+positioning then move it to the bottom
+right corner by using the top and left
+properties
+then translate it back 50 to put it in
+the center
+that can work but it's incredibly
+unintuitive a much better approach with
+modern css
+is flexbox which allows you to create a
+flexible column or row
+anywhere in the ui when an element has
+display flex it also has an x and y axis
+on which you can align its children the
+children flow one way which is known as
+the main axis
+and can be aligned in the center with
+the justify content property
+perpendicular to that is the cross axis
+and we can move our element to the
+center with the align items property
+flexbox is usually the first tool i
+reach for when it comes to layout
+but it does have one major drawback if
+you have a big complex ui with many
+intersecting rows and columns you may
+end up with a lot of container or
+wrapper elements in your html
+these elements have no semantic meaning
+and are just there so your css code has
+something to attach itself to
+luckily there's a modern css feature
+called a grid that can obliterate much
+of your code
+unlike flexbox which only deals with
+individual columns and rows and grid
+allows you to think about the big
+picture layout if you've been a web
+developer for a long time
+it may look familiar because it's very
+similar to table layout way back in the
+day
+it's just much more developer friendly
+when you set an element to display grid
+you can then define its children as a
+bunch of columns and rows
+columns have a width which can be
+defined with the grid template columns
+property we have three values here
+separated by spaces
+which means our grid has three columns
+notice the fr value
+or fractional unit which will
+responsibly share the available space
+with other columns in the grid we can
+also define some rows
+and now every element inside the grid
+will be positioned automatically
+but the important thing to notice is the
+amount of html and css that we've
+eliminated compared to flexbox layout or
+god forbid table layout
+now ninety percent of the time when we
+talk about responsive layouts we're just
+talking about changing the width of
+something
+based on the available space on the
+device or viewport there are many ways
+you might do that
+for example you might have an article
+that has a preferred width of 50
+but on small screens you want to make it
+fixed at 200 pixels or fixed at 800
+pixels on large screens
+you could do that by writing media
+queries that will apply css
+conditionally based on the viewport size
+the only problem with this is that media
+queries will make you want to off
+yourself as the project grows larger the
+good news though
+is that you can turn the tables by using
+functions like min max and clamp
+we could refactor this code to set the
+width to a clamped value
+that has a minimum of 200 pixels a max
+of 600
+and then a preferred value of 50 turning
+13 lines of code into one for a 92
+code reduction speaking of code
+reduction here's a little bonus tip in
+css we often end up with these very long
+hard to read class names but did you
+know that you can use emoji characters
+as class names
+instead of flexible container why not
+just use a flex emoji
+or instead of red text why not red
+lipstick is that a good idea
+i don't know give it a try at your job
+and let me know what your boss says
+about it
+we have sort of a problem here yeah now
+this next tip is really going to blow
+your mind if you've ever had to code a
+responsive image or video
+that maintains a certain aspect ratio i
+had to do this recently on fireship io
+to embed videos with a 16x9 aspect ratio
+which requires this hack where you put
+56.25
+padding on the top then give the child
+absolute positioning today
+although it's not supported everywhere
+yet we can use the aspect ratio property
+instead of that padding nonsense we can
+just define the aspect ratio on the
+video
+and we're done eliminating css code is a
+big part of making it more enjoyable
+but of equal importance is making your
+code more flexible so that refactoring
+is not a total
+nightmare a great way to achieve that is
+with css custom properties or variables
+notice how we're using the same color
+value in multiple places if we decide to
+change the color we need to modify
+every line of code that references it a
+better approach is to define a global
+variable on the root selector which can
+then be referenced wherever it's needed
+and now when you decide to change it you
+only have to modify one line of code
+variables cascade like everything else
+in css which means you can override them
+by redefining them somewhere deeper in
+the tree you can also combine
+them to compose more complex values for
+example we might define our rgb color
+based on the value of three other
+variables and this flexibility will
+really change your life
+by allowing you to quickly swap out
+different themes for your website
+now css is not really a programming
+language in the traditional sense
+but it does have the ability to run
+basic calculations using the calc
+function
+it allows you to calculate a value with
+some basic math but the really cool
+thing about it is that you can combine
+different units
+like you might want to subtract 50
+pixels from the current viewport width
+in our code here we have an animation
+where elements drop in from the top but
+we want to stagger them so they come in
+one after the other
+one way to achieve that is by applying a
+different animation delay for every
+single element but that's very
+repetitive
+and hard to refactor a more
+sophisticated approach is to define an
+inline css variable for every item that
+defines its order
+then we can define the animation delay
+as a calculation
+of the order variable times 100
+milliseconds
+and now we can handle an infinite number
+of elements without increasing our css
+footprint thanks to the combined powers
+of calc
+and variables now i know i just said css
+is not a programming language but did
+you know that it actually has a state
+management mechanism built
+into it you can keep track of a running
+count in your css code without ever
+writing a line of javascript
+if you want to number headings in your
+html the naive way to do it is to
+manually add those numbers in the html
+itself
+because if you ever want to splice in a
+new heading you'll have to renumber
+everything manually
+a smarter approach might be a css
+counter you can create a counter in your
+code
+using the counter reset property give it
+a name of anything you want
+then increment it whenever the desired
+selector is applied it'll start from 0
+then add 1 to every h1 element in the
+dom
+and now you never have to worry about
+numbering things in your html
+and that brings us to our final tip when
+building a complex drop-down menu you
+might assume that some javascript is
+involved to manage the open and closed
+state of the menu
+but you might be surprised at how far
+you can get with just plain css
+now you're most likely familiar with the
+focus pseudo class which is applied to
+an element when you go into a form input
+or click on a button
+the problem is that when building a drop
+down you might use focus to open a menu
+but then when you click on something
+inside that menu it loses focus and
+closes
+and that's when you reach for javascript
+to manage state however there's another
+pseudo class called focus within and it
+stays active
+if any children also have focus and that
+one simple feature
+can eliminate a lot of javascript used
+to toggle on and off states and with
+that you have 10 ways to make your css
+code more enjoyable to work with
+but remember those browser vendor
+prefixes i mentioned earlier in the
+video
+well that stuff's like herpes it's not
+going away luckily we do have effective
+medications that will make it barely
+noticeable
+a tool you should know about is post css
+which itself uses a tool called auto
+prefixer
+to add all the vendor prefixes
+automatically in addition it allows you
+to use modern css features even if
+they're not supported on your targeted
+browsers
+in addition you may look into
+pre-processors like sas less or stylus
+but we'll save those for a future video
+make sure to be a subscriber and leave a
+comment below because next week i'll
+announce the winners of the t-shirt
+giveaway thanks for watching and i will
+see you in the next one

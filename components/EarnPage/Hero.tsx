@@ -80,7 +80,7 @@ export const Hero: React.FC = () => {
           />
 
           <VStack spacing={SPACING.xs} minW="220px" align="stretch">
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.12em">
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.12em">
               boost: give up{' '}
               <Text as="span" color={SEMANTIC_COLORS.textPrimary}>
                 {sacrificeRatio}%
@@ -120,14 +120,10 @@ export const Hero: React.FC = () => {
           >
             Stake
           </DemoAwareCta>
-
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.12em">
-            withdraw anytime · realized fee share · your seat in the loss order is shown below
-          </Text>
         </Wrap>
       </Card>
 
-      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} maxW="76ch" lineHeight={1.7}>
+      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} maxW="72ch" lineHeight={1.7}>
         Suppliers here do not pick markets — liquidity is global. What you choose is your seat. Everything below
         the box is what that choice means: what backs you, where losses hit before they reach you, what your
         seat has paid, and what you could list next.

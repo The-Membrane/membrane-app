@@ -28,27 +28,19 @@ export const EarnPage: React.FC = () => {
         <VStack align="stretch" spacing={0} mt={SPACING.lg}>
           <Hero />
 
-          <SectionHeading index="01" title="What is backing you" note="pool collateral, measured today" />
+          <SectionHeading index="01" title="What is backing you" />
           <Composition />
 
-          <SectionHeading
-            index="02"
-            title="Can you leave right now"
-            note="instant-or-revert — there is no queue; a withdrawal above the instant line simply fails"
-          />
+          <SectionHeading index="02" title="Can you leave right now" />
           <ExitLiquidity />
 
-          <SectionHeading
-            index="03"
-            title="Loss order"
-            note="losses eat left to right · widths are measured sizes · each collateral has its own order"
-          />
+          <SectionHeading index="03" title="Loss order" />
           <LossWaterfall />
 
-          <SectionHeading index="04" title="Fees paid to you" note="realized only — settled distributions, by the collateral that generated them" />
+          <SectionHeading index="04" title="Fees paid to you" />
           <RevenueFeed />
 
-          <SectionHeading index="05" title="List a new collateral" note="unlisted assets — the first stake at risk is the listing" />
+          <SectionHeading index="05" title="List a new collateral" />
           <ShopWindow />
         </VStack>
 

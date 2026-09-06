@@ -43,56 +43,50 @@ export const CureTimeline: React.FC = () => {
         <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h2} color={SEMANTIC_COLORS.textPrimary}>
           Breach, cure window, liquidation
         </Text>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary}>
-          what happens if price moves against you — scroll matter, not decision matter
-        </Text>
       </HStack>
 
       <Card variant="default" p={SPACING.lg}>
         <Box position="relative" h="96px" bg={SEMANTIC_COLORS.bgPrimary} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} overflow="hidden">
           {/* Healthy segment: 0-20% */}
           <Box position="absolute" top={0} bottom={0} left="0%" w="20%" bg="rgba(155,220,79,0.08)" />
-          <Text position="absolute" left="2%" top="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.success}>
+          <Text position="absolute" left="2%" top="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.success}>
             Healthy
           </Text>
-          <Text position="absolute" left="2%" bottom="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
+          <Text position="absolute" left="2%" bottom="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
             LTV under your cap
           </Text>
 
           {/* Breach tick + amber zone: 20-80% */}
           <Box position="absolute" top={0} bottom={0} left="20%" w="1px" bg={SEMANTIC_COLORS.borderStrong} />
-          <Text position="absolute" left="21.5%" top="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.warning}>
+          <Text position="absolute" left="21.5%" top="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.warning}>
             Breach · 8h timer starts
           </Text>
           <Box position="absolute" top={0} bottom={0} left="20%" w="60%" bg="rgba(216,178,74,0.10)" />
           <Box position="absolute" top={0} bottom={0} left="20%" w={`${cureFillPct}%`} bg="rgba(216,178,74,0.28)" />
-          <Text position="absolute" left="44%" top="44px" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.warning}>
+          <Text position="absolute" left="44%" top="44px" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.warning}>
             {cureLabel}
           </Text>
-          <Text position="absolute" left="34%" bottom="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textPrimary}>
-            ↑ cure anytime in the window: deposit, repay, or price recovery → back to healthy
+          {/* Capped at the liquidation tick (80%) so this can never overlap
+              the liquidation captions on narrow layouts. */}
+          <Text position="absolute" left="21.5%" bottom="8px" maxW="56%" whiteSpace="nowrap" overflow="hidden" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textPrimary}>
+            ↑ cure in the window: deposit, repay, or price recovery
           </Text>
 
           {/* Liquidation tick + zone: 80-100% */}
           <Box position="absolute" top={0} bottom={0} left="80%" w="1px" bg={SEMANTIC_COLORS.borderStrong} />
           <Box position="absolute" top={0} bottom={0} left="80%" w="20%" bg="rgba(207,64,52,0.22)" />
-          <Text position="absolute" left="82%" top="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.danger}>
+          <Text position="absolute" left="82%" top="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.danger}>
             Liquidation
           </Text>
-          <Text position="absolute" left="82%" bottom="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
+          <Text position="absolute" left="82%" bottom="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
             timer expired uncured · repays to the cap
           </Text>
         </Box>
 
-        <HStack justify="space-between" spacing={SPACING.md} flexWrap="wrap" mt={SPACING.sm}>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
-            Two ways in: cross the line and the timer starts; jump 4% past it and liquidation is immediate, no
-            window.
-          </Text>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
-            Liquidation repays to the cap — not the whole loan.
-          </Text>
-        </HStack>
+        {/* Risk disclosure (rule 5 keeps it): one line, one place. */}
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary} mt={SPACING.sm}>
+          Jump 4% past the line and liquidation is immediate · liquidation repays to the cap only
+        </Text>
       </Card>
     </Box>
   )

@@ -33,11 +33,28 @@ export const WalletStrip: React.FC<WalletStripProps> = ({ assets, selectedIndex,
             variant={selected ? 'elevated' : 'subtle'}
             interactive
             onClick={() => onSelect(i)}
+            position="relative"
             borderColor={selected ? SEMANTIC_COLORS.success : undefined}
             bg={selected ? SEMANTIC_COLORS.bgTertiary : SEMANTIC_COLORS.bgSecondary}
             p={SPACING.md}
             textAlign="left"
           >
+            {/* Selection is readable at a glance from the corner mark, since
+                a 1px hairline color change alone is too quiet on parchment. */}
+            {selected && (
+              <Text
+                as="span"
+                position="absolute"
+                top={SPACING.xs}
+                right={SPACING.sm}
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="10px"
+                color={SEMANTIC_COLORS.success}
+                aria-hidden="true"
+              >
+                ✓
+              </Text>
+            )}
             <HStack spacing={SPACING.xs}>
               <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h4} color={SEMANTIC_COLORS.textPrimary}>
                 {a.sym}
@@ -45,7 +62,7 @@ export const WalletStrip: React.FC<WalletStripProps> = ({ assets, selectedIndex,
               <Box
                 as="span"
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="8.5px"
+                fontSize="10px"
                 letterSpacing="0.14em"
                 textTransform="uppercase"
                 color={SEMANTIC_COLORS.textTertiary}
@@ -77,8 +94,8 @@ export const WalletStrip: React.FC<WalletStripProps> = ({ assets, selectedIndex,
               in wallet: {fmtAmount(a.bal, a.dp)} · {fmt(a.bal * a.px)}
             </Text>
 
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary} mt="3px">
-              {a.yld > 0 ? `earns ${a.yld.toFixed(1)}% while posted` : 'earns nothing while posted'} · line at{' '}
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary} mt="3px">
+              earns {a.yld.toFixed(1)}% while posted · line at{' '}
               {(a.M * 100).toFixed(0)}%
             </Text>
           </Card>

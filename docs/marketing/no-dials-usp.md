@@ -77,9 +77,30 @@ code verification before public use:
    listing process — with their gates/timelocks named). Dated. This table is also
    the strongest screenshot artifact the USP produces — no competitor can publish
    it honestly.
-4. Per-example fact-checks before quoting publicly: the Aave Apr-2026 rate spike,
-   TokenLogic Aug proposal, LlamaRisk Aug-10 cap numbers, DeFi Saver 697 WETH save
-   — each needs a source URL pinned here before the copy goes out.
+4. **Source URLs — PINNED (verified 2026-09-06; all five claims stand, three
+   precision notes for the copy):**
+   - **Rate spike**: numbers exact ("roughly 3.5% to 14% within 48 hours" — NYDIG).
+     Precision: the exploit was KelpDAO's rsETH bridge ($292M, Apr 18 2026), which
+     hit Aave via deposited collateral — say "an exploit in another protocol's
+     asset", not implying Aave itself was exploited.
+     https://www.nydig.com/research/the-butterfly-effect-comes-to-defi ·
+     https://governance.aave.com/t/arfc-improve-liquidity-buffer-for-usdc-on-aave-v3-ethereum-core-raise-slope-2-lower-optimal-utilization/24684
+   - **TokenLogic 5.25%**: number exact. Precision: it phases in at 10bps/day over
+     ~2 weeks — "hard-coding the curve to a 5.25% target, phased in over roughly
+     two weeks" is the precise form.
+     https://governance.aave.com/t/risk-stewards-august-2026-stablecoin-interest-rate-adjustments/25519
+   - **LlamaRisk Aug-10 caps**: all three numbers exact, no correction.
+     https://governance.aave.com/t/risk-stewards-supply-and-borrow-cap-reductions-on-aave-v3-2026-08-10/25463
+   - **DeFi Saver**: 0.3% both directions confirmed (Maker + Aave automation
+     specifically — don't imply universal flat rate); 697.49 WETH / $1,965,378
+     save confirmed, dated Jan 29 2026.
+     https://help.defisaver.com/protocols/makerdao/how-does-cdp-automation-work ·
+     https://blog.defisaver.com/defi-saver-case-study-the-role-of-automation-during-mass-liquidation-events/
+   - **Black Thursday 5.67M DAI**: defensible, footnote it as the SYSTEM DEBT
+     SHORTFALL (other circulating figures: $4.5M unbacked day-of, $8.3M ETH taken
+     by zero-bid winners — different measurements, not contradictions).
+     https://www.coindesk.com/tech/2020/03/13/makerdao-debts-grow-as-defi-leader-moves-to-stabilize-protocol ·
+     https://pharos.watch/learn/case-studies/dai-black-thursday/
 
 ## Placement (composes with docs/research/carry-userflows.md)
 

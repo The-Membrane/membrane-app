@@ -21,17 +21,18 @@ import useAppState from '@/persisted-state/useAppState';
 // Evidence is the landing page (renders at '/'), so its nav entry points at the root
 // rather than /evidence — that route 307s here, keeping one canonical URL.
 // The old marketing home moved to /home; it was not deleted.
+// Carry-first app (owner ruling 2026-09-06, docs/research/carry-userflows.md):
+// Carry leads the nav right after the trust-story landing. Calculator moved down
+// into Carry's own toolkit row (it links there) to hold nav width.
 const navItems = [
     { label: 'Evidence', href: '/' },
-    { label: 'Simulator', href: '/simulator' },
-    // Wallet-free personal BTC/LTV calculator (Landing page) — was orphaned from
-    // both nav and sitemap despite being the strongest no-commitment decision tool.
-    { label: 'Calculator', href: '/landing' },
+    { label: 'Carry', href: '/carry' },
     // Wallet-free carry-trader decision tool: paste any address, stress its
     // positions against our recorded venue capacity + flow corpus.
     { label: 'Radar', href: '/radar' },
     // Auto-tracked mainnet carry strats (discovery scan -> watch -> verdicts).
     { label: 'Strats', href: '/strats' },
+    { label: 'Simulator', href: '/simulator' },
     // Called-It receipts: wallet-signed venue calls, scored by the recorder.
     { label: 'Receipts', href: '/receipts' },
     { label: 'Home', href: '/home' },
@@ -50,7 +51,7 @@ const comingSoonItems = [
     { label: 'Levels', href: '/levels' },
     { label: 'Position', href: '/position' },
     { label: 'Borrow', href: '/borrow' },
-    { label: 'Carry', href: '/carry' },
+    // Carry promoted to top-level (carry-first ruling) — no longer listed here.
     { label: 'Earn', href: '/earn' },
     { label: 'Liquidate', href: '/liquidate' },
     { label: 'Mint', href: '/mint' },

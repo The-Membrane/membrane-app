@@ -45,6 +45,13 @@ Expertise in one task does not transfer to an adjacent one, and the expert canno
 
 ## 2. Constituencies and their ladders
 
+> **Owner amendment, 2026-09-06: Membrane is a CARRY-FIRST app — that is the
+> headline.** The carry trader leads the app's identity, marketing, landing
+> emphasis, and nav order (see `docs/research/carry-userflows.md`). The borrower
+> ladder below remains the minimum-badass curriculum and the §2.1 rungs still
+> govern its teaching surfaces — but where positioning decisions conflict,
+> carry wins.
+
 ### 2.1 Borrowers (primary)
 
 **Minimum badass user:** borrows without getting liquidated all the time.

@@ -1,3 +1,11 @@
+# MEMBRANE IS A CARRY-FIRST APP
+
+**Owner ruling, 2026-09-06 — this is the headline.** The app's identity, marketing,
+front door, and nav order serve the carry trader first. Every positioning decision
+below resolves against this; anything in the app that argues a different primary
+story is, by this ruling, mispositioned. (The borrower ladder remains the
+minimum-badass curriculum inside the product — but carry leads.)
+
 # Carry-Trader Desires → Userflows — Audit and Repositioning Map
 
 **Date:** 2026-09-06 · **Method:** full link/CTA graph of the app measured from source

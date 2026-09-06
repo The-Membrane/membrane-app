@@ -13,11 +13,17 @@ import { getPostSlugs } from '@/helpers/blog'
 const INDEXABLE_PATHS = [
   `/${DEFAULT_CHAIN}`,
   `/${DEFAULT_CHAIN}/borrow`,
+  `/${DEFAULT_CHAIN}/carry`,
   `/${DEFAULT_CHAIN}/home`,
   `/${DEFAULT_CHAIN}/landing`,
   `/${DEFAULT_CHAIN}/mint`,
   `/${DEFAULT_CHAIN}/stake`,
   `/${DEFAULT_CHAIN}/transmuter`,
+  // Venue permalinks — the D3 landings, content-rich and provenance-stamped.
+  `/${DEFAULT_CHAIN}/venue/sUSDe`,
+  `/${DEFAULT_CHAIN}/venue/sUSDS`,
+  `/${DEFAULT_CHAIN}/venue/scrvUSD`,
+  `/${DEFAULT_CHAIN}/venue/aave-v3-usde`,
   '/terms',
   '/blog',
 ]

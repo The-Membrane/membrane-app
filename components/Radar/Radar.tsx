@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Box, Button, Grid, HStack, Input, SimpleGrid, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import NextLink from 'next/link'
 
 import { Card } from '@/components/ui/Card'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
@@ -8,6 +9,7 @@ import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { SectionHeading, Stamp } from '@/components/Carry/atoms'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 import { fmtDuration, fmtMultiple, fmtPct, fmtUsd, type Verdict } from './radarLogic'
 import { RecapSection } from './RecapSection'
@@ -145,13 +147,17 @@ const StressFacts: React.FC<{ stress: Stress }> = ({ stress }) => {
   )
 }
 
-const VenueCard: React.FC<{ p: Position }> = ({ p }) => (
+const VenueCard: React.FC<{ p: Position }> = ({ p }) => {
+  const { chainName } = useChainRoute()
+  return (
   <Card variant="default" mb={SPACING.base}>
     <HStack justify="space-between" align="baseline" flexWrap="wrap" gap={SPACING.sm}>
       <HStack align="baseline" spacing={SPACING.md}>
-        <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h3} color={SEMANTIC_COLORS.textPrimary}>
-          {p.label}
-        </Text>
+        <NextLink href={`/${chainName}/venue/${p.venue}`} style={{ textDecoration: 'underline' }}>
+          <Text as="span" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h3} color={SEMANTIC_COLORS.textPrimary} _hover={{ color: SEMANTIC_COLORS.success }}>
+            {p.label}
+          </Text>
+        </NextLink>
         <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="20px" color={SEMANTIC_COLORS.textPrimary}>
           {fmtUsd(p.usd)}
         </Text>
@@ -168,9 +174,11 @@ const VenueCard: React.FC<{ p: Position }> = ({ p }) => (
       {p.reason}
     </Text>
   </Card>
-)
+  )
+}
 
 export const Radar: React.FC = () => {
+  const { chainName } = useChainRoute()
   const [input, setInput] = useState('')
   const [address, setAddress] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -355,9 +363,11 @@ export const Radar: React.FC = () => {
                 borderBottom={i === data.comparator.length - 1 ? 'none' : '1px solid'}
                 borderColor={SEMANTIC_COLORS.borderSubtle}
               >
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="13px" color={SEMANTIC_COLORS.textPrimary}>
-                  {c.label}
-                </Text>
+                <NextLink href={`/${chainName}/venue/${c.venue}`} style={{ textDecoration: 'underline' }}>
+                  <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="13px" color={SEMANTIC_COLORS.textPrimary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                    {c.label}
+                  </Text>
+                </NextLink>
                 <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
                   {c.reason}
                 </Text>
@@ -429,6 +439,30 @@ export const Radar: React.FC = () => {
           {/* Strat watches + post-event recap — track this address and tell the
               story of what happened, composed only from chain logs + corpus. */}
           {address && <RecapSection address={address} />}
+
+          {/* Next — kill the dead end. Invite the call, the board, the venue detail. */}
+          <Card variant="subtle" p={SPACING.base} mt={SPACING.lg}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.28em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
+              next
+            </Text>
+            <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.sm}>
+              <NextLink href={`/${chainName}/receipts`} style={{ textDecoration: 'underline' }}>
+                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                  think it holds? call it → /receipts
+                </Text>
+              </NextLink>
+              <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
+                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                  the whole board → /carry
+                </Text>
+              </NextLink>
+              <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
+                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                  what the big books do → /strats
+                </Text>
+              </NextLink>
+            </HStack>
+          </Card>
         </Box>
       )}
     </Box>

@@ -84,6 +84,7 @@ export const Carry: React.FC = () => {
           { label: 'simulator', href: `/${chainName}/simulator` },
           { label: 'builder', href: `/${chainName}/builder` },
           { label: 'exit bands', href: `/${chainName}/earn` },
+          { label: 'scan any address', href: `/${chainName}/radar` },
         ].map((t) => (
           <NextLink key={t.label} href={t.href} style={{ textDecoration: 'underline' }}>
             <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>

@@ -13,6 +13,7 @@ import { CohortLens } from './CohortLens'
 import { DebtLens } from './DebtLens'
 import { TimeLens } from './TimeLens'
 import { ForecastGate } from './ForecastGate'
+import { DesireRouter } from './DesireRouter'
 import { useEvidence } from './useEvidence'
 import { EvidenceDoc, Lens } from './types'
 
@@ -162,6 +163,11 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
               membraneMedianFrac={doc.debt.membraneMedianFrac}
               onCommit={recordCall}
             />
+
+            {/* Desire-router: three doors to the carry flows (owner-approved
+                landing change). Mounted AFTER the gate so commit-before-reveal is
+                untouched. */}
+            <DesireRouter />
 
             {/* Numbered section-opener strip. Each tab shows its own headline figure,
                 so the row reads as a summary before anything is clicked. Selection is

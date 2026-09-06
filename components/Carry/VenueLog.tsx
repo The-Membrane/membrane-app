@@ -1,13 +1,16 @@
 import React from 'react'
 import { Box, Grid, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import NextLink from 'next/link'
 
 import { Card } from '@/components/ui/Card'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 import { SectionHeading, Stamp } from './atoms'
+import { venueSlug } from './venueSlug'
 
 /**
  * The venue state-change log — the "news tracker", rendered as consequences,
@@ -20,6 +23,7 @@ import { SectionHeading, Stamp } from './atoms'
 import { Entry, consequence, alarmConsequence, UNCOVERED_FOOTER } from './venueLogLogic'
 
 export const VenueLog: React.FC = () => {
+  const { chainName } = useChainRoute()
   const { data } = useQuery<{ entries: Entry[] }>({
     queryKey: ['venue_log'],
     queryFn: async () => {
@@ -70,7 +74,16 @@ export const VenueLog: React.FC = () => {
                   alignItems="baseline"
                 >
                   <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
-                    {new Date(e.at).toISOString().slice(0, 10)} · {e.venue}
+                    {new Date(e.at).toISOString().slice(0, 10)} ·{' '}
+                    {venueSlug(e.venue) ? (
+                      <NextLink href={`/${chainName}/venue/${venueSlug(e.venue)}`} style={{ textDecoration: 'underline' }}>
+                        <Text as="span" _hover={{ color: SEMANTIC_COLORS.success }}>
+                          {e.venue}
+                        </Text>
+                      </NextLink>
+                    ) : (
+                      e.venue
+                    )}
                   </Text>
                   <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={textColor}>
                     {c.text}

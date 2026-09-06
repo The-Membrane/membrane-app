@@ -1,14 +1,17 @@
 import React from 'react'
 import { Box, Grid, HStack, Link, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import NextLink from 'next/link'
 
 import { Card } from '@/components/ui/Card'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 import { SectionHeading, Stamp } from './atoms'
+import { venueSlug } from './venueSlug'
 
 /**
  * VENUE NEWS — raw external headlines for the carry venues Membrane offers,
@@ -39,6 +42,7 @@ const fmtStamp = (iso: string | undefined): string =>
   iso ? new Date(iso).toISOString().replace('T', ' ').slice(0, 16) + 'Z' : 'never'
 
 export const VenueNews: React.FC = () => {
+  const { chainName } = useChainRoute()
   const { data } = useQuery<{ items: VenueNewsItem[] }>({
     queryKey: ['venue_news'],
     queryFn: async () => {
@@ -84,6 +88,25 @@ export const VenueNews: React.FC = () => {
             {venues.map((v) => (
               <Chip key={v} label={v} active={filter === v} onClick={() => setFilter(v)} />
             ))}
+          </HStack>
+        )}
+
+        {/* Venue permalinks — the D3 distribution moment: each venue's own page
+            (dossier + worst exits + flags + news). Additive to the filter above. */}
+        {venues.length > 0 && (
+          <HStack spacing={SPACING.md} flexWrap="wrap" mb={SPACING.base}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
+              open venue page
+            </Text>
+            {venues.map((v) =>
+              venueSlug(v) ? (
+                <NextLink key={v} href={`/${chainName}/venue/${venueSlug(v)}`} style={{ textDecoration: 'underline' }}>
+                  <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                    {v}
+                  </Text>
+                </NextLink>
+              ) : null,
+            )}
           </HStack>
         )}
 

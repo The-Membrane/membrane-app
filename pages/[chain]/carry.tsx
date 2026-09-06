@@ -2,14 +2,16 @@ import React from 'react'
 
 import PageSeo from '@/components/PageSeo'
 import { Carry } from '@/components/Carry'
+import { DEFAULT_CHAIN } from '@/config/chains'
 
 const CarryPage = () => {
   return (
     <>
       <PageSeo
-        seoClass="app"
-        title="Membrane — Carry: Borrow Against Dollars That Keep Earning"
-        description="Open a carry: borrow CDT against yield-bearing stablecoins and route it through venues in the same motion. One preset picks collateral, leverage, and venue mix; survival is measured against six years of 8-hour moves."
+        seoClass="indexable"
+        path={`/${DEFAULT_CHAIN}/carry`}
+        title="Membrane Carry — The Measured Stablecoin Yield Board, Exit Costs Priced In"
+        description="The carry board: real stablecoin yields across sUSDe, sUSDS, scrvUSD and Aave USDe, each stressed against the withdrawal capacity and realized outflow we have actually recorded. Find the spread, size in, and see the exit before you take it."
       />
       <Carry />
     </>

@@ -1,12 +1,15 @@
 import React from 'react'
 import { Box, Grid, Text } from '@chakra-ui/react'
+import NextLink from 'next/link'
 
 import { Card } from '@/components/ui/Card'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { useChainRoute } from '@/hooks/useChainRoute'
 
 import { OracleChip, SectionHeading, Stamp } from './atoms'
+import { venueSlug } from './venueSlug'
 import { RH } from './fixtures'
 
 const usd = (n: number) => '$' + Math.round(n / 1000) + 'k'
@@ -24,7 +27,9 @@ export interface RedemptionHistoryProps {
   amountUsd?: number
 }
 
-export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOracle, amountUsd = 0 }) => (
+export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOracle, amountUsd = 0 }) => {
+  const { chainName } = useChainRoute()
+  return (
   <Box>
     <SectionHeading
       index="03 /"
@@ -52,7 +57,15 @@ export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOrac
               borderColor={SEMANTIC_COLORS.borderSubtle}
             >
               <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textPrimary}>
-                {x.v}
+                {venueSlug(x.v) ? (
+                  <NextLink href={`/${chainName}/venue/${venueSlug(x.v)}`} style={{ textDecoration: 'underline' }}>
+                    <Text as="span" _hover={{ color: SEMANTIC_COLORS.success }}>
+                      {x.v}
+                    </Text>
+                  </NextLink>
+                ) : (
+                  x.v
+                )}
                 {x.oracle && <OracleChip sym={x.oracle} onOpen={onOpenOracle} />}
                 <Text as="span" display="block" fontSize="9px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
                   {x.sub}
@@ -139,6 +152,7 @@ export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOrac
       </Stamp>
     </Card>
   </Box>
-)
+  )
+}
 
 export default RedemptionHistory

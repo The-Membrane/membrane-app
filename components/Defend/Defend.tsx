@@ -1,7 +1,11 @@
 import React, { useState } from 'react'
-import { Box } from '@chakra-ui/react'
+import { Box, HStack, Text } from '@chakra-ui/react'
+import NextLink from 'next/link'
 
 import { SPACING } from '@/config/spacing'
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { TYPOGRAPHY } from '@/helpers/typography'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import { DemoBanner } from '@/components/demo'
 
 import { DecisionSurface } from './DecisionSurface'
@@ -23,6 +27,7 @@ import { ExecConfig } from './types'
  */
 export const Defend: React.FC = () => {
   const [execConfig, setExecConfig] = useState<ExecConfig | null>(null)
+  const { chainName } = useChainRoute()
 
   return (
     <>
@@ -38,6 +43,14 @@ export const Defend: React.FC = () => {
         <SimCannotSee />
         <Submit openExec={setExecConfig} />
         <DecisionsPending />
+
+        <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.lg}>
+          <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
+            <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+              the carry board → /carry
+            </Text>
+          </NextLink>
+        </HStack>
       </Box>
 
       <ExecSheet config={execConfig} onClose={() => setExecConfig(null)} />

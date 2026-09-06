@@ -2,6 +2,7 @@ import React from 'react'
 import { Box, Grid, HStack, Text, Wrap, WrapItem } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/router'
+import NextLink from 'next/link'
 
 import { Card } from '@/components/ui/Card'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
@@ -60,25 +61,36 @@ const VerdictChip: React.FC<{ verdict: Verdict }> = ({ verdict }) => (
   </Box>
 )
 
-const VenueChip: React.FC<{ label: string; verdict: Verdict }> = ({ label, verdict }) => (
-  <Box
-    as="span"
-    display="inline-block"
-    fontFamily={TYPOGRAPHY.fontMono}
-    fontSize="9.5px"
-    letterSpacing="0.08em"
-    color={SEMANTIC_COLORS.textSecondary}
-    border="1px solid"
-    borderColor={SEMANTIC_COLORS.borderSubtle}
-    borderLeft="2px solid"
-    borderLeftColor={VERDICT_COLOR[verdict]}
-    borderRadius={0}
-    px="6px"
-    py="1px"
-  >
-    {label}
-  </Box>
-)
+const VenueChip: React.FC<{ label: string; verdict: Verdict; href?: string }> = ({ label, verdict, href }) => {
+  const chip = (
+    <Box
+      as="span"
+      display="inline-block"
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize="9.5px"
+      letterSpacing="0.08em"
+      color={SEMANTIC_COLORS.textSecondary}
+      border="1px solid"
+      borderColor={SEMANTIC_COLORS.borderSubtle}
+      borderLeft="2px solid"
+      borderLeftColor={VERDICT_COLOR[verdict]}
+      borderRadius={0}
+      px="6px"
+      py="1px"
+      transition={TRANSITIONS.colors}
+      _hover={href ? { color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success } : undefined}
+    >
+      {label}
+    </Box>
+  )
+  if (!href) return chip
+  // stopPropagation so the chip's venue-link never triggers the row's open-radar onClick.
+  return (
+    <NextLink href={href} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+      {chip}
+    </NextLink>
+  )
+}
 
 /** entered→now delta clause: colored by sign, honest null when no baseline. */
 const DeltaCell: React.FC<{ delta: number | null; dir: DeltaDir | null }> = ({ delta, dir }) => {
@@ -98,10 +110,11 @@ const DeltaCell: React.FC<{ delta: number | null; dir: DeltaDir | null }> = ({ d
   )
 }
 
-const StratRowView: React.FC<{ s: StratRow; onOpen: (address: string) => void; last: boolean }> = ({
+const StratRowView: React.FC<{ s: StratRow; onOpen: (address: string) => void; last: boolean; chain: string }> = ({
   s,
   onOpen,
   last,
+  chain,
 }) => (
   <Grid
     templateColumns={{ base: '1fr', md: '150px 1.4fr 130px 100px 96px' }}
@@ -148,7 +161,7 @@ const StratRowView: React.FC<{ s: StratRow; onOpen: (address: string) => void; l
       ) : (
         s.held.map((h) => (
           <WrapItem key={h.venue}>
-            <VenueChip label={`${h.label} ${fmtUsd(h.usd)}`} verdict={h.verdict} />
+            <VenueChip label={`${h.label} ${fmtUsd(h.usd)}`} verdict={h.verdict} href={`/${chain}/venue/${h.venue}`} />
           </WrapItem>
         ))
       )}
@@ -223,6 +236,13 @@ export const StratsBoard: React.FC = () => {
         venues — sUSDe, sUSDS, scrvUSD, and Aave USDe. No opt-in, no wallet connect.
         Each strat is stressed against the capacity and flow we have actually recorded.
       </Text>
+      <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.md}>
+        <NextLink href={`/${chain}/carry`} style={{ textDecoration: 'underline' }}>
+          <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+            the board → /carry
+          </Text>
+        </NextLink>
+      </HStack>
 
       {/* Header stat card — N strats · $ total · corpus provenance + freshness. */}
       <Card variant="subtle" p={SPACING.base} mt={SPACING.lg}>
@@ -286,7 +306,7 @@ export const StratsBoard: React.FC = () => {
                 <HeaderCell alignRight>Since</HeaderCell>
               </Grid>
               {strats.map((s, i) => (
-                <StratRowView key={s.address} s={s} onOpen={openRadar} last={i === strats.length - 1} />
+                <StratRowView key={s.address} s={s} onOpen={openRadar} last={i === strats.length - 1} chain={chain} />
               ))}
               <Box px={SPACING.base} pb={SPACING.sm}>
                 <Stamp>

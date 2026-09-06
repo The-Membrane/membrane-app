@@ -6,11 +6,13 @@
 
 import React from 'react'
 import { Box, Button, Text } from '@chakra-ui/react'
+import NextLink from 'next/link'
 
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import { eyebrow, monoXs, tabular } from '@/components/Builder/styles'
 import { CURE_WINDOW_HOURS, type Comparison, type SimRun } from '@/lib/position-sim'
 
@@ -145,6 +147,7 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   onCopyLink,
   copyState,
 }) => {
+  const { chainName } = useChainRoute()
   const { source, membrane, equityDeltaUsd: delta } = comparison
   const deltaColor =
     delta > 0
@@ -191,6 +194,11 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
           <Button type="button" onClick={onSaveCard} {...BTN}>
             Save share card
           </Button>
+          <NextLink href={`/${chainName}/builder`} style={{ textDecoration: 'none' }}>
+            <Button as="span" type="button" {...BTN}>
+              build it → /builder
+            </Button>
+          </NextLink>
         </Box>
       </Box>
 

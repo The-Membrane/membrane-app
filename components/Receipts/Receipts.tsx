@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { Box, Button, HStack, Input, Select, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import NextLink from 'next/link'
 
 import { Card } from '@/components/ui/Card'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
@@ -9,6 +10,7 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { SectionHeading, Stamp } from '@/components/Carry/atoms'
 import useWallet from '@/hooks/useWallet'
+import { useChainRoute } from '@/hooks/useChainRoute'
 import { exportElementAsImage } from '@/services/shareableCard'
 import venueConfig from '@/tools/venue-recorder.config.json'
 
@@ -58,6 +60,7 @@ const STATE_COLOR: Record<'OPEN' | 'HIT' | 'MISS', string> = {
 
 export const Receipts: React.FC = () => {
   const { address, isWalletConnected, connect, walletClient } = useWallet()
+  const { chainName } = useChainRoute()
 
   const [venueName, setVenueName] = useState(VENUES[0]?.name ?? '')
   const [bandLow, setBandLow] = useState('')
@@ -353,6 +356,25 @@ export const Receipts: React.FC = () => {
               no returns, no ranking by wins. calibration is computed at read time and never stored as a badge.
             </Stamp>
           </Box>
+
+          {/* Next — a scored call points at the board and the big books. */}
+          <Card variant="subtle" p={SPACING.base} mt={SPACING.lg}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.28em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
+              next
+            </Text>
+            <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.sm}>
+              <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
+                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                  see the tracked books → /strats
+                </Text>
+              </NextLink>
+              <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
+                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                  the board that prices your call → /carry
+                </Text>
+              </NextLink>
+            </HStack>
+          </Card>
         </>
       )}
 

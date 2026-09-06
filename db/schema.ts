@@ -525,6 +525,52 @@ export const venueAlarms = pgTable(
   ],
 )
 
+// user_receipts — CALLED-IT RECEIPTS (owner-approved). One row per WALLET-BOUND
+// probability call on a venue outcome: a user signs the canonical statement
+// (components/Receipts/receiptLogic.ts buildReceiptStatement) with their wallet,
+// the API verifies the EIP-191 signature recovers `address` (pages/api/receipts.ts),
+// and later the recorder scores it against a REALIZED metric value.
+//
+// Scoring is BADASS_RULESET §7/§9.3-exact: a row is INSERTED with (realized,
+// scored_at, hit) NULL; exactly ONE later scoring UPDATE fills those three once
+// the horizon has elapsed (realized = the venue's current metric value from the
+// latest observed snapshot, hit = band_low <= realized <= band_high). No other
+// mutation, no leaderboard-by-wins, no scoring of returns — calibration/process
+// only. Open-receipt spam is capped in the API (max 5 UNSCORED per address), not
+// by a unique index. market_ref is a NULLABLE placeholder for a future Trueo
+// auto-propose bridge (scoped separately) and is otherwise untouched.
+//
+// Applied by scripts/apply-user-receipts-ddl.mjs (manual DDL, IF NOT EXISTS) —
+// same precedent as the venue_* tables; this drizzle definition is the
+// source-of-truth mirror of that DDL, keep them in lockstep.
+export const userReceipts = pgTable(
+  'user_receipts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    address: text('address').notNull(), // checksummed 0x… the signature recovered to
+    venue: text('venue').notNull(), // config `name`, e.g. 'sUSDe'
+    metric: text('metric').notNull(), // 'instant_usd' | 'total_assets'
+    statement: text('statement').notNull(), // the canonical signed sentence, verbatim
+    bandLow: numeric('band_low').notNull(), // USD
+    bandHigh: numeric('band_high').notNull(), // USD
+    probabilityPct: integer('probability_pct').notNull(), // 1-99, stated confidence
+    horizonHours: integer('horizon_hours').notNull(),
+    madeAt: timestamp('made_at', { withTimezone: true }).notNull().defaultNow(),
+    signature: text('signature').notNull(), // EIP-191 personal_sign over `statement`
+    marketRef: text('market_ref'), // NULLABLE — future Trueo bridge, unused for now
+    realized: numeric('realized'), // set once, by the scoring UPDATE
+    scoredAt: timestamp('scored_at', { withTimezone: true }),
+    hit: boolean('hit'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('user_receipts_address_made_idx').on(table.address, table.madeAt),
+    // Partial index over unscored receipts: the API counts these to enforce the
+    // per-address cap and the scorer scans them for elapsed horizons.
+    index('user_receipts_unscored_idx').on(table.address).where(sql`scored_at IS NULL`),
+  ],
+)
+
 // strat_watches — Carry Radar STRAT WATCHES (owner-approved). One row per
 // tracked address: a point-in-time snapshot of that address's radar positions
 // taken WHEN the watch was created, so a later POST-EVENT RECAP can tell the

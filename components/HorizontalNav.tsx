@@ -32,6 +32,8 @@ const navItems = [
     { label: 'Radar', href: '/radar' },
     // Auto-tracked mainnet carry strats (discovery scan -> watch -> verdicts).
     { label: 'Strats', href: '/strats' },
+    // Called-It receipts: wallet-signed venue calls, scored by the recorder.
+    { label: 'Receipts', href: '/receipts' },
     { label: 'Home', href: '/home' },
     { label: 'Builder', href: '/builder' },
     { label: 'Defend', href: '/defend' },

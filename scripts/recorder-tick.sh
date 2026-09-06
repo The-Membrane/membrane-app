@@ -17,3 +17,6 @@ echo "=== recorder tick $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 # (no chain reads) and notifies on new flags. Non-fatal: an alarm-check hiccup
 # must never fail the capacity/flows tick.
 /opt/homebrew/bin/node scripts/check-venue-alarms.mjs || echo "alarms:check failed (non-fatal)"
+# Score any due CALLED-IT receipts against the snapshots we just refreshed (no
+# chain reads). Non-fatal — a scoring hiccup must never fail the capacity tick.
+/opt/homebrew/bin/node scripts/score-user-receipts.mjs || echo "receipts:score failed (non-fatal)"

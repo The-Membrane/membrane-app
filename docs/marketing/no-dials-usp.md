@@ -109,7 +109,7 @@ memo, change-control governed — so the USP's spine becomes present-tense true.
    | Supply caps | AUTONOMOUS cap-voter, no timelock | a cut can BLOCK partial withdrawals while aggregate sits over the new cap (Cdp.sol:1393-1400) — a real exit-side hazard; state it |
    | Oracle route set | Disco-vote autonomous; 10%/update deviation bound | live prices, incl. solvency checks |
    | Revenue split level | timelock, within code caps | go-forward yield share; never principal |
-   | Collateral `enabled` toggle | governance | **UNVERIFIED effect on open positions — gap being closed; do not ship the headline until it is** |
+   | Collateral `enabled` toggle | owner, immediate (no timelock) | **VERIFIED INERT (2026-09-06): its only reader in the codebase is the frontend display lens (FrontendLens.sol:231) — it gates NO deposit/withdraw/repay/liquidation/LTV path (Cdp.sol:1253 gates on the ERC20 mapping; currentMaxLTV never reads it). There is no functional delisting lever; the real levers are the onboarding window and Disco-driven LTV. Open positions untouchable via this flag — the table's last gap closes in the SAFE direction.** |
    | Vault venue set / UUPS | delayed-upgrade timelock | only if routed through that vault |
 
    **Present-tense honesty banner for the rendered table:** owner renounce has

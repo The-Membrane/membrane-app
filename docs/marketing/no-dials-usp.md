@@ -88,12 +88,34 @@ memo, change-control governed — so the USP's spine becomes present-tense true.
    > the clock is running. The delay is a delay. (Your loan's normal interest
    > keeps accruing on any debt you leave open, exactly as it always does — and
    > you can repay to stop it without waiting on the venue.)"
-3. **"Fixed at open vs. can move" ships as a rendered TABLE, not prose** (owner's
-   second note, in house teach-don't-tell form): left column what is immutable at
-   position-open; right column what still moves (MBRN governance, the autonomous
-   listing process — with their gates/timelocks named). Dated. This table is also
-   the strongest screenshot artifact the USP produces — no competitor can publish
-   it honestly.
+3. **Fixed-at-open vs can-move — INVENTORY VERIFIED (2026-09-06, cited). The
+   rendered-table content:**
+
+   **FIXED AT OPEN (present-tense true today):**
+   | What | Mechanics | Cite |
+   |---|---|---|
+   | The rate on debt you've drawn | snapshotted per draw segment, never repriced; base/adaptive moves touch NEW draws only. (Fixed-rate segments re-stamp at their own endTime — say so.) | CdpInternal.sol:50-61, Cdp.sol:4417-4420 |
+   | Liquidation caller-fee shape | LTV-ramp formula, 20% cap — code constants | LiquidationEngine.sol:1505-1510 |
+   | The ceilings themselves | 90% LTV hard cap, 5% liq-fee cap, 100%/yr rate cap, 10%/update oracle deviation, 1h staleness — immutable by owner AND governance | Constants.sol |
+   | Revenue collected, never minted | fees split out of actual repayments; no path debits your principal to pay a fee; share ceilings code-capped (5%/50%) | RevenueDistributor.sol:489 |
+   | temp_ltv + wired sinks | immutable post-registration / SET-ONCE | Collateral.sol:222, SinkAlreadyWired |
+
+   **CAN STILL MOVE (who · delay · blast radius):**
+   | What | Who/delay | Reaches an open position? |
+   |---|---|---|
+   | Liquidation LTV (owner ruling CONFIRMED: "moves but delayed") | Disco stake-weighted; direct lowering FORBIDDEN in code — 14d request + 2d window; unstake-driven drift ≥7d notice | **Grandfathered until touched**: liquidate() reads your CACHED LTV; your next deposit/withdraw re-stamps to the live value (LtvDisco.sol:1192,1210; Cdp.sol:2171,1308) |
+   | Base/adaptive interest rate | 14d+2d timelock / autonomous controller | New draws only — never your drawn debt |
+   | Static liq protocol-fee | timelock, ≤5% hard cap | future liquidations of open positions |
+   | Supply caps | AUTONOMOUS cap-voter, no timelock | a cut can BLOCK partial withdrawals while aggregate sits over the new cap (Cdp.sol:1393-1400) — a real exit-side hazard; state it |
+   | Oracle route set | Disco-vote autonomous; 10%/update deviation bound | live prices, incl. solvency checks |
+   | Revenue split level | timelock, within code caps | go-forward yield share; never principal |
+   | Collateral `enabled` toggle | governance | **UNVERIFIED effect on open positions — gap being closed; do not ship the headline until it is** |
+   | Vault venue set / UUPS | delayed-upgrade timelock | only if routed through that vault |
+
+   **Present-tense honesty banner for the rendered table:** owner renounce has
+   NOT happened yet — today the two-role owner/governance model with 14d+2d
+   timelocks governs; "frozen forever" is the launch endpoint, not the current
+   state. Date-stamp the table and re-render when renounce lands.
 4. **Source URLs — PINNED (verified 2026-09-06; all five claims stand, three
    precision notes for the copy):**
    - **Rate spike**: numbers exact ("roughly 3.5% to 14% within 48 hours" — NYDIG).

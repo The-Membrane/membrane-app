@@ -25,13 +25,31 @@ each claim) + the honesty gates that must clear before any piece ships publicly.
 | Timer | One bad tick ≠ liquidation: 8-hour window + price band, then only partial. | **Evidence + ForecastGate** — the star witness: 2,350 real accounts replayed | ✓ live |
 | Exit | A stuck venue costs you time, not a penalty (verified wording below). | /venue pages + recorder corpus | ✓ verified vs contracts — see gate 2 |
 
+## Owner precision rulings (2026-09-06, mid-review)
+
+These three sentences are the spine of the fixed-vs-movable story — each under
+code verification before public use:
+1. **"LTVs can move — but delayed."** The cap dial's honest form: the algorithm
+   updates borrow_LTV, and updates reach open positions with a delay, never as an
+   instant cut. (Verification in flight: exact delay mechanics + citation.)
+2. **"The yield can move, but never the % spread."** Cost is taken FROM yield as
+   a share, so the user's spread proportion is structural. Yield level = market's;
+   spread share = nobody's dial. (Verification in flight: where the skim fraction
+   lives + whether governance can touch it.)
+3. **"No negative yield is possible."** Cost ≤ yield by construction — the carry
+   cannot be underwater on cost. (Same verification.) Base interest applies only
+   to UNDEPLOYED debt per owner; being double-checked in code.
+
 ## Honesty gates (must clear before public)
 
-1. **Fuse the contradiction.** "Your collateral is never the thing that gets sold"
-   and "volatile collateral still liquidates" are four paragraphs apart and both
-   true. The collateral dial must say it in one breath: *de-risking* never sells
-   your collateral — recall pulls debt-side capital — but *insolvency* still does,
-   through the window, partially. Above the fold, not a footnote (owner's own note).
+1. **Fuse the contradiction — CLEARED, shipping wording:**
+   > "De-risking never sells your collateral. When the protocol pulls risk down,
+   > it recalls capital it issued on the debt side — there is no mechanism by
+   > which your collateral becomes exit liquidity. Insolvency is different, and
+   > we say it plainly: cross the line and collateral IS sold — through an
+   > 8-hour window, inside a price band, and only as much as it takes. You get
+   > liquidated for being insolvent, not de-risked into being smaller."
+   One breath, both truths, above the fold.
 2. **Exit dial — VERIFIED against membrane-solidity, 2026-09-06 (verdict:
    supported-with-precision).** The delay adds NO venue-induced cost anywhere in
    the contracts: no waiting fee (over-liquidity withdrawal simply reverts and you

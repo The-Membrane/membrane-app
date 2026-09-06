@@ -1,9 +1,10 @@
 {
-  "_comment": "Venues for the withdrawal-ability recorder (scripts/record-venue-liquidity.mjs). These are EXTERNAL mainnet venues (Ethereum), read via RECORDER_RPC_URL — NOT the local anvil. Entry shape: {name, kind, address, underlying?, decimals, enabled, notes}. Only enabled=true venues are recorded. Never guess an address; leave it empty and enabled=false until verified.",
+  "_comment": "Venues for the withdrawal-ability recorder (scripts/record-venue-liquidity.mjs). These are EXTERNAL mainnet venues (Ethereum), read via RECORDER_RPC_URL — NOT the local anvil. Entry shape: {name, kind, address, underlying?, decimals, enabled, newsQuery?, notes}. Only enabled=true venues are recorded. Never guess an address; leave it empty and enabled=false until verified. newsQuery (optional) is the Google News RSS search string for scripts/fetch-venue-news.mjs — a plain-English venue name, NOT a ticker, so headlines are about the protocol, not a random symbol collision.",
   "venues": [
     {
       "name": "sUSDe",
       "kind": "erc4626-cooldown",
+      "newsQuery": "Ethena sUSDe",
       "address": "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497",
       "underlying": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
       "decimals": 18,
@@ -13,6 +14,7 @@
     {
       "name": "aave-v3-usde",
       "kind": "atoken-liquidity",
+      "newsQuery": "Aave USDe",
       "address": "0x4F5923Fc5FD4a93352581b38B7cD26943012DECF",
       "underlying": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
       "decimals": 18,
@@ -22,6 +24,7 @@
     {
       "name": "sUSDS",
       "kind": "erc4626-cooldown",
+      "newsQuery": "Sky sUSDS savings",
       "address": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
       "underlying": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
       "decimals": 18,
@@ -31,6 +34,7 @@
     {
       "name": "scrvUSD",
       "kind": "erc4626-cooldown",
+      "newsQuery": "Curve scrvUSD",
       "address": "0x0655977FEb2f289A4aB78af67BAB0d17aAb84367",
       "underlying": "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
       "decimals": 18,

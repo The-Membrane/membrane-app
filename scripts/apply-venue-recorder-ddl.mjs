@@ -118,9 +118,35 @@ await sql`CREATE TABLE IF NOT EXISTS strat_watches (
 )`
 await sql`CREATE UNIQUE INDEX IF NOT EXISTS strat_watches_address_idx ON strat_watches (address)`
 
+// Cached CURRENT positions for the Carry Strats board (additive columns).
+// scripts/refresh-strat-positions.mjs writes these in one batched chain-read pass
+// so /api/strats serves stored values (no per-request live reads). Mirrors the
+// stratWatches drizzle definition — keep them in lockstep.
+await sql`ALTER TABLE strat_watches ADD COLUMN IF NOT EXISTS last_scanned jsonb`
+await sql`ALTER TABLE strat_watches ADD COLUMN IF NOT EXISTS last_scanned_at timestamptz`
+
+// venue_news — the VENUE NEWS feed. Raw external headlines per venue, fetched
+// from Google News RSS by scripts/fetch-venue-news.mjs. INFORMATION not
+// endorsement: title/source/url/dates stored VERBATIM, no summarization or
+// sentiment. INSERT-ONLY; UNIQUE(venue, url) makes re-fetch idempotent
+// (INSERT ... ON CONFLICT DO NOTHING). published_at nullable (article pubDate);
+// fetched_at = when we pulled it. Mirrors venueNews in db/schema.ts.
+await sql`CREATE TABLE IF NOT EXISTS venue_news (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue text NOT NULL,
+  title text NOT NULL,
+  source text NOT NULL,
+  url text NOT NULL,
+  published_at timestamptz,
+  fetched_at timestamptz NOT NULL DEFAULT now()
+)`
+await sql`CREATE UNIQUE INDEX IF NOT EXISTS venue_news_venue_url_idx ON venue_news (venue, url)`
+await sql`CREATE INDEX IF NOT EXISTS venue_news_venue_published_idx ON venue_news (venue, published_at)`
+
 const [{ s }] = await sql`SELECT count(*)::int AS s FROM venue_snapshots`
 const [{ e }] = await sql`SELECT count(*)::int AS e FROM venue_events`
 const [{ p }] = await sql`SELECT count(*)::int AS p FROM venue_predictions`
 const [{ f }] = await sql`SELECT count(*)::int AS f FROM venue_flows`
 const [{ w }] = await sql`SELECT count(*)::int AS w FROM strat_watches`
-console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}, watches: ${w}`)
+const [{ n }] = await sql`SELECT count(*)::int AS n FROM venue_news`
+console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}, watches: ${w}, news: ${n}`)

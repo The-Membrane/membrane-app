@@ -461,6 +461,38 @@ export const venueFlows = pgTable(
   ],
 )
 
+// venue_news — the VENUE NEWS feed (owner-approved). Raw external headlines for
+// each carry venue we offer, fetched from Google News RSS by
+// scripts/fetch-venue-news.mjs. This is INFORMATION, not endorsement: we store
+// the headline, its outlet, its URL and its dates VERBATIM — no summarization,
+// no sentiment, no LLM. (X/Twitter search has no keyless API; it is deferred to
+// a later paid/API decision, so this table is NEWS-only for v1.)
+//
+// INSERT-ONLY, append-only. UNIQUE(venue, url) makes a re-fetch of an
+// already-seen headline idempotent (INSERT ... ON CONFLICT DO NOTHING); the
+// fetcher caps each run to the newest 25 items per venue. published_at is the
+// article's own pubDate (nullable — left null when the feed omits/malforms it);
+// fetched_at is when WE pulled it. Applied by
+// scripts/apply-venue-recorder-ddl.mjs (manual DDL, IF NOT EXISTS) — same
+// precedent as the venue_* tables; this drizzle definition is the
+// source-of-truth mirror, keep them in lockstep.
+export const venueNews = pgTable(
+  'venue_news',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    venue: text('venue').notNull(), // config `name`, e.g. 'sUSDe'
+    title: text('title').notNull(), // headline, decoded, verbatim
+    source: text('source').notNull(), // outlet name, e.g. 'CoinDesk'
+    url: text('url').notNull(), // article link (dedupe key with venue)
+    publishedAt: timestamp('published_at', { withTimezone: true }), // article pubDate, nullable
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('venue_news_venue_url_idx').on(table.venue, table.url),
+    index('venue_news_venue_published_idx').on(table.venue, table.publishedAt),
+  ],
+)
+
 // strat_watches — Carry Radar STRAT WATCHES (owner-approved). One row per
 // tracked address: a point-in-time snapshot of that address's radar positions
 // taken WHEN the watch was created, so a later POST-EVENT RECAP can tell the
@@ -480,6 +512,13 @@ export const stratWatches = pgTable(
     address: text('address').notNull(), // checksummed 0x…
     label: text('label'), // optional reader-facing name for the strat
     entryPositions: jsonb('entry_positions'), // radar positions snapshot at watch time
+    // Cached CURRENT positions, refreshed by scripts/refresh-strat-positions.mjs
+    // in one batched chain-read pass, so the Carry Strats API serves stored values
+    // instead of doing N addresses × 4 venues of live reads per request. Shape:
+    // { at: ISO, total_usd, usdByVenue: {venue: usd} }. lastScannedAt is the
+    // freshness stamp the board shows ("recorded corpus · {date}").
+    lastScanned: jsonb('last_scanned'),
+    lastScannedAt: timestamp('last_scanned_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex('strat_watches_address_idx').on(table.address)],

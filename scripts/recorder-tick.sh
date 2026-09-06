@@ -7,3 +7,6 @@ cd "$(dirname "$0")/.." || exit 1
 echo "=== recorder tick $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 /opt/homebrew/bin/node scripts/record-venue-liquidity.mjs
 /opt/homebrew/bin/node scripts/record-venue-flows.mjs --chunk 2000
+# Venue news last (external RSS; upsert-idempotent). Non-fatal — a Google News
+# hiccup must never fail the capacity/flows tick, so swallow its exit code.
+/opt/homebrew/bin/node scripts/fetch-venue-news.mjs || echo "news:fetch failed (non-fatal)"

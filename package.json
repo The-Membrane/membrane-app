@@ -30,7 +30,8 @@
     "recorder:ddl": "node scripts/apply-venue-recorder-ddl.mjs",
     "recorder:run": "node scripts/record-venue-liquidity.mjs",
     "recorder:flows": "node scripts/record-venue-flows.mjs",
-    "recorder:backfill": "node scripts/backfill-venue-history.mjs"
+    "recorder:backfill": "node scripts/backfill-venue-history.mjs",
+    "news:fetch": "node scripts/fetch-venue-news.mjs"
   },
   "dependencies": {
     "@chain-registry/utils": "^1.51.285",

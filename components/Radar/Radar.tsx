@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Box, Button, Grid, HStack, Input, SimpleGrid, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 
@@ -11,6 +11,8 @@ import { SectionHeading, Stamp } from '@/components/Carry/atoms'
 
 import { fmtDuration, fmtMultiple, fmtPct, fmtUsd, type Verdict } from './radarLogic'
 import { RecapSection } from './RecapSection'
+import { RadarShareCard } from './RadarShareCard'
+import { exportElementAsImage } from '@/services/shareableCard'
 
 // Carry Radar — paste any mainnet address, see its positions across our four
 // instrumented venues, stressed against our RECORDED capacity + flow corpus.
@@ -219,6 +221,20 @@ export const Radar: React.FC = () => {
     setTimeout(() => setCopied(false), 1500)
   }
 
+  // Image export — the same 1200x675 receipt shape as the venue weather cards.
+  const shareCardRef = useRef<HTMLDivElement>(null)
+  const [savingCard, setSavingCard] = useState(false)
+  const saveCard = async () => {
+    if (!shareCardRef.current || !data) return
+    setSavingCard(true)
+    try {
+      const day = new Date().toISOString().slice(0, 10)
+      await exportElementAsImage(shareCardRef.current, `carry-radar-${day}.png`)
+    } finally {
+      setSavingCard(false)
+    }
+  }
+
   const valid = isAddressish(input)
 
   return (
@@ -358,23 +374,54 @@ export const Radar: React.FC = () => {
             <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} lineHeight={1.7}>
               {data.share_line}
             </Text>
-            <Button
-              onClick={copyShare}
-              mt={SPACING.md}
-              size="sm"
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="11px"
-              borderRadius={0}
-              bg="transparent"
-              color={SEMANTIC_COLORS.textSecondary}
-              border="1px solid"
-              borderColor={SEMANTIC_COLORS.borderStrong}
-              _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
-              _focusVisible={FOCUS_STYLES.ring}
-            >
-              {copied ? 'copied' : 'copy'}
-            </Button>
+            <HStack mt={SPACING.md} spacing={SPACING.sm}>
+              <Button
+                onClick={copyShare}
+                size="sm"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="11px"
+                borderRadius={0}
+                bg="transparent"
+                color={SEMANTIC_COLORS.textSecondary}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderStrong}
+                _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+                _focusVisible={FOCUS_STYLES.ring}
+              >
+                {copied ? 'copied' : 'copy'}
+              </Button>
+              <Button
+                onClick={saveCard}
+                isDisabled={savingCard}
+                size="sm"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="11px"
+                borderRadius={0}
+                bg="transparent"
+                color={SEMANTIC_COLORS.textSecondary}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderStrong}
+                _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+                _focusVisible={FOCUS_STYLES.ring}
+              >
+                {savingCard ? 'rendering…' : 'save image'}
+              </Button>
+            </HStack>
           </Card>
+
+          {/* Off-screen card the save-image button exports. Fed by the same
+              verdicts the page shows — the image IS the data. */}
+          <RadarShareCard
+            ref={shareCardRef}
+            totalUsdText={fmtUsd(data.total_usd)}
+            heldCount={data.held_count}
+            venues={(data.held_count > 0 ? data.positions : data.comparator).map((v) => ({
+              label: v.label,
+              verdict: v.verdict as 'clear' | 'caution' | 'exposed',
+              reason: v.reason,
+            }))}
+            dateText={new Date().toISOString().slice(0, 10)}
+          />
 
           {/* Provenance — one stamp per data class. */}
           <Provenance prov={data.provenance} />

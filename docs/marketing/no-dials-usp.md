@@ -52,10 +52,14 @@ shipped code does today:
    > "Deployment-vault yield is routed to pay down your loan automatically; the
    > base borrow rate tracks the calm floor of the deployment market rather
    > than a spiking utilization curve."
-**Decision open (owner):** ship the copy future-flagged, or build HP-1
-(zero-base-interest cutover) + HP-30 (charge on gains only) + HP-43 (negative
-carry impossible by construction) in membrane-solidity — W1 of the honeypot
-memo, change-control governed — so the USP's spine becomes present-tense true.
+**Decision made (owner, 2026-09-06): BUILD.** Contract work is tasked in
+membrane-solidity (free deployed debt via a trusted deployment mechanism; the
+user/protocol/manager vault revenue split — owner states it exists on a branch,
+merge-first; the no-negative-carry invariant proven formally). Until that lands
+and the audit session re-verifies against the new code, the spread /
+no-negative-carry lines stay future-flagged; the interim wording above is the
+shipping copy. The spine claims flip to present-tense the day the contract
+session reports back green.
 
 ## Honesty gates (must clear before public)
 

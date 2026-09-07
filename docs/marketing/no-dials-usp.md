@@ -48,6 +48,24 @@ Enabled toggle: ruled DISPLAY-ONLY BY DESIGN, KNOWN-BY-DESIGN entry recorded.
 **Copy status: the future-flags on rulings 2/3 can come OFF once the branch
 merges to master** (it is committed on the feature branch; merge is the last gate).
 
+## What "no negative carry" does NOT claim (owner ruling, 2026-09-06)
+
+The guarantee is **cost-side only**: the protocol can never charge you more than
+your realized yield. It is NOT a promise of absolute positive carry, and we must
+never let the copy drift there:
+- **Venue risk stays with the user, by design.** The venue you deploy into can
+  underperform, gate, or fail. Stream paid 18% flat right up until −92%.
+- **Price risk stays with the user.** Volatile collateral still liquidates
+  (window, band, partial).
+- Per `docs/research/worst-carry-venues.md` P7, a *promised* return that doesn't
+  move with markets is the shared signature of the protocols that died. Claiming
+  absolute positive carry would put us in that sentence and would also destroy
+  the product's premise — Radar, the dossiers, the alarms and the corpus only
+  exist because venue risk is real and the user has to handle it.
+
+**The line that says it right:** "We removed the part of the risk that was ours
+to remove, and we hand you the instruments to measure the rest."
+
 ## Historical verdict (superseded by the update above) — was: not yet shipped
 
 **The code check (2026-09-06, cited) found rulings 2 and 3 describe the Mycelium

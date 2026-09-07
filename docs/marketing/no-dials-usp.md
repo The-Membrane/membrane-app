@@ -48,6 +48,25 @@ Enabled toggle: ruled DISPLAY-ONLY BY DESIGN, KNOWN-BY-DESIGN entry recorded.
 **Copy status: the future-flags on rulings 2/3 can come OFF once the branch
 merges to master** (it is committed on the feature branch; merge is the last gate).
 
+## The curator dial — the one take-rate someone else holds (owner, 2026-09-06)
+
+**Curators choose their own rate, so the take from users CAN change — but never
+above the yield.** This is a genuine CAN-MOVE row and the table must carry it;
+hiding it would be the exact failure the honesty gates exist to prevent.
+
+| | |
+|---|---|
+| Who moves it | the curator of the vault you chose (`CuratorVault.declareProtocolRate` :627-630, `declareCuratorFee` :637-648) |
+| Delay | raises are 7-day gated; cuts can apply sooner |
+| Reaches open positions? | yes — it prices go-forward realized gain |
+| **The bound** | the split is carved from realized gain and capped by it (`settleProtocolPayment` :552-618): protocol leg first, curator leg capped at `gain − protocolPay`, residual is the user's. **A curator can take a bigger slice; a curator cannot take more than the pie.** |
+| Second-order | curator rates feed the AUM-weighted avoidance rate (`CuratorRegistry._refreshAvoidanceRate` :808-835), which is the base rate on UNDEPLOYED debt — so the market of curators, not a governance dial, sets that floor |
+| User's recourse | pick a different curator — this is the one dial that competes, and rate history is public |
+
+Why this strengthens rather than weakens the lead: the no-negative-carry bound
+holds **even against curator discretion**. The guarantee was never "no one sets a
+price" — it is "no price anyone sets can exceed what you earned."
+
 ## What "no negative carry" does NOT claim (owner ruling, 2026-09-06)
 
 The guarantee is **cost-side only**: the protocol can never charge you more than

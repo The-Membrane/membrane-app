@@ -17,11 +17,11 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { tabular } from '@/components/Builder/styles'
-import { outcomeLine, type Comparison } from '@/lib/position-sim'
+import { fmtUtcMinute, outcomeLine, type Comparison } from '@/lib/position-sim'
 
 import AddressBar, { type AddressBarProps } from './AddressBar'
 import HeroChart from './HeroChart'
-import { usdSigned } from './format'
+import { usd, usdSigned } from './format'
 
 export interface VerdictHeroProps extends AddressBarProps {
   /** The run. Null while the measured price path is still loading. */
@@ -39,21 +39,26 @@ export interface VerdictHeroProps extends AddressBarProps {
  * clause `outcomeLine` already built (so the hero and the run panel can never
  * disagree). The second names Membrane's ending in the same breath.
  */
-function verdict(cmp: Comparison): {
+function verdict(cmp: Comparison, isDemo: boolean): {
   first: string
   second: string
   firstColor: string
   secondColor: string
 } {
   const o = outcomeLine(cmp)
-  const first = `${o.line.split(' · ')[0]}.`
-  const second = o.source.liquidated
-    ? o.membrane.liquidated
-      ? 'Would have been liquidated on Membrane too.'
-      : 'Would have held on Membrane.'
-    : o.membrane.liquidated
-      ? 'Membrane would have liquidated it.'
-      : 'Would have held on both.'
+  const src = cmp.position.label
+  const whose = isDemo ? 'this' : 'your'
+  const sold = (run: typeof cmp.source) =>
+    run.events.filter((e) => e.kind === 'liquidation').reduce((a, e) => a + e.seizedUsd, 0)
+  const at = o.source.firstAt !== null ? ` at ${fmtUtcMinute(o.source.firstAt).replace(/^\d+ \w+ /, '')}` : ''
+  // Hopkins: a specific number beats an adjective. Hormozi: name the outcome the
+  // reader wants — collateral kept — not the mechanism that keeps it.
+  const first = o.source.liquidated
+    ? `${src} sold ${usd(sold(cmp.source))} of ${whose} collateral${at}.`
+    : `${src} sold nothing.`
+  const second = o.membrane.liquidated
+    ? `Membrane would have sold ${usd(sold(cmp.membrane))}.`
+    : 'Membrane would have sold $0.'
   return {
     first,
     second,
@@ -70,7 +75,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   errors,
   ...addressBar
 }) => {
-  const v = comparison ? verdict(comparison) : null
+  const v = comparison ? verdict(comparison, isDemo) : null
   const delta = comparison?.equityDeltaUsd ?? 0
   const deltaColor =
     delta > 0
@@ -83,7 +88,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
     <Box
       pt={SPACING.lg}
       display="grid"
-      gridTemplateColumns={{ base: '1fr', md: '55fr 45fr' }}
+      gridTemplateColumns="1fr"
       gap={{ base: SPACING.base, md: SPACING.lg }}
       alignItems="center"
     >
@@ -123,7 +128,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                 letterSpacing="0.06em"
                 color={SEMANTIC_COLORS.textSecondary}
               >
-                ending equity, Membrane vs {comparison?.position.label}
+                kept, Membrane vs {comparison?.position.label}
               </Text>
             </Box>
           </>

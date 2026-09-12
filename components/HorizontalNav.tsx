@@ -18,13 +18,15 @@ import useAppState from '@/persisted-state/useAppState';
 // game goes public before any executable page. Only the wallet-free surfaces sit at the top
 // level; everything that needs a live contract is grouped under the "Coming soon" menu.
 // Keeping all 13 flat overflowed the nav and pushed the whole document sideways by 252px.
-// Evidence is the landing page (renders at '/'), so its nav entry points at the root
+// Evidence renders at the chain root ('/ethereum'); '/' itself redirects to the simulator
 // rather than /evidence — that route 307s here, keeping one canonical URL.
 // The old marketing home moved to /home; it was not deleted.
 // Carry-first app (owner ruling 2026-09-06, docs/research/carry-userflows.md):
 // Carry leads the nav right after the trust-story landing. Calculator moved down
 // into Carry's own toolkit row (it links there) to hold nav width.
 const navItems = [
+    // The landing page (owner ruling 2026-09-11): '/' redirects here.
+    { label: 'Simulator', href: '/simulator' },
     { label: 'Evidence', href: '/' },
     { label: 'Carry', href: '/carry' },
     // Wallet-free carry-trader decision tool: paste any address, stress its
@@ -32,7 +34,6 @@ const navItems = [
     { label: 'Radar', href: '/radar' },
     // Auto-tracked mainnet carry strats (discovery scan -> watch -> verdicts).
     { label: 'Strats', href: '/strats' },
-    { label: 'Simulator', href: '/simulator' },
     // Called-It receipts: wallet-signed venue calls, scored by the recorder.
     { label: 'Receipts', href: '/receipts' },
     { label: 'Home', href: '/home' },

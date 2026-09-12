@@ -3,8 +3,6 @@ export { Simulator, default } from './Simulator'
 export { AddressBar } from './AddressBar'
 export type { AddressBarProps } from './AddressBar'
 
-export { AllocationClose } from './AllocationClose'
-export type { AllocationCloseProps } from './AllocationClose'
 
 export { GuaranteeBlock } from './GuaranteeBlock'
 

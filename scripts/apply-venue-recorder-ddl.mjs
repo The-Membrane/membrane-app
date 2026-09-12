@@ -141,20 +141,6 @@ await sql`CREATE TABLE IF NOT EXISTS sim_reads (
 await sql`CREATE UNIQUE INDEX IF NOT EXISTS sim_reads_address_idx ON sim_reads (address)`
 await sql`CREATE INDEX IF NOT EXISTS sim_reads_last_seen_idx ON sim_reads (last_seen)`
 
-// sim_allocation — LAUNCH ALLOCATION claims from the simulator. One row per
-// address; ranked_at = the address's first sim read (queue by engagement, not by
-// claim time). Written by pages/api/sim/allocation.ts. Mirrors simAllocation in
-// db/schema.ts — keep them in lockstep.
-await sql`CREATE TABLE IF NOT EXISTS sim_allocation (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  address text NOT NULL,
-  contact text,
-  ranked_at timestamptz NOT NULL DEFAULT now(),
-  created_at timestamptz NOT NULL DEFAULT now()
-)`
-await sql`CREATE UNIQUE INDEX IF NOT EXISTS sim_allocation_address_idx ON sim_allocation (address)`
-await sql`CREATE INDEX IF NOT EXISTS sim_allocation_ranked_idx ON sim_allocation (ranked_at)`
-
 // venue_news — the VENUE NEWS feed. Raw external headlines per venue, fetched
 // from Google News RSS by scripts/fetch-venue-news.mjs. INFORMATION not
 // endorsement: title/source/url/dates stored VERBATIM, no summarization or

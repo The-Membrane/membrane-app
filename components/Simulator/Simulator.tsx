@@ -30,7 +30,6 @@ import {
   loadOct10,
   measuredRepayFraction,
   oct10Provenance,
-  outcomeLine,
   parseAddress,
   readUrlState,
   runAdapters,
@@ -50,7 +49,6 @@ import {
   type VenueRecall,
 } from '@/lib/position-sim'
 
-import AllocationClose from './AllocationClose'
 import ComparisonPanel from './ComparisonPanel'
 import Controls, { type ControlValues } from './Controls'
 import DeploymentSection from './DeploymentSection'
@@ -599,11 +597,6 @@ export const Simulator: React.FC = () => {
                 onCopyLink={onCopyLink}
                 copyState={copyState}
               />
-              {/* THE CLOSE — only on a real address whose real run liquidated. Never
-                  off the worked example, and never off a run that ended well. */}
-              {!isDemo && loaded && outcomeLine(comparison).source.liquidated && (
-                <AllocationClose address={loaded.address} />
-              )}
             </Box>
           ) : (
             <Box

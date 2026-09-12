@@ -368,10 +368,12 @@ Name the guarantee. Urgency from true things only.
   overstated survival on any fast crash. `compare.ts` now applies the break
   (`MAX_THRESHOLD_TO_DELAY = 0.04` in `membrane.ts`): past the band the cure path is
   skipped and the sale is immediate, with a caveat line saying so.
-- **Urgency from true things.** `AllocationClose.tsx` + `/api/sim/allocation` + table
-  `sim_allocation`: shown only after a REAL read that liquidated on the source protocol.
-  Rank = the address's FIRST sim read (`sim_reads.first_seen`), never claim time. The cap
-  renders only when `SIM_ALLOCATION_CAP` is set — unset = no cap is stated anywhere.
+- **No allocation close.** An 'allocation ranked by first sim run' close was built and
+  REMOVED the same day — owner ruling 2026-09-11: "There is no launch allocation, that's
+  AI slop." Component, API and table deleted. Urgency copy must name a real thing or
+  not exist.
+- **Root landing.** Owner ruling 2026-09-11: `/` redirects to `/ethereum/simulator`
+  (was Evidence). Evidence stays at the chain root and second in the nav.
 - **Instrumentation.** `sim_reads` (address, protocols, first_seen, last_seen, read_count)
   via `/api/sim/reads`, fired fire-and-forget on every real read (never the worked
   example). GET returns {addresses, with_positions, returned} — "returned" = read again

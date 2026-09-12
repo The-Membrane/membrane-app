@@ -643,19 +643,3 @@ export const simReads = pgTable(
   },
   (table) => [uniqueIndex('sim_reads_address_idx').on(table.address)],
 )
-
-// LAUNCH ALLOCATION claims from the simulator — the one ask worth a contact.
-// ranked_at = the address's FIRST sim read (sim_reads.first_seen), so the queue
-// is ordered by engagement, never by claim time. Written by
-// pages/api/sim/allocation.ts. DDL in scripts/apply-venue-recorder-ddl.mjs.
-export const simAllocation = pgTable(
-  'sim_allocation',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    address: text('address').notNull(), // checksummed 0x…
-    contact: text('contact'), // free text the visitor typed: email / telegram / farcaster; optional
-    rankedAt: timestamp('ranked_at', { withTimezone: true }).notNull().defaultNow(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [uniqueIndex('sim_allocation_address_idx').on(table.address)],
-)

@@ -357,9 +357,13 @@ Name the guarantee. Urgency from true things only.
   2026-09-11: the 4% window is the guarantee; the 8 hours hold only inside it (break the
   band → BrokeWindow, LiquidationEngine.sol:1357, immediate sale at the same fee). Pinned
   to :893-908/:1394-1407 (nothing seized in-window), :2165 (`break = maxLtv × (1 + band)`),
-  :322 (28,800 s, timelocked). **Contract gap:** the repo registration default for
-  `max_threshold_to_delay` is 95e16 (Collateral.sol:213) — the launch listing must set
-  4e16 per asset or the copy is false on mainnet. Chip spawned for the contract session.
+  :322 (28,800 s, timelocked). **Correction (same day):** the deploy scripts already set
+  `max_threshold_to_delay = 4e16` on every asset they register (DeployFullSystem.s.sol
+  WETH_/LAUNCH_THRESHOLD_TO_DELAY, DeployLiquidationCore.s.sol) and the delay to 8 h. The
+  field is per-asset (Collateral.sol:48, same as the Rust cAsset field); a position's break
+  line is the value-weighted average of its assets (Cdp.sol:3575). The 95e16 stamp lives only
+  on the permissionless `maybeOnboard` path (Collateral.sol:213) — a policy question for the
+  owner, not a launch gap. The chip was withdrawn.
 - **Sim fidelity fix.** The Membrane run gave the 8-hour window unconditionally — it
   overstated survival on any fast crash. `compare.ts` now applies the break
   (`MAX_THRESHOLD_TO_DELAY = 0.04` in `membrane.ts`): past the band the cure path is

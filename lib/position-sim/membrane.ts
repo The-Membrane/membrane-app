@@ -43,16 +43,21 @@ export const CURE_WINDOW_HOURS = CURE_WINDOW_SECONDS / 3600 // 8
  * at the same fee. Real: `_immediateThreshold = maxLtv + band × maxLtv`
  * (LiquidationEngine.sol:2165-2167); band = per-asset `max_threshold_to_delay`.
  *
- * 4% is the OWNER'S LAUNCH PARAMETER (ruling 2026-09-11). The repo's registration
- * default is 95e16 (Collateral.sol:213), which would put the break beyond insolvency —
- * the launch listing must set 4e16 per asset, or this model overstates the window.
+ * 4% is what the deploy scripts set for EVERY asset they register
+ * (script/DeployFullSystem.s.sol WETH_THRESHOLD_TO_DELAY / LAUNCH_THRESHOLD_TO_DELAY
+ * = 4e16, "uniform 4%/8h window"; DeployLiquidationCore.s.sol ATOM_THRESHOLD_TO_DELAY
+ * = 4e16). It is PER-ASSET (AssetParams.max_threshold_to_delay, Collateral.sol:48 —
+ * same as the Rust cAsset field) and a position's break line uses the collateral-
+ * value-weighted average of its assets (Cdp.sol:3575). The only path that stamps a
+ * different value is permissionless onboarding (Collateral.sol:213, maybeOnboard →
+ * 95e16), which the launch listing never uses.
  */
 export const MAX_THRESHOLD_TO_DELAY = 0.04
 
 export const MEMBRANE_CONSTANTS_PROVENANCE: Provenance = stamp(
   'onchain',
   'membrane contract source',
-  'BORROW_LTV_GAP + MAX_LTV_HARD_CAP from lib/Constants.sol:23,30; cure window 28800s from liquidation-engine/src/contract.rs:52; 4% break band = owner launch parameter for max_threshold_to_delay (LiquidationEngine.sol:2165, Collateral.sol:213); partial-repay formula from LiquidationEngine.sol:2204-2238',
+  'BORROW_LTV_GAP + MAX_LTV_HARD_CAP from lib/Constants.sol:23,30; cure window 28800s from liquidation-engine/src/contract.rs:52; 4% break band = max_threshold_to_delay 4e16 on every deploy-registered asset (DeployFullSystem.s.sol, LiquidationEngine.sol:2165); partial-repay formula from LiquidationEngine.sol:2204-2238',
 )
 
 /**

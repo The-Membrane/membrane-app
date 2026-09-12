@@ -16,9 +16,12 @@ const BAND = `${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`
  *    untouched.
  *  - the break: `aboveThreshold && hasTimer → BrokeWindow` (:1357), immediate sale at
  *    the same fee (:1479-1493); `_immediateThreshold = maxLtv + band × maxLtv` (:2165).
- *  - the band value: per-asset `max_threshold_to_delay`; 4% is the owner's LAUNCH
- *    parameter — the repo registration default is 95e16 (Collateral.sol:213), so the
- *    launch listing must set 4e16 for this copy to be true on mainnet.
+ *  - the band value: per-asset `max_threshold_to_delay` (Collateral.sol:48; same shape
+ *    as the Rust cAsset field); a position's break line is the collateral-value-weighted
+ *    average of its assets (Cdp.sol:3575). The deploy scripts set 4e16 on EVERY asset
+ *    they register (DeployFullSystem.s.sol WETH_/LAUNCH_THRESHOLD_TO_DELAY,
+ *    DeployLiquidationCore.s.sol ATOM_THRESHOLD_TO_DELAY). Only permissionless
+ *    onboarding stamps 95e16 (Collateral.sol:213) — not a launch path.
  *  - window length: DEFAULT_LIQUIDATION_DELAY_S = 28800 (:322), timelock-governed.
  *  - after: the repay target restores the borrow line, not the whole position.
  *
@@ -36,6 +39,6 @@ export const GUARANTEE = {
     `The ${CURE_WINDOW_HOURS} hours are not the guarantee; the ${BAND} is. Climb more than ${BAND} past the line and ` +
     'the window is broken: the sale is immediate, at the same fee. The simulator applies this break.',
   provenance:
-    `LiquidationEngine.sol · window 28,800 s (timelocked) · break line = max LTV × (1 + ${BAND}) · ${BAND} is the ` +
-    'launch listing parameter, not yet a mainnet value — a rule in code, not a promise from a person.',
+    `LiquidationEngine.sol · window 28,800 s (timelocked) · break line = max LTV × (1 + ${BAND}) · ${BAND} on every ` +
+    'launch asset per the deploy script · no mainnet deployment yet — a rule in code, not a promise from a person.',
 } as const

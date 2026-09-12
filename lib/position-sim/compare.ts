@@ -334,7 +334,7 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
 
   const caveats = [
     'Membrane has no Ethereum mainnet deployment. The per-asset max LTV used here is our assumption, not a protocol parameter — change it and the result changes.',
-    `The cure window is conditional: it holds only while the position stays within ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% above the liquidation line. Past that the sale is immediate — the model applies this break, and it is the owner's launch parameter, not yet a mainnet value.`,
+    `The cure window is conditional: it holds only while the position stays within ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% above the liquidation line. Past that the sale is immediate — the model applies this break. 4% is the value the deploy script sets on every launch asset; a position holding several assets uses their value-weighted average.`,
     'The venue recall rate is an input, and it is the variable that moves this result most. A venue that pays out in a calm market is not the same venue during a 40-minute crash.',
   ]
   if (derived.unknown.length) {

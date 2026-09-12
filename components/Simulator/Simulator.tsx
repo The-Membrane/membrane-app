@@ -142,7 +142,9 @@ function defaultLiqFee(p: ProtocolPosition): number {
 /** The one sentence the fine print owes the reader about the default wallet, per mode. */
 const DEMO_WALLET_NOTE: Record<SimMode, string> = {
   carry:
-    'The default wallet is a real mainnet carry, read on 2026-09-11; paste it to re-read live.',
+    'The default wallet is a real mainnet borrower, snapshot 2026-09-12. No venue ' +
+    'deployment was detected for it, so no cost line is shown; paste a wallet that ' +
+    'borrows and deploys to see yours.',
   borrower:
     'The default wallet is a real Aave V3 account that was liquidated on 10 Oct 2025, ' +
     'selected from the 2,350 measured accounts in public/data/oct10-2025/evidence.json. ' +

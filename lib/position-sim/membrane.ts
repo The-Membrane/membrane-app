@@ -36,10 +36,23 @@ export const CURE_WINDOW_SECONDS = 28_800
 
 export const CURE_WINDOW_HOURS = CURE_WINDOW_SECONDS / 3600 // 8
 
+/**
+ * THE 4% WINDOW — the guarantee. While a breached position stays within this band
+ * above the liquidation line, nothing is sold for the cure window. Climb past it and
+ * the timer is BROKEN: the sale is immediate (LiquidationEngine.sol:1357 BrokeWindow),
+ * at the same fee. Real: `_immediateThreshold = maxLtv + band × maxLtv`
+ * (LiquidationEngine.sol:2165-2167); band = per-asset `max_threshold_to_delay`.
+ *
+ * 4% is the OWNER'S LAUNCH PARAMETER (ruling 2026-09-11). The repo's registration
+ * default is 95e16 (Collateral.sol:213), which would put the break beyond insolvency —
+ * the launch listing must set 4e16 per asset, or this model overstates the window.
+ */
+export const MAX_THRESHOLD_TO_DELAY = 0.04
+
 export const MEMBRANE_CONSTANTS_PROVENANCE: Provenance = stamp(
   'onchain',
   'membrane contract source',
-  'BORROW_LTV_GAP + MAX_LTV_HARD_CAP from lib/Constants.sol:23,30; cure window 28800s from liquidation-engine/src/contract.rs:52; partial-repay formula from LiquidationEngine.sol:2204-2238',
+  'BORROW_LTV_GAP + MAX_LTV_HARD_CAP from lib/Constants.sol:23,30; cure window 28800s from liquidation-engine/src/contract.rs:52; 4% break band = owner launch parameter for max_threshold_to_delay (LiquidationEngine.sol:2165, Collateral.sol:213); partial-repay formula from LiquidationEngine.sol:2204-2238',
 )
 
 /**

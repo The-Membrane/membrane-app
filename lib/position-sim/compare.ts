@@ -24,6 +24,7 @@ import {
   membraneRepayValue,
   weightedMembraneLine,
   CURE_WINDOW_SECONDS,
+  MAX_THRESHOLD_TO_DELAY,
   MEMBRANE_CONSTANTS_PROVENANCE,
   type VenueRecall,
 } from './membrane'
@@ -213,6 +214,8 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   const cap = membraneBorrowLtv(line)
   const fee = Math.max(0, Math.min(MAX_LIQ_FEE, opts.membraneLiqFee))
   const cureMinutes = Math.round(CURE_WINDOW_SECONDS / path.stepSeconds)
+  /** Above this the window is BROKEN: no cure, immediate sale (BrokeWindow). */
+  const breakLine = line * (1 + MAX_THRESHOLD_TO_DELAY)
 
   const events: SimEvent[] = []
   const equitySeries: (number | null)[] = []
@@ -238,7 +241,10 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
 
     if (ltv > line && d > 0) {
       if (breachStart === null) breachStart = i
-      const inCureWindow = i - breachStart < cureMinutes
+      const brokeWindow = ltv > breakLine
+      // The 8 hours are conditional; the band is the guarantee. Past the band the
+      // timer no longer protects anything.
+      const inCureWindow = !brokeWindow && i - breachStart < cureMinutes
 
       if (i - lastEvent > MIN_EVENT_GAP_MINUTES) {
         const needed = membraneRepayValue(d, c, cap)
@@ -302,7 +308,9 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
             recalledUsd: recall.recalledUsd,
             penaltyUsd: penalty,
             why:
-              recall.recalledUsd > 0 && seized === 0
+              brokeWindow && seized > 0
+                ? `Broke the ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% window — LTV ${(ltv * 100).toFixed(1)}% is past ${(breakLine * 100).toFixed(1)}%, so the cure clock no longer applies and the sale is immediate. ${recall.recalledUsd > 0 ? `Venues returned ${fmt(recall.recalledUsd)} first; ` : ''}${fmt(seized)} of collateral covered the rest, restoring the ${(cap * 100).toFixed(1)}% borrow cap, not zero.`
+                : recall.recalledUsd > 0 && seized === 0
                 ? `Venues answered the whole ${fmt(needed)} call — the debt came down without selling collateral.`
                 : recall.recalledUsd > 0
                   ? `Venues returned ${fmt(recall.recalledUsd)} of the ${fmt(needed)} call; only the ${fmt(recall.shortfallUsd)} shortfall came out of collateral. The repay restores the position to the ${(cap * 100).toFixed(1)}% borrow cap, not to zero.`
@@ -326,6 +334,7 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
 
   const caveats = [
     'Membrane has no Ethereum mainnet deployment. The per-asset max LTV used here is our assumption, not a protocol parameter — change it and the result changes.',
+    `The cure window is conditional: it holds only while the position stays within ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% above the liquidation line. Past that the sale is immediate — the model applies this break, and it is the owner's launch parameter, not yet a mainnet value.`,
     'The venue recall rate is an input, and it is the variable that moves this result most. A venue that pays out in a calm market is not the same venue during a 40-minute crash.',
   ]
   if (derived.unknown.length) {

@@ -313,6 +313,69 @@ never headlines. Shipped:
   Backfill inserts no events/predictions: reconstructed state must not masquerade as
   observed process.
 
+## Launch-conversion pass (2026-09-11) — the sim is the conversion artifact
+
+The launch plan's "simulator that runs a real position through Oct 10, opens on a
+pre-loaded result, outputs one shareable line" already existed as `/simulator`
+(demo-first, measured 10-11 Oct 2025 path, Aave/Spark/Morpho/Compound read by
+address, no connect gate). Three gaps closed:
+
+- **Outcome line** (`lib/position-sim/outcome.ts`, 7 unit tests): "Liquidated on
+  Aave V3 at 10 Oct 21:14 UTC · survived on Membrane". Only collateral-seizing
+  liquidations count (a Membrane recall/cure IS the survival); `wiped` is named,
+  never softened; a Membrane liquidation is never hidden (rule 5). Rendered under
+  the headline in `ComparisonPanel` and on the PNG share card (`share.ts`).
+- **Return-visit instrument** (`sim_reads` table, `pages/api/sim/reads.ts`,
+  `components/Simulator/recordRead.ts`): every real-address read is logged
+  (address + protocols + first/last seen + count; never the worked example, no IP/UA).
+  GET returns addresses / with_positions / returned (≥1h after first read). This is
+  the launch's only retention signal. `AddressBar` copy now discloses the log — the
+  previous "nothing is sent anywhere" would have been a lie.
+- **Routing** — `DesireRouter` gains a fourth door (`→ /simulator`, "Run your position
+  through Oct 10") so Evidence's 2,350-liquidation counterfactual leads straight to
+  the visitor's own number; `/simulator` added to the sitemap (it was indexable but
+  unlisted).
+
+Not done, needs a ruling: looper-vs-tourist profiling (a TheGraph dependency — STOP
+AND ASK rule), any email/allocation capture (new surface), and a public weekly
+"positions-at-risk" page (a *liquidation* counterfactual, distinct from the rejected
+yield-ranking one — still needs an explicit yes).
+
+## Conversion pass — the simulator as the landing artifact (2026-09-11)
+
+Owner brief (from the Leads/Offers/Urgency review): the sim is a "reveal a problem" lead
+magnet — it diagnoses, it does not teach. Give away the diagnosis, sell the implementation.
+Name the guarantee. Urgency from true things only.
+
+- **Verdict, not feature demo.** `lib/position-sim/outcome.ts` derives the one line —
+  "Liquidated on Aave V3 at 10 Oct 21:14 UTC · survived on Membrane" — from the two runs
+  (only collateral-seizing `liquidation` events count; a Membrane `recall`/`cure` IS the
+  survival; `wiped` is named, never softened). Rendered on the share card (`share.ts`),
+  in `ComparisonPanel`, and as the `/simulator` hero headline (`VerdictHero.tsx`).
+  7 unit tests: `tests/unit/simOutcome.test.ts`.
+- **The guarantee, named.** `lib/position-sim/guarantee.ts` — **"4%."** Owner ruling
+  2026-09-11: the 4% window is the guarantee; the 8 hours hold only inside it (break the
+  band → BrokeWindow, LiquidationEngine.sol:1357, immediate sale at the same fee). Pinned
+  to :893-908/:1394-1407 (nothing seized in-window), :2165 (`break = maxLtv × (1 + band)`),
+  :322 (28,800 s, timelocked). **Contract gap:** the repo registration default for
+  `max_threshold_to_delay` is 95e16 (Collateral.sol:213) — the launch listing must set
+  4e16 per asset or the copy is false on mainnet. Chip spawned for the contract session.
+- **Sim fidelity fix.** The Membrane run gave the 8-hour window unconditionally — it
+  overstated survival on any fast crash. `compare.ts` now applies the break
+  (`MAX_THRESHOLD_TO_DELAY = 0.04` in `membrane.ts`): past the band the cure path is
+  skipped and the sale is immediate, with a caveat line saying so.
+- **Urgency from true things.** `AllocationClose.tsx` + `/api/sim/allocation` + table
+  `sim_allocation`: shown only after a REAL read that liquidated on the source protocol.
+  Rank = the address's FIRST sim read (`sim_reads.first_seen`), never claim time. The cap
+  renders only when `SIM_ALLOCATION_CAP` is set — unset = no cap is stated anywhere.
+- **Instrumentation.** `sim_reads` (address, protocols, first_seen, last_seen, read_count)
+  via `/api/sim/reads`, fired fire-and-forget on every real read (never the worked
+  example). GET returns {addresses, with_positions, returned} — "returned" = read again
+  ≥1h after the first. AddressBar copy discloses the logging (it used to say "nothing is
+  sent anywhere", which would now be false).
+- **Routing.** `/simulator` is the first door on Evidence's DesireRouter and is now in the
+  sitemap (it was indexable but unlisted).
+
 ## Still open (data/backend work, tracked)
 
 1. The §2 event pipeline (price-history sweep → named events → per-user outcomes) — the

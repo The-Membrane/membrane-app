@@ -1,6 +1,8 @@
-// The receipt: every liquidation, recall and cure either engine fired, with the reason
-// the engine itself recorded. Nothing is summarised away — if an engine fired eleven
-// times, eleven rows appear.
+// The receipt: every liquidation, recall and cure either engine fired.
+//
+// Nothing is summarised away — if an engine fired eleven times, eleven rows appear.
+// One row per event, one line each: the engine's own recorded reason is the row's
+// tooltip rather than a paragraph under it.
 
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'
@@ -8,7 +10,7 @@ import { Box, Text } from '@chakra-ui/react'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import { eyebrow, monoXs, tabular } from '@/components/Builder/styles'
+import { monoXs, tabular } from '@/components/Builder/styles'
 import type { SimEvent, SimRun } from '@/lib/position-sim'
 
 import Stamp from './Stamp'
@@ -30,6 +32,18 @@ const HEAD = {
   color: SEMANTIC_COLORS.textSecondary,
 }
 
+const Cell: React.FC<{ children: React.ReactNode; color?: string }> = ({ children, color }) => (
+  <Text
+    fontFamily={TYPOGRAPHY.fontMono}
+    fontSize="11px"
+    {...tabular}
+    color={color ?? SEMANTIC_COLORS.textPrimary}
+    whiteSpace="nowrap"
+  >
+    {children}
+  </Text>
+)
+
 const EventRows: React.FC<{ run: SimRun; title: string }> = ({ run, title }) => (
   <Box display="grid" gap={SPACING.sm} alignContent="start">
     <Box
@@ -44,76 +58,34 @@ const EventRows: React.FC<{ run: SimRun; title: string }> = ({ run, title }) => 
     </Box>
 
     {run.events.length === 0 ? (
-      <Text
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="11.5px"
-        color={SEMANTIC_COLORS.textSecondary}
-      >
-        No event fired. The position never crossed its line over this window.
-      </Text>
+      <Text {...monoXs}>no events</Text>
     ) : (
-      <Box display="grid" gap={SPACING.sm}>
+      <Box display="grid" gap="1px">
         {run.events.map((e, k) => (
           <Box
             key={`${run.engine}-${e.minute}-${k}`}
-            border="1px solid"
-            borderColor={SEMANTIC_COLORS.borderSubtle}
+            title={e.why}
             borderLeft="2px solid"
             borderLeftColor={KIND_COLOR[e.kind]}
             bg={SEMANTIC_COLORS.bgPrimary}
             px={SPACING.md}
-            py={SPACING.sm}
-            display="grid"
-            gap={SPACING.xs}
+            py="3px"
+            display="flex"
+            gap={SPACING.md}
+            flexWrap="wrap"
+            alignItems="baseline"
           >
-            <Box display="flex" gap={SPACING.md} flexWrap="wrap" alignItems="baseline">
-              <Text {...HEAD} color={KIND_COLOR[e.kind]}>
-                {e.kind}
-              </Text>
-              <Text
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
-                color={SEMANTIC_COLORS.textSecondary}
-                {...tabular}
-              >
-                {utcClock(e.ts)} · minute {e.minute.toLocaleString('en-US')}
-              </Text>
-            </Box>
-            <Box display="flex" gap={SPACING.md} flexWrap="wrap">
-              {[
-                ['repaid', usd(e.repaidUsd)],
-                ['seized', usd(e.seizedUsd)],
-                ['recalled', usd(e.recalledUsd)],
-                ['penalty', usd(e.penaltyUsd)],
-                ['ltv after', pct(e.ltv)],
-                ['line', pct(e.line)],
-              ].map(([label, value]) => (
-                <Box key={label} display="grid" gap="1px">
-                  <Text {...monoXs}>{label}</Text>
-                  <Text
-                    fontFamily={TYPOGRAPHY.fontMono}
-                    fontSize="12px"
-                    {...tabular}
-                    color={
-                      label === 'penalty' && e.penaltyUsd > 0
-                        ? SEMANTIC_COLORS.danger
-                        : SEMANTIC_COLORS.textPrimary
-                    }
-                  >
-                    {value}
-                  </Text>
-                </Box>
-              ))}
-            </Box>
-            <Text
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="11px"
-              color={SEMANTIC_COLORS.textSecondary}
-              lineHeight={1.7}
-              maxW="72ch"
-            >
-              {e.why}
+            <Text {...HEAD} color={KIND_COLOR[e.kind]} minW="76px">
+              {e.kind}
             </Text>
+            <Cell color={SEMANTIC_COLORS.textSecondary}>{utcClock(e.ts)}</Cell>
+            <Cell>repaid {usd(e.repaidUsd)}</Cell>
+            <Cell>seized {usd(e.seizedUsd)}</Cell>
+            <Cell>recalled {usd(e.recalledUsd)}</Cell>
+            <Cell color={e.penaltyUsd > 0 ? SEMANTIC_COLORS.danger : undefined}>
+              fee {usd(e.penaltyUsd)}
+            </Cell>
+            <Cell color={SEMANTIC_COLORS.textSecondary}>ltv {pct(e.ltv)}</Cell>
           </Box>
         ))}
       </Box>
@@ -134,13 +106,11 @@ export const EventLog: React.FC<EventLogProps> = ({ source, membrane, sourceTitl
     borderColor={SEMANTIC_COLORS.borderSubtle}
     p={SPACING.base}
     display="grid"
-    gap={SPACING.base}
+    gridTemplateColumns={{ base: '1fr', lg: '1fr 1fr' }}
+    gap={SPACING.lg}
   >
-    <Text {...eyebrow}>05 / the receipt</Text>
-    <Box display="grid" gridTemplateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={SPACING.lg}>
-      <EventRows run={source} title={sourceTitle} />
-      <EventRows run={membrane} title="Membrane" />
-    </Box>
+    <EventRows run={source} title={sourceTitle} />
+    <EventRows run={membrane} title="Membrane" />
   </Box>
 )
 

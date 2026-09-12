@@ -40,14 +40,9 @@ export const DeploymentSection: React.FC<DeploymentSectionProps> = ({
 }) => {
   if (!detection) return null
 
-  if (detection.status !== 'detected') {
-    return (
-      <Text {...monoXs} lineHeight={1.7} maxW="86ch">
-        {detection.message ??
-          'No deployment was detected for this address across the venues we check.'}
-      </Text>
-    )
-  }
+  // Nothing detected is already said in one line by the deployment control; a second
+  // sentence about it here would be the micro-copy this page just shed.
+  if (detection.status !== 'detected') return null
 
   return (
     <Box
@@ -65,7 +60,7 @@ export const DeploymentSection: React.FC<DeploymentSectionProps> = ({
         gap={SPACING.md}
         flexWrap="wrap"
       >
-        <Text {...eyebrow}>06 / where the capital sits</Text>
+        <Text {...eyebrow}>where the capital sits</Text>
         <Stamp provenance={detection.provenance} />
       </Box>
 
@@ -199,13 +194,8 @@ export const DeploymentSection: React.FC<DeploymentSectionProps> = ({
         </Box>
       </Box>
 
-      <Text {...monoXs} lineHeight={1.75} maxW="86ch">
-        Balances are read on-chain and valued at $1 per unit, which understates any of these tokens
-        trading above par. The two rate columns are gold because they are modelled, not measured:
-        they are our reading of each venue&apos;s own exit mechanics, and the weighted result of
-        them is what the recall and fast sliders start at. A venue that redeems on demand in a quiet
-        market is not the same venue during a forty-minute crash. This scan checks a fixed list of
-        yield tokens — a balance of zero across that list is not proof there is no deployment.
+      <Text {...monoXs} lineHeight={1.6}>
+        Balances on-chain at $1/unit · rate columns modelled, not measured
       </Text>
     </Box>
   )

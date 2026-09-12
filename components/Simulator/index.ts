@@ -3,7 +3,6 @@ export { Simulator, default } from './Simulator'
 export { AddressBar } from './AddressBar'
 export type { AddressBarProps } from './AddressBar'
 
-
 export { GuaranteeBlock } from './GuaranteeBlock'
 
 export { VerdictHero } from './VerdictHero'
@@ -20,6 +19,14 @@ export type { DeploymentSectionProps } from './DeploymentSection'
 
 export { EquityChart } from './EquityChart'
 export type { EquityChartProps } from './EquityChart'
+
+export { HeroChart } from './HeroChart'
+export type { HeroChartProps } from './HeroChart'
+
+export { FinePrint } from './FinePrint'
+export type { FinePrintProps } from './FinePrint'
+
+export * from './chartGeometry'
 
 export { EventLog } from './EventLog'
 export type { EventLogProps } from './EventLog'

@@ -13,55 +13,20 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { eyebrow, monoXs, tabular } from '@/components/Builder/styles'
 import type { Comparison, SimEvent } from '@/lib/position-sim'
 
+import { equityRange, makeScales, pathD, toRuns, type ChartBox } from './chartGeometry'
+
 import Stamp from './Stamp'
 import { usd, utcClock } from './format'
 
-const W = 900
-const H = 300
-const PAD_L = 8
-const PAD_R = 8
-const PAD_T = 16
-const PAD_B = 26
+const BOX: ChartBox = { w: 900, h: 300, padL: 8, padR: 8, padT: 16, padB: 26 }
+const W = BOX.w
+const H = BOX.h
+const PAD_L = BOX.padL
+const PAD_R = BOX.padR
+const PAD_T = BOX.padT
+const PAD_B = BOX.padB
 /** The window is 2,880 minutes; drawing every one is pointless at this width. */
 const TARGET_POINTS = 480
-
-interface Pt {
-  x: number
-  y: number
-  i: number
-}
-
-/** Picks every nth minute so the polyline stays under TARGET_POINTS, keeping the last. */
-function sample(series: (number | null)[]): { i: number; v: number | null }[] {
-  const step = Math.max(1, Math.ceil(series.length / TARGET_POINTS))
-  const out: { i: number; v: number | null }[] = []
-  for (let i = 0; i < series.length; i += step) out.push({ i, v: series[i] })
-  const last = series.length - 1
-  if (out.length === 0 || out[out.length - 1].i !== last) out.push({ i: last, v: series[last] })
-  return out
-}
-
-/** Splits into unbroken runs so null minutes leave a visible break in the line. */
-function toRuns(series: (number | null)[], min: number, max: number, count: number): Pt[][] {
-  const span = max - min || 1
-  const runs: Pt[][] = []
-  let run: Pt[] = []
-  for (const { i, v } of sample(series)) {
-    if (v === null || !Number.isFinite(v)) {
-      if (run.length) runs.push(run)
-      run = []
-      continue
-    }
-    const x = PAD_L + ((W - PAD_L - PAD_R) * i) / Math.max(1, count - 1)
-    const y = PAD_T + (H - PAD_T - PAD_B) * (1 - (v - min) / span)
-    run.push({ x, y, i })
-  }
-  if (run.length) runs.push(run)
-  return runs
-}
-
-const path = (run: Pt[]) =>
-  run.map((p, k) => `${k === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
 
 export interface EquityChartProps {
   comparison: Comparison
@@ -74,21 +39,14 @@ export const EquityChart: React.FC<EquityChartProps> = ({ comparison, startTs, s
   const { source, membrane } = comparison
   const count = Math.max(source.equitySeries.length, membrane.equitySeries.length)
 
-  const finite = [...source.equitySeries, ...membrane.equitySeries].filter(
-    (v): v is number => v !== null && Number.isFinite(v),
-  )
-  const rawMin = finite.length ? Math.min(...finite) : 0
-  const rawMax = finite.length ? Math.max(...finite) : 1
-  // Always include zero so "equity went to nothing" is readable as a distance, not a
-  // rescaled line that looks the same as a mild drawdown.
-  const min = Math.min(0, rawMin)
-  const max = Math.max(rawMax, min + 1)
+  // Zero is always inside the range (chartGeometry.equityRange), so a line reaching the
+  // base line reads as a position with nothing left rather than a mild drawdown.
+  const range = equityRange(source.equitySeries, membrane.equitySeries)
+  const scales = makeScales(BOX, count, range.min, range.max)
+  const { xOf, yOf } = scales
 
-  const srcRuns = toRuns(source.equitySeries, min, max, count)
-  const memRuns = toRuns(membrane.equitySeries, min, max, count)
-
-  const xOf = (i: number) => PAD_L + ((W - PAD_L - PAD_R) * i) / Math.max(1, count - 1)
-  const yOf = (v: number) => PAD_T + (H - PAD_T - PAD_B) * (1 - (v - min) / (max - min || 1))
+  const srcRuns = toRuns(source.equitySeries, scales, TARGET_POINTS)
+  const memRuns = toRuns(membrane.equitySeries, scales, TARGET_POINTS)
 
   const zeroY = yOf(0)
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(f * (count - 1)))
@@ -188,7 +146,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({ comparison, startTs, s
         {srcRuns.map((r, k) => (
           <path
             key={`s${k}`}
-            d={path(r)}
+            d={pathD(r)}
             fill="none"
             stroke={SEMANTIC_COLORS.textPrimary}
             strokeWidth={1.5}
@@ -198,7 +156,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({ comparison, startTs, s
         {memRuns.map((r, k) => (
           <path
             key={`m${k}`}
-            d={path(r)}
+            d={pathD(r)}
             fill="none"
             stroke={SEMANTIC_COLORS.success}
             strokeWidth={1.5}

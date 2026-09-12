@@ -1,8 +1,11 @@
-// Paste-an-address input.
+// The one action this page asks for: paste an address.
 //
 // The page is already populated when this renders (demo-first), so this bar is an
 // upgrade path, not a gate. Loading a real address REPLACES the worked example
 // outright — the two are never mixed, and a failed read never falls back to demo data.
+//
+// Left-aligned, one row, one line of small print. Everything that used to be explained
+// here is either in the hero above it or in the fine print at the foot of the page.
 
 import React from 'react'
 import { Box, Button, Input, Text } from '@chakra-ui/react'
@@ -11,9 +14,6 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import { eyebrow, monoXs } from '@/components/Builder/styles'
-
-import { shortAddress } from './format'
 
 const BTN = {
   bg: 'transparent',
@@ -44,6 +44,24 @@ const BTN = {
   },
 }
 
+const LINK_BTN = {
+  bg: 'transparent',
+  border: 0,
+  borderRadius: 0,
+  color: SEMANTIC_COLORS.textSecondary,
+  fontFamily: TYPOGRAPHY.fontMono,
+  fontSize: '10.5px',
+  letterSpacing: '0.06em',
+  h: 'auto',
+  minW: 'auto',
+  px: 0,
+  py: 0,
+  textDecoration: 'underline',
+  transition: TRANSITIONS.colors,
+  _hover: { color: SEMANTIC_COLORS.success, bg: 'transparent' },
+  _focus: FOCUS_STYLES.ring,
+}
+
 export interface AddressBarProps {
   value: string
   onChange: (v: string) => void
@@ -66,19 +84,24 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   error,
 }) => (
   <Box
-    bg={SEMANTIC_COLORS.bgSecondary}
+    bg={SEMANTIC_COLORS.bgPrimary}
     border="1px solid"
     borderColor={SEMANTIC_COLORS.borderSubtle}
-    p={SPACING.base}
+    p={SPACING.md}
     display="grid"
     gap={SPACING.sm}
+    justifyItems="start"
+    textAlign="left"
+    maxW="560px"
+    w="100%"
   >
-    <Text {...eyebrow}>01 / your position</Text>
     <Box
       as="form"
       display="flex"
       gap={SPACING.sm}
       flexWrap="wrap"
+      justifyContent="flex-start"
+      w="100%"
       onSubmit={(e: React.FormEvent) => {
         e.preventDefault()
         onSubmit()
@@ -87,13 +110,13 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="0x… paste any address with a lending position"
+        placeholder="0x… paste any address"
         aria-label="Ethereum address to read a lending position from"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? 'simulator-address-error' : undefined}
-        flex="1 1 320px"
+        flex="1 1 240px"
         minW="0"
-        bg={SEMANTIC_COLORS.bgPrimary}
+        bg={SEMANTIC_COLORS.bgSecondary}
         border="1px solid"
         borderColor={error ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.borderSubtle}
         borderRadius={0}
@@ -109,14 +132,15 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         _focus={FOCUS_STYLES.ring}
       />
       <Button type="submit" isDisabled={isLoading} {...BTN}>
-        {isLoading ? 'Reading…' : 'Read this address'}
+        {isLoading ? 'Reading…' : loadedAddress ? 'Run another' : 'Run mine'}
       </Button>
-      {loadedAddress && (
-        <Button type="button" onClick={onClear} {...BTN}>
-          Back to the worked example
-        </Button>
-      )}
     </Box>
+
+    {loadedAddress && (
+      <Button type="button" onClick={onClear} {...LINK_BTN}>
+        Back to example
+      </Button>
+    )}
 
     {error && (
       <Text
@@ -129,10 +153,13 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       </Text>
     )}
 
-    <Text {...monoXs} lineHeight={1.7}>
-      {loadedAddress
-        ? `Reading ${shortAddress(loadedAddress)} on Ethereum mainnet over a public RPC. Read-only — no signature, no connection. We log the address and the time of the read to count who comes back; nothing else leaves the page.`
-        : 'Read-only. Pasting an address reads Aave V3, Spark, Morpho Blue and Compound V3 on Ethereum mainnet over a public RPC — no wallet connection, no signature. We log the address and the time of the read to count who comes back; nothing else.'}
+    <Text
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize="11px"
+      color={SEMANTIC_COLORS.textTertiary}
+      lineHeight={1.6}
+    >
+      Read-only · no wallet · address logged
     </Text>
   </Box>
 )

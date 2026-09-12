@@ -4,6 +4,10 @@
 // exposed because none of them can be read from a live Membrane deployment — there
 // isn't one. Moving a slider re-runs the comparison immediately and rewrites the URL,
 // so a shared link carries the inputs that produced the number.
+//
+// The long explanation each input used to carry is gone; what each one MEANS is now
+// at most seven words. What each one is WORTH is the number in the hero, which moves
+// while you drag. The provenance stamps stay — they are chips, not prose.
 
 import React from 'react'
 import { Box, Button, Input, Text } from '@chakra-ui/react'
@@ -12,8 +16,8 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import { eyebrow, monoXs, tabular } from '@/components/Builder/styles'
-import { BORROW_LTV_GAP, CURE_WINDOW_HOURS, MAX_LIQ_FEE, type Provenance } from '@/lib/position-sim'
+import { monoXs, tabular } from '@/components/Builder/styles'
+import { CURE_WINDOW_HOURS, MAX_LIQ_FEE, type Provenance } from '@/lib/position-sim'
 
 import Stamp from './Stamp'
 import { pct, usd } from './format'
@@ -127,8 +131,6 @@ export interface ControlsProps {
   values: ControlValues
   onChange: (patch: Partial<ControlValues>) => void
   onReset: () => void
-  /** The collateral-weighted modelled line for this position, before any override. */
-  derivedMaxLtv: number
   /** Assets in the position with no modelled Membrane LTV at all. */
   unknownLtvSymbols: string[]
   /** True when a deployment venue was actually detected on-chain for this address. */
@@ -138,21 +140,17 @@ export interface ControlsProps {
   assumedDeploymentNote?: string
   ltvProvenance: Provenance
   venueProvenance: Provenance
-  /** Where the default liquidation fee came from, in plain words. */
-  liqFeeDefaultNote: string
 }
 
 export const Controls: React.FC<ControlsProps> = ({
   values,
   onChange,
   onReset,
-  derivedMaxLtv,
   unknownLtvSymbols,
   venueDetected,
   assumedDeploymentNote,
   ltvProvenance,
   venueProvenance,
-  liqFeeDefaultNote,
 }) => (
   <Box
     bg={SEMANTIC_COLORS.bgSecondary}
@@ -170,7 +168,14 @@ export const Controls: React.FC<ControlsProps> = ({
       gap={SPACING.sm}
       flexWrap="wrap"
     >
-      <Text {...eyebrow}>02 / what you are assuming</Text>
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        color={SEMANTIC_COLORS.textSecondary}
+        lineHeight={1.6}
+      >
+        None of these are live. Change one, the verdict changes.
+      </Text>
       <Button
         type="button"
         onClick={onReset}
@@ -198,17 +203,6 @@ export const Controls: React.FC<ControlsProps> = ({
       </Button>
     </Box>
 
-    <Text
-      fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="11.5px"
-      color={SEMANTIC_COLORS.textSecondary}
-      lineHeight={1.75}
-    >
-      None of these five can be read from a live Membrane market, because there is no Membrane
-      deployment on Ethereum mainnet. They are the model. Change one and the number above changes
-      with it.
-    </Text>
-
     <Box display="flex" gap={SPACING.sm} flexWrap="wrap">
       <Stamp provenance={ltvProvenance} />
       <Stamp provenance={venueProvenance} />
@@ -223,20 +217,13 @@ export const Controls: React.FC<ControlsProps> = ({
       max={0.9}
       step={0.005}
       onChange={(v) => onChange({ membraneMaxLtv: v })}
-      note={`The line this position would be liquidated past. Our weighted assumption for this basket is ${pct(
-        derivedMaxLtv,
-      )}; the 90% ceiling is real (lib/Constants.sol:23). The borrow cap sits a fixed ${(
-        BORROW_LTV_GAP * 100
-      ).toFixed(
-        0,
-      )}pp below, at ${pct(Math.max(0, values.membraneMaxLtv - BORROW_LTV_GAP))} — that is the level a partial repay restores to.${
-        unknownLtvSymbols.length
-          ? ` No modelled LTV exists for ${unknownLtvSymbols.join(', ')}, so ${
-              unknownLtvSymbols.length > 1 ? 'those legs are' : 'that leg is'
-            } left out of the weighting rather than guessed.`
-          : ''
-      }`}
+      note="Line this position dies past"
     />
+    {unknownLtvSymbols.length > 0 && (
+      <Text {...monoXs} color={SEMANTIC_COLORS.warning} lineHeight={1.6}>
+        No modelled LTV: {unknownLtvSymbols.join(', ')}
+      </Text>
+    )}
 
     <Slider
       id="sim-liq-fee"
@@ -247,10 +234,7 @@ export const Controls: React.FC<ControlsProps> = ({
       max={MAX_LIQ_FEE}
       step={0.0025}
       onChange={(v) => onChange({ membraneLiqFee: v })}
-      note={`What a Membrane liquidator takes on top of the value repaid. The ${pct(
-        MAX_LIQ_FEE,
-        0,
-      )} ceiling is real (lib/Constants.sol:57, MAX_LIQ_FEE). ${liqFeeDefaultNote}`}
+      note="Liquidator's cut"
     />
 
     <Box
@@ -297,11 +281,10 @@ export const Controls: React.FC<ControlsProps> = ({
         _hover={{ borderColor: SEMANTIC_COLORS.borderStrong }}
         _focus={FOCUS_STYLES.ring}
       />
-      <Text {...monoXs} lineHeight={1.7}>
+      <Text {...monoXs} lineHeight={1.6}>
         {venueDetected
-          ? 'Read on-chain from the venue balances below. Membrane pulls from here before it sells any collateral.'
-          : assumedDeploymentNote ??
-            'No deployment was detected for this address, so this starts at zero and Membrane sells collateral for the whole call. Raise it yourself only to model a deployment you know about — the simulator will not invent one.'}
+          ? 'Debt sitting in venues — read on-chain'
+          : (assumedDeploymentNote ?? 'Debt sitting in venues. None detected.')}
       </Text>
     </Box>
 
@@ -314,7 +297,7 @@ export const Controls: React.FC<ControlsProps> = ({
       max={1}
       step={0.01}
       onChange={(v) => onChange({ recallRate: v, fastRate: Math.min(values.fastRate, v) })}
-      note="The share of deployed value that comes back when it is asked for. This is the single biggest lever on the result, and it is not measured — a venue that pays out in a calm market is not the same venue in the middle of a crash."
+      note="Share venues return on demand"
     />
 
     <Slider
@@ -326,7 +309,7 @@ export const Controls: React.FC<ControlsProps> = ({
       max={Math.max(0, values.recallRate)}
       step={0.01}
       onChange={(v) => onChange({ fastRate: Math.min(v, values.recallRate) })}
-      note={`The share that can arrive inside the ${CURE_WINDOW_HOURS}-hour cure window. If it covers the whole call, the breach is cured and no collateral is sold. It cannot exceed the recall rate.`}
+      note={`Share arriving inside ${CURE_WINDOW_HOURS} h`}
     />
   </Box>
 )

@@ -96,9 +96,9 @@ export const PositionCard: React.FC<PositionCardProps> = ({
         flexWrap="wrap"
       >
         <Box display="grid" gap="2px">
-          <Text {...eyebrow}>
-            {selectable ? (selected ? 'simulating this one' : 'not selected') : 'position'}
-          </Text>
+          {selectable && (
+            <Text {...eyebrow}>{selected ? 'simulating this one' : 'not selected'}</Text>
+          )}
           <Text
             fontFamily={TYPOGRAPHY.fontDisplay}
             fontSize="clamp(17px, 2.4vw, 22px)"
@@ -288,12 +288,6 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             </Box>
           </Box>
         </Box>
-        <Text {...monoXs} lineHeight={1.7}>
-          The borrow rate is shown only where the protocol exposes one. The run below holds every
-          debt balance at its opening size across the window: the simulator does not accrue borrow
-          interest, so the two engines are compared on the price move alone. Real debt keeps growing
-          in both of them.
-        </Text>
       </Box>
     </Box>
   )

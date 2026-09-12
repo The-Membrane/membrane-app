@@ -29,16 +29,11 @@ const BAND = `${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`
  */
 export const GUARANTEE = {
   name: `${BAND}.`,
+  /** One sentence. The claim. */
   claim:
-    `Cross the liquidation line on Membrane and nothing is sold — as long as the position stays within ${BAND} ` +
-    `above the line. Inside that band you have ${CURE_WINDOW_HOURS} hours to cure it: by you, or by the venue ` +
-    'capital Membrane recalls first. And when a sale does happen, it is only enough to restore the borrow ' +
-    'line, never the whole position.',
-  /** The condition. Rendered next to the claim, never collapsed. */
-  limit:
-    `The ${CURE_WINDOW_HOURS} hours are not the guarantee; the ${BAND} is. Climb more than ${BAND} past the line and ` +
-    'the window is broken: the sale is immediate, at the same fee. The simulator applies this break.',
-  provenance:
-    `LiquidationEngine.sol · window 28,800 s (timelocked) · break line = max LTV × (1 + ${BAND}) · ${BAND} on every ` +
-    'launch asset per the deploy script · no mainnet deployment yet — a rule in code, not a promise from a person.',
+    `Cross the line and nothing is sold while you stay within ${BAND} of it — ${CURE_WINDOW_HOURS} hours to cure, ` +
+    'by you or by the venue capital Membrane recalls first.',
+  /** One sentence. The condition. Rendered next to the claim, never collapsed. */
+  limit: `Past ${BAND} the sale is immediate, and only enough to restore the borrow line.`,
+  provenance: `LiquidationEngine.sol · 28,800 s · break = max LTV × (1 + ${BAND}) · no mainnet deployment yet`,
 } as const

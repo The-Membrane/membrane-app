@@ -81,7 +81,7 @@ body {
 }
 
 .textShadow {
-  text-shadow: 0 -40px 100px, 0 0 .2px, 0 0 1em #20d6ff, 0 0 .5em #20d6ff, 0 0 .1em #20d6ff, 0 10px 3px #000;
+  text-shadow: 0 -40px 100px, 0 0 .2px, 0 0 1em #9bdc4f, 0 0 .5em #9bdc4f, 0 0 .1em #9bdc4f, 0 10px 3px #000;
 }
 
 .paddingBottom {
@@ -119,14 +119,14 @@ body {
 
 .neonSign {
   font: 400 4vh 'Neon Tubes', monospace;
-  color: #20d6ff5a;
-  text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 0 0.01em #20d6ff, 0 10px 3px #000;
+  color: #9bdc4f5a;
+  text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 0.01em #9bdc4f, 0 0 0.01em #9bdc4f, 0 0 0.01em #9bdc4f, 0 10px 3px #000;
 }
 
 .neonSignon {
   font: 200 4vh 'Neon Tubes', monospace;
   color: rgba(207, 205, 205, 0.613);
-  text-shadow: 0 0 20px, 0 0 0.2px, 0 0 1em #20d6ff, 0 0 0.5em #20d6ff, 0 0 0.1em #20d6ff, 0 0 3px #000;
+  text-shadow: 0 0 20px, 0 0 0.2px, 0 0 1em #9bdc4f, 0 0 0.5em #9bdc4f, 0 0 0.1em #9bdc4f, 0 0 3px #000;
 }
 
 .neonSign b span {
@@ -371,7 +371,7 @@ body {
 }
 
 .brand-blue {
-  color: #20d6ff;
+  color: #9bdc4f;
 }
 
 .leap-dialog-content {

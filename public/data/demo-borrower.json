@@ -1,0 +1,67 @@
+{
+ "address": "0x1Ccdb9C0Aed01DdF892098C9Ce425E95a0A0aafD",
+ "readAt": "2025-10-10T00:00Z to 2025-10-11T23:59Z",
+ "provenance": "measured",
+ "source": "public/data/oct10-2025/evidence.json",
+ "row": {
+  "chain": "mainnet",
+  "user": "0x1ccdb9c0aed01ddf892098c9ce425e95a0a0aafd",
+  "events": 1,
+  "collateralUsd": 436247.79,
+  "debtUsd": 344127.12,
+  "healthFactor": 1.020532,
+  "liqLine": 0.80503,
+  "ltv0": 0.78883,
+  "collSymbol": "WETH",
+  "debtSymbol": "GHO",
+  "aaveClosedUsd": 100843.11,
+  "membraneClosedUsd": 26766.89,
+  "aaveClosedFrac": 0.29304,
+  "membraneClosedFrac": 0.07778,
+  "cure": {
+   "curedInWindow": true,
+   "healthyAt8h": true,
+   "minutesToCure": 39,
+   "bestLtv": 0.71557,
+   "endLtv": 0.74324
+  }
+ },
+ "position": {
+  "protocol": "aave-v3",
+  "label": "Aave V3",
+  "collateral": [
+   {
+    "symbol": "WETH",
+    "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "decimals": 18,
+    "amount": 99.8194180355439,
+    "priceUsd": 4370.37,
+    "valueUsd": 436247.79,
+    "liquidationThreshold": 0.83,
+    "maxLtv": 0.805,
+    "liquidationBonus": 0.050000000000000044
+   }
+  ],
+  "debt": [
+   {
+    "symbol": "GHO",
+    "address": "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+    "decimals": 18,
+    "amount": 344127.12,
+    "priceUsd": 1,
+    "valueUsd": 344127.12,
+    "borrowApr": null
+   }
+  ],
+  "totalCollateralUsd": 436247.79,
+  "totalDebtUsd": 344127.12,
+  "ltv": 0.7888340706551201,
+  "liquidationLtv": 0.83,
+  "healthFactor": 1.0521857902393743,
+  "provenance": {
+   "kind": "dataset",
+   "label": "evidence row",
+   "at": 1789186379813
+  }
+ }
+}

@@ -64,6 +64,18 @@ export const GuaranteeBlock: React.FC = () => (
       >
         {GUARANTEE.limit}
       </Text>
+
+      {/* One line. No paragraph follows it — owner ruling 2026-09-11, "all these words
+          are killing me". */}
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="13px"
+        lineHeight={1.6}
+        color={SEMANTIC_COLORS.textSecondary}
+        maxW="72ch"
+      >
+        {GUARANTEE.noDials}
+      </Text>
     </Box>
   </Box>
 )

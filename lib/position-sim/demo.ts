@@ -1,114 +1,115 @@
 /**
- * The worked example the page opens with.
+ * THE WALLET THE PAGE OPENS ON — AND IT IS A REAL ONE.
  *
- * DEMO-FIRST (CLAUDE.md V20): the simulator is populated before anyone types an
- * address. There is no empty state and no connect gate.
+ * DEMO-FIRST (CLAUDE.md V20): the simulator renders fully populated before anyone
+ * types an address. There is no empty state and no connect gate.
  *
- * HONESTY: this position is INVENTED — it is a worked example, not a real wallet, and
- * every block driven by it is stamped 'mock'. What is NOT invented is the risk
- * parameters attached to it: the liquidation threshold, max LTV and liquidation bonus
- * below are the real Aave V3 mainnet values read on-chain at block 23,543,615 and
- * committed to public/data/oct10-2025/protocols.json. So the demo shows a made-up
- * borrower running into a real engine over a real price path.
+ * WHAT CHANGED, AND WHY (owner, 2026-09-11): "why is the worked example not just the
+ * demo wallet shown?" The page used to open on INVENTED balances — 40 WETH, 1.5 WBTC,
+ * 250k of USDC, none of it belonging to anybody — with a made-up deployment attached.
+ * A landing page selling a carry product cannot open on a wallet that does not exist,
+ * and it certainly cannot put a dollar saving on invented debt.
+ *
+ * So every number below is READ. public/data/demo-carry.json is a snapshot taken by
+ * scripts/snapshot-demo-carry.mjs, which runs THE PAGE'S OWN adapters
+ * (lib/position-sim/adapters) and THE PAGE'S OWN venue scan (detectVenues) against a
+ * mainnet node and commits the result verbatim. The position, the borrow APR, the
+ * liquidation thresholds and the venue balances are all that read. Nothing here is
+ * authored by hand; to change the demo, re-run the script.
+ *
+ * WHAT IS STILL MODELLED: the recall rates. `toVenueRecall` turns the detected
+ * balances into a recall input using KNOWN_VENUES' per-venue recallRate/fastRate, which
+ * are our reading of each venue's exit mechanics — not measured, and editable in the
+ * controls. The DEPLOYED DOLLARS are real; the share of them that comes back inside
+ * eight hours is a model, and it is stamped as one.
+ *
+ * The snapshot is a moment, not a live feed. Say so wherever it renders
+ * (DEMO_SNAPSHOT_NOTE) — pasting the same address re-reads it live.
  */
 
+import snapshot from '../../public/data/demo-carry.json'
+import { excludeOwnCollateral, toVenueRecall, type VenueDetection } from './venues'
 import { stamp, type ProtocolPosition } from './types'
 import type { VenueRecall } from './membrane'
 
-/** Aave V3 mainnet, block 23,543,615 — see public/data/oct10-2025/protocols.json. */
-const AAVE_WETH = { liquidationThreshold: 0.83, maxLtv: 0.805, liquidationBonus: 0.05 }
-const AAVE_WBTC = { liquidationThreshold: 0.78, maxLtv: 0.73, liquidationBonus: 0.05 }
+/** The snapshot's own date, derived from the file rather than typed twice. */
+export const DEMO_SNAPSHOT_DATE = snapshot.readAt.slice(0, 10)
 
-/** Prices at the window's opening minute (2025-10-10 00:00 UTC), measured. */
-const OPEN_ETH = 4370.37
-const OPEN_BTC = 121566.15
+/** The stamp the UI shows next to the demo wallet. One line, no paragraph. */
+export const DEMO_SNAPSHOT_NOTE = `snapshot ${DEMO_SNAPSHOT_DATE} · re-read live by pasting the address`
 
-export const DEMO_ADDRESS = '0x0000000000000000000000000000000000000000'
+/** A real mainnet borrower, checksummed as the snapshot recorded it. */
+export const DEMO_ADDRESS = snapshot.address as `0x${string}`
 
+const PROVENANCE_DETAIL =
+  `Read on-chain at block ${snapshot.block} on ${DEMO_SNAPSHOT_DATE} by ` +
+  'scripts/snapshot-demo-carry.mjs, through this page’s own adapters. Balances, prices, ' +
+  'risk parameters and the borrow rate are all as the protocol reported them at that ' +
+  'block. Paste the address to re-read it live.'
+
+const SNAPSHOT_AT = Date.parse(snapshot.readAt)
+
+/**
+ * The demo position, exactly as the adapter returned it.
+ *
+ * The provenance is re-stamped rather than replayed: the committed stamp carries the
+ * `at` of the snapshot run, and re-stating it here keeps the label honest about the
+ * fact that this is a SNAPSHOT of an on-chain read, not a read happening now.
+ */
 export function demoPosition(): ProtocolPosition {
-  const ethAmount = 40
-  const btcAmount = 1.5
-  const debtAmount = 250_000
-
-  const collateral = [
-    {
-      symbol: 'WETH',
-      address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-      decimals: 18,
-      amount: ethAmount,
-      priceUsd: OPEN_ETH,
-      valueUsd: ethAmount * OPEN_ETH,
-      ...AAVE_WETH,
-    },
-    {
-      symbol: 'WBTC',
-      address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
-      decimals: 8,
-      amount: btcAmount,
-      priceUsd: OPEN_BTC,
-      valueUsd: btcAmount * OPEN_BTC,
-      ...AAVE_WBTC,
-    },
-  ]
-  const debt = [
-    {
-      symbol: 'USDC',
-      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      decimals: 6,
-      amount: debtAmount,
-      priceUsd: 1,
-      valueUsd: debtAmount,
-      borrowApr: null,
-    },
-  ]
-
-  const totalCollateralUsd = collateral.reduce((a, c) => a + c.valueUsd, 0)
-  const totalDebtUsd = debt.reduce((a, d) => a + d.valueUsd, 0)
-  const liquidationLtv =
-    collateral.reduce((a, c) => a + c.liquidationThreshold * c.valueUsd, 0) / totalCollateralUsd
-
+  const p = snapshot.position as unknown as ProtocolPosition
   return {
-    protocol: 'aave-v3',
-    label: 'Aave V3',
-    collateral,
-    debt,
-    totalCollateralUsd,
-    totalDebtUsd,
-    ltv: totalDebtUsd / totalCollateralUsd,
-    liquidationLtv,
-    healthFactor: (totalCollateralUsd * liquidationLtv) / totalDebtUsd,
+    ...p,
     provenance: stamp(
-      'mock',
-      'worked example · not a real wallet',
-      'The balances are invented. The Aave V3 risk parameters attached to them (83%/78% liquidation thresholds, 5% bonus) are real mainnet values read at block 23,543,615.',
+      'onchain',
+      `real wallet · snapshot ${DEMO_SNAPSHOT_DATE}`,
+      PROVENANCE_DETAIL,
+      SNAPSHOT_AT,
     ),
   }
 }
 
 /**
- * The worked example's DEPLOYMENT — the carry half of the position. Half the debt
- * sits in a venue that the model says returns 60% on demand and 55% inside the cure
- * window. These are assumptions, shown in the controls and editable.
- *
- * Chosen by sweep (2026-09-11, real engine over the measured path): at 250k debt the
- * position is liquidated on Aave V3 at 21:17 UTC on 10 Oct; on Membrane the venue
- * recall cures it at 21:13 inside the 4% window with nothing sold. It holds with 9
- * points of recall headroom (break-even ~51%). A 90% recall would look better and be
- * dishonest — utilisation-capped venues do not pay 90% in a crash.
+ * The demo's DETECTED deployment — the same venue scan a pasted address gets, through
+ * the same collateral filter. The snapshot's raw scan finds the wallet's aEthUSDC, but
+ * that IS its Aave collateral: excludeOwnCollateral drops it, so the page shows no
+ * deployment rather than crediting the borrower with deploying its own collateral.
  */
-export const DEMO_DEPLOYMENT: VenueRecall = {
-  deployedUsd: 125_000,
-  recallRate: 0.6,
-  fastRate: 0.55,
-  provenance: stamp(
-    'modelled',
-    'worked example · deployment assumed',
-    'Half the borrowed USDC is assumed deployed in a venue modelled to return 60% on demand and 55% inside the 8-hour window. Not measured, not a real venue — change it in the controls.',
-  ),
+export function demoDetection(): VenueDetection {
+  const d = excludeOwnCollateral(
+    snapshot.detection as unknown as VenueDetection,
+    snapshot.position as unknown as { collateral: { symbol: string }[] },
+  )
+  return {
+    ...d,
+    provenance: stamp(
+      'onchain',
+      `venue scan · snapshot ${DEMO_SNAPSHOT_DATE}`,
+      PROVENANCE_DETAIL,
+      SNAPSHOT_AT,
+    ),
+  }
 }
+
+/**
+ * The demo's recall input, DERIVED from the detection above.
+ *
+ * It is no longer a hand-picked pair of rates on a hand-picked dollar amount: the
+ * dollars come from the scan and the rates come from KNOWN_VENUES, through the same
+ * `toVenueRecall` a pasted address goes through. Null when the snapshot detected
+ * nothing — in which case the page shows no deployment at all rather than assuming one.
+ */
+export const DEMO_DEPLOYMENT: VenueRecall | null = toVenueRecall(demoDetection())
 
 /** A one-line description of the demo used in copy, so the number never drifts. */
 export function demoSummary(): string {
   const p = demoPosition()
-  return `40 WETH + 1.5 WBTC backing ${Math.round(p.totalDebtUsd / 1000)}k USDC on Aave V3 — ${(p.ltv * 100).toFixed(1)}% LTV against an ${(p.liquidationLtv * 100).toFixed(1)}% line, with ${Math.round(DEMO_DEPLOYMENT.deployedUsd / 1000)}k of the debt deployed in a venue modelled to return ${Math.round(DEMO_DEPLOYMENT.recallRate * 100)}% on demand.`
+  const d = demoDetection()
+  const short = `${DEMO_ADDRESS.slice(0, 6)}…${DEMO_ADDRESS.slice(-4)}`
+  const debt = `$${Math.round(p.totalDebtUsd / 1000).toLocaleString()}k`
+  const backing = p.collateral.map((c) => c.symbol).join(' + ')
+  const where = d.detected.length
+    ? `deployed in ${d.detected.map((x) => x.venue.symbol).join(' + ')}`
+    : 'no deployment detected'
+  return `${short} — ${debt} of ${p.debt.map((x) => x.symbol).join(' + ')} on ${p.label} against ${backing}, ${where}, read ${DEMO_SNAPSHOT_DATE}.`
 }

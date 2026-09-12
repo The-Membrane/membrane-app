@@ -35,5 +35,27 @@ export const GUARANTEE = {
     'by you or by the venue capital Membrane recalls first.',
   /** One sentence. The condition. Rendered next to the claim, never collapsed. */
   limit: `Past ${BAND} the sale is immediate, and only enough to restore the borrow line.`,
+  /**
+   * One sentence. The UX claim, and the only one on this surface that is not about
+   * liquidation. Verbatim lead of docs/marketing/no-dials-usp.md — do not paraphrase
+   * it and do not add a second sentence beside it.
+   */
+  noDials: 'Nobody can change the terms of your position after you open it.',
   provenance: `LiquidationEngine.sol · 28,800 s · break = max LTV × (1 + ${BAND}) · no mainnet deployment yet`,
 } as const
+
+/**
+ * THE CARRY CLAIMS — comms/marketing claims list, owner, Sep 2026. One line each, no
+ * numbers (the public bond-coverage figure is not published yet — do not invent one).
+ * Claim 1 is framed as SENIORITY, never impossibility: the spread can invert in a
+ * worst case; curator bonds eat it before the borrower does.
+ */
+export const CARRY_CLAIMS = [
+  'Borrow cost comes out of the carry yield. If the spread inverts, curator bonds eat it before you do.',
+  'No babysitting, no keeper to fail. Unwinds run in-house and take their fee from the debt, never your principal.',
+  "A venue that blocks your exit can't reprice you. No Aave-style rate hike while you wait.",
+  'A recall costs a fee on the debt — not a swap-and-rebalance bill every time a keeper adjusts you.',
+] as const
+
+/** The caveat that rides with the claims, never collapsed. */
+export const CARRY_CLAIMS_CAVEAT = 'Volatile collateral can still be liquidated.'

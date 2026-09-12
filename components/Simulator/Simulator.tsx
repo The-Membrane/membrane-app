@@ -4,16 +4,42 @@
 // first paint. There is no empty state, no connect gate and no wallet anywhere in this
 // file — the page reads public mainnet state and nothing else.
 //
-// The one hard rule about the demo: the moment a real address is read, the worked
-// example is GONE. A failed adapter shows its own error and never falls back to demo
-// numbers, because a fabricated position dressed as a real one is the worst outcome
-// this page could produce.
+// The default wallet is now a REAL one (owner ruling 2026-09-11 — "why is the worked
+// example not just the demo wallet shown?"). lib/position-sim/demo.ts serves a
+// committed on-chain snapshot: a real borrower, its real borrow rate, its real venue
+// balances. So the demo path and the pasted-address path finally carry the same KIND
+// of number, and the page can lead with what the carry costs.
+//
+// The one hard rule about the demo is unchanged and still load-bearing: the moment a
+// real address is read, the snapshot is GONE. A failed adapter shows its own error and
+// never falls back to demo numbers, and a pasted address only ever gets what
+// detectVenues found for IT — never the snapshot's deployment.
+//
+// TWO MODES, TWO DEMOS (owner ruling 2026-09-12 — "keep this build as a toggle flip in
+// case we want to go back to borrower-first — or a separate page"). Same component,
+// same engine, same controls; `mode` picks which wallet it opens on and which story
+// leads the hero:
+//   'carry'    lib/position-sim/demo.ts — a live mainnet carry, snapshot 2026-09-12.
+//   'borrower' lib/position-sim/demoBorrower.ts — a real wallet Aave V3 liquidated on
+//              10 Oct 2025, with NO deployment (a liquidated borrower had none, and we
+//              do not assume one).
+// config/simulatorMode.ts decides which one `/` and the nav point at. Both pages exist
+// and both are indexable, so the flip is one constant and nothing else.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import { Box, Text } from '@chakra-ui/react'
 
+import { DEFAULT_CHAIN } from '@/config/chains'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import {
+  LANDING_SIM_MODE,
+  OTHER_MODE,
+  SIM_MODE_LINK_LABEL,
+  SIM_ROUTE,
+  type SimMode,
+} from '@/config/simulatorMode'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { monoXs, tabular } from '@/components/Builder/styles'
@@ -21,9 +47,15 @@ import {
   MAX_LIQ_FEE,
   MEMBRANE_LTV_PROVENANCE,
   buildPricePath,
-  DEMO_DEPLOYMENT,
+  DEMO_SNAPSHOT_NOTE,
+  carryCost,
+  demoBorrowerDetection,
+  demoBorrowerPosition,
+  demoDetection,
   demoPosition,
+  DEMO_BORROWER_NOTE,
   detectVenues,
+  excludeOwnCollateral,
   loadOct10,
   measuredRepayFraction,
   oct10Provenance,
@@ -51,6 +83,7 @@ import Controls, { type ControlValues } from './Controls'
 import DeploymentSection from './DeploymentSection'
 import EventLog from './EventLog'
 import FinePrint from './FinePrint'
+import ClaimsBlock from './ClaimsBlock'
 import GuaranteeBlock from './GuaranteeBlock'
 import PositionCard from './PositionCard'
 import { recordSimRead } from './recordRead'
@@ -106,6 +139,16 @@ function defaultLiqFee(p: ProtocolPosition): number {
   return Math.min(MAX_LIQ_FEE, Math.max(0, weighted))
 }
 
+/** The one sentence the fine print owes the reader about the default wallet, per mode. */
+const DEMO_WALLET_NOTE: Record<SimMode, string> = {
+  carry:
+    'The default wallet is a real mainnet carry, read on 2026-09-11; paste it to re-read live.',
+  borrower:
+    'The default wallet is a real Aave V3 account that was liquidated on 10 Oct 2025, ' +
+    'selected from the 2,350 measured accounts in public/data/oct10-2025/evidence.json. ' +
+    'It had no deployment and none is assumed; paste any address to read a live position.',
+}
+
 const ZERO_CONTROLS: ControlValues = {
   membraneMaxLtv: 0,
   membraneLiqFee: 0,
@@ -114,8 +157,16 @@ const ZERO_CONTROLS: ControlValues = {
   deployedUsd: 0,
 }
 
-export const Simulator: React.FC = () => {
+export interface SimulatorProps {
+  /** Which demo the page opens on, and which story leads the hero. */
+  mode?: SimMode
+}
+
+export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE }) => {
   const router = useRouter()
+  /** Keeps the sibling-mode link on the chain the reader is already on. */
+  const chainForLinks =
+    typeof router.query.chain === 'string' ? router.query.chain : DEFAULT_CHAIN
 
   // ---------------------------------------------------------------- scenario
   const [scenario, setScenario] = useState<{ series: Oct10Series; manifest: Oct10Manifest } | null>(
@@ -177,7 +228,18 @@ export const Simulator: React.FC = () => {
   }, [])
 
   // --------------------------------------------------------------- positions
-  const demoPos = useMemo(() => demoPosition(), [])
+  // THE DEMO IS PICKED BY MODE, and by nothing else. Neither demo ever leaks into the
+  // other page, and neither survives a pasted address.
+  const demoPos = useMemo(
+    () => (mode === 'borrower' ? demoBorrowerPosition() : demoPosition()),
+    [mode],
+  )
+  const demoDet = useMemo(
+    () => (mode === 'borrower' ? demoBorrowerDetection() : demoDetection()),
+    [mode],
+  )
+  /** The one-line stamp beside the demo position. Names what it is, per mode. */
+  const demoTag = mode === 'borrower' ? DEMO_BORROWER_NOTE : DEMO_SNAPSHOT_NOTE
   const isDemo = loaded === null
   const positions = useMemo<ProtocolPosition[]>(
     () => (loaded ? loaded.results.flatMap((r) => r.positions) : [demoPos]),
@@ -194,12 +256,23 @@ export const Simulator: React.FC = () => {
   }, [positions, selectedKey])
 
   // ---------------------------------------------------------------- controls
-  const detection = loaded?.detection ?? null
+  // The demo's deployment is no longer assumed — it is the venue scan the snapshot
+  // recorded for the same real address, so both branches are now the same shape and
+  // both go through toVenueRecall. A pasted address still only ever gets what
+  // detectVenues found for IT.
+  const rawDetection = loaded?.detection ?? demoDet
+  // A venue balance that is already this position's collateral is not recallable venue
+  // capital — it is the collateral the recall was supposed to save. Filtering here, on
+  // the way in, keeps the cost model, the controls, the deployment section and the
+  // engine looking at the same dollars. See excludeOwnCollateral for the measurement
+  // that forced this.
+  const detection = useMemo(
+    () => excludeOwnCollateral(rawDetection, selected),
+    [rawDetection, selected],
+  )
   const detectedRecall = useMemo<VenueRecall | null>(
-    // The worked example carries its own assumed deployment (DEMO_DEPLOYMENT); a real
-    // address only ever gets what detectVenues actually found — never the demo's.
-    () => (detection ? toVenueRecall(detection) : loaded ? null : DEMO_DEPLOYMENT),
-    [detection, loaded],
+    () => toVenueRecall(detection),
+    [detection],
   )
 
   const derived = useMemo(
@@ -245,6 +318,13 @@ export const Simulator: React.FC = () => {
       'The recall and fast rates in force are the ones set in the controls on this page. They are not measured and they are not read from any venue.',
     )
   }, [detectedRecall, values])
+
+  // -------------------------------------------------------------- carry cost
+  // What the source protocol bills this position a year, and what the deployed slice
+  // costs on Membrane (nothing). Zero when no rate was readable or nothing is
+  // deployed — the hero then falls back to the safety verdict rather than inventing
+  // a rate. See lib/position-sim/carryCost.ts for why undeployed debt is never costed.
+  const carry = useMemo(() => carryCost(selected, detection), [selected, detection])
 
   // -------------------------------------------------------------- comparison
   const comparison = useMemo(() => {
@@ -385,11 +465,17 @@ export const Simulator: React.FC = () => {
     [comparison],
   )
 
+  /** Where the rate behind the cost headline came from. Only printed when one was. */
+  const borrowRateNote = useMemo<string | undefined>(() => {
+    if (!selected || carry.pricedDebtUsd <= 0) return undefined
+    return `${selected.label} borrow rate read on-chain ${isDemo ? 'at snapshot' : 'at read time'}.`
+  }, [selected, carry, isDemo])
+
   const stamps = useMemo<Provenance[]>(() => {
     const out: Provenance[] = []
     if (scenario) out.push(oct10Provenance(scenario.manifest))
     out.push(MEMBRANE_LTV_PROVENANCE)
-    if (detection) out.push(detection.provenance)
+    out.push(detection.provenance)
     if (isDemo) out.push(demoPos.provenance)
     return out
   }, [scenario, detection, isDemo, demoPos])
@@ -410,6 +496,8 @@ export const Simulator: React.FC = () => {
           itself. No eyebrow, no thesis sentence, no disclosure box: those are §7. */}
       <VerdictHero
         comparison={comparison}
+        carry={carry}
+        mode={mode}
         isDemo={isDemo}
         startTs={scenario?.series.startTs ?? null}
         stepSeconds={scenario?.series.stepSeconds ?? null}
@@ -425,6 +513,7 @@ export const Simulator: React.FC = () => {
 
       {/* 2 — THE GUARANTEE, verbatim from GUARANTEE. Limit adjacent, never collapsed. */}
       <GuaranteeBlock />
+      {mode === 'carry' && <ClaimsBlock />}
 
       {/* 3 — YOUR POSITION */}
       {positions.length > 0 && (
@@ -432,8 +521,8 @@ export const Simulator: React.FC = () => {
           <Box display="flex" gap={SPACING.md} alignItems="baseline" flexWrap="wrap">
             <Text {...SECTION}>your position</Text>
             {isDemo && (
-              <Text {...SECTION} color={SEMANTIC_COLORS.warning}>
-                worked example — not a real wallet
+              <Text {...SECTION} color={SEMANTIC_COLORS.textSecondary}>
+                real wallet · {demoTag}
               </Text>
             )}
           </Box>
@@ -479,7 +568,7 @@ export const Simulator: React.FC = () => {
               onReset={onResetControls}
               unknownLtvSymbols={derived.unknown}
               venueDetected={detection?.status === 'detected'}
-              assumedDeploymentNote={isDemo ? 'Assumed for the example — not detected.' : undefined}
+              assumedDeploymentNote={undefined}
               ltvProvenance={MEMBRANE_LTV_PROVENANCE}
               venueProvenance={venueProvenance}
             />
@@ -527,7 +616,18 @@ export const Simulator: React.FC = () => {
         caveats={runCaveats}
         unpricedSymbols={comparison?.unpricedSymbols ?? []}
         stamps={stamps}
+        borrowRateNote={borrowRateNote}
+        extraNotes={isDemo ? [DEMO_WALLET_NOTE[mode]] : undefined}
       />
+
+      {/* 8 — THE OTHER BUILD. Both simulators are live and indexable; only one of them
+          is the landing page (config/simulatorMode.ts). One line, at the foot, so the
+          other ordering is reachable without spending a nav slot on it. */}
+      <Text {...monoXs} color={SEMANTIC_COLORS.textSecondary}>
+        <NextLink href={`/${chainForLinks}${SIM_ROUTE[OTHER_MODE[mode]]}`}>
+          {SIM_MODE_LINK_LABEL[OTHER_MODE[mode]]}
+        </NextLink>
+      </Text>
     </Box>
   )
 }

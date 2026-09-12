@@ -35,6 +35,19 @@ const STANDING = [
   'A simulation is not a forecast.',
 ]
 
+/**
+ * The rate disclosure — a STANDING line. Membrane does not charge 0%: it charges through
+ * the deployment venues. The share is curator-set and not fixed pre-launch, so no number
+ * is printed; what IS verified is the shape (no interest on deployed debt, revenue from
+ * yield) and the ORDER of loss (curator bonds before the borrower) — never an absolute
+ * 'cannot invert' (owner correction Sep 2026).
+ */
+const CARRY_TERMS =
+  'Membrane charges no interest on debt deployed in a canonical venue; it is paid a ' +
+  "curator-set share of that venue's yield. In a worst case the spread can invert — " +
+  'curators cover it first through required bonds, and the borrower is last in line. ' +
+  'Undeployed debt pays a curator-set base rate. Volatile collateral can still be liquidated.'
+
 export interface FinePrintProps {
   /** Caveats the two runs recorded, already unioned and de-duplicated by the caller. */
   caveats: string[]
@@ -42,6 +55,11 @@ export interface FinePrintProps {
   unpricedSymbols: string[]
   /** Every provenance stamp on the page, in one row. */
   stamps: Provenance[]
+  /** Where the borrow rate behind the cost headline came from, e.g. 'Aave V3 borrow
+   *  rate read on-chain at snapshot.' Omitted when no cost line was printed. */
+  borrowRateNote?: string
+  /** Extra standing lines the page needs — one per bullet, no paragraphs. */
+  extraNotes?: string[]
 }
 
 const Line: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -57,7 +75,13 @@ const Line: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </Text>
 )
 
-export const FinePrint: React.FC<FinePrintProps> = ({ caveats, unpricedSymbols, stamps }) => (
+export const FinePrint: React.FC<FinePrintProps> = ({
+  caveats,
+  unpricedSymbols,
+  stamps,
+  borrowRateNote,
+  extraNotes,
+}) => (
   <Box
     border="1px solid"
     borderColor={SEMANTIC_COLORS.borderSubtle}
@@ -70,6 +94,11 @@ export const FinePrint: React.FC<FinePrintProps> = ({ caveats, unpricedSymbols, 
     <Box as="ul" display="grid" gap={SPACING.sm} pl={SPACING.base} m={0}>
       {STANDING.map((s) => (
         <Line key={s}>{s}</Line>
+      ))}
+      <Line>{CARRY_TERMS}</Line>
+      {borrowRateNote && <Line>{borrowRateNote}</Line>}
+      {(extraNotes ?? []).map((n) => (
+        <Line key={n}>{n}</Line>
       ))}
       {unpricedSymbols.length > 0 && (
         <Line>Held flat — not priced by this dataset: {unpricedSymbols.join(', ')}.</Line>

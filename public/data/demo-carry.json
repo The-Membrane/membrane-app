@@ -1,0 +1,72 @@
+{
+  "address": "0xfe924e248A7facc81e7CcDd3b178272BE7C7dC56",
+  "readAt": "2026-09-12T03:59:32.777Z",
+  "block": 25958793,
+  "position": {
+    "protocol": "aave-v3",
+    "label": "Aave V3",
+    "collateral": [
+      {
+        "symbol": "USDC",
+        "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "decimals": 6,
+        "amount": 330433.01242,
+        "priceUsd": 0.99987682,
+        "valueUsd": 330392.3096815301,
+        "liquidationThreshold": 0.78,
+        "maxLtv": 0.75,
+        "liquidationBonus": 0.04499999999999993
+      }
+    ],
+    "debt": [
+      {
+        "symbol": "WETH",
+        "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "decimals": 18,
+        "amount": 66.06222685492745,
+        "priceUsd": 2512.91,
+        "valueUsd": 166008.4304860157,
+        "borrowApr": 0.020463459680697575
+      }
+    ],
+    "totalCollateralUsd": 330392.30968153,
+    "totalDebtUsd": 166008.43048602,
+    "ltv": 0.5024585186199944,
+    "liquidationLtv": 0.78,
+    "healthFactor": 1.5523669538776557,
+    "provenance": {
+      "kind": "onchain",
+      "label": "aave v3 · eth.drpc.org",
+      "at": 1789185572750,
+      "detail": "Pool 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2 · data provider 0x0a16f2FCC0D44FaE41cc54e079281D84A363bECD · oracle 0x54586bE62E3c3580375aE3723C145253060Ca0C2, all resolved from PoolAddressesProvider 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e. Totals from getUserAccountData in base units (BASE_CURRENCY_UNIT 1e8); per-asset prices from getAssetsPrices; thresholds in bps."
+    }
+  },
+  "detection": {
+    "status": "detected",
+    "detected": [
+      {
+        "venue": {
+          "symbol": "aEthUSDC",
+          "underlying": "USDC",
+          "name": "Aave V3 USDC",
+          "address": "0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c",
+          "decimals": 6,
+          "exit": "withdrawable up to the unborrowed reserve — capped by utilisation",
+          "recallRate": 0.9,
+          "fastRate": 0.9
+        },
+        "amount": 330433.01242,
+        "valueUsd": 330433.01242
+      }
+    ],
+    "totalUsd": 330433.01242,
+    "provenance": {
+      "kind": "onchain",
+      "label": "venue scan · eth.drpc.org",
+      "at": 1789185572356,
+      "detail": "ERC-20 balances of 6 known yield venues. Balances are valued at $1 per unit, which understates any token trading above par."
+    }
+  },
+  "provenance": "onchain snapshot",
+  "selection": "named with --address"
+}

@@ -11,6 +11,7 @@ import { useThemeMode } from '@/hooks/useThemeMode';
 import { TYPOGRAPHY } from '@/helpers/typography';
 import Logo from './Logo';
 import { supportedChains, getChainConfig } from '@/config/chains';
+import { LANDING_SIM_MODE, SIM_ROUTE } from '@/config/simulatorMode';
 import { useChainRoute } from '@/hooks/useChainRoute';
 import useAppState from '@/persisted-state/useAppState';
 
@@ -26,7 +27,10 @@ import useAppState from '@/persisted-state/useAppState';
 // into Carry's own toolkit row (it links there) to hold nav width.
 const navItems = [
     // The landing page (owner ruling 2026-09-11): '/' redirects here.
-    { label: 'Simulator', href: '/simulator' },
+    // ONE nav slot, pointed at whichever build config/simulatorMode.ts is serving
+    // (owner ruling 2026-09-12). The other build is reachable by URL and from a
+    // one-line link at the foot of each simulator page — it does not get a slot.
+    { label: 'Simulator', href: SIM_ROUTE[LANDING_SIM_MODE] },
     { label: 'Evidence', href: '/' },
     { label: 'Carry', href: '/carry' },
     // Wallet-free carry-trader decision tool: paste any address, stress its

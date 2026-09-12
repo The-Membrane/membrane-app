@@ -1,7 +1,7 @@
 import type { GetServerSideProps } from 'next'
 import { DEFAULT_CHAIN } from '@/config/chains'
-import { SITE_URL } from '@/components/Seo'
 import { getPostSlugs } from '@/helpers/blog'
+import { SIM_ROUTE } from '@/config/simulatorMode'
 
 /**
  * /sitemap.xml as an SSR route (SEO rule R4). Only lists pages that serve real
@@ -10,16 +10,19 @@ import { getPostSlugs } from '@/helpers/blog'
  *
  * Keep in sync with the per-page <Seo> overrides and pages/robots.txt.tsx.
  */
-const INDEXABLE_PATHS = [
+export const INDEXABLE_PATHS = [
   `/${DEFAULT_CHAIN}`,
   `/${DEFAULT_CHAIN}/borrow`,
   `/${DEFAULT_CHAIN}/carry`,
   `/${DEFAULT_CHAIN}/home`,
   `/${DEFAULT_CHAIN}/landing`,
   `/${DEFAULT_CHAIN}/mint`,
-  // The position simulator is indexable (pages/[chain]/simulator.tsx) and is the
-  // demo-first conversion surface — it was missing here.
-  `/${DEFAULT_CHAIN}/simulator`,
+  // BOTH simulator builds are indexable (pages/[chain]/simulator.tsx and
+  // pages/[chain]/carry-simulator.tsx) and both are demo-first conversion surfaces.
+  // Only one of them is the landing page — see config/simulatorMode.ts — but the
+  // other is a real page with its own worked example, not a redirect.
+  `/${DEFAULT_CHAIN}${SIM_ROUTE.borrower}`,
+  `/${DEFAULT_CHAIN}${SIM_ROUTE.carry}`,
   `/${DEFAULT_CHAIN}/stake`,
   `/${DEFAULT_CHAIN}/transmuter`,
   // Venue permalinks — the D3 landings, content-rich and provenance-stamped.
@@ -32,6 +35,9 @@ const INDEXABLE_PATHS = [
 ]
 
 export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
+  // Imported here rather than at module scope so INDEXABLE_PATHS can be read by a
+  // plain unit test without dragging components/Seo.tsx (and all of JSX) in with it.
+  const { SITE_URL } = await import('@/components/Seo')
   const origin = SITE_URL || `https://${req.headers.host}`
   const paths = [...INDEXABLE_PATHS, ...getPostSlugs().map((slug) => `/blog/${slug}`)]
   const urls = paths.map(

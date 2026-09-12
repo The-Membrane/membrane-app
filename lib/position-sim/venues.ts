@@ -33,6 +33,16 @@ export interface KnownVenue {
   name: string
   address: `0x${string}`
   decimals: number
+  /**
+   * The asset the venue token is a receipt for.
+   *
+   * Load-bearing, not decoration: an Aave aToken balance IS the holder's Aave supply,
+   * so for a borrower ON Aave the same dollars are both "detected in a venue" and
+   * "collateral backing the loan". Counting them twice would credit a borrower with
+   * deploying money it has not borrowed. carryCost() uses this symbol to drop any
+   * detected balance that already appears as a collateral leg of the position.
+   */
+  underlying: string
   /** How the venue's exit works — shown to the user so the rates are auditable. */
   exit: string
   recallRate: number
@@ -41,32 +51,32 @@ export interface KnownVenue {
 
 export const KNOWN_VENUES: KnownVenue[] = [
   {
-    symbol: 'sUSDe', name: 'Ethena sUSDe', address: '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497', decimals: 18,
+    symbol: 'sUSDe', underlying: 'USDe', name: 'Ethena sUSDe', address: '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497', decimals: 18,
     exit: 'a 7-day cooldown must elapse before staked USDe can be redeemed',
     recallRate: 0.3, fastRate: 0,
   },
   {
-    symbol: 'sDAI', name: 'Savings DAI', address: '0x83F20F44975D03b1b09e64809B757c47f942BEeA', decimals: 18,
+    symbol: 'sDAI', underlying: 'DAI', name: 'Savings DAI', address: '0x83F20F44975D03b1b09e64809B757c47f942BEeA', decimals: 18,
     exit: 'redeemable on demand against the DSR pot',
     recallRate: 0.97, fastRate: 0.97,
   },
   {
-    symbol: 'sUSDS', name: 'Savings USDS', address: '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD', decimals: 18,
+    symbol: 'sUSDS', underlying: 'USDS', name: 'Savings USDS', address: '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD', decimals: 18,
     exit: 'redeemable on demand against the Sky savings rate',
     recallRate: 0.97, fastRate: 0.97,
   },
   {
-    symbol: 'aEthUSDC', name: 'Aave V3 USDC', address: '0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c', decimals: 6,
+    symbol: 'aEthUSDC', underlying: 'USDC', name: 'Aave V3 USDC', address: '0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c', decimals: 6,
     exit: 'withdrawable up to the unborrowed reserve — capped by utilisation',
     recallRate: 0.9, fastRate: 0.9,
   },
   {
-    symbol: 'aEthUSDT', name: 'Aave V3 USDT', address: '0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a', decimals: 6,
+    symbol: 'aEthUSDT', underlying: 'USDT', name: 'Aave V3 USDT', address: '0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a', decimals: 6,
     exit: 'withdrawable up to the unborrowed reserve — capped by utilisation',
     recallRate: 0.9, fastRate: 0.9,
   },
   {
-    symbol: 'sfrxUSD', name: 'Staked frxUSD', address: '0xcf62F305562Ba0170a4Fa456bE9bCb6Fa6cA6a70', decimals: 18,
+    symbol: 'sfrxUSD', underlying: 'frxUSD', name: 'Staked frxUSD', address: '0xcF62F305562bA0170A4fa456be9BcB6fa6Ca6A70', decimals: 18,
     exit: 'redeemable against the Frax savings vault',
     recallRate: 0.9, fastRate: 0.85,
   },
@@ -101,8 +111,12 @@ export async function detectVenues(address: `0x${string}`): Promise<VenueDetecti
       allowFailure: true,
     })
     const detected: DetectedVenue[] = []
+    let failures = 0
     res.forEach((r, i) => {
-      if (r.status !== 'success') return
+      if (r.status !== 'success') {
+        failures++
+        return
+      }
       const v = KNOWN_VENUES[i]
       const amount = toNumber(r.result as bigint, v.decimals)
       if (amount <= 0) return
@@ -110,6 +124,25 @@ export async function detectVenues(address: `0x${string}`): Promise<VenueDetecti
       // understates a share price above par. It is an assumption and it is stated.
       detected.push({ venue: v, amount, valueUsd: amount })
     })
+    // A READ THAT FAILED IS NOT AN EMPTY WALLET. viem's `allowFailure` multicall never
+    // throws: an invalid address, a reverting call or a rate-limited endpoint comes
+    // back as a per-entry failure, so "every entry failed" used to render as the
+    // reassuring sentence "no deployment was detected". It measured nothing.
+    //
+    // This is not hypothetical — it was live: the sfrxUSD entry carried a mis-cased
+    // (checksum-invalid) address, viem rejected the whole aggregate3 before it left
+    // the process, and venue detection returned 'none' for EVERY address on mainnet.
+    // Found 2026-09-11 while snapshotting the real demo wallet.
+    if (failures === KNOWN_VENUES.length) {
+      const first = res.find((r) => r.status !== 'success') as { error?: Error } | undefined
+      return {
+        status: 'error',
+        detected: [],
+        totalUsd: 0,
+        message: `Venue scan failed: every one of the ${KNOWN_VENUES.length} balance reads failed${first?.error ? ` — ${first.error.message.split('\n')[0]}` : ''}. This is a failed read, not an empty wallet.`,
+        provenance: stamp('onchain', `venue scan · ${rpcLabel()}`, undefined, at),
+      }
+    }
     const totalUsd = detected.reduce((a, d) => a + d.valueUsd, 0)
     return {
       status: detected.length ? 'detected' : 'none',
@@ -133,6 +166,42 @@ export async function detectVenues(address: `0x${string}`): Promise<VenueDetecti
       message: `Venue scan failed: ${(e as Error).message}`,
       provenance: stamp('onchain', `venue scan · ${rpcLabel()}`, undefined, at),
     }
+  }
+}
+
+/**
+ * Drops any detected balance that is ALREADY a collateral leg of `position`.
+ *
+ * The same money cannot be both the collateral backing a loan and the venue capital
+ * recalled to save it. An Aave aToken balance IS the holder's Aave supply, so for a
+ * borrower on Aave the venue scan reports their own collateral back to them: measured
+ * 2026-09-11, every one of the 40 real Aave borrowers the demo-wallet search examined
+ * had a "detected deployment" that was nothing but their own aEthUSDC/aEthUSDT.
+ *
+ * Left unfiltered this is not a cosmetic error — it hands the Membrane engine a
+ * phantom recall worth the whole collateral leg and manufactures a survival. Both the
+ * cost model (carryCost) and the recall input (toVenueRecall) must see the filtered
+ * detection.
+ */
+export function excludeOwnCollateral(
+  detection: VenueDetection,
+  position: { collateral: { symbol: string }[] } | null | undefined,
+): VenueDetection {
+  if (!position || detection.status !== 'detected') return detection
+  const owned = new Set(position.collateral.map((c) => c.symbol.toUpperCase()))
+  const kept = detection.detected.filter(
+    (d) => !owned.has(d.venue.underlying.toUpperCase()) && !owned.has(d.venue.symbol.toUpperCase()),
+  )
+  if (kept.length === detection.detected.length) return detection
+  const totalUsd = kept.reduce((a, d) => a + d.valueUsd, 0)
+  return {
+    ...detection,
+    status: kept.length ? 'detected' : 'none',
+    detected: kept,
+    totalUsd,
+    message: kept.length
+      ? detection.message
+      : 'The only venue balances found for this address are the same assets it has pledged as collateral on the source protocol. Collateral is not deployed debt, so no deployment is counted.',
   }
 }
 

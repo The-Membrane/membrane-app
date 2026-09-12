@@ -37,15 +37,20 @@ const STANDING = [
 
 /**
  * The rate disclosure — a STANDING line. Membrane does not charge 0%: it charges through
- * the deployment venues. The share is curator-set and not fixed pre-launch, so no number
- * is printed; what IS verified is the shape (no interest on deployed debt, revenue from
- * yield) and the ORDER of loss (curator bonds before the borrower) — never an absolute
- * 'cannot invert' (owner correction Sep 2026).
+ * the deployment venues. The share is curator-set and not fixed pre-launch, so no share
+ * number is printed; what IS verified is the shape (no interest on deployed debt,
+ * revenue from yield) and the ORDER of loss — never an absolute 'cannot invert'
+ * (owner correction Sep 2026).
+ *
+ * The 14 days of covered yield is the owner's own figure (owner statement 2026-09-12),
+ * and it replaces the older, vaguer "curators cover it first through required bonds":
+ * the borrower's benefit is TIME TO ACT, stated as a duration, not a bond mechanism.
+ * Same source as CARRY_CLAIMS[0] in lib/position-sim/guarantee.ts — keep them equal.
  */
 const CARRY_TERMS =
   'Membrane charges no interest on debt deployed in a canonical venue; it is paid a ' +
   "curator-set share of that venue's yield. In a worst case the spread can invert — " +
-  'curators cover it first through required bonds, and the borrower is last in line. ' +
+  'curators cover 14 days of yield to give the borrower time to act. ' +
   'Undeployed debt pays a curator-set base rate. Volatile collateral can still be liquidated.'
 
 export interface FinePrintProps {

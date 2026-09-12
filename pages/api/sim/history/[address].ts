@@ -4,7 +4,11 @@ import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { scanHistory } from '@/lib/position-sim/historyScan'
-import { ZERO_TOTALS, type HistoryResponse } from '@/lib/position-sim/history'
+import {
+  HISTORY_SCHEMA_VERSION,
+  ZERO_TOTALS,
+  type HistoryResponse,
+} from '@/lib/position-sim/history'
 
 /**
  * THE SECONDARY PROOF, SERVED. `GET /api/sim/history/0x…`
@@ -27,6 +31,10 @@ import { ZERO_TOTALS, type HistoryResponse } from '@/lib/position-sim/history'
  *     set and is NOT written to the cache, so the next request retries instead of
  *     serving a zero that was really an outage.
  *   - `provenance` is 'observed': every event in the list actually happened.
+ *   - A cache row written by an OLDER scan shape is not served. The summary carries
+ *     `version`; anything other than HISTORY_SCHEMA_VERSION is a miss, so the
+ *     single-event rows written before the 2026-09-12 episode ruling are rescanned
+ *     rather than rendered against an episode UI that would show them as empty.
  */
 
 /** A cached scan is good for a day. Older than that and we rescan. */
@@ -85,9 +93,13 @@ async function readCache(address: string): Promise<HistoryResponse | null> {
     const row = rows[0]
     if (!row) return null
     const summary = (row.summary ?? {}) as Partial<HistoryResponse>
+    // A row from an older scan shape is a MISS, not a hit. Serving it would render
+    // yesterday's single-event rows into today's episode UI as a blank list.
+    if (summary.version !== HISTORY_SCHEMA_VERSION) return null
     return {
       address: String(row.address),
       since: summary.since ?? { firstEventTs: null },
+      episodes: summary.episodes ?? [],
       events: (row.events ?? []) as HistoryResponse['events'],
       totals: summary.totals ?? { ...ZERO_TOTALS },
       method: summary.method ?? '',
@@ -95,6 +107,7 @@ async function readCache(address: string): Promise<HistoryResponse | null> {
       scannedAt: new Date(row.scanned_at as string).toISOString(),
       scannedToBlock: row.to_block == null ? undefined : String(row.to_block),
       notScanned: summary.notScanned,
+      version: summary.version,
     }
   } catch {
     // No database, or a schema that has not had the DDL applied yet. A cache miss is
@@ -106,11 +119,15 @@ async function readCache(address: string): Promise<HistoryResponse | null> {
 async function writeCache(r: HistoryResponse): Promise<void> {
   try {
     const events = JSON.stringify(r.events)
+    // The `events` column keeps the flat decoded events; the summary keeps everything
+    // the UI renders, including the EPISODES the events were clustered into.
     const summary = JSON.stringify({
       since: r.since,
+      episodes: r.episodes,
       totals: r.totals,
       method: r.method,
       notScanned: r.notScanned ?? [],
+      version: r.version ?? HISTORY_SCHEMA_VERSION,
     })
     const toBlock = r.scannedToBlock ? Number(r.scannedToBlock) : null
     await db.execute(sql`
@@ -131,11 +148,13 @@ function emptyWithError(address: string, message: string): HistoryResponse {
   return {
     address,
     since: { firstEventTs: null },
+    episodes: [],
     events: [],
     totals: { ...ZERO_TOTALS },
     method: 'The liquidation-history scan did not run.',
     provenance: 'observed',
     scannedAt: new Date().toISOString(),
+    version: HISTORY_SCHEMA_VERSION,
     error: message,
   }
 }

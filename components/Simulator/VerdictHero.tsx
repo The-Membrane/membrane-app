@@ -4,8 +4,13 @@
 // product, the landing page must be carry-first"). When the wallet on screen is paying
 // a readable rate on debt that is actually deployed, the hero leads with THE BILL —
 // what the source protocol charges this carry per year, and the fact that Membrane
-// charges nothing on the deployed slice. The liquidation verdict does not disappear;
-// it drops to the third line, because it is the SECOND reason to move, not the first.
+// charges nothing on the deployed slice.
+//
+// The carry hero is now EXACTLY five things (owner ruling 2026-09-12 — "it all just
+// blends in"): cost line 1, cost line 2, the big fixed-cost number, the paste card, the
+// chart. The Oct-10 safety verdict that used to trail it at 15px is GONE from this
+// branch — one hero makes one argument, and the liquidation story has a whole section
+// of its own below the fold. Do not re-add it here.
 //
 // When there is no deployment or no readable rate, the cost lines are not printed at
 // all — there is no fallback rate and no assumed deployment — and the hero reverts to
@@ -61,6 +66,7 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { tabular } from '@/components/Builder/styles'
 import { fmtUtcMinute, outcomeLine, type CarryCost, type Comparison } from '@/lib/position-sim'
+import { OCT10_STAKES_LINE } from '@/lib/position-sim/oct10Totals'
 
 import AddressBar, { type AddressBarProps } from './AddressBar'
 import HeroChart from './HeroChart'
@@ -289,8 +295,13 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               <Text as="span" color={SEMANTIC_COLORS.danger}>
                 {src} charges {whose} carry {usd(carry.annualCostUsd)} a year, even when the venue pays nothing.
               </Text>{' '}
+              {/* The 14 days is the owner's own figure (owner statement 2026-09-12);
+                  CARRY_CLAIMS[0] and FinePrint's CARRY_TERMS carry the same number and
+                  the three must never drift. It replaces "curator bonds eat it before
+                  you do" — the borrower's benefit is TIME, not a bond. */}
               <Text as="span" color={SEMANTIC_COLORS.success}>
-                Membrane is paid out of the yield. If the spread ever inverts, curator bonds eat it before you do.
+                Membrane is paid out of the yield. If the spread inverts, curators cover 14 days of
+                yield to give you time to act.
               </Text>
             </Text>
 
@@ -315,27 +326,30 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               </Text>
             </Box>
 
-            {/* The second reason, not the first — same sentence the headline used to
-                be, at reading size. */}
-            <Text
-              data-testid="sim-safety-verdict"
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="15px"
-              lineHeight={1.55}
-              maxW="70ch"
-            >
-              <Text as="span" display="block" color={v.firstColor}>
-                {v.first}
-              </Text>
-              <Text as="span" display="block" color={v.secondColor}>
-                {v.second}
-              </Text>
-            </Text>
+            {/* NOTHING ELSE. The Oct-10 safety verdict used to sit here at 15px; the
+                owner removed it 2026-09-12 ("it all just blends in"). The carry hero is
+                cost line 1, line 2, the number, the paste card, the chart. */}
           </>
         )}
 
         {v && !carryFirst && !historyFirst && (
           <>
+            {/* THE STAKES (owner ruling 2026-09-12): the hero must say how big that day
+                was and that it WAS Oct 10, before it says what happened to this wallet.
+                One line, above the two verdict sentences, nothing added to it — the
+                verdict stays the headline. Numbers come from OCT10_TOTALS, which the
+                unit test re-derives from the evidence JSON. */}
+            <Text
+              data-testid="sim-oct10-stakes"
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="12.5px"
+              letterSpacing="0.04em"
+              lineHeight={1.5}
+              color={SEMANTIC_COLORS.textSecondary}
+            >
+              {OCT10_STAKES_LINE}
+            </Text>
+
             <Text
               data-testid="sim-verdict-headline"
               as="h1"
@@ -388,9 +402,11 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                   {src} also charges {whose} carry {usd(carry.fixedCostOnCoveredUsd)} a year in
                   fixed interest on the deployed {usd(carry.coveredDebtUsd)}, paid or not.
                 </Text>{' '}
+                {/* Same sentence as the carry hero, same source: owner statement
+                    2026-09-12 for the 14 days. Keep the two in lockstep. */}
                 <Text as="span" color={SEMANTIC_COLORS.success}>
-                  Membrane is paid out of the yield. If the spread ever inverts, curator bonds eat
-                  it before you do.
+                  Membrane is paid out of the yield. If the spread inverts, curators cover 14 days
+                  of yield to give you time to act.
                 </Text>
               </Text>
             )}

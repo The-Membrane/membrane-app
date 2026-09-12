@@ -1,37 +1,45 @@
 /**
- * SERVER-ONLY. Pulls an address's REAL liquidation history off mainnet and replays
- * every event through `replayLiquidation`.
+ * SERVER-ONLY. Pulls an address's REAL liquidation history off mainnet and replays it
+ * through `replayEpisode`.
  *
- * NEVER import this from a component. It scans logs over the whole Aave V3 history and
- * is called once per address per day from pages/api/sim/history/[address].ts, behind a
- * Neon cache table (sim_history). The brief's constraint is explicit: cache on-chain
- * data, no per-render live requeries.
+ * NEVER import this from a component. It scans logs over the whole Aave V3 / Spark /
+ * Morpho Blue history and is called once per address per day from
+ * pages/api/sim/history/[address].ts, behind a Neon cache table (sim_history). The
+ * brief's constraint is explicit: cache on-chain data, no per-render live requeries.
  *
  * WHAT IS OBSERVED
- *   - the LiquidationCall events themselves (Aave V3 Pool, user as topic3)
+ *   - Aave V3 and Spark `LiquidationCall` events (user as topic3)
+ *   - Morpho Blue `Liquidate` events (borrower as topic3), with the market's collateral
+ *     token, loan token and LLTV resolved from `idToMarketParams(id)`
  *   - the block timestamp of each
  *   - the collateral/debt token amounts, scaled by the token's own decimals
- *   - the Chainlink AnswerUpdated rounds that priced the collateral over the 8 hours
- *     that followed, read from the feed's phase aggregators
+ *   - the Chainlink AnswerUpdated rounds that priced the collateral across the EPISODE
+ *     span, read from the feed's phase aggregators
  *
  * WHAT IS RECONSTRUCTED, AND WHY (this is the approximation the response `method`
  * string discloses verbatim — do not change one without the other):
- *   - `liqLine` is the RESERVE's liquidation threshold, read from Aave's
- *     PoolDataProvider at the event block when the RPC serves archive state, and at
- *     the current block (stamped 'current params') when it refuses. A multi-collateral
+ *   - Aave/Spark `liqLine` is the RESERVE's liquidation threshold, read from the
+ *     PoolDataProvider at the event block when the RPC serves archive state, and at the
+ *     current block (stamped 'current params') when it refuses. A multi-collateral
  *     account's real line is a value-weighted blend of its reserves, which needs the
  *     full account state at a historical block — several archive reads per event, which
  *     no keyless endpoint will serve. The single-reserve threshold is the honest
- *     approximation and it is named on screen.
+ *     approximation and it is named on screen. Morpho Blue needs no approximation: a
+ *     market IS one collateral and one LLTV.
  *   - `ltvAtEvent` = `liqLine`. An account being liquidated was, by definition, at or
  *     over its line. This is not a measurement; it is the definition of the event.
+ *   - The liquidation FEE charged to Membrane is the source venue's own liquidation
+ *     bonus (Aave/Spark: `liquidationBonus − 1`; Morpho: its LIF formula), so no save is
+ *     bought by handing Membrane a cheaper liquidator than the real one.
  *
- * WHAT IS NOT SCANNED
- *   - Morpho Blue. Its `Liquidate` event has the same borrower-as-topic3 shape, but
- *     pricing it needs an `idToMarketParams(id)` resolution per market plus each
- *     market's own LLTV, which is a second pricing path rather than the same one.
- *     TODO(history): add a morphoBlue scanner and drop it from `notScanned`.
- *   - Compound V3, Spark, Fluid. Same reason.
+ * EPISODES, NOT EVENTS (owner ruling 2026-09-12). Real events within 24h of each other
+ * are ONE episode, and Membrane's side of an episode is a CHAIN walked over the 72h
+ * after its last event: a repay-to-cap leaves a position 3pp under its line, and a
+ * still-falling price re-crosses it, arms a new timer and takes another bite. The
+ * state machine itself lives in history.ts.
+ *
+ * WHAT IS NOT SCANNED — with the reason, served to the UI in `notScanned` and printed
+ * verbatim in its footer. See NOT_SCANNED below.
  */
 
 import {
@@ -40,6 +48,7 @@ import {
   getAddress,
   http,
   parseAbiItem,
+  type AbiEvent,
   type Address,
   type PublicClient,
 } from 'viem'
@@ -47,10 +56,17 @@ import { mainnet } from 'viem/chains'
 
 import {
   DEFAULT_REPLAY_PARAMS,
-  replayLiquidation,
+  EPISODE_GAP_SECONDS,
+  EPISODE_SPAN_SECONDS,
+  HISTORY_SCHEMA_VERSION,
+  clusterEpisodes,
+  replayEpisode,
   totalHistory,
+  type HistoricLiquidation,
+  type HistoryEpisode,
   type HistoryEvent,
   type HistoryResponse,
+  type NotScanned,
   type PriceRound,
 } from './history'
 import { PUBLIC_MAINNET_RPCS } from './rpc'
@@ -64,9 +80,24 @@ const AAVE_V3_ADDRESSES_PROVIDER = '0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e' 
 /** Aave V3 mainnet deploy block. Nothing before it can hold a LiquidationCall. */
 export const AAVE_V3_START_BLOCK = 16_291_127n
 
-/** ~12 s blocks. 8 hours of cure window is 2,400 of them; we take a little more so the
- *  window's last round is always inside the span, and look back for the anchor round. */
-const BLOCKS_AFTER = 2_600n
+/** Spark's PoolAddressesProvider — the same constant the live adapter uses
+ *  (lib/position-sim/adapters/aaveV3.ts:150). Spark is a near-verbatim Aave V3 fork, so
+ *  its Pool emits the identical LiquidationCall with the identical user topic and its
+ *  data provider serves the identical reserve config; only the registry differs. */
+const SPARK_ADDRESSES_PROVIDER = '0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE' as Address
+/** Spark went live on mainnet in May 2023. A conservative floor — starting early costs
+ *  a request or two, starting late would silently hide events. */
+export const SPARK_START_BLOCK = 17_000_000n
+
+/** Morpho Blue — one singleton for every market (adapters/morphoBlue.ts:93), deployed
+ *  2023-12-28. Every market's liquidation lands on this one address. */
+const MORPHO_BLUE = '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb' as Address
+export const MORPHO_BLUE_START_BLOCK = 18_883_124n
+
+/** ~12 s blocks. The episode chain runs 72h past the last event (21,600 blocks); we
+ *  take a little more so the span's last round is always inside it, and look back for
+ *  the anchor round. */
+const BLOCKS_SPAN = BigInt(Math.ceil(EPISODE_SPAN_SECONDS / 12) + 400)
 const BLOCKS_BEFORE = 1_400n
 
 /** Hard bound from the brief. A wallet with more history than this is truncated to the
@@ -75,6 +106,10 @@ export const MAX_EVENTS = 200
 
 const LIQUIDATION_CALL = parseAbiItem(
   'event LiquidationCall(address indexed collateralAsset, address indexed debtAsset, address indexed user, uint256 debtToCover, uint256 liquidatedCollateralAmount, address liquidator, bool receiveAToken)',
+)
+
+const MORPHO_LIQUIDATE = parseAbiItem(
+  'event Liquidate(bytes32 indexed id, address indexed caller, address indexed borrower, uint256 repaidAssets, uint256 repaidShares, uint256 seizedAssets, uint256 badDebtAssets, uint256 badDebtShares)',
 )
 
 const ANSWER_UPDATED = parseAbiItem(
@@ -115,6 +150,22 @@ const dataProviderAbi = [
       { name: 'stableBorrowRateEnabled', type: 'bool' },
       { name: 'isActive', type: 'bool' },
       { name: 'isFrozen', type: 'bool' },
+    ],
+  },
+] as const
+
+const morphoAbi = [
+  {
+    type: 'function',
+    name: 'idToMarketParams',
+    stateMutability: 'view',
+    inputs: [{ name: 'id', type: 'bytes32' }],
+    outputs: [
+      { name: 'loanToken', type: 'address' },
+      { name: 'collateralToken', type: 'address' },
+      { name: 'oracle', type: 'address' },
+      { name: 'irm', type: 'address' },
+      { name: 'lltv', type: 'uint256' },
     ],
   },
 ] as const
@@ -171,7 +222,7 @@ const WSTETH = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0' as Address
 type Pricing =
   | { kind: 'feed'; feed: Address }
   /** wstETH has no USD feed: stETH/USD × stEthPerToken. The wrap ratio cancels out of
-   *  the LTV walk (it is a constant over 8 hours), so it only scales the USD figure. */
+   *  the LTV walk (it is a constant over the window), so it only scales the USD figure. */
   | { kind: 'wsteth'; feed: Address }
   | { kind: 'stable' }
 
@@ -262,6 +313,21 @@ const TOKENS: Record<string, TokenMeta> = {
   },
 }
 
+/** The venues this scan does NOT cover, each with its reason. The UI prints these
+ *  verbatim: a bare name reads as "we forgot", a reason reads as a boundary. */
+const NOT_SCANNED: NotScanned[] = [
+  {
+    protocol: 'Compound V3',
+    reason:
+      'one Comet contract per base asset, each with its own AbsorbCollateral event and its own price feeds — a per-market scan, not this one shape.',
+  },
+  {
+    protocol: 'Fluid',
+    reason:
+      'liquidations settle against vault ticks rather than named borrowers, so an address’s own liquidations are not readable from a borrower-filtered log.',
+  },
+]
+
 // --------------------------------------------------------------------- client
 
 /**
@@ -313,6 +379,12 @@ export interface ChunkedLogsResult<T> {
   spanUsed: bigint
 }
 
+/** Widest-first ladder for a full-history scan. */
+const WIDE_SPANS = [2_000_000n, 400_000n, 80_000n, 16_000n, 2_000n]
+/** Narrower ladder for one episode's oracle rounds — a 72h span is ~22k blocks, so
+ *  starting at 2M only buys a guaranteed rejection on every capped endpoint. */
+const ROUND_SPANS = [80_000n, 16_000n, 2_000n]
+
 /**
  * getLogs over a very wide range, adaptively.
  *
@@ -327,14 +399,16 @@ export async function getLogsChunked<T>(
   client: PublicClient,
   args: {
     address: Address
-    event: typeof LIQUIDATION_CALL | typeof ANSWER_UPDATED
+    event: AbiEvent
     eventArgs?: Record<string, unknown>
     fromBlock: bigint
     toBlock: bigint
+    /** Override the span ladder. Defaults to WIDE_SPANS. */
+    spans?: bigint[]
   },
   budget: { maxRequests: number; deadlineMs: number },
 ): Promise<ChunkedLogsResult<T>> {
-  const spans = [2_000_000n, 400_000n, 80_000n, 16_000n, 2_000n]
+  const spans = args.spans ?? WIDE_SPANS
   const logs: T[] = []
   let requests = 0
   let cursor = args.fromBlock
@@ -375,7 +449,7 @@ export async function getLogsChunked<T>(
           logs,
           complete: false,
           failedAtBlock: cursor,
-          failure: `getLogs failed at the 2,000-block floor from block ${cursor}: ${lastFailure}`,
+          failure: `getLogs failed at the ${spans[spanIdx]}-block floor from block ${cursor}: ${lastFailure}`,
           requests,
           spanUsed: span,
         }
@@ -437,27 +511,31 @@ async function feedAggregators(client: PublicClient, proxy: Address): Promise<Ad
   return out
 }
 
-/** AnswerUpdated rounds for one feed over a block span, as {ts, price} in USD. */
+/** AnswerUpdated rounds for one feed over a block span, as {ts, price} in USD. The span
+ *  is a whole episode (72h+), so it is chunked like any other wide getLogs. */
 async function feedRounds(
   client: PublicClient,
   proxy: Address,
   fromBlock: bigint,
   toBlock: bigint,
+  deadlineMs: number,
 ): Promise<PriceRound[]> {
   const aggs = await feedAggregators(client, proxy)
   if (aggs.length === 0) return []
   const rounds: PriceRound[] = []
   for (const agg of aggs) {
-    try {
-      const logs = await client.getLogs({ address: agg, event: ANSWER_UPDATED, fromBlock, toBlock })
-      for (const l of logs) {
-        const a = l.args as { current?: bigint; updatedAt?: bigint }
-        if (a.current === undefined || a.updatedAt === undefined) continue
-        if (a.current <= 0n) continue
-        rounds.push({ ts: Number(a.updatedAt), price: Number(a.current) / 1e8 })
-      }
-    } catch {
-      /* one dead phase aggregator must not blank the window */
+    const got = await getLogsChunked<{ args: { current?: bigint; updatedAt?: bigint } }>(
+      client,
+      { address: agg, event: ANSWER_UPDATED, fromBlock, toBlock, spans: ROUND_SPANS },
+      { maxRequests: 40, deadlineMs },
+    )
+    // One dead phase aggregator must not blank the window: getLogsChunked returns what
+    // it got and reports the rest, and the other phases still contribute.
+    for (const l of got.logs) {
+      const a = l.args
+      if (a.current === undefined || a.updatedAt === undefined) continue
+      if (a.current <= 0n) continue
+      rounds.push({ ts: Number(a.updatedAt), price: Number(a.current) / 1e8 })
     }
   }
   return rounds.sort((a, b) => a.ts - b.ts)
@@ -472,7 +550,7 @@ export interface ScanOptions {
   client?: PublicClient
 }
 
-interface LiqLog {
+interface AaveLog {
   args: {
     collateralAsset?: Address
     debtAsset?: Address
@@ -481,7 +559,31 @@ interface LiqLog {
     liquidatedCollateralAmount?: bigint
   }
   blockNumber: bigint
-  transactionHash: `0x${string}`
+}
+
+interface MorphoLog {
+  args: {
+    id?: `0x${string}`
+    borrower?: Address
+    repaidAssets?: bigint
+    seizedAssets?: bigint
+  }
+  blockNumber: bigint
+}
+
+/** One decoded event, before it is priced. */
+interface RawHit {
+  protocol: string
+  blockNumber: bigint
+  ts: number
+  collAddr: Address
+  debtAddr: Address
+  collRaw: bigint
+  debtRaw: bigint
+  /** Aave/Spark: the venue's data provider. Morpho: null — the market carries its own. */
+  dataProvider: Address | null
+  /** Morpho only. Its LLTV is exact, so no data-provider read is needed. */
+  lltv?: number
 }
 
 /**
@@ -496,33 +598,17 @@ export async function scanHistory(
   const deadlineMs = started + (opts.timeoutMs ?? 55_000)
   const client = opts.client ?? makeHistoryClient()
   const user = getAddress(address)
-  const notScanned = ['Morpho Blue', 'Compound V3', 'Spark', 'Fluid']
 
   const base = {
     address: user,
     since: { firstEventTs: null as number | null },
+    episodes: [] as HistoryEpisode[],
     events: [] as HistoryEvent[],
     totals: totalHistory([]),
     provenance: 'observed' as const,
     scannedAt: new Date().toISOString(),
-    notScanned,
-  }
-
-  let pool: Address = AAVE_V3_POOL_FALLBACK
-  let dataProvider: Address | null = null
-  try {
-    pool = (await client.readContract({
-      address: AAVE_V3_ADDRESSES_PROVIDER,
-      abi: providerAbi,
-      functionName: 'getPool',
-    })) as Address
-    dataProvider = (await client.readContract({
-      address: AAVE_V3_ADDRESSES_PROVIDER,
-      abi: providerAbi,
-      functionName: 'getPoolDataProvider',
-    })) as Address
-  } catch {
-    /* keep the fallback pool; a missing data provider only costs us the read line */
+    notScanned: NOT_SCANNED,
+    version: HISTORY_SCHEMA_VERSION,
   }
 
   let head: bigint
@@ -536,200 +622,453 @@ export async function scanHistory(
     }
   }
 
-  const scan = await getLogsChunked<LiqLog>(
-    client,
-    {
-      address: pool,
-      event: LIQUIDATION_CALL,
-      eventArgs: { user },
-      fromBlock: AAVE_V3_START_BLOCK,
-      toBlock: head,
-    },
-    { maxRequests: opts.maxRequests ?? 400, deadlineMs },
-  )
+  // ---------------------------------------------------------- venue discovery
+  interface Venue {
+    label: string
+    pool: Address
+    dataProvider: Address | null
+    startBlock: bigint
+  }
+  const venues: Venue[] = []
+  for (const v of [
+    { label: 'Aave V3', provider: AAVE_V3_ADDRESSES_PROVIDER, start: AAVE_V3_START_BLOCK },
+    { label: 'Spark', provider: SPARK_ADDRESSES_PROVIDER, start: SPARK_START_BLOCK },
+  ]) {
+    let pool: Address | null = v.label === 'Aave V3' ? AAVE_V3_POOL_FALLBACK : null
+    let dataProvider: Address | null = null
+    try {
+      pool = (await client.readContract({
+        address: v.provider,
+        abi: providerAbi,
+        functionName: 'getPool',
+      })) as Address
+      dataProvider = (await client.readContract({
+        address: v.provider,
+        abi: providerAbi,
+        functionName: 'getPoolDataProvider',
+      })) as Address
+    } catch {
+      /* keep whatever we have; a missing data provider only costs us the line read */
+    }
+    if (pool) venues.push({ label: v.label, pool, dataProvider, startBlock: v.start })
+  }
 
-  if (!scan.complete && scan.logs.length === 0) {
-    return {
-      ...base,
-      method:
-        'The Aave V3 log scan did not complete, so no history can be reported for this address.',
-      error: `Aave V3 LiquidationCall scan failed: ${scan.failure ?? 'unknown'} (RPC ring: ${historyRpcUrls().length} endpoints, ${scan.requests} requests made).`,
+  // ------------------------------------------------------------- the log pulls
+  const failures: string[] = []
+  let anyIncomplete = false
+  let firstFailedBlock: bigint | undefined
+  const hits: RawHit[] = []
+  const budget = { maxRequests: opts.maxRequests ?? 400, deadlineMs }
+
+  for (const v of venues) {
+    const scan = await getLogsChunked<AaveLog>(
+      client,
+      {
+        address: v.pool,
+        event: LIQUIDATION_CALL,
+        eventArgs: { user },
+        fromBlock: v.startBlock,
+        toBlock: head,
+      },
+      budget,
+    )
+    if (!scan.complete) {
+      anyIncomplete = true
+      firstFailedBlock = firstFailedBlock ?? scan.failedAtBlock
+      failures.push(`${v.label}: ${scan.failure ?? 'unknown'}`)
+    }
+    for (const log of scan.logs) {
+      hits.push({
+        protocol: v.label,
+        blockNumber: log.blockNumber,
+        ts: 0,
+        collAddr: (log.args.collateralAsset ?? '0x') as Address,
+        debtAddr: (log.args.debtAsset ?? '0x') as Address,
+        collRaw: log.args.liquidatedCollateralAmount ?? 0n,
+        debtRaw: log.args.debtToCover ?? 0n,
+        dataProvider: v.dataProvider,
+      })
     }
   }
 
-  const all = scan.logs.slice().sort((a, b) => Number(a.blockNumber - b.blockNumber))
-  const truncated = all.length > MAX_EVENTS
-  const logs = truncated ? all.slice(-MAX_EVENTS) : all
+  // Morpho Blue: one contract, borrower as topic3, market params resolved per id.
+  {
+    const scan = await getLogsChunked<MorphoLog>(
+      client,
+      {
+        address: MORPHO_BLUE,
+        event: MORPHO_LIQUIDATE,
+        eventArgs: { borrower: user },
+        fromBlock: MORPHO_BLUE_START_BLOCK,
+        toBlock: head,
+      },
+      budget,
+    )
+    if (!scan.complete) {
+      anyIncomplete = true
+      firstFailedBlock = firstFailedBlock ?? scan.failedAtBlock
+      failures.push(`Morpho Blue: ${scan.failure ?? 'unknown'}`)
+    }
+    const params = new Map<string, { loan: Address; coll: Address; lltv: number }>()
+    for (const log of scan.logs) {
+      const id = log.args.id
+      if (!id) continue
+      if (!params.has(id)) {
+        try {
+          const p = (await client.readContract({
+            address: MORPHO_BLUE,
+            abi: morphoAbi,
+            functionName: 'idToMarketParams',
+            args: [id],
+          })) as readonly unknown[]
+          params.set(id, {
+            loan: p[0] as Address,
+            coll: p[1] as Address,
+            lltv: Number(p[4] as bigint) / 1e18,
+          })
+        } catch {
+          continue
+        }
+      }
+      const p = params.get(id)
+      if (!p) continue
+      hits.push({
+        protocol: 'Morpho Blue',
+        blockNumber: log.blockNumber,
+        ts: 0,
+        collAddr: p.coll,
+        debtAddr: p.loan,
+        collRaw: log.args.seizedAssets ?? 0n,
+        debtRaw: log.args.repaidAssets ?? 0n,
+        dataProvider: null,
+        lltv: p.lltv,
+      })
+    }
+  }
+
+  if (hits.length === 0 && anyIncomplete) {
+    return {
+      ...base,
+      method:
+        'The liquidation log scan did not complete, so no history can be reported for this address.',
+      error: `Liquidation scan failed — ${failures.join('; ')} (RPC ring: ${historyRpcUrls().length} endpoints).`,
+    }
+  }
+
+  hits.sort((a, b) => Number(a.blockNumber - b.blockNumber))
+  const truncated = hits.length > MAX_EVENTS
+  const kept = truncated ? hits.slice(-MAX_EVENTS) : hits
+
+  // ------------------------------------------------------------- block stamps
+  const tsByBlock = new Map<string, number>()
+  for (const h of kept) {
+    const key = h.blockNumber.toString()
+    if (tsByBlock.has(key)) continue
+    if (Date.now() > deadlineMs) break
+    try {
+      const block = await client.getBlock({ blockNumber: h.blockNumber })
+      tsByBlock.set(key, Number(block.timestamp))
+    } catch {
+      /* leave it unset — the event is reported unpriced below */
+    }
+  }
+  for (const h of kept) h.ts = tsByBlock.get(h.blockNumber.toString()) ?? 0
+
+  // ---------------------------------------------------------------- episodes
+  // Cluster ACROSS protocols: Oct 10's WETH hit and USDT hit are one crash, one
+  // position, one Membrane replay. Events whose timestamp we could not read cannot be
+  // placed on the timeline at all, so each becomes its own 'unknown' episode.
+  const timed = kept.filter((h) => h.ts > 0)
+  const untimed = kept.filter((h) => h.ts <= 0)
+  const clusters = clusterEpisodes(timed, EPISODE_GAP_SECONDS)
 
   let usedCurrentParams = false
   let anyArchive = false
-  const events: HistoryEvent[] = []
+  const roundsCache = new Map<string, PriceRound[]>()
+  const lineCache = new Map<string, { line: number; fee: number } | null>()
+  const episodes: HistoryEpisode[] = []
+  const allEvents: HistoryEvent[] = []
 
-  for (const log of logs) {
+  for (const [ci, cluster] of clusters.entries()) {
     if (Date.now() > deadlineMs) break
-    const collAddr = (log.args.collateralAsset ?? '0x') as Address
-    const debtAddr = (log.args.debtAsset ?? '0x') as Address
-    const coll = TOKENS[collAddr.toLowerCase()]
-    const debt = TOKENS[debtAddr.toLowerCase()]
+    const firstBlock = cluster[0].blockNumber
+    const lastBlock = cluster[cluster.length - 1].blockNumber
+    const from = firstBlock > BLOCKS_BEFORE ? firstBlock - BLOCKS_BEFORE : 0n
+    const toRaw = lastBlock + BLOCKS_SPAN
+    const to = toRaw > head ? head : toRaw
+    // The chain walks up to 72h past the last event — but never INTO the next real
+    // episode, or Membrane's side would be charged twice for the same days (owner
+    // boundary ruling 2026-09-12). Cap the span at the next episode's first event.
+    const nextStartTs = clusters[ci + 1]?.[0]?.ts
+    const lastTs = cluster[cluster.length - 1].ts
+    const spanSeconds =
+      nextStartTs !== undefined
+        ? Math.max(0, Math.min(EPISODE_SPAN_SECONDS, nextStartTs - lastTs))
+        : EPISODE_SPAN_SECONDS
+    const spanEndTs = lastTs + spanSeconds
 
-    let ts = 0
-    try {
-      const block = await client.getBlock({ blockNumber: log.blockNumber })
-      ts = Number(block.timestamp)
-    } catch {
-      /* leave ts 0 — handled as unpriced below */
+    /** The collateral's rounds over the WHOLE episode span, fetched once per feed. */
+    const roundsFor = async (meta: TokenMeta, ts: number): Promise<PriceRound[]> => {
+      if (meta.pricing.kind === 'stable') {
+        // A stable does not move: one flat round before the first event and one at the
+        // span end. Honest, and it makes the verdict deterministic rather than absent.
+        return [
+          { ts: ts - 1, price: 1 },
+          { ts: spanEndTs, price: 1 },
+        ]
+      }
+      const key = `${meta.pricing.feed}:${from}:${to}`
+      const hit = roundsCache.get(key)
+      if (hit) return hit
+      const got = await feedRounds(client, meta.pricing.feed, from, to, deadlineMs)
+      roundsCache.set(key, got)
+      return got
     }
 
-    const label = coll?.symbol ?? shortAddr(collAddr)
-
-    if (!coll || !debt || ts === 0) {
-      events.push({
-        ts,
-        protocol: 'Aave V3',
-        collateral: label,
-        actualSeizedUsd: 0,
-        verdict: 'unknown',
-        membraneSeizedUsd: 0,
-        membraneShare: null,
-        why:
-          !coll || !debt
-            ? 'unpriced — no committed price source for this asset pair'
-            : 'unpriced — the block timestamp could not be read',
-      })
-      continue
-    }
-
-    // ---- the reserve's liquidation threshold, at the event block if we can get it
-    let liqLine = 0
-    if (dataProvider) {
+    /** The market's liquidation line, and the venue's OWN bonus as Membrane's fee. */
+    const lineFor = async (h: RawHit): Promise<{ line: number; fee: number } | null> => {
+      if (h.lltv !== undefined) {
+        // Morpho's Liquidation Incentive Factor: min(1.15, 1/(1 − 0.3·(1 − LLTV))).
+        // Same shape as an Aave bonus, and it is the fee Membrane is charged here.
+        if (!(h.lltv > 0)) return null
+        return { line: h.lltv, fee: Math.min(1.15, 1 / (1 - 0.3 * (1 - h.lltv))) - 1 }
+      }
+      if (!h.dataProvider) return null
+      const key = `${h.dataProvider}:${h.collAddr}:${h.blockNumber}`
+      if (lineCache.has(key)) return lineCache.get(key) ?? null
       const read = async (blockNumber?: bigint) =>
         (await client.readContract({
-          address: dataProvider as Address,
+          address: h.dataProvider as Address,
           abi: dataProviderAbi,
           functionName: 'getReserveConfigurationData',
-          args: [collAddr],
+          args: [h.collAddr],
           ...(blockNumber === undefined ? {} : { blockNumber }),
         })) as readonly bigint[]
+      let out: { line: number; fee: number } | null = null
       try {
-        const cfg = await read(log.blockNumber)
-        liqLine = Number(cfg[2]) / 10_000
+        const cfg = await read(h.blockNumber)
         anyArchive = true
+        out = { line: Number(cfg[2]) / 10_000, fee: bonusToFee(cfg[3]) }
       } catch {
         try {
           const cfg = await read()
-          liqLine = Number(cfg[2]) / 10_000
           usedCurrentParams = true
+          out = { line: Number(cfg[2]) / 10_000, fee: bonusToFee(cfg[3]) }
         } catch {
-          liqLine = 0
+          out = null
         }
       }
-    }
-    if (!(liqLine > 0)) {
-      events.push({
-        ts,
-        protocol: 'Aave V3',
-        collateral: label,
-        actualSeizedUsd: 0,
-        verdict: 'unknown',
-        membraneSeizedUsd: 0,
-        membraneShare: null,
-        why: 'unpriced — the reserve liquidation threshold could not be read',
-      })
-      continue
+      if (out && !(out.line > 0)) out = null
+      lineCache.set(key, out)
+      return out
     }
 
-    // ---- the rounds that priced this collateral across the window
-    const from = log.blockNumber > BLOCKS_BEFORE ? log.blockNumber - BLOCKS_BEFORE : 0n
-    const to = log.blockNumber + BLOCKS_AFTER
-    let rounds: PriceRound[] = []
-    let wrap = 1
-    if (coll.pricing.kind === 'stable') {
-      // A stable collateral does not move: one flat round at the event and one at the
-      // window end. Honest, and it makes the verdict deterministic rather than absent.
-      rounds = [
-        { ts: ts - 1, price: 1 },
-        { ts: ts + DEFAULT_REPLAY_PARAMS.cureWindowSeconds, price: 1 },
-      ]
-    } else {
-      rounds = await feedRounds(client, coll.pricing.feed, from, to)
-      if (coll.pricing.kind === 'wsteth') {
-        wrap = await stEthPerToken(client, log.blockNumber)
+    const events: HistoryEvent[] = []
+    const priced: Array<{ hl: HistoricLiquidation; meta: TokenMeta; fee: number }> = []
+
+    for (const h of cluster) {
+      const coll = TOKENS[h.collAddr.toLowerCase()]
+      const debt = TOKENS[h.debtAddr.toLowerCase()]
+      const label = coll?.symbol ?? shortAddr(h.collAddr)
+      if (!coll || !debt) {
+        events.push({
+          ts: h.ts,
+          protocol: h.protocol,
+          collateral: label,
+          actualSeizedUsd: 0,
+          unpriced: true,
+          why: 'unpriced — no committed price source for this asset pair',
+        })
+        continue
       }
-    }
 
-    const collAmount = Number(log.args.liquidatedCollateralAmount ?? 0n) / 10 ** coll.decimals
-    const debtAmount = Number(log.args.debtToCover ?? 0n) / 10 ** debt.decimals
+      const cfg = await lineFor(h)
+      if (!cfg) {
+        events.push({
+          ts: h.ts,
+          protocol: h.protocol,
+          collateral: label,
+          actualSeizedUsd: 0,
+          unpriced: true,
+          why: 'unpriced — the liquidation line for this market could not be read',
+        })
+        continue
+      }
 
-    const priceAt = (target: number): number | null => {
-      const before = rounds.filter((r) => r.ts <= target)
-      if (before.length > 0) return before[before.length - 1].price
-      return rounds.length > 0 ? rounds[0].price : null
-    }
-    const collPrice = coll.pricing.kind === 'stable' ? 1 : priceAt(ts)
-    const debtPrice =
-      debt.pricing.kind === 'stable' ? 1 : await spotPrice(client, debt, log.blockNumber, ts)
+      const collRounds = await roundsFor(coll, h.ts)
+      const collPrice = coll.pricing.kind === 'stable' ? 1 : priceAt(collRounds, h.ts)
+      const debtPrice =
+        debt.pricing.kind === 'stable' ? 1 : priceAt(await roundsFor(debt, h.ts), h.ts)
+      if (collPrice === null || debtPrice === null) {
+        events.push({
+          ts: h.ts,
+          protocol: h.protocol,
+          collateral: label,
+          actualSeizedUsd: 0,
+          unpriced: true,
+          why: 'unpriced — no oracle round covers this event',
+        })
+        continue
+      }
 
-    if (collPrice === null || debtPrice === null) {
+      const collWrap =
+        coll.pricing.kind === 'wsteth' ? await stEthPerToken(client, h.blockNumber) : 1
+      const debtWrap =
+        debt.pricing.kind === 'wsteth' ? await stEthPerToken(client, h.blockNumber) : 1
+      const collateralSeizedUsd = (Number(h.collRaw) / 10 ** coll.decimals) * collPrice * collWrap
+      const debtRepaidUsd = (Number(h.debtRaw) / 10 ** debt.decimals) * debtPrice * debtWrap
+
       events.push({
-        ts,
-        protocol: 'Aave V3',
+        ts: h.ts,
+        protocol: h.protocol,
         collateral: label,
-        actualSeizedUsd: 0,
-        verdict: 'unknown',
+        actualSeizedUsd: collateralSeizedUsd,
+        debtRepaidUsd,
+      })
+      priced.push({
+        hl: {
+          ts: h.ts,
+          collateralSeizedUsd,
+          debtRepaidUsd,
+          ltvAtEvent: cfg.line,
+          liqLine: cfg.line,
+        },
+        meta: coll,
+        fee: cfg.fee,
+      })
+    }
+
+    allEvents.push(...events)
+    const startTs = cluster[0].ts
+    const endTs = cluster[cluster.length - 1].ts
+    const protocol = uniqueJoin(cluster.map((h) => h.protocol))
+    const collateral = uniqueJoin(events.map((e) => e.collateral))
+    // The ACTUAL side counts every event in the episode; an unpriced one contributes 0
+    // rather than being dropped from the list.
+    const actualSeizedUsd = events.reduce((a, e) => a + e.actualSeizedUsd, 0)
+
+    if (priced.length === 0) {
+      episodes.push({
+        startTs,
+        endTs,
+        protocol,
+        collateral,
+        events,
+        actualSeizedUsd,
         membraneSeizedUsd: 0,
+        membraneLiquidations: 0,
+        verdict: 'unknown',
         membraneShare: null,
-        why: 'unpriced — no oracle round covers this event',
+        why: events[0]?.why ?? 'unpriced — nothing in this episode could be priced',
       })
       continue
     }
 
-    const collateralSeizedUsd = collAmount * collPrice * wrap
-    const debtRepaidUsd = debtAmount * debtPrice
-
-    const r = replayLiquidation(
-      { ts, collateralSeizedUsd, debtRepaidUsd, ltvAtEvent: liqLine, liqLine },
-      rounds,
+    // The ANCHOR is the first priced event: its collateral carries the price path, its
+    // market carries the line and the fee. Every priced event's repaid debt is summed
+    // into the slice by replayEpisode.
+    const anchor = priced[0]
+    const anchorRounds = await roundsFor(anchor.meta, anchor.hl.ts)
+    const r = replayEpisode(
+      priced.map((p) => p.hl),
+      anchorRounds,
+      { ...DEFAULT_REPLAY_PARAMS, liqFee: anchor.fee, spanSeconds },
     )
 
-    events.push({
-      ts,
-      protocol: 'Aave V3',
-      collateral: label,
-      actualSeizedUsd: r.actualSeizedUsd,
-      verdict: r.verdict,
+    episodes.push({
+      startTs,
+      endTs,
+      protocol,
+      collateral,
+      events,
+      actualSeizedUsd,
       membraneSeizedUsd: r.membraneSeizedUsd,
-      membraneShare: r.membraneShare,
+      membraneLiquidations: r.membraneLiquidations,
+      verdict: r.verdict,
+      membraneShare: actualSeizedUsd > 0 ? r.membraneSeizedUsd / actualSeizedUsd : null,
       recoveredAt: r.recoveredAt,
       brokeAt: r.brokeAt,
+      wiped: r.wiped || undefined,
       why: r.why,
     })
   }
 
-  const priced = events.filter((e) => e.ts > 0)
-  const firstEventTs = priced.length > 0 ? Math.min(...priced.map((e) => e.ts)) : null
+  for (const h of untimed) {
+    const label = TOKENS[h.collAddr.toLowerCase()]?.symbol ?? shortAddr(h.collAddr)
+    const why = 'unpriced — the block timestamp could not be read'
+    const ev: HistoryEvent = {
+      ts: 0,
+      protocol: h.protocol,
+      collateral: label,
+      actualSeizedUsd: 0,
+      unpriced: true,
+      why,
+    }
+    allEvents.push(ev)
+    episodes.push({
+      startTs: 0,
+      endTs: 0,
+      protocol: h.protocol,
+      collateral: label,
+      events: [ev],
+      actualSeizedUsd: 0,
+      membraneSeizedUsd: 0,
+      membraneLiquidations: 0,
+      verdict: 'unknown',
+      membraneShare: null,
+      why,
+    })
+  }
+
+  allEvents.sort((a, b) => a.ts - b.ts)
+  episodes.sort((a, b) => a.startTs - b.startTs)
+  const timedEvents = allEvents.filter((e) => e.ts > 0)
+  const firstEventTs = timedEvents.length > 0 ? Math.min(...timedEvents.map((e) => e.ts)) : null
 
   return {
     ...base,
     since: { firstEventTs },
-    events,
-    totals: totalHistory(events),
+    episodes,
+    events: allEvents,
+    totals: totalHistory(episodes),
     scannedAt: new Date().toISOString(),
     scannedToBlock: head.toString(),
     method: buildMethod({
-      eventCount: events.length,
       truncated,
-      incomplete: !scan.complete,
-      failedAtBlock: scan.failedAtBlock,
+      incomplete: anyIncomplete,
+      failedAtBlock: firstFailedBlock,
       usedCurrentParams,
       anyArchive,
-      notScanned,
+      venues: [...venues.map((v) => v.label), 'Morpho Blue'],
     }),
-    ...(scan.complete
-      ? {}
-      : {
-          error: `The Aave V3 log scan stopped early: ${scan.failure}. Events before that block are missing.`,
-        }),
+    ...(anyIncomplete
+      ? {
+          error: `The liquidation log scan stopped early — ${failures.join('; ')}. Events before that block are missing.`,
+        }
+      : {}),
   }
+}
+
+/** Aave/Spark store the bonus as a 1e4-scaled multiplier: 10500 = a 5% bonus. That
+ *  bonus IS Membrane's fee here, so Membrane never gets a cheaper liquidator than the
+ *  one that actually took the collateral. */
+function bonusToFee(bonus: bigint | undefined): number {
+  const b = Number(bonus ?? 0n) / 10_000
+  if (!(b > 1)) return DEFAULT_REPLAY_PARAMS.liqFee ?? 0.05
+  return b - 1
+}
+
+/** Last round at or before `target`, else the earliest round we have. */
+function priceAt(rounds: PriceRound[], target: number): number | null {
+  const before = rounds.filter((r) => r.ts <= target)
+  if (before.length > 0) return before[before.length - 1].price
+  return rounds.length > 0 ? rounds[0].price : null
+}
+
+function uniqueJoin(xs: string[]): string {
+  const out: string[] = []
+  for (const x of xs) if (x && !out.includes(x)) out.push(x)
+  return out.join(' + ')
 }
 
 async function stEthPerToken(client: PublicClient, blockNumber: bigint): Promise<number> {
@@ -751,23 +1090,6 @@ async function stEthPerToken(client: PublicClient, blockNumber: bigint): Promise
   }
 }
 
-/** One price for a DEBT asset at the event. Debt only needs a point, not a path. */
-async function spotPrice(
-  client: PublicClient,
-  token: TokenMeta,
-  blockNumber: bigint,
-  ts: number,
-): Promise<number | null> {
-  if (token.pricing.kind === 'stable') return 1
-  const from = blockNumber > BLOCKS_BEFORE ? blockNumber - BLOCKS_BEFORE : 0n
-  const rounds = await feedRounds(client, token.pricing.feed, from, blockNumber)
-  if (rounds.length === 0) return null
-  const before = rounds.filter((r) => r.ts <= ts)
-  const p = before.length > 0 ? before[before.length - 1].price : rounds[0].price
-  if (token.pricing.kind === 'wsteth') return p * (await stEthPerToken(client, blockNumber))
-  return p
-}
-
 const shortAddr = (a: string) => (a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a)
 
 /**
@@ -775,36 +1097,37 @@ const shortAddr = (a: string) => (a.length > 12 ? `${a.slice(0, 6)}…${a.slice(
  * readable paragraph and it has to name every approximation the scan actually made.
  */
 function buildMethod(x: {
-  eventCount: number
   truncated: boolean
   incomplete: boolean
   failedAtBlock?: bigint
   usedCurrentParams: boolean
   anyArchive: boolean
-  notScanned: string[]
+  venues: string[]
 }): string {
   const parts: string[] = []
   parts.push(
-    `Every Aave V3 LiquidationCall with this address as the liquidated user, from the Aave V3 deploy block (16,291,127) to the current head, decoded from mainnet logs. ` +
-      `Each event is replayed against Membrane's 8-hour cure window and 4% break band: debt is held fixed, the collateral is repriced by the Chainlink rounds that actually printed over the following 8 hours, and the event counts as SAVED only if the price came back under the borrow line (liquidation line − 3pp) inside the window.`,
+    `Every liquidation with this address as the liquidated borrower on ${x.venues.join(', ')}, decoded from mainnet logs from each venue's deploy block to the current head (Aave V3 16,291,127; Spark 17,000,000; Morpho Blue 18,883,124).`,
   )
   parts.push(
-    `The account's liquidation line is approximated by the SEIZED RESERVE's own liquidation threshold${
+    `Events within 24 hours of each other are ONE EPISODE — one crash, one position — and Membrane's side of an episode is a CHAIN, not a single sale: the position starts at its liquidation line carrying the debt the liquidators actually repaid, is repriced by the Chainlink rounds that really printed, and is walked for 72 hours past the episode's last event. Crossing the line arms an 8-hour timer; a climb past the 4% break band sells immediately; a return to the borrow line (liquidation line − 3pp) clears the timer with nothing sold; a window that expires still over the cap is a repay-to-cap. AFTER EVERY SALE THE POSITION CONTINUES — a repay-to-cap leaves it only 3pp under its line, so a still-falling price re-crosses it, arms a new timer and is liquidated again. Each episode reports how many Membrane liquidations that chain came to, and an episode whose chain cost MORE than the real liquidator did is reported as worse, not hidden.`,
+  )
+  parts.push(
+    `On Aave V3 and Spark the account's liquidation line is approximated by the SEIZED RESERVE's own liquidation threshold${
       x.usedCurrentParams
         ? ' (read at the current block and stamped current params where the node refused archive state)'
         : x.anyArchive
           ? ' read at the event block'
           : ''
-    }, and the LTV at the event is taken to equal that line — an account being liquidated was at or over it by definition. A multi-collateral account's true blended line is not cheaply readable at a historical block.`,
+    }, and the LTV at the event is taken to equal that line — an account being liquidated was at or over it by definition. A multi-collateral account's true blended line is not cheaply readable at a historical block. A Morpho Blue market needs no such approximation: its LLTV is exact.`,
   )
   parts.push(
-    `Position size is the liquidated slice itself: debt = the USD the liquidator repaid, collateral = that debt at the event LTV, so "x% instead of 100%" means x% of what was actually closed. Stablecoins are held at $1.00; wstETH is priced as stETH/USD × stEthPerToken. Assets with no committed price source are listed unpriced and counted in neither direction.`,
+    `Membrane is charged the SOURCE venue's own liquidation bonus as its fee (Aave/Spark liquidationBonus − 1, Morpho's LIF), never a cheaper one. Position size is the liquidated slice itself: debt = the USD the liquidators repaid across the episode, collateral = that debt at the event LTV, so "x% instead of 100%" means x% of what was actually closed. Stablecoins are held at $1.00; wstETH is priced as stETH/USD × stEthPerToken. Assets with no committed price source are listed unpriced and counted in neither direction.`,
   )
   if (x.truncated) parts.push(`Only the most recent ${MAX_EVENTS} events were replayed.`)
   if (x.incomplete)
     parts.push(
       `The log scan stopped at block ${x.failedAtBlock ?? '?'} — earlier events are missing from this total.`,
     )
-  parts.push(`Not scanned: ${x.notScanned.join(', ')}.`)
+  parts.push(`Not scanned: ${NOT_SCANNED.map((n) => `${n.protocol} — ${n.reason}`).join(' ')}`)
   return parts.join(' ')
 }

@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DEFAULT_REPLAY_PARAMS,
+  EPISODE_GAP_SECONDS,
+  clusterEpisodes,
+  replayEpisode,
   replayLiquidation,
   totalHistory,
   type HistoricLiquidation,
-  type HistoryEvent,
+  type HistoryEpisode,
   type PriceRound,
 } from '@/lib/position-sim/history'
 
@@ -37,6 +40,7 @@ describe('replayLiquidation', () => {
     const r = replayLiquidation(ev, [anchor, ...rounds([1, priceFor(0.79)], [3, priceFor(0.76)])])
     expect(r.verdict).toBe('saved')
     expect(r.membraneSeizedUsd).toBe(0)
+    expect(r.membraneLiquidations).toBe(0)
     // The dollar figure the headline prints is the collateral the liquidator took.
     expect(r.actualSeizedUsd).toBe(110_000)
     expect(r.recoveredAt).toBe(T0 + 3 * HOUR)
@@ -110,18 +114,128 @@ describe('replayLiquidation', () => {
   })
 })
 
+// ------------------------------------------------------------------- episodes
+// OWNER RULING 2026-09-12: "assert that the partial closes take into account the
+// possibility of those positions RE-LIQUIDATING, not just assuming they only liquidate
+// once." Everything below is that assertion.
+
+describe('clusterEpisodes', () => {
+  it('two real events 3h apart are ONE episode', () => {
+    const eps = clusterEpisodes([{ ts: T0 }, { ts: T0 + 3 * HOUR }])
+    expect(eps).toHaveLength(1)
+    expect(eps[0]).toHaveLength(2)
+  })
+
+  it('events more than 24h apart are separate episodes', () => {
+    const eps = clusterEpisodes([{ ts: T0 }, { ts: T0 + EPISODE_GAP_SECONDS + 1 }])
+    expect(eps).toHaveLength(2)
+  })
+
+  it('a run of hits each within 24h of the PREVIOUS one stays one episode', () => {
+    const eps = clusterEpisodes([
+      { ts: T0 },
+      { ts: T0 + 20 * HOUR },
+      { ts: T0 + 40 * HOUR },
+      { ts: T0 + 100 * HOUR },
+    ])
+    expect(eps.map((e) => e.length)).toEqual([3, 1])
+  })
+})
+
+describe('replayEpisode — the re-liquidation chain', () => {
+  it('a price that keeps falling causes TWO Membrane seizures inside 72h, and the second is counted', () => {
+    // Window 1 expires at +8h with the LTV over the 77% cap: repay-to-cap. The fee comes
+    // out of collateral, so the survivor sits close to its line; the price keeps sliding,
+    // it re-crosses, a NEW 8h timer arms and expires into a second seizure.
+    const prices = [
+      anchor,
+      ...rounds(
+        [1, priceFor(0.81)],
+        [10, priceFor(0.82)],
+        [20, priceFor(0.83)],
+        [40, priceFor(0.84)],
+      ),
+    ]
+    const r = replayEpisode([ev], prices)
+    expect(r.membraneLiquidations).toBeGreaterThanOrEqual(2)
+    expect(r.seizures.length).toBe(r.membraneLiquidations)
+    // The second bite is real money, not a rounding artefact, and it is LATER.
+    expect(r.seizures[1].usd).toBeGreaterThan(0)
+    expect(r.seizures[1].ts).toBeGreaterThan(r.seizures[0].ts)
+    // The reported total is the SUM of the chain, not just the first sale.
+    const sum = r.seizures.reduce((a, s) => a + s.usd, 0)
+    expect(r.membraneSeizedUsd).toBeCloseTo(sum, 6)
+    expect(r.membraneSeizedUsd).toBeGreaterThan(r.seizures[0].usd)
+    expect(r.why).toMatch(/Membrane liquidations/)
+  })
+
+  it('a partial followed by a RECOVERY is exactly one seizure', () => {
+    // Over the cap at the +8h expiry (one repay-to-cap), then the price recovers hard and
+    // the position never sits over its line at another expiry for the rest of the 72h.
+    const r = replayEpisode(
+      [ev],
+      [anchor, ...rounds([1, priceFor(0.81)], [9, priceFor(0.6)], [30, priceFor(0.55)])],
+    )
+    expect(r.verdict).toBe('partial')
+    expect(r.membraneLiquidations).toBe(1)
+    expect(r.membraneSeizedUsd).toBeGreaterThan(0)
+    expect(r.membraneSeizedUsd).toBeLessThan(r.actualSeizedUsd)
+  })
+
+  it('WORSE: a chain that costs more than the real liquidator did is reported, not hidden', () => {
+    // The real liquidator took a token $2k slice. Membrane's repay-to-cap against the
+    // same $100k of debt is far larger, so the honest verdict is 'worse', share > 1.
+    const tiny: HistoricLiquidation = { ...ev, collateralSeizedUsd: 2_000 }
+    const r = replayEpisode([tiny], [anchor, ...rounds([1, priceFor(0.82)])])
+    expect(r.verdict).toBe('worse')
+    expect(r.membraneSeizedUsd).toBeGreaterThan(r.actualSeizedUsd)
+    // The share is NOT clamped to 1 — the UI has to be able to print "worse".
+    expect(r.membraneShare!).toBeGreaterThan(1)
+  })
+
+  it('two real events 3h apart replay as ONE episode carrying both their debts', () => {
+    const a: HistoricLiquidation = { ...ev, collateralSeizedUsd: 60_000, debtRepaidUsd: 50_000 }
+    const b: HistoricLiquidation = {
+      ...ev,
+      ts: T0 + 3 * HOUR,
+      collateralSeizedUsd: 40_000,
+      debtRepaidUsd: 30_000,
+    }
+    const prices = [anchor, ...rounds([1, priceFor(0.81)], [4, priceFor(0.82)])]
+    const both = replayEpisode([a, b], prices)
+    const justA = replayEpisode([a], prices)
+
+    expect(both.actualSeizedUsd).toBe(100_000)
+    // 80k of debt is repaid to the cap, not 50k, so the episode's seizure is strictly
+    // bigger than the one the first event alone would have produced.
+    expect(both.membraneSeizedUsd).toBeGreaterThan(justA.membraneSeizedUsd)
+    expect(both.verdict).toBe('partial')
+  })
+
+  it('a wiped position ends the chain and says so', () => {
+    // Straight to deeply underwater: one seizure takes the whole slice, the walk stops.
+    const r = replayEpisode([ev], [anchor, ...rounds([1, priceFor(3)], [20, priceFor(4)])])
+    expect(r.wiped).toBe(true)
+    expect(r.membraneLiquidations).toBe(1)
+  })
+})
+
 describe('totalHistory', () => {
   const mk = (
-    verdict: HistoryEvent['verdict'],
+    verdict: HistoryEpisode['verdict'],
     actual: number,
     membrane: number,
-  ): HistoryEvent => ({
-    ts: T0,
+    membraneLiquidations = membrane > 0 ? 1 : 0,
+  ): HistoryEpisode => ({
+    startTs: T0,
+    endTs: T0,
     protocol: 'Aave V3',
     collateral: 'WETH',
+    events: [],
     actualSeizedUsd: actual,
-    verdict,
     membraneSeizedUsd: membrane,
+    membraneLiquidations,
+    verdict,
     membraneShare: actual > 0 ? membrane / actual : null,
     why: '',
   })
@@ -130,35 +244,42 @@ describe('totalHistory', () => {
     const t = totalHistory([
       mk('saved', 41_200, 0),
       mk('saved', 8_800, 0),
-      mk('partial', 10_000, 3_000),
+      mk('partial', 10_000, 3_000, 2),
       mk('broke', 5_000, 1_500),
+      mk('worse', 4_000, 4_500),
       mk('unknown', 0, 0),
     ])
     expect(t.savedUsd).toBe(50_000)
     expect(t.savedCount).toBe(2)
-    // partialUsd is what Membrane would still have KEPT on the ones it could not save.
-    expect(t.partialUsd).toBe(7_000)
+    // partialKeptUsd is what Membrane would still have KEPT on the ones it could not save.
+    expect(t.partialKeptUsd).toBe(7_000)
     expect(t.partialCount).toBe(1)
     expect(t.brokeCount).toBe(1)
-    expect(t.unpricedCount).toBe(1)
+    expect(t.worseCount).toBe(1)
+    expect(t.unknownCount).toBe(1)
+    // Re-liquidations included: 2 on the partial, 1 on the broke, 1 on the worse.
+    expect(t.membraneLiquidationsTotal).toBe(4)
   })
 
-  it('an unpriced event never becomes a save', () => {
+  it('an unpriced episode never becomes a save', () => {
     const t = totalHistory([mk('unknown', 999_999, 0)])
     expect(t.savedUsd).toBe(0)
     expect(t.savedCount).toBe(0)
-    expect(t.unpricedCount).toBe(1)
+    expect(t.unknownCount).toBe(1)
+    expect(t.membraneLiquidationsTotal).toBe(0)
   })
 
-  it('no events at all is all zeroes — the UI prints a sentence, not a number', () => {
+  it('no episodes at all is all zeroes — the UI prints a sentence, not a number', () => {
     const t = totalHistory([])
     expect(t).toEqual({
       savedUsd: 0,
       savedCount: 0,
-      partialUsd: 0,
+      partialKeptUsd: 0,
       partialCount: 0,
       brokeCount: 0,
-      unpricedCount: 0,
+      worseCount: 0,
+      unknownCount: 0,
+      membraneLiquidationsTotal: 0,
     })
   })
 })

@@ -94,14 +94,52 @@ import PositionCard from './PositionCard'
 import { recordSimRead } from './recordRead'
 import VerdictHero from './VerdictHero'
 
-/** Plain section title. There are no numbered eyebrows on this page any more. */
+/**
+ * Plain section title. There are no numbered eyebrows on this page any more.
+ * The bottom margin is part of the section rhythm below (owner ruling 2026-09-12).
+ */
 const SECTION = {
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '10px',
   letterSpacing: '0.2em',
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
+  marginBottom: SPACING.md,
 }
+
+/**
+ * THE SECTION SHELL — owner ruling 2026-09-12: "it all just blends in".
+ *
+ * Every top-level block on this page now sits in the same container, so the page reads
+ * as a stack of BANDS instead of one continuous scroll of mono text. Three levers, all
+ * of them consistent and none of them per-section decoration:
+ *   · paddingY SPACING.xl (32px) — the same air above and below every band;
+ *   · borderTop on borderStrong — a visible seam between bands, except at the very top
+ *     (the hero opens the page and has nothing to be separated from);
+ *   · ALTERNATING background — evidence bands (the history proof, the carry section,
+ *     the run) sit on bgSecondary and are inset by SPACING.base, so what is measured
+ *     looks different from what is asserted.
+ * The page container's own gap is 0: the bands butt against each other, which is what
+ * makes the seam and the background change legible. No copy changes with this.
+ */
+const Section: React.FC<{
+  /** 'evidence' = measured/fetched material. Everything else is 'plain'. */
+  tone?: 'plain' | 'evidence'
+  /** The hero. Opens the page, so it carries no top seam. */
+  first?: boolean
+  children: React.ReactNode
+}> = ({ tone = 'plain', first = false, children }) => (
+  <Box
+    as="section"
+    py={SPACING.xl}
+    borderTop={first ? undefined : '1px solid'}
+    borderColor={first ? undefined : SEMANTIC_COLORS.borderStrong}
+    bg={tone === 'evidence' ? SEMANTIC_COLORS.bgSecondary : SEMANTIC_COLORS.bgPrimary}
+    px={tone === 'evidence' ? SPACING.base : undefined}
+  >
+    {children}
+  </Box>
+)
 
 const HEAD = {
   fontFamily: TYPOGRAPHY.fontMono,
@@ -536,159 +574,182 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
       fontFamily={TYPOGRAPHY.fontMono}
       color={SEMANTIC_COLORS.textPrimary}
       display="grid"
-      gap={SPACING.lg}
+      gap={SPACING.none}
     >
       {/* 1 — THE HERO. The verdict, the gap, the paste card, the graph that draws
-          itself. No eyebrow, no thesis sentence, no disclosure box: those are §7. */}
-      <VerdictHero
-        comparison={comparison}
-        carry={carry}
-        mode={mode}
-        heroVariant={heroVariant}
-        history={heroHistory}
-        isDemo={isDemo}
-        startTs={scenario?.series.startTs ?? null}
-        stepSeconds={scenario?.series.stepSeconds ?? null}
-        errors={heroErrors}
-        value={input}
-        onChange={setInput}
-        onSubmit={onSubmitAddress}
-        loadedAddress={loaded?.address ?? null}
-        onClear={onClearAddress}
-        isLoading={isLoading}
-        error={addressError}
-      />
+          itself. No eyebrow, no thesis sentence, no disclosure box: those are §7.
+          Borderless: it opens the page and has nothing above it to be separated from. */}
+      <Section first>
+        <VerdictHero
+          comparison={comparison}
+          carry={carry}
+          mode={mode}
+          heroVariant={heroVariant}
+          history={heroHistory}
+          isDemo={isDemo}
+          startTs={scenario?.series.startTs ?? null}
+          stepSeconds={scenario?.series.stepSeconds ?? null}
+          errors={heroErrors}
+          value={input}
+          onChange={setInput}
+          onSubmit={onSubmitAddress}
+          loadedAddress={loaded?.address ?? null}
+          onClear={onClearAddress}
+          isLoading={isLoading}
+          error={addressError}
+        />
+      </Section>
 
       {/* 2 — THE GUARANTEE, verbatim from GUARANTEE. Limit adjacent, never collapsed. */}
-      <GuaranteeBlock />
+      <Section>
+        <GuaranteeBlock />
+      </Section>
 
       {/* 2a — THE SECONDARY PROOF. The Oct 10 hero is a counterfactual about one day;
           this is what the same delay infrastructure would have done to the events that
           actually happened to the address on screen. A wallet with no history says so
-          in one line and prints no number — never a manufactured near-miss. */}
-      <HistoryProof address={historyAddress} />
+          in one line and prints no number — never a manufactured near-miss.
+          EVIDENCE band: measured events, not a claim. */}
+      <Section tone="evidence">
+        <HistoryProof address={historyAddress} />
+      </Section>
 
       {/* 2b — THE PRODUCT, UNDER THE FOLD. Owner layout ruling 2026-09-12: one landing
           page — "the sim is borrows, while under the fold is carries". This is the first
           thing below the hero, on BOTH builds (it carries the four claims that used to
           render standalone on the carry page), and it sells with live evidence rather
           than description. Its numbers are fetched or stamped modelled, never invented. */}
-      <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} />
+      <Section tone="evidence">
+        <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} />
+      </Section>
 
       {/* 3 — YOUR POSITION */}
       {positions.length > 0 && (
-        <Box display="grid" gap={SPACING.md}>
-          <Box display="flex" gap={SPACING.md} alignItems="baseline" flexWrap="wrap">
-            <Text {...SECTION}>your position</Text>
-            {isDemo && (
-              <Text {...SECTION} color={SEMANTIC_COLORS.textSecondary}>
-                real wallet · {demoTag}
-              </Text>
-            )}
-          </Box>
-
-          {/* one line per adapter, status only */}
-          {loaded && (
-            <Box display="flex" gap={SPACING.md} flexWrap="wrap">
-              {loaded.results.map((r) => (
-                <Text
-                  key={`${r.protocol}-${r.label}`}
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="11px"
-                  color={STATUS_COLOR[r.status]}
-                  {...tabular}
-                >
-                  {r.label} · {r.status}
-                  {r.status === 'ok' ? ` · ${r.positions.length} positions` : ''}
+        <Section>
+          <Box display="grid" gap={SPACING.md}>
+            <Box display="flex" gap={SPACING.md} alignItems="baseline" flexWrap="wrap">
+              <Text {...SECTION}>your position</Text>
+              {isDemo && (
+                <Text {...SECTION} color={SEMANTIC_COLORS.textSecondary}>
+                  real wallet · {demoTag}
                 </Text>
-              ))}
+              )}
             </Box>
-          )}
 
-          {positions.map((p) => (
-            <PositionCard
-              key={keyOf(p)}
-              position={p}
-              selectable={positions.length > 1}
-              selected={positions.length > 1 && selected ? keyOf(p) === keyOf(selected) : undefined}
-              onSelect={positions.length > 1 ? () => onSelectPosition(keyOf(p)) : undefined}
-            />
-          ))}
-        </Box>
+            {/* one line per adapter, status only */}
+            {loaded && (
+              <Box display="flex" gap={SPACING.md} flexWrap="wrap">
+                {loaded.results.map((r) => (
+                  <Text
+                    key={`${r.protocol}-${r.label}`}
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="11px"
+                    color={STATUS_COLOR[r.status]}
+                    {...tabular}
+                  >
+                    {r.label} · {r.status}
+                    {r.status === 'ok' ? ` · ${r.positions.length} positions` : ''}
+                  </Text>
+                ))}
+              </Box>
+            )}
+
+            {positions.map((p) => (
+              <PositionCard
+                key={keyOf(p)}
+                position={p}
+                selectable={positions.length > 1}
+                selected={
+                  positions.length > 1 && selected ? keyOf(p) === keyOf(selected) : undefined
+                }
+                onSelect={positions.length > 1 ? () => onSelectPosition(keyOf(p)) : undefined}
+              />
+            ))}
+          </Box>
+        </Section>
       )}
 
       {/* 4 — WHAT YOU ARE ASSUMING */}
       {selected && (
-        <Box display="grid" gap={SPACING.md}>
-          <Text {...SECTION}>what you are assuming</Text>
-          <Box maxW={{ base: '100%', md: '760px' }}>
-            <Controls
-              values={values}
-              onChange={onControlChange}
-              onReset={onResetControls}
-              unknownLtvSymbols={derived.unknown}
-              venueDetected={detection?.status === 'detected'}
-              assumedDeploymentNote={undefined}
-              ltvProvenance={MEMBRANE_LTV_PROVENANCE}
-              venueProvenance={venueProvenance}
-            />
+        <Section>
+          <Box display="grid" gap={SPACING.md}>
+            <Text {...SECTION}>what you are assuming</Text>
+            <Box maxW={{ base: '100%', md: '760px' }}>
+              <Controls
+                values={values}
+                onChange={onControlChange}
+                onReset={onResetControls}
+                unknownLtvSymbols={derived.unknown}
+                venueDetected={detection?.status === 'detected'}
+                assumedDeploymentNote={undefined}
+                ltvProvenance={MEMBRANE_LTV_PROVENANCE}
+                venueProvenance={venueProvenance}
+              />
+            </Box>
           </Box>
-        </Box>
+        </Section>
       )}
 
-      {/* 5 — THE RUN */}
+      {/* 5 — THE RUN. EVIDENCE band: this is the measured comparison itself. */}
       {selected && (
-        <Box display="grid" gap={SPACING.md}>
-          <Text {...SECTION}>the run</Text>
+        <Section tone="evidence">
+          <Box display="grid" gap={SPACING.md}>
+            <Text {...SECTION}>the run</Text>
 
-          {measuredError && (
-            <Text {...monoXs} color={SEMANTIC_COLORS.warning} lineHeight={1.6}>
-              Measured Oct 10 liquidation statistics unavailable · documented close factor used
-            </Text>
-          )}
+            {measuredError && (
+              <Text {...monoXs} color={SEMANTIC_COLORS.warning} lineHeight={1.6}>
+                Measured Oct 10 liquidation statistics unavailable · documented close factor used
+              </Text>
+            )}
 
-          {comparison && (
-            <>
-              <ComparisonPanel
-                comparison={comparison}
-                onSaveCard={onSaveCard}
-                onCopyLink={onCopyLink}
-                copyState={copyState}
-              />
-              <EventLog
-                source={comparison.source}
-                membrane={comparison.membrane}
-                sourceTitle={comparison.position.label}
-              />
-            </>
-          )}
+            {comparison && (
+              <>
+                <ComparisonPanel
+                  comparison={comparison}
+                  onSaveCard={onSaveCard}
+                  onCopyLink={onCopyLink}
+                  copyState={copyState}
+                />
+                <EventLog
+                  source={comparison.source}
+                  membrane={comparison.membrane}
+                  sourceTitle={comparison.position.label}
+                />
+              </>
+            )}
 
-          <DeploymentSection
-            detection={detection}
-            recallRate={values.recallRate}
-            fastRate={values.fastRate}
-          />
-        </Box>
+            <DeploymentSection
+              detection={detection}
+              recallRate={values.recallRate}
+              fastRate={values.fastRate}
+            />
+          </Box>
+        </Section>
       )}
 
       {/* 7 — FINE PRINT. Always rendered, never collapsed, last block before the CTA. */}
-      <FinePrint
-        caveats={runCaveats}
-        unpricedSymbols={comparison?.unpricedSymbols ?? []}
-        stamps={stamps}
-        borrowRateNote={borrowRateNote}
-        extraNotes={finePrintNotes}
-      />
+      <Section>
+        <FinePrint
+          caveats={runCaveats}
+          unpricedSymbols={comparison?.unpricedSymbols ?? []}
+          stamps={stamps}
+          borrowRateNote={borrowRateNote}
+          extraNotes={finePrintNotes}
+        />
+      </Section>
 
       {/* 8 — THE CTA, REPEATED. A reader who got to the bottom of the page should not
           have to hunt for the paste box. Same sentence as the hero, imported from
           VerdictHero so the two can never drift. */}
-      <SimCtaRepeat />
+      <Section>
+        <SimCtaRepeat />
+      </Section>
 
       {/* 9 — THE OTHER BUILD. Both simulators are live and indexable; only one of them
           is the landing page (config/simulatorMode.ts). One line, at the foot, so the
-          other ordering is reachable without spending a nav slot on it. */}
-      <Text {...monoXs} color={SEMANTIC_COLORS.textSecondary}>
+          other ordering is reachable without spending a nav slot on it. Not a section:
+          a footnote below the last band. */}
+      <Text {...monoXs} color={SEMANTIC_COLORS.textSecondary} pt={SPACING.base}>
         <NextLink href={`/${chainForLinks}${SIM_ROUTE[OTHER_MODE[mode]]}`}>
           {SIM_MODE_LINK_LABEL[OTHER_MODE[mode]]}
         </NextLink>

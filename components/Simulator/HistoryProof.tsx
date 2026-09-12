@@ -9,12 +9,17 @@
 //     still be yours." The count is the label underneath it.
 //  2. NO MANUFACTURED NEAR-MISS. A wallet with no liquidation history gets ONE plain
 //     sentence and no number at all. Not a zero in big type — a sentence.
-//  3. THE NON-SAVES RENDER TOO. "Liquidated anyway — 30% instead of 100%" and BROKE
-//     both get a row, in gold and blood. Reporting the losses is what makes the saves
-//     believable, and hiding them would make this block advertising.
+//  3. THE NON-SAVES RENDER TOO. "Liquidated anyway — 2 Membrane liquidations, 30%
+//     instead of 100%", BROKE, and WORSE all get a row, in gold and blood. Reporting
+//     the losses is what makes the saves believable, and hiding them would make this
+//     block advertising.
+//  4. THE ROW IS AN EPISODE, NOT AN EVENT (owner ruling 2026-09-12). Events within 24h
+//     of each other are one crash and one Membrane replay, and that replay is a CHAIN:
+//     a repay-to-cap leaves the position 3pp under its line, so a still-falling price
+//     re-liquidates it. Every row therefore carries a Membrane liquidation COUNT.
 //
 // Every number here comes from /api/sim/history/[address], which replays REAL decoded
-// LiquidationCall events against real Chainlink rounds. This file computes nothing.
+// liquidation events against real Chainlink rounds. This file computes nothing.
 
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'
@@ -23,7 +28,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { tabular } from '@/components/Builder/styles'
-import type { HistoryEvent, ReplayVerdict } from '@/lib/position-sim/history'
+import type { EpisodeVerdict, HistoryEpisode } from '@/lib/position-sim/history'
 
 import { useSimHistory } from './hooks/useSimHistory'
 import { usd } from './format'
@@ -44,25 +49,35 @@ export const historyDate = (ts: number): string => {
   return `${d.getUTCDate()} ${d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })} ${d.getUTCFullYear()}`
 }
 
-/** The verdict tag, in the words the brief asked for. `null` share prints no percent. */
-export function verdictTag(e: HistoryEvent): { text: string; color: string } {
+/** The verdict tag, in the words the brief asked for. `null` share prints no percent.
+ *  The liquidation COUNT is part of the copy on every non-save: one repay-to-cap and
+ *  three of them are different outcomes and must never read the same. */
+export function verdictTag(e: HistoryEpisode): { text: string; color: string } {
+  const pct = e.membraneShare === null ? null : Math.round(e.membraneShare * 100)
+  const n = e.membraneLiquidations
+  const times = `${n} Membrane liquidation${n === 1 ? '' : 's'}`
   switch (e.verdict) {
     case 'saved':
       return { text: 'SAVED — nothing sold', color: SEMANTIC_COLORS.success }
     case 'partial':
       return {
         text:
-          e.membraneShare === null
-            ? 'liquidated anyway — Membrane repays only to the borrow cap'
-            : `liquidated anyway — ${Math.round(e.membraneShare * 100)}% instead of 100%`,
+          pct === null
+            ? `liquidated anyway — ${times}, repaying only to the borrow cap`
+            : `liquidated anyway — ${times}, ${pct}% instead of 100%`,
         color: SEMANTIC_COLORS.warning,
       }
     case 'broke':
       return {
         text:
-          e.membraneShare === null
-            ? 'BROKE the 4% band — immediate sale'
-            : `BROKE the 4% band — ${Math.round(e.membraneShare * 100)}% instead of 100%`,
+          pct === null
+            ? `BROKE the 4% band — immediate sale, ${times}`
+            : `BROKE the 4% band — ${pct}%`,
+        color: SEMANTIC_COLORS.danger,
+      }
+    case 'worse':
+      return {
+        text: pct === null ? `worse on Membrane — ${times}` : `worse on Membrane — ${pct}%`,
         color: SEMANTIC_COLORS.danger,
       }
     default:
@@ -70,7 +85,20 @@ export function verdictTag(e: HistoryEvent): { text: string; color: string } {
   }
 }
 
-const VERDICT_ORDER: Record<ReplayVerdict, number> = { saved: 0, partial: 1, broke: 2, unknown: 3 }
+const VERDICT_ORDER: Record<EpisodeVerdict, number> = {
+  saved: 0,
+  partial: 1,
+  broke: 2,
+  worse: 3,
+  unknown: 4,
+}
+
+/** "12 Mar 2024" for a one-day episode, "5–7 Apr 2025" when it spans more than one. */
+export const episodeDate = (e: HistoryEpisode): string => {
+  const a = historyDate(e.startTs)
+  const b = historyDate(e.endTs)
+  return a === b ? a : `${a} → ${b}`
+}
 
 export interface HistoryProofProps {
   /** The address on screen: the demo wallet on the demo, the pasted one after a read. */
@@ -134,13 +162,13 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
 
   const h = data!
   const { savedUsd, savedCount } = h.totals
-  const events = h.events
+  const episodes = (h.episodes ?? [])
     .slice()
-    .sort((a, b) => VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict] || b.ts - a.ts)
+    .sort((a, b) => VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict] || b.startTs - a.startTs)
 
   // ------------------------------------------------------ no events on record
   // ONE line, plain, no number. Rule 2 of the brief.
-  if (h.events.length === 0) {
+  if (episodes.length === 0) {
     return (
       <Box
         data-testid="sim-history"
@@ -157,7 +185,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
           lineHeight={1.6}
           color={SEMANTIC_COLORS.textPrimary}
         >
-          No liquidations on record for this address since Aave V3 launched.
+          No liquidations on record for this address on Aave V3, Spark or Morpho Blue.
         </Text>
       </Box>
     )
@@ -195,7 +223,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
             letterSpacing="0.06em"
             color={SEMANTIC_COLORS.textSecondary}
           >
-            {savedCount} liquidation{savedCount === 1 ? '' : 's'}
+            {savedCount} liquidation episode{savedCount === 1 ? '' : 's'}
             {firstTs ? ` since ${historyDate(firstTs)}` : ''} · price was back inside the window
           </Text>
         </Box>
@@ -209,52 +237,77 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
           lineHeight={1.6}
           color={SEMANTIC_COLORS.textPrimary}
         >
-          The 8-hour window would not have saved any of this address&apos;s {h.events.length}{' '}
-          liquidation{h.events.length === 1 ? '' : 's'}
+          The 8-hour window would not have saved any of this address&apos;s {episodes.length}{' '}
+          liquidation episode{episodes.length === 1 ? '' : 's'}
           {firstTs ? ` since ${historyDate(firstTs)}` : ''}. Here is what it would have changed.
         </Text>
       )}
 
       <Box display="grid" gap={SPACING.xs}>
-        {events.map((e, i) => {
+        {episodes.map((e, i) => {
           const tag = verdictTag(e)
           return (
             <Box
-              key={`${e.ts}-${e.collateral}-${i}`}
+              key={`${e.startTs}-${e.collateral}-${i}`}
               display="grid"
-              gridTemplateColumns={{ base: '1fr', md: '110px 78px 1fr auto' }}
-              gap={{ base: SPACING.xs, md: SPACING.md }}
-              alignItems="baseline"
+              gap={SPACING.xs}
               borderTop={i === 0 ? undefined : '1px solid'}
               borderColor={SEMANTIC_COLORS.borderSubtle}
               pt={i === 0 ? 0 : SPACING.xs}
             >
-              <Text
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="12px"
-                color={SEMANTIC_COLORS.textSecondary}
-                {...tabular}
+              <Box
+                display="grid"
+                gridTemplateColumns={{ base: '1fr', md: '150px 78px 1fr auto' }}
+                gap={{ base: SPACING.xs, md: SPACING.md }}
+                alignItems="baseline"
               >
-                {historyDate(e.ts)}
-              </Text>
-              <Text
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="12px"
-                color={SEMANTIC_COLORS.textSecondary}
-              >
-                {e.protocol}
-              </Text>
-              <Text
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="12px"
-                color={SEMANTIC_COLORS.textPrimary}
-                {...tabular}
-              >
-                sold {usd(e.actualSeizedUsd)} {e.collateral}
-              </Text>
-              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={tag.color}>
-                {tag.text}
-              </Text>
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="12px"
+                  color={SEMANTIC_COLORS.textSecondary}
+                  {...tabular}
+                >
+                  {episodeDate(e)}
+                </Text>
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="12px"
+                  color={SEMANTIC_COLORS.textSecondary}
+                >
+                  {e.protocol}
+                </Text>
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="12px"
+                  color={SEMANTIC_COLORS.textPrimary}
+                  {...tabular}
+                >
+                  sold {usd(e.actualSeizedUsd)} {e.collateral}
+                </Text>
+                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={tag.color}>
+                  {tag.text}
+                </Text>
+              </Box>
+
+              {/* An episode of more than one real hit lists them, so "one row" never
+                  hides two liquidations that actually happened. */}
+              {e.events.length > 1 && (
+                <Box display="grid" gap="2px" pl={{ base: 0, md: SPACING.md }}>
+                  {e.events.map((ev, j) => (
+                    <Text
+                      key={`${ev.ts}-${ev.collateral}-${j}`}
+                      fontFamily={TYPOGRAPHY.fontMono}
+                      fontSize="11px"
+                      color={SEMANTIC_COLORS.textTertiary}
+                      {...tabular}
+                    >
+                      {historyDate(ev.ts)} · {ev.protocol} · {usd(ev.actualSeizedUsd)}{' '}
+                      {ev.collateral}
+                      {ev.unpriced ? ` · ${ev.why ?? 'unpriced'}` : ''}
+                    </Text>
+                  ))}
+                </Box>
+              )}
             </Box>
           )
         })}
@@ -267,20 +320,50 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
           color={SEMANTIC_COLORS.textSecondary}
           lineHeight={1.6}
         >
-          On the {h.totals.partialCount} it could not save, Membrane would still have kept{' '}
-          {usd(h.totals.partialUsd)} of collateral by repaying only to the borrow cap.
+          On the {h.totals.partialCount} episode{h.totals.partialCount === 1 ? '' : 's'} it could
+          not save, Membrane would still have kept {usd(h.totals.partialKeptUsd)} of collateral by
+          repaying only to the borrow cap — across {h.totals.membraneLiquidationsTotal} Membrane
+          liquidation{h.totals.membraneLiquidationsTotal === 1 ? '' : 's'} in all, re-liquidations
+          included.
         </Text>
       )}
 
-      {(h.notScanned ?? []).length > 0 && (
+      {h.totals.worseCount > 0 && (
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="11.5px"
-          color={SEMANTIC_COLORS.textTertiary}
+          fontSize="12px"
+          color={SEMANTIC_COLORS.danger}
           lineHeight={1.6}
         >
-          Not scanned: {(h.notScanned ?? []).join(', ')}. Aave V3 only.
+          On {h.totals.worseCount} episode{h.totals.worseCount === 1 ? '' : 's'} the Membrane chain
+          would have cost MORE than the real liquidator did. That is printed, not netted away.
         </Text>
+      )}
+
+      {/* Scanned: Aave V3, Spark, Morpho Blue. The rest is named WITH ITS REASON,
+          verbatim from the scan — a bare list reads as "we forgot". */}
+      {(h.notScanned ?? []).length > 0 && (
+        <Box display="grid" gap="2px">
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="11.5px"
+            color={SEMANTIC_COLORS.textTertiary}
+            lineHeight={1.6}
+          >
+            Scanned: Aave V3, Spark, Morpho Blue.
+          </Text>
+          {(h.notScanned ?? []).map((n) => (
+            <Text
+              key={n.protocol}
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="11.5px"
+              color={SEMANTIC_COLORS.textTertiary}
+              lineHeight={1.6}
+            >
+              Not scanned — {n.protocol}: {n.reason}
+            </Text>
+          ))}
+        </Box>
       )}
     </Box>
   )

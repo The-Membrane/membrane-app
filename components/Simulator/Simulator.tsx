@@ -29,6 +29,7 @@ import {
   loadOct10,
   measuredRepayFraction,
   oct10Provenance,
+  outcomeLine,
   parseAddress,
   readUrlState,
   runAdapters,
@@ -48,14 +49,17 @@ import {
   type VenueRecall,
 } from '@/lib/position-sim'
 
-import AddressBar from './AddressBar'
+import AllocationClose from './AllocationClose'
 import ComparisonPanel from './ComparisonPanel'
 import Controls, { type ControlValues } from './Controls'
 import DeploymentSection from './DeploymentSection'
 import EquityChart from './EquityChart'
 import EventLog from './EventLog'
+import GuaranteeBlock from './GuaranteeBlock'
 import PositionCard from './PositionCard'
+import { recordSimRead } from './recordRead'
 import Stamp from './Stamp'
+import VerdictHero from './VerdictHero'
 import { pct, shortAddress, usd } from './format'
 
 const HEAD = {
@@ -171,6 +175,8 @@ export const Simulator: React.FC = () => {
       // and detectVenues returns status 'error' rather than raising.
       const [results, detection] = await Promise.all([runAdapters(parsed), detectVenues(parsed)])
       setLoaded({ address: parsed, results, detection })
+      // Launch instrument: address + protocols only, never the worked example.
+      recordSimRead(parsed, results)
     } finally {
       setLoading(false)
     }
@@ -416,6 +422,21 @@ export const Simulator: React.FC = () => {
         </Box>
       </Box>
 
+      {/* THE VERDICT — the hero. The diagnosis of this position comes before anything
+          else on the page; the address bar rides inside it. */}
+      <VerdictHero
+        comparison={comparison}
+        isDemo={isDemo}
+        positionLabel={selected?.label ?? null}
+        value={input}
+        onChange={setInput}
+        onSubmit={onSubmitAddress}
+        loadedAddress={loaded?.address ?? null}
+        onClear={onClearAddress}
+        isLoading={isLoading}
+        error={addressError}
+      />
+
       {/* demo-first banner — persistent for as long as the worked example is on screen */}
       {isDemo && (
         <Box
@@ -441,15 +462,8 @@ export const Simulator: React.FC = () => {
         </Box>
       )}
 
-      <AddressBar
-        value={input}
-        onChange={setInput}
-        onSubmit={onSubmitAddress}
-        loadedAddress={loaded?.address ?? null}
-        onClear={onClearAddress}
-        isLoading={isLoading}
-        error={addressError}
-      />
+      {/* 02 / the named guarantee — verbatim from GUARANTEE, limit never collapsed */}
+      <GuaranteeBlock />
 
       {/* per-adapter outcome — every status, verbatim */}
       {loaded && (
@@ -567,13 +581,20 @@ export const Simulator: React.FC = () => {
           />
 
           {comparison ? (
-            <ComparisonPanel
-              comparison={comparison}
-              isDemo={isDemo}
-              onSaveCard={onSaveCard}
-              onCopyLink={onCopyLink}
-              copyState={copyState}
-            />
+            <Box display="grid" gap={SPACING.md}>
+              <ComparisonPanel
+                comparison={comparison}
+                isDemo={isDemo}
+                onSaveCard={onSaveCard}
+                onCopyLink={onCopyLink}
+                copyState={copyState}
+              />
+              {/* THE CLOSE — only on a real address whose real run liquidated. Never
+                  off the worked example, and never off a run that ended well. */}
+              {!isDemo && loaded && outcomeLine(comparison).source.liquidated && (
+                <AllocationClose address={loaded.address} />
+              )}
+            </Box>
           ) : (
             <Box
               bg={SEMANTIC_COLORS.bgSecondary}

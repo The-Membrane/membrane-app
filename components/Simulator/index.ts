@@ -3,6 +3,14 @@ export { Simulator, default } from './Simulator'
 export { AddressBar } from './AddressBar'
 export type { AddressBarProps } from './AddressBar'
 
+export { AllocationClose } from './AllocationClose'
+export type { AllocationCloseProps } from './AllocationClose'
+
+export { GuaranteeBlock } from './GuaranteeBlock'
+
+export { VerdictHero } from './VerdictHero'
+export type { VerdictHeroProps } from './VerdictHero'
+
 export { ComparisonPanel } from './ComparisonPanel'
 export type { ComparisonPanelProps } from './ComparisonPanel'
 

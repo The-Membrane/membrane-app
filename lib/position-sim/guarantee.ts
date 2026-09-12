@@ -38,17 +38,18 @@ export const GUARANTEE = {
   /**
    * The UX claim, and the only one on this surface that is not about liquidation.
    *
-   * It used to read "Nobody can change the terms of your position after you open it."
-   * That was FALSE, and the owner corrected it 2026-09-12: liquidation LTVs DO move via
-   * Disco — a 14-day request plus a 2-day window, with direct lowering forbidden in
-   * code — and an open position is grandfathered on its CACHED LTV only until its owner
-   * next touches it (docs/marketing/no-dials-usp.md:170-171 — LtvDisco.sol:1192,1210;
-   * Cdp.sol:2171,1308). What IS fixed is the rate on debt already drawn.
-   * Verbatim owner copy — do not paraphrase, do not add a sentence beside it.
+   * VERIFIED 2026-09-12 in membrane-solidity: there is NO per-change LTV cap and NO
+   * 14-day delay on LTV. LTV is a live MBRN-stake ratio (LtvDisco.sol:1767-1782,
+   * capped at the 90% hard cap) inside a per-asset [minLTV, maxLTV] band fixed once at
+   * createQueue (LtvDisco.sol:868-878). The stake that moves it sits behind 7-day
+   * unstaking / switching floors (Constants.sol:110-114). The 14d+2d timelock governs
+   * config FIELDS, not the LTV number. An open position is liquidated against its
+   * CACHED LTV until deposit/withdraw re-stamps it (Cdp.sol:2148, 4221-4229), but the
+   * owner ruled that clause out of the copy. What IS fixed is the rate on drawn debt.
    */
   noDials:
-    'Your rate is fixed at open. LTV changes are delayed 14 days and never touch an ' +
-    'open position until you next act on it.',
+    "Your rate is fixed at open. LTV moves only with MBRN stake, on 7 days' notice, " +
+    'inside a fixed band per asset.',
   provenance: `LiquidationEngine.sol · 28,800 s · break = max LTV × (1 + ${BAND}) · no mainnet deployment yet`,
 } as const
 

@@ -139,7 +139,8 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
       gap={{ base: SPACING.base, md: SPACING.lg }}
       alignItems="center"
     >
-      <Box display="grid" gap={SPACING.base} alignContent="center">
+      {/* Everything above the graph is centred (owner, 2026-09-12). */}
+      <Box display="grid" gap={SPACING.base} alignContent="center" justifyItems="center" textAlign="center">
         {/* THE SUBHEAD (borrower mode only). Owner layout ruling 2026-09-12: one landing
             page — the hero SELLS the carry product by name, then the sim PROVES the rails
             with the borrow verdict below it. One line, above the headline, nothing else

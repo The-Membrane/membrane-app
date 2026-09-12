@@ -4,7 +4,7 @@
 // upgrade path, not a gate. Loading a real address REPLACES the worked example
 // outright — the two are never mixed, and a failed read never falls back to demo data.
 //
-// Left-aligned, one row, one line of small print. Everything that used to be explained
+// Centred under the verdict, one row, one line of small print. Everything that used to be explained
 // here is either in the hero above it or in the fine print at the foot of the page.
 
 import React from 'react'
@@ -90,8 +90,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     p={SPACING.md}
     display="grid"
     gap={SPACING.sm}
-    justifyItems="start"
-    textAlign="left"
+    justifyItems="center"
+    textAlign="center"
     maxW="560px"
     w="100%"
   >
@@ -100,7 +100,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       display="flex"
       gap={SPACING.sm}
       flexWrap="wrap"
-      justifyContent="flex-start"
+      justifyContent="center"
       w="100%"
       onSubmit={(e: React.FormEvent) => {
         e.preventDefault()

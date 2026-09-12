@@ -14,6 +14,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import useWallet from '@/hooks/useWallet'
 
 const BTN = {
   bg: 'transparent',
@@ -82,7 +83,16 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   onClear,
   isLoading,
   error,
-}) => (
+}) => {
+  // Optional shortcut (owner 2026-09-12): a connected wallet can fill the box so
+  // nobody has to copy their address. Still read-only — connecting is never
+  // required, and the read path is identical to a pasted address.
+  const { address: walletAddress, isWalletConnected, connect } = useWallet()
+  const useWalletAddress = () => {
+    if (isWalletConnected && walletAddress) onChange(walletAddress)
+    else connect()
+  }
+  return (
   <Box
     bg={SEMANTIC_COLORS.bgPrimary}
     border="1px solid"
@@ -140,6 +150,10 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       </Button>
     </Box>
 
+    <Button type="button" onClick={useWalletAddress} {...LINK_BTN}>
+      {isWalletConnected && walletAddress ? 'Use connected wallet' : 'Connect a wallet to fill this in'}
+    </Button>
+
     {loadedAddress && (
       <Button type="button" onClick={onClear} {...LINK_BTN}>
         Back to example
@@ -163,9 +177,10 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       color={SEMANTIC_COLORS.textTertiary}
       lineHeight={1.6}
     >
-      Read-only · no wallet · address logged
+      Read-only · no signature · address logged
     </Text>
   </Box>
-)
+  )
+}
 
 export default AddressBar

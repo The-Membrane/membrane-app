@@ -96,12 +96,13 @@ function verdict(cmp: Comparison, isDemo: boolean): {
   // Owner 2026-09-12: say what Membrane SAVED, in green — the equity delta, never a
   // softer number. A negative delta is printed as a cost, in blood, not hidden.
   const delta = cmp.equityDeltaUsd
+  // The figure itself prints ONCE, in the big number under the headline.
   const second =
     delta > 0
-      ? `Membrane would've saved you ${usd(delta)}.`
+      ? "Membrane would've saved you"
       : delta < 0
-        ? `Membrane would've cost you ${usd(-delta)} more.`
-        : "Membrane would've changed nothing."
+        ? "Membrane would've cost you more"
+        : "Membrane would've changed nothing"
   return {
     first,
     second,
@@ -213,10 +214,10 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               lineHeight={1.55}
               maxW="70ch"
             >
-              <Text as="span" color={v.firstColor}>
+              <Text as="span" display="block" color={v.firstColor}>
                 {v.first}
-              </Text>{' '}
-              <Text as="span" color={v.secondColor}>
+              </Text>
+              <Text as="span" display="block" color={v.secondColor}>
                 {v.second}
               </Text>
             </Text>
@@ -234,10 +235,10 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               letterSpacing="-0.015em"
               sx={{ textWrap: 'balance' }}
             >
-              <Text as="span" color={v.firstColor}>
+              <Text as="span" display="block" color={v.firstColor}>
                 {v.first}
-              </Text>{' '}
-              <Text as="span" color={v.secondColor}>
+              </Text>
+              <Text as="span" display="block" color={v.secondColor}>
                 {v.second}
               </Text>
             </Text>

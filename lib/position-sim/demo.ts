@@ -13,6 +13,7 @@
  */
 
 import { stamp, type ProtocolPosition } from './types'
+import type { VenueRecall } from './membrane'
 
 /** Aave V3 mainnet, block 23,543,615 — see public/data/oct10-2025/protocols.json. */
 const AAVE_WETH = { liquidationThreshold: 0.83, maxLtv: 0.805, liquidationBonus: 0.05 }
@@ -27,7 +28,7 @@ export const DEMO_ADDRESS = '0x0000000000000000000000000000000000000000'
 export function demoPosition(): ProtocolPosition {
   const ethAmount = 40
   const btcAmount = 1.5
-  const debtAmount = 210_000
+  const debtAmount = 250_000
 
   const collateral = [
     {
@@ -84,8 +85,30 @@ export function demoPosition(): ProtocolPosition {
   }
 }
 
+/**
+ * The worked example's DEPLOYMENT — the carry half of the position. Half the debt
+ * sits in a venue that the model says returns 60% on demand and 55% inside the cure
+ * window. These are assumptions, shown in the controls and editable.
+ *
+ * Chosen by sweep (2026-09-11, real engine over the measured path): at 250k debt the
+ * position is liquidated on Aave V3 at 21:17 UTC on 10 Oct; on Membrane the venue
+ * recall cures it at 21:13 inside the 4% window with nothing sold. It holds with 9
+ * points of recall headroom (break-even ~51%). A 90% recall would look better and be
+ * dishonest — utilisation-capped venues do not pay 90% in a crash.
+ */
+export const DEMO_DEPLOYMENT: VenueRecall = {
+  deployedUsd: 125_000,
+  recallRate: 0.6,
+  fastRate: 0.55,
+  provenance: stamp(
+    'modelled',
+    'worked example · deployment assumed',
+    'Half the borrowed USDC is assumed deployed in a venue modelled to return 60% on demand and 55% inside the 8-hour window. Not measured, not a real venue — change it in the controls.',
+  ),
+}
+
 /** A one-line description of the demo used in copy, so the number never drifts. */
 export function demoSummary(): string {
   const p = demoPosition()
-  return `40 WETH + 1.5 WBTC backing ${Math.round(p.totalDebtUsd / 1000)}k USDC on Aave V3 — ${(p.ltv * 100).toFixed(1)}% LTV against an ${(p.liquidationLtv * 100).toFixed(1)}% line.`
+  return `40 WETH + 1.5 WBTC backing ${Math.round(p.totalDebtUsd / 1000)}k USDC on Aave V3 — ${(p.ltv * 100).toFixed(1)}% LTV against an ${(p.liquidationLtv * 100).toFixed(1)}% line, with ${Math.round(DEMO_DEPLOYMENT.deployedUsd / 1000)}k of the debt deployed in a venue modelled to return ${Math.round(DEMO_DEPLOYMENT.recallRate * 100)}% on demand.`
 }

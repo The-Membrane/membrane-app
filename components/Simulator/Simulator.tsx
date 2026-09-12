@@ -23,6 +23,7 @@ import {
   MAX_LIQ_FEE,
   MEMBRANE_LTV_PROVENANCE,
   buildPricePath,
+  DEMO_DEPLOYMENT,
   demoPosition,
   demoSummary,
   detectVenues,
@@ -202,8 +203,10 @@ export const Simulator: React.FC = () => {
   // ---------------------------------------------------------------- controls
   const detection = loaded?.detection ?? null
   const detectedRecall = useMemo<VenueRecall | null>(
-    () => (detection ? toVenueRecall(detection) : null),
-    [detection],
+    // The worked example carries its own assumed deployment (DEMO_DEPLOYMENT); a real
+    // address only ever gets what detectVenues actually found — never the demo's.
+    () => (detection ? toVenueRecall(detection) : loaded ? null : DEMO_DEPLOYMENT),
+    [detection, loaded],
   )
 
   const derived = useMemo(
@@ -455,9 +458,11 @@ export const Simulator: React.FC = () => {
             <Stamp provenance={demoPos.provenance} />
           </Box>
           <Text fontSize="12px" color={SEMANTIC_COLORS.textPrimary} lineHeight={1.8} maxW="82ch">
-            {demoSummary()} The balances are invented so the page has something to show before you
-            type anything. The Aave V3 risk parameters attached to them are real mainnet values, and
-            the price path is real. Paste an address to replace all of this with your own.
+            {demoSummary()} The balances and the deployment are invented so the page has something
+            to show before you type anything; the venue recall rate is the assumption that decides
+            the Membrane ending, and it is in the controls. The Aave V3 risk parameters are real
+            mainnet values, and the price path is real. Paste an address to replace all of this
+            with your own.
           </Text>
         </Box>
       )}
@@ -575,6 +580,11 @@ export const Simulator: React.FC = () => {
             derivedMaxLtv={derived.maxLtv}
             unknownLtvSymbols={derived.unknown}
             venueDetected={detection?.status === 'detected'}
+            assumedDeploymentNote={
+              isDemo
+                ? 'Assumed, not detected: the worked example puts half its debt in a venue modelled to return the rates below. Set it to zero to see the collateral-only ending — that is the run for a position with nothing deployed.'
+                : undefined
+            }
             ltvProvenance={MEMBRANE_LTV_PROVENANCE}
             venueProvenance={venueProvenance}
             liqFeeDefaultNote={liqFeeDefault.note}

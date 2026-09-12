@@ -133,6 +133,9 @@ export interface ControlsProps {
   unknownLtvSymbols: string[]
   /** True when a deployment venue was actually detected on-chain for this address. */
   venueDetected: boolean
+  /** Set for the worked example: its deployment is ASSUMED, not detected. Replaces the
+   *  'starts at zero' note so the demo never claims a detection it did not make. */
+  assumedDeploymentNote?: string
   ltvProvenance: Provenance
   venueProvenance: Provenance
   /** Where the default liquidation fee came from, in plain words. */
@@ -146,6 +149,7 @@ export const Controls: React.FC<ControlsProps> = ({
   derivedMaxLtv,
   unknownLtvSymbols,
   venueDetected,
+  assumedDeploymentNote,
   ltvProvenance,
   venueProvenance,
   liqFeeDefaultNote,
@@ -296,7 +300,8 @@ export const Controls: React.FC<ControlsProps> = ({
       <Text {...monoXs} lineHeight={1.7}>
         {venueDetected
           ? 'Read on-chain from the venue balances below. Membrane pulls from here before it sells any collateral.'
-          : 'No deployment was detected for this address, so this starts at zero and Membrane sells collateral for the whole call. Raise it yourself only to model a deployment you know about — the simulator will not invent one.'}
+          : assumedDeploymentNote ??
+            'No deployment was detected for this address, so this starts at zero and Membrane sells collateral for the whole call. Raise it yourself only to model a deployment you know about — the simulator will not invent one.'}
       </Text>
     </Box>
 

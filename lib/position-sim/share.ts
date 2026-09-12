@@ -10,6 +10,7 @@
 import { resolveColor } from '@/helpers/resolveToken'
 
 import type { Comparison } from './types'
+import { outcomeLine } from './outcome'
 
 // ------------------------------------------------------------------ url state
 
@@ -144,6 +145,12 @@ export function drawShareCard(cmp: Comparison, isDemo: boolean): string | null {
   g.font = `20px ${MONO}`
   g.fillStyle = DIM
   g.fillText(cmp.scenarioLabel, M, 362)
+
+  // The outcome — liquidated there, survived here. The one line worth quoting.
+  const outcome = outcomeLine(cmp)
+  g.font = `24px ${MONO}`
+  g.fillStyle = outcome.membrane.liquidated ? BLOOD : outcome.source.liquidated ? GOLD : BONE
+  g.fillText(outcome.line, M, 404)
 
   // The number
   try {

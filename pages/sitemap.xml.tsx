@@ -17,6 +17,9 @@ const INDEXABLE_PATHS = [
   `/${DEFAULT_CHAIN}/home`,
   `/${DEFAULT_CHAIN}/landing`,
   `/${DEFAULT_CHAIN}/mint`,
+  // The position simulator is indexable (pages/[chain]/simulator.tsx) and is the
+  // demo-first conversion surface — it was missing here.
+  `/${DEFAULT_CHAIN}/simulator`,
   `/${DEFAULT_CHAIN}/stake`,
   `/${DEFAULT_CHAIN}/transmuter`,
   // Venue permalinks — the D3 landings, content-rich and provenance-stamped.

@@ -14,7 +14,7 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { eyebrow, monoXs, tabular } from '@/components/Builder/styles'
-import { CURE_WINDOW_HOURS, type Comparison, type SimRun } from '@/lib/position-sim'
+import { CURE_WINDOW_HOURS, outcomeLine, type Comparison, type SimRun } from '@/lib/position-sim'
 
 import Stamp from './Stamp'
 import { pct, usd, usdSigned } from './format'
@@ -161,6 +161,7 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
       : delta < 0
         ? 'Membrane kept less of it.'
         : 'Both engines landed level.'
+  const outcome = outcomeLine(comparison)
 
   // Every caveat, from both runs, de-duplicated only where the two runs recorded the
   // identical sentence. Nothing is dropped.
@@ -210,6 +211,21 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
           color={SEMANTIC_COLORS.textPrimary}
         >
           {headline}
+        </Text>
+        <Text
+          data-testid="sim-outcome-line"
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="13px"
+          lineHeight={1.6}
+          color={
+            outcome.membrane.liquidated
+              ? SEMANTIC_COLORS.danger
+              : outcome.source.liquidated
+                ? SEMANTIC_COLORS.warning
+                : SEMANTIC_COLORS.textPrimary
+          }
+        >
+          {outcome.line}
         </Text>
         <Text {...HEAD}>difference in ending equity</Text>
         <Text

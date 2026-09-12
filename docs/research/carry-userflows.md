@@ -36,8 +36,10 @@ ISLAND A (carry analysis)          ISLAND B (carry decision)
 DEAD ENDS (finish reading → nowhere to go but the nav bar):
   Evidence · Radar · Receipts · Defend · MembraneDashboard · Simulator (copy-link only)
 
-SEO: carry tools (Radar/Strats/Receipts/Carry/Simulator/Builder) are ALL noindex;
+SEO (as measured): carry tools (Radar/Strats/Receipts/Carry/Builder) are ALL noindex;
 the sitemap sells /borrow, /mint, /stake — the borrower funnel.
+  → 2026-09-11: /carry flipped indexable; /simulator was indexable but unlisted — now in
+    the sitemap and the first DesireRouter door (conversion pass, see badass-audit.md).
 ```
 
 ---

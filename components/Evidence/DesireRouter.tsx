@@ -12,11 +12,13 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
 /**
- * DesireRouter — the three-door strip under the ForecastGate (owner-approved
+ * DesireRouter — the four-door strip under the ForecastGate (owner-approved
  * landing change). Evidence stays the trust story; this stops it being a dead end
- * by routing the three carry desires to their flow: check a venue's exit → radar,
- * find the spread → carry, watch the big books → strats. Mounted AFTER the gate so
- * the commit-before-reveal forecast flow is never disturbed.
+ * by routing desires to their flow: run MY position through the crash the page
+ * just showed → simulator (the conversion artifact: personal number, no connect),
+ * check a venue's exit → radar, find the spread → carry, watch the big books →
+ * strats. Mounted AFTER the gate so the commit-before-reveal forecast flow is
+ * never disturbed.
  *
  * The strats door shows LIVE numbers from /api/strats when the fetch lands; until
  * then it uses static copy with NO numbers — a stale count must never render as
@@ -86,7 +88,13 @@ export const DesireRouter: React.FC = () => {
       <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.28em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary} mb={SPACING.md}>
         Pick your read
       </Text>
-      <Grid templateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }} gap={SPACING.base}>
+      <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }} gap={SPACING.base}>
+        <Door
+          href={`/${chainName}/simulator`}
+          eyebrow="Run your position through Oct 10"
+          body="Paste an address — the 10-11 Oct 2025 crash replayed minute by minute on its own protocol and on Membrane. Liquidated there, survived here."
+          cta="→ /simulator"
+        />
         <Door
           href={`/${chainName}/radar`}
           eyebrow="Check a venue's exit"

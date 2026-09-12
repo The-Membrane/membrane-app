@@ -131,8 +131,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
     <Text {...monoXs} lineHeight={1.7}>
       {loadedAddress
-        ? `Reading ${shortAddress(loadedAddress)} on Ethereum mainnet over a public RPC. Read-only — no signature, no connection, nothing is sent anywhere.`
-        : 'Read-only. Pasting an address reads Aave V3, Spark, Morpho Blue and Compound V3 on Ethereum mainnet over a public RPC — no wallet connection, no signature.'}
+        ? `Reading ${shortAddress(loadedAddress)} on Ethereum mainnet over a public RPC. Read-only — no signature, no connection. We log the address and the time of the read to count who comes back; nothing else leaves the page.`
+        : 'Read-only. Pasting an address reads Aave V3, Spark, Morpho Blue and Compound V3 on Ethereum mainnet over a public RPC — no wallet connection, no signature. We log the address and the time of the read to count who comes back; nothing else.'}
     </Text>
   </Box>
 )

@@ -25,6 +25,10 @@
  *
  * The snapshot is a moment, not a live feed. Say so wherever it renders
  * (DEMO_SNAPSHOT_NOTE) — pasting the same address re-reads it live.
+ *
+ * 2026-09-12: the wallet was re-picked under a widened search so the page opens on a
+ * borrower that ACTUALLY HAS A DEPLOYMENT — see demoDetection() below for why the old
+ * one did not.
  */
 
 import snapshot from '../../public/data/demo-carry.json'
@@ -71,9 +75,17 @@ export function demoPosition(): ProtocolPosition {
 
 /**
  * The demo's DETECTED deployment — the same venue scan a pasted address gets, through
- * the same collateral filter. The snapshot's raw scan finds the wallet's aEthUSDC, but
- * that IS its Aave collateral: excludeOwnCollateral drops it, so the page shows no
- * deployment rather than crediting the borrower with deploying its own collateral.
+ * the same collateral filter (excludeOwnCollateral), so a balance that is really the
+ * borrower's own collateral can never be sold back to them as a deployment.
+ *
+ * WHY THIS WALLET (owner, 2026-09-12): "It says the default wallet had no carries? We
+ * need to pick one WITH deployments for the carry sim." The previous default was an
+ * Aave borrower whose only venue balance WAS its aEthUSDC collateral, so the filter
+ * correctly emptied the detection and the carry-first page opened on no carry at all.
+ * The search was widened (scripts/snapshot-demo-carry.mjs stages a/a2/b/c) until it
+ * found the shape the product is actually sold against: debt on ONE protocol, the
+ * money working in a venue issued by ANOTHER. One wallet in 80 probed clears that bar
+ * — the rarity is itself the finding, and it is why this file is generated, not typed.
  */
 export function demoDetection(): VenueDetection {
   const d = excludeOwnCollateral(
@@ -101,15 +113,33 @@ export function demoDetection(): VenueDetection {
  */
 export const DEMO_DEPLOYMENT: VenueRecall | null = toVenueRecall(demoDetection())
 
-/** A one-line description of the demo used in copy, so the number never drifts. */
+/**
+ * Dust is still a real read, so the detection keeps it — but a summary line that names
+ * a 0.0000008-unit sUSDe balance alongside a $59k sUSDS one misreports where the money
+ * is. Only venues holding at least a dollar are NAMED; none is dropped from the
+ * detection, the recall input or the cost model.
+ */
+const MATERIAL_USD = 1
+
+/**
+ * A one-line description of the demo used in copy, so the number never drifts.
+ *
+ * It names the two facts the carry page is making a claim about (owner, 2026-09-12):
+ * WHERE THE DEBT IS (the source protocol) and WHERE THE MONEY WENT (the venue).
+ * Kept short deliberately — tests/unit/demoWallet.test.ts caps it at 25 words, and the
+ * long collateral list of a real multi-asset borrower blows straight through that.
+ */
 export function demoSummary(): string {
   const p = demoPosition()
   const d = demoDetection()
   const short = `${DEMO_ADDRESS.slice(0, 6)}…${DEMO_ADDRESS.slice(-4)}`
-  const debt = `$${Math.round(p.totalDebtUsd / 1000).toLocaleString()}k`
-  const backing = p.collateral.map((c) => c.symbol).join(' + ')
-  const where = d.detected.length
-    ? `deployed in ${d.detected.map((x) => x.venue.symbol).join(' + ')}`
+  const usd = (n: number) => `$${Math.round(n / 1000).toLocaleString()}k`
+  const named = d.detected.filter((x) => x.valueUsd >= MATERIAL_USD)
+  const where = named.length
+    ? `${usd(named.reduce((a, x) => a + x.valueUsd, 0))} deployed in ${named
+        .map((x) => x.venue.symbol)
+        .join(' + ')}`
     : 'no deployment detected'
-  return `${short} — ${debt} of ${p.debt.map((x) => x.symbol).join(' + ')} on ${p.label} against ${backing}, ${where}, read ${DEMO_SNAPSHOT_DATE}.`
+  const backing = `${p.collateral.length} collateral asset${p.collateral.length === 1 ? '' : 's'}`
+  return `${short} — ${usd(p.totalDebtUsd)} borrowed on ${p.label} against ${backing}, ${where}, read ${DEMO_SNAPSHOT_DATE}.`
 }

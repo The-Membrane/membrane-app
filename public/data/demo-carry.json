@@ -1,43 +1,116 @@
 {
-  "address": "0xfe924e248A7facc81e7CcDd3b178272BE7C7dC56",
-  "readAt": "2026-09-12T03:59:32.777Z",
-  "block": 25958793,
+  "address": "0xC693B4FFB338579467a541b2bF267B1955870920",
+  "readAt": "2026-09-12T16:23:58.696Z",
+  "block": 25962508,
   "position": {
     "protocol": "aave-v3",
     "label": "Aave V3",
     "collateral": [
       {
-        "symbol": "USDC",
-        "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        "decimals": 6,
-        "amount": 330433.01242,
-        "priceUsd": 0.99987682,
-        "valueUsd": 330392.3096815301,
+        "symbol": "WETH",
+        "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "decimals": 18,
+        "amount": 9.6401219255716,
+        "priceUsd": 2535.8,
+        "valueUsd": 24445.421178864464,
+        "liquidationThreshold": 0.83,
+        "maxLtv": 0.805,
+        "liquidationBonus": 0.050000000000000044
+      },
+      {
+        "symbol": "WBTC",
+        "address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+        "decimals": 8,
+        "amount": 0.3608561,
+        "priceUsd": 77368.59913854,
+        "valueUsd": 27918.930947596906,
         "liquidationThreshold": 0.78,
-        "maxLtv": 0.75,
-        "liquidationBonus": 0.04499999999999993
+        "maxLtv": 0.73,
+        "liquidationBonus": 0.050000000000000044
+      },
+      {
+        "symbol": "weETH",
+        "address": "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
+        "decimals": 18,
+        "amount": 2.1579190975352667,
+        "priceUsd": 2798.27930323,
+        "valueUsd": 6038.460348677697,
+        "liquidationThreshold": 0.8,
+        "maxLtv": 0.775,
+        "liquidationBonus": 0.07000000000000006
+      },
+      {
+        "symbol": "cbBTC",
+        "address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+        "decimals": 8,
+        "amount": 0.44561508,
+        "priceUsd": 77349.5,
+        "valueUsd": 34468.10363046,
+        "liquidationThreshold": 0.78,
+        "maxLtv": 0.73,
+        "liquidationBonus": 0.07499999999999996
+      },
+      {
+        "symbol": "LBTC",
+        "address": "0x8236a87084f8B84306f72007F36F2618A5634494",
+        "decimals": 8,
+        "amount": 0.37561935,
+        "priceUsd": 77726.9873736,
+        "valueUsd": 29195.76047472984,
+        "liquidationThreshold": 0.75,
+        "maxLtv": 0.7,
+        "liquidationBonus": 0.08499999999999996
+      },
+      {
+        "symbol": "eBTC",
+        "address": "0x657e8C867D8B37dCC18fA4Caead9C45EB088C642",
+        "decimals": 8,
+        "amount": 0.07045416,
+        "priceUsd": 77649.6469998,
+        "valueUsd": 5470.740653667429,
+        "liquidationThreshold": 0.72,
+        "maxLtv": 0.67,
+        "liquidationBonus": 0.10000000000000009
       }
     ],
     "debt": [
       {
-        "symbol": "WETH",
-        "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "symbol": "DAI",
+        "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         "decimals": 18,
-        "amount": 66.06222685492745,
-        "priceUsd": 2512.91,
-        "valueUsd": 166008.4304860157,
-        "borrowApr": 0.020463459680697575
+        "amount": 0.00143711618693383,
+        "priceUsd": 0.99968146,
+        "valueUsd": 0.001436658407943644,
+        "borrowApr": 0.04712490580647086
+      },
+      {
+        "symbol": "USDT",
+        "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        "decimals": 6,
+        "amount": 45122.634587,
+        "priceUsd": 0.9996739,
+        "valueUsd": 45107.92009586118,
+        "borrowApr": 0.04069030054104771
+      },
+      {
+        "symbol": "GHO",
+        "address": "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+        "decimals": 18,
+        "amount": 20273.333121718722,
+        "priceUsd": 1,
+        "valueUsd": 20273.333121718722,
+        "borrowApr": 0.04
       }
     ],
-    "totalCollateralUsd": 330392.30968153,
-    "totalDebtUsd": 166008.43048602,
-    "ltv": 0.5024585186199944,
-    "liquidationLtv": 0.78,
-    "healthFactor": 1.5523669538776557,
+    "totalCollateralUsd": 127537.41723396,
+    "totalDebtUsd": 65381.25465425,
+    "ltv": 0.5126437093697128,
+    "liquidationLtv": 0.781,
+    "healthFactor": 1.523649385160101,
     "provenance": {
       "kind": "onchain",
       "label": "aave v3 · eth.drpc.org",
-      "at": 1789185572750,
+      "at": 1789230184692,
       "detail": "Pool 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2 · data provider 0x0a16f2FCC0D44FaE41cc54e079281D84A363bECD · oracle 0x54586bE62E3c3580375aE3723C145253060Ca0C2, all resolved from PoolAddressesProvider 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e. Totals from getUserAccountData in base units (BASE_CURRENCY_UNIT 1e8); per-asset prices from getAssetsPrices; thresholds in bps."
     }
   },
@@ -46,27 +119,41 @@
     "detected": [
       {
         "venue": {
-          "symbol": "aEthUSDC",
-          "underlying": "USDC",
-          "name": "Aave V3 USDC",
-          "address": "0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c",
-          "decimals": 6,
-          "exit": "withdrawable up to the unborrowed reserve — capped by utilisation",
-          "recallRate": 0.9,
-          "fastRate": 0.9
+          "symbol": "sUSDe",
+          "underlying": "USDe",
+          "name": "Ethena sUSDe",
+          "address": "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497",
+          "decimals": 18,
+          "exit": "a 7-day cooldown must elapse before staked USDe can be redeemed",
+          "recallRate": 0.3,
+          "fastRate": 0
         },
-        "amount": 330433.01242,
-        "valueUsd": 330433.01242
+        "amount": 8.02975807467e-7,
+        "valueUsd": 8.02975807467e-7
+      },
+      {
+        "venue": {
+          "symbol": "sUSDS",
+          "underlying": "USDS",
+          "name": "Savings USDS",
+          "address": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
+          "decimals": 18,
+          "exit": "redeemable on demand against the Sky savings rate",
+          "recallRate": 0.97,
+          "fastRate": 0.97
+        },
+        "amount": 59060.264657788124,
+        "valueUsd": 59060.264657788124
       }
     ],
-    "totalUsd": 330433.01242,
+    "totalUsd": 59060.2646585911,
     "provenance": {
       "kind": "onchain",
       "label": "venue scan · eth.drpc.org",
-      "at": 1789185572356,
+      "at": 1789230184248,
       "detail": "ERC-20 balances of 6 known yield venues. Balances are valued at $1 per unit, which understates any token trading above par."
     }
   },
   "provenance": "onchain snapshot",
-  "selection": "named with --address"
+  "selection": "ranked by the search rule (owner 2026-09-12: debt on any adapter + a canonical-venue deployment that is not its own collateral; priced borrow preferred, not required)"
 }

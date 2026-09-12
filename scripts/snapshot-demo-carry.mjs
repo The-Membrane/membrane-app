@@ -1,7 +1,7 @@
 // snapshot-demo-carry.mjs — pick the /simulator landing page's DEFAULT WALLET, and
 // make it a REAL one.
 //
-//   node scripts/snapshot-demo-carry.mjs [--limit N] [--min 50000] [--max 2000000] [--dry]
+//   node scripts/snapshot-demo-carry.mjs [--limit N] [--min 50000] [--max 3000000] [--dry]
 //   node scripts/snapshot-demo-carry.mjs --address 0x…      snapshot one named wallet
 //
 // Owner ruling 2026-09-11: "why is the worked example not just the demo wallet shown?"
@@ -16,13 +16,21 @@
 // run against RECORDER_RPC_URL) — not a re-implementation — so the JSON we commit is
 // byte-for-byte what the page would have read live.
 //
-// THE BAR a candidate must clear:
-//   - a real lending borrow: totalDebtUsd > $20k with at least one leg exposing a
-//     borrowApr (Morpho Blue returns null, so a Morpho-only borrower cannot be the
-//     default — the cost headline would have no rate to state)
-//   - detectVenues status 'detected': the deployed slice is what Membrane charges through the venue yield instead of interest
-//     on, so a borrower with no detected deployment has no carry story
-//   - deployed/debt in [0.5, 1.2] preferred: a position whose debt is actually working
+// THE BAR a candidate must clear (owner ruling 2026-09-12 — "we need to pick one WITH
+// deployments for the carry sim"):
+//   - a real lending borrow: totalDebtUsd > $20k on ANY adapter. A readable borrowApr
+//     is PREFERRED, not required: Morpho Blue and Compound return null and excluding
+//     them is exactly what left the page opening on a wallet with no carry at all.
+//   - detectVenues status 'detected' AFTER excludeOwnCollateral: the deployed slice is
+//     what Membrane charges through the venue yield instead of interest, so a borrower
+//     whose only "deployment" is its own aToken collateral has no carry story
+//   - deployed/debt in [0.3, 1.5] preferred: a position whose debt is actually working
+//
+// SEARCH STAGES, run in order, stopping at the first that yields a qualified wallet:
+//   (a)  strat_watches, every row through ALL the sim's adapters
+//   (a2) Aave V3 borrowers who hold a canonical venue token
+//   (b)  Morpho Blue borrowers (Borrow.onBehalf over ~30d) who hold one
+//   (c)  recent recipients of the savings tokens themselves
 //
 // OUTPUT: public/data/demo-carry.json — { address, readAt, block, position, detection,
 // provenance }. Nothing is edited by hand afterwards; re-run the script instead.
@@ -62,7 +70,7 @@ const ADDRESS_ARG = (() => {
 })()
 const LIMIT = flag('limit', 40)
 const MIN_VENUE_USD = flag('min', 50_000)
-const MAX_VENUE_USD = flag('max', 2_000_000)
+const MAX_VENUE_USD = flag('max', 3_000_000)
 const MIN_DEBT_USD = flag('min-debt', 20_000)
 /** Days of ERC-4626 Deposit history to sweep when strat_watches yields nothing. */
 const DISCOVER_DAYS = flag('discover-days', 10)
@@ -365,6 +373,113 @@ async function discoverFromBorrowSide(venues) {
   return out
 }
 
+// ------------------------------------------------------------ WIDENED SEARCH (b)(c)
+// Owner ruling 2026-09-12: "It says the default wallet had no carries? We need to pick
+// one WITH deployments for the carry sim." The Aave-only sweeps above found nobody —
+// 49 strat_watches rows and 692 recent Aave borrowers, and every "detected deployment"
+// was the borrower's own aEthUSDC collateral, which excludeOwnCollateral drops. The
+// shape we actually need is a borrower on ONE protocol holding a venue token issued by
+// ANOTHER, so the balance survives the collateral filter.
+//
+// Two more stages, run in order, stopping at the first that yields a qualified wallet:
+//   (b) Morpho Blue borrowers — the singleton emits Borrow(id, caller, onBehalf, …), so
+//       ~30 days of logs gives every fresh borrower on every market in one sweep.
+//       Morpho's adapter returns borrowApr: null; the ruling accepts that (the rails
+//       story needs the DEPLOYMENT; the cost line is optional).
+//   (c) venue-token recipients — Transfer(to) on the savings tokens over ~30 days, then
+//       the same adapter pass.
+const MORPHO_BLUE = '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb'
+const MORPHO_BORROW = parseAbiItem(
+  'event Borrow(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets, uint256 shares)',
+)
+const ERC20_TRANSFER = parseAbiItem(
+  'event Transfer(address indexed from, address indexed to, uint256 value)',
+)
+/** Days swept by the widened stages. The ruling says ~30. */
+const WIDE_DAYS = flag('wide-days', 30)
+
+/** Multicall balanceOf across the canonical venues; keeps holders above the floor. */
+async function venueHolders(client, addresses, venues) {
+  const out = []
+  const B = 40
+  for (let i = 0; i < addresses.length; i += B) {
+    const slice = addresses.slice(i, i + B)
+    const res = await client.multicall({
+      allowFailure: true,
+      contracts: slice.flatMap((a) =>
+        venues.map((v) => ({ address: v.address, abi: erc20Abi, functionName: 'balanceOf', args: [a] })),
+      ),
+    })
+    slice.forEach((a, k) => {
+      let venueUsd = 0
+      venues.forEach((v, j) => {
+        const r = res[k * venues.length + j]
+        if (r?.status === 'success') venueUsd += Number(r.result) / 10 ** v.decimals
+      })
+      if (venueUsd >= MIN_DEPLOYED_USD) out.push({ address: a, venueUsd })
+    })
+  }
+  out.sort((a, b) => b.venueUsd - a.venueUsd)
+  return out
+}
+
+/** (b) Morpho Blue borrowers over ~WIDE_DAYS who hold a canonical venue token. */
+async function discoverMorphoBorrowers(venues) {
+  const client = makeClient(rpcUrl)
+  const latest = await client.getBlockNumber()
+  const from = latest - BLOCKS_PER_DAY * BigInt(WIDE_DAYS)
+  let logs = []
+  try {
+    logs = await getLogsSplit(client, { address: getAddress(MORPHO_BLUE), event: MORPHO_BORROW }, from, latest)
+  } catch (e) {
+    console.log(`  Morpho Borrow sweep failed — ${String(e).split('\n')[0].slice(0, 120)}`)
+    return []
+  }
+  // `.map(getAddress)` would pass Array.map's index as viem's chainId — wrap it.
+  const borrowers = [
+    ...new Set(logs.map((l) => l.args?.onBehalf).filter(Boolean).map((a) => getAddress(a))),
+  ]
+  console.log(`  ${logs.length} Morpho Blue borrows over ~${WIDE_DAYS}d · ${borrowers.length} unique onBehalf`)
+  const holders = await venueHolders(client, borrowers, venues)
+  console.log(`  ${holders.length} of them hold at least $${MIN_DEPLOYED_USD.toLocaleString()} in a canonical venue\n`)
+  return holders
+}
+
+/** (c) Recent recipients of the savings tokens themselves, ranked by holding. */
+async function discoverVenueRecipients(venues) {
+  const client = makeClient(rpcUrl)
+  const latest = await client.getBlockNumber()
+  const from = latest - BLOCKS_PER_DAY * BigInt(WIDE_DAYS)
+  const skip = new Set([
+    '0x0000000000000000000000000000000000000000',
+    ...venues.map((v) => v.address.toLowerCase()),
+  ])
+  const recipients = new Set()
+  // Only the savings tokens: an aToken Transfer sweep re-finds Aave suppliers, the
+  // population the collateral filter already rejected.
+  const seeds = venues.filter((v) => /^s/i.test(v.symbol))
+  for (const v of seeds) {
+    let logs = []
+    try {
+      logs = await getLogsSplit(client, { address: v.address, event: ERC20_TRANSFER }, from, latest)
+    } catch (e) {
+      console.log(`  ${v.symbol}: Transfer sweep failed — ${String(e).split('\n')[0].slice(0, 90)}`)
+      continue
+    }
+    let added = 0
+    for (const l of logs) {
+      const to = l.args?.to
+      if (!to || skip.has(to.toLowerCase())) continue
+      if (!recipients.has(getAddress(to))) added++
+      recipients.add(getAddress(to))
+    }
+    console.log(`  ${v.symbol}: ${logs.length} transfers · +${added} new recipients`)
+  }
+  const holders = await venueHolders(client, [...recipients], venues)
+  console.log(`  ${holders.length} still hold at least $${MIN_DEPLOYED_USD.toLocaleString()} of a canonical venue\n`)
+  return holders
+}
+
 // ------------------------------------------------------- chain read (real adapters)
 // A tsx child so the SIM'S OWN TypeScript adapters do the reading. Imports are
 // absolute into the repo, so node resolves viem et al. from the repo's node_modules
@@ -471,35 +586,52 @@ function probe(addresses) {
  }
 }
 
-/** A candidate the hero can actually lead with: a priced borrow AND a deployed slice
- *  big enough that the covered zero rate is worth a sentence. */
+/**
+ * THE BAR, as the owner reset it on 2026-09-12.
+ *
+ * It used to require a PRICED borrow (`pricedDebtUsd > 0`, `fixedCostOnCoveredUsd > 0`),
+ * which silently excluded every Morpho Blue and Compound borrower — the adapters that
+ * return `borrowApr: null`. That is what left the page opening on a wallet with no
+ * carry at all. The ruling: "the rails story needs the deployment; the cost line is
+ * optional." So the bar is now DEBT + A DEPLOYMENT THAT IS NOT ITS OWN COLLATERAL, on
+ * any adapter, and a priced borrow is a PREFERENCE expressed in the sort below.
+ */
 const qualifies = (p) =>
-  p.position.totalDebtUsd > MIN_DEBT_USD &&
-  p.carry.pricedDebtUsd > 0 &&
-  p.carry.deployedUsd >= MIN_DEPLOYED_USD &&
-  p.carry.fixedCostOnCoveredUsd > 0
+  p.position.totalDebtUsd > MIN_DEBT_USD && p.carry.deployedUsd >= MIN_DEPLOYED_USD
 
 if (ADDRESS_ARG) {
   console.log(`--address ${ADDRESS_ARG}: skipping the search.\n`)
   probe([ADDRESS_ARG])
 } else {
+  // (a) the watch list, through ALL the sim's adapters (runAdapters), not just Aave.
   probe(candidates.map((c) => c.address))
+  console.log(`stage (a) strat_watches: ${probed.length} read · ${probed.filter(qualifies).length} qualified\n`)
 }
 
-if (!ADDRESS_ARG && !probed.some(qualifies) && !NO_DISCOVER) {
-  console.log(
-    '\nNo watched strat clears the bar — sweeping the canonical venues directly.\n',
-  )
+// Stages run IN ORDER and stop at the first that yields a qualified wallet.
+if (!ADDRESS_ARG && !NO_DISCOVER) {
   const venues = knownVenues()
-  let discovered = await discoverFromBorrowSide(venues)
-  if (discovered.length === 0) discovered = await discoverBorrowers(venues)
-  for (const d of discovered.slice(0, DISCOVER_PROBE)) {
+  const stages = [
+    ['(a2) Aave V3 borrowers holding a canonical venue token', () => discoverFromBorrowSide(venues)],
+    ['(b) Morpho Blue borrowers holding a canonical venue token', () => discoverMorphoBorrowers(venues)],
+    ['(c) recent savings-token recipients', () => discoverVenueRecipients(venues)],
+  ]
+  for (const [name, run] of stages) {
+    if (probed.some(qualifies)) break
+    console.log(`\nstage ${name} —`)
+    const discovered = await run()
+    for (const d of discovered.slice(0, DISCOVER_PROBE)) {
+      console.log(
+        `  candidate ${d.address} · venue $${Math.round(d.venueUsd).toLocaleString()}` +
+          (d.debtUsd ? ` · aave debt $${Math.round(d.debtUsd).toLocaleString()}` : ''),
+      )
+    }
+    console.log('')
+    probe(discovered.slice(0, DISCOVER_PROBE).map((d) => d.address))
     console.log(
-      `  candidate ${d.address} · venue $${Math.round(d.venueUsd).toLocaleString()} · aave debt $${Math.round(d.debtUsd).toLocaleString()}`,
+      `stage ${name}: ${discovered.length} candidates · probed ${Math.min(discovered.length, DISCOVER_PROBE)} · ${probed.filter(qualifies).length} qualified so far\n`,
     )
   }
-  console.log('')
-  probe(discovered.slice(0, DISCOVER_PROBE).map((d) => d.address))
 }
 
 rmSync(work, { recursive: true, force: true })
@@ -509,30 +641,38 @@ const qualified = ADDRESS_ARG ? probed : probed.filter(qualifies)
 
 if (qualified.length === 0) {
   console.error(
-    '\nNO CANDIDATE QUALIFIED. Not one address — watched strat or fresh venue ' +
-      'depositor — holds a lending-protocol borrow with a readable rate AND a ' +
-      `deployment of at least $${MIN_DEPLOYED_USD.toLocaleString()}. That is a real ` +
-      'finding, not a script failure. public/data/demo-carry.json was NOT written.',
+    '\nNO CANDIDATE QUALIFIED. Not one address across stages (a), (a2), (b) and (c) ' +
+      'holds a lending-protocol borrow AND a canonical-venue deployment of at least ' +
+      `$${MIN_DEPLOYED_USD.toLocaleString()} that is not its own collateral. That is a ` +
+      'real finding, not a script failure. public/data/demo-carry.json was NOT written.',
   )
   process.exit(2)
 }
 
-// THE RULE, so the pick is a rule and not a hand-choice:
+// THE RULE, so the pick is a rule and not a hand-choice (owner 2026-09-12):
 //   1. inside the size band (--min/--max on the venue deployment) — a $200M treasury
 //      is not the reader, and neither is a $3k wallet;
-//   2. deployed/debt in [0.5, 1.2] — a borrower whose loan is actually working;
-//   3. of those, the LARGEST annual saving. The demo should show the clearest real
-//      carry available, not the smallest.
+//   2. deployed/debt in [0.3, 1.5] — a borrower whose loan is actually working;
+//   3. a PRICED borrow ahead of an unpriced one, so the cost line renders when one is
+//      available. It is a preference, not a filter: a Morpho/Compound borrower with a
+//      real deployment beats an Aave borrower with none (that was the whole defect);
+//   4. of those, the LARGEST annual saving, then the largest deployment when nothing
+//      is priced at all.
 // Each rule is a tier, so a thin field degrades to the next-best shape rather than
 // returning nothing.
 const ratioOf = (q) => q.carry.deployedUsd / q.position.totalDebtUsd
 const tier = (q) => {
   const r = ratioOf(q)
   const inBand = q.carry.deployedUsd >= MIN_VENUE_USD && q.carry.deployedUsd <= MAX_VENUE_USD
-  const inShape = r >= 0.5 && r <= 1.2
-  return (inBand ? 0 : 2) + (inShape ? 0 : 1)
+  const inShape = r >= 0.3 && r <= 1.5
+  return (inBand ? 0 : 4) + (inShape ? 0 : 2) + (q.carry.pricedDebtUsd > 0 ? 0 : 1)
 }
-qualified.sort((a, b) => tier(a) - tier(b) || b.carry.fixedCostOnCoveredUsd - a.carry.fixedCostOnCoveredUsd)
+qualified.sort(
+  (a, b) =>
+    tier(a) - tier(b) ||
+    b.carry.fixedCostOnCoveredUsd - a.carry.fixedCostOnCoveredUsd ||
+    b.carry.deployedUsd - a.carry.deployedUsd,
+)
 const pick = qualified[0]
 
 const c = pick.carry
@@ -540,7 +680,7 @@ console.log('\n=== picked ===')
 console.log(`address     ${pick.address}`)
 console.log(`source      ${pick.position.label}`)
 console.log(`collateral  $${Math.round(pick.position.totalCollateralUsd).toLocaleString()} (${pick.position.collateral.map((x) => x.symbol).join(' + ')})`)
-console.log(`debt        $${Math.round(pick.position.totalDebtUsd).toLocaleString()} @ ${(c.aprWeighted * 100).toFixed(2)}% weighted (${pick.position.debt.map((x) => x.symbol).join(' + ')})`)
+console.log(`debt        $${Math.round(pick.position.totalDebtUsd).toLocaleString()} ${c.aprWeighted > 0 ? `@ ${(c.aprWeighted * 100).toFixed(2)}% weighted` : '(no borrow apr exposed by this adapter)'} (${pick.position.debt.map((x) => x.symbol).join(' + ')})`)
 console.log(`deployed    $${Math.round(c.deployedUsd).toLocaleString()} (${(ratioOf(pick) * 100).toFixed(0)}% of debt) in ${pick.detection.detected.map((d) => d.venue.symbol).join(', ')}`)
 console.log(`annual cost $${Math.round(c.annualCostUsd).toLocaleString()}`)
 console.log(`savings/yr  $${Math.round(c.fixedCostOnCoveredUsd).toLocaleString()} on the covered $${Math.round(c.coveredDebtUsd).toLocaleString()}`)
@@ -558,7 +698,10 @@ const out = {
   position: pick.position,
   detection: pick.detection,
   provenance: 'onchain snapshot',
-  selection: ADDRESS_ARG ? 'named with --address' : 'ranked by the search rule',
+  selection: ADDRESS_ARG
+    ? 'named with --address'
+    : 'ranked by the search rule (owner 2026-09-12: debt on any adapter + a canonical-venue ' +
+      'deployment that is not its own collateral; priced borrow preferred, not required)',
 }
 const dest = join(ROOT, 'public', 'data', 'demo-carry.json')
 writeFileSync(dest, JSON.stringify(out, null, 2) + '\n', 'utf8')

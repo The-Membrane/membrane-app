@@ -97,8 +97,42 @@ describe('the committed demo snapshot', () => {
     expect(p.debt.length).toBeGreaterThan(0)
   })
 
-  it('summarises in 25 words or fewer', () => {
-    expect(demoSummary().split(/\s+/).length).toBeLessThanOrEqual(25)
+  it('summarises in 25 words or fewer, naming the venue and the debt protocol', () => {
+    const line = demoSummary()
+    expect(line.split(/\s+/).length).toBeLessThanOrEqual(25)
+    // Owner ruling 2026-09-12: the summary must say WHERE THE DEBT IS and WHERE THE
+    // MONEY WENT. A line that names neither is the copy the old demo shipped.
+    expect(line).toContain(demoPosition().label)
+    const named = demoDetection().detected.filter((d) => d.valueUsd >= 1)
+    expect(named.length).toBeGreaterThan(0)
+    for (const d of named) expect(line).toContain(d.venue.symbol)
+  })
+
+  // THE DEFECT THIS FILE NOW REFUSES TO SHIP AGAIN.
+  //
+  // Owner, 2026-09-12: "It says the default wallet had no carries? We need to pick one
+  // WITH deployments for the carry sim." The previous default was an Aave borrower
+  // whose only venue balance WAS its aEthUSDC collateral, so excludeOwnCollateral
+  // correctly emptied the detection and the carry-first page opened on no carry at
+  // all. Every one of these assertions passed on that wallet except this one.
+  it('is deployed somewhere that is not its own collateral', () => {
+    const detection = demoDetection()
+    expect(detection.status).toBe('detected')
+    expect(detection.detected.length).toBeGreaterThan(0)
+
+    const c = carryCost(demoPosition(), detection)
+    expect(c.deployedUsd).toBeGreaterThan(0)
+    // toVenueRecall is what the engine is handed; a null here means the page renders
+    // no deployment no matter what the detection says.
+    expect(toVenueRecall(detection)).not.toBeNull()
+  })
+
+  it('deploys a meaningful share of the debt it carries', () => {
+    const p = demoPosition()
+    const c = carryCost(p, demoDetection())
+    // The search rule's preferred shape (scripts/snapshot-demo-carry.mjs): a borrower
+    // whose loan is actually working, not a dust balance next to a big loan.
+    expect(c.deployedUsd / p.totalDebtUsd).toBeGreaterThan(0.3)
   })
 
   it('prices the fixed interest on the deployed slice whenever the snapshot has a rate', () => {

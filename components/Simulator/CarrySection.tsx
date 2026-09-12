@@ -35,8 +35,11 @@ import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import { demoDetection } from '@/lib/position-sim/demo'
+import type { VenueDetection } from '@/lib/position-sim/venues'
 
 import ClaimsBlock from './ClaimsBlock'
+import VenueCapacity from './VenueCapacity'
 import { HERO_SUBHEAD } from './VerdictHero'
 
 /** Same button as ComparisonPanel's — one CTA style on this page, not two. */
@@ -175,14 +178,26 @@ const useVenueLog = () =>
 export interface CarrySectionProps {
   /** The debt on the position currently on screen. 0 when there is none. */
   positionDebtUsd?: number
+  /**
+   * The venue detection on screen — the demo's, or the one a pasted address produced.
+   *
+   * Expected POST-excludeOwnCollateral (Simulator.tsx filters on the way in). Optional
+   * so this block still renders standalone; when it is omitted it falls back to the
+   * committed demo snapshot, which is what the page opens on anyway.
+   */
+  detection?: VenueDetection
 }
 
 /** No position, no debt, still a real chart: the crossing is sized at a plain reference
  *  notional rather than at zero. It is modelled either way and stamped as such. */
 const REFERENCE_SIZE_USD = 250_000
 
-export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 }) => {
+export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0, detection }) => {
   const { chainName } = useChainRoute()
+  // demoDetection() reads the committed snapshot and is pure, but it re-stamps its
+  // provenance on every call — memoise so the venue rows do not re-key each render.
+  const demoDet = React.useMemo(() => demoDetection(), [])
+  const shown = detection ?? demoDet
   const { data: strats } = useStratsSummary()
   const { data: log } = useVenueLog()
 
@@ -268,6 +283,11 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
             </Text>
           </Tile>
         </Box>
+
+        {/* Owner ruling 2026-09-12: "Show our venue visualizer for the carrier's
+            deployments." The claim above is that venue capital answers the margin
+            call; this is the evidence that the venue could actually return it. */}
+        <VenueCapacity detection={shown} />
 
         <Box display="grid" gap={SPACING.sm}>
           <Text

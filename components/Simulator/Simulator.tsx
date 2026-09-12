@@ -620,7 +620,7 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
           render standalone on the carry page), and it sells with live evidence rather
           than description. Its numbers are fetched or stamped modelled, never invented. */}
       <Section tone="evidence">
-        <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} />
+        <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} detection={detection} />
       </Section>
 
       {/* 3 — YOUR POSITION */}

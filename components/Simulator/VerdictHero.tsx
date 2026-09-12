@@ -93,14 +93,20 @@ function verdict(cmp: Comparison, isDemo: boolean): {
   const first = o.source.liquidated
     ? `${src} sold ${usd(sold(cmp.source))} of ${whose} collateral${at}.`
     : `${src} sold nothing.`
-  const second = o.membrane.liquidated
-    ? `Membrane would have sold ${usd(sold(cmp.membrane))}.`
-    : 'Membrane would have sold $0.'
+  // Owner 2026-09-12: say what Membrane SAVED, in green — the equity delta, never a
+  // softer number. A negative delta is printed as a cost, in blood, not hidden.
+  const delta = cmp.equityDeltaUsd
+  const second =
+    delta > 0
+      ? `Membrane would've saved you ${usd(delta)}.`
+      : delta < 0
+        ? `Membrane would've cost you ${usd(-delta)} more.`
+        : "Membrane would've changed nothing."
   return {
     first,
     second,
     firstColor: o.source.liquidated ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
-    secondColor: o.membrane.liquidated ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success,
+    secondColor: delta > 0 ? SEMANTIC_COLORS.success : delta < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
   }
 }
 

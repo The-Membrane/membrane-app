@@ -32,12 +32,31 @@
 //              drops to the 15px secondary line under the delta.
 // The gate itself is unchanged — mode only decides whether a PASSED gate is allowed to
 // take the headline.
+//
+// HERO VARIANT (owner brief 2026-09-12 — the liquidation-history proof: "test this as
+// the hero as well"). `heroVariant` is the A/B, orthogonal to `mode`:
+//   'oct10'    the measured stress-window verdict, exactly as above.
+//   'history'  the address's OWN liquidation history leads: "$X of your collateral
+//              would still be yours", the big number is X, and the Oct 10 verdict drops
+//              to the 15px secondary line — the same demotion the carry hero applies.
+// The history hero OUTRANKS the carry hero when both gates pass: a claim about events
+// that actually happened to this wallet beats a claim about a day and a bill.
+//
+// THE GUARD THAT MAKES IT SAFE TO SHIP: the history hero renders ONLY on a landed,
+// positive savedUsd. Still loading, scan failed, or nothing was saved (which is most
+// wallets — most have never been liquidated at all) and it falls straight back to the
+// Oct 10 verdict. There is no path to an empty hero and no path to a "$0" hero.
 
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'
 
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
-import { LANDING_SIM_MODE, type SimMode } from '@/config/simulatorMode'
+import {
+  HERO_VARIANT,
+  LANDING_SIM_MODE,
+  type HeroVariant,
+  type SimMode,
+} from '@/config/simulatorMode'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { tabular } from '@/components/Builder/styles'
@@ -45,6 +64,7 @@ import { fmtUtcMinute, outcomeLine, type CarryCost, type Comparison } from '@/li
 
 import AddressBar, { type AddressBarProps } from './AddressBar'
 import HeroChart from './HeroChart'
+import { historyDate } from './HistoryProof'
 import { usd, usdSigned } from './format'
 
 /**
@@ -63,6 +83,20 @@ export interface VerdictHeroProps extends AddressBarProps {
   carry?: CarryCost | null
   /** Which story is allowed to lead. See the MODE note at the top of this file. */
   mode?: SimMode
+  /**
+   * WHICH PROOF LEADS (owner brief 2026-09-12: "test this as the hero as well").
+   * 'oct10' is the measured stress window; 'history' is the address's own liquidation
+   * history. See the HERO VARIANT note below.
+   */
+  heroVariant?: HeroVariant
+  /** The secondary proof, already fetched by the page. Only read in 'history'. */
+  history?: {
+    savedUsd: number
+    savedCount: number
+    firstEventTs: number | null
+    /** True while the scan is in flight. A loading hero falls back to Oct 10. */
+    loading: boolean
+  } | null
   isDemo: boolean
   /** Price-path origin, for the chart's x axis. Null until the path lands. */
   startTs: number | null
@@ -115,6 +149,8 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   comparison,
   carry,
   mode = LANDING_SIM_MODE,
+  heroVariant = HERO_VARIANT,
+  history,
   isDemo,
   startTs,
   stepSeconds,
@@ -133,8 +169,20 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   // The gate: a priced borrow AND a real deployment. Otherwise the cost story is
   // unavailable, not small, and it is not told.
   const carryPriced = !!carry && carry.annualCostUsd > 0 && carry.coveredDebtUsd > 0 && !!comparison
-  // …and in borrower mode a passed gate still never takes the headline.
-  const carryFirst = carryPriced && mode === 'carry'
+
+  // HERO VARIANT — the A/B (owner brief 2026-09-12).
+  //
+  // The history hero leads ONLY on a positive, landed number. `savedUsd === 0`, a scan
+  // still in flight, a failed scan (the page passes savedUsd 0 for all three) — every
+  // one of them falls through to the Oct 10 verdict. That is the whole guard against
+  // the failure mode this variant invites: a hero that reads "$0" or blanks entirely on
+  // the majority of wallets, which have never been liquidated at all.
+  const historyFirst =
+    heroVariant === 'history' && !!history && !history.loading && history.savedUsd > 0
+
+  // …and in borrower mode a passed gate still never takes the headline. The history
+  // hero outranks the carry hero too: it is the more specific claim about this wallet.
+  const carryFirst = carryPriced && mode === 'carry' && !historyFirst
   const src = comparison?.position.label ?? ''
   const whose = isDemo ? 'this' : 'your'
 
@@ -163,6 +211,68 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
           >
             {HERO_SUBHEAD}
           </Text>
+        )}
+
+        {/* HISTORY HERO. The claim is about events that actually happened to this
+            address, so it outranks both the Oct 10 counterfactual and the carry bill.
+            The Oct 10 verdict does not disappear — it drops to the 15px line, exactly
+            where the safety verdict sits in the carry hero. */}
+        {historyFirst && history && (
+          <>
+            <Text
+              data-testid="sim-verdict-headline"
+              as="h1"
+              fontFamily={TYPOGRAPHY.fontDisplay}
+              fontSize="clamp(30px, 5vw, 54px)"
+              lineHeight={1.08}
+              letterSpacing="-0.015em"
+              color={SEMANTIC_COLORS.success}
+              sx={{ textWrap: 'balance' }}
+            >
+              {usd(history.savedUsd)} of your collateral would still be yours.
+            </Text>
+
+            <Box display="grid" gap={SPACING.xs}>
+              <Text
+                data-testid="sim-history-hero-number"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="clamp(36px, 6vw, 64px)"
+                lineHeight={1.02}
+                {...tabular}
+                color={SEMANTIC_COLORS.success}
+              >
+                {usd(history.savedUsd)}
+              </Text>
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="11px"
+                letterSpacing="0.06em"
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                {history.savedCount} liquidation{history.savedCount === 1 ? '' : 's'}
+                {history.firstEventTs ? ` since ${historyDate(history.firstEventTs)}` : ''}.
+                Membrane would have recalled instead of selling.
+              </Text>
+            </Box>
+
+            {/* The Oct 10 verdict, demoted. Same sentences, reading size. */}
+            {v && (
+              <Text
+                data-testid="sim-safety-verdict"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="15px"
+                lineHeight={1.55}
+                maxW="70ch"
+              >
+                <Text as="span" display="block" color={v.firstColor}>
+                  {v.first}
+                </Text>
+                <Text as="span" display="block" color={v.secondColor}>
+                  {v.second} {usdSigned(delta)}.
+                </Text>
+              </Text>
+            )}
+          </>
         )}
 
         {v && carryFirst && carry && (
@@ -224,7 +334,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
           </>
         )}
 
-        {v && !carryFirst && (
+        {v && !carryFirst && !historyFirst && (
           <>
             <Text
               data-testid="sim-verdict-headline"

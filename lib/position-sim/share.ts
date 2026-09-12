@@ -23,6 +23,9 @@ export interface SimUrlState {
   recallRate?: number
   fastRate?: number
   deployedUsd?: number
+  /** Hero A/B override (?hero=history|oct10). Carried so the page's own URL rewrite
+   *  and copy-link both preserve it. */
+  hero?: 'oct10' | 'history'
 }
 
 const numParam = (v: string | string[] | undefined): number | undefined => {
@@ -45,6 +48,7 @@ export function readUrlState(query: Record<string, string | string[] | undefined
     recallRate: numParam(query.recall),
     fastRate: numParam(query.fast),
     deployedUsd: numParam(query.dep),
+    hero: (() => { const h = Array.isArray(query.hero) ? query.hero[0] : query.hero; return h === 'history' || h === 'oct10' ? h : undefined })(),
   }
 }
 
@@ -57,6 +61,7 @@ export function writeUrlState(s: SimUrlState): string {
   if (s.recallRate !== undefined) q.set('recall', s.recallRate.toFixed(4))
   if (s.fastRate !== undefined) q.set('fast', s.fastRate.toFixed(4))
   if (s.deployedUsd !== undefined) q.set('dep', String(Math.round(s.deployedUsd)))
+  if (s.hero !== undefined) q.set('hero', s.hero)
   const str = q.toString()
   return str ? `?${str}` : ''
 }

@@ -643,3 +643,28 @@ export const simReads = pgTable(
   },
   (table) => [uniqueIndex('sim_reads_address_idx').on(table.address)],
 )
+
+// Position-simulator LIQUIDATION-HISTORY CACHE — the SECONDARY PROOF (owner brief
+// 2026-09-12: "the amount of liquidations this position would've been saved from…
+// due to the delay infra"). One row per address: the address's real Aave V3
+// LiquidationCall events, already replayed against the 8h cure window and the 4%
+// break band, plus the rolled-up totals and the method string.
+//
+// WHY A CACHE TABLE AT ALL: the scan walks ~7.5M blocks of logs plus a Chainlink
+// round window per event. Doing that per render would melt the keyless RPC ring and
+// make the number depend on which endpoint answered. Written by
+// pages/api/sim/history/[address].ts; a row older than 24h is rescanned. A FAILED
+// scan is never written — a zero caused by an outage must not stick for a day.
+// DDL in scripts/apply-venue-recorder-ddl.mjs — keep in lockstep.
+export const simHistory = pgTable(
+  'sim_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    address: text('address').notNull(), // checksummed 0x…
+    scannedAt: timestamp('scanned_at', { withTimezone: true }).notNull().defaultNow(),
+    toBlock: bigint('to_block', { mode: 'number' }), // head block the scan reached
+    events: jsonb('events').notNull(), // HistoryEvent[] — one row per real liquidation
+    summary: jsonb('summary').notNull(), // { since, totals, method, notScanned }
+  },
+  (table) => [uniqueIndex('sim_history_address_idx').on(table.address)],
+)

@@ -16,6 +16,10 @@ export * from './venues'
 export * from './carryCost'
 export * from './share'
 export * from './outcome'
+// history.ts is PURE and safe in the browser bundle. historyScan.ts is NOT exported
+// here and must never be: it is a server-only mainnet log scanner
+// (pages/api/sim/history/[address].ts imports it directly).
+export * from './history'
 export * from './guarantee'
 export { getMainnetClient, parseAddress, rpcLabel, toNumber, PUBLIC_MAINNET_RPCS } from './rpc'
 export { runAdapters, ADAPTERS } from './adapters'

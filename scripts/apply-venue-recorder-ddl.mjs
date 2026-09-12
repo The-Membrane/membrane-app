@@ -141,6 +141,24 @@ await sql`CREATE TABLE IF NOT EXISTS sim_reads (
 await sql`CREATE UNIQUE INDEX IF NOT EXISTS sim_reads_address_idx ON sim_reads (address)`
 await sql`CREATE INDEX IF NOT EXISTS sim_reads_last_seen_idx ON sim_reads (last_seen)`
 
+// sim_history — Position-simulator LIQUIDATION-HISTORY CACHE (the SECONDARY PROOF:
+// "how many liquidations would the delay infra have saved this wallet from"). One
+// row per address holding the wallet's real Aave V3 LiquidationCall events already
+// replayed against the 8h cure window / 4% break band, plus rolled-up totals and the
+// method string. Rescanned when older than 24h; a FAILED scan is never written.
+// Written by pages/api/sim/history/[address].ts. Mirrors simHistory in db/schema.ts
+// — keep them in lockstep.
+await sql`CREATE TABLE IF NOT EXISTS sim_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  address text NOT NULL,
+  scanned_at timestamptz NOT NULL DEFAULT now(),
+  to_block bigint,
+  events jsonb NOT NULL DEFAULT '[]'::jsonb,
+  summary jsonb NOT NULL DEFAULT '{}'::jsonb
+)`
+await sql`CREATE UNIQUE INDEX IF NOT EXISTS sim_history_address_idx ON sim_history (address)`
+await sql`CREATE INDEX IF NOT EXISTS sim_history_scanned_at_idx ON sim_history (scanned_at)`
+
 // venue_news — the VENUE NEWS feed. Raw external headlines per venue, fetched
 // from Google News RSS by scripts/fetch-venue-news.mjs. INFORMATION not
 // endorsement: title/source/url/dates stored VERBATIM, no summarization or

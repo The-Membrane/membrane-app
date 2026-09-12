@@ -46,3 +46,34 @@ export const SIM_MODE_LINK_LABEL: Record<SimMode, string> = {
   carry: 'carry-first version →',
   borrower: 'borrower-first version →',
 }
+
+// ---------------------------------------------------------------- hero A/B
+
+/**
+ * WHICH PROOF LEADS THE HERO.
+ *
+ * Owner brief 2026-09-12, on the liquidation-history block: "test this as the hero as
+ * well." So it is an A/B, not a replacement.
+ *
+ *   'oct10'    the measured Oct 10 2025 stress window — the counterfactual verdict the
+ *              page has always led with. A claim about a day, on any wallet.
+ *   'history'  the address's OWN liquidation history, replayed against the 8h window
+ *              and the 4% band — a claim about events that actually happened to it.
+ *
+ * The 'history' hero is NEVER allowed to print a zero or an empty state: with no saved
+ * dollars, or while the scan is still in flight, it falls back to the Oct 10 verdict.
+ * A hero that says "$0" is worse than the hero it replaced.
+ */
+export type HeroVariant = 'oct10' | 'history'
+
+/** THE DEFAULT. One line to flip the whole site to the history hero. */
+export const HERO_VARIANT: HeroVariant = 'oct10'
+
+/**
+ * `?hero=history` / `?hero=oct10` override, so the A/B can be run by LINK without a
+ * deploy. Anything else falls back to HERO_VARIANT — a typo must not blank the hero.
+ */
+export function resolveHeroVariant(query: unknown): HeroVariant {
+  const raw = Array.isArray(query) ? query[0] : query
+  return raw === 'history' || raw === 'oct10' ? raw : HERO_VARIANT
+}

@@ -38,6 +38,7 @@ import {
   OTHER_MODE,
   SIM_MODE_LINK_LABEL,
   SIM_ROUTE,
+  resolveHeroVariant,
   type SimMode,
 } from '@/config/simulatorMode'
 import { SPACING } from '@/config/spacing'
@@ -53,6 +54,8 @@ import {
   demoBorrowerPosition,
   demoDetection,
   demoPosition,
+  DEMO_ADDRESS,
+  DEMO_BORROWER_ADDRESS,
   DEMO_BORROWER_NOTE,
   detectVenues,
   excludeOwnCollateral,
@@ -85,6 +88,8 @@ import EventLog from './EventLog'
 import FinePrint from './FinePrint'
 import CarrySection, { SimCtaRepeat } from './CarrySection'
 import GuaranteeBlock from './GuaranteeBlock'
+import HistoryProof from './HistoryProof'
+import { useSimHistory } from './hooks/useSimHistory'
 import PositionCard from './PositionCard'
 import { recordSimRead } from './recordRead'
 import VerdictHero from './VerdictHero'
@@ -328,6 +333,31 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
   // a rate. See lib/position-sim/carryCost.ts for why undeployed debt is never costed.
   const carry = useMemo(() => carryCost(selected, detection), [selected, detection])
 
+  // ---------------------------------------------------- the secondary proof
+  // THE ADDRESS ON SCREEN. The demo wallet on the demo, the pasted one after a read —
+  // never both, and never the other mode's demo. The hook is shared with HistoryProof
+  // through react-query's cache, so this is one request, not two.
+  const historyAddress =
+    loaded?.address ?? (mode === 'borrower' ? DEMO_BORROWER_ADDRESS : DEMO_ADDRESS)
+  const simHistory = useSimHistory(historyAddress)
+  // The hero's history input. A failed scan reports savedUsd 0, which is exactly the
+  // fallback condition — the hero drops back to the Oct 10 verdict rather than printing
+  // an error where the headline goes. HistoryProof prints the error, in its own block.
+  const heroHistory = useMemo(
+    () => ({
+      savedUsd: simHistory.data && !simHistory.data.error ? simHistory.data.totals.savedUsd : 0,
+      savedCount: simHistory.data && !simHistory.data.error ? simHistory.data.totals.savedCount : 0,
+      firstEventTs: simHistory.data?.since?.firstEventTs ?? null,
+      loading: simHistory.isPending,
+    }),
+    [simHistory.data, simHistory.isPending],
+  )
+  /** ?hero=history flips the A/B by LINK, with no deploy. Captured ONCE at hydration
+   *  (the page rewrites its own URL and would otherwise drop it) and carried in the
+   *  URL state so copy-link keeps the variant. Falls back to HERO_VARIANT. */
+  const [heroOverride, setHeroOverride] = useState<'oct10' | 'history' | null>(null)
+  const heroVariant = resolveHeroVariant(heroOverride ?? undefined)
+
   // -------------------------------------------------------------- comparison
   const comparison = useMemo(() => {
     if (!selected || !scenario) return null
@@ -369,6 +399,7 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
     if (s.recallRate !== undefined) patch.recallRate = s.recallRate
     if (s.fastRate !== undefined) patch.fastRate = s.fastRate
     if (s.deployedUsd !== undefined) patch.deployedUsd = s.deployedUsd
+    if (s.hero !== undefined) setHeroOverride(s.hero)
     const run = async () => {
       if (s.address) {
         setInput(s.address)
@@ -390,8 +421,9 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
       recallRate: selected ? values.recallRate : undefined,
       fastRate: selected ? values.fastRate : undefined,
       deployedUsd: selected ? values.deployedUsd : undefined,
+      hero: heroOverride ?? undefined,
     }),
-    [loaded, selected, values],
+    [loaded, selected, values, heroOverride],
   )
 
   useEffect(() => {
@@ -473,6 +505,18 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
     return `${selected.label} borrow rate read on-chain ${isDemo ? 'at snapshot' : 'at read time'}.`
   }, [selected, carry, isDemo])
 
+  /** The standing notes this run owes the reader. The liquidation-history METHOD is
+   *  printed VERBATIM from the API — the route knows which approximations the scan
+   *  actually made (archive vs current params, truncation, an incomplete log span), and
+   *  a hand-written copy here would go stale the first time one of them changed. */
+  const finePrintNotes = useMemo<string[] | undefined>(() => {
+    const out: string[] = []
+    if (isDemo) out.push(DEMO_WALLET_NOTE[mode])
+    const m = simHistory.data?.method
+    if (m) out.push(m)
+    return out.length > 0 ? out : undefined
+  }, [isDemo, mode, simHistory.data])
+
   const stamps = useMemo<Provenance[]>(() => {
     const out: Provenance[] = []
     if (scenario) out.push(oct10Provenance(scenario.manifest))
@@ -500,6 +544,8 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
         comparison={comparison}
         carry={carry}
         mode={mode}
+        heroVariant={heroVariant}
+        history={heroHistory}
         isDemo={isDemo}
         startTs={scenario?.series.startTs ?? null}
         stepSeconds={scenario?.series.stepSeconds ?? null}
@@ -515,6 +561,12 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
 
       {/* 2 — THE GUARANTEE, verbatim from GUARANTEE. Limit adjacent, never collapsed. */}
       <GuaranteeBlock />
+
+      {/* 2a — THE SECONDARY PROOF. The Oct 10 hero is a counterfactual about one day;
+          this is what the same delay infrastructure would have done to the events that
+          actually happened to the address on screen. A wallet with no history says so
+          in one line and prints no number — never a manufactured near-miss. */}
+      <HistoryProof address={historyAddress} />
 
       {/* 2b — THE PRODUCT, UNDER THE FOLD. Owner layout ruling 2026-09-12: one landing
           page — "the sim is borrows, while under the fold is carries". This is the first
@@ -625,7 +677,7 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
         unpricedSymbols={comparison?.unpricedSymbols ?? []}
         stamps={stamps}
         borrowRateNote={borrowRateNote}
-        extraNotes={isDemo ? [DEMO_WALLET_NOTE[mode]] : undefined}
+        extraNotes={finePrintNotes}
       />
 
       {/* 8 — THE CTA, REPEATED. A reader who got to the bottom of the page should not

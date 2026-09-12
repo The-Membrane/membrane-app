@@ -108,6 +108,10 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       }}
     >
       <Input
+        // Stable anchor: the "Run your position ↑" CTAs under the fold scroll to this
+        // element and focus it (CarrySection, and the CTA repeat at the foot of the
+        // page). Renaming it silently breaks both buttons.
+        id="sim-address-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="0x… paste any address"

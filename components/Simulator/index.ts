@@ -5,7 +5,12 @@ export type { AddressBarProps } from './AddressBar'
 
 export { GuaranteeBlock } from './GuaranteeBlock'
 
-export { VerdictHero } from './VerdictHero'
+export { CarrySection, SimCtaRepeat, focusAddressBar } from './CarrySection'
+export type { CarrySectionProps } from './CarrySection'
+
+export { ClaimsBlock } from './ClaimsBlock'
+
+export { VerdictHero, HERO_SUBHEAD } from './VerdictHero'
 export type { VerdictHeroProps } from './VerdictHero'
 
 export { ComparisonPanel } from './ComparisonPanel'

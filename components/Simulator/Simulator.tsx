@@ -83,7 +83,7 @@ import Controls, { type ControlValues } from './Controls'
 import DeploymentSection from './DeploymentSection'
 import EventLog from './EventLog'
 import FinePrint from './FinePrint'
-import ClaimsBlock from './ClaimsBlock'
+import CarrySection, { SimCtaRepeat } from './CarrySection'
 import GuaranteeBlock from './GuaranteeBlock'
 import PositionCard from './PositionCard'
 import { recordSimRead } from './recordRead'
@@ -515,7 +515,13 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
 
       {/* 2 — THE GUARANTEE, verbatim from GUARANTEE. Limit adjacent, never collapsed. */}
       <GuaranteeBlock />
-      {mode === 'carry' && <ClaimsBlock />}
+
+      {/* 2b — THE PRODUCT, UNDER THE FOLD. Owner layout ruling 2026-09-12: one landing
+          page — "the sim is borrows, while under the fold is carries". This is the first
+          thing below the hero, on BOTH builds (it carries the four claims that used to
+          render standalone on the carry page), and it sells with live evidence rather
+          than description. Its numbers are fetched or stamped modelled, never invented. */}
+      <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} />
 
       {/* 3 — YOUR POSITION */}
       {positions.length > 0 && (
@@ -613,7 +619,7 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
         </Box>
       )}
 
-      {/* 7 — FINE PRINT. Always rendered, never collapsed, last on the page. */}
+      {/* 7 — FINE PRINT. Always rendered, never collapsed, last block before the CTA. */}
       <FinePrint
         caveats={runCaveats}
         unpricedSymbols={comparison?.unpricedSymbols ?? []}
@@ -622,7 +628,12 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
         extraNotes={isDemo ? [DEMO_WALLET_NOTE[mode]] : undefined}
       />
 
-      {/* 8 — THE OTHER BUILD. Both simulators are live and indexable; only one of them
+      {/* 8 — THE CTA, REPEATED. A reader who got to the bottom of the page should not
+          have to hunt for the paste box. Same sentence as the hero, imported from
+          VerdictHero so the two can never drift. */}
+      <SimCtaRepeat />
+
+      {/* 9 — THE OTHER BUILD. Both simulators are live and indexable; only one of them
           is the landing page (config/simulatorMode.ts). One line, at the foot, so the
           other ordering is reachable without spending a nav slot on it. */}
       <Text {...monoXs} color={SEMANTIC_COLORS.textSecondary}>

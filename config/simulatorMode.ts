@@ -18,8 +18,16 @@
 
 export type SimMode = 'carry' | 'borrower'
 
-/** THE FLIP. One line to go back to borrower-first. */
-export const LANDING_SIM_MODE: SimMode = 'carry'
+/**
+ * THE FLIP. One line to go back to carry-first.
+ *
+ * Owner layout ruling 2026-09-12: ONE landing page — "the sim is borrows, while under the
+ * fold is carries". So the borrower build leads: the hero SELLS carry in its subhead and
+ * PROVES the rails with the borrow verdict; CarrySection sells the carry product with its
+ * own live evidence directly under the fold; the CTA repeats at the foot. The carry-first
+ * page stays live, indexable and one constant away.
+ */
+export const LANDING_SIM_MODE: SimMode = 'borrower'
 
 /** Chain-relative route for each mode. Prefix with `/${chain}` to navigate. */
 export const SIM_ROUTE: Record<SimMode, string> = {

@@ -1,5 +1,6 @@
 // THE CARRY CLAIMS — four lines, one caveat. Copy comes only from CARRY_CLAIMS /
-// CARRY_CLAIMS_CAVEAT (owner comms list, Sep 2026). Carry-first page only.
+// CARRY_CLAIMS_CAVEAT (owner comms list, Sep 2026). Rendered inside CarrySection, so it
+// appears under the fold on BOTH builds — it is never mounted standalone any more.
 
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'

@@ -47,6 +47,15 @@ import AddressBar, { type AddressBarProps } from './AddressBar'
 import HeroChart from './HeroChart'
 import { usd, usdSigned } from './format'
 
+/**
+ * THE ONE LINE THAT SELLS THE PRODUCT before the sim proves it. Owner copy, verbatim,
+ * 2026-09-12 — exported because the CTA repeat at the foot of the page renders the same
+ * sentence and the two must never drift apart.
+ */
+export const HERO_SUBHEAD =
+  'Levered yield that recalls debt instead of liquidating you. First, see what the rails ' +
+  'would have done to your current position.'
+
 export interface VerdictHeroProps extends AddressBarProps {
   /** The run. Null while the measured price path is still loading. */
   comparison: Comparison | null
@@ -131,6 +140,23 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
       alignItems="center"
     >
       <Box display="grid" gap={SPACING.base} alignContent="center">
+        {/* THE SUBHEAD (borrower mode only). Owner layout ruling 2026-09-12: one landing
+            page — the hero SELLS the carry product by name, then the sim PROVES the rails
+            with the borrow verdict below it. One line, above the headline, nothing else
+            added to the hero. Verbatim; do not paraphrase. */}
+        {mode === 'borrower' && (
+          <Text
+            data-testid="sim-hero-subhead"
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="14.5px"
+            lineHeight={1.55}
+            maxW="70ch"
+            color={SEMANTIC_COLORS.textSecondary}
+          >
+            {HERO_SUBHEAD}
+          </Text>
+        )}
+
         {v && carryFirst && carry && (
           <>
             <Text

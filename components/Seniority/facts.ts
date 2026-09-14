@@ -171,11 +171,11 @@ export const CONSEQUENCES: Consequence[] = [
     note: 'Brief said "redemption touches debt only". WRONG: it touches no borrower at all. This is the stronger claim.',
   },
   {
-    effect: 'Your debt keeps the rate it was drawn at. Only a new draw takes the live rate, so nothing a venue does reprices what you already owe.',
-    proof: 'rate segments',
+    effect: 'Nobody else’s loss lands on you. Reserve, MBRN and both lender tranches absorb it; the cascade never writes to a position.',
+    proof: 'Cdp._absorbBadDebt',
     proofHref: '/simulator',
-    cite: 'contracts/Cdp.sol:1516-1521 (snapshot at draw) · Cdp.sol:4396 (accrual reads seg.rate) · Cdp.sol:4422-4431 (only a fixed-term flip rewrites it)',
-    note: 'Brief said "can’t be repriced when exit is blocked". There is no exit-keyed freeze (Cdp.notFrozen is `{ _; }`, Cdp.sol:802-804). The real property is unconditional: variable segments are never re-rated after draw; _refreshAdaptiveRate (Cdp.sol:4479-4483) updates the per-asset rate that NEW segments take. Owner confirmed 14 Sep the exit condition was not a mechanism claim.',
+    cite: 'contracts/Cdp.sol:2758-2869 · contracts/Cdp.sol:3214-3260',
+    note: 'Brief listed "can’t be repriced when exit is blocked" here. Owner, 14 Sep: that may be an old claim; the section must state seniority, so this is the loss-order effect. For the record the rate fact is real and unconditional (segments snapshot their rate at draw, Cdp.sol:1516-1521, 4396) but it is a rate property, not a seniority one, and is kept off this row.',
   },
   {
     effect: 'A breach gets 8 hours to cure while it stays inside the asset’s band. Launch collateral is set to 4%. Past the band, the sale is immediate.',

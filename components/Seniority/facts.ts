@@ -13,11 +13,11 @@
  * backed by realized outcomes; docs/MYCELIUM_NARRATIVE.md honesty boundaries.
  */
 
-// NOTE: lib/position-sim/guarantee.ts CARRY_CLAIMS are deliberately NOT imported here.
-// Three of the four fail against the contracts (fee is taken from collateral,
-// LiquidationEngine.sol:1553-1563; no exit-triggered rate freeze, Cdp.sol:802-804;
-// no 14-day yield-cover mechanism exists). They still ship on /simulator and /carry;
-// that is an owner ruling to revisit, not this file's to overwrite.
+// NOTE: lib/position-sim/guarantee.ts CARRY_CLAIMS are NOT imported wholesale. Two of
+// the four fail against the contracts as worded (fee is taken from collateral,
+// LiquidationEngine.sol:1553-1563; the "when exit is blocked" condition names no
+// mechanism, Cdp.sol:802-804). The 14-day yield cover is the owner's forward claim,
+// ruled in 2026-09-14 (the mechanism is being built); it is carried verbatim below.
 
 // ---------------------------------------------------------------------------
 // HERO
@@ -258,6 +258,9 @@ export const CARRY = {
   headline: 'The debt earns the yield. That is what makes a recall possible.',
   sub: 'When a position must unwind, the engine pulls the deployed CDT back and burns it against the debt. The recall itself charges nothing.',
   claims: [
+    // Owner's wording, 2026-09-12; ruled in 2026-09-14. Same string as CARRY_CLAIMS[0]
+    // and VerdictHero's carry line; the three must never drift.
+    'Borrow cost comes out of the carry yield. If the spread inverts, curators cover 14 days of yield to give you time to act.',
     'The debt is deployed to venues and the yield accrues against it.',
     'Unwinds run in the engine. No outside keeper has to fire for a recall to happen.',
     'A recall pulls CDT back from the venue and burns it against the debt, measured by balance delta.',

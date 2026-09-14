@@ -43,6 +43,7 @@ import {
 } from '@/config/simulatorMode'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import useWallet from '@/hooks/useWallet'
 import { monoXs, tabular } from '@/components/Builder/styles'
 import {
   MAX_LIQ_FEE,
@@ -58,6 +59,7 @@ import {
   DEMO_BORROWER_ADDRESS,
   DEMO_BORROWER_NOTE,
   detectVenues,
+  engineOutcome,
   excludeOwnCollateral,
   loadOct10,
   measuredRepayFraction,
@@ -87,6 +89,7 @@ import DeploymentSection from './DeploymentSection'
 import EventLog from './EventLog'
 import FinePrint from './FinePrint'
 import CarrySection, { SimCtaRepeat } from './CarrySection'
+import { usd, utcClock } from './format'
 import GuaranteeBlock from './GuaranteeBlock'
 import HistoryProof from './HistoryProof'
 import { useSimHistory } from './hooks/useSimHistory'
@@ -205,13 +208,18 @@ const ZERO_CONTROLS: ControlValues = {
 export interface SimulatorProps {
   /** Which demo the page opens on, and which story leads the hero. */
   mode?: SimMode
+  /**
+   * HERO FORM. Renders the verdict and the named guarantee and stops there, plus the
+   * "why it held" receipt when the Membrane run survived. Used by the seniority landing
+   * (components/Seniority/Hero.tsx); the whole page still lives at its own route.
+   */
+  hero?: boolean
 }
 
-export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE }) => {
+export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, hero = false }) => {
   const router = useRouter()
   /** Keeps the sibling-mode link on the chain the reader is already on. */
-  const chainForLinks =
-    typeof router.query.chain === 'string' ? router.query.chain : DEFAULT_CHAIN
+  const chainForLinks = typeof router.query.chain === 'string' ? router.query.chain : DEFAULT_CHAIN
 
   // ---------------------------------------------------------------- scenario
   const [scenario, setScenario] = useState<{ series: Oct10Series; manifest: Oct10Manifest } | null>(
@@ -272,6 +280,25 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
     }
   }, [])
 
+  // ------------------------------------------------------- wallet prefill
+  // THE INTENT-PRESERVING CONNECT (CLAUDE.md V20). There is still no wallet GATE here:
+  // the page opens fully populated on the demo wallet and stays that way for a stranger.
+  // Connecting simply supplies the address the reader would otherwise have pasted, so
+  // the CTA they already saw runs on their own position instead of the demo's.
+  //
+  // It fires once per address (ref guard) and only while the reader has typed nothing
+  // and read nothing — a pasted address, or one hydrated from the URL, always wins.
+  const { address } = useWallet()
+  const prefilled = useRef<string | null>(null)
+  useEffect(() => {
+    if (!address || isLoading) return
+    if (input !== '' || loaded !== null) return
+    if (prefilled.current === address) return
+    prefilled.current = address
+    setInput(address)
+    void readAddress(address)
+  }, [address, input, loaded, isLoading, readAddress])
+
   // --------------------------------------------------------------- positions
   // THE DEMO IS PICKED BY MODE, and by nothing else. Neither demo ever leaks into the
   // other page, and neither survives a pasted address.
@@ -315,10 +342,7 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
     () => excludeOwnCollateral(rawDetection, selected),
     [rawDetection, selected],
   )
-  const detectedRecall = useMemo<VenueRecall | null>(
-    () => toVenueRecall(detection),
-    [detection],
-  )
+  const detectedRecall = useMemo<VenueRecall | null>(() => toVenueRecall(detection), [detection])
 
   const derived = useMemo(
     () =>
@@ -564,6 +588,21 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
     return out
   }, [scenario, detection, isDemo, demoPos])
 
+  /**
+   * WHY IT HELD. Only rendered when the Membrane run finished with no collateral-seizing
+   * liquidation (engineOutcome, lib/position-sim/outcome.ts) — the receipt behind that
+   * verdict, not a second claim about it.
+   *
+   * The rows are the recall and cure events the engine ALREADY recorded for the event
+   * log; nothing is recomputed and no engine logic is added here. `null` means the
+   * position was liquidated (or there is no run yet), and the block is skipped.
+   */
+  const heldEvents = useMemo(() => {
+    if (!comparison) return null
+    if (engineOutcome(comparison.membrane).liquidated) return null
+    return comparison.membrane.events.filter((e) => e.kind === 'recall' || e.kind === 'cure')
+  }, [comparison])
+
   // ------------------------------------------------------------------ render
   return (
     <Box
@@ -603,157 +642,206 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE })
       {/* 2 — THE GUARANTEE, verbatim from GUARANTEE. Limit adjacent, never collapsed. */}
       <Section>
         <GuaranteeBlock />
+
+        {/* 2h — WHY IT HELD. Hero form only: the guarantee states the rule, this states
+            what the rule did on THIS run. One mono line per recorded event. */}
+        {hero && heldEvents !== null && (
+          <Box
+            mt={SPACING.base}
+            border="1px solid"
+            borderColor={SEMANTIC_COLORS.borderSubtle}
+            borderRadius={0}
+            px={SPACING.base}
+            py={SPACING.md}
+            display="grid"
+            gap={SPACING.sm}
+          >
+            <Text {...HEAD}>why it held</Text>
+            {heldEvents.length === 0 ? (
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="11px"
+                color={SEMANTIC_COLORS.textPrimary}
+                {...tabular}
+              >
+                Stayed inside the 4% band for the whole window.
+              </Text>
+            ) : (
+              heldEvents.map((e, k) => (
+                <Text
+                  key={`held-${e.minute}-${k}`}
+                  title={e.why}
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="11px"
+                  color={SEMANTIC_COLORS.textPrimary}
+                  {...tabular}
+                >
+                  {utcClock(e.ts)} · {e.kind} · recalled {usd(e.recalledUsd)} · repaid{' '}
+                  {usd(e.repaidUsd)}
+                </Text>
+              ))
+            )}
+          </Box>
+        )}
       </Section>
 
-      {/* 2a — THE SECONDARY PROOF. The Oct 10 hero is a counterfactual about one day;
+      {/* SECTIONS 2a THROUGH 9 belong to the full page only. In hero form the block
+          above is the end of the component and the rest of the sim lives at its own
+          route — nothing below is restructured, it is simply not mounted. */}
+      {!hero && (
+        <>
+          {/* 2a — THE SECONDARY PROOF. The Oct 10 hero is a counterfactual about one day;
           this is what the same delay infrastructure would have done to the events that
           actually happened to the address on screen. A wallet with no history says so
           in one line and prints no number — never a manufactured near-miss.
           EVIDENCE band: measured events, not a claim. */}
-      <Section tone="evidence">
-        <HistoryProof address={historyAddress} />
-      </Section>
+          <Section tone="evidence">
+            <HistoryProof address={historyAddress} />
+          </Section>
 
-      {/* 2b — THE PRODUCT, UNDER THE FOLD. Owner layout ruling 2026-09-12: one landing
+          {/* 2b — THE PRODUCT, UNDER THE FOLD. Owner layout ruling 2026-09-12: one landing
           page — "the sim is borrows, while under the fold is carries". This is the first
           thing below the hero, on BOTH builds (it carries the four claims that used to
           render standalone on the carry page), and it sells with live evidence rather
           than description. Its numbers are fetched or stamped modelled, never invented. */}
-      <Section tone="evidence">
-        <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} detection={detection} />
-      </Section>
+          <Section tone="evidence">
+            <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} detection={detection} />
+          </Section>
 
-      {/* 3 — YOUR POSITION */}
-      {positions.length > 0 && (
-        <Section>
-          <Box display="grid" gap={SPACING.md}>
-            <Box display="flex" gap={SPACING.md} alignItems="baseline" flexWrap="wrap">
-              <Text {...SECTION}>your position</Text>
-              {isDemo && (
-                <Text {...SECTION} color={SEMANTIC_COLORS.textSecondary}>
-                  real wallet · {demoTag}
-                </Text>
-              )}
-            </Box>
+          {/* 3 — YOUR POSITION */}
+          {positions.length > 0 && (
+            <Section>
+              <Box display="grid" gap={SPACING.md}>
+                <Box display="flex" gap={SPACING.md} alignItems="baseline" flexWrap="wrap">
+                  <Text {...SECTION}>your position</Text>
+                  {isDemo && (
+                    <Text {...SECTION} color={SEMANTIC_COLORS.textSecondary}>
+                      real wallet · {demoTag}
+                    </Text>
+                  )}
+                </Box>
 
-            {/* one line per adapter, status only */}
-            {loaded && (
-              <Box display="flex" gap={SPACING.md} flexWrap="wrap">
-                {loaded.results.map((r) => (
-                  <Text
-                    key={`${r.protocol}-${r.label}`}
-                    fontFamily={TYPOGRAPHY.fontMono}
-                    fontSize="11px"
-                    color={STATUS_COLOR[r.status]}
-                    {...tabular}
-                  >
-                    {r.label} · {r.status}
-                    {r.status === 'ok' ? ` · ${r.positions.length} positions` : ''}
-                  </Text>
+                {/* one line per adapter, status only */}
+                {loaded && (
+                  <Box display="flex" gap={SPACING.md} flexWrap="wrap">
+                    {loaded.results.map((r) => (
+                      <Text
+                        key={`${r.protocol}-${r.label}`}
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize="11px"
+                        color={STATUS_COLOR[r.status]}
+                        {...tabular}
+                      >
+                        {r.label} · {r.status}
+                        {r.status === 'ok' ? ` · ${r.positions.length} positions` : ''}
+                      </Text>
+                    ))}
+                  </Box>
+                )}
+
+                {positions.map((p) => (
+                  <PositionCard
+                    key={keyOf(p)}
+                    position={p}
+                    selectable={positions.length > 1}
+                    selected={
+                      positions.length > 1 && selected ? keyOf(p) === keyOf(selected) : undefined
+                    }
+                    onSelect={positions.length > 1 ? () => onSelectPosition(keyOf(p)) : undefined}
+                  />
                 ))}
               </Box>
-            )}
+            </Section>
+          )}
 
-            {positions.map((p) => (
-              <PositionCard
-                key={keyOf(p)}
-                position={p}
-                selectable={positions.length > 1}
-                selected={
-                  positions.length > 1 && selected ? keyOf(p) === keyOf(selected) : undefined
-                }
-                onSelect={positions.length > 1 ? () => onSelectPosition(keyOf(p)) : undefined}
-              />
-            ))}
-          </Box>
-        </Section>
-      )}
+          {/* 4 — WHAT YOU ARE ASSUMING */}
+          {selected && (
+            <Section>
+              <Box display="grid" gap={SPACING.md}>
+                <Text {...SECTION}>what you are assuming</Text>
+                <Box maxW={{ base: '100%', md: '760px' }}>
+                  <Controls
+                    values={values}
+                    onChange={onControlChange}
+                    onReset={onResetControls}
+                    unknownLtvSymbols={derived.unknown}
+                    venueDetected={detection?.status === 'detected'}
+                    assumedDeploymentNote={undefined}
+                    ltvProvenance={MEMBRANE_LTV_PROVENANCE}
+                    venueProvenance={venueProvenance}
+                  />
+                </Box>
+              </Box>
+            </Section>
+          )}
 
-      {/* 4 — WHAT YOU ARE ASSUMING */}
-      {selected && (
-        <Section>
-          <Box display="grid" gap={SPACING.md}>
-            <Text {...SECTION}>what you are assuming</Text>
-            <Box maxW={{ base: '100%', md: '760px' }}>
-              <Controls
-                values={values}
-                onChange={onControlChange}
-                onReset={onResetControls}
-                unknownLtvSymbols={derived.unknown}
-                venueDetected={detection?.status === 'detected'}
-                assumedDeploymentNote={undefined}
-                ltvProvenance={MEMBRANE_LTV_PROVENANCE}
-                venueProvenance={venueProvenance}
-              />
-            </Box>
-          </Box>
-        </Section>
-      )}
+          {/* 5 — THE RUN. EVIDENCE band: this is the measured comparison itself. */}
+          {selected && (
+            <Section tone="evidence">
+              <Box display="grid" gap={SPACING.md}>
+                <Text {...SECTION}>the run</Text>
 
-      {/* 5 — THE RUN. EVIDENCE band: this is the measured comparison itself. */}
-      {selected && (
-        <Section tone="evidence">
-          <Box display="grid" gap={SPACING.md}>
-            <Text {...SECTION}>the run</Text>
+                {measuredError && (
+                  <Text {...monoXs} color={SEMANTIC_COLORS.warning} lineHeight={1.6}>
+                    Measured Oct 10 liquidation statistics unavailable · documented close factor
+                    used
+                  </Text>
+                )}
 
-            {measuredError && (
-              <Text {...monoXs} color={SEMANTIC_COLORS.warning} lineHeight={1.6}>
-                Measured Oct 10 liquidation statistics unavailable · documented close factor used
-              </Text>
-            )}
+                {comparison && (
+                  <>
+                    <ComparisonPanel
+                      comparison={comparison}
+                      onSaveCard={onSaveCard}
+                      onCopyLink={onCopyLink}
+                      copyState={copyState}
+                    />
+                    <EventLog
+                      source={comparison.source}
+                      membrane={comparison.membrane}
+                      sourceTitle={comparison.position.label}
+                    />
+                  </>
+                )}
 
-            {comparison && (
-              <>
-                <ComparisonPanel
-                  comparison={comparison}
-                  onSaveCard={onSaveCard}
-                  onCopyLink={onCopyLink}
-                  copyState={copyState}
+                <DeploymentSection
+                  detection={detection}
+                  recallRate={values.recallRate}
+                  fastRate={values.fastRate}
                 />
-                <EventLog
-                  source={comparison.source}
-                  membrane={comparison.membrane}
-                  sourceTitle={comparison.position.label}
-                />
-              </>
-            )}
+              </Box>
+            </Section>
+          )}
 
-            <DeploymentSection
-              detection={detection}
-              recallRate={values.recallRate}
-              fastRate={values.fastRate}
+          {/* 7 — FINE PRINT. Always rendered, never collapsed, last block before the CTA. */}
+          <Section>
+            <FinePrint
+              caveats={runCaveats}
+              unpricedSymbols={comparison?.unpricedSymbols ?? []}
+              stamps={stamps}
+              borrowRateNote={borrowRateNote}
+              extraNotes={finePrintNotes}
             />
-          </Box>
-        </Section>
-      )}
+          </Section>
 
-      {/* 7 — FINE PRINT. Always rendered, never collapsed, last block before the CTA. */}
-      <Section>
-        <FinePrint
-          caveats={runCaveats}
-          unpricedSymbols={comparison?.unpricedSymbols ?? []}
-          stamps={stamps}
-          borrowRateNote={borrowRateNote}
-          extraNotes={finePrintNotes}
-        />
-      </Section>
-
-      {/* 8 — THE CTA, REPEATED. A reader who got to the bottom of the page should not
+          {/* 8 — THE CTA, REPEATED. A reader who got to the bottom of the page should not
           have to hunt for the paste box. Same sentence as the hero, imported from
           VerdictHero so the two can never drift. */}
-      <Section>
-        <SimCtaRepeat />
-      </Section>
+          <Section>
+            <SimCtaRepeat />
+          </Section>
 
-      {/* 9 — THE OTHER BUILD. Both simulators are live and indexable; only one of them
+          {/* 9 — THE OTHER BUILD. Both simulators are live and indexable; only one of them
           is the landing page (config/simulatorMode.ts). One line, at the foot, so the
           other ordering is reachable without spending a nav slot on it. Not a section:
           a footnote below the last band. */}
-      <Text {...monoXs} color={SEMANTIC_COLORS.textSecondary} pt={SPACING.base}>
-        <NextLink href={`/${chainForLinks}${SIM_ROUTE[OTHER_MODE[mode]]}`}>
-          {SIM_MODE_LINK_LABEL[OTHER_MODE[mode]]}
-        </NextLink>
-      </Text>
+          <Text {...monoXs} color={SEMANTIC_COLORS.textSecondary} pt={SPACING.base}>
+            <NextLink href={`/${chainForLinks}${SIM_ROUTE[OTHER_MODE[mode]]}`}>
+              {SIM_MODE_LINK_LABEL[OTHER_MODE[mode]]}
+            </NextLink>
+          </Text>
+        </>
+      )}
     </Box>
   )
 }

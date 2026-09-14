@@ -6,7 +6,7 @@ import Head from 'next/head'
 
 import PageSeo from '@/components/PageSeo'
 import { SITE_URL } from '@/components/Seo'
-import { Evidence } from '@/components/Evidence'
+import { SeniorityLanding } from '@/components/Seniority'
 import type { EvidenceDoc } from '@/components/Evidence'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
 
@@ -68,17 +68,22 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 }
 
 /**
- * The landing page is the counterfactual tool.
+ * The landing page is the seniority argument.
  *
- * A stranger arriving with no wallet gets the strongest thing we have: 2,350 real
- * Aave accounts liquidated on 10 Oct 2025, replayed through Membrane's own engine —
- * including the 105 accounts where Membrane does worse. The former marketing home
- * moved to /[chain]/home; the per-address simulator is at /[chain]/simulator.
+ * A stranger arriving with no wallet gets a fully populated page: where a borrower
+ * sits in the loss waterfall, what that order buys them, and the 2,350 real Aave
+ * accounts liquidated on 10 Oct 2025 replayed through Membrane's own engine in the
+ * close. Every factual sentence comes from components/Seniority/facts.ts with a
+ * contract citation. The full filterable cohort tool lives at /[chain]/evidence; the
+ * per-address simulator is at /[chain]/simulator.
  *
- * seoClass is `indexable` (not `internal`) because this is now the entry page a
+ * seoClass is `indexable` (not `internal`) because this is the entry page a
  * stranger should find via search — docs/SEO_RULESET.md Rule 0. `path` is passed
  * explicitly so the canonical + og:url resolve to the chain root rather than to
  * whatever URL the visitor happened to arrive on.
+ *
+ * The server-rendered summary is still read here: the Close band mounts the Evidence
+ * DebtLens on it, so a crawler sees real figures rather than a spinner (R1).
  */
 const IndexPage = ({ summary }: { summary: EvidenceDoc | null }) => {
     return (
@@ -86,8 +91,8 @@ const IndexPage = ({ summary }: { summary: EvidenceDoc | null }) => {
             <PageSeo
                 seoClass="indexable"
                 path={`/${DEFAULT_CHAIN}`}
-                title="Membrane — What Our Engine Would Have Done"
-                description="Every account Aave liquidated on 10 October 2025, replayed through Membrane's liquidation engine on the same measured prices. Aave closed a median 71% of each loan; Membrane's partial repay-to-cap closes 17.8%. Includes the accounts where Membrane does worse."
+                title="Membrane: Borrowers are senior here"
+                description="Four layers take a loss before it reaches a Membrane borrower: the reserve, MBRN staked under the asset, junior lenders, then senior lenders. The bad-debt cascade never writes to a position, and redemption is served by curator vaults. Every claim cites the contract line behind it."
             />
             {structuredData && (
                 <Head>
@@ -98,7 +103,7 @@ const IndexPage = ({ summary }: { summary: EvidenceDoc | null }) => {
                     />
                 </Head>
             )}
-            <Evidence initialDoc={summary} />
+            <SeniorityLanding initialDoc={summary} />
         </>
     )
 }

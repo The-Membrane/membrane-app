@@ -19,8 +19,8 @@ import useAppState from '@/persisted-state/useAppState';
 // game goes public before any executable page. Only the wallet-free surfaces sit at the top
 // level; everything that needs a live contract is grouped under the "Coming soon" menu.
 // Keeping all 13 flat overflowed the nav and pushed the whole document sideways by 252px.
-// Evidence renders at the chain root ('/ethereum'); '/' itself redirects to the simulator
-// rather than /evidence — that route 307s here, keeping one canonical URL.
+// The chain root ('/ethereum') is the seniority landing; the Evidence tool has its own
+// URL at '/evidence' and the landing links to it, so each surface has one canonical URL.
 // The old marketing home moved to /home; it was not deleted.
 // Carry-first app (owner ruling 2026-09-06, docs/research/carry-userflows.md):
 // Carry leads the nav right after the trust-story landing. Calculator moved down
@@ -31,7 +31,7 @@ const navItems = [
     // (owner ruling 2026-09-12). The other build is reachable by URL and from a
     // one-line link at the foot of each simulator page — it does not get a slot.
     { label: 'Simulator', href: SIM_ROUTE[LANDING_SIM_MODE] },
-    { label: 'Evidence', href: '/' },
+    { label: 'Evidence', href: '/evidence' },
     { label: 'Carry', href: '/carry' },
     // Wallet-free carry-trader decision tool: paste any address, stress its
     // positions against our recorded venue capacity + flow corpus.

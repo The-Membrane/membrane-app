@@ -65,9 +65,9 @@ export const GUARANTEE = {
  */
 export const CARRY_CLAIMS = [
   'Borrow cost comes out of the carry yield. If the spread inverts, curators cover 14 days of yield to give you time to act.',
-  'No babysitting, no keeper to fail. Unwinds run in-house and take their fee from the debt, never your principal.',
+  'No babysitting, no keeper to fail. Unwinds run in-house with no protocol fee.',
   "A venue that blocks your exit can't reprice you. No Aave-style rate hike while you wait.",
-  'A recall costs a fee on the debt — not a swap-and-rebalance bill every time a keeper adjusts you.',
+  'A recall carries no protocol fee, against a swap-and-rebalance bill every time a keeper adjusts you.',
 ] as const
 
 /** The caveat that rides with the claims, never collapsed. */

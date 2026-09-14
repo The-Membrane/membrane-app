@@ -264,7 +264,7 @@ export const CARRY = {
     'The debt is deployed to venues and the yield accrues against it.',
     'Unwinds run in the engine. No outside keeper has to fire for a recall to happen.',
     'A recall pulls CDT back from the venue and burns it against the debt, measured by balance delta.',
-    'The liquidation fee is sized on what is repaid and taken from collateral; it is capped by collateral value.',
+    'No protocol fee on liquidation. The liquidator’s fee is sized on what is repaid and capped by collateral value.',
   ] as const,
   href: '/carry',
   cite: 'contracts/LiquidationEngine.sol:1105-1280,1235-1250,1504-1563 · contracts/Cdp.sol:3023,3127-3151',

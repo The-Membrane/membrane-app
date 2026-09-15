@@ -46,7 +46,6 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import useWallet from '@/hooks/useWallet'
 import { monoXs, tabular } from '@/components/Builder/styles'
 import {
-  MAX_LIQ_FEE,
   MEMBRANE_LTV_PROVENANCE,
   buildPricePath,
   DEMO_SNAPSHOT_NOTE,
@@ -170,19 +169,18 @@ const STATUS_COLOR: Record<AdapterResult['status'], string> = {
 /**
  * The default Membrane liquidation fee.
  *
- * We refuse to pick a flattering number here. The fee is matched to the SOURCE
- * protocol's own collateral-weighted liquidation bonus, so any gap in the result comes
- * from the repay mechanics rather than from handing Membrane a cheaper liquidator.
- * When no leg exposes a bonus there is nothing to match, so it starts at the real 10%
- * contract ceiling — the least favourable setting for Membrane — instead of a guess.
+ * Owner ruling 2026-09-14: the protocol liquidation fee is 0 (membrane-solidity
+ * 318f3915, script/DeployFullSystem.s.sol LIQ_FEE = 0). A pasted address therefore starts
+ * at the deployed value, the same one the demo already used. The earlier default matched
+ * the source protocol's collateral-weighted liquidation bonus so the comparison could not
+ * be accused of handing Membrane a cheaper liquidator; that guarded against a claim the
+ * deploy no longer makes, and it overstated Membrane's cost on every real address. The
+ * control still exists: the reader can set any fee up to the 10% contract ceiling and the
+ * URL carries it. The liquidator's own ramp (LiquidationEngine.sol:1504-1514) is not a
+ * protocol fee and is outside this model.
  */
-function defaultLiqFee(p: ProtocolPosition): number {
-  const priced = p.collateral.filter((c) => c.liquidationBonus !== null)
-  const value = priced.reduce((a, c) => a + c.valueUsd, 0)
-  if (value === 0) return MAX_LIQ_FEE
-  const weighted =
-    priced.reduce((a, c) => a + (c.liquidationBonus as number) * c.valueUsd, 0) / value
-  return Math.min(MAX_LIQ_FEE, Math.max(0, weighted))
+function defaultLiqFee(_p: ProtocolPosition): number {
+  return 0
 }
 
 /** The one sentence the fine print owes the reader about the default wallet, per mode. */
